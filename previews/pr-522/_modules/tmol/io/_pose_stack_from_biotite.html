@@ -994,7 +994,11 @@
         <span class="k">if</span> <span class="n">param_db</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">param_db</span> <span class="o">=</span> <span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
 
-        <span class="n">param_db</span><span class="p">,</span> <span class="n">co</span><span class="p">,</span> <span class="n">fragment_definitions</span> <span class="o">=</span> <span class="n">_prepare_ligands</span><span class="p">(</span>
+        <span class="c1"># Take the names preparation cut a covalent bond to. A ligand skipped</span>
+        <span class="c1"># under strict_ligands=False loses its bonds there, and building the</span>
+        <span class="c1"># pose from the original graph would reject the dangling partner the</span>
+        <span class="c1"># caller was told would simply be dropped.</span>
+        <span class="n">param_db</span><span class="p">,</span> <span class="n">co</span><span class="p">,</span> <span class="n">fragment_definitions</span><span class="p">,</span> <span class="n">cut_partners</span> <span class="o">=</span> <span class="n">_prepare_ligands</span><span class="p">(</span>
             <span class="n">biotite_structure</span><span class="p">,</span>
             <span class="n">param_db</span><span class="o">=</span><span class="n">param_db</span><span class="p">,</span>
             <span class="n">ph</span><span class="o">=</span><span class="n">ligand_ph</span><span class="p">,</span>
@@ -1002,6 +1006,7 @@
             <span class="n">params_files</span><span class="o">=</span><span class="n">ligand_params_files</span><span class="p">,</span>
             <span class="n">strict_ligands</span><span class="o">=</span><span class="n">strict_ligands</span><span class="p">,</span>
             <span class="n">return_fragment_definitions</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">return_cut_partners</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">chem_comp_types</span><span class="o">=</span><span class="n">chem_comp_types</span><span class="p">,</span>
             <span class="n">use_ccd</span><span class="o">=</span><span class="n">use_ccd</span><span class="p">,</span>
             <span class="n">seed</span><span class="o">=</span><span class="n">ligand_seed</span><span class="p">,</span>
@@ -1018,6 +1023,7 @@
             <span class="n">rts</span><span class="o">.</span><span class="n">chem_db</span><span class="p">,</span> <span class="n">rts</span><span class="p">,</span> <span class="n">rts</span><span class="o">.</span><span class="n">residue_types</span><span class="p">,</span> <span class="n">torch_device</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">PoseBuildContext</span><span class="p">(</span>
+            <span class="n">cut_covalent_partners</span><span class="o">=</span><span class="n">cut_partners</span><span class="p">,</span>
             <span class="n">canonical_ordering</span><span class="o">=</span><span class="n">co</span><span class="p">,</span>
             <span class="n">packed_block_types</span><span class="o">=</span><span class="n">pbt</span><span class="p">,</span>
             <span class="n">parameter_database</span><span class="o">=</span><span class="n">param_db</span><span class="p">,</span>
@@ -1197,6 +1203,7 @@
         <span class="n">co</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">canonical_ordering</span><span class="p">,</span>
         <span class="n">missing_density_distance_threshold</span><span class="o">=</span><span class="n">missing_density_distance_threshold</span><span class="p">,</span>
         <span class="n">atom37_coords</span><span class="o">=</span><span class="n">atom37_coords</span><span class="p">,</span>
+        <span class="n">_cut_covalent_partners</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">cut_covalent_partners</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">disconnected</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"res_not_connected"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">disconnected</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1281,7 +1288,11 @@
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_missing_sidechains</span>
 
     <span class="k">if</span> <span class="n">atom37_coords</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Both searches are geometric, so leaving either on makes the chemistry</span>
+        <span class="c1"># depend on how close the coordinates happen to be -- and, because the</span>
+        <span class="c1"># topology is cached, on which frame of a trajectory arrived first.</span>
         <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">"find_additional_disulfides"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">"find_additional_cyclic_closures"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
 
     <span class="n">caller_requested_atom_mapping</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"return_atom_mapping"</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">atom37_coords</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1635,7 +1646,13 @@
 
     <span class="n">found</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">disulfides</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">atom1</span><span class="p">,</span> <span class="n">atom2</span><span class="p">,</span> <span class="n">_order</span> <span class="ow">in</span> <span class="n">array</span><span class="o">.</span><span class="n">bonds</span><span class="o">.</span><span class="n">as_array</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">atom1</span><span class="p">,</span> <span class="n">atom2</span><span class="p">,</span> <span class="n">order</span> <span class="ow">in</span> <span class="n">array</span><span class="o">.</span><span class="n">bonds</span><span class="o">.</span><span class="n">as_array</span><span class="p">():</span>
+        <span class="c1"># A metal's bonds are retyped COORDINATION upstream. They are not</span>
+        <span class="c1"># covalent attachments, and declaring one asks for a residue type that</span>
+        <span class="c1"># describes an ion bonded through a named connection. The sibling scan</span>
+        <span class="c1"># below skips them for the same reason.</span>
+        <span class="k">if</span> <span class="n">order</span> <span class="o">==</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">COORDINATION</span><span class="p">:</span>
+            <span class="k">continue</span>
         <span class="n">res1</span><span class="p">,</span> <span class="n">res2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">atom_res_inds</span><span class="p">[</span><span class="n">atom1</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">atom_res_inds</span><span class="p">[</span><span class="n">atom2</span><span class="p">])</span>
         <span class="k">if</span> <span class="n">res1</span> <span class="o">==</span> <span class="n">res2</span><span class="p">:</span>
             <span class="k">continue</span>
@@ -1670,7 +1687,9 @@
     <span class="k">return</span> <span class="n">biotite_structure</span><span class="o">.</span><span class="n">res_name</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_validate_filtered_covalent_partners</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">co</span><span class="p">,</span> <span class="n">atom_res</span><span class="p">,</span> <span class="n">valid_res</span><span class="p">,</span> <span class="n">res_names</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_validate_filtered_covalent_partners</span><span class="p">(</span>
+    <span class="n">array</span><span class="p">,</span> <span class="n">co</span><span class="p">,</span> <span class="n">atom_res</span><span class="p">,</span> <span class="n">valid_res</span><span class="p">,</span> <span class="n">res_names</span><span class="p">,</span> <span class="n">cut_partners</span><span class="o">=</span><span class="nb">frozenset</span><span class="p">()</span>
+<span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Allow sequential backbone gaps, but not a dangling chemical partner.</span>
 
 <span class="sd">    This runs only when a non-water residue is removed. Complete structures</span>
@@ -1678,7 +1697,11 @@
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">array</span><span class="o">.</span><span class="n">bonds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span>
-    <span class="n">removed</span> <span class="o">=</span> <span class="o">~</span><span class="n">valid_res</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">res_names</span> <span class="o">!=</span> <span class="s2">"HOH"</span><span class="p">)</span>
+    <span class="c1"># A residue whose covalent bond ligand preparation already cut, because the</span>
+    <span class="c1"># caller passed strict_ligands=False, is a partner it was told to drop.</span>
+    <span class="n">removed</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="o">~</span><span class="n">valid_res</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">res_names</span> <span class="o">!=</span> <span class="s2">"HOH"</span><span class="p">)</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">numpy</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">res_names</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">cut_partners</span><span class="p">))</span>
+    <span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">numpy</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">removed</span><span class="p">):</span>
         <span class="k">return</span>
     <span class="n">bonds</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">bonds</span><span class="o">.</span><span class="n">as_array</span><span class="p">()</span>
@@ -1758,6 +1781,7 @@
     <span class="n">co</span><span class="p">:</span> <span class="n">CanonicalOrdering</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">filter_missing_mainchain</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">cut_partners</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(),</span>
 <span class="p">):</span>
     <span class="n">biotite_residues</span> <span class="o">=</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_residues</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">to_remove</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"HOH"</span><span class="p">}</span>
@@ -1816,7 +1840,12 @@
 
     <span class="n">atom_res</span> <span class="o">=</span> <span class="n">get_all_residue_positions</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">)</span>
     <span class="n">_validate_filtered_covalent_partners</span><span class="p">(</span>
-        <span class="n">_template_array</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">),</span> <span class="n">co</span><span class="p">,</span> <span class="n">atom_res</span><span class="p">,</span> <span class="n">valid_res</span><span class="p">,</span> <span class="n">biotite_residues</span>
+        <span class="n">_template_array</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">),</span>
+        <span class="n">co</span><span class="p">,</span>
+        <span class="n">atom_res</span><span class="p">,</span>
+        <span class="n">valid_res</span><span class="p">,</span>
+        <span class="n">biotite_residues</span><span class="p">,</span>
+        <span class="n">cut_partners</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">valid_atoms</span> <span class="o">=</span> <span class="n">valid_res</span><span class="p">[</span><span class="n">atom_res</span><span class="p">]</span>
 
@@ -2325,6 +2354,7 @@
     <span class="n">missing_density_distance_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.4</span><span class="p">,</span>
     <span class="n">atom37_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">_filter_missing_mainchain</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">_cut_covalent_partners</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(),</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CanonicalForm</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Convert a Biotite AtomArray or AtomArrayStack to a CanonicalForm.</span>
 
@@ -2378,6 +2408,7 @@
         <span class="n">biotite_structure</span><span class="p">,</span>
         <span class="n">co</span><span class="p">,</span>
         <span class="n">filter_missing_mainchain</span><span class="o">=</span><span class="p">(</span><span class="n">_filter_missing_mainchain</span> <span class="ow">and</span> <span class="n">atom37_coords</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="n">cut_partners</span><span class="o">=</span><span class="n">_cut_covalent_partners</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="p">(</span>
         <span class="n">biotite_chain_id_for_res</span><span class="p">,</span>

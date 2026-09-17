@@ -779,8 +779,19 @@
 <span class="sd">        reach MAX_HIER_DEPTH elements.</span>
 <span class="sd">        """</span>
         <span class="n">hierarchy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_database</span><span class="o">.</span><span class="n">hierarchy_for</span><span class="p">(</span><span class="n">atom_type</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">hierarchy</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">MAX_HIER_DEPTH</span><span class="p">:</span>
+            <span class="c1"># Silently dropping the most generic levels makes a torsion that</span>
+            <span class="c1"># only matches there score zero between blocks while scoring</span>
+            <span class="c1"># normally within one. The kernels carry GB_MAX_HIER_DEPTH entries;</span>
+            <span class="c1"># say so rather than truncate.</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">atom_type</span><span class="si">}</span><span class="s2">: generic-bonded hierarchy is </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">hierarchy</span><span class="p">)</span><span class="si">}</span><span class="s2"> deep, "</span>
+                <span class="sa">f</span><span class="s2">"but the scoring kernels carry </span><span class="si">{</span><span class="n">MAX_HIER_DEPTH</span><span class="si">}</span><span class="s2">. Raise "</span>
+                <span class="s2">"MAX_HIER_DEPTH and GB_MAX_HIER_DEPTH together, or shorten the "</span>
+                <span class="s2">"chain in scoring/genbonded.yaml"</span>
+            <span class="p">)</span>
         <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">ht</span> <span class="ow">in</span> <span class="n">hierarchy</span><span class="p">[:</span><span class="n">MAX_HIER_DEPTH</span><span class="p">]:</span>
+        <span class="k">for</span> <span class="n">ht</span> <span class="ow">in</span> <span class="n">hierarchy</span><span class="p">:</span>
             <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_type_to_idx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ht</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
         <span class="c1"># Pad to MAX_HIER_DEPTH</span>
