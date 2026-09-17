@@ -1,5 +1,4 @@
 import numpy
-import toolz
 import torch
 
 from typing import Any
@@ -11,7 +10,7 @@ from tmol.types import (
 )
 from tmol.utility.tensor import exclusive_cumsum1d
 from tmol.database.chemical import ChemicalDatabase
-from tmol.kinematics import KinForest, NodeType
+from tmol.kinematics import KinForest
 from tmol.chemical import RefinedResidueType
 from tmol.pose import (
     PackedBlockTypes,
@@ -36,246 +35,185 @@ ConformerSample = tuple[
 ]
 
 
-def _build_chi4_atom_table(
-    pbt: PackedBlockTypes,
-) -> NDArray[numpy.int32][:, :, 4]:
-    """Return RTO atom indices shaped ``[n_types, max_n_chi, 4]``.
+def _turns_its_fourth_atom(rt, third, fourth):
+    """Whether writing phi_c on a chi's third atom moves its fourth.
 
-    Entries are -1 where the residue type has fewer than max_n_chi chi angles.
-    Built once and cached on pbt as _chi4_atom_table.
+    A chi that closes a ring measures an atom upstream of the one carrying its
+    degree of freedom, so nothing the packer writes can put that dihedral at a
+    requested value; the write would only spin whatever hangs off the third
+    atom instead.
     """
-    if hasattr(pbt, "_chi4_atom_table"):
-        return pbt._chi4_atom_table
+    kf = rt.rotamer_kinforest
+    target = int(kf.kinforest_idx[third])
+    node = int(kf.kinforest_idx[fourth])
+    while True:
+        parent = int(kf.parent[node])
+        if parent == target:
+            return True
+        if parent < 0 or parent == node:
+            return False
+        node = parent
 
-    n_types = pbt.n_types
-    max_n_chi = (
-        max(
-            sum(1 for k in rt.torsion_to_uaids if k.startswith("chi"))
-            for rt in pbt.active_block_types
-        )
-        or 1
-    )
 
-    table = numpy.full((n_types, max_n_chi, 4), -1, dtype=numpy.int32)
+def _build_chi4_by_defining_atom(pbt):
+    """(n_types, max_n_atoms, 4) RTO atom indices of the chi each atom defines.
+
+    Keyed by the chi-defining atom rather than by a chi's position, because a
+    residue type's chi are not necessarily numbered without gaps and samplers
+    do not agree on how to lay them out in a column. A chi whose fourth atom
+    the third does not move is left out: it cannot be set.
+    """
+    if hasattr(pbt, "_chi4_by_defining_atom"):
+        return pbt._chi4_by_defining_atom
+
+    table = numpy.full((pbt.n_types, pbt.max_n_atoms, 4), -1, dtype=numpy.int32)
     for ti, rt in enumerate(pbt.active_block_types):
-        chi_names = sorted(
-            (k for k in rt.torsion_to_uaids if k.startswith("chi")),
-            key=lambda name: int(name[3:]),
-        )
-        for ci, chi_name in enumerate(chi_names):
-            uaids = rt.torsion_to_uaids[chi_name]
-            table[ti, ci] = [int(u[0]) for u in uaids]
+        for name, uaids in rt.torsion_to_uaids.items():
+            if not name.startswith("chi"):
+                continue
+            four = [int(u[0]) for u in uaids]
+            if any(a < 0 for a in four):
+                continue
+            if not _turns_its_fourth_atom(rt, four[2], four[3]):
+                continue
+            table[ti, four[2]] = four
 
-    # cache to avoid rebuilding on subsequent calls
-    object.__setattr__(pbt, "_chi4_atom_table", table)
+    object.__setattr__(pbt, "_chi4_by_defining_atom", table)
     return table
 
 
-def _build_chi_phi_c_corrections(
-    pbt: PackedBlockTypes,
-) -> NDArray[numpy.float32][:, :]:
-    """Precompute phi_c correction per (block_type, chi_index), cached on pbt.
+def _build_ring_chi_phi_c_corrections(pbt):
+    """(n_types, max_n_atoms) phi_c offset for chi that cannot be measured.
 
-    For each chi angle the relationship between what is written to phi_c and
-    what forward-kin produces as the actual dihedral is:
-
-        chi_measured = phi_c + offset
-
-    where offset = chi_ideal - phi_c_ideal is constant for a given residue
-    type and chi index.  This holds for both jump-parent atoms (chi1, where
-    the jump frame introduces an offset) and bond-parent atoms (chi2+, where
-    a non-zero torsion ICOOR introduces the offset).
-
-    Returns:
-        Corrections shaped ``[n_types, max_n_chi]``; 0.0 where not applicable.
+    A chi that closes a ring measures an atom upstream of the one carrying its
+    degree of freedom, so no trial pass can tell what to add. Its offset is the
+    difference between the chi and the phi_c of the ideal geometry, which turns
+    what hangs off the third atom by however far the ring has moved from ideal.
+    Zero everywhere else, where the measured correction is exact.
     """
-    if hasattr(pbt, "_chi_phi_c_corrections"):
-        return pbt._chi_phi_c_corrections
+    if hasattr(pbt, "_ring_chi_phi_c_corrections"):
+        return pbt._ring_chi_phi_c_corrections
 
-    chi4_table = _build_chi4_atom_table(pbt)  # (n_types, max_n_chi, 4)
-    kfidx = pbt.rotamer_kinforest.kinforest_idx  # (n_types, max_n_atoms)
-    dofs_ideal = (
-        pbt.rotamer_kinforest.dofs_ideal.cpu().numpy()
-    )  # (n_types, max_n_atoms, 9)
-    parent_arr = pbt.rotamer_kinforest.parent  # (n_types, max_n_atoms) KFO order
-    doftype_arr = pbt.rotamer_kinforest.doftype  # (n_types, max_n_atoms) KFO order
-
-    n_types, max_n_chi = chi4_table.shape[:2]
-    corrections = numpy.zeros((n_types, max_n_chi), dtype=numpy.float32)
-    correction_indices = []
-    ideal_chi_coords = []
-    ideal_phi_c = []
-
+    corrections = numpy.zeros((pbt.n_types, pbt.max_n_atoms), dtype=numpy.float32)
     for ti, rt in enumerate(pbt.active_block_types):
-        # Ideal coordinates in residue-type atom order.
-        ideal_coords = rt.ideal_coords[rt.at_to_icoor_ind]
-        chi_names = sorted(k for k in rt.torsion_to_uaids if k.startswith("chi"))
-        for ci in range(len(chi_names)):
-            four_rto = chi4_table[ti, ci]
-            if any(a < 0 for a in four_rto):
+        ideal = rt.ideal_coords[rt.at_to_icoor_ind]
+        for name, uaids in rt.torsion_to_uaids.items():
+            if not name.startswith("chi"):
                 continue
-            cda_kfo = int(kfidx[ti, four_rto[2]])
-            # For root children (jump parents), the correction is pose-dependent
-            # and cannot be precomputed; leave it as 0 and let
-            # correct_phi_c_for_jump_parents handle it at build time.
-            parent_kfo = int(parent_arr[ti, cda_kfo])
-            if doftype_arr[ti, parent_kfo] == NodeType.jump:
+            four = [int(u[0]) for u in uaids]
+            if any(a < 0 for a in four) or _turns_its_fourth_atom(rt, four[2], four[3]):
                 continue
-            correction_indices.append((ti, ci))
-            ideal_chi_coords.append(ideal_coords[four_rto])
-            ideal_phi_c.append(dofs_ideal[ti, cda_kfo, 3])
+            xyz = ideal[four]
+            chi_ideal = float(_numpy_coord_dihedrals(xyz[0], xyz[1], xyz[2], xyz[3]))
+            kfo = int(rt.rotamer_kinforest.kinforest_idx[four[2]])
+            corrections[ti, four[2]] = chi_ideal - float(
+                rt.rotamer_kinforest.dofs_ideal[kfo, 3]
+            )
 
-    if correction_indices:
-        xyzs = numpy.stack(ideal_chi_coords)
-        chi_ideal = _numpy_coord_dihedrals(
-            xyzs[:, 0], xyzs[:, 1], xyzs[:, 2], xyzs[:, 3]
-        )
-        correction_indices = numpy.asarray(correction_indices).T
-        corrections[tuple(correction_indices)] = chi_ideal - numpy.asarray(ideal_phi_c)
-
-    object.__setattr__(pbt, "_chi_phi_c_corrections", corrections)
+    # Retain only the device table; sampled conformers never need a host lookup.
+    corrections = torch.as_tensor(corrections, device=pbt.device)
+    object.__setattr__(pbt, "_ring_chi_phi_c_corrections", corrections)
     return corrections
 
 
-def _get_chi_dof_metadata(
-    pbt: PackedBlockTypes,
-) -> tuple[Tensor[torch.int64][:, :], Tensor[torch.float32][:, :]]:
-    """Return immutable chi lookup tensors on the block-type device.
+def _kinforest_device_indices(pbt, device):
+    """One RTO-to-KFO device table shared by DOF copying and chi correction."""
+    if not hasattr(pbt, "_kinforest_device_indices"):
+        object.__setattr__(
+            pbt,
+            "_kinforest_device_indices",
+            torch.as_tensor(
+                pbt.rotamer_kinforest.kinforest_idx, dtype=torch.int64, device=device
+            ),
+        )
+    return pbt._kinforest_device_indices
 
-    Returns:
-        Kinematic atom indices shaped ``[n_types, max_n_atoms]`` and phi-c
-        corrections shaped ``[n_types, max_n_chi]``.
+
+def _chi4_and_kfo_device_tables(pbt, device):
+    """Device copies of the per-atom chi table and the RTO -> KFO atom map."""
+    if not hasattr(pbt, "_chi4_kfo_device_tables"):
+        tables = (
+            torch.as_tensor(_build_chi4_by_defining_atom(pbt), device=device).to(
+                torch.int64
+            ),
+            _kinforest_device_indices(pbt, device),
+        )
+        object.__setattr__(pbt, "_chi4_kfo_device_tables", tables)
+    return pbt._chi4_kfo_device_tables
+
+
+def correct_phi_c_from_measured_chi(
+    pbt,
+    conformer_samples,
+    new_ind_for_sampler_rotamer,
+    block_type_ind_for_conformer_torch,
+    n_atoms_offset_for_conformer_torch,
+    conformer_kinforest,
+    nodes,
+    scans,
+    gens,
+    conf_dofs_kto,
+):
+    """Make every chi dihedral come out at the value its sampler asked for.
+
+    The phi_c written by assign_chi_dofs_from_samples is offset from the chi
+    dihedral by an amount that depends on the rotamer's own geometry, so it is
+    measured rather than derived:
+      1. Does a trial forward pass with the current DOFs.
+      2. Measures each chi's actual dihedral from the trial coords.
+      3. Adds (intended - measured) to conf_dofs_kto[atom_kto, 3] so the
+         final forward pass produces the intended dihedral.
+
+    A dihedral is invariant under rotation of its own upstream frame, so one
+    trial pass corrects every chi at once.
     """
-    if hasattr(pbt, "_chi_dof_metadata"):
-        return pbt._chi_dof_metadata
-
-    metadata = (
-        torch.as_tensor(
-            pbt.rotamer_kinforest.kinforest_idx,
-            dtype=torch.int64,
-            device=pbt.device,
-        ),
-        torch.as_tensor(
-            _build_chi_phi_c_corrections(pbt),
-            dtype=torch.float32,
-            device=pbt.device,
-        ),
+    # trial forward pass to get coords in RTO
+    n_at_total = (
+        n_atoms_offset_for_conformer_torch[-1].item()
+        + pbt.n_atoms[block_type_ind_for_conformer_torch[-1]].item()
     )
-    object.__setattr__(pbt, "_chi_dof_metadata", metadata)
-    return metadata
-
-
-def _get_chi_atom_table(
-    pbt: PackedBlockTypes,
-) -> Tensor[torch.int64][:, :, 4]:
-    """Return cached chi-defining atom quartets on the block-type device."""
-    if hasattr(pbt, "_chi_atom_table"):
-        return pbt._chi_atom_table
-
-    table = torch.as_tensor(
-        _build_chi4_atom_table(pbt), dtype=torch.int64, device=pbt.device
+    trial_coords_rto = calculate_rotamer_coords(
+        pbt, n_at_total, conformer_kinforest, nodes, scans, gens, conf_dofs_kto
     )
-    object.__setattr__(pbt, "_chi_atom_table", table)
-    return table
 
-
-def correct_phi_c_for_jump_parents(
-    pbt: PackedBlockTypes,
-    conformer_samples: list[ConformerSample],
-    new_ind_for_sampler_rotamer: list[Tensor[torch.int64][:]],
-    block_type_ind_for_conformer: Tensor[torch.int64][:],
-    atom_offset_for_conformer: Tensor[torch.int64][:],
-    conformer_kinforest: KinForest,
-    nodes: NDArray[numpy.int32][:],
-    scans: NDArray[numpy.int32][:],
-    gens: NDArray[numpy.int32][:],
-    conformer_dofs: Tensor[torch.float32][:, 9],
-) -> None:
-    """Correct sampled chis whose controlling atom has a jump parent.
-
-    The jump frame makes its ``phi_c`` offset pose-dependent. This performs one
-    trial fold, measures all affected chis in a batch, and adjusts their DOFs.
-
-    Args:
-        pbt: Packed block types for the conformers.
-        conformer_samples: Per-sampler rotamer counts, indices, and metadata.
-        new_ind_for_sampler_rotamer: Sampler-to-merged-conformer mappings.
-        block_type_ind_for_conformer: Block type for each conformer.
-        atom_offset_for_conformer: First coordinate for each conformer.
-        conformer_kinforest: Coalesced conformer kinematic forest.
-        nodes: Kinematic nodes in generation order.
-        scans: Segmented-scan starts.
-        gens: Generation boundaries.
-        conformer_dofs: DOFs to correct in place.
-    """
-    kinforest_idx, _ = _get_chi_dof_metadata(pbt)
-    chi_atom_table = _get_chi_atom_table(pbt)
-    intended_chis = []
-    chi_dof_indices = []
-    chi_coord_indices = []
-    affected_chis = []
+    chi4_by_atom, kfidx = _chi4_and_kfo_device_tables(pbt, conf_dofs_kto.device)
+    phi_c = conf_dofs_kto.select(1, 3)
 
     for i, sample_data in enumerate(conformer_samples):
         sample_dict = sample_data[2]
         if "chi_for_rotamers" not in sample_dict:
             continue
-        chi_intended = sample_dict["chi_for_rotamers"]
-        chi_atoms_rto = sample_dict["chi_defining_atom_for_rotamer"].to(torch.int64)
+        chi_intended = sample_dict["chi_for_rotamers"]  # (n_samp_rots, max_n_chi)
+        cda_rto = sample_dict["chi_defining_atom_for_rotamer"]
         if chi_intended.shape[0] == 0:
             continue
 
-        _, max_n_chi = chi_atoms_rto.shape
-        conformer_indices = new_ind_for_sampler_rotamer[i]
-        block_type_indices = block_type_ind_for_conformer[conformer_indices]
-        atom_offsets = atom_offset_for_conformer[conformer_indices]
+        # per-rotamer metadata for every (samp_rot, chi) pair
+        g_rot = new_ind_for_sampler_rotamer[i]
+        bt_idx = block_type_ind_for_conformer_torch[g_rot][:, None]
+        rot_off = n_atoms_offset_for_conformer_torch[g_rot][:, None]
 
-        # [n_sampler_conformers, max_n_chi]
-        chi_dof_index = (
-            kinforest_idx[block_type_indices[:, None], chi_atoms_rto.clamp_min(0)]
-            + atom_offsets[:, None]
-            + 1  # virtual root
+        safe_rto = cda_rto.clamp_min(0).to(torch.int64)
+        cda_kto = kfidx[bt_idx, safe_rto] + rot_off + 1  # +1 for the virtual root
+
+        # the chi each defining atom turns: (n_samp, max_n_chi, 4)
+        four_rto = chi4_by_atom[bt_idx, safe_rto]
+        valid = ((cda_rto >= 0) & (four_rto >= 0).all(dim=-1)).reshape(-1)
+
+        # invalid entries read atom 0 and contribute a zero, so nothing here
+        # depends on a count the host would have to be told
+        four_abs = torch.where(four_rto >= 0, four_rto + rot_off.unsqueeze(-1), 0)
+        xyz = trial_coords_rto[four_abs.reshape(-1, 4)].to(torch.float64)
+
+        measured = coord_dihedrals(xyz[:, 0], xyz[:, 1], xyz[:, 2], xyz[:, 3])
+        delta = chi_intended.reshape(-1).to(torch.float64) - measured
+        delta = (delta + numpy.pi) % (2 * numpy.pi) - numpy.pi
+
+        phi_c.index_add_(
+            0,
+            torch.where(valid, cda_kto.reshape(-1), 0),
+            torch.where(valid, delta, torch.zeros_like(delta)).to(phi_c.dtype),
         )
-        parent_index = conformer_kinforest.parent[chi_dof_index]
-        affected_chis.append(
-            (
-                (chi_atoms_rto >= 0)
-                & (conformer_kinforest.doftype[parent_index] == NodeType.jump)
-            ).reshape(-1)
-        )
-        intended_chis.append(chi_intended.reshape(-1))
-        chi_dof_indices.append(chi_dof_index.reshape(-1))
-
-        chi_indices = torch.arange(max_n_chi, device=pbt.device)
-        chi_atom_indices = chi_atom_table[
-            block_type_indices[:, None], chi_indices[None, :]
-        ]
-        chi_coord_indices.append(
-            (chi_atom_indices + atom_offsets[:, None, None]).reshape(-1, 4)
-        )
-
-    if not affected_chis:
-        return
-
-    affected_chis = torch.cat(affected_chis)
-    affected_indices = torch.nonzero(affected_chis, as_tuple=True)[0]
-    if affected_indices.numel() == 0:
-        return
-
-    n_at_total = (
-        atom_offset_for_conformer[-1].item()
-        + pbt.n_atoms[block_type_ind_for_conformer[-1]].item()
-    )
-    trial_coords_rto = calculate_rotamer_coords(
-        pbt, n_at_total, conformer_kinforest, nodes, scans, gens, conformer_dofs
-    )
-    xyzs = trial_coords_rto[torch.cat(chi_coord_indices)[affected_indices]].to(
-        torch.float64
-    )
-    measured_chis = coord_dihedrals(xyzs[:, 0], xyzs[:, 1], xyzs[:, 2], xyzs[:, 3])
-    delta = torch.cat(intended_chis)[affected_indices].to(torch.float64) - measured_chis
-    delta = (delta + numpy.pi) % (2 * numpy.pi) - numpy.pi
-    chi_dof_indices = torch.cat(chi_dof_indices)[affected_indices]
-    conformer_dofs[chi_dof_indices, 3] += delta.to(conformer_dofs.dtype)
 
 
 def exc_cumsum_from_inc_cumsum(cumsum):
@@ -321,12 +259,7 @@ def annotate_everything(
     samplers: tuple[ChiSampler, ...],
     pbt: PackedBlockTypes,
 ) -> None:
-    """Attach sampler and kinematic metadata not already present on block types."""
-    sampler_names = frozenset(sampler.sampler_name() for sampler in samplers)
-    cache_name = "_annotated_conformer_sampler_names"
-    if hasattr(pbt, cache_name) and sampler_names.issubset(getattr(pbt, cache_name)):
-        return
-
+    """Refresh task ownership while reusing each annotation's scoped cache."""
     for sampler in samplers:
         for rt in pbt.active_block_types:
             sampler.annotate_residue_type(rt)
@@ -335,8 +268,6 @@ def annotate_everything(
     for rt in pbt.active_block_types:
         annotate_restype(rt, samplers, chem_db)
     annotate_packed_block_types(pbt)
-    previously_annotated = getattr(pbt, cache_name, frozenset())
-    object.__setattr__(pbt, cache_name, previously_annotated | sampler_names)
 
 
 def update_nodes(
@@ -666,98 +597,90 @@ def merge_conformer_samples(
     list[Tensor[torch.bool][:]],
     list[Tensor[torch.int64][:]],
 ]:
-    """Group samples from several conformer samplers by global block type.
+    """Merge sampler rows in considered-type, sampler, then source-row order.
 
-    Args:
-        conformer_samples: Per-sampler rotamer counts, global block-type
-            indices, and sampler-specific metadata.
-
-    Returns:
-        Total rotamer counts per global block type, the sampler and block type
-        for each merged conformer, per-sampler membership masks, and mappings
-        from each sampler's original order into the merged order.
+    Each sampler supplies a count per considered type and its source rows in
+    ascending considered-type order. Prefix offsets locate each row directly;
+    the returned destinations map original sampler rows into the merged arrays.
     """
-
-    # everything needs to be on the same device
-    for samples in conformer_samples:
-        assert samples[0].device == samples[1].device
-        assert conformer_samples[0][0].device == samples[0].device
-
+    if not conformer_samples:
+        raise ValueError("At least one conformer sampler is required")
     device = conformer_samples[0][0].device
+    count_dtype = conformer_samples[0][0].dtype
+    index_dtype = conformer_samples[0][1].dtype
+    for counts, indices, *_ in conformer_samples:
+        if counts.device != device or indices.device != device:
+            raise ValueError("Conformer samples must share a device")
+        if counts.dtype not in (torch.int32, torch.int64) or indices.dtype not in (
+            torch.int32,
+            torch.int64,
+        ):
+            raise ValueError("Conformer sample counts and indices must be integers")
+        count_dtype = torch.promote_types(count_dtype, counts.dtype)
+        index_dtype = torch.promote_types(index_dtype, indices.dtype)
 
-    # pre-merge offsets for each gbt in the set of conformers from the same sampler
-    gbt_n_rot_offsets = []  # formerly rt_nrot_offsets
-    for samples in conformer_samples:
-        gbt_n_rot_offsets.append(exclusive_cumsum1d(samples[0]).to(torch.int64))
+    n_conformers = sum(sample[1].numel() for sample in conformer_samples)
+    if (
+        max(n_conformers, conformer_samples[0][0].numel())
+        > torch.iinfo(torch.int32).max
+    ):
+        raise ValueError("Conformer sample counts exceed native 32-bit indexing")
+    counts = torch.stack([sample[0].to(torch.int64) for sample in conformer_samples])
+    source_ends = counts.cumsum(dim=1)
+    expected_types = torch.arange(counts.shape[1], device=device)
+    valid = []
+    for i, sample in enumerate(conformer_samples):
+        indices = sample[1]
+        if indices.numel() == 0:
+            valid.append(counts.new_ones((), dtype=torch.bool))
+            continue
+        # Clamp both ends while counts are still unvalidated. Invalid source
+        # counts must produce a diagnostic, not an out-of-bounds device read.
+        starts = (source_ends[i] - counts[i]).clamp(0, indices.numel() - 1)
+        ends = (source_ends[i] - 1).clamp(0, indices.numel() - 1)
+        boundaries_match = (indices[starts] == expected_types) & (
+            indices[ends] == expected_types
+        )
+        # Monotonic rows with matching interval endpoints must match throughout.
+        valid.append(
+            ((counts[i] == 0) | boundaries_match).all()
+            & (indices[1:] >= indices[:-1]).all()
+        )
+    totals = counts.sum(dim=1)
+    minima = counts.amin(dim=1) if counts.shape[1] else totals
+    maxima = counts.amax(dim=1) if counts.shape[1] else totals
+    summary = torch.stack((totals, minima, maxima, torch.stack(valid)), dim=1).tolist()
+    for sample, (total, minimum, maximum, ordered) in zip(conformer_samples, summary):
+        available = sample[1].numel()
+        # A matching sum alone can wrap even when every int64 count is positive.
+        if minimum < 0 or maximum > available or total != available:
+            raise ValueError("Conformer sample counts do not match the source rows")
+        if not ordered:
+            raise ValueError("Conformer source rows do not match ordered sample counts")
 
-    all_gbt_for_conformer_unsorted = torch.cat(
-        [samples[1] for samples in conformer_samples]
-    )
-    max_n_conformers_per_gbt_per_sampler = max(
-        torch.max(samples[0]).item() for samples in conformer_samples
-    )
-
-    # create an "index" for each conformer on each GBT
-    # so that we can sort these indices and come up with an ordering
-    # of all of the conformers that will group all of the conformers
-    # belonging to a single GBT into a contiguous segment;
-    # This is accomplished by "spreading out" all of the rotamers for a single GBT
-    # by the maximum possible number of rotamers that could be built for any one
-    # GBT (i.e. n-samplers x max-n-confs-per-gbt-per-sampler x gbt-index),
-    # then finding which block of conformers for the given sampler
-    # (i.e. max-n-confs-per-gbt-per-sampler * sampler-index),
-    # and finally, incrementing each individual sample by its position in the
-    # list of rotamers for that GBT, which is readily computed as
-    # arange(sampler_n_rots) - gbt_n_rot_offsets[gbt_index]
-    # and note that gbt_index is what's stored in samples[1]
-    n_conformer_samplers = len(conformer_samples)
-    sort_index_for_conformer = torch.cat(
-        [
-            samples[1].to(torch.int64)
-            * n_conformer_samplers
-            * max_n_conformers_per_gbt_per_sampler
-            + i * max_n_conformers_per_gbt_per_sampler
-            + torch.arange(samples[1].shape[0], dtype=torch.int64, device=device)
-            - gbt_n_rot_offsets[i][samples[1].to(torch.int64)]
-            for i, samples in enumerate(conformer_samples)
-        ]
-    )
-
-    sampler_for_conformer_unsorted = torch.cat(
-        [
-            torch.full((samples[1].shape[0],), i, dtype=torch.int64, device=device)
-            for i, samples in enumerate(conformer_samples)
-        ]
-    )
-    argsort_ind_for_conformer = torch.argsort(sort_index_for_conformer)
-
-    sampler_for_conformer = sampler_for_conformer_unsorted[argsort_ind_for_conformer]
-
-    # list of boolean tensors for each of the samplers: did you build the given rotamer
-    conformer_built_by_sampler = [
-        sampler_for_conformer == i for i in range(n_conformer_samplers)
-    ]
-    # list of index tensors reporting the final index of the conformers built by the samplers
-    new_ind_for_sampler_rotamer = [
-        torch.nonzero(built_by_sampler, as_tuple=True)[0]
-        for built_by_sampler in conformer_built_by_sampler
-    ]
-
-    all_gbt_for_conformer_sorted = all_gbt_for_conformer_unsorted[
-        argsort_ind_for_conformer
-    ]
-
-    # ok, now we need to figure out how many rotamers each gbt is getting.
-    n_rots_for_gbt = toolz.reduce(
-        torch.add, [samples[0] for samples in conformer_samples]
-    )
+    merged_counts = counts.sum(dim=0)
+    merged_offsets = merged_counts.cumsum(dim=0) - merged_counts
+    # Destination start minus source start, for each sampler/considered type.
+    # Inclusive scans cancel the current cell in the two exclusive prefixes.
+    destination_offsets = merged_offsets + counts.cumsum(dim=0) - source_ends
+    sampler_for_conformer = torch.empty(n_conformers, dtype=torch.int64, device=device)
+    gbt_for_conformer = torch.empty(n_conformers, dtype=index_dtype, device=device)
+    destinations = []
+    for i, sample in enumerate(conformer_samples):
+        indices = sample[1].to(torch.int64)
+        destination = destination_offsets[i, indices] + torch.arange(
+            indices.numel(), dtype=torch.int64, device=device
+        )
+        sampler_for_conformer[destination] = i
+        gbt_for_conformer[destination] = indices.to(index_dtype)
+        destinations.append(destination)
 
     return (
-        n_rots_for_gbt,
+        merged_counts.to(count_dtype),
         sampler_for_conformer,
-        all_gbt_for_conformer_sorted,
-        conformer_built_by_sampler,
-        new_ind_for_sampler_rotamer,
+        gbt_for_conformer,
+        [sampler_for_conformer == i for i in range(len(conformer_samples))],
+        destinations,
     )
 
 
@@ -861,6 +784,50 @@ def get_rotamer_origin_data(
     )
 
 
+def _correlated_groups_for_samples(task, samples):
+    """Validate producer-declared correspondence before allocating coordinates."""
+    from tmol.pack.rotamer._rotamer_set import CorrelatedBlockGroup
+
+    declarations = [
+        (i, gbts)
+        for i, sample in enumerate(samples)
+        for gbts in sample[2].get("correlated_gbts", ())
+        if gbts
+    ]
+    if not declarations:
+        return ()
+    pose_of = task.cons_bt_pose.cpu().numpy()
+    block_of = task.cons_bt_block.cpu().numpy()
+    counts = numpy.stack([sample[0].cpu().numpy() for sample in samples])
+    total = {}
+    for gbt, count in enumerate(counts.sum(axis=0)):
+        key = int(pose_of[gbt]), int(block_of[gbt])
+        total[key] = total.get(key, 0) + int(count)
+    groups, claimed = [], set()
+    for sampler, gbts in declarations:
+        if len(set(gbts)) != len(gbts) or any(g < 0 or g >= len(pose_of) for g in gbts):
+            raise ValueError("Invalid correlated considered-block indices")
+        poses = {int(pose_of[g]) for g in gbts}
+        blocks = tuple(int(block_of[g]) for g in gbts)
+        if len(poses) != 1 or len(set(blocks)) != len(blocks):
+            raise ValueError(
+                "A correlated group must contain distinct blocks in one pose"
+            )
+        pose = poses.pop()
+        expected = int(counts[sampler, gbts[0]])
+        if expected < 1 or any(int(counts[sampler, g]) != expected for g in gbts):
+            raise ValueError("Correlated members have differing rotamer counts")
+        members = {(pose, block) for block in blocks}
+        if members & claimed or any(total[key] != expected for key in members):
+            raise ValueError(
+                "Independent or overlapping samplers add rotamers to a correlated group"
+            )
+        claimed.update(members)
+        if len(blocks) > 1:
+            groups.append(CorrelatedBlockGroup(pose, blocks))
+    return tuple(groups)
+
+
 def build_rotamers(
     poses: PoseStack, task: SetPackerTask, chem_db: ChemicalDatabase
 ) -> tuple[PoseStack, RotamerSet]:
@@ -910,9 +877,30 @@ def build_rotamers(
     gbt_block_type_ind = task.cons_bt_block_type.cpu().numpy().astype(numpy.int32)
 
     # Step 4
-    conformer_samples = [
-        sampler.create_samples_for_poses(poses, task) for sampler in samplers
-    ]
+    # A sampler that fills gaps left by the others must see what they actually
+    # built, so it runs last and receives the measured per-block totals.
+    deferred = [i for i, s in enumerate(samplers) if s.samples_after_other_samplers]
+    conformer_samples = [None] * len(samplers)
+    for i, sampler in enumerate(samplers):
+        if i not in deferred:
+            conformer_samples[i] = sampler.create_samples_for_poses(poses, task)
+    if deferred:
+        built = None
+        for i, sample in enumerate(conformer_samples):
+            if sample is None:
+                continue
+            counts = sample[0]
+            built = counts.clone() if built is None else built + counts
+        for i in deferred:
+            conformer_samples[i] = samplers[i].create_samples_for_poses(
+                poses, task, built_rotamer_counts=built
+            )
+
+    correlated_groups = _correlated_groups_for_samples(task, conformer_samples)
+
+    from tmol.pack.rotamer._chi_budget import check_task_sample_budget
+
+    check_task_sample_budget(task, conformer_samples)
 
     # Step 5
     (
@@ -937,6 +925,10 @@ def build_rotamers(
     n_atoms_offset_for_conformer = torch.cumsum(n_atoms_for_conformer, dim=0)
     n_atoms_offset_for_conformer = n_atoms_offset_for_conformer.cpu().numpy()
     n_atoms_total = n_atoms_offset_for_conformer[-1].item()
+    if n_atoms_total >= numpy.iinfo(numpy.int32).max:
+        raise ValueError(
+            "Conformer atoms exceed 32-bit index capacity; reduce the sampling budget"
+        )
     n_atoms_offset_for_conformer = exc_cumsum_from_inc_cumsum(
         n_atoms_offset_for_conformer
     )
@@ -992,7 +984,7 @@ def build_rotamers(
             conf_dofs_kto,
         )
 
-    correct_phi_c_for_jump_parents(
+    correct_phi_c_from_measured_chi(
         pbt,
         conformer_samples,
         new_ind_for_sampler_rotamer,
@@ -1024,6 +1016,25 @@ def build_rotamers(
         block_ind_for_rot,
     ) = get_rotamer_origin_data(task, gbt_for_conformer_torch)
 
+    # Current/fallback rows must preserve the input, including frozen blocks.
+    # Gather only real copied atoms, without a padded conformer-by-atom array.
+    copied = [
+        indices
+        for indices, samples in zip(new_ind_for_sampler_rotamer, conformer_samples)
+        if samples[2].get("copy_input_coordinates", False)
+    ]
+    if copied:
+        copied = torch.cat(copied)
+        sizes = n_atoms_for_conformer[copied].long()
+        owner = torch.repeat_interleave(sizes)
+        atom = torch.arange(owner.numel(), device=pbt.device)
+        atom -= (torch.cumsum(sizes, 0) - sizes)[owner]
+        rot = copied[owner]
+        pose = pose_for_rot[rot]
+        source = poses.block_coord_offset[pose, block_ind_for_rot[rot]] + atom
+        destination = n_atoms_offset_for_conformer_torch[rot] + atom
+        rotamer_coords[destination] = poses.coords[pose, source]
+
     return (
         poses,
         RotamerSet(
@@ -1037,5 +1048,6 @@ def build_rotamers(
             block_ind_for_rot=block_ind_for_rot,
             coord_offset_for_rot=n_atoms_offset_for_conformer_torch.to(torch.int32),
             coords=rotamer_coords,
+            correlated_groups=correlated_groups,
         ),
     )

@@ -24,6 +24,7 @@ from tmol.pack import (
 from tmol.pack.rotamer import (
     FixedAAChiSampler,
     IncludeCurrentSampler,
+    NaChiRotamerSampler,
 )
 from tmol.optimization import (
     CartesianMinimizer,
@@ -233,7 +234,8 @@ def fast_relax(  # noqa: C901
         move_map: Specifies which DOFs are free to move during minimization.
         fold_forest: Fold forest defining the kinematic connectivity.
         task_operations: In-place task configuration callbacks. By default,
-            restrict to repacking with Dunbrack, fixed-AA, and current rotamers.
+            restrict to repacking with the scoring database’s Dunbrack, fixed-AA,
+            current and nucleic-acid rotamers, sampling covalent groups jointly.
         num_repeats: Number of complete pack-minimize ramps.
         ramp_constraints: Ramp an active constraint weight to zero. Defaults
             to true; the input weight is restored after relaxation.
@@ -286,19 +288,26 @@ def fast_relax(  # noqa: C901
         from tmol.pack.rotamer.dunbrack import (
             create_dunbrack_sampler_from_database,
         )
-        import tmol.database
+        from tmol.pack.rotamer._conjugated_groups import add_conjugated_group_sampler
 
-        default_database = tmol.database.ParameterDatabase.get_default()
-        dun_sampler = create_dunbrack_sampler_from_database(
-            default_database, torch_device
-        )
+        samplers = [
+            create_dunbrack_sampler_from_database(sfxn._param_db, torch_device),
+            FixedAAChiSampler(),
+            IncludeCurrentSampler(),
+        ]
+        if any(
+            bt.properties.polymer.backbone_type in ("dna", "rna")
+            for bt in pose_stack.packed_block_types.active_block_types
+        ):
+            samplers.append(
+                NaChiRotamerSampler.from_database(sfxn._param_db, torch_device)
+            )
 
         def default_op(task: PackerTask) -> None:
             task.restrict_to_repacking()
-            fixed_sampler = FixedAAChiSampler()
-            task.add_conformer_sampler(dun_sampler)
-            task.add_conformer_sampler(fixed_sampler)
-            task.add_conformer_sampler(IncludeCurrentSampler())
+            for sampler in samplers:
+                task.add_conformer_sampler(sampler)
+            add_conjugated_group_sampler(task, pose_stack)
 
         task_operations = [default_op]
 

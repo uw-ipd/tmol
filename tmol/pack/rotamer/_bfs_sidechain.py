@@ -26,28 +26,24 @@ def bfs_sidechain_atoms_jit(parents, sc_roots):
     bfs_curr = 0
     bfs_list = numpy.full(n_atoms, -1, dtype=numpy.int32)
     visited = numpy.zeros(n_atoms, dtype=numpy.int32)
+    # Mark atoms when enqueued: overlapping roots must not enqueue a subtree
+    # twice or overflow the one-entry-per-atom queue.
     for root in sc_roots:
-        # put the root children in the bfs list
-        visited[root] = 1
-        for child_ind in range(
-            children_start[root], children_start[root] + child_count[root]
-        ):
-            bfs_list[bfs_count_end] = children[child_ind]
+        if not visited[root]:
+            visited[root] = 1
+            bfs_list[bfs_count_end] = root
             bfs_count_end += 1
-        while bfs_curr != bfs_count_end:
-            node = bfs_list[bfs_curr]
-            bfs_curr += 1
-            if visited[node]:
-                # can happen when the root of the kinforest is given
-                # as a sidechain root
-                continue
-            # add node's children to the bfs_list
-            for child_ind in range(
-                children_start[node], children_start[node] + child_count[node]
-            ):
-                bfs_list[bfs_count_end] = children[child_ind]
+    while bfs_curr < bfs_count_end:
+        node = bfs_list[bfs_curr]
+        bfs_curr += 1
+        for child_ind in range(
+            children_start[node], children_start[node] + child_count[node]
+        ):
+            child = children[child_ind]
+            if not visited[child]:
+                visited[child] = 1
+                bfs_list[bfs_count_end] = child
                 bfs_count_end += 1
-            visited[node] = 1
     return visited
 
 

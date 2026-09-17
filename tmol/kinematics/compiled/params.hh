@@ -34,6 +34,9 @@ enum EdgeTypes {
   ff_polymer_edge = 0,
   ff_jump_edge,
   ff_root_jump_edge,
+  // a single non-polymeric bond; slot 3 of the edge holds the index of the
+  // connection on the start block that leads to the end block
+  ff_chemical_edge,
 };
 
 template <typename Int>

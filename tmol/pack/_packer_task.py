@@ -164,10 +164,31 @@ class PackerPalette:
         return [FallbackSampler()]
 
 
+def _mainchain_elements(block_type, element_for_atom_type):
+    """The element of each mainchain atom, in mainchain order.
+
+    A mainchain fingerprint identifies an atom by its position along the
+    mainchain, so two block types can only exchange dofs when their mainchains
+    agree position by position. Comparing elements rather than atom names lets
+    two backbones of the same shape exchange dofs whatever they call their
+    atoms, and comparing elements rather than atom types keeps a difference
+    that does not move an atom from blocking the exchange.
+    """
+    types = {atom.name: atom.atom_type for atom in block_type.atoms}
+    return tuple(
+        element_for_atom_type[types[name]]
+        for name in (block_type.properties.polymer.mainchain_atoms or ())
+    )
+
+
 def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockTypes):
     # Annotate the PackedBlockTypes object with the block-type to block-type comparisons
     if hasattr(pbt, "default_packer_palette_annotations"):
         return
+    element_for_atom_type = {at.name: at.element for at in pbt.chem_db.atom_types}
+    mc_elements = [
+        _mainchain_elements(bt, element_for_atom_type) for bt in pbt.active_block_types
+    ]
     allowed_block_types_for_block_type = [list() for _ in range(pbt.n_types)]
     allowed_block_is_orig = [list() for _ in range(pbt.n_types)]
     restrict_to_repacking_masks = [list() for _ in range(pbt.n_types)]
@@ -183,6 +204,8 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
                 == orig_bt.properties.polymer.backbone_type
                 and alt_bt.connections
                 == orig_bt.connections  # fd  use this instead of terminal variant check
+                and alt_bt.conjugation_context == orig_bt.conjugation_context
+                and mc_elements[i] == mc_elements[j]
                 and set_compare(
                     alt_bt.properties.chemical_modifications,
                     orig_bt.properties.chemical_modifications,
@@ -275,10 +298,20 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
     setattr(pbt, "default_packer_palette_annotations", annotation)
 
 
+# Defaults carried over from ligand preparation, where this budget used to be
+# applied; exposed here because the count a group enumerates is not knowable
+# until the pose says which blocks are conjugated to which.
+DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT = 100
+DEFAULT_CHI_SAMPLE_LIMIT = 1000
+
+
 class PackerTask:
     """Configure residue identities, conformers, and movable sites for packing."""
 
     def __init__(self, systems: PoseStack, palette: PackerPalette):
+        # Retained so a sampler bundle can inspect connectivity when it
+        # registers itself; the task already derives its tensors from here.
+        self.pose_stack = systems
         self.pbt = systems.packed_block_types
         self.device = systems.device
         self.is_real_block = systems.block_type_ind64 != -1
@@ -299,9 +332,11 @@ class PackerTask:
         self.per_block_is_block_type_allowed = torch.ones_like(
             self.per_block_considered_block_types, dtype=torch.bool
         )
-        # as we add conformer samplers to the task, we assign them an intex
-        self.conformer_samplers = palette.default_conformer_samplers()
-        # this will map from conformer sampler to its index in this task
+        # Each sampler object owns one mask column; equal but distinct sampler
+        # instances remain independent. Own the list even if a palette reuses it.
+        self.conformer_samplers = list(
+            {id(s): s for s in palette.default_conformer_samplers()}.values()
+        )
         self.conformer_sampler_index = {
             id(sampler): i for i, sampler in enumerate(self.conformer_samplers)
         }
@@ -321,6 +356,39 @@ class PackerTask:
             device=systems.device,
         )
         self._bump_check = False
+        # how many conformers a block's (or a conjugated group's) sampled chi
+        #    may enumerate; expansions are dropped at the first and chi freeze
+        #    from the tip inward at the second
+        self.chi_sample_expanded_limit = DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT
+        self.chi_sample_limit = DEFAULT_CHI_SAMPLE_LIMIT
+        self.chi_sample_budget = None
+
+    def set_chi_sample_budget(self, expanded_limit: int, limit: int):
+        """Set expansion/fallback budgets without mutating reusable samplers.
+
+        Groups count one rotamer per member per conformer, including current.
+        A required library that cannot fit is rejected before the group product
+        is allocated. Sampler-specific defaults apply until this setter is used.
+        The combined count across samplers and allowed types at each physical
+        residue must also fit the larger limit before rows/coordinates merge.
+        """
+        import operator
+
+        try:
+            if isinstance(expanded_limit, bool) or isinstance(limit, bool):
+                raise TypeError
+            expanded_limit, limit = operator.index(expanded_limit), operator.index(
+                limit
+            )
+        except TypeError:
+            raise ValueError(
+                "chi sample budget limits must be positive integers"
+            ) from None
+        if expanded_limit < 1 or limit < 1:
+            raise ValueError("chi sample budget limits must be positive integers")
+        self.chi_sample_expanded_limit = expanded_limit
+        self.chi_sample_limit = limit
+        self.chi_sample_budget = (expanded_limit, limit)
 
     def restrict_to_repacking(self, block_mask: Tensor[torch.bool][:, :] | None = None):
         """Restrict selected blocks to the original residue name.
@@ -371,35 +439,40 @@ class PackerTask:
             self.per_block_is_block_type_allowed, restriction
         )
 
-    def add_conformer_sampler(self, sampler: ConformerSampler) -> None:
-        """Enable a conformer sampler at every block."""
-        self.conformer_samplers.append(sampler)
-        self.conformer_sampler_index[id(sampler)] = len(self.conformer_samplers) - 1
-        self.per_block_conformer_sampler_allowed = torch.cat(
-            [
-                self.per_block_conformer_sampler_allowed,
-                torch.ones(
-                    (
-                        self.per_block_conformer_sampler_allowed.shape[0],
-                        self.per_block_conformer_sampler_allowed.shape[1],
-                        1,
-                    ),
-                    dtype=torch.bool,
-                    device=self.device,
-                ),
-            ],
-            dim=-1,
+    def add_conformer_sampler(self, sampler) -> None:
+        """Enable this sampler everywhere, registering its identity once.
+
+        A sampler bundle -- anything exposing ``expand_into_task`` -- registers
+        the samplers it is composed of instead, so callers can declare what
+        they want sampled without composing it themselves.
+        """
+        expand_into_task = getattr(sampler, "expand_into_task", None)
+        if expand_into_task is not None:
+            expand_into_task(self)
+            return
+        index = self.conformer_sampler_index.get(id(sampler))
+        if index is not None:
+            self.per_block_conformer_sampler_allowed[:, :, index].fill_(True)
+            return
+        self.add_conformer_sampler_by_block_mask(
+            sampler, torch.ones_like(self.is_real_block)
         )
 
     def add_conformer_sampler_by_block_mask(
         self, sampler: ConformerSampler, block_type_mask: Tensor[torch.bool][:, :]
     ) -> None:
-        """Enable a conformer sampler only at selected pose/block entries."""
+        """Enable this sampler in the mask, extending any existing selection."""
         assert (
             block_type_mask.shape == self.per_block_n_considered_block_types.shape[:2]
         )
         assert block_type_mask.device == self.per_block_conformer_sampler_allowed.device
 
+        index = self.conformer_sampler_index.get(id(sampler))
+        if index is not None:
+            self.per_block_conformer_sampler_allowed[:, :, index].logical_or_(
+                block_type_mask
+            )
+            return
         self.conformer_samplers.append(sampler)
         self.conformer_sampler_index[id(sampler)] = len(self.conformer_samplers) - 1
         self.per_block_conformer_sampler_allowed = torch.cat(
@@ -419,6 +492,16 @@ class PackerTask:
         # max over the current sample level and the new sample level.
         self.per_block_chi_expansion[:, :, :, chi_ind] = torch.max(
             self.per_block_chi_expansion[:, :, :, chi_ind], sample_level
+        )
+
+    def disable_sampler_by_block_mask(
+        self, sampler, block_mask: Tensor[torch.bool][:, :]
+    ):
+        """Stop one sampler building rotamers for the masked blocks."""
+        index = self.conformer_sampler_index[id(sampler)]
+        self.per_block_conformer_sampler_allowed[:, :, index] = torch.logical_and(
+            self.per_block_conformer_sampler_allowed[:, :, index],
+            torch.logical_not(block_mask),
         )
 
     def disable_packing_by_block_mask(
@@ -472,6 +555,7 @@ class SetPackerTask:
         set_task = cls()
         set_task.pbt = task.pbt
         set_task.device = task.device
+        set_task.chi_sample_budget = task.chi_sample_budget
         set_task.is_real_block = task.is_real_block
         set_task.real_block_pose, set_task.real_block_block = torch.nonzero(
             set_task.is_real_block, as_tuple=True
