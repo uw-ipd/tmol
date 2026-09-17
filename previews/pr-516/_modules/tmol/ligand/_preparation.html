@@ -1670,10 +1670,15 @@
         <span class="c1"># the proton. HIS_D carries HD1 on ND1 instead, and only it is right for</span>
         <span class="c1"># that site. conjugation_patch scopes each patch to its own base name,</span>
         <span class="c1"># so emitting all of them is self-deduplicating.</span>
+        <span class="n">bonded_records</span> <span class="o">=</span> <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">cartbonded</span><span class="o">.</span><span class="n">residue_params</span>
         <span class="n">residue_types</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">r</span>
             <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="o">.</span><span class="n">residues</span>
             <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">io_equiv_class</span> <span class="o">==</span> <span class="n">res_name</span> <span class="ow">and</span> <span class="n">r</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">r</span><span class="o">.</span><span class="n">base_name</span>
+            <span class="c1"># A base type with no bonded baseline cannot be parameterized once</span>
+            <span class="c1"># patched. HIS_POS has none, so only HIS and HIS_D are candidates --</span>
+            <span class="c1"># which is the pair the ND1/NE2 distinction needs anyway.</span>
+            <span class="ow">and</span> <span class="n">r</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">bonded_records</span>
         <span class="p">]</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">residue_types</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
