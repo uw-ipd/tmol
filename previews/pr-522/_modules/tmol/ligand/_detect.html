@@ -893,8 +893,17 @@
     <span class="k">return</span> <span class="n">neighbors</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_localize</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">,</span> <span class="n">n_double</span><span class="p">,</span> <span class="n">conformer</span><span class="p">,</span> <span class="n">charge</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Write one X=Y plus single bonds, charging the unprotonated remainder."""</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_localize</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">,</span> <span class="n">n_double</span><span class="p">,</span> <span class="n">conformer</span><span class="p">,</span> <span class="n">charge</span><span class="p">,</span> <span class="n">charges</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Write one X=Y plus single bonds, charging the unprotonated remainder.</span>
+
+<span class="sd">    ``charges`` is the declared-charge map, read and written. A center the file</span>
+<span class="sd">    charged keeps that charge -- zeroing a declared quaternary nitrogen turns a</span>
+<span class="sd">    +1 amidinium into a -1 and fails sanitization -- and every charge written</span>
+<span class="sd">    here is recorded, so the net the caller compares against still describes the</span>
+<span class="sd">    molecule this leaves behind. Without that, localizing an undeclared</span>
+<span class="sd">    phosphonate moves the net away from the declared sum and sends every such</span>
+<span class="sd">    ligand down the OpenBabel fallback.</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">conformer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">origin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">conformer</span><span class="o">.</span><span class="n">GetAtomPosition</span><span class="p">(</span><span class="n">center</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()))</span>
         <span class="n">neighbors</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
@@ -906,7 +915,8 @@
             <span class="p">),</span>
         <span class="p">)</span>
     <span class="n">center</span><span class="o">.</span><span class="n">SetIsAromatic</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">center</span><span class="o">.</span><span class="n">SetFormalCharge</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">center</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">charges</span><span class="p">:</span>
+        <span class="n">center</span><span class="o">.</span><span class="n">SetFormalCharge</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">rank</span><span class="p">,</span> <span class="n">atom</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">neighbors</span><span class="p">):</span>
         <span class="n">bond</span> <span class="o">=</span> <span class="n">center</span><span class="o">.</span><span class="n">GetOwningMol</span><span class="p">()</span><span class="o">.</span><span class="n">GetBondBetweenAtoms</span><span class="p">(</span><span class="n">center</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">(),</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">())</span>
         <span class="n">bond</span><span class="o">.</span><span class="n">SetIsAromatic</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
@@ -916,7 +926,9 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetTotalNumHs</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span>
             <span class="n">n</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">()</span>
         <span class="p">):</span>
-            <span class="n">atom</span><span class="o">.</span><span class="n">SetFormalCharge</span><span class="p">(</span><span class="mi">0</span> <span class="k">if</span> <span class="n">double</span> <span class="k">else</span> <span class="n">charge</span><span class="p">)</span>
+            <span class="n">assigned</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">double</span> <span class="k">else</span> <span class="n">charge</span>
+            <span class="n">atom</span><span class="o">.</span><span class="n">SetFormalCharge</span><span class="p">(</span><span class="n">assigned</span><span class="p">)</span>
+            <span class="n">charges</span><span class="p">[</span><span class="n">atom</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()]</span> <span class="o">=</span> <span class="n">assigned</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_infer_oxyacid_bonds</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">charges</span><span class="p">,</span> <span class="n">delocalized_bonds</span><span class="p">):</span>
@@ -949,7 +961,7 @@
             <span class="n">negative</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">neighbors</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">()</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">neutral</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">negative</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">neighbors</span><span class="p">):</span>
                 <span class="k">continue</span>
-            <span class="n">_localize</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">neutral</span> <span class="o">+</span> <span class="n">negative</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">anion</span><span class="p">)</span>
+            <span class="n">_localize</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">neutral</span> <span class="o">+</span> <span class="n">negative</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">anion</span><span class="p">,</span> <span class="n">charges</span><span class="p">)</span>
             <span class="k">continue</span>
 
         <span class="n">valence</span> <span class="o">=</span> <span class="n">_DELOCALIZED_VALENCE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">center</span><span class="o">.</span><span class="n">GetSymbol</span><span class="p">())</span>
@@ -965,7 +977,7 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">n_double</span> <span class="o">&lt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">neighbors</span><span class="p">):</span>
             <span class="k">continue</span>
         <span class="n">conformer</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetConformer</span><span class="p">()</span> <span class="k">if</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetNumConformers</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span>
-        <span class="n">_localize</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">,</span> <span class="n">n_double</span><span class="p">,</span> <span class="n">conformer</span><span class="p">,</span> <span class="n">anion</span><span class="p">)</span>
+        <span class="n">_localize</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">,</span> <span class="n">n_double</span><span class="p">,</span> <span class="n">conformer</span><span class="p">,</span> <span class="n">anion</span><span class="p">,</span> <span class="n">charges</span><span class="p">)</span>
     <span class="n">mol</span><span class="o">.</span><span class="n">UpdatePropertyCache</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
 
