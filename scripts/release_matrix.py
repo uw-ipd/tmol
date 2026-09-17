@@ -151,11 +151,42 @@ def gpu_wheel_rows(*, release: bool = True) -> list[dict[str, object]]:
     return rows
 
 
+def _version_key(version: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in version.split("."))
+
+
+def cpu_torch_pythons() -> dict[str, tuple[str, ...]]:
+    """Torch versions the CPU lanes build, and the interpreters for each.
+
+    CPU covers every torch the GPU families cover, so a build is not offered
+    with a device and withheld without one. The Python set is per torch: an
+    older torch publishes no wheels for a newer interpreter, and the GPU
+    families already record which pairings exist. Versions tmol has always
+    shipped CPU wheels for keep their wider interpreter set.
+
+    The cover is one-way. Every GPU pairing has a CPU wheel, but not every CPU
+    pairing has a GPU one: torch 2.13 publishes no cp311 CUDA build, so neither
+    does tmol, while the CPU wheel for that pairing predates the GPU family and
+    is still wanted. ``test_release_matrix`` asserts the direction that holds.
+    """
+    pythons: dict[str, set[str]] = {}
+    for family in GPU_FAMILIES:
+        pythons.setdefault(family.torch, set()).update(family.pythons)
+    for torch_version in CPU_TORCH_VERSIONS:
+        pythons.setdefault(torch_version, set()).update(PYTHON_VERSIONS)
+    return {
+        torch_version: tuple(sorted(found, key=_version_key))
+        for torch_version, found in sorted(
+            pythons.items(), key=lambda kv: _version_key(kv[0])
+        )
+    }
+
+
 def cpu_wheel_rows() -> list[dict[str, object]]:
     """Return every published manylinux CPU wheel lane."""
     rows: list[dict[str, object]] = []
-    for torch_version in CPU_TORCH_VERSIONS:
-        for python_version in PYTHON_VERSIONS:
+    for torch_version, torch_pythons in cpu_torch_pythons().items():
+        for python_version in torch_pythons:
             for arch in LINUX_ARCHES:
                 row: dict[str, object] = {
                     "python-version": python_version,
@@ -190,8 +221,8 @@ def macos_wheel_rows() -> list[dict[str, object]]:
             "arch": "arm64",
             "label": f"py{python_version} pt{torch_version} CPU macOS arm64",
         }
-        for torch_version in CPU_TORCH_VERSIONS
-        for python_version in PYTHON_VERSIONS
+        for torch_version, torch_pythons in cpu_torch_pythons().items()
+        for python_version in torch_pythons
     ]
 
 

@@ -16,7 +16,8 @@ strip_cuda_compat_from_ld_path
 source .venv/bin/activate
 
 echo "=== build ==="
-.github/ci/build_package.sh
+.github/ci/with_atomworks_access.sh .github/ci/build_package.sh
+unset ATOMWORKS_DEPLOY_KEY APPTAINERENV_ATOMWORKS_DEPLOY_KEY
 
 echo "=== representative CUDA JIT compile ==="
 TMOL_USE_JIT=1 python - <<'PY'

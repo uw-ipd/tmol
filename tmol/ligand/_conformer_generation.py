@@ -340,6 +340,22 @@ def _geometry_targets(rd: Chem.Mol) -> dict:
     )
 
 
+def _atom_distances(coords, i, j):
+    # index_select gives deterministic CPU gradients for repeated atom indices.
+    delta = coords.index_select(0, i) - coords.index_select(0, j)
+    return (delta**2).sum(1).clamp_min(1e-12).sqrt()
+
+
+def _chiral_volumes(coords, c0, c1, c2, c3):
+    origin = coords.index_select(0, c0)
+    return (
+        (coords.index_select(0, c1) - origin)
+        * torch.linalg.cross(
+            coords.index_select(0, c2) - origin, coords.index_select(0, c3) - origin
+        )
+    ).sum(1)
+
+
 # Distance-bounds matrix + smoothing + embedding
 def _planar_component_distances(atoms, r0, ang, max_iters: int = 150):
     """Given one planar ring system, compute the exact distance between
@@ -383,7 +399,7 @@ def _planar_component_distances(atoms, r0, ang, max_iters: int = 150):
 
     def closure():
         Y.grad = None
-        d = ((Y[pair_i] - Y[pair_j]) ** 2).sum(1).clamp_min(1e-12).sqrt()
+        d = _atom_distances(Y, pair_i, pair_j)
         loss = ((d - target_distance) ** 2).sum()
         loss.backward()
         return loss
@@ -468,7 +484,8 @@ def _metric_embed(L, U, seed: int) -> np.ndarray:
     G = -0.5 * (J @ (D**2) @ J)
     w, V = np.linalg.eigh(G)
     order = np.argsort(w)[::-1]
-    return V[:, order[:3]] * np.sqrt(np.clip(w[order[:3]], 0.0, None))
+    coords = V[:, order[:3]] * np.sqrt(np.clip(w[order[:3]], 0.0, None))
+    return np.pad(coords, ((0, 0), (0, 3 - n))) if n < 3 else coords
 
 
 def _pair_masks(L0, U0, L, U):
@@ -529,11 +546,10 @@ def _chiral_anneal(X0, L0, U0, L, U, components, chirals, rng_seed: int) -> np.n
     )
 
     def pd(i, j):
-        return ((X[i] - X[j]) ** 2).sum(1).clamp_min(1e-12).sqrt()
+        return _atom_distances(X, i, j)
 
     def chiral_penalty():
-        P = X[:, :3]
-        v = ((P[c1] - P[c0]) * torch.linalg.cross(P[c2] - P[c0], P[c3] - P[c0])).sum(1)
+        v = _chiral_volumes(X[:, :3], c0, c1, c2, c3)
         return (torch.relu(CHIRAL_MARGIN - csgn * v) ** 2).sum()
 
     def run(iters, w_dim4):
@@ -550,7 +566,8 @@ def _chiral_anneal(X0, L0, U0, L, U, components, chirals, rng_seed: int) -> np.n
             loss = loss + W_BOUND * (torch.relu(lo - pd(ni, nj)) ** 2).sum()
             loss = loss + W_BOUND * (torch.relu(pd(fi, fj) - hi) ** 2).sum()
             for c in comps:
-                P = X[c][:, :3] - X[c][:, :3].mean(0)
+                P = X.index_select(0, c)[:, :3]
+                P = P - P.mean(0)
                 loss = loss + W_PLANE * torch.linalg.eigvalsh(P.t() @ P)[0]
             loss = loss + W_CHIRAL * chiral_penalty()
             if w_dim4 > 0:
@@ -583,12 +600,12 @@ def _stress_refine(X0, L0, U0, L, U, components, chirals) -> np.ndarray:
     csgn = torch.as_tensor(ch[:, 4], dtype=TORCH_DTYPE)
 
     def pair_distances():
-        return ((X[pair_i] - X[pair_j]) ** 2).sum(1).clamp_min(1e-12).sqrt()
+        return _atom_distances(X, pair_i, pair_j)
 
     def chiral_penalty():
         if len(csgn) == 0:
             return X.sum() * 0.0
-        v = ((X[c1] - X[c0]) * torch.linalg.cross(X[c2] - X[c0], X[c3] - X[c0])).sum(1)
+        v = _chiral_volumes(X, c0, c1, c2, c3)
         return (torch.relu(CHIRAL_MARGIN - csgn * v) ** 2).sum()
 
     opt = _LigandLBFGS(
@@ -606,7 +623,8 @@ def _stress_refine(X0, L0, U0, L, U, components, chirals) -> np.ndarray:
         loss = loss + W_BOUND * (torch.relu(lo - lower) ** 2).sum()
         loss = loss + W_BOUND * (torch.relu(upper - hi) ** 2).sum()
         for c in comps:
-            P = X[c] - X[c].mean(0)
+            P = X.index_select(0, c)
+            P = P - P.mean(0)
             loss = loss + W_PLANE * torch.linalg.eigvalsh(P.t() @ P)[0]
         loss = loss + W_CHIRAL * chiral_penalty()
         loss.backward()

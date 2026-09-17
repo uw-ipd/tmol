@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from release_matrix import (
+    cpu_wheel_rows,
     expected_wheel_keys,
     gpu_wheel_rows,
     linux_wheel_rows,
@@ -19,22 +20,33 @@ def test_release_matrix_is_complete_and_unique():
     release_gpu = gpu_wheel_rows()
     smoke_linux = linux_wheel_rows()
 
+    # The CPU lanes cover every torch the GPU lanes do, so their row count
+    # follows the GPU families rather than standing on its own.
     assert len(release_gpu) == 34
-    assert len(smoke_linux) == 50
-    assert len(macos_wheel_rows()) == 8
-    assert len(expected_wheel_keys()) == 58
+    assert len(cpu_wheel_rows()) == len(release_gpu)
+    assert len(macos_wheel_rows()) == 17
+    assert len(smoke_linux) == len(release_gpu) + len(cpu_wheel_rows())
+    assert len(expected_wheel_keys()) == len(smoke_linux) + len(macos_wheel_rows())
     assert len(
         {(row["python-tag"], row["local-tag"], row["arch"]) for row in smoke_linux}
     ) == len(smoke_linux)
+
+    # A build must never be offered with a device and withheld without one, or
+    # tmol_build_backend asks for a wheel that was never published and silently
+    # falls back to a full source build.
+    def pairs(rows):
+        return {(row["torch-version"], row["python-version"]) for row in rows}
+
+    assert pairs(release_gpu) <= pairs(cpu_wheel_rows())
 
 
 def test_matrix_cli_emits_workflow_json():
     script = Path(__file__).with_name("release_matrix.py")
     for name, expected_count in {
-        "gpu": 34,
-        "linux-cpu": 16,
-        "macos": 8,
-        "linux": 50,
+        "gpu": len(gpu_wheel_rows()),
+        "linux-cpu": len(cpu_wheel_rows()),
+        "macos": len(macos_wheel_rows()),
+        "linux": len(linux_wheel_rows()),
     }.items():
         result = subprocess.run(
             [sys.executable, str(script), name],
@@ -68,9 +80,12 @@ def test_manifest_validator_accepts_only_the_complete_matrix(tmp_path: Path):
     ]
     valid = subprocess.run(command, text=True, capture_output=True)
     assert valid.returncode == 0, valid.stderr
-    assert "Validated 58 wheels" in valid.stdout
+    assert f"Validated {len(expected_wheel_keys())} wheels" in valid.stdout
 
     next(tmp_path.glob("*cu132torch2.14-cp314-cp314-*.whl")).unlink()
     incomplete = subprocess.run(command, text=True, capture_output=True)
     assert incomplete.returncode != 0
-    assert "expected 34 GPU wheels, found 33" in incomplete.stderr
+    assert (
+        f"expected {len(gpu_wheel_rows())} GPU wheels, "
+        f"found {len(gpu_wheel_rows()) - 1}" in incomplete.stderr
+    )

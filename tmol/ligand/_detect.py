@@ -1,19 +1,20 @@
 """Detection of non-standard residues in biotite AtomArrays.
 
 Identifies residues that are not represented in tmol's ChemicalDatabase
-and classifies them using Biotite's built-in Chemical Component Dictionary
-(CCD) as either true ligands (non-polymer) or modified amino acids /
-nucleotides (polymer-linked).
+and classifies them as either true ligands (non-polymer) or modified amino
+acids / nucleotides (polymer-linked). The input file decides: mmCIF gives a
+polymer residue a label_seq_id and a non-polymer one a "."; failing that the
+file's own _chem_comp.type says. Nothing is read from the Chemical Component
+Dictionary, so a residue under a code no dictionary defines is classified the
+same as one under its deposited code.
 """
 
-import functools
 import logging
 from pathlib import Path
 from typing import Optional
 
 import attr
 import biotite.structure as struc
-import biotite.structure.info.ccd as ccd
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import RWMol
@@ -24,6 +25,9 @@ from tmol.ligand._mol2_names import apply_disambiguated_mol2_names
 logger = logging.getLogger(__name__)
 
 SKIP_RESIDUES = frozenset({"HOH", "WAT", "DOD", "VRT"})
+_HALOGEN_ELEMENTS = frozenset({"F", "Cl", "Br", "I", "At", "Ts"})
+_SOURCE_FORMAL_CHARGE_ANNOTATION = "tmol_source_formal_charge"
+_FORMAL_CHARGE_SPECIFIED_ANNOTATION = "tmol_formal_charge_specified"
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -36,12 +40,21 @@ class NonStandardResidueInfo:
 
     Attributes:
         res_name: Three-letter residue code (e.g. "ATP", "NAG").
-        ccd_type: CCD chemical component type string, or "UNKNOWN" if the
-            residue is not in the CCD.  Informational only.
+        component_type: Chemical component type the input file declares, or
+            "UNKNOWN" where it declares none.
+        in_polymer_entity: Whether the input file places this residue in a
+            polymer entity (mmCIF label_seq_id). ``None`` where the source
+            cannot say, as a bare SMILES cannot.
+        chemistry_problem: Why this residue's chemistry cannot be established,
+            or None. A residue carrying one is refused rather than prepared
+            from atoms that may not be the whole molecule.
         atom_names: Atom names for one representative instance.
         elements: Element symbols for each atom.
         coords: Cartesian coordinates of shape (n_atoms, 3).
         atom_array: The sub-AtomArray (with bonds if available).
+        connection_atom_names: Names of the atoms bonded to a neighbouring
+            residue, which is where this residue's polymer connections attach.
+            ``None`` where the source cannot say, as a bare SMILES cannot.
         partial_charges: Authoritative ``{atom_name: charge}`` map (OpenBabel
             MMFF94 charges). Set only on the mol2 / SMILES-via-mol2 reader path,
             where ``prepare_single_ligand`` consumes them directly. ``None`` for
@@ -59,7 +72,7 @@ class NonStandardResidueInfo:
     """
 
     res_name: str
-    ccd_type: str
+    component_type: str
     atom_names: tuple[str, ...]
     elements: tuple[str, ...]
     coords: np.ndarray = attr.ib(eq=False, hash=False)
@@ -70,28 +83,143 @@ class NonStandardResidueInfo:
     original_single_bonds: Optional[frozenset[frozenset[str]]] = None
     # source atom-array index per mol2 heavy atom (SMILES-via-mol2 path only)
     source_atom_order: Optional[tuple[int, ...]] = None
+    # atoms bonded to a neighbouring residue; empty when the residue stands
+    #    alone, None when the source cannot say (a bare SMILES)
+    connection_atom_names: Optional[frozenset[str]] = None
+    # whether the input file places this residue in a polymer entity
+    in_polymer_entity: Optional[bool] = None
+    # why this residue's chemistry cannot be trusted, or None
+    chemistry_problem: Optional[str] = None
+    # {own connection atom: {(partner residue name, partner atom name)}}
+    connection_partners: Optional[dict] = attr.ib(default=None, eq=False, hash=False)
 
 
-@functools.cache
-def _chem_comp_type_dict() -> dict[str, str]:
-    """Build a dict mapping CCD component IDs to their chemical type."""
-    ccd_data = ccd.get_ccd()
-    ids = np.char.upper(ccd_data["chem_comp"]["id"].as_array())
-    types = np.char.upper(ccd_data["chem_comp"]["type"].as_array())
-    return dict(zip(ids, types))
+def _formal_charge(residue: struc.AtomArray, index: int = 0) -> int:
+    """Formal charge of one atom, or zero when the array declares none.
+
+    ``charge`` is an optional Biotite annotation: an array built by hand, or
+    read by a path that never saw a formal-charge column, simply does not have
+    it. Treat that as uncharged rather than raising, which is what the callers
+    below already do for the two tmol-specific charge annotations.
+    """
+    if "charge" not in residue.get_annotation_categories():
+        return 0
+    return int(residue.charge[index])
 
 
-def get_chem_comp_type(res_name: str) -> Optional[str]:
-    """Look up the CCD chemical component type for a residue name.
+def _formal_charge_is_specified(residue: struc.AtomArray) -> bool:
+    """Whether a monatomic residue carries an authoritative formal charge."""
+    if _FORMAL_CHARGE_SPECIFIED_ANNOTATION in residue.get_annotation_categories():
+        return bool(residue.get_annotation(_FORMAL_CHARGE_SPECIFIED_ANNOTATION)[0])
+    if _SOURCE_FORMAL_CHARGE_ANNOTATION in residue.get_annotation_categories():
+        source_text = str(
+            residue.get_annotation(_SOURCE_FORMAL_CHARGE_ANNOTATION)[0]
+        ).strip()
+        if source_text not in ("", ".", "?"):
+            return True
+    return _formal_charge(residue) != 0
+
+
+def _isolated_atom_charge_problem(
+    atom_array: struc.AtomArray,
+    residue: struc.AtomArray,
+    *,
+    covalently_linked: bool,
+) -> Optional[str]:
+    """Explain why an isolated atom's charge cannot be safely regenerated."""
+    if covalently_linked or len(residue) != 1:
+        return None
+
+    res_name = str(residue.res_name[0]).strip()
+    atom_name = str(residue.atom_name[0]).strip()
+    element = str(residue.element[0]).strip().capitalize()
+    if not _formal_charge_is_specified(residue):
+        return (
+            f"{res_name}: formal charge is unspecified for isolated {element} atom "
+            f"{atom_name}; no bond or hydrogen valence can establish its charge. "
+            "Supply _atom_site.pdbx_formal_charge or _chem_comp_atom.charge, enable "
+            "use_ccd for a CCD component, or load its prepared .tmol parameters"
+        )
+
+    if element not in _HALOGEN_ELEMENTS or _formal_charge(residue) != 0:
+        return None
+
+    source_text = (
+        str(residue.get_annotation(_SOURCE_FORMAL_CHARGE_ANNOTATION)[0]).strip()
+        if _SOURCE_FORMAL_CHARGE_ANNOTATION in residue.get_annotation_categories()
+        else ""
+    )
+    try:
+        source_charge = int(source_text)
+    except ValueError:
+        source_charge = _formal_charge(residue)
+
+    template = getattr(atom_array, "_custom_ccd_registry", {}).get(res_name.upper())
+    ccd_charge = None
+    if template is not None:
+        selected = np.flatnonzero(template.atom_name.astype(str) == atom_name)
+        if len(selected) == 1:
+            ccd_charge = int(template.charge[selected[0]])
+
+    disagreement = (
+        f", while the CCD component definition declares {ccd_charge}"
+        if ccd_charge is not None and ccd_charge != source_charge
+        else ""
+    )
+    return (
+        f"{res_name}: source explicitly declares formal charge {source_charge} "
+        f"for isolated {element}{disagreement}. Neutral monatomic {element} "
+        "cannot be safely regenerated as an aqueous ligand because closed-shell "
+        "preparation may create HCl-like hydrogen-halide chemistry. Correct the "
+        "source formal charge, supply explicit HCl/hydrogen-halide chemistry, "
+        "provide prepared parameters with params_files, or skip the residue with "
+        "strict_ligands=False."
+    )
+
+
+def get_chem_comp_type(
+    res_name: str, chem_comp_types: Optional[dict] = None
+) -> Optional[str]:
+    """The chemical component type the input file declares for a residue.
 
     Args:
         res_name: Three-letter residue code.
+        chem_comp_types: Types declared by the input file.
 
     Returns:
-        The CCD type string (e.g. "NON-POLYMER", "L-PEPTIDE LINKING"),
-        or None if the code is not found in the CCD.
+        The type string (e.g. "NON-POLYMER", "L-PEPTIDE LINKING"), or None
+        where the file declares none.
     """
-    return _chem_comp_type_dict().get(res_name.upper())
+    if not chem_comp_types:
+        return None
+    declared = chem_comp_types.get(res_name.upper())
+    return declared.upper() if declared else None
+
+
+def chem_comp_types_from_cif(cif_path) -> dict:
+    """Read the _chem_comp.type of every component declared by a CIF file.
+
+    A file that does not number its residues along a polymer sequence can still
+    declare their types, which is what says whether they are polymer-linking.
+    """
+    from atomworks.io.utils.io_utils import read_any
+
+    cif = read_any(cif_path)
+    types = {}
+    for block in cif.values():
+        if "chem_comp" not in block:
+            continue
+        category = block["chem_comp"]
+        if "id" not in category or "type" not in category:
+            continue
+        ids = category["id"].as_array()
+        values = category["type"].as_array()
+        for comp_id, comp_type in zip(ids, values):
+            comp_id = str(comp_id).strip().upper()
+            comp_type = str(comp_type).strip().upper()
+            if comp_id and comp_type and comp_type != "?":
+                types[comp_id] = comp_type
+    return types
 
 
 _METAL_SYMBOLS = frozenset(
@@ -123,8 +251,8 @@ _METAL_SYMBOLS = frozenset(
 def _strip_metals(mol: Chem.Mol) -> Chem.Mol:
     """Remove metal atoms from an RDKit Mol.
 
-    OpenBabel downstream cannot parse CCD coordination-bond SMILES, and
-    metals are dropped during ligand preparation anyway.
+    OpenBabel downstream cannot parse coordination-bond SMILES, and metals
+    are dropped during ligand preparation anyway.
     """
     metals = [a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() in _METAL_SYMBOLS]
     if metals:
@@ -137,7 +265,7 @@ def _strip_metals(mol: Chem.Mol) -> Chem.Mol:
 
 def _rdkit_bond_to_biotite_type(bond: Chem.Bond) -> int:
     """Map an RDKit bond to a Biotite ``BondType`` integer."""
-    if bond.GetIsAromatic():
+    if bond.GetIsAromatic() or bond.GetBondType() == Chem.BondType.AROMATIC:
         return int(struc.BondType.AROMATIC)
     btype = bond.GetBondType()
     if btype == Chem.BondType.SINGLE:
@@ -148,7 +276,7 @@ def _rdkit_bond_to_biotite_type(bond: Chem.Bond) -> int:
         return int(struc.BondType.TRIPLE)
     if btype == Chem.BondType.QUADRUPLE:
         return int(struc.BondType.QUADRUPLE)
-    return int(struc.BondType.SINGLE)
+    return int(struc.BondType.ANY)
 
 
 def _infer_res_name_from_mol2(mol: Chem.Mol, fallback: str) -> str:
@@ -197,51 +325,135 @@ def _mol2_charge_model_from_text(mol2_text: str) -> str:
 
 
 def _mol2_single_bond_ids(mol2_text: str) -> frozenset[frozenset[int]]:
-    """Return the set of single (order ``'1'``) bonds from a mol2 BOND section.
+    """Literal single bonds, expressed as 1-based atom-row indices.
 
-    Each bond is returned as a ``frozenset`` of its two 1-based TRIPOS atom
-    ids. Only bonds whose TRIPOS ``bond_type`` is literally ``'1'`` are
-    included — aromatic (``ar``), amide (``am``), double (``2``), etc. are
-    excluded.
-
-    RDKit's sanitize/kekulize step promotes some mol2 single bonds (e.g. a
-    ``C.ar``-``N.pl3`` written as ``1``) to AROMATIC/DOUBLE, which then makes
-    :func:`tmol.ligand._chi_topology.build_chi_topology` skip them as
-    ``border > 1``. Rosetta's ``mol2genparams`` reads the literal mol2 order
-    instead, so honoring the source ``'1'`` here restores parity. Returns an
-    empty set if no BOND section is present.
+    Tripos IDs need not be consecutive or ordered. Preserve literal singles
+    before aromaticity perception for Rosetta-compatible chi classification.
     """
-    single_bonds: set[frozenset[int]] = set()
-    in_bond = False
+    atom_ids = {}
+    pairs = []
+    section = ""
     for line in mol2_text.splitlines():
-        stripped = line.strip()
-        if stripped.startswith("@<TRIPOS>"):
-            in_bond = stripped.startswith("@<TRIPOS>BOND")
+        fields = line.split()
+        if not fields or fields[0].startswith("#"):
             continue
-        if not in_bond or not stripped:
-            continue
-        tokens = stripped.split()
-        # TRIPOS BOND line: bond_id atom1 atom2 bond_type [status_bits]
-        if len(tokens) < 4 or tokens[3] != "1":
-            continue
-        try:
-            a1, a2 = int(tokens[1]), int(tokens[2])
-        except ValueError:
-            continue
-        single_bonds.add(frozenset((a1, a2)))
-    return frozenset(single_bonds)
+        if fields[0].startswith("@<TRIPOS>"):
+            section = fields[0]
+        elif section == "@<TRIPOS>ATOM":
+            atom_ids[int(fields[0])] = len(atom_ids) + 1
+        elif section == "@<TRIPOS>BOND" and len(fields) >= 4 and fields[3] == "1":
+            try:
+                pairs.append((int(fields[1]), int(fields[2])))
+            except ValueError:
+                continue
+    if atom_ids:
+        missing = sorted({a for pair in pairs for a in pair} - set(atom_ids))
+        if missing:
+            raise ValueError(
+                f"MOL2 bond records reference undeclared atom IDs {missing}; Tripos "
+                "IDs need not be consecutive, so an unmatched ID is not an index"
+            )
+    # A fragment carrying no ATOM section declares nothing to resolve against,
+    # so its own numbering is all it can mean.
+    return frozenset(
+        frozenset((atom_ids.get(a, a), atom_ids.get(b, b))) for a, b in pairs
+    )
 
 
 def _charge_model_is_authoritative(model: str) -> bool:
-    """True only when a Tripos charge model is a trusted force-field model.
+    """Recognized prepared charges; unknown and population-analysis models regenerate."""
+    return model.upper().removesuffix("_CHARGES") in {
+        "MMFF94",
+        "MMFF94S",
+        "AM1BCC",
+        "AM1-BCC",
+        "AMBER",
+        "EEM",
+        "USER",
+    }
 
-    PLI fixtures and legacy mol2s use Gasteiger; MMFF94/AM1-BCC/etc. are OK.
-    """
-    if not model:
-        return False
-    if model == "GASTEIGER":
-        return False
-    return True
+
+def _apply_mol2_metadata(mol, text):
+    """Preserve source properties and explicit formal charges across either reader."""
+    indices = {}
+    declared_charges = {}
+    delocalized_bonds = set()
+    coordinates = []
+    section = ""
+    atom_id = None
+    for line in text.splitlines():
+        fields = line.split()
+        if not fields or fields[0].startswith("#"):
+            continue
+        if fields[0].startswith("@<TRIPOS>"):
+            section = fields[0]
+        elif section == "@<TRIPOS>ATOM":
+            if int(fields[0]) in indices:
+                raise ValueError(f"Duplicate MOL2 atom ID {fields[0]}")
+            atom = mol.GetAtomWithIdx(len(indices))
+            indices[int(fields[0])] = len(indices)
+            coordinates.append([float(v) for v in fields[2:5]])
+            atom.SetProp("_TriposAtomName", fields[1])
+            atom.SetProp("_TriposAtomType", fields[5])
+            if len(fields) >= 9:
+                atom.SetDoubleProp("_TriposPartialCharge", float(fields[8]))
+        elif section == "@<TRIPOS>BOND":
+            if fields[3] not in ("1", "2", "3", "4", "ar", "am"):
+                raise ValueError(
+                    f"Undefined MOL2 bond order {fields[3]!r} between atom IDs "
+                    f"{fields[1]} and {fields[2]}; supply explicit chemical bond orders"
+                )
+            if fields[3] == "ar":
+                delocalized_bonds.add(
+                    frozenset((indices[int(fields[1])], indices[int(fields[2])]))
+                )
+        elif section == "@<TRIPOS>UNITY_ATOM_ATTR":
+            if fields[0] == "charge":
+                index, charge = indices[atom_id], int(fields[1])
+                mol.GetAtomWithIdx(index).SetFormalCharge(charge)
+                declared_charges[index] = charge
+            elif fields[0].isdigit():
+                atom_id = int(fields[0])
+
+    mol.GetConformer().SetPositions(np.asarray(coordinates, dtype=np.float64))
+    _infer_oxyacid_bonds(mol, declared_charges, delocalized_bonds)
+    return declared_charges
+
+
+def _infer_oxyacid_bonds(mol, charges, delocalized_bonds):
+    """Localize delocalized oxyacid bonds from explicit oxygen charges."""
+    for center in mol.GetAtoms():
+        oxygens = [
+            atom
+            for atom in center.GetNeighbors()
+            if atom.GetAtomicNum() == 8
+            and atom.GetDegree() == 1
+            and atom.GetProp("_TriposAtomType") == "O.co2"
+            and frozenset((center.GetIdx(), atom.GetIdx())) in delocalized_bonds
+        ]
+        negative = [a for a in oxygens if a.GetFormalCharge() == -1]
+        neutral = [a for a in oxygens if a.GetFormalCharge() == 0]
+        if (
+            center.GetFormalCharge() != 0
+            or len(neutral) != 1
+            or len(negative) + 1 != len(oxygens)
+            or not negative
+            or any(a.GetIdx() not in charges for a in negative)
+        ):
+            continue
+        # Acyclic delocalization is not aromaticity. Explicit source bond orders
+        # and ring bonds remain authoritative and are never changed here.
+        for oxygen in oxygens:
+            bond = mol.GetBondBetweenAtoms(center.GetIdx(), oxygen.GetIdx())
+            bond.SetBondType(
+                Chem.BondType.DOUBLE
+                if oxygen.GetFormalCharge() == 0
+                else Chem.BondType.SINGLE
+            )
+            bond.SetIsAromatic(False)
+            oxygen.SetIsAromatic(False)
+        center.SetIsAromatic(False)
+    mol.UpdatePropertyCache(strict=False)
 
 
 def nonstandard_residue_info_from_mol2(
@@ -255,38 +467,12 @@ def nonstandard_residue_info_from_mol2(
     files). Preserves Tripos aromatic flags, atom-type subtypes, and per-atom
     partial charges, avoiding lossy rdkit<->biotite round-trips.
     """
-    from tmol.ligand._openbabel_compat import (
-        OpenBabelUnavailableError,
-        obabel_read_mol2,
-    )
-
-    path = Path(mol2_path)
-    mol2_text = path.read_text()
-    mol = Chem.MolFromMol2File(
-        str(path),
-        sanitize=False,
-        removeHs=False,
-        cleanupSubstructures=False,
-    )
-    if mol is None:
-        try:
-            mol = obabel_read_mol2(path)
-        except OpenBabelUnavailableError:
-            mol = None
-        if mol is None:
-            raise ValueError(
-                f"Could not parse Mol2 file: {path} "
-                "(RDKit MolFromMol2File failed; OpenBabel fallback also "
-                "failed or is not installed)"
-            )
-        logger.info("Used OpenBabel fallback to parse mol2 %s", path)
-    return _nonstandard_residue_info_from_mol2_mol(
-        mol,
-        _mol2_charge_model_from_text(mol2_text),
-        res_name,
-        source=str(path),
-        single_bond_ids=_mol2_single_bond_ids(mol2_text),
-    )
+    try:
+        return nonstandard_residue_info_from_mol2_block(
+            Path(mol2_path).read_text(), res_name=res_name
+        )
+    except ValueError as error:
+        raise ValueError(f"{mol2_path}: {error}") from error
 
 
 def nonstandard_residue_info_from_mol2_block(
@@ -305,6 +491,8 @@ def nonstandard_residue_info_from_mol2_block(
         obabel_read_mol2_block,
     )
 
+    if mol2_block.count("@<TRIPOS>MOLECULE") != 1:
+        raise ValueError("Expected exactly one MOL2 molecule record")
     mol = Chem.MolFromMol2Block(
         mol2_block,
         sanitize=False,
@@ -322,9 +510,54 @@ def nonstandard_residue_info_from_mol2_block(
                 "failed; OpenBabel fallback also failed or is not installed)"
             )
         logger.info("Used OpenBabel fallback to parse in-memory mol2 block")
+    declared_charges = _apply_mol2_metadata(mol, mol2_block)
+    probe = Chem.Mol(mol)
+    invalid = bool(Chem.SanitizeMol(probe, catchErrors=True))
+    charge_model = _mol2_charge_model_from_text(mol2_block)
+    # Tripos ``ar`` bonds carry no kekulization, so a reader that picks the
+    # wrong Kekule structure can return a sanitizable but different molecule --
+    # a pyrrole-type ring nitrogen comes back protonated and cationic. The mol2
+    # records every nonzero formal charge, so a net charge that disagrees with
+    # what was declared means the chemistry was rewritten, not just perceived.
+    declared_net = sum(declared_charges.values())
+    rewritten = not invalid and Chem.GetFormalCharge(probe) != declared_net
+    if invalid or rewritten:
+        try:
+            alternate = obabel_read_mol2_block(mol2_block)
+        except OpenBabelUnavailableError:
+            alternate = None
+        if alternate is not None and [
+            a.GetAtomicNum() for a in alternate.GetAtoms()
+        ] == [a.GetAtomicNum() for a in mol.GetAtoms()]:
+            _apply_mol2_metadata(alternate, mol2_block)
+            from atomworks.io.tools.rdkit import fix_charge_based_on_valence
+
+            fix_charge_based_on_valence(alternate)
+            preserves_charges = all(
+                alternate.GetAtomWithIdx(i).GetFormalCharge() == charge
+                for i, charge in declared_charges.items()
+            )
+            if (
+                preserves_charges
+                and not Chem.SanitizeMol(alternate, catchErrors=True)
+                and not any(
+                    atom.GetNumRadicalElectrons() for atom in alternate.GetAtoms()
+                )
+                # When the primary reader is unusable the alternate is the only
+                # candidate; require the declared net charge only when we are
+                # rejecting a primary that parsed but rewrote the chemistry.
+                and (invalid or Chem.GetFormalCharge(alternate) == declared_net)
+            ):
+                mol = alternate
+                invalid = False
+    if invalid:
+        raise ValueError(
+            "MOL2 atom and bond types do not define a sanitizable chemical graph; "
+            "supply corrected aromatic bond orders and protonation"
+        )
     return _nonstandard_residue_info_from_mol2_mol(
         mol,
-        _mol2_charge_model_from_text(mol2_block),
+        charge_model,
         res_name,
         source="<mol2 block>",
         single_bond_ids=_mol2_single_bond_ids(mol2_block),
@@ -344,7 +577,7 @@ def _nonstandard_residue_info_from_mol2_mol(
     Shared core of the file and in-memory-block mol2 entry points. ``charge_model``
     is the TRIPOS ``charge_type`` (already parsed from the source) used to decide
     whether the per-atom charges are authoritative; ``source`` labels the input in
-    error messages. ``single_bond_ids`` is the set of 1-based TRIPOS atom-id pairs
+    error messages. ``single_bond_ids`` is the set of 1-based atom-row pairs
     the source records as literal single bonds (see :func:`_mol2_single_bond_ids`);
     these are mapped to disambiguated atom names and stored as
     ``original_single_bonds`` so the CHI classifier can honor the mol2 bond order.
@@ -385,15 +618,19 @@ def _nonstandard_residue_info_from_mol2_mol(
 
     atom_array = struc.AtomArray(n_atoms)
     atom_array.coord = coords
-    atom_array.atom_name = np.array(atom_names, dtype="U16")
+    atom_array.atom_name = np.array(atom_names, dtype=str)
     atom_array.element = np.array(elements, dtype="U4")
-    inferred_res_name = _infer_res_name_from_mol2(
-        mol, fallback="LG1" if res_name is None else res_name
+    inferred_res_name = (
+        _infer_res_name_from_mol2(mol, fallback="L_1") if res_name is None else res_name
     )
-    atom_array.res_name = np.array([inferred_res_name] * n_atoms, dtype="U8")
+    atom_array.res_name = np.array([inferred_res_name] * n_atoms, dtype=str)
     atom_array.chain_id = np.array(["A"] * n_atoms, dtype="U4")
     atom_array.res_id = np.array([1] * n_atoms, dtype=np.int32)
     atom_array.hetero = np.array([True] * n_atoms, dtype=bool)
+    atom_array.set_annotation(
+        "charge",
+        np.array([atom.GetFormalCharge() for atom in mol.GetAtoms()], dtype=np.int32),
+    )
     atom_array.set_annotation("tmol_aromatic", aromatic_flags.astype(bool))
     atom_array.set_annotation(
         "tmol_source_subtype", np.array(source_subtypes, dtype="U8")
@@ -412,14 +649,23 @@ def _nonstandard_residue_info_from_mol2_mol(
     )
     atom_array.bonds = struc.BondList(n_atoms, bond_array)
 
-    use_input_charges = has_full_partial_charges and _charge_model_is_authoritative(
-        charge_model
+    complete = Chem.Mol(mol)
+    for atom in complete.GetAtoms():
+        atom.SetNoImplicit(False)
+    complete.UpdatePropertyCache(strict=False)
+    missing_hydrogens = any(
+        atom.GetNumImplicitHs() or atom.GetNumRadicalElectrons()
+        for atom in complete.GetAtoms()
+    )
+    use_input_charges = (
+        has_full_partial_charges
+        and not missing_hydrogens
+        and _charge_model_is_authoritative(charge_model)
+        and np.isfinite(list(partial_charges.values())).all()
     )
     authoritative_q = partial_charges if use_input_charges else None
 
-    # Map literal mol2 single bonds (1-based TRIPOS ids) to disambiguated atom
-    # names. RDKit index i corresponds to TRIPOS atom id i+1 (the reader keeps
-    # mol2 atom order), the same correspondence used for names/coords above.
+    # Map source atom rows to the names retained through preparation.
     original_single_bonds: frozenset[frozenset[str]] = frozenset(
         frozenset((disambiguated_names[i - 1], disambiguated_names[j - 1]))
         for i, j in (tuple(pair) for pair in single_bond_ids)
@@ -428,7 +674,7 @@ def _nonstandard_residue_info_from_mol2_mol(
 
     return NonStandardResidueInfo(
         res_name=inferred_res_name,
-        ccd_type="UNKNOWN",
+        component_type="UNKNOWN",
         atom_names=tuple(atom_names),
         elements=tuple(elements),
         coords=coords,
@@ -437,6 +683,9 @@ def _nonstandard_residue_info_from_mol2_mol(
         partial_charges=authoritative_q,
         skip_protonation=authoritative_q is not None,
         original_single_bonds=original_single_bonds or None,
+        source_atom_order=tuple(
+            i for i, element in enumerate(elements) if element != "H"
+        ),
     )
 
 
@@ -456,29 +705,10 @@ def _normalize_radical_oxygens(smiles: str) -> str:
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return smiles
-    changed = False
-    for atom in mol.GetAtoms():
-        if (
-            atom.GetSymbol() == "O"
-            and atom.GetDegree() == 1
-            and atom.GetTotalNumHs() == 0
-            and atom.GetFormalCharge() == 0
-            and atom.GetNumRadicalElectrons() > 0
-        ):
-            atom.SetFormalCharge(-1)
-            atom.SetNumRadicalElectrons(0)
-            changed = True
-    if not changed:
-        return smiles
-    try:
-        Chem.SanitizeMol(mol)
-    except Exception:
-        logger.warning(
-            "Radical-oxygen normalization failed to sanitize SMILES %r; " "using input",
-            smiles,
-        )
-        return smiles
-    return Chem.MolToSmiles(mol)
+    from atomworks.io.tools.protonation import normalize_radical_oxygens
+
+    fixed = normalize_radical_oxygens(mol)
+    return smiles if fixed is mol else Chem.MolToSmiles(fixed)
 
 
 def _dimorphite_protonate_smiles(
@@ -540,7 +770,7 @@ def nonstandard_residue_info_from_smiles_via_mol2(
 
     Args:
         smiles: Ligand SMILES string.
-        res_name: Three-letter residue name (default inferred / ``"LG1"``).
+        res_name: Residue name (default inferred / ``"L_1"``).
         ph: Target pH for the Dimorphite protonation step.
         protonate: When ``True`` (default) run Dimorphite on ``smiles`` first;
             set ``False`` to pin an already-protonated SMILES verbatim.
@@ -552,21 +782,72 @@ def nonstandard_residue_info_from_smiles_via_mol2(
         ValueError: If OpenBabel cannot build a charged mol2 for ``smiles``.
     """
     from tmol.ligand._openbabel_compat import (
-        obabel_smiles_to_mol2_block,
+        _build_charged_3d_mol2_mol,
         source_atom_order_from_mapped_smiles,
     )
 
     smiles = _normalize_radical_oxygens(smiles)
     prep_smiles = _dimorphite_protonate_smiles(smiles, ph) if protonate else smiles
     source_order = source_atom_order_from_mapped_smiles(prep_smiles)
-    mol2_block = obabel_smiles_to_mol2_block(prep_smiles, seed=seed)
-    info = nonstandard_residue_info_from_mol2_block(mol2_block, res_name=res_name)
-    return attr.evolve(info, source_atom_order=source_order)
+    molecule = _build_charged_3d_mol2_mol(prep_smiles, seed=seed)
+    info = nonstandard_residue_info_from_mol2_block(
+        molecule.write("mol2"), res_name=res_name
+    )
+    # Mol2 preserves partial charges, but its atom types can lose formal charge
+    # on fully deprotonated species. Keep the already protonated atom state.
+    info.atom_array.set_annotation(
+        "charge", np.array([a.formalcharge for a in molecule.atoms], dtype=np.int8)
+    )
+    return attr.evolve(
+        info,
+        source_atom_order=source_order,
+        # The mol2 text rounds charges to four decimals. Keep the computed
+        # values so rounding error cannot accumulate over larger ligands.
+        partial_charges=dict(
+            zip(info.atom_array.atom_name, (a.partialcharge for a in molecule.atoms))
+        ),
+    )
+
+
+def _component_types_from_annotations(atom_array, explicit=None):
+    """Consume per-atom chemistry supplied by AtomWorks or another reader.
+
+    An explicit mapping overrides annotations. A component name must otherwise
+    identify one type; conflicting annotations cannot define a reusable tmol
+    residue type and are rejected before parameter generation.
+    """
+    result = dict(explicit or {})
+    if "chem_comp_type" not in atom_array.get_annotation_categories():
+        return result
+    names = atom_array.res_name.astype(str)
+    values = atom_array.get_annotation("chem_comp_type").astype(str)
+    # Most annotations repeat across every atom of a residue. Collapse runs
+    # before sorting, while still detecting contradictory values within a run.
+    starts = np.r_[True, (names[1:] != names[:-1]) | (values[1:] != values[:-1])]
+    pairs = (
+        np.unique(np.stack((names[starts], values[starts]), axis=1), axis=0)
+        if len(names)
+        else []
+    )
+    declared = {}
+    for name, value in pairs:
+        name, value = name.strip().upper(), value.strip().upper()
+        if not value or value in {".", "?", "UNKNOWN"} or name in result:
+            continue
+        previous = declared.setdefault(name, value)
+        if previous != value:
+            raise ValueError(
+                f"Conflicting chem_comp_type annotations for {name}: "
+                f"{previous!r} and {value!r}"
+            )
+    declared.update(result)
+    return declared
 
 
 def detect_nonstandard_residues(
     atom_array: struc.AtomArray,
     canonical_ordering: CanonicalOrdering,
+    chem_comp_types: Optional[dict] = None,
 ) -> list[NonStandardResidueInfo]:
     """Detect residues in an AtomArray that are not in tmol's database.
 
@@ -578,42 +859,66 @@ def detect_nonstandard_residues(
         atom_array: Biotite AtomArray from a CIF or PDB file.
         canonical_ordering: The current tmol CanonicalOrdering, which
             defines known residue types.
+        chem_comp_types: ``{comp_id: type}`` declared by the input file,
+            consulted where it does not number residues along a sequence.
 
     Returns:
         A list of NonStandardResidueInfo objects, one per unique unknown
         residue name.
     """
-    known_names = set(canonical_ordering.restype_io_equiv_classes)
+    chem_comp_types = _component_types_from_annotations(atom_array, chem_comp_types)
+    known_names = set(canonical_ordering.restype_io_equiv_classes) | SKIP_RESIDUES
+    residue_starts = struc.get_residue_starts(atom_array)
+    unknown_starts = [
+        start
+        for start in residue_starts
+        if atom_array.res_name[start].strip() not in known_names
+    ]
+    if not unknown_starts:
+        return []
+    heavy_counts = np.add.reduceat(
+        ~np.isin(atom_array.element, ("H", "D")), residue_starts
+    )
     seen: set[str] = set()
     results: list[NonStandardResidueInfo] = []
-    residue_starts = struc.get_residue_starts(atom_array)
-    unknown_residues: list[tuple[int, str]] = []
-    for start in residue_starts:
+    polymer_names = polymer_entity_residues(atom_array)
+
+    cross_residue_atoms, cross_residue_partners = _cross_residue_bond_atoms(atom_array)
+    covalently_linked_names = frozenset(
+        res_name for _chain, _res_id, res_name in cross_residue_atoms
+    )
+    # collect by name, since all copies of a residue share one residue type.
+    #    A copy at the end of a chain is only bonded on one side.
+    connection_atoms_by_name: dict[str, set[str]] = {}
+    for (_chain, _res_id, res_name), atoms in cross_residue_atoms.items():
+        connection_atoms_by_name.setdefault(res_name, set()).update(atoms)
+    partners_by_name: dict[str, dict[str, set[tuple]]] = {}
+    for (_chain, _res_id, res_name), by_atom in cross_residue_partners.items():
+        for atom, far_side in by_atom.items():
+            partners_by_name.setdefault(res_name, {}).setdefault(atom, set()).update(
+                far_side
+            )
+
+    for start in unknown_starts:
         res_name = atom_array.res_name[start].strip()
-        if res_name in known_names or res_name in SKIP_RESIDUES or res_name in seen:
+
+        if res_name in seen:
             continue
         seen.add(res_name)
-        unknown_residues.append((start, res_name))
 
-    if not unknown_residues:
-        return results
-
-    covalently_linked_names = _residue_names_with_cross_residue_bonds(atom_array)
-
-    for start, res_name in unknown_residues:
-        mask = atom_array.res_name == atom_array.res_name[start]
-        if hasattr(atom_array, "res_id"):
-            mask &= atom_array.res_id == atom_array.res_id[start]
-        if hasattr(atom_array, "chain_id"):
-            mask &= atom_array.chain_id == atom_array.chain_id[start]
-
-        sub = atom_array[mask]
-        ccd_type = get_chem_comp_type(res_name) or "UNKNOWN"
+        connections = connection_atoms_by_name.get(res_name, ())
+        sub = _representative_instance(
+            atom_array, residue_starts, start, connections, heavy_counts
+        )
+        component_type = get_chem_comp_type(res_name, chem_comp_types) or "UNKNOWN"
+        covalently_linked = res_name in covalently_linked_names
 
         logger.info(
-            "Detected non-standard residue %s (CCD type: %s, %d atoms)",
+            "Detected non-standard residue %s (declared type: %s, polymer "
+            "entity: %s, %d atoms)",
             res_name,
-            ccd_type,
+            component_type,
+            "unstated" if polymer_names is None else res_name in polymer_names,
             len(sub),
         )
 
@@ -624,64 +929,206 @@ def detect_nonstandard_residues(
         results.append(
             NonStandardResidueInfo(
                 res_name=res_name,
-                ccd_type=ccd_type,
+                component_type=component_type,
                 atom_names=tuple(sub.atom_name),
                 elements=tuple(sub.element),
                 coords=sub.coord.copy(),
                 atom_array=sub,
-                covalently_linked=res_name in covalently_linked_names,
+                covalently_linked=covalently_linked,
+                connection_atom_names=frozenset(
+                    connection_atoms_by_name.get(res_name, ())
+                ),
+                in_polymer_entity=(
+                    None if polymer_names is None else res_name in polymer_names
+                ),
+                connection_partners={
+                    atom: frozenset(far_side)
+                    for atom, far_side in partners_by_name.get(res_name, {}).items()
+                },
+                chemistry_problem=_isolated_atom_charge_problem(
+                    atom_array, sub, covalently_linked=covalently_linked
+                ),
             )
         )
 
     return results
 
 
-def _is_polymer_linking_ccd_type(ccd_type: Optional[str]) -> bool:
-    """Whether a CCD chemical-component type denotes a polymer-linking residue.
+def _representative_instance(
+    atom_array, residue_starts, start, connection_atoms=(), heavy_counts=None
+):
+    """The copy of this residue to describe the type from.
+
+    Prefer copies carrying all connection atoms, then the fuller heavy-atom
+    inventory, then resolved coordinates. A fully observed internal sugar has
+    lost its anomeric leaving oxygen; using it ahead of a fuller terminal copy
+    would omit an atom the shared base type must describe.
+    """
+    wanted = set(connection_atoms)
+
+    ends = np.append(residue_starts[1:], atom_array.array_length())
+    if heavy_counts is None:
+        heavy_counts = np.add.reduceat(
+            ~np.isin(atom_array.element, ("H", "D")), residue_starts
+        )
+    copies = np.flatnonzero(
+        atom_array.res_name[residue_starts] == atom_array.res_name[start]
+    )
+    copies = copies[np.argsort(-heavy_counts[copies], kind="stable")]
+    fallback, best_count = None, -1
+    for i in copies:
+        if fallback is not None and heavy_counts[i] < best_count:
+            break
+        candidate = atom_array[residue_starts[i] : ends[i]]
+        if not wanted <= set(candidate.atom_name):
+            continue
+        if np.isfinite(candidate.coord).all():
+            return candidate.copy()
+        if fallback is None:
+            fallback, best_count = candidate, heavy_counts[i]
+    if fallback is not None:
+        return fallback.copy()
+    # Slicing an AtomArray yields a view; the caller owns what it gets back.
+    return atom_array[start : ends[np.searchsorted(residue_starts, start)]].copy()
+
+
+def with_resolved_coordinates(atom_array, res_name: str, use_ccd: bool):
+    """Resolve scratch geometry for parameter generation from declared chemistry.
+
+    Input-scoped AtomWorks templates take precedence over the bundled CCD.
+    Partially observed components require three anchors for alignment. A wholly
+    unresolved component returns None because template geometry cannot place it
+    in the pose. Supplied coordinates and the caller's NaNs remain unchanged.
+    """
+    unresolved = np.isnan(atom_array.coord).any(axis=-1)
+    if not unresolved.any():
+        return atom_array
+    if unresolved.all() or not use_ccd:
+        return None
+    template = getattr(atom_array, "_custom_ccd_registry", {}).get(res_name.upper())
+    from atomworks.io.utils.ccd import atom_array_from_ccd_code, custom_ccd_residues
+
+    try:
+        with custom_ccd_residues({res_name: template} if template is not None else {}):
+            component = atom_array_from_ccd_code(res_name, ccd_mirror_path=None)
+        indices = {str(name): i for i, name in enumerate(component.atom_name)}
+        ideal = np.full_like(atom_array.coord, np.nan)
+        matched = np.array([str(name) in indices for name in atom_array.atom_name])
+        ideal[matched] = component.coord[
+            [indices[str(name)] for name in atom_array.atom_name[matched]]
+        ]
+    except (ValueError, KeyError):
+        return None
+    if not np.isfinite(ideal[unresolved]).all():
+        return None
+    anchors = ~unresolved & np.isfinite(ideal).all(axis=1)
+    if np.count_nonzero(anchors) < 3:
+        return None
+    try:
+        _, transform = struc.superimpose(atom_array.coord[anchors], ideal[anchors])
+        ideal = transform.apply(ideal)
+    except ValueError:
+        return None
+    filled = atom_array.copy()
+    filled.coord[unresolved] = ideal[unresolved]
+    return filled
+
+
+def is_polymer_linking_component_type(component_type: Optional[str]) -> bool:
+    """Whether a declared chemical-component type denotes a polymer residue.
 
     Returns True for modified amino acids, nucleotides, and saccharides
     (e.g. "L-PEPTIDE LINKING", "DNA LINKING", "D-SACCHARIDE"), which are
     expected to be covalently attached to a chain. Returns False for
-    "NON-POLYMER" small-molecule ligands and for unknown residues.
+    "NON-POLYMER" small-molecule ligands and where nothing is declared.
     """
-    if not ccd_type:
+    if not component_type:
         return False
-    return "LINKING" in ccd_type or "SACCHARIDE" in ccd_type
+    return "LINKING" in component_type or "SACCHARIDE" in component_type
 
 
-def _residue_names_with_cross_residue_bonds(  # noqa: C901
+def polymer_entity_residues(atom_array: struc.AtomArray) -> Optional[frozenset[str]]:
+    """Names of the residues the input file places in a polymer entity.
+
+    An mmCIF says which of its entities are polymers, and that is what
+    separates a chain from a ligand, a glycan or solvent -- including for a
+    terminal cap, which is typed NON-POLYMER despite being part of the chain.
+    :func:`tmol.io.atom_array_from_cif` records it per atom.
+
+    Failing that, ``label_seq_id`` is read as a proxy: a polymer entity numbers
+    its residues along its sequence. It is only a proxy -- a generated file may
+    number a ligand that belongs to no sequence -- so it is used only where the
+    entities themselves are not recorded. Returns None when neither is.
+    """
+    categories = atom_array.get_annotation_categories()
+    names = atom_array.res_name.astype(str)
+    for annotation in ("tmol_polymer_entity", "is_polymer"):
+        if annotation in categories:
+            flag = atom_array.get_annotation(annotation).astype(bool)
+            return frozenset(str(n).strip() for n in names[flag])
+    if "label_seq_id" not in categories:
+        return None
+    seq = atom_array.get_annotation("label_seq_id").astype(str)
+    numbered = np.char.strip(seq) != "."
+    if not numbered.any():
+        return None
+    return frozenset(str(n).strip() for n in names[numbered])
+
+
+def _cross_residue_bond_atoms(
     atom_array: struc.AtomArray,
-    spatial_cutoff: float = 1.8,
-) -> frozenset[str]:
-    """Return the set of res_names that have at least one bond to a different residue.
+) -> tuple[dict[tuple, frozenset[str]], dict[tuple, dict[str, frozenset[tuple]]]]:
+    """Atoms of each residue instance that bond to a different residue.
+
+    Returns the atoms alongside, for each of them, the (residue name, atom
+    name) pairs on the far side of the bond. Which residue an attachment lands
+    on is what separates a chain link from a conjugation.
+
+    Keyed by ``(chain_id, res_id, res_name)``. These atoms are where the
+    residue's polymer connections attach, which is what says where its backbone
+    ends; classifying a backbone from atom names instead mistakes a residue
+    linked through a sidechain carbon for one linked through its carbonyl.
 
     A "different residue" is identified by (chain_id, res_id, res_name) — so
     distinct instances of the same residue name (e.g. two NAGs in a glycan
     chain) also count as cross-residue bonds. Used to flag ligands that are
     covalently attached to a polymer or to other ligand instances.
 
-    Detection runs two passes:
-    1. Explicit bonds in ``atom_array.bonds`` (if present). Authoritative for
-       any residue type.
-    2. Heavy-atom spatial proximity within ``spatial_cutoff`` Å. This catches
-       covalent attachments missing from the bond table for *polymer-linking*
-       residues (modified amino acids/nucleotides, glycans) when files lack
-       ``_struct_conn`` records. NON-POLYMER and unknown small-molecule ligands
-       are deliberately *not* flagged by proximity: tight binding-pocket
-       contacts, hydrogen bonds, and clashes in unminimized models routinely
-       fall below a covalent-bond distance and would otherwise be misread as
-       covalent attachments and silently discarded.
+    Use the supplied bond graph, independent of coordinates and component type.
+    Readers own polymer/link inference. Preparation must not turn close contacts
+    into covalent links or generate unused conjugation types from those contacts.
+    Supply explicit connectivity before preparation when a file omits link data.
     """
     chain_ids = atom_array.chain_id if hasattr(atom_array, "chain_id") else None
     res_ids = atom_array.res_id
     res_names = atom_array.res_name
 
-    linked: set[str] = set()
+    linked: dict[tuple, set[str]] = {}
+    partners: dict[tuple, dict[str, set[tuple[str, str]]]] = {}
+    atom_names = atom_array.atom_name
+
+    def _key(idx: int) -> tuple:
+        chain = chain_ids[idx] if chain_ids is not None else None
+        return (chain, res_ids[idx], res_names[idx].strip())
+
+    def _record(idx: int, partner: Optional[int] = None) -> None:
+        name = str(atom_names[idx]).strip()
+        linked.setdefault(_key(idx), set()).add(name)
+        if partner is None:
+            return
+        partners.setdefault(_key(idx), {}).setdefault(name, set()).add(
+            (res_names[partner].strip(), str(atom_names[partner]).strip())
+        )
 
     def _spans_residues(a: int, b: int) -> bool:
         """Whether atoms ``a`` and ``b`` belong to different residues."""
         same_chain = chain_ids is None or chain_ids[a] == chain_ids[b]
-        if same_chain and res_ids[a] == res_ids[b] and res_names[a] == res_names[b]:
+        if (
+            same_chain
+            and res_ids[a] == res_ids[b]
+            and res_names[a] == res_names[b]
+            and atom_array.ins_code[a] == atom_array.ins_code[b]
+        ):
             return False
         return True
 
@@ -689,24 +1136,23 @@ def _residue_names_with_cross_residue_bonds(  # noqa: C901
         for a, b, _ in atom_array.bonds.as_array():
             a, b = int(a), int(b)
             if _spans_residues(a, b):
-                linked.add(res_names[a].strip())
-                linked.add(res_names[b].strip())
+                _record(a, b)
+                _record(b, a)
 
-    if len(atom_array) > 1:
-        heavy_mask = np.char.strip(atom_array.element.astype(str)) != "H"
-        if heavy_mask.any():
-            from scipy.spatial import cKDTree
+    return (
+        {key: frozenset(names) for key, names in linked.items()},
+        {
+            key: {atom: frozenset(seen) for atom, seen in by_atom.items()}
+            for key, by_atom in partners.items()
+        },
+    )
 
-            heavy_indices = np.nonzero(heavy_mask)[0]
-            tree = cKDTree(atom_array.coord[heavy_mask])
-            for i, j in tree.query_pairs(spatial_cutoff, output_type="ndarray"):
-                a = int(heavy_indices[i])
-                b = int(heavy_indices[j])
-                if not _spans_residues(a, b):
-                    continue
-                for idx in (a, b):
-                    name = res_names[idx].strip()
-                    if _is_polymer_linking_ccd_type(get_chem_comp_type(name)):
-                        linked.add(name)
 
-    return frozenset(linked)
+def _residue_names_with_cross_residue_bonds(
+    atom_array: struc.AtomArray,
+) -> frozenset[str]:
+    """Names of the residues that have at least one bond to a different residue."""
+    return frozenset(
+        res_name
+        for _chain, _res_id, res_name in _cross_residue_bond_atoms(atom_array)[0]
+    )
