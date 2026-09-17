@@ -1,0 +1,114 @@
+_provenance:
+  asserted_tolerance:
+    atol: 0.0005
+    rtol: 0.0
+  conformer_seed: pinned; see tmol/tests/data/ligand_params/noncanonical_*.tmol
+  fixture_sources: tmol/tests/data/ncaa_fixtures/README.md
+  gradient_reference: unavailable; assert prepared-vs-restored replay only
+  integration_commit: d68384c1e
+  last_historical_update_commit: 0f4c3bc426bca78e8681f0b730fa23c3e26ef261
+  original_baseline_commit: a038087994206ed196730ea26ce06cf412361a82
+  reference_kind: tmol fixed-seed regression; not an independent Rosetta oracle
+  regenerated_from: uw-ipd/tmol run 35182899505, linux-aarch64
+  score_function: beta2016, unweighted per-lane sums
+  score_precision: 4 decimal places
+alpha_aa:
+  cart_angles: 68.3489
+  cart_hxltorsions: 5.0398
+  cart_impropers: 0.5458
+  cart_lengths: 5.335
+  cart_torsions: 0.515
+  disulfide: 0.0
+  dunbrack_rot: 9.1879
+  dunbrack_rotdev: 19.2462
+  dunbrack_semirot: 0.0
+  fa_elec: 8.6203
+  fa_ljatr: -39.537
+  fa_ljrep: 26.4398
+  fa_lk: 32.7035
+  gen_torsions: 0.2883
+  hbond: 0.0
+  lk_ball: 10.7135
+  lk_ball_iso: 40.4749
+  lk_bridge: 0.0198
+  lk_bridge_uncpl: 0.4034
+  na_torsion: 0.0
+  na_torsion_well: 0.0
+  omega: -2.3507
+  rama: -17.3025
+  ref: -14.8958
+dna:
+  cart_angles: 42.5921
+  cart_hxltorsions: 0.0
+  cart_impropers: 0.0
+  cart_lengths: 10.6323
+  cart_torsions: 12.2192
+  disulfide: 0.0
+  dunbrack_rot: 0.0
+  dunbrack_rotdev: 0.0
+  dunbrack_semirot: 0.0
+  fa_elec: -12.1229
+  fa_ljatr: -48.9801
+  fa_ljrep: 44.199
+  fa_lk: 10.1341
+  gen_torsions: 4.5184
+  hbond: 0.0
+  lk_ball: -1.014
+  lk_ball_iso: 11.1024
+  lk_bridge: 0.0251
+  lk_bridge_uncpl: 0.5631
+  na_torsion: 233.1829
+  na_torsion_well: 38.36
+  omega: 0.0
+  rama: 0.0
+  ref: 0.0
+nonstandard_aa:
+  cart_angles: 67.7406
+  cart_hxltorsions: 1.3347
+  cart_impropers: 6.9254
+  cart_lengths: 247.6708
+  cart_torsions: 3.798
+  disulfide: 0.0
+  dunbrack_rot: 23.3038
+  dunbrack_rotdev: 24.3825
+  dunbrack_semirot: 19.4504
+  fa_elec: -115.4695
+  fa_ljatr: -202.2302
+  fa_ljrep: 288.5656
+  fa_lk: 161.9896
+  gen_torsions: 50.0291
+  hbond: -28.1345
+  lk_ball: 77.4107
+  lk_ball_iso: 189.6132
+  lk_bridge: 0.0705
+  lk_bridge_uncpl: 0.945
+  na_torsion: 0.0
+  na_torsion_well: 0.0
+  omega: 4.5022
+  rama: 5.8143
+  ref: -5.8041
+nonstandard_na:
+  cart_angles: 151.0757
+  cart_hxltorsions: 0.0
+  cart_impropers: 0.0
+  cart_lengths: 103.648
+  cart_torsions: 12.911
+  disulfide: 0.0
+  dunbrack_rot: 0.0
+  dunbrack_rotdev: 0.0
+  dunbrack_semirot: 0.0
+  fa_elec: -38.6653
+  fa_ljatr: -129.6029
+  fa_ljrep: 133.6378
+  fa_lk: 50.6253
+  gen_torsions: 42.6639
+  hbond: 0.0
+  lk_ball: 0.4961
+  lk_ball_iso: 55.4366
+  lk_bridge: 0.0652
+  lk_bridge_uncpl: 1.4338
+  na_torsion: 31.4765
+  na_torsion_well: 4.7035
+  omega: 0.0
+  rama: 0.0
+  ref: 0.0
