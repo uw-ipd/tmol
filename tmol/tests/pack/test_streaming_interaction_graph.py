@@ -269,7 +269,7 @@ def annealer_inputs(graph, chunk_size):
 
 
 @requires_cuda
-def test_streaming_graph_preserves_assignments_and_rng_advancement():
+def test_streaming_graph_on_cuda_preserves_assignments_and_rng_advancement():
     device = torch.device("cuda")
     counts = [[3, 2, 2, 1]]
     edges = [(0, first, second) for first in range(4) for second in range(first + 1, 4)]
@@ -357,7 +357,7 @@ def test_large_single_pose_topology_has_exact_cpu_cuda_parity():
 
 
 @requires_cuda
-def test_streaming_graph_memory_is_bounded_by_one_layout():
+def test_streaming_graph_on_cuda_bounds_memory_by_one_layout():
     """Do not retain every large duplicate term layout across any pass."""
     device = torch.device("cuda")
     counts = [[2] * 129]
