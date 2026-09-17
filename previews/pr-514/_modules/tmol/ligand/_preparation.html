@@ -496,8 +496,12 @@
     <span class="p">}</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_prepare_conjugate_params</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">param_db</span><span class="p">,</span> <span class="n">ph</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_prepare_conjugate_params</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">param_db</span><span class="p">,</span> <span class="n">ph</span><span class="p">,</span> <span class="n">strict_ligands</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._conjugate_context</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextual_conjugate_types</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._conjugate_model</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">unprepared_conjugate_partners</span><span class="p">,</span>
+        <span class="n">without_cross_bonds_to</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._local_conjugate_params</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">ConjugateContextConflict</span><span class="p">,</span>
         <span class="n">generate_conjugate_parameters</span><span class="p">,</span>
@@ -506,6 +510,28 @@
 
     <span class="k">if</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">bonds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">param_db</span><span class="p">,</span> <span class="p">(),</span> <span class="p">()</span>
+    <span class="c1"># A residue skipped above is still covalently bonded in the input, and a</span>
+    <span class="c1"># conjugate model refuses to guess connectivity for one it has no</span>
+    <span class="c1"># definition for. Strict preparation should say so in its own terms rather</span>
+    <span class="c1"># than let that refusal escape as a bare ValueError from deep inside the</span>
+    <span class="c1"># model builder; strict_ligands=False means "drop what you cannot prepare",</span>
+    <span class="c1"># so there the link is cut and the rest of the input still parameterizes.</span>
+    <span class="n">unprepared</span> <span class="o">=</span> <span class="n">unprepared_conjugate_partners</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">unprepared</span><span class="p">:</span>
+        <span class="n">listed</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">unprepared</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">strict_ligands</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">LigandPreparationError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">listed</span><span class="si">}</span><span class="s2">: covalently bonded but not prepared, so the "</span>
+                <span class="s2">"connection cannot be parameterized. Pass strict_ligands=False "</span>
+                <span class="s2">"to cut the bond and skip it with a warning, or supply prebuilt "</span>
+                <span class="s2">"params via ligand_params_files"</span>
+            <span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">"Cutting covalent bonds to unprepared residue(s) </span><span class="si">%s</span><span class="s2">; their "</span>
+            <span class="s2">"connections are not parameterized"</span><span class="p">,</span>
+            <span class="n">listed</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">atom_array</span> <span class="o">=</span> <span class="n">without_cross_bonds_to</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">unprepared</span><span class="p">)</span>
     <span class="n">models</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
@@ -1951,7 +1977,7 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">ligands</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">canonical_sites</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"No non-standard residues detected"</span><span class="p">)</span>
         <span class="n">prepared_db</span><span class="p">,</span> <span class="n">records</span><span class="p">,</span> <span class="n">replacements</span> <span class="o">=</span> <span class="n">_prepare_conjugate_params</span><span class="p">(</span>
-            <span class="n">atom_array</span><span class="p">,</span> <span class="n">param_db</span><span class="p">,</span> <span class="n">ph</span>
+            <span class="n">atom_array</span><span class="p">,</span> <span class="n">param_db</span><span class="p">,</span> <span class="n">ph</span><span class="p">,</span> <span class="n">strict_ligands</span><span class="o">=</span><span class="n">strict_ligands</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">prepared_db</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">param_db</span><span class="p">:</span>
             <span class="n">canonical_ordering</span> <span class="o">=</span> <span class="n">rebuild_canonical_ordering</span><span class="p">(</span><span class="n">prepared_db</span><span class="p">)</span>
@@ -2178,7 +2204,7 @@
             <span class="n">param_db</span><span class="p">,</span> <span class="n">preparations</span><span class="p">,</span> <span class="n">strict_atom_types</span><span class="o">=</span><span class="n">strict_atom_types</span>
         <span class="p">)</span>
         <span class="n">param_db</span><span class="p">,</span> <span class="n">records</span><span class="p">,</span> <span class="n">replacements</span> <span class="o">=</span> <span class="n">_prepare_conjugate_params</span><span class="p">(</span>
-            <span class="n">atom_array</span><span class="p">,</span> <span class="n">param_db</span><span class="p">,</span> <span class="n">ph</span>
+            <span class="n">atom_array</span><span class="p">,</span> <span class="n">param_db</span><span class="p">,</span> <span class="n">ph</span><span class="p">,</span> <span class="n">strict_ligands</span><span class="o">=</span><span class="n">strict_ligands</span>
         <span class="p">)</span>
         <span class="n">canonical_ordering</span> <span class="o">=</span> <span class="n">rebuild_canonical_ordering</span><span class="p">(</span><span class="n">param_db</span><span class="p">)</span>
 
