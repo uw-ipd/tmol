@@ -288,20 +288,16 @@ def block_interpolate_rotameric_tables(
   // Perform the interpolation
   TensorAccessor<Real, NbbP1 - 1, D> mean_slice(
       rotameric_mean_tables.data() + tableind * rotameric_mean_tables.stride(0),
-      rotmean_table_sizes.data()->data()
-          + tableind * rotmean_table_sizes.stride(0),
-      rotmean_table_strides.data()->data()
-          + tableind * rotmean_table_strides.stride(0));
+      rotmean_table_sizes[tableind].data(),
+      rotmean_table_strides[tableind].data());
   tie(mean, dmean_dbb) =
       tmol::numeric::bspline::ndspline<NbbP1 - 1, 3, D, Real, Int>::interpolate(
           mean_slice, bbdihe);
 
   TensorAccessor<Real, NbbP1 - 1, D> sdev_slice(
       rotameric_sdev_tables.data() + tableind * rotameric_sdev_tables.stride(0),
-      rotmean_table_sizes.data()->data()
-          + tableind * rotmean_table_sizes.stride(0),
-      rotmean_table_strides.data()->data()
-          + tableind * rotmean_table_strides.stride(0));
+      rotmean_table_sizes[tableind].data(),
+      rotmean_table_strides[tableind].data());
   tie(sdev, dsdev_dbb) =
       tmol::numeric::bspline::ndspline<NbbP1 - 1, 3, D, Real, Int>::interpolate(
           sdev_slice, bbdihe);
@@ -368,20 +364,16 @@ def interpolate_rotameric_tables(
   // Perform the interpolation
   TensorAccessor<Real, NbbP1 - 1, D> mean_slice(
       rotameric_mean_tables.data() + tableind * rotameric_mean_tables.stride(0),
-      rotmean_table_sizes.data()->data()
-          + tableind * rotmean_table_sizes.stride(0),
-      rotmean_table_strides.data()->data()
-          + tableind * rotmean_table_strides.stride(0));
+      rotmean_table_sizes[tableind].data(),
+      rotmean_table_strides[tableind].data());
   tie(mean, dmean_dbb) =
       tmol::numeric::bspline::ndspline<NbbP1 - 1, 3, D, Real, Int>::interpolate(
           mean_slice, bbdihe);
 
   TensorAccessor<Real, NbbP1 - 1, D> sdev_slice(
       rotameric_sdev_tables.data() + tableind * rotameric_sdev_tables.stride(0),
-      rotmean_table_sizes.data()->data()
-          + tableind * rotmean_table_sizes.stride(0),
-      rotmean_table_strides.data()->data()
-          + tableind * rotmean_table_strides.stride(0));
+      rotmean_table_sizes[tableind].data(),
+      rotmean_table_strides[tableind].data());
   tie(sdev, dsdev_dbb) =
       tmol::numeric::bspline::ndspline<NbbP1 - 1, 3, D, Real, Int>::interpolate(
           sdev_slice, bbdihe);
@@ -689,10 +681,8 @@ def block_rotameric_chi_probability(
   TensorAccessor<Real, NbbP1 - 1, D> rotprob_slice(
       rotameric_neglnprob_tables.data()
           + res_rottable * rotameric_neglnprob_tables.stride(0),
-      rotprob_table_sizes.data()->data()
-          + res_rottable * rotprob_table_sizes.stride(0),
-      rotprob_table_strides.data()->data()
-          + res_rottable * rotprob_table_strides.stride(0));
+      rotprob_table_sizes[res_rottable].data(),
+      rotprob_table_strides[res_rottable].data());
 
   tie(V, dVdbb) =
       tmol::numeric::bspline::ndspline<NbbP1 - 1, 3, D, Real, Int>::interpolate(
@@ -745,10 +735,8 @@ def rotameric_chi_probability(
   TensorAccessor<Real, NbbP1 - 1, D> rotprob_slice(
       rotameric_neglnprob_tables.data()
           + res_rottable * rotameric_neglnprob_tables.stride(0),
-      rotprob_table_sizes.data()->data()
-          + res_rottable * rotprob_table_sizes.stride(0),
-      rotprob_table_strides.data()->data()
-          + res_rottable * rotprob_table_strides.stride(0));
+      rotprob_table_sizes[res_rottable].data(),
+      rotprob_table_strides[res_rottable].data());
 
   tie(V, dVdbb) =
       tmol::numeric::bspline::ndspline<NbbP1 - 1, 3, D, Real, Int>::interpolate(
@@ -905,10 +893,8 @@ def block_semirotameric_energy(
   Eigen::Matrix<Real, NbbP2 - 1, 1> dnlp_ddihe;
   TensorAccessor<Real, NbbP2 - 1, D> semirot_slice(
       semirotameric_tables.data() + table_ind * semirotameric_tables.stride(0),
-      semirot_table_sizes.data()->data()
-          + table_ind * semirot_table_sizes.stride(0),
-      semirot_table_strides.data()->data()
-          + table_ind * semirot_table_strides.stride(0));
+      semirot_table_sizes[table_ind].data(),
+      semirot_table_strides[table_ind].data());
 
   tie(neglnprob, dnlp_ddihe) =
       tmol::numeric::bspline::ndspline<NbbP2 - 1, 3, D, Real, Int>::interpolate(
@@ -986,10 +972,8 @@ def semirotameric_energy(
   Eigen::Matrix<Real, NbbP2 - 1, 1> dnlp_ddihe;
   TensorAccessor<Real, NbbP2 - 1, D> semirot_slice(
       semirotameric_tables.data() + table_ind * semirotameric_tables.stride(0),
-      semirot_table_sizes.data()->data()
-          + table_ind * semirot_table_sizes.stride(0),
-      semirot_table_strides.data()->data()
-          + table_ind * semirot_table_strides.stride(0));
+      semirot_table_sizes[table_ind].data(),
+      semirot_table_strides[table_ind].data());
 
   tie(neglnprob, dnlp_ddihe) =
       tmol::numeric::bspline::ndspline<NbbP2 - 1, 3, D, Real, Int>::interpolate(

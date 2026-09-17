@@ -2,7 +2,7 @@ import attr
 from tmol.database._yaml import safe_load
 
 from itertools import permutations
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, FrozenSet, List, Optional, Tuple
 
 # ---------------------------------------------------------------------------
 # Bond-type bin constants (mirror Rosetta's bin_from_bond)
@@ -94,6 +94,11 @@ class GenBondedDatabase:
                       types to try when looking up a parameter entry, from most
                       specific to most generic.  e.g. {"CS": ["CS", "C*", "X"]}
 
+    rosetta_typed  -- the atom types the Rosetta terms score directly.  Their
+                      hierarchies exist only so a dihedral that straddles the
+                      boundary can be looked up; a dihedral whose two central
+                      atoms are both of this kind is left to those terms.
+
     torsions       -- ordered list of torsion entries (most-specific first so
                       that a linear scan finds the best match quickly).
 
@@ -111,25 +116,26 @@ class GenBondedDatabase:
     """
 
     atom_hierarchy: Dict[str, List[str]]
+    rosetta_typed: FrozenSet[str]
     torsions: Tuple[GenBondedTorsionEntry, ...]
     impropers: Tuple[GenBondedImproperEntry, ...]
     coverage: Dict[str, int]
     multi_max: int
 
     # Lookup index built lazily in __attrs_post_init__: maps an atom-string
-    # 4-tuple to a list of (mult, covered_bins, entry) sorted by ascending
-    # multiplicity.  Both forward and reversed orderings of each entry's atom
+    # 4-tuple to (priority, covered_bins, entry), ordered by multiplicity
+    # then source order.  Both forward and reversed orderings of each entry's atom
     # tuple are inserted so torsion direction is handled by a single dict
     # lookup rather than a second pass.
     _torsion_index: Dict[
         Tuple[str, str, str, str],
-        List[Tuple[float, frozenset, GenBondedTorsionEntry]],
+        List[Tuple[Tuple[float, int], frozenset, GenBondedTorsionEntry]],
     ] = attr.ib(init=False, factory=dict, eq=False, repr=False)
 
     def __attrs_post_init__(self) -> None:
         mm4 = self.multi_max**4
         index = self._torsion_index  # mutate in place (frozen-safe)
-        for entry in self.torsions:
+        for order, entry in enumerate(self.torsions):
             covered = _BOND_CHAR_COVERED_BINS.get(entry.bond)
             if covered is None:
                 continue
@@ -142,7 +148,7 @@ class GenBondedDatabase:
                 * self.coverage.get(et4, 1)
             )
             mult = bin_count * mm4 + atom_cov
-            record = (mult, covered, entry)
+            record = ((mult, order), covered, entry)
             # Insert under both orderings; a palindromic tuple goes in once.
             keys = {entry.atoms, entry.atoms[::-1]}
             for key in keys:
@@ -161,10 +167,12 @@ class GenBondedDatabase:
 
         # --- atom hierarchy -------------------------------------------
         atom_hierarchy: Dict[str, List[str]] = {}
-        for atom_type, fallbacks in raw.get("atoms", {}).items():
-            # BOND / ANGLE sentinel entries have empty lists; skip them
-            if fallbacks:
-                atom_hierarchy[atom_type] = list(fallbacks)
+        for section in ("atoms", "rosetta_atoms"):
+            for atom_type, fallbacks in raw.get(section, {}).items():
+                # BOND / ANGLE sentinel entries have empty lists; skip them
+                if fallbacks:
+                    atom_hierarchy[atom_type] = list(fallbacks)
+        rosetta_typed = frozenset(raw.get("rosetta_atoms", {}))
 
         # --- coverage map (Rosetta: indices_i.size() per atom type) ---
         # For each group/wildcard type string, count how many concrete types
@@ -216,6 +224,7 @@ class GenBondedDatabase:
 
         return cls(
             atom_hierarchy=atom_hierarchy,
+            rosetta_typed=rosetta_typed,
             torsions=tuple(torsion_list),
             impropers=tuple(impropers_list),
             coverage=coverage,
@@ -271,6 +280,8 @@ class GenBondedDatabase:
         of atom-type generality, as long as both match.  Within the same bond
         specificity, atom-type coverage breaks ties (lower = more specific).
 
+        Equal multiplicities use source order in either torsion direction.
+
         This mirrors Rosetta's GenericBondedPotential multiplicity formula exactly:
           multBT   = indicesBT.size() * multi_max^4
           mult_atm = indices1.size() * indices2.size() * indices3.size() * indices4.size()
@@ -285,7 +296,7 @@ class GenBondedDatabase:
         h4 = self.hierarchy_for(type4)
 
         best_entry = None
-        best_mult = float("inf")
+        best_priority = (float("inf"), 0)
 
         # Enumerate the (small) Cartesian product of the four hierarchies and
         # probe the precomputed index.  Reversed-direction matches are already
@@ -297,11 +308,11 @@ class GenBondedDatabase:
                         bucket = index.get((e1, e2, e3, e4))
                         if bucket is None:
                             continue
-                        for mult, covered, entry in bucket:
-                            if mult >= best_mult:
+                        for priority, covered, entry in bucket:
+                            if priority >= best_priority:
                                 break
                             if btidx in covered:
-                                best_mult = mult
+                                best_priority = priority
                                 best_entry = entry
                                 break
 
