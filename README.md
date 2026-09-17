@@ -30,32 +30,21 @@ Four ways in:
 
 ## Install
 
-The shortest path is:
+Install PyTorch first, then match its CUDA and minor version:
 
 ```bash
-pip install tmol
-```
-
-TMol first looks for a matching prebuilt wheel and otherwise builds locally.
-That lookup runs inside pip's isolated build environment, so it sees that
-environment's torch rather than yours; when the two disagree it falls back to a
-source build.
-
-For a deterministic binary install, name the variant you want. TMol serves a
-PEP 503 index over the release wheels, one sub-index per CUDA/PyTorch pairing,
-in the same shape as `download.pytorch.org`:
-
-```bash
-# install torch first, then match its CUDA and minor version
 pip install tmol --extra-index-url https://uw-ipd.github.io/tmol/whl/cu130torch2.13/
 ```
 
-Browse the available variants at
-**[uw-ipd.github.io/tmol/whl/](https://uw-ipd.github.io/tmol/whl/)**. For
-supported Python/PyTorch/CUDA combinations, Colab, macOS, and HPC
+Each sub-index at **[uw-ipd.github.io/tmol/whl/](https://uw-ipd.github.io/tmol/whl/)**
+serves the prebuilt wheels for one CUDA/PyTorch pairing, in the same shape as
+`download.pytorch.org`. Plain `pip install tmol` also works, but it resolves
+against pip's isolated build environment rather than yours, so it builds from
+source whenever the two disagree.
+
+For supported Python/PyTorch/CUDA combinations, Colab, macOS, and HPC
 troubleshooting, see the
-**[installation guide](https://uw-ipd.github.io/tmol/latest/installation.html)**
-and **[GitHub Releases](https://github.com/uw-ipd/tmol/releases)**.
+**[installation guide](https://uw-ipd.github.io/tmol/latest/installation.html)**.
 
 Verify the installation:
 
