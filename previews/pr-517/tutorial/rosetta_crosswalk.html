@@ -682,6 +682,45 @@ global pose search, decoy generation protocol, separated-state calculation, or
 affinity prediction.</p>
 </section>
 </section>
+<section id="noncanonical-modified-and-covalently-linked-residues">
+<h2>Noncanonical, modified, and covalently linked residues<a class="headerlink" href="#noncanonical-modified-and-covalently-linked-residues" title="Link to this heading">#</a></h2>
+<p>Rosetta parameterizes a noncanonical amino acid in separate, largely manual
+steps, each with its own tool: build an acetylated, N-methylamidated form and
+optimize it quantum-mechanically, convert it with OpenBabel, annotate the
+molfile with <code class="docutils literal notranslate"><span class="pre">POLY_N_BB</span></code>, <code class="docutils literal notranslate"><span class="pre">POLY_CA_BB</span></code>, <code class="docutils literal notranslate"><span class="pre">POLY_UPPER</span></code>, <code class="docutils literal notranslate"><span class="pre">POLY_LOWER</span></code> and friends,
+and run
+<a class="reference external" href="https://docs.rosettacommons.org/docs/latest/rosetta_basics/non_protein_residues/Noncanonical-Amino-Acids"><code class="docutils literal notranslate"><span class="pre">molfile_to_params_polymer.py</span></code></a>;
+then generate a backbone-dependent rotamer library with
+<a class="reference external" href="https://docs.rosettacommons.org/demos/latest/public/make_rot_lib/README"><code class="docutils literal notranslate"><span class="pre">MakeRotLib</span></code></a>;
+then compute reference energies with the
+<a class="reference external" href="https://docs.rosettacommons.org/demos/latest/public/unfolded_state_energy_calculator/README">unfolded state energy calculator</a>,
+or borrow a canonical’s via <code class="docutils literal notranslate"><span class="pre">BACKBONE_AA</span></code>. The
+<a class="reference external" href="https://docs.rosettacommons.org/demos/latest/public/design_with_ncaa/README">NCAA design demo</a>
+walks the whole sequence.</p>
+<p>TMol derives the same content from the structure. <a class="reference internal" href="../api/ligand.html#tmol.ligand.prepare_ligands" title="tmol.ligand.prepare_ligands"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmol.ligand.prepare_ligands()</span></code></a>,
+or <code class="docutils literal notranslate"><span class="pre">prepare_ligands=True</span></code> on the IO entry points, reads a residue the database
+does not describe and produces its residue type, partial charges, cartbonded
+parameters, and chi sampling together, as one <code class="docutils literal notranslate"><span class="pre">.tmol</span></code> bundle. The backbone is
+inferred from the chemistry rather than declared: a residue is recognized as an
+alpha, beta, gamma, D, or nucleic backbone by its own connectivity, so a
+modified residue, a post-translational modification, a D-amino acid, a glycan, a
+modified nucleotide, and a covalent conjugate all enter by the same path.</p>
+<p>Two consequences are worth stating plainly:</p>
+<ul class="simple">
+<li><p>There is no separate rotamer-library build. Sampling for a prepared residue
+comes from its own chemistry, and a conjugated group is sampled coherently
+with its partner rather than independently.</p></li>
+<li><p>There is no unfolded-state reference-energy step, and no <code class="docutils literal notranslate"><span class="pre">BACKBONE_AA</span></code>
+analogue to borrow one. TMol’s reference term covers the canonical residues;
+a design calculation that needs a reference energy for a prepared residue does
+not have one, so sequence-design comparisons against Rosetta are not
+like-for-like.</p></li>
+</ul>
+<p>What TMol does not have: Rosetta’s NCAA design protocol layer, <code class="docutils literal notranslate"><span class="pre">MakeRotLib</span></code>’s
+explicit well/centroid control, and the mature peptidomimetic protocols built on
+them, such as
+<a class="reference external" href="https://docs.rosettacommons.org/demos/latest/public/using_ncaas_protein_peptide_interface_design/README">protein-peptide interface design with NCAAs</a>.</p>
+</section>
 <section id="gpu-batching-and-external-orchestration">
 <h2>GPU batching and external orchestration<a class="headerlink" href="#gpu-batching-and-external-orchestration" title="Link to this heading">#</a></h2>
 <p>PyRosetta <a class="reference external" href="https://rosettacommons.github.io/PyRosetta.notebooks/">Chapter 16</a>
@@ -782,6 +821,7 @@ and the TMol source as appropriate rather than inferring a fit-specific paper.</
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ligand-pose-sensitivity-case-study">Ligand pose-sensitivity case study</a></li>
 </ul>
 </li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#noncanonical-modified-and-covalently-linked-residues">Noncanonical, modified, and covalently linked residues</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#gpu-batching-and-external-orchestration">GPU batching and external orchestration</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#dna-and-rna">DNA and RNA</a></li>
 </ul>
