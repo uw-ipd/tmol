@@ -447,8 +447,17 @@ def _delocalized_neighbors(mol, center, delocalized_bonds):
     return neighbors
 
 
-def _localize(center, neighbors, n_double, conformer, charge):
-    """Write one X=Y plus single bonds, charging the unprotonated remainder."""
+def _localize(center, neighbors, n_double, conformer, charge, charges):
+    """Write one X=Y plus single bonds, charging the unprotonated remainder.
+
+    ``charges`` is the declared-charge map, read and written. A center the file
+    charged keeps that charge -- zeroing a declared quaternary nitrogen turns a
+    +1 amidinium into a -1 and fails sanitization -- and every charge written
+    here is recorded, so the net the caller compares against still describes the
+    molecule this leaves behind. Without that, localizing an undeclared
+    phosphonate moves the net away from the declared sum and sends every such
+    ligand down the OpenBabel fallback.
+    """
     if conformer is not None:
         origin = np.asarray(conformer.GetAtomPosition(center.GetIdx()))
         neighbors = sorted(
@@ -460,7 +469,8 @@ def _localize(center, neighbors, n_double, conformer, charge):
             ),
         )
     center.SetIsAromatic(False)
-    center.SetFormalCharge(0)
+    if center.GetIdx() not in charges:
+        center.SetFormalCharge(0)
     for rank, atom in enumerate(neighbors):
         bond = center.GetOwningMol().GetBondBetweenAtoms(center.GetIdx(), atom.GetIdx())
         bond.SetIsAromatic(False)
@@ -470,7 +480,9 @@ def _localize(center, neighbors, n_double, conformer, charge):
         if not atom.GetTotalNumHs() and not any(
             n.GetAtomicNum() == 1 for n in atom.GetNeighbors()
         ):
-            atom.SetFormalCharge(0 if double else charge)
+            assigned = 0 if double else charge
+            atom.SetFormalCharge(assigned)
+            charges[atom.GetIdx()] = assigned
 
 
 def _infer_oxyacid_bonds(mol, charges, delocalized_bonds):
@@ -503,7 +515,7 @@ def _infer_oxyacid_bonds(mol, charges, delocalized_bonds):
             negative = [a for a in neighbors if a.GetFormalCharge() == -1]
             if len(neutral) != 1 or len(negative) + 1 != len(neighbors):
                 continue
-            _localize(center, neutral + negative, 1, None, anion)
+            _localize(center, neutral + negative, 1, None, anion, charges)
             continue
 
         valence = _DELOCALIZED_VALENCE.get(center.GetSymbol())
@@ -519,7 +531,7 @@ def _infer_oxyacid_bonds(mol, charges, delocalized_bonds):
         if not 0 < n_double <= len(neighbors):
             continue
         conformer = mol.GetConformer() if mol.GetNumConformers() else None
-        _localize(center, neighbors, n_double, conformer, anion)
+        _localize(center, neighbors, n_double, conformer, anion, charges)
     mol.UpdatePropertyCache(strict=False)
 
 
