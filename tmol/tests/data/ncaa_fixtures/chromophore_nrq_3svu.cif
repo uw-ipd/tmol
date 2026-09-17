@@ -1,0 +1,408 @@
+data_NRQ_3SVU
+#
+_entity.id                         1
+_entity.type                       polymer
+_entity.src_method                 man
+_entity.pdbx_description           'mkate S143C'
+_entity.formula_weight             26280.057
+_entity.pdbx_number_of_molecules   4
+_entity.pdbx_ec                    ?
+_entity.pdbx_mutation              S143C
+_entity.pdbx_fragment              ?
+_entity.details                    ?
+#
+_entity_poly.entity_id                1
+_entity_poly.type                     polypeptide(L)
+_entity_poly.nstd_linkage             no
+_entity_poly.nstd_monomer             yes
+_entity_poly.pdbx_strand_id           A,B,C,D
+_entity_poly.pdbx_target_identifier   ?
+#
+loop_
+_entity_poly_seq.entity_id 
+_entity_poly_seq.num 
+_entity_poly_seq.mon_id 
+_entity_poly_seq.hetero 
+1 65 SER n
+1 66 PHE n
+1 67 NRQ n
+1 68 SER n
+1 69 LYS n
+#
+loop_
+_chem_comp.id 
+_chem_comp.type 
+_chem_comp.mon_nstd_flag 
+_chem_comp.name 
+_chem_comp.pdbx_synonyms 
+_chem_comp.formula 
+_chem_comp.formula_weight 
+LYS 'L-peptide linking' y LYSINE                                                                                                          ?                           'C6 H15 N2 O2 1'  147.195
+NRQ 'L-peptide linking' n '{(4Z)-4-(4-hydroxybenzylidene)-2-[3-(methylthio)propanimidoyl]-5-oxo-4,5-dihydro-1H-imidazol-1-yl}acetic acid' 'CHROMOPHORE (MET-TYR-GLY)' 'C16 H17 N3 O4 S' 347.389
+PHE 'L-peptide linking' y PHENYLALANINE                                                                                                   ?                           'C9 H11 N O2'     165.189
+SER 'L-peptide linking' y SERINE                                                                                                          ?                           'C3 H7 N O3'      105.093
+#
+loop_
+_pdbx_poly_seq_scheme.asym_id 
+_pdbx_poly_seq_scheme.entity_id 
+_pdbx_poly_seq_scheme.seq_id 
+_pdbx_poly_seq_scheme.mon_id 
+_pdbx_poly_seq_scheme.ndb_seq_num 
+_pdbx_poly_seq_scheme.pdb_seq_num 
+_pdbx_poly_seq_scheme.auth_seq_num 
+_pdbx_poly_seq_scheme.pdb_mon_id 
+_pdbx_poly_seq_scheme.auth_mon_id 
+_pdbx_poly_seq_scheme.pdb_strand_id 
+_pdbx_poly_seq_scheme.pdb_ins_code 
+_pdbx_poly_seq_scheme.hetero 
+A 1 65 SER 65 61 61 SER SER A . n
+A 1 66 PHE 66 62 62 PHE PHE A . n
+A 1 67 NRQ 67 63 63 NRQ NRQ A . n
+A 1 68 SER 68 66 66 SER SER A . n
+A 1 69 LYS 69 67 67 LYS LYS A . n
+#
+_struct_asym.id                            A
+_struct_asym.pdbx_blank_PDB_chainid_flag   N
+_struct_asym.pdbx_modified                 N
+_struct_asym.entity_id                     1
+_struct_asym.details                       ?
+#
+loop_
+_struct_conn.id 
+_struct_conn.conn_type_id 
+_struct_conn.pdbx_leaving_atom_flag 
+_struct_conn.pdbx_PDB_id 
+_struct_conn.ptnr1_label_asym_id 
+_struct_conn.ptnr1_label_comp_id 
+_struct_conn.ptnr1_label_seq_id 
+_struct_conn.ptnr1_label_atom_id 
+_struct_conn.pdbx_ptnr1_label_alt_id 
+_struct_conn.pdbx_ptnr1_PDB_ins_code 
+_struct_conn.pdbx_ptnr1_standard_comp_id 
+_struct_conn.ptnr1_symmetry 
+_struct_conn.ptnr2_label_asym_id 
+_struct_conn.ptnr2_label_comp_id 
+_struct_conn.ptnr2_label_seq_id 
+_struct_conn.ptnr2_label_atom_id 
+_struct_conn.pdbx_ptnr2_label_alt_id 
+_struct_conn.pdbx_ptnr2_PDB_ins_code 
+_struct_conn.ptnr1_auth_asym_id 
+_struct_conn.ptnr1_auth_comp_id 
+_struct_conn.ptnr1_auth_seq_id 
+_struct_conn.ptnr2_auth_asym_id 
+_struct_conn.ptnr2_auth_comp_id 
+_struct_conn.ptnr2_auth_seq_id 
+_struct_conn.ptnr2_symmetry 
+_struct_conn.pdbx_ptnr3_label_atom_id 
+_struct_conn.pdbx_ptnr3_label_seq_id 
+_struct_conn.pdbx_ptnr3_label_comp_id 
+_struct_conn.pdbx_ptnr3_label_asym_id 
+_struct_conn.pdbx_ptnr3_label_alt_id 
+_struct_conn.pdbx_ptnr3_PDB_ins_code 
+_struct_conn.details 
+_struct_conn.pdbx_dist_value 
+_struct_conn.pdbx_value_order 
+_struct_conn.pdbx_role 
+covale1 covale both ? A PHE 66 C  ? ? ? 1_555 A NRQ 67 N1 ? ? A PHE 62 A NRQ 63 1_555 ? ? ? ? ? ? ? 1.410 ? ?
+covale2 covale both ? A NRQ 67 C3 ? ? ? 1_555 A SER 68 N  ? ? A NRQ 63 A SER 66 1_555 ? ? ? ? ? ? ? 1.394 ? ?
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_stereo_config 
+_chem_comp_atom.pdbx_ordinal 
+LYS N    N N N 205
+LYS CA   C N S 206
+LYS C    C N N 207
+LYS O    O N N 208
+LYS CB   C N N 209
+LYS CG   C N N 210
+LYS CD   C N N 211
+LYS CE   C N N 212
+LYS NZ   N N N 213
+LYS OXT  O N N 214
+LYS H    H N N 215
+LYS H2   H N N 216
+LYS HA   H N N 217
+LYS HB2  H N N 218
+LYS HB3  H N N 219
+LYS HG2  H N N 220
+LYS HG3  H N N 221
+LYS HD2  H N N 222
+LYS HD3  H N N 223
+LYS HE2  H N N 224
+LYS HE3  H N N 225
+LYS HZ1  H N N 226
+LYS HZ2  H N N 227
+LYS HZ3  H N N 228
+LYS HXT  H N N 229
+NRQ N1   N N N 250
+NRQ CE   C N N 251
+NRQ SD   S N N 252
+NRQ CG1  C N N 253
+NRQ CB1  C N N 254
+NRQ CA1  C N N 255
+NRQ C1   C N N 256
+NRQ N2   N N N 257
+NRQ OH   O N N 258
+NRQ CD2  C Y N 259
+NRQ CE2  C Y N 260
+NRQ CZ   C Y N 261
+NRQ CE1  C Y N 262
+NRQ CD1  C Y N 263
+NRQ CG2  C Y N 264
+NRQ CB2  C N N 265
+NRQ CA2  C N N 266
+NRQ C2   C N N 267
+NRQ O2   O N N 268
+NRQ N3   N N N 269
+NRQ CA3  C N N 270
+NRQ C3   C N N 271
+NRQ O3   O N N 272
+NRQ OXT  O N N 273
+NRQ H    H N N 274
+NRQ HE1A H N N 275
+NRQ HE2A H N N 276
+NRQ HE3  H N N 277
+NRQ HG11 H N N 278
+NRQ HG12 H N N 279
+NRQ HB11 H N N 280
+NRQ HB12 H N N 281
+NRQ HOH  H N N 282
+NRQ HD2  H N N 283
+NRQ HE2  H N N 284
+NRQ HE1  H N N 285
+NRQ HD1  H N N 286
+NRQ HB2  H N N 287
+NRQ HA31 H N N 288
+NRQ HA32 H N N 289
+NRQ HXT  H N N 290
+PHE N    N N N 291
+PHE CA   C N S 292
+PHE C    C N N 293
+PHE O    O N N 294
+PHE CB   C N N 295
+PHE CG   C Y N 296
+PHE CD1  C Y N 297
+PHE CD2  C Y N 298
+PHE CE1  C Y N 299
+PHE CE2  C Y N 300
+PHE CZ   C Y N 301
+PHE OXT  O N N 302
+PHE H    H N N 303
+PHE H2   H N N 304
+PHE HA   H N N 305
+PHE HB2  H N N 306
+PHE HB3  H N N 307
+PHE HD1  H N N 308
+PHE HD2  H N N 309
+PHE HE1  H N N 310
+PHE HE2  H N N 311
+PHE HZ   H N N 312
+PHE HXT  H N N 313
+SER N    N N N 331
+SER CA   C N S 332
+SER C    C N N 333
+SER O    O N N 334
+SER CB   C N N 335
+SER OG   O N N 336
+SER OXT  O N N 337
+SER H    H N N 338
+SER H2   H N N 339
+SER HA   H N N 340
+SER HB2  H N N 341
+SER HB3  H N N 342
+SER HG   H N N 343
+SER HXT  H N N 344
+#
+loop_
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+_chem_comp_bond.pdbx_ordinal 
+LYS N   CA   sing N N 194
+LYS N   H    sing N N 195
+LYS N   H2   sing N N 196
+LYS CA  C    sing N N 197
+LYS CA  CB   sing N N 198
+LYS CA  HA   sing N N 199
+LYS C   O    doub N N 200
+LYS C   OXT  sing N N 201
+LYS CB  CG   sing N N 202
+LYS CB  HB2  sing N N 203
+LYS CB  HB3  sing N N 204
+LYS CG  CD   sing N N 205
+LYS CG  HG2  sing N N 206
+LYS CG  HG3  sing N N 207
+LYS CD  CE   sing N N 208
+LYS CD  HD2  sing N N 209
+LYS CD  HD3  sing N N 210
+LYS CE  NZ   sing N N 211
+LYS CE  HE2  sing N N 212
+LYS CE  HE3  sing N N 213
+LYS NZ  HZ1  sing N N 214
+LYS NZ  HZ2  sing N N 215
+LYS NZ  HZ3  sing N N 216
+LYS OXT HXT  sing N N 217
+NRQ OXT C3   sing N N 237
+NRQ CE  SD   sing N N 238
+NRQ SD  CG1  sing N N 239
+NRQ CG1 CB1  sing N N 240
+NRQ C3  O3   doub N N 241
+NRQ C3  CA3  sing N N 242
+NRQ O2  C2   doub N N 243
+NRQ C2  CA2  sing N N 244
+NRQ C2  N3   sing N N 245
+NRQ CA2 CB2  doub N N 246
+NRQ CA2 N2   sing N N 247
+NRQ CB2 CG2  sing N N 248
+NRQ CD2 CG2  doub Y N 249
+NRQ CD2 CE2  sing Y N 250
+NRQ N3  C1   sing N N 251
+NRQ N3  CA3  sing N N 252
+NRQ CG2 CD1  sing Y N 253
+NRQ CE2 CZ   doub Y N 254
+NRQ N2  C1   doub N N 255
+NRQ C1  CA1  sing N N 256
+NRQ CZ  OH   sing N N 257
+NRQ CZ  CE1  sing Y N 258
+NRQ CA1 CB1  sing N N 259
+NRQ CA1 N1   doub N N 260
+NRQ CD1 CE1  doub Y N 261
+NRQ N1  H    sing N N 262
+NRQ CE  HE1A sing N N 263
+NRQ CE  HE2A sing N N 264
+NRQ CE  HE3  sing N N 265
+NRQ CG1 HG11 sing N Z 266
+NRQ CG1 HG12 sing N N 267
+NRQ CB1 HB11 sing N N 268
+NRQ CB1 HB12 sing N N 269
+NRQ OH  HOH  sing N N 270
+NRQ CD2 HD2  sing N N 271
+NRQ CE2 HE2  sing N N 272
+NRQ CE1 HE1  sing N N 273
+NRQ CD1 HD1  sing N N 274
+NRQ CB2 HB2  sing N N 275
+NRQ CA3 HA31 sing N N 276
+NRQ CA3 HA32 sing N N 277
+NRQ OXT HXT  sing N N 278
+PHE N   CA   sing N N 279
+PHE N   H    sing N N 280
+PHE N   H2   sing N N 281
+PHE CA  C    sing N N 282
+PHE CA  CB   sing N N 283
+PHE CA  HA   sing N N 284
+PHE C   O    doub N N 285
+PHE C   OXT  sing N N 286
+PHE CB  CG   sing N N 287
+PHE CB  HB2  sing N N 288
+PHE CB  HB3  sing N N 289
+PHE CG  CD1  doub Y N 290
+PHE CG  CD2  sing Y N 291
+PHE CD1 CE1  sing Y N 292
+PHE CD1 HD1  sing N N 293
+PHE CD2 CE2  doub Y N 294
+PHE CD2 HD2  sing N N 295
+PHE CE1 CZ   doub Y N 296
+PHE CE1 HE1  sing N N 297
+PHE CE2 CZ   sing Y N 298
+PHE CE2 HE2  sing N N 299
+PHE CZ  HZ   sing N N 300
+PHE OXT HXT  sing N N 301
+SER N   CA   sing N N 319
+SER N   H    sing N N 320
+SER N   H2   sing N N 321
+SER CA  C    sing N N 322
+SER CA  CB   sing N N 323
+SER CA  HA   sing N N 324
+SER C   O    doub N N 325
+SER C   OXT  sing N N 326
+SER CB  OG   sing N N 327
+SER CB  HB2  sing N N 328
+SER CB  HB3  sing N N 329
+SER OG  HG   sing N N 330
+SER OXT HXT  sing N N 331
+#
+loop_
+_atom_site.group_PDB 
+_atom_site.id 
+_atom_site.type_symbol 
+_atom_site.label_atom_id 
+_atom_site.label_alt_id 
+_atom_site.label_comp_id 
+_atom_site.label_asym_id 
+_atom_site.label_entity_id 
+_atom_site.label_seq_id 
+_atom_site.pdbx_PDB_ins_code 
+_atom_site.Cartn_x 
+_atom_site.Cartn_y 
+_atom_site.Cartn_z 
+_atom_site.occupancy 
+_atom_site.B_iso_or_equiv 
+_atom_site.pdbx_formal_charge 
+_atom_site.auth_seq_id 
+_atom_site.auth_comp_id 
+_atom_site.auth_asym_id 
+_atom_site.auth_atom_id 
+_atom_site.pdbx_PDB_model_num 
+ATOM   478 N N   . SER A 1 65 ? 13.338 -32.141 -28.935 1.00 29.98 ? 61 SER A N   1
+ATOM   479 C CA  . SER A 1 65 ? 12.368 -31.954 -27.861 1.00 28.40 ? 61 SER A CA  1
+ATOM   480 C C   . SER A 1 65 ? 12.972 -31.363 -26.593 1.00 29.21 ? 61 SER A C   1
+ATOM   481 O O   . SER A 1 65 ? 12.270 -31.096 -25.620 1.00 26.63 ? 61 SER A O   1
+ATOM   482 C CB  . SER A 1 65 ? 11.658 -33.269 -27.541 1.00 29.83 ? 61 SER A CB  1
+ATOM   483 O OG  . SER A 1 65 ? 10.967 -33.758 -28.676 1.00 31.31 ? 61 SER A OG  1
+ATOM   484 N N   . PHE A 1 66 ? 14.280 -31.159 -26.602 1.00 35.15 ? 62 PHE A N   1
+ATOM   485 C CA  . PHE A 1 66 ? 14.951 -30.539 -25.464 1.00 33.47 ? 62 PHE A CA  1
+ATOM   486 C C   . PHE A 1 66 ? 15.155 -29.034 -25.673 1.00 38.38 ? 62 PHE A C   1
+ATOM   487 O O   . PHE A 1 66 ? 15.883 -28.387 -24.914 1.00 35.02 ? 62 PHE A O   1
+ATOM   488 C CB  . PHE A 1 66 ? 16.285 -31.217 -25.198 1.00 29.08 ? 62 PHE A CB  1
+ATOM   489 C CG  . PHE A 1 66 ? 16.157 -32.621 -24.694 1.00 31.78 ? 62 PHE A CG  1
+ATOM   490 C CD1 . PHE A 1 66 ? 16.118 -33.685 -25.577 1.00 33.82 ? 62 PHE A CD1 1
+ATOM   491 C CD2 . PHE A 1 66 ? 16.076 -32.878 -23.337 1.00 31.93 ? 62 PHE A CD2 1
+ATOM   492 C CE1 . PHE A 1 66 ? 16.008 -34.984 -25.117 1.00 36.94 ? 62 PHE A CE1 1
+ATOM   493 C CE2 . PHE A 1 66 ? 15.964 -34.171 -22.864 1.00 35.34 ? 62 PHE A CE2 1
+ATOM   494 C CZ  . PHE A 1 66 ? 15.932 -35.229 -23.754 1.00 38.38 ? 62 PHE A CZ  1
+HETATM 495 N N1  . NRQ A 1 67 ? 14.926 -28.131 -26.731 1.00 38.44 ? 63 NRQ A N1  1
+HETATM 496 C CE  . NRQ A 1 67 ? 20.572 -28.387 -26.630 1.00 36.59 ? 63 NRQ A CE  1
+HETATM 497 S SD  . NRQ A 1 67 ? 19.475 -28.551 -28.067 1.00 49.92 ? 63 NRQ A SD  1
+HETATM 498 C CG1 . NRQ A 1 67 ? 17.768 -28.272 -27.545 1.00 34.40 ? 63 NRQ A CG1 1
+HETATM 499 C CB1 . NRQ A 1 67 ? 16.711 -29.149 -28.186 1.00 37.58 ? 63 NRQ A CB1 1
+HETATM 500 C CA1 . NRQ A 1 67 ? 15.251 -28.782 -27.986 1.00 37.34 ? 63 NRQ A CA1 1
+HETATM 501 C C1  . NRQ A 1 67 ? 14.588 -28.291 -29.263 1.00 39.68 ? 63 NRQ A C1  1
+HETATM 502 N N2  . NRQ A 1 67 ? 15.130 -28.488 -30.455 1.00 39.51 ? 63 NRQ A N2  1
+HETATM 503 O OH  . NRQ A 1 67 ? 11.001 -27.949 -37.376 1.00 36.54 ? 63 NRQ A OH  1
+HETATM 504 C CD2 . NRQ A 1 67 ? 12.303 -27.374 -33.943 1.00 35.27 ? 63 NRQ A CD2 1
+HETATM 505 C CE2 . NRQ A 1 67 ? 11.462 -27.352 -35.025 1.00 38.96 ? 63 NRQ A CE2 1
+HETATM 506 C CZ  . NRQ A 1 67 ? 11.854 -27.933 -36.257 1.00 39.64 ? 63 NRQ A CZ  1
+HETATM 507 C CE1 . NRQ A 1 67 ? 13.152 -28.537 -36.357 1.00 34.81 ? 63 NRQ A CE1 1
+HETATM 508 C CD1 . NRQ A 1 67 ? 14.017 -28.565 -35.244 1.00 34.89 ? 63 NRQ A CD1 1
+HETATM 509 C CG2 . NRQ A 1 67 ? 13.633 -28.027 -34.048 1.00 34.22 ? 63 NRQ A CG2 1
+HETATM 510 C CB2 . NRQ A 1 67 ? 14.660 -28.051 -32.911 1.00 40.26 ? 63 NRQ A CB2 1
+HETATM 511 C CA2 . NRQ A 1 67 ? 14.259 -27.997 -31.434 1.00 38.33 ? 63 NRQ A CA2 1
+HETATM 512 C C2  . NRQ A 1 67 ? 13.181 -27.481 -30.783 1.00 36.84 ? 63 NRQ A C2  1
+HETATM 513 O O2  . NRQ A 1 67 ? 12.054 -26.895 -31.346 1.00 41.66 ? 63 NRQ A O2  1
+HETATM 514 N N3  . NRQ A 1 67 ? 13.353 -27.650 -29.436 1.00 39.17 ? 63 NRQ A N3  1
+HETATM 515 C CA3 . NRQ A 1 67 ? 12.383 -27.308 -28.406 1.00 33.14 ? 63 NRQ A CA3 1
+HETATM 516 C C3  . NRQ A 1 67 ? 12.840 -26.314 -27.347 1.00 36.33 ? 63 NRQ A C3  1
+HETATM 517 O O3  . NRQ A 1 67 ? 12.179 -26.153 -26.377 1.00 41.29 ? 63 NRQ A O3  1
+ATOM   518 N N   . SER A 1 68 ? 13.965 -25.550 -27.655 1.00 34.48 ? 66 SER A N   1
+ATOM   519 C CA  . SER A 1 68 ? 14.525 -24.481 -26.841 1.00 32.52 ? 66 SER A CA  1
+ATOM   520 C C   . SER A 1 68 ? 14.448 -23.221 -27.666 1.00 34.54 ? 66 SER A C   1
+ATOM   521 O O   . SER A 1 68 ? 15.480 -22.733 -28.139 1.00 30.01 ? 66 SER A O   1
+ATOM   522 C CB  . SER A 1 68 ? 15.980 -24.788 -26.517 1.00 30.76 ? 66 SER A CB  1
+ATOM   523 O OG  . SER A 1 68 ? 16.339 -24.260 -25.261 1.00 36.73 ? 66 SER A OG  1
+ATOM   524 N N   . LYS A 1 69 ? 13.226 -22.714 -27.850 1.00 29.55 ? 67 LYS A N   1
+ATOM   525 C CA  . LYS A 1 69 ? 12.954 -21.705 -28.867 1.00 25.79 ? 67 LYS A CA  1
+ATOM   526 C C   . LYS A 1 69 ? 13.438 -20.316 -28.507 1.00 26.38 ? 67 LYS A C   1
+ATOM   527 O O   . LYS A 1 69 ? 13.538 -19.463 -29.379 1.00 28.57 ? 67 LYS A O   1
+ATOM   528 C CB  . LYS A 1 69 ? 11.467 -21.656 -29.206 1.00 24.68 ? 67 LYS A CB  1
+ATOM   529 C CG  . LYS A 1 69 ? 10.940 -22.934 -29.777 1.00 25.53 ? 67 LYS A CG  1
+ATOM   530 C CD  . LYS A 1 69 ? 11.657 -23.339 -31.044 1.00 31.60 ? 67 LYS A CD  1
+ATOM   531 C CE  . LYS A 1 69 ? 11.280 -22.431 -32.192 1.00 31.39 ? 67 LYS A CE  1
+ATOM   532 N NZ  . LYS A 1 69 ? 11.426 -23.139 -33.490 1.00 30.46 ? 67 LYS A NZ  1
+#

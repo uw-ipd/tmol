@@ -1,0 +1,379 @@
+[
+  {
+    "fixture": "schiff_base_double_bond.cif",
+    "source": "tests/io/utils/schiff_base_double_bond.cif",
+    "source_repository": "atomworks-dev",
+    "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
+    "sha256": "d8189d050ea7fb6b6115e777d3d839e43c067bc5030fe6e1b9cff7d928e701c6",
+    "bytes": 2212
+  },
+  {
+    "fixture": "acetylated_peptide_1j8z.cif",
+    "source": "tests/io/test_outputs/1j8z_new.cif",
+    "source_repository": "atomworks-dev",
+    "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
+    "sha256": "9c0786170d901b7b707a4ef0e5464dd5fc59ac96356586488200cfc7d655bb8d",
+    "bytes": 10760
+  },
+  {
+    "fixture": "unknown_heavy_atom_1a8o.cif",
+    "source": "tests/data/io/1a8o_modified.cif",
+    "source_repository": "atomworks-dev",
+    "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
+    "sha256": "5a65ac91ce4576b2312f125797f958b6a214f38662a76727f8dc9bc16b0ca3a8",
+    "bytes": 93523
+  },
+  {
+    "fixture": "conditional_generation.cif",
+    "source": "tests/data/io/example_conditional_generation_output.cif",
+    "source_repository": "atomworks-dev",
+    "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
+    "sha256": "24f16680dc476f3f443c52c3ca599ed49de78d717676961da644ab2f487881ce",
+    "bytes": 41146
+  },
+  {
+    "fixture": "unresolved_unl.cif",
+    "source": "tests/data/io/test_unl_ligand_with_bonds.cif",
+    "source_repository": "atomworks-dev",
+    "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
+    "sha256": "58b815ae5b5b3e73ebe573ec53ca419cbda929241a7003d8a66c1941321816d0",
+    "bytes": 4720
+  },
+  {
+    "fixture": "modified_components_6q9t.cif",
+    "source": "tests/io/test_outputs/6q9t_new.cif",
+    "source_repository": "atomworks-dev",
+    "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
+    "sha256": "cea6903ba6a8966b9cb210282b4274c4b32fd5e42e6425edb5a4661fdfb81604",
+    "bytes": 224351
+  },
+  {
+    "fixture": "plp_enzyme_7mkv.cif",
+    "source": "tests/data/io/interactions/7MKV_UstD_2_dimer.cif",
+    "source_repository": "atomworks-dev",
+    "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
+    "sha256": "2da84bb3255e8783c69321f4d98542f9b43dc833aa9011050b3c160a39e028e8",
+    "bytes": 497933
+  },
+  {
+    "fixture": "macrocycle_1xvk.cif",
+    "source": "https://files.rcsb.org/download/1XVK.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "retrieved": "2026-09-12",
+    "transformation": "gzip decompression only",
+    "sha256": "45817c082d2ed97a519d0e15530658c7d48e6291ae9492ff38f663d60d2e94a7",
+    "bytes": 134935
+  },
+  {
+    "fixture": "terminal_nucleotide_145d.cif",
+    "source": "https://files.rcsb.org/download/145D.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "retrieved": "2026-09-12",
+    "transformation": "gzip decompression only",
+    "sha256": "9b0821b2d3ac56ff21b6fdb558013f17b3468019105c0ee0ef3681087c4dee66",
+    "bytes": 125361
+  },
+  {
+    "fixture": "conflicting_myristate_1aym.cif.gz",
+    "source": "https://files.rcsb.org/download/1AYM.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "retrieved": "2026-09-12",
+    "transformation": "none; complete compressed source",
+    "sha256": "99861fb9f6556f4b19f68787df1c5078414308c45d911b80496edc62b6dedac9",
+    "bytes": 195275
+  },
+  {
+    "fixture": "repeated_glycans_6mub.cif.gz",
+    "source": "tests/io/test_outputs/6mub_new.cif",
+    "source_repository": "atomworks-dev",
+    "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
+    "sha256": "228b05365bd69fabe8eb511c36919b1fd871c636ce533dccda5aad62485fff17",
+    "bytes": 606589,
+    "compression": "gzip; decompressed bytes identical to source",
+    "compressed_sha256": "a4e8d178eeddcd0d5f3edaf67d9dcfa80ebdadd5789651f4e80b218ccf6cf30b"
+  },
+  {
+    "fixture": "generated_amine_attachment.cif",
+    "source": "Synthetic N-acetylated sugar, split into acyl and glycosyl-amine components",
+    "source_repository": "tmol",
+    "smiles": "CC(=O)N[C@@H]1[C@@H](O)O[C@H](CO)[C@@H](O)[C@H]1O",
+    "generation": "RDKit 2026.3.6: Chem.AddHs; AllChem.EmbedMolecule(randomSeed=20260913); Chem.RemoveHs. First three heavy atoms form ZACX1; the remainder form ZAMN1. Biotite 1.7.1 pdbx.set_structure(include_bonds=True); explicit component atom/bond tables.",
+    "sha256": "785fe52cbe85dcbeb55414355fca1236b6386ae7795dfc438b4b21680d8331c8",
+    "bytes": 3260
+  },
+  {
+    "fixture": "af3_cyclic_peptide_7ubd.cif",
+    "source": "tests/data/io/7ubd_from_af3.cif",
+    "source_repository": "atomworks-dev",
+    "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
+    "sha256": "c5431cb71173c39b61818676d61113ae34bdc5bcf3e48ba710fff05110e69beb",
+    "bytes": 11360
+  },
+  {
+    "fixture": "chromophore_3nez.cif.gz",
+    "source": "https://files.rcsb.org/download/3NEZ.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO test mirror",
+    "sha256": "fc34c9039913cd42dfa967152d022c86457b2c8e9cab7cbd0f1c79138c2d8caf",
+    "bytes": 388601
+  },
+  {
+    "fixture": "generated_imine_attachment.cif",
+    "source": "Synthetic ketimine-linked sugar derived from generated_amine_attachment.cif",
+    "source_repository": "tmol",
+    "transformation": "Replace carbonyl O2 by methyl C2 (including component atom/bond tables). Move N1 into the first component, make C1-N1 an internal SINGLE bond and N1-C4 the declared DOUBLE attachment. Rename components ZIMC1/ZIMN1. This ring-carbon attachment cannot rotate about its local ring bonds. Preserve the initial coordinates so minimization resolves the changed bond targets.",
+    "sha256": "b96db7d99b0fe2e5677d9750f2ab8230ca3ae68ebea6d102052c90a81e1ceb4a",
+    "bytes": 3229
+  },
+  {
+    "fixture": "plp_cap_5t4j.cif.gz",
+    "source": "https://files.rcsb.org/download/5T4J.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "retrieved": "2026-09-12",
+    "transformation": "none; complete compressed mirror entry",
+    "sha256": "ed5c4b6396f73df96ae4c8dbed47c3fd18f79e89e1e35d2fbfdce7a6e73f2c10",
+    "bytes": 169385
+  },
+  {
+    "fixture": "missing_ligand_carbon_5hs6.cif.gz",
+    "source": "https://files.rcsb.org/download/5HS6.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "transformation": "none; complete compressed mirror entry",
+    "sha256": "7d5fd61372fc37d081e6283716325a2ddb02185ada6feb76ce2bc00970620fe6",
+    "bytes": 116464
+  },
+  {
+    "fixture": "free_and_attached_solutes_5xag.cif.gz",
+    "source": "https://files.rcsb.org/download/5XAG.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "transformation": "none; complete compressed mirror entry",
+    "sha256": "908e190519baab5f1245a6e01901d4f551b32e885ec1f46d58acf813f3c73342",
+    "bytes": 472608
+  },
+  {
+    "fixture": "decreasing_water_author_ids_5xnl.cif.gz",
+    "source": "https://files.rcsb.org/download/5XNL.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "transformation": "none; complete compressed mirror entry",
+    "sha256": "2bbdcb66fa073d57cc1b3a292ce1a14736dc925a6d49e2196045dcfc45e311bf",
+    "bytes": 2528970
+  },
+  {
+    "fixture": "repeated_partner_glycans_1ivo.cif.gz",
+    "source": "https://files.rcsb.org/download/1IVO.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "transformation": "none; complete compressed mirror entry",
+    "sha256": "01ae9b0d1d000f1e444e6fc8f190d746fa9716fb75fe511a60a2025b7396fd11",
+    "bytes": 242336
+  },
+  {
+    "fixture": "repeated_partner_glycans_1hge.cif.gz",
+    "source": "https://files.rcsb.org/download/1HGE.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "transformation": "none; complete compressed mirror entry",
+    "sha256": "d86092cfb011f2fe4a38753ef51a8b1ddc9ba79195f2b94e66df8e6a8b96421d",
+    "bytes": 384172
+  },
+  {
+    "fixture": "terminal_asj_glycans_1iau.cif.gz",
+    "source": "https://files.rcsb.org/download/1IAU.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "transformation": "none; complete compressed mirror entry",
+    "sha256": "cee5648f5407953574da42242e9eb3a49270f0426561e45f3834c3c9713e883d",
+    "bytes": 69238
+  },
+  {
+    "fixture": "partial_sugar_rings_2msb.cif.gz",
+    "source": "https://files.rcsb.org/download/2MSB.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "transformation": "none; complete compressed mirror entry",
+    "sha256": "b633ee769469c230f28e63691a196ab79e71728d4975f4378e8e182b4dd63331",
+    "bytes": 69717
+  },
+  {
+    "fixture": "modified_nucleotide_aliases_1d9d.cif.gz",
+    "source": "https://files.rcsb.org/download/1D9D.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "retrieved": "2026-09-12",
+    "transformation": "none; complete compressed source",
+    "sha256": "5671f72a9e2b26f1526678479c179305a4c7c08c5372b6a693946045e81ea1a2",
+    "bytes": 148933
+  },
+  {
+    "fixture": "terminal_and_linked_glycans_1en2.cif.gz",
+    "source": "https://files.rcsb.org/download/1EN2.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "retrieved": "2026-09-12",
+    "transformation": "none; complete compressed source",
+    "sha256": "60fd2c80acbbb32271204496765a6e52dd9b5289ee3c12123b8350c818cce98d",
+    "bytes": 36783
+  },
+  {
+    "fixture": "terminal_and_linked_glycans_4ndz.cif.gz",
+    "source": "https://files.rcsb.org/download/4NDZ.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "retrieved": "2026-09-12",
+    "transformation": "none; complete compressed source",
+    "sha256": "50224a3e2fa5e1845b0386e8db9387f1bebad1b27ad998e8262a5d7ea43d4221",
+    "bytes": 1514078
+  },
+  {
+    "fixture": "hydrolase_intermediate_1tqh.cif.gz",
+    "source": "https://files.rcsb.org/download/1TQH.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks parse-invariant tests",
+    "transformation": "none; complete compressed source",
+    "sha256": "0086cf08b16f27d42223d0bf42ed9848b46662acc223e68d0dc90bfdbcd53632",
+    "bytes": 121703
+  },
+  {
+    "fixture": "phosphate_charge_4js1.cif.gz",
+    "source": "https://files.rcsb.org/download/4JS1.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "transformation": "none; complete compressed source",
+    "sha256": "d0871eca33d5a59ed3678b35bc2ea682ced5bf08c8fa15482ac3ffea4422d934",
+    "bytes": 161575
+  },
+  {
+    "fixture": "chloride_complex_4hbt.cif.gz",
+    "source": "https://files.rcsb.org/download/4HBT.cif.gz",
+    "source_repository": "RCSB PDB; used by AtomWorks IO tests",
+    "transformation": "none; complete compressed source",
+    "sha256": "0d2b96c17d114da4d7b149203003fb68843e44c6304ad1ed5377c0f59377aeaa",
+    "bytes": 128420
+  },
+  {
+    "fixture": "sulfur_attachments_3t14.cif.gz",
+    "source": "https://files.rcsb.org/download/3T14.cif.gz",
+    "source_repository": "RCSB PDB; seeded local CIF audit",
+    "transformation": "none; complete compressed source",
+    "sha256": "7785272d8622437b7004ef6a1342f96fe192a330e7ba66d295e47174c57386d7",
+    "bytes": 187664
+  },
+  {
+    "fixture": "phosphate_attachment_8ch1.cif.gz",
+    "source": "https://files.rcsb.org/download/8CH1.cif.gz",
+    "source_repository": "RCSB PDB; seeded local CIF audit",
+    "transformation": "none; complete compressed source",
+    "sha256": "02ecfef5ba6dd1c61971efc237529523f9942eca4043a96fb2c178ae7cc6340a",
+    "bytes": 304458
+  },
+  {
+    "fixture": "isopeptide_2rm9.cif.gz",
+    "source": "https://files.rcsb.org/download/2RM9.cif.gz",
+    "source_repository": "RCSB PDB; seeded local CIF audit",
+    "transformation": "none; complete compressed source",
+    "sha256": "e27da9f0f6308d4150add947c320ee7a49bd1288f0247720a8eeb100cf48d217",
+    "bytes": 223009
+  },
+  {
+    "fixture": "isopeptide_6n0a.cif.gz",
+    "source": "https://files.rcsb.org/download/6N0A.cif.gz",
+    "source_repository": "RCSB PDB; seeded local CIF audit",
+    "transformation": "none; complete compressed source",
+    "sha256": "d64a9583994e849a6cee4c415061d1082e0eb7821f67f048a460f56f2ef05cab",
+    "bytes": 128703
+  },
+  {
+    "fixture": "phosphohistidine_1hxq.cif.gz",
+    "source": "https://files.rcsb.org/download/1HXQ.cif.gz",
+    "source_repository": "RCSB PDB; seeded local CIF audit",
+    "transformation": "none; complete compressed source",
+    "sha256": "03d52afb3494933381a067fcbdbbc93a0dece56524e4ff203d8e56ca8f878ac7",
+    "bytes": 170065
+  },
+  {
+    "fixture": "attachment_contexts_8trb.cif.gz",
+    "source": "https://files.rcsb.org/download/8TRB.cif.gz",
+    "source_repository": "RCSB PDB; seeded local CIF audit",
+    "transformation": "none; complete compressed source",
+    "sha256": "9fd03fd55d9bde0c9dddcbe220cc33713bfce961ffb5bd12a8b70558bd3f20ca",
+    "bytes": 590330
+  },
+  {
+    "fixture": "missing_phosphate_rna_5w1i.cif",
+    "source": "tests/data/pdb/w1/5w1i.cif.gz",
+    "source_repository": "atomworks-dev",
+    "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
+    "source_sha256": "609fd73c9955a45399fdd75a9fbb3e62dd6473e067494fde43d0a89a617998a5",
+    "transformation": "AtomWorks model 1; label chain A residues 36-39",
+    "sha256": "eaec8b9da7b82bef3e9b04ccc2b4150b5b11dd27395cd2f11752054388c9394d",
+    "bytes": 18856
+  },
+  {
+    "fixture": "missing_proline_ring_7no8.cif",
+    "source": "PDB_MIRROR_PATH/no/7no8.cif.gz",
+    "source_repository": "AtomWorks frozen local PDB mirror",
+    "source_revision": "2026-01-06",
+    "source_sha256": "0e6dce4376d7c106ec80cc48f485bfe09c5619cec477dfaba95d2140cf30b98d",
+    "transformation": "AtomWorks model 1; chain A residues 152-154",
+    "sha256": "5b5b16cfaec3d9d44606c1e8745788d85b77fe47f8895f90cc1b9059e1467af6",
+    "bytes": 8591
+  },
+  {
+    "fixture": "missing_ribose_oxygen_6dp5.cif",
+    "source": "PDB_MIRROR_PATH/dp/6dp5.cif.gz",
+    "source_repository": "AtomWorks frozen local PDB mirror",
+    "source_revision": "2026-01-06",
+    "source_sha256": "f55a9df09f93d0b85c9705f5ec39df55aca5918f266dffa15e3a202e67c2958a",
+    "transformation": "AtomWorks model 1; chains B and C residues 1-3 (five residues)",
+    "sha256": "6e839f9d7c112bd38604bd9f02ff4358a13ed808908ce3219f403e78b9f456cf",
+    "bytes": 21937
+  },
+  {
+    "fixture": "missing_sugar_carbon_7n5v.cif",
+    "source": "PDB_MIRROR_PATH/n5/7n5v.cif.gz",
+    "source_repository": "AtomWorks frozen local PDB mirror",
+    "source_revision": "2026-01-06",
+    "source_sha256": "b27643848bba647877f2fc62b1963fcd89374873253966c533dda6a9a8f71980",
+    "transformation": "AtomWorks model 1; chain E residues 15-16",
+    "sha256": "8bbec3d699a8e539bc42dc7e1bb901bdf2c2ad118c393cacf59fc6e20db0c152",
+    "bytes": 9568
+  },
+  {
+    "fixture": "orphan_hydrogen_9ewf.cif",
+    "source": "PDB_MIRROR_PATH/ew/9ewf.cif.gz",
+    "source_repository": "AtomWorks frozen local PDB mirror",
+    "source_revision": "2026-01-06",
+    "source_sha256": "cb2da935e8bd1907195886980051cf5c822ba7e6a72a8e2c7fa5a662b13cfe37",
+    "transformation": "AtomWorks model 1; first A1H7V ligand",
+    "sha256": "baf3472234bb403cea7f507529c463b00643a061f233293670313d0cf9e131d7",
+    "bytes": 8680
+  },
+  {
+    "fixture": "retinyl_lysine_4xxj.cif",
+    "source": "PDB_MIRROR_PATH/xx/4xxj.cif.gz",
+    "source_repository": "AtomWorks frozen local PDB mirror",
+    "source_revision": "2026-01-06",
+    "source_sha256": "14e6c8a551aa1be2e5eef600f3f660ba976d0a6c32663ac49a18836faa20296e",
+    "transformation": "AtomWorks model 1; chain A residues 216-218",
+    "sha256": "665af5c98fe3b2e0dda9c0db8a738c843c3f3c4607f3cc81624fe78f443a3ba2",
+    "bytes": 16405
+  },
+  {
+    "fixture": "triphosphate_rna_4gxy.cif",
+    "source": "tests/data/pdb/gx/4gxy.cif.gz",
+    "source_repository": "atomworks-dev",
+    "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
+    "source_sha256": "a9c7c3d7d55db211014da8540b67c2c22bace9d661c1f883ff239171f6e13246",
+    "transformation": "AtomWorks model 1; first three RNA residues",
+    "sha256": "d02a217cc68a631fa9857b92bedfac5b0a399c096d3e30ae14906a92277c8a64",
+    "bytes": 21738
+  },
+  {
+    "fixture": "unresolved_modified_polymer_1xj9.cif.gz",
+    "source": "tests/data/pdb/xj/1xj9.cif.gz",
+    "source_repository": "atomworks-dev",
+    "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
+    "source_sha256": "c234491ca94ea51211977b86c347408bc507ff57edf89da9c7d690f9d4e2e361",
+    "transformation": "none; byte-identical compressed source",
+    "sha256": "c234491ca94ea51211977b86c347408bc507ff57edf89da9c7d690f9d4e2e361",
+    "bytes": 20296
+  },
+  {
+    "fixture": "full_conjugate_9ewf.cif.gz",
+    "source": "https://files.rcsb.org/download/9EWF.cif.gz",
+    "source_repository": "RCSB PDB; frozen random-PDB corpus",
+    "transformation": "none; complete compressed source",
+    "sha256": "cb2da935e8bd1907195886980051cf5c822ba7e6a72a8e2c7fa5a662b13cfe37",
+    "bytes": 777721
+  }
+]
