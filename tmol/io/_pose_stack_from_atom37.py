@@ -59,15 +59,14 @@ def atom37_slot_map_for_ordering(
         -1,
         dtype=torch.int64,
     )
-    terminus_atoms = {
-        atom
-        for atoms in canonical_ordering.termini_only_atoms.values()
-        for atom in atoms
-    }
     for restype_index, name3 in enumerate(canonical_ordering.restype_io_equiv_classes):
         names = atom_names_by_slot.get(name3)
         if names is None:
             continue
+        # Per residue type, not pooled: H1, H2 and H3 are terminus-only on an
+        # amino acid but ordinary base atoms of DG, DA, DT and water, and a
+        # pooled set would leave those unrouted and silently rebuilt.
+        terminus_atoms = canonical_ordering.termini_only_atoms_by_class.get(name3, ())
         atom_index = canonical_ordering.restypes_atom_index_mapping[name3]
         for slot, atom_name in enumerate(names):
             if not atom_name or atom_name in terminus_atoms:
