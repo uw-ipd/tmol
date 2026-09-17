@@ -169,8 +169,8 @@ python scripts/ligand_prep/smiles_to_params.py "<SMILES>" <out_prefix> \
     --res-name LG1 --ph 7.4
 ```
 
-Useful flags include `--no-protonate`, `--sample-proton-chi`, and
-`--no-conformer-search`.
+Useful flags include `--no-protonate`, `--heavy-chi-samples`, and
+`--seed` for a reproducible conformer.
 
 `.tmol` is TMol's only parameter format. TMol does not read or write Rosetta
 `.params`; use a Rosetta-native preparation workflow to parameterize a ligand
