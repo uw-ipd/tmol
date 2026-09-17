@@ -223,6 +223,7 @@ def fast_relax(  # noqa: C901
     schedule: Sequence[RelaxScheduleEntry] | None = None,
     min_fn: RelaxMinimizer | None = None,
     cuda_graph: bool | None = None,
+    release_between_stages: bool = True,
     verbose: bool = False,
 ) -> PoseStack:
     """Relax poses through repeated side-chain packing and minimization.
@@ -251,6 +252,13 @@ def fast_relax(  # noqa: C901
             FastRelax calls that hook after extracting each minimized pose so
             packing does not overlap retained scorer or optimizer storage.
             Defaults to Cartesian minimization.
+        release_between_stages: Drop the rendered scorer, CUDA graph and L-BFGS
+            history after each stage's minimization. On by default: a large
+            system is bound by that retained state through the next packing
+            phase, which is why the release exists. Turn it off when the setup
+            cost dominates instead -- a small pose on the default four-stage
+            schedule otherwise pays four network constructions, and four graph
+            captures, where one would do.
         cuda_graph: Capture the default Cartesian minimizer's repeated CUDA
             scoring path. By default, enable it automatically for CUDA poses
             containing DNA or RNA, where replay savings exceed capture setup.
@@ -345,6 +353,7 @@ def fast_relax(  # noqa: C901
                 task_operations=task_operations,
                 min_fn=min_fn,
                 verbose=verbose,
+                release_between_stages=release_between_stages,
             )
 
         best_ps, best_score = accept_best(sfxn, best_ps, best_score, ps, verbose)
@@ -367,6 +376,7 @@ def relax_pack_min_step(
     task_operations: Sequence[PackerTaskOperation],
     min_fn: RelaxMinimizer,
     verbose: bool,
+    release_between_stages: bool = True,
 ) -> PoseStack:
     """Execute one weighted packing and minimization stage.
 
@@ -420,9 +430,14 @@ def relax_pack_min_step(
         move_map=move_map,
         verbose=verbose,
     )
-    release_retained_state = getattr(min_fn, "release_retained_state", None)
-    if release_retained_state is not None:
-        release_retained_state()
+    # Releasing costs a network construction and, with cuda_graph, a capture at
+    # every stage; retaining costs the scorer and L-BFGS history through the
+    # next packing phase. Large systems are bound by the second -- it is why
+    # this release exists -- and small ones by the first.
+    if release_between_stages:
+        release_retained_state = getattr(min_fn, "release_retained_state", None)
+        if release_retained_state is not None:
+            release_retained_state()
     if verbose:
         synchronize_device(pose_stack.device)
     end_time3 = time.perf_counter()
