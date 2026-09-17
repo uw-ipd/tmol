@@ -533,7 +533,7 @@ def _localize(center, neighbors, n_double, conformer, charge, charges, synthesiz
             synthesized[center.GetIdx()] = assigned
 
 
-def _infer_oxyacid_bonds(mol, charges, delocalized_bonds, synthesized):
+def _infer_oxyacid_bonds(mol, charges, delocalized_bonds, synthesized=None):
     """Localize acyclic delocalized bonds the source writes as Tripos ``ar``.
 
     Tripos ``ar`` off a ring means delocalization, not aromaticity: a
@@ -547,6 +547,10 @@ def _infer_oxyacid_bonds(mol, charges, delocalized_bonds, synthesized):
     """
     # Ring membership decides what may be rewritten, and RingInfo is not
     # populated until something perceives rings; the mol here is unsanitized.
+    if synthesized is None:
+        # A caller that does not ask for the synthesized charges still needs
+        # somewhere for them to go.
+        synthesized = {}
     mol.UpdatePropertyCache(strict=False)
     Chem.FastFindRings(mol)
     for center in mol.GetAtoms():
