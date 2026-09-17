@@ -150,15 +150,15 @@ def test_slot_map_leaves_terminus_atoms_unmapped(torch_device):
     layout = _full_atom_layout(canonical_ordering)
     slot_map = atom37_slot_map_for_ordering(canonical_ordering, layout, torch_device)
 
-    terminus_atoms = {
-        atom
-        for atoms in canonical_ordering.termini_only_atoms.values()
-        for atom in atoms
-    }
-    assert terminus_atoms, "expected the database to define terminus-added atoms"
+    by_class = canonical_ordering.termini_only_atoms_by_class
+    assert by_class, "expected the database to define terminus-added atoms"
 
     checked = 0
     for restype_index, name3 in enumerate(canonical_ordering.restype_io_equiv_classes):
+        # Per residue type, not pooled: H1, H2 and H3 are terminus-only on an
+        # amino acid but ordinary base atoms of DG, DA, DT and water, and a
+        # pooled set would demand they go unrouted there too.
+        terminus_atoms = by_class.get(name3, ())
         for slot, atom_name in enumerate(layout[name3]):
             if atom_name in terminus_atoms:
                 assert int(slot_map[restype_index, slot]) == -1
