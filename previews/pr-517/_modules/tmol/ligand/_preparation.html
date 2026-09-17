@@ -467,6 +467,7 @@
     <span class="n">with_resolved_coordinates</span><span class="p">,</span>
     <span class="n">nonstandard_residue_info_from_smiles_via_mol2</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._conjugation_patches</span><span class="w"> </span><span class="kn">import</span> <span class="n">charges_for_database_residue</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._registry</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">LigandPreparation</span><span class="p">,</span>
     <span class="n">_build_cartbonded_params</span><span class="p">,</span>
@@ -510,14 +511,6 @@
             <span class="s2">"or supply prebuilt params via ligand_params_files."</span>
         <span class="p">)</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"Skipping </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_partial_charges_for_residue</span><span class="p">(</span><span class="n">param_db</span><span class="p">,</span> <span class="n">residue_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
-    <span class="k">return</span> <span class="p">{</span>
-        <span class="n">parameter</span><span class="o">.</span><span class="n">atom</span><span class="p">:</span> <span class="n">parameter</span><span class="o">.</span><span class="n">charge</span>
-        <span class="k">for</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">elec</span><span class="o">.</span><span class="n">atom_charge_parameters</span>
-        <span class="k">if</span> <span class="n">parameter</span><span class="o">.</span><span class="n">res</span> <span class="o">==</span> <span class="n">residue_name</span>
-    <span class="p">}</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_without_unprepared_partners</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">chemistry</span><span class="p">,</span> <span class="n">strict_ligands</span><span class="p">):</span>
@@ -647,7 +640,7 @@
         <span class="n">previous</span> <span class="o">=</span> <span class="n">existing</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">prep</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">previous</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">continue</span>
-        <span class="n">previous_charges</span> <span class="o">=</span> <span class="n">_partial_charges_for_residue</span><span class="p">(</span>
+        <span class="n">previous_charges</span> <span class="o">=</span> <span class="n">charges_for_database_residue</span><span class="p">(</span>
             <span class="n">param_db</span><span class="p">,</span> <span class="n">prep</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">name</span>
         <span class="p">)</span>
         <span class="n">previous_cartbonded</span> <span class="o">=</span> <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">cartbonded</span><span class="o">.</span><span class="n">residue_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
@@ -1649,7 +1642,6 @@
 <span class="w">    </span><span class="sd">"""Patches and charges for the database residues a component attaches to."""</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._conjugation_patches</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">_hydrogens_on</span><span class="p">,</span>
-        <span class="n">charges_for_database_residue</span><span class="p">,</span>
         <span class="n">combined_terminal_conjugation_patch</span><span class="p">,</span>
         <span class="n">conjugation_patch</span><span class="p">,</span>
         <span class="n">conjugation_charge_entries</span><span class="p">,</span>
@@ -2000,7 +1992,7 @@
             <span class="n">cartbonded_params</span> <span class="o">=</span> <span class="n">_build_cartbonded_params</span><span class="p">(</span><span class="n">restype</span><span class="p">)</span>
         <span class="n">fragment_source_preparations</span><span class="p">[</span><span class="n">ligand_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">LigandPreparation</span><span class="p">(</span>
             <span class="n">residue_type</span><span class="o">=</span><span class="n">restype</span><span class="p">,</span>
-            <span class="n">partial_charges</span><span class="o">=</span><span class="n">_partial_charges_for_residue</span><span class="p">(</span><span class="n">param_db</span><span class="p">,</span> <span class="n">ligand_name</span><span class="p">),</span>
+            <span class="n">partial_charges</span><span class="o">=</span><span class="n">charges_for_database_residue</span><span class="p">(</span><span class="n">param_db</span><span class="p">,</span> <span class="n">ligand_name</span><span class="p">),</span>
             <span class="n">cartbonded_params</span><span class="o">=</span><span class="n">cartbonded_params</span><span class="p">,</span>
             <span class="n">atom_type_elements</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="p">)</span>
@@ -2268,7 +2260,7 @@
             <span class="n">preparations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="n">LigandPreparation</span><span class="p">(</span>
                     <span class="n">residue_type</span><span class="o">=</span><span class="n">residue</span><span class="p">,</span>
-                    <span class="n">partial_charges</span><span class="o">=</span><span class="n">_partial_charges_for_residue</span><span class="p">(</span>
+                    <span class="n">partial_charges</span><span class="o">=</span><span class="n">charges_for_database_residue</span><span class="p">(</span>
                         <span class="n">param_db</span><span class="p">,</span> <span class="n">residue</span><span class="o">.</span><span class="n">name</span>
                     <span class="p">),</span>
                     <span class="n">cartbonded_params</span><span class="o">=</span><span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">cartbonded</span><span class="o">.</span><span class="n">residue_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
