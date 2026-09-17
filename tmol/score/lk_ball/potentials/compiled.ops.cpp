@@ -40,6 +40,8 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
       Tensor rot_offset_for_pose,
       Tensor n_rots_for_block,
       Tensor rot_offset_for_block,
+      // blocks sharing an id >= 0 sample in lockstep
+      Tensor lockstep_group_for_block,
       int64_t max_n_rots_per_pose,
       Tensor pose_stack_inter_residue_connections,
       Tensor block_type_n_atoms,
@@ -83,6 +85,7 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
                       TCAST(pose_ind_for_atom),
                       TCAST(first_rot_for_block),
                       TCAST(first_rot_block_type),
+                      TCAST(lockstep_group_for_block),
                       TCAST(block_ind_for_rot),
                       TCAST(pose_ind_for_rot),
                       TCAST(block_type_ind_for_rot),
@@ -136,6 +139,7 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
          rot_offset_for_pose,
          n_rots_for_block,
          rot_offset_for_block,
+         lockstep_group_for_block,
          max_n_rots_per_pose_tp.tensor,
 
          pose_stack_inter_residue_connections,
@@ -183,6 +187,7 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
     auto rot_offset_for_pose = saved[i++];
     auto n_rots_for_block = saved[i++];
     auto rot_offset_for_block = saved[i++];
+    auto lockstep_group_for_block = saved[i++];
     auto max_n_rots_per_pose =
         TPack<int32_t, 1, tmol::Device::CPU>(saved[i++]).view[0];
 
@@ -232,6 +237,7 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
                       TCAST(pose_ind_for_atom),
                       TCAST(first_rot_for_block),
                       TCAST(first_rot_block_type),
+                      TCAST(lockstep_group_for_block),
                       TCAST(block_ind_for_rot),
                       TCAST(pose_ind_for_rot),
                       TCAST(block_type_ind_for_rot),
@@ -263,20 +269,20 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
           dT_d_pose_coords = result.tensor;
         }));
 
-    return {dT_d_pose_coords, torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
+    return {dT_d_pose_coords, torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(),
 
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),
 
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),
 
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor()};
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor()};
   };
 };
 
@@ -294,6 +300,8 @@ Tensor pose_watergen_op(
     Tensor rot_offset_for_pose,
     Tensor n_rots_for_block,
     Tensor rot_offset_for_block,
+    // blocks sharing an id >= 0 sample in lockstep
+    Tensor lockstep_group_for_block,
     int64_t max_n_rots_per_pose,
 
     // term specific params
@@ -335,6 +343,7 @@ Tensor pose_watergen_op(
       rot_offset_for_pose,
       n_rots_for_block,
       rot_offset_for_block,
+      lockstep_group_for_block,
       max_n_rots_per_pose,
       pose_stack_inter_residue_connections,
       block_type_n_atoms,
@@ -632,6 +641,7 @@ class LKBallRotamerScoreOp
       Tensor rot_offset_for_pose,
       Tensor n_rots_for_block,
       Tensor rot_offset_for_block,
+      Tensor lockstep_group_for_block,
       int64_t max_n_rots_per_pose,
       Tensor pose_stack_inter_residue_connections,
 
@@ -681,6 +691,7 @@ class LKBallRotamerScoreOp
                   TCAST(rot_offset_for_pose),
                   TCAST(n_rots_for_block),
                   TCAST(rot_offset_for_block),
+                  TCAST(lockstep_group_for_block),
                   max_n_rots_per_pose,
                   TCAST(pose_stack_inter_residue_connections),
 
@@ -835,15 +846,16 @@ class LKBallRotamerScoreOp
         }));
 
     return {
-        dV_d_pose_coords, torch::Tensor(), torch::Tensor(),   torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(),   torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), dV_d_water_coords, torch::Tensor(),
-        torch::Tensor(),
-    };
+        // one entry per forward() parameter; the new
+        // lockstep_group_for_block sits at index 12
+        dV_d_pose_coords, torch::Tensor(), torch::Tensor(), torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(), torch::Tensor(), dV_d_water_coords,
+        torch::Tensor(),  torch::Tensor()};
   }
 };
 
@@ -934,6 +946,7 @@ std::vector<Tensor> lkball_rotamer_score(
     Tensor rot_offset_for_pose,
     Tensor n_rots_for_block,
     Tensor rot_offset_for_block,
+    Tensor lockstep_group_for_block,
     int64_t max_n_rots_per_pose,
 
     Tensor pose_stack_inter_residue_connections,
@@ -970,6 +983,7 @@ std::vector<Tensor> lkball_rotamer_score(
       rot_offset_for_pose,
       n_rots_for_block,
       rot_offset_for_block,
+      lockstep_group_for_block,
       max_n_rots_per_pose,
       pose_stack_inter_residue_connections,
 
@@ -1005,6 +1019,7 @@ std::vector<Tensor> lkball_rotamer_score_shared(
     Tensor rot_offset_for_pose,
     Tensor n_rots_for_block,
     Tensor rot_offset_for_block,
+    Tensor lockstep_group_for_block,
     int64_t max_n_rots_per_pose,
     Tensor pose_stack_inter_residue_connections,
     Tensor pose_stack_min_bond_separation,
@@ -1047,6 +1062,7 @@ std::vector<Tensor> lkball_rotamer_score_shared(
       rot_offset_for_pose,
       n_rots_for_block,
       rot_offset_for_block,
+      lockstep_group_for_block,
       max_n_rots_per_pose,
       pose_stack_inter_residue_connections,
       pose_stack_min_bond_separation,

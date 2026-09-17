@@ -150,11 +150,25 @@ __device__ __forceinline__ void pucker_weights(
     Real temperature,
     Real* pucker) {
   Vec3<Real> ring[5];
+  bool any_ring_atom = false;
 #pragma unroll
   for (int atom = 0; atom < 5; ++atom) {
     int offset = flat_block * 5 + atom;
     ring[atom] = ring_ok[offset] ? load_coord(coords, ring_indices[offset])
                                  : Vec3<Real>{Real(0), Real(0), Real(0)};
+    any_ring_atom |= ring_ok[offset];
+  }
+  // A residue whose sugar ring did not resolve has no pucker. Running the
+  // rotation weights over zero coordinates instead gives every rotation the
+  // same weight and a uniform, entirely spurious pucker distribution, which is
+  // what the Python path zeroes out -- so this kernel and that one disagreed on
+  // the same pose, and so did whole-pose and block-pair scoring on one GPU.
+  if (!any_ring_atom) {
+#pragma unroll
+    for (int slot_ind = 0; slot_ind < N_PUCKER; ++slot_ind) {
+      pucker[slot_ind] = Real(0);
+    }
+    return;
   }
 
   Real plane[5];
@@ -358,11 +372,18 @@ __device__ __forceinline__ void add_pucker_gradient(
     Real* derivatives) {
   constexpr int slot[N_PUCKER] = {9, 0, 6, 2, 8, 4, 5, 1, 7, 3};
   Vec3<Real> ring[5];
+  bool any_ring_atom = false;
 #pragma unroll
   for (int atom = 0; atom < 5; ++atom) {
     int offset = flat_block * 5 + atom;
     ring[atom] = ring_ok[offset] ? load_coord(coords, ring_indices[offset])
                                  : Vec3<Real>{Real(0), Real(0), Real(0)};
+    any_ring_atom |= ring_ok[offset];
+  }
+  // No ring, no pucker: pucker_weights already zeroed the caller's array, and
+  // this derivative is read-only over it, so there is nothing to contribute.
+  if (!any_ring_atom) {
+    return;
   }
 
   Real mean_coeff[2] = {Real(0), Real(0)};
@@ -489,6 +510,7 @@ __global__ void na_torsion_kernel(
     int n_poses,
     int max_n_blocks,
     int n_atoms,
+    int n_bases,
     Real* derivatives,
     Real* output) {
   int flat_block = blockIdx.x * blockDim.x + threadIdx.x;
@@ -497,7 +519,7 @@ __global__ void na_torsion_kernel(
 
   int pose = flat_block / max_n_blocks;
   int base_ind = int(base[flat_block]);
-  int polymer = base_ind >> 2;
+  int polymer = base_ind / (n_bases / 2);
   Real torsion[N_TORSION];
 #pragma unroll
   for (int tor = 0; tor < N_TORSION; ++tor) {
@@ -716,8 +738,8 @@ __global__ void na_torsion_kernel(
     Real chi_weight_derivative = Real(0);
 #pragma unroll
     for (int puck = 0; puck < N_PUCKER; ++puck) {
-      Real anti = well_chi_syn[puck * 8 + base_ind];
-      Real syn = well_chi_syn[(N_PUCKER + puck) * 8 + base_ind];
+      Real anti = well_chi_syn[puck * n_bases + base_ind];
+      Real syn = well_chi_syn[(N_PUCKER + puck) * n_bases + base_ind];
       Real state_value = (Real(1) - w_syn) * anti + w_syn * syn;
       energy[1] += pucker[puck] * state_value;
       d_pucker[1][puck] += state_value;
@@ -807,6 +829,13 @@ std::tuple<at::Tensor, at::Tensor> na_torsion_pose_score_cuda(
     bool compute_derivs) {
   TORCH_CHECK(coords.is_cuda(), "na_torsion_pose_score requires CUDA tensors");
   TORCH_CHECK(coords.is_contiguous(), "coords must be contiguous");
+  int n_bases = int(chi_means.size(0));
+  TORCH_CHECK(
+      n_bases > 0 && n_bases % 2 == 0,
+      "chi tables must have equal DNA and RNA base counts");
+  TORCH_CHECK(
+      chi_means.size(1) == N_PUCKER && well_chi_syn.size(2) == n_bases,
+      "inconsistent nucleic-acid base table shapes");
   int n_poses = int(base.size(0));
   int max_n_blocks = int(base.size(1));
   auto output = at::zeros({2, n_poses}, coords.options());
@@ -849,6 +878,7 @@ std::tuple<at::Tensor, at::Tensor> na_torsion_pose_score_cuda(
               n_poses,
               max_n_blocks,
               int(coords.size(0)),
+              n_bases,
               nullptr,
               output.mutable_data_ptr<scalar_t>());
         } else {
@@ -881,6 +911,7 @@ std::tuple<at::Tensor, at::Tensor> na_torsion_pose_score_cuda(
               n_poses,
               max_n_blocks,
               int(coords.size(0)),
+              n_bases,
               derivatives.mutable_data_ptr<scalar_t>(),
               output.mutable_data_ptr<scalar_t>());
         }

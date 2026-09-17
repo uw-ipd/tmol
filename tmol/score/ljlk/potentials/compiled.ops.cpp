@@ -61,7 +61,7 @@ class LJLKPoseScoreOp
       Tensor block_type_n_interblock_bonds,
       Tensor block_type_atoms_forming_chemical_bonds,
       Tensor block_type_path_distance,
-      Tensor block_type_is_ligand_fragment,
+      Tensor block_type_all_atoms_ligand_typed,
 
       Tensor type_params,
       Tensor global_params,
@@ -105,7 +105,7 @@ class LJLKPoseScoreOp
                   TCAST(block_type_n_interblock_bonds),
                   TCAST(block_type_atoms_forming_chemical_bonds),
                   TCAST(block_type_path_distance),
-                  TCAST(block_type_is_ligand_fragment),
+                  TCAST(block_type_all_atoms_ligand_typed),
 
                   TCAST(type_params),
                   TCAST(global_params),
@@ -150,7 +150,7 @@ class LJLKPoseScoreOp
            block_type_n_interblock_bonds,
            block_type_atoms_forming_chemical_bonds,
            block_type_path_distance,
-           block_type_is_ligand_fragment,
+           block_type_all_atoms_ligand_typed,
 
            type_params,
            global_params,
@@ -211,7 +211,7 @@ class LJLKPoseScoreOp
       auto block_type_n_interblock_bonds = saved[i++];
       auto block_type_atoms_forming_chemical_bonds = saved[i++];
       auto block_type_path_distance = saved[i++];
-      auto block_type_is_ligand_fragment = saved[i++];
+      auto block_type_all_atoms_ligand_typed = saved[i++];
 
       auto type_params = saved[i++];
       auto global_params = saved[i++];
@@ -258,7 +258,7 @@ class LJLKPoseScoreOp
                     TCAST(block_type_n_interblock_bonds),
                     TCAST(block_type_atoms_forming_chemical_bonds),
                     TCAST(block_type_path_distance),
-                    TCAST(block_type_is_ligand_fragment),
+                    TCAST(block_type_all_atoms_ligand_typed),
 
                     TCAST(type_params),
                     TCAST(global_params),
@@ -301,7 +301,7 @@ class LJLKAndElecPoseScoreOp
       Tensor block_type_n_interblock_bonds,
       Tensor block_type_atoms_forming_chemical_bonds,
       Tensor block_type_ljlk_path_distance,
-      Tensor block_type_is_ligand_fragment,
+      Tensor block_type_all_atoms_ligand_typed,
       Tensor ljlk_type_params,
       Tensor ljlk_global_params,
       Tensor block_type_partial_charge,
@@ -341,7 +341,7 @@ class LJLKAndElecPoseScoreOp
       TCAST(block_type_atom_types), TCAST(block_type_n_interblock_bonds),    \
       TCAST(block_type_atoms_forming_chemical_bonds),                        \
       TCAST(block_type_ljlk_path_distance),                                  \
-      TCAST(block_type_is_ligand_fragment), TCAST(ljlk_type_params),         \
+      TCAST(block_type_all_atoms_ligand_typed), TCAST(ljlk_type_params),     \
       TCAST(ljlk_global_params), TCAST(block_type_partial_charge),           \
       TCAST(block_type_elec_inter_repr_path_distance),                       \
       TCAST(block_type_elec_intra_repr_path_distance),                       \
@@ -494,6 +494,7 @@ class LJLKRotamerScoreOp
       Tensor rot_offset_for_pose,
       Tensor n_rots_for_block,
       Tensor rot_offset_for_block,
+      Tensor lockstep_group_for_block,
       int64_t max_n_rots_per_pose,
 
       Tensor pose_stack_min_bond_separation,
@@ -506,7 +507,7 @@ class LJLKRotamerScoreOp
       Tensor block_type_n_interblock_bonds,
       Tensor block_type_atoms_forming_chemical_bonds,
       Tensor block_type_path_distance,
-      Tensor block_type_is_ligand_fragment,
+      Tensor block_type_all_atoms_ligand_typed,
 
       Tensor type_params,
       Tensor global_params,
@@ -537,6 +538,7 @@ class LJLKRotamerScoreOp
                   TCAST(rot_offset_for_pose),
                   TCAST(n_rots_for_block),
                   TCAST(rot_offset_for_block),
+                  TCAST(lockstep_group_for_block),
                   max_n_rots_per_pose,
 
                   TCAST(pose_stack_min_bond_separation),
@@ -549,7 +551,7 @@ class LJLKRotamerScoreOp
                   TCAST(block_type_n_interblock_bonds),
                   TCAST(block_type_atoms_forming_chemical_bonds),
                   TCAST(block_type_path_distance),
-                  TCAST(block_type_is_ligand_fragment),
+                  TCAST(block_type_all_atoms_ligand_typed),
 
                   TCAST(type_params),
                   TCAST(global_params),
@@ -591,7 +593,7 @@ class LJLKRotamerScoreOp
            block_type_n_interblock_bonds,
            block_type_atoms_forming_chemical_bonds,
            block_type_path_distance,
-           block_type_is_ligand_fragment,
+           block_type_all_atoms_ligand_typed,
 
            type_params,
            global_params,
@@ -649,7 +651,7 @@ class LJLKRotamerScoreOp
       auto block_type_n_interblock_bonds = saved[i++];
       auto block_type_atoms_forming_chemical_bonds = saved[i++];
       auto block_type_path_distance = saved[i++];
-      auto block_type_is_ligand_fragment = saved[i++];
+      auto block_type_all_atoms_ligand_typed = saved[i++];
 
       auto type_params = saved[i++];
       auto global_params = saved[i++];
@@ -696,7 +698,7 @@ class LJLKRotamerScoreOp
                     TCAST(block_type_n_interblock_bonds),
                     TCAST(block_type_atoms_forming_chemical_bonds),
                     TCAST(block_type_path_distance),
-                    TCAST(block_type_is_ligand_fragment),
+                    TCAST(block_type_all_atoms_ligand_typed),
 
                     TCAST(type_params),
                     TCAST(global_params),
@@ -722,7 +724,7 @@ class LJLKRotamerScoreOp
             torch::Tensor(),  torch::Tensor(),
 
             torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor()};
+            torch::Tensor(),  torch::Tensor(), torch::Tensor()};
   }
 };
 
@@ -753,7 +755,7 @@ std::vector<Tensor> ljlk_pose_scores_op(
     Tensor block_type_n_interblock_bonds,
     Tensor block_type_atoms_forming_chemical_bonds,
     Tensor block_type_path_distance,
-    Tensor block_type_is_ligand_fragment,
+    Tensor block_type_all_atoms_ligand_typed,
 
     Tensor ljlk_type_params,
     Tensor global_params,
@@ -786,7 +788,7 @@ std::vector<Tensor> ljlk_pose_scores_op(
       block_type_n_interblock_bonds,
       block_type_atoms_forming_chemical_bonds,
       block_type_path_distance,
-      block_type_is_ligand_fragment,
+      block_type_all_atoms_ligand_typed,
 
       ljlk_type_params,
       global_params,
@@ -817,7 +819,7 @@ std::vector<Tensor> ljlk_elec_pose_scores_op(
     Tensor block_type_n_interblock_bonds,
     Tensor block_type_atoms_forming_chemical_bonds,
     Tensor block_type_ljlk_path_distance,
-    Tensor block_type_is_ligand_fragment,
+    Tensor block_type_all_atoms_ligand_typed,
     Tensor ljlk_type_params,
     Tensor ljlk_global_params,
     Tensor block_type_partial_charge,
@@ -847,7 +849,7 @@ std::vector<Tensor> ljlk_elec_pose_scores_op(
       block_type_n_interblock_bonds,
       block_type_atoms_forming_chemical_bonds,
       block_type_ljlk_path_distance,
-      block_type_is_ligand_fragment,
+      block_type_all_atoms_ligand_typed,
       ljlk_type_params,
       ljlk_global_params,
       block_type_partial_charge,
@@ -881,7 +883,7 @@ std::vector<Tensor> ljlk_elec_weighted_pose_scores_op(
     Tensor block_type_n_interblock_bonds,
     Tensor block_type_atoms_forming_chemical_bonds,
     Tensor block_type_ljlk_path_distance,
-    Tensor block_type_is_ligand_fragment,
+    Tensor block_type_all_atoms_ligand_typed,
     Tensor ljlk_type_params,
     Tensor ljlk_global_params,
     Tensor block_type_partial_charge,
@@ -912,7 +914,7 @@ std::vector<Tensor> ljlk_elec_weighted_pose_scores_op(
       block_type_n_interblock_bonds,
       block_type_atoms_forming_chemical_bonds,
       block_type_ljlk_path_distance,
-      block_type_is_ligand_fragment,
+      block_type_all_atoms_ligand_typed,
       ljlk_type_params,
       ljlk_global_params,
       block_type_partial_charge,
@@ -1006,6 +1008,7 @@ std::vector<Tensor> ljlk_rotamer_scores_op(
     Tensor rot_offset_for_pose,
     Tensor n_rots_for_block,
     Tensor rot_offset_for_block,
+    Tensor lockstep_group_for_block,
     int64_t max_n_rots_per_pose,
 
     Tensor pose_stack_min_bond_separation,
@@ -1018,7 +1021,7 @@ std::vector<Tensor> ljlk_rotamer_scores_op(
     Tensor block_type_n_interblock_bonds,
     Tensor block_type_atoms_forming_chemical_bonds,
     Tensor block_type_path_distance,
-    Tensor block_type_is_ligand_fragment,
+    Tensor block_type_all_atoms_ligand_typed,
 
     Tensor ljlk_type_params,
     Tensor global_params,
@@ -1038,6 +1041,7 @@ std::vector<Tensor> ljlk_rotamer_scores_op(
       rot_offset_for_pose,
       n_rots_for_block,
       rot_offset_for_block,
+      lockstep_group_for_block,
       max_n_rots_per_pose,
 
       pose_stack_min_bond_separation,
@@ -1050,7 +1054,7 @@ std::vector<Tensor> ljlk_rotamer_scores_op(
       block_type_n_interblock_bonds,
       block_type_atoms_forming_chemical_bonds,
       block_type_path_distance,
-      block_type_is_ligand_fragment,
+      block_type_all_atoms_ligand_typed,
 
       ljlk_type_params,
       global_params,
@@ -1072,6 +1076,7 @@ std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
     Tensor rot_offset_for_pose,
     Tensor n_rots_for_block,
     Tensor rot_offset_for_block,
+    Tensor lockstep_group_for_block,
     int64_t max_n_rots_per_pose,
     Tensor pose_stack_min_bond_separation,
     Tensor pose_stack_inter_block_bondsep,
@@ -1080,7 +1085,7 @@ std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
     Tensor block_type_n_interblock_bonds,
     Tensor block_type_atoms_forming_chemical_bonds,
     Tensor block_type_ljlk_path_distance,
-    Tensor block_type_is_ligand_fragment,
+    Tensor block_type_all_atoms_ligand_typed,
     Tensor ljlk_type_params,
     Tensor ljlk_global_params,
     Tensor block_type_partial_charge,
@@ -1148,6 +1153,7 @@ std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
                     TCAST(rot_offset_for_pose),
                     TCAST(n_rots_for_block),
                     TCAST(rot_offset_for_block),
+                    TCAST(lockstep_group_for_block),
                     max_n_rots_per_pose,
                     TCAST(pose_stack_min_bond_separation),
                     TCAST(pose_stack_inter_block_bondsep),
@@ -1156,7 +1162,7 @@ std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
                     TCAST(block_type_n_interblock_bonds),
                     TCAST(block_type_atoms_forming_chemical_bonds),
                     TCAST(block_type_ljlk_path_distance),
-                    TCAST(block_type_is_ligand_fragment),
+                    TCAST(block_type_all_atoms_ligand_typed),
                     TCAST(ljlk_type_params),
                     TCAST(ljlk_global_params),
                     TCAST(block_type_partial_charge),

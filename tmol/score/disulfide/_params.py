@@ -44,6 +44,13 @@ class DisulfideGlobalParams(TensorGroup):
     wt_len: Tensor[torch.float32][...]
     shift: Tensor[torch.float32][...]
 
+    dss_mixed_logA1: Tensor[torch.float32][...]
+    dss_mixed_kappa1: Tensor[torch.float32][...]
+    dss_mixed_mu1: Tensor[torch.float32][...]
+    dss_mixed_logA2: Tensor[torch.float32][...]
+    dss_mixed_kappa2: Tensor[torch.float32][...]
+    dss_mixed_mu2: Tensor[torch.float32][...]
+
     @classmethod
     @validate_args
     def from_database(cls, disulfide_database: DisulfideDatabase, device: torch.device):
