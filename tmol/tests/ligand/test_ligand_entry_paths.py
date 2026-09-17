@@ -8,6 +8,8 @@ typing branches for aromatics, heterocycles, charged groups and ring amidines
 are covered by a realistic workflow.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest
@@ -55,14 +57,22 @@ def _smallest_mol2() -> Path:
 # --------------------------------------------------------------------------- #
 @pytest.mark.parametrize(
     "fixture",
-    ["er_agonist", "fgfr1", "trypsin", "na", "carbonate", "phosphate"],
+    ["er_agonist", "fgfr1", "trypsin", "na", "ammonia", "carbonate", "phosphate"],
 )
 def test_prepare_ligand_from_mol2_registers_residue(fixture, torch_device, tmp_path):
+    import torch
     from tmol.io import pose_stack_from_biotite
     from tmol.ligand import prepare_ligand_from_mol2, write_params_from_mol2
     from tmol.ligand._detect import nonstandard_residue_info_from_mol2
 
     path = DATA / "protein_ligand_test" / f"{fixture}.lig.mol2"
+    if fixture == "ammonia":
+        path = tmp_path / "incomplete_hydrogens.mol2"
+        path.write_text(
+            "@<TRIPOS>MOLECULE\nammonia\n1 0 0 0 0\nSMALL\nUSER_CHARGES\n"
+            "@<TRIPOS>ATOM\n1 N 1.0 2.0 3.0 N.3 1 LIG 0.0\n"
+            "@<TRIPOS>UNITY_ATOM_ATTR\n1 1\ncharge 0\n"
+        )
     if fixture == "carbonate":
         path = tmp_path / "delocalized_carbonate.mol2"
         path.write_text(
@@ -130,6 +140,18 @@ def test_prepare_ligand_from_mol2_registers_residue(fixture, torch_device, tmp_p
     pose = pose_stack_from_biotite(
         info.atom_array, torch_device, param_db=param_db, no_optH=True
     )
+    if fixture == "ammonia":
+        bt = pose.packed_block_types.active_block_types[int(pose.block_type_ind[0, 0])]
+        nitrogen = pose.coords[0, bt.atom_to_idx["N"]]
+        torch.testing.assert_close(
+            nitrogen, nitrogen.new_tensor([1, 2, 3]), rtol=0, atol=0
+        )
+        hydrogen = pose.coords[
+            0, [i for i, atom in enumerate(bt.atoms) if atom.name != "N"]
+        ]
+        assert hydrogen.shape == (3, 3)
+        lengths = (hydrogen - nitrogen).norm(dim=-1)
+        assert torch.all((lengths > 0.9) & (lengths < 1.2))
     _score_and_minimize_ligand(pose, param_db)
     output = tmp_path / "ligand.tmol"
     write_params_from_mol2(path, output, res_name="LG1", seed=17)
@@ -143,6 +165,48 @@ def test_prepare_ligand_from_mol2_registers_residue(fixture, torch_device, tmp_p
         )
         with pytest.raises(ValueError, match="sanitizable chemical graph"):
             prepare_ligand_from_mol2(contradictory)
+
+
+def test_partially_protonated_atom_array_builds_complete_ligand(torch_device):
+    import numpy as np
+    import torch
+
+    from tmol.io import pose_stack_from_biotite
+    from tmol.ligand._detect import nonstandard_residue_info_from_mol2
+
+    source = nonstandard_residue_info_from_mol2(
+        DATA / "protein_ligand_test" / "ace.lig.mol2", res_name="LG1"
+    ).atom_array
+    hydrogen_indices = np.flatnonzero(source.element == "H")
+    assert len(hydrogen_indices) > 1
+    partial = source[np.arange(len(source)) != hydrogen_indices[0]]
+    partial_hydrogens = int(np.count_nonzero(partial.element == "H"))
+
+    pose, context = pose_stack_from_biotite(
+        partial,
+        torch_device,
+        prepare_ligands=True,
+        param_db=ParameterDatabase.get_default(),
+        return_context=True,
+        use_ccd=False,
+        ligand_seed=17,
+    )
+    residue = next(
+        residue
+        for residue in context.parameter_database.chemical.residues
+        if residue.name == "LG1"
+    )
+    elements = {
+        atom_type.name: atom_type.element
+        for atom_type in context.parameter_database.chemical.atom_types
+    }
+    prepared_hydrogens = sum(elements[atom.atom_type] == "H" for atom in residue.atoms)
+    assert prepared_hydrogens > partial_hydrogens
+    assert torch.isfinite(pose.coords[pose.real_atoms]).all()
+    block_type = pose.packed_block_types.active_block_types[
+        int(pose.block_type_ind[0, 0])
+    ]
+    assert block_type.n_atoms == len(residue.atoms)
 
 
 @pytest.mark.parametrize(

@@ -4,7 +4,7 @@ import torch
 import pytest
 
 from tmol.io import (
-    pose_stack_from_atomworks,
+    pose_stack_from_canonical_aa_atom37,
     canonical_form_from_atomworks,
     atomworks_from_pose_stack,
     canonical_ordering_for_atomworks,
@@ -33,13 +33,13 @@ def ubq_atomworks(ubq_atomworks_data, torch_device):
     return {k: v.to(torch_device) for k, v in ubq_atomworks_data.items()}
 
 
-def test_pose_stack_from_atomworks_basic(ubq_atomworks, torch_device):
+def test_pose_stack_from_canonical_aa_atom37_basic(ubq_atomworks, torch_device):
     """Test that we can build a PoseStack from ubiquitin atomworks tensors."""
     coords = ubq_atomworks["coords"]
     residue_type = ubq_atomworks["residue_type"]
     chain_iid = ubq_atomworks["chain_iid"]
 
-    ps = pose_stack_from_atomworks(coords, residue_type, chain_iid)
+    ps = pose_stack_from_canonical_aa_atom37(coords, residue_type, chain_iid)
     assert len(ps) == 1
     assert ps.max_n_blocks == 76
     assert ps.coords.device == torch_device
@@ -73,7 +73,7 @@ def test_round_trip_atomworks_posestack(ubq_atomworks, torch_device):
     residue_type = ubq_atomworks["residue_type"]
     chain_iid = ubq_atomworks["chain_iid"]
 
-    ps = pose_stack_from_atomworks(coords, residue_type, chain_iid)
+    ps = pose_stack_from_canonical_aa_atom37(coords, residue_type, chain_iid)
     rt_coords, rt_residue_type, rt_chain_iid = atomworks_from_pose_stack(ps)
 
     assert torch.equal(residue_type, rt_residue_type)
@@ -104,7 +104,7 @@ def test_multichain(ubq_atomworks, torch_device):
     # Split ubiquitin into two chains at residue 38
     chain_iid[0, 38:] = 1
 
-    ps = pose_stack_from_atomworks(coords, residue_type, chain_iid)
+    ps = pose_stack_from_canonical_aa_atom37(coords, residue_type, chain_iid)
     assert len(ps) == 1
 
     rt_coords, rt_residue_type, rt_chain_iid = atomworks_from_pose_stack(ps)
@@ -150,7 +150,7 @@ def test_all_20_amino_acids(torch_device):
 
     chain_iid = torch.zeros((1, n_res), dtype=torch.int64, device=torch_device)
 
-    ps = pose_stack_from_atomworks(coords, residue_type, chain_iid)
+    ps = pose_stack_from_canonical_aa_atom37(coords, residue_type, chain_iid)
     rt_coords, rt_residue_type, rt_chain_iid = atomworks_from_pose_stack(ps)
 
     assert torch.equal(residue_type, rt_residue_type)
