@@ -1190,7 +1190,7 @@
     <span class="k">return</span> <span class="p">{</span>
         <span class="n">name</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">element</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">ligand_info</span><span class="o">.</span><span class="n">atom_names</span><span class="p">,</span> <span class="n">ligand_info</span><span class="o">.</span><span class="n">elements</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">element</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">!=</span> <span class="s2">"H"</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">element</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"H"</span><span class="p">,</span> <span class="s2">"D"</span><span class="p">)</span>
     <span class="p">}</span>
 
 
