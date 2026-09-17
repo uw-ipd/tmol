@@ -480,6 +480,10 @@
     <span class="n">fragment_definitions</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">LigandFragmentDefinition</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
     <span class="c1"># SMILES string -&gt; residue type name, for ligands prepared from a sequence.</span>
     <span class="n">ligand_names</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="c1"># Residues whose covalent bonds preparation cut because it could not</span>
+    <span class="c1"># prepare them and the caller passed strict_ligands=False. Building a pose</span>
+    <span class="c1"># must not then reject them as dangling partners.</span>
+    <span class="n">cut_covalent_partners</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">()</span>
 
     <span class="nd">@cached_property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_packing_score_function</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ScoreFunction</span><span class="p">:</span>
