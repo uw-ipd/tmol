@@ -710,6 +710,15 @@
         <span class="n">arr</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">writeable</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">return</span> <span class="n">arr</span>
 
+    <span class="n">connection_bond_in_ring</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+
+    <span class="nd">@connection_bond_in_ring</span><span class="o">.</span><span class="n">default</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_setup_connection_bond_in_ring</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Whether each connection's bond closes a ring, as bond_to_ringness is."""</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">bool</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">in_ring</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">connections</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="n">arr</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">writeable</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="n">arr</span>
+
     <span class="c1"># The set of "all-bonds" includes both inter- and intra- block chemical bonds</span>
     <span class="c1"># Each all-bond (think of "all" here as an adjective like "inter" or "intra")</span>
     <span class="c1"># is described as a pair (atom-ind1, unresolved-atom id) where the</span>
