@@ -144,6 +144,26 @@ def canonical_form_from_atom37(
     canonical_atom = slot_map[lookup.to(torch.int64)][:, :, :n_slots]
     routed = (canonical_atom >= 0) & is_real_residue.unsqueeze(-1)
 
+    # A residue type the slot map does not describe routes nothing at all, so
+    # every one of its atoms would be rebuilt from ideal internal coordinates
+    # and the returned pose would carry no gradient back to atom37_coords for
+    # it -- a fabricated residue that looks like a measured one. The default
+    # layout covers the canonical amino acids and UNK only, so anything else in
+    # this input has to be named rather than silently invented.
+    unroutable = is_real_residue & ~routed.any(dim=-1)
+    if bool(unroutable.any()):
+        missing = torch.unique(res_types[unroutable]).tolist()
+        classes = canonical_ordering.restype_io_equiv_classes
+        named = ", ".join(
+            classes[index] if 0 <= index < len(classes) else str(index)
+            for index in missing[:8]
+        )
+        raise ValueError(
+            f"the slot map routes no atom of residue type(s) {named}, so their "
+            "coordinates cannot come from atom37_coords. Supply a slot_map that "
+            "covers them, or build the pose from the atom-array path instead"
+        )
+
     pose_index = (
         torch.arange(n_poses, dtype=torch.int64, device=device)
         .reshape(-1, 1, 1)

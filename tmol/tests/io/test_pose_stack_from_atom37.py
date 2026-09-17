@@ -217,3 +217,41 @@ def test_tensor_path_rejects_more_slots_than_the_map_covers(torch_device):
             context,
             slot_map=slot_map,
         )
+
+
+def test_tensor_path_refuses_a_residue_type_the_slot_map_cannot_route(torch_device):
+    """A type that routes nothing would be fabricated, not measured.
+
+    Its atoms would all be rebuilt from ideal internal coordinates and the pose
+    would carry no gradient back to the input for them, which is silent and
+    looks exactly like a successful build.
+    """
+    import pytest
+    import torch
+
+    from tmol.io import build_context_from_biotite
+    from tmol.io._pose_stack_from_atom37 import canonical_form_from_atom37
+    from tmol.tests.data import data_path
+
+    structure = _load(data_path("pdb", "1ubq.pdb"))
+    context = build_context_from_biotite(structure, torch_device)
+    co = context.canonical_ordering
+    layout = _full_atom_layout(co)
+    slot_map = atom37_slot_map_for_ordering(co, layout, torch_device)
+
+    # Blank one residue type's row, then ask for a token of that type.
+    blanked = int(
+        next(i for i, n in enumerate(co.restype_io_equiv_classes) if n == "ALA")
+    )
+    slot_map = slot_map.clone()
+    slot_map[blanked] = -1
+    coords = torch.zeros(
+        (1, 1, slot_map.shape[1], 3), dtype=torch.float32, device=torch_device
+    )
+    res_types = torch.full((1, 1), blanked, dtype=torch.int32, device=torch_device)
+    chain_id = torch.zeros((1, 1), dtype=torch.int32, device=torch_device)
+
+    with pytest.raises(ValueError, match="routes no atom of residue type"):
+        canonical_form_from_atom37(
+            coords, res_types, chain_id, context, slot_map=slot_map
+        )
