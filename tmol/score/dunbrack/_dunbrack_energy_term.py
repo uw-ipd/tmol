@@ -4,6 +4,7 @@ import torch
 import numpy
 
 from .._energy_term import EnergyTerm
+from .._annotation_cache import AnnotationKey, cached_annotation, store_annotation
 
 from tmol.database import ParameterDatabase
 from tmol.score.dunbrack import (
@@ -16,7 +17,6 @@ from tmol.pose import (
     PoseStack,
 )
 from itertools import count
-from functools import partial
 from dataclasses import dataclass
 import dataclasses
 
@@ -34,6 +34,10 @@ class DunbrackBlockAttrs:
     mean_table_offset: int
     rotamer_index_to_table_index_offset: int
     semirotameric_tableset_offset: int
+    # a d-amino acid reads its l form's library at negated torsions; only the
+    #    default used for a terminus needs the sign applied here, since a
+    #    torsion measured from coordinates is already mirrored
+    is_mirrored: int
 
 
 def _empty_dunbrack_attrs() -> "DunbrackBlockAttrs":
@@ -49,6 +53,7 @@ def _empty_dunbrack_attrs() -> "DunbrackBlockAttrs":
         mean_table_offset=-1,
         rotamer_index_to_table_index_offset=-1,
         semirotameric_tableset_offset=numpy.array(-1),
+        is_mirrored=0,
     )
 
 
@@ -65,20 +70,25 @@ class DunbrackEnergyTerm(EnergyTerm):
             getattr(self.global_params.scoring_db, field.name)
             for field in attr.fields(ScoringDunbrackDatabaseView)
         ]
-        self._table_indices = tuple(
-            table["dun_table_name"].to_dict()
-            for table in (
-                self.global_params.all_table_indices,
-                self.global_params.rotameric_table_indices,
-                self.global_params.semirotameric_table_indices,
-            )
-        )
-        aux = self.global_params.scoring_db_aux
-        self._host_aux = {
-            field.name: getattr(aux, field.name).cpu().numpy()
-            for field in attr.fields(type(aux))
-        }
         self.device = device
+        self._annotation_key = AnnotationKey.from_sources(self.global_params)
+        # Small lookup metadata are host-side; do not read device scalars per RT.
+        self._table_indices = []
+        for name in (
+            "all_table_indices",
+            "rotameric_table_indices",
+            "semirotameric_table_indices",
+        ):
+            table = getattr(self.global_params, name)
+            if not table.index.is_unique:
+                raise ValueError("Dunbrack residue lookup names must be unique")
+            self._table_indices.append(dict(table["dun_table_name"].items()))
+        self._aux = {
+            field.name: getattr(self.global_params.scoring_db_aux, field.name)
+            .cpu()
+            .tolist()
+            for field in attr.fields(type(self.global_params.scoring_db_aux))
+        }
 
     @classmethod
     def class_name(cls):
@@ -96,9 +106,20 @@ class DunbrackEnergyTerm(EnergyTerm):
     def setup_block_type(self, block_type: RefinedResidueType):
         super(DunbrackEnergyTerm, self).setup_block_type(block_type)
 
-        if hasattr(block_type, "dunbrack_attrs"):
-            return
+        cached = cached_annotation(
+            block_type, "_dunbrack_annotation", self._annotation_key
+        )
+        if cached is None:
+            cached = store_annotation(
+                block_type,
+                "_dunbrack_annotation",
+                self._annotation_key,
+                self._create_block_attrs(block_type),
+            )
+        block_type.dunbrack_attrs = cached
+        return cached
 
+    def _create_block_attrs(self, block_type):
         # Dunbrack rotamer libraries cover alpha amino acids only. For ligands
         # and other non-AA block types, install a sentinel with
         # rotamer_table_set=-1 so the C++ kernel short-circuits the block.
@@ -108,20 +129,22 @@ class DunbrackEnergyTerm(EnergyTerm):
             or polymer.polymer_type != "amino_acid"
             or polymer.backbone_type != "alpha_aa"
         ):
-            setattr(block_type, "dunbrack_attrs", _empty_dunbrack_attrs())
-            return
+            return _empty_dunbrack_attrs()
 
         rotamer_table_set, rotameric_index, semirotameric_index = (
             table.get(block_type.base_name, -1) for table in self._table_indices
         )
         semirotameric = semirotameric_index != -1
 
+        # An amino acid the library does not cover scores no dunbrack term;
+        # a borrowed dunbrack_reference is for sampling only.
+        if rotamer_table_set < 0:
+            return _empty_dunbrack_attrs()
+
         semirotameric_tableset_offset = (
-            numpy.array(-1)
-            if not semirotameric
-            else numpy.array(
-                self._host_aux["semirotameric_tableset_offsets"][semirotameric_index]
-            )
+            self._aux["semirotameric_tableset_offsets"][semirotameric_index]
+            if semirotameric
+            else -1
         )
 
         empty_tor = numpy.full((4, 3), -1, dtype=numpy.int32)
@@ -141,20 +164,18 @@ class DunbrackEnergyTerm(EnergyTerm):
 
         dih_uaids = numpy.array([phi_uaids] + [psi_uaids] + chis)
 
-        n_chi = int(self._host_aux["nchi_for_table_set"][rotamer_table_set])
+        n_chi = self._aux["nchi_for_table_set"][rotamer_table_set]
         n_rotameric_chi = n_chi - (1 if semirotameric else 0)
         n_dihedrals = n_chi + 2
-
-        probability_table_offset = int(
-            self._host_aux["rotameric_prob_tableset_offsets"][rotameric_index]
-        )
-
-        mean_table_offset = int(
-            self._host_aux["rotameric_meansdev_tableset_offsets"][rotamer_table_set]
-        )
-        rotamer_index_to_table_index_offset = int(
-            self._host_aux["rotameric_chi_ri2ti_offsets"][rotamer_table_set]
-        )
+        probability_table_offset = self._aux["rotameric_prob_tableset_offsets"][
+            rotameric_index
+        ]
+        mean_table_offset = self._aux["rotameric_meansdev_tableset_offsets"][
+            rotamer_table_set
+        ]
+        rotamer_index_to_table_index_offset = self._aux["rotameric_chi_ri2ti_offsets"][
+            rotamer_table_set
+        ]
 
         dunbrack_attrs = DunbrackBlockAttrs(
             n_dihedrals=n_dihedrals,
@@ -168,9 +189,10 @@ class DunbrackEnergyTerm(EnergyTerm):
             mean_table_offset=mean_table_offset,
             rotamer_index_to_table_index_offset=rotamer_index_to_table_index_offset,
             semirotameric_tableset_offset=semirotameric_tableset_offset,
+            is_mirrored=int(polymer.sidechain_chirality == "d"),
         )
 
-        setattr(block_type, "dunbrack_attrs", dunbrack_attrs)
+        return dunbrack_attrs
 
     def get_torsion(self, name, block_type):
         if name in block_type.torsion_to_uaids:
@@ -180,53 +202,53 @@ class DunbrackEnergyTerm(EnergyTerm):
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(DunbrackEnergyTerm, self).setup_packed_block_types(packed_block_types)
 
-        if hasattr(packed_block_types, "dunbrack_packed_block_data"):
-            return
-
-        pack = partial(
-            DunbrackEnergyTerm.pack_data_keyed_on_block_type,
-            self,
-            packed_block_types.active_block_types,
-            device=self.device,
+        cached = cached_annotation(
+            packed_block_types, "_dunbrack_packed_annotation", self._annotation_key
         )
-
-        packed_data = [
-            pack(lambda f: getattr(f.dunbrack_attrs, field.name))
-            for field in dataclasses.fields(DunbrackBlockAttrs)
-        ]
-
-        setattr(packed_block_types, "dunbrack_packed_block_data", packed_data)
+        if cached is None:
+            for block_type in packed_block_types.active_block_types:
+                self.setup_block_type(block_type)
+            cached = [
+                self.pack_data_keyed_on_block_type(
+                    packed_block_types.active_block_types,
+                    lambda bt: getattr(bt.dunbrack_attrs, field.name),
+                    self.device,
+                )
+                for field in dataclasses.fields(DunbrackBlockAttrs)
+            ]
+            store_annotation(
+                packed_block_types,
+                "_dunbrack_packed_annotation",
+                self._annotation_key,
+                cached,
+                bindings=tuple(
+                    (block_type, "dunbrack_attrs")
+                    for block_type in packed_block_types.active_block_types
+                ),
+            )
+        packed_block_types.dunbrack_packed_block_data = cached
+        return cached
 
     def pack_data_keyed_on_block_type(
         self, active_block_types, field_getter, device, default_fill=-1
     ):
-        max_size = None
-        for bt in active_block_types:
-            bt_data = field_getter(bt)
-            if bt_data is None:
-                continue
-            cur = numpy.shape(bt_data)
-            if max_size is None:
-                max_size = cur
-            max_size = numpy.maximum(max_size, cur)
-
-        n_block_types = (len(active_block_types),)
-        size = n_block_types + tuple(max_size)
-
-        packed = numpy.full(size, default_fill, dtype=numpy.int32)
-        for i, bt in enumerate(active_block_types):
-            bt_data = field_getter(bt)
-            if bt_data is None:
-                continue
-            if isinstance(bt_data, (int, numpy.integer)) or (
-                isinstance(bt_data, numpy.ndarray) and bt_data.ndim == 0
-            ):
-                packed[i] = int(bt_data)
-            else:
-                slices = (i,) + tuple(slice(0, dim) for dim in numpy.shape(bt_data))
-                packed[slices] = bt_data
-
-        return torch.as_tensor(packed, dtype=torch.int32, device=device)
+        values = [field_getter(bt) for bt in active_block_types]
+        arrays = [
+            None if value is None else numpy.asarray(value, dtype=numpy.int32)
+            for value in values
+        ]
+        shapes = [array.shape for array in arrays if array is not None]
+        maximum = tuple(max(dim) for dim in zip(*shapes))
+        packed = numpy.full((len(arrays), *maximum), default_fill, dtype=numpy.int32)
+        for index, array in enumerate(arrays):
+            if array is not None:
+                packed[(index, *(slice(0, size) for size in array.shape))] = array
+        if packed.size == 0:
+            # NumPy's empty arrays have zero strides, including the consumed
+            # three-component UAID axis. Construct native-compatible strides
+            # directly without inserting a phantom dihedral into empty types.
+            return torch.empty(packed.shape, dtype=torch.int32, device=device)
+        return torch.tensor(packed, dtype=torch.int32, device=device)
 
     def setup_poses(self, poses: PoseStack):
         super(DunbrackEnergyTerm, self).setup_poses(poses)
@@ -245,10 +267,11 @@ class DunbrackEnergyTerm(EnergyTerm):
 
     def get_score_term_attributes(self, pose_stack):
         pbt = pose_stack.packed_block_types
+        packed_data = self.setup_packed_block_types(pbt)
 
         return [
             pose_stack.inter_residue_connections,
             pbt.atom_downstream_of_conn,
             *self.dunbrack_db,
-            *pbt.dunbrack_packed_block_data,
+            *packed_data,
         ]

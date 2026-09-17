@@ -248,6 +248,7 @@ class TermRotamerScoringModule(TermScoringModule):
         rotamer_set,
         term_parameters,
         term_score_poses,
+        lockstep_group_for_block,
         block_neighbor_cutoff=None,
         accepts_shared_dispatch=False,
         rotamer_dispatch_key=None,
@@ -279,6 +280,7 @@ class TermRotamerScoringModule(TermScoringModule):
                     rotamer_set.rot_offset_for_pose,
                     rotamer_set.n_rots_for_block,
                     rotamer_set.rot_offset_for_block,
+                    lockstep_group_for_block,
                     rotamer_set.max_n_rots_per_pose,
                 ]
             ],

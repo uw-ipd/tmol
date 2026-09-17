@@ -2,6 +2,8 @@ import numpy
 import torch
 import pandas
 
+from ._annotation_cache import AnnotationKey, cached_annotation, store_annotation
+
 from tmol.database import ParameterDatabase
 from ._chemical_database import AtomTypeParamResolver
 from tmol.chemical import RefinedResidueType
@@ -12,6 +14,7 @@ from tmol.pose import (
     PoseStack,
 )
 from tmol.types import NDArray
+from tmol.utility import resolve_device
 
 from collections import OrderedDict
 
@@ -24,19 +27,21 @@ class AtomTypeDependentTerm(EnergyTerm):
     device: torch.device  # = attr.ib()
 
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
+        device = resolve_device(device)
         atom_type_resolver = AtomTypeParamResolver.from_database(
             param_db.chemical, device=torch.device("cpu")
         )
         super(AtomTypeDependentTerm, self).__init__(param_db=param_db, device=device)
         self.atom_type_resolver = atom_type_resolver
         self.atom_type_index = atom_type_resolver.index
-        self._atom_type_indices = {
-            name: index for index, name in enumerate(self.atom_type_index)
-        }
         self.np_is_hydrogen = atom_type_resolver.params.is_hydrogen.cpu().numpy()
         self.np_is_heavyatom = numpy.logical_not(self.np_is_hydrogen)
 
         self.device = device
+        self._atom_type_key = AnnotationKey.from_sources(param_db.chemical)
+        self._packed_atom_type_key = AnnotationKey.from_sources(
+            param_db.chemical, settings=(self.device,)
+        )
 
     def get_atom_unique_id_name(self, block_name, atom_name):
         return "UNIQUE_ID:" + block_name + ":" + atom_name
@@ -63,46 +68,53 @@ class AtomTypeDependentTerm(EnergyTerm):
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(AtomTypeDependentTerm, self).setup_block_type(block_type)
-        if hasattr(block_type, "atom_types"):
-            assert hasattr(block_type, "heavy_atom_inds")
-            assert hasattr(block_type, "atom_unique_ids")
-            assert hasattr(block_type, "atom_wildcard_ids")
-            assert hasattr(block_type, "atom_cross_ids")
-            return
-
-        unique_ids, wildcard_ids, cross_ids = (
-            self._create_uniq_and_wildcard_names_for_bt(block_type)
+        cached = cached_annotation(
+            block_type, "_atom_type_annotation", self._atom_type_key
         )
+        if cached is not None:
+            return cached
 
-        atom_types = numpy.asarray(
-            [self._atom_type_indices.get(x.atom_type, -1) for x in block_type.atoms],
-            dtype=numpy.intp,
-        )
+        if not hasattr(block_type, "atom_unique_ids"):
+            unique, wildcard, cross = self._create_uniq_and_wildcard_names_for_bt(
+                block_type
+            )
+            block_type.atom_unique_ids = unique
+            block_type.atom_wildcard_ids = wildcard
+            block_type.atom_cross_ids = cross
+
+        atom_types = self.atom_type_resolver.block_type_indices(block_type)
         heavy_inds = numpy.nonzero(self.np_is_heavyatom[atom_types])[0]
 
         setattr(block_type, "atom_types", atom_types)
         setattr(block_type, "heavy_atom_inds", heavy_inds)
-        setattr(block_type, "atom_unique_ids", unique_ids)
-        setattr(block_type, "atom_wildcard_ids", wildcard_ids)
-        setattr(block_type, "atom_cross_ids", cross_ids)
+        return store_annotation(
+            block_type,
+            "_atom_type_annotation",
+            self._atom_type_key,
+            (atom_types, heavy_inds),
+            fields=("atom_types", "heavy_atom_inds"),
+        )
 
     def setup_packed_block_types(
         self, packed_block_types: PackedBlockTypes
     ):  # noqa: C901
         super(AtomTypeDependentTerm, self).setup_packed_block_types(packed_block_types)
 
-        if hasattr(packed_block_types, "atom_types"):
-            assert hasattr(packed_block_types, "n_heavy_atoms")
-            assert hasattr(packed_block_types, "heavy_atom_inds")
-            assert hasattr(packed_block_types, "atom_unique_ids")
-            assert hasattr(packed_block_types, "atom_wildcard_ids")
-            assert hasattr(packed_block_types, "atom_cross_ids")
-            assert hasattr(packed_block_types, "atom_unique_id_index")
-            return
+        cached = cached_annotation(
+            packed_block_types, "_atom_type_annotation", self._packed_atom_type_key
+        )
+        if cached is not None:
+            return cached
 
-        # TO DO: Figure out why this add was necessary
+        # Subclasses also prepare their own block annotations here. Keep this
+        # resolver's returned annotation, since shared blocks may have been
+        # used with another chemical database.
+        block_params = []
         for bt in packed_block_types.active_block_types:
             self.setup_block_type(bt)
+            block_params.append(
+                cached_annotation(bt, "_atom_type_annotation", self._atom_type_key)
+            )
 
         atom_types = numpy.full(
             (packed_block_types.n_types, packed_block_types.max_n_atoms),
@@ -141,12 +153,9 @@ class AtomTypeDependentTerm(EnergyTerm):
                     atom_unique_id_index[atom_name] = len(atom_unique_id_index)
                 atom_cross_ids[i, j] = atom_unique_id_index[atom_name]
 
-        for i, restype in enumerate(packed_block_types.active_block_types):
-            atom_types[i, : restype.n_atoms] = restype.atom_types
-
-        heavy_atom_inds = [
-            restype.heavy_atom_inds for restype in packed_block_types.active_block_types
-        ]
+        for i, (indices, _) in enumerate(block_params):
+            atom_types[i, : len(indices)] = indices
+        heavy_atom_inds = [heavy for _, heavy in block_params]
 
         n_heavy_atoms = numpy.array(
             [len(heavy_inds) for heavy_inds in heavy_atom_inds], dtype=numpy.int32
@@ -172,6 +181,26 @@ class AtomTypeDependentTerm(EnergyTerm):
         setattr(packed_block_types, "atom_wildcard_ids", atom_wildcard_ids)
         setattr(packed_block_types, "atom_cross_ids", atom_cross_ids)
         setattr(packed_block_types, "atom_unique_id_index", atom_unique_id_index)
+        return store_annotation(
+            packed_block_types,
+            "_atom_type_annotation",
+            self._packed_atom_type_key,
+            (atom_types, n_heavy_atoms, heavy_atom_inds_t),
+            fields=(
+                "atom_types",
+                "n_heavy_atoms",
+                "heavy_atom_inds",
+                "atom_unique_ids",
+                "atom_wildcard_ids",
+                "atom_cross_ids",
+                "atom_unique_id_index",
+            ),
+            bindings=tuple(
+                (block_type, field)
+                for block_type in packed_block_types.active_block_types
+                for field in ("atom_types", "heavy_atom_inds")
+            ),
+        )
 
     def setup_poses(self, pose_stack: PoseStack):
         super(AtomTypeDependentTerm, self).setup_poses(pose_stack)

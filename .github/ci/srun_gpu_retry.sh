@@ -43,7 +43,7 @@ exclude="${SLURM_EXCLUDE:-}"
 attempt=1
 
 _gpu_retry_pattern='TaskProlog failed|Failed to get device handle|Unable to determine the device handle|GPU problem:|nvidia-smi failed'
-_node_failure_pattern='Node failure on|DUE TO NODE FAILURE'
+_node_failure_pattern='Node failure on|DUE TO NODE FAILURE|CUDA error: uncorrectable ECC error encountered'
 
 while (( attempt <= MAX_ATTEMPTS )); do
   echo "=== srun GPU attempt ${attempt}/${MAX_ATTEMPTS} (exclude: ${exclude:-none}) ==="
@@ -80,9 +80,9 @@ GPUCHECK
     exit 0
   fi
 
-  # A Slurm node failure is unambiguously infrastructure-related and remains
-  # safe to retry after tests start. Other failures after the sentinel are
-  # treated as real build/test failures.
+  # Slurm node loss and uncorrectable ECC errors are hardware failures even
+  # after tests start. Retry the full job on another node; ordinary build/test
+  # failures after the sentinel still fail immediately.
   node_failed=0
   if grep -qE "$_node_failure_pattern" "$log"; then
     node_failed=1

@@ -20,64 +20,118 @@ namespace potentials {
 
 using namespace tmol::score::common;
 
+template <typename Real>
+struct DihedralScore {
+  Real V;
+  Real dV;
+};
+
+template <typename Real, int N>
+TMOL_DEVICE_FUNC DihedralScore<Real> dihedral_mixture(
+    Real angle,
+    const Real (&logA)[N],
+    const Real (&kappa)[N],
+    const Real (&mu)[N]) {
+  Real density = exp(Real(-20));
+  Real derivative = 0;
+  for (int i = 0; i < N; ++i) {
+    Real delta = angle - mu[i];
+    Real component = exp(logA[i] + kappa[i] * cos(delta));
+    density += component;
+    derivative += component * kappa[i] * sin(delta);
+  }
+  return {-log(density), derivative / density};
+}
+
+template <typename Real>
+TMOL_DEVICE_FUNC DihedralScore<Real> ss_dihedral(
+    Real angle,
+    const DisulfideGlobalParams<Real>& p1,
+    const DisulfideGlobalParams<Real>& p2) {
+  // The mixed distribution is symmetric in both chirality order and angle.
+  // Homochiral pairs retain the existing (mirrored for DD) parameter row.
+  bool mixed = p1.chirality != p2.chirality;
+  Real logA[] = {
+      mixed ? p1.dss_mixed_logA1 : p1.dss_logA1,
+      mixed ? p1.dss_mixed_logA2 : p1.dss_logA2};
+  Real kappa[] = {
+      mixed ? p1.dss_mixed_kappa1 : p1.dss_kappa1,
+      mixed ? p1.dss_mixed_kappa2 : p1.dss_kappa2};
+  Real mu[] = {
+      mixed ? p1.dss_mixed_mu1 : p1.dss_mu1,
+      mixed ? p1.dss_mixed_mu2 : p1.dss_mu2};
+  return dihedral_mixture(angle, logA, kappa, mu);
+}
+
+template <typename Real>
+TMOL_DEVICE_FUNC DihedralScore<Real> cs_dihedral(
+    Real angle, const DisulfideGlobalParams<Real>& p) {
+  Real logA[] = {p.dcs_logA1, p.dcs_logA2, p.dcs_logA3};
+  Real kappa[] = {p.dcs_kappa1, p.dcs_kappa2, p.dcs_kappa3};
+  Real mu[] = {p.dcs_mu1, p.dcs_mu2, p.dcs_mu3};
+  return dihedral_mixture(angle, logA, kappa, mu);
+}
+
 template <typename Real, tmol::Device D>
-TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
-    TView<Vec<Real, 3>, 1, D> rot_coords,
-    int pose_ind,
-    int rot1_ind,
-    int rot1_CA_ind,
+TMOL_DEVICE_FUNC void accumulate_disulfide(
+    TView<Vec<Real, 3>, 1, D> coords,
+    int A_CA_ind,
+    int A_CB_ind,
+    int A_S_ind,
+    int B_S_ind,
+    int B_CB_ind,
+    int B_CA_ind,
+    // params1 and params2 are the parameters of the two residues. They differ
+    // only in the sign of the dihedral means: reflecting a residue negates the
+    // dihedrals it contributes, and cos is even, so negating the mean is the
+    // same operation and needs no correction to the derivative.
+    const DisulfideGlobalParams<Real>& params1,
+    const DisulfideGlobalParams<Real>& params2,
+    TView<Vec<Real, 3>, 2, D> dV_dx,
+    // The backward pass scales the derivatives by dT/dV and wants no score;
+    // the forward pass wants the score and scales by one.
+    Real dTdV,
+    Real* V) {
+  auto A_CA = coords[A_CA_ind];
+  auto A_CB = coords[A_CB_ind];
+  auto A_S = coords[A_S_ind];
 
-    int rot1_CB_ind,
-    int rot1_S_ind,
-    int rot2_ind,
-    int rot2_S_ind,
-    int rot2_CB_ind,
+  auto B_S = coords[B_S_ind];
+  auto B_CB = coords[B_CB_ind];
+  auto B_CA = coords[B_CA_ind];
 
-    int rot2_CA_ind,
-    const DisulfideGlobalParams<Real>& params,
-    bool output_block_pair_energies,
-    Real& V,
-    TView<Vec<Real, 3>, 2, D> dV_dx) {
-  auto rot1_CA = rot_coords[rot1_CA_ind];
-  auto rot1_CB = rot_coords[rot1_CB_ind];
-  auto rot1_S = rot_coords[rot1_S_ind];
-
-  auto rot2_S = rot_coords[rot2_S_ind];
-  auto rot2_CB = rot_coords[rot2_CB_ind];
-  auto rot2_CA = rot_coords[rot2_CA_ind];
-
-  auto ssdist = distance<Real>::V_dV(rot1_S, rot2_S);
-  auto csang_1 = pt_interior_angle<Real>::V_dV(rot1_CB, rot1_S, rot2_S);
-  auto csang_2 = pt_interior_angle<Real>::V_dV(rot2_CB, rot2_S, rot1_S);
-  auto dihed = dihedral_angle<Real>::V_dV(rot1_CB, rot1_S, rot2_S, rot2_CB);
+  auto ssdist = distance<Real>::V_dV(A_S, B_S);
+  auto csang_1 = pt_interior_angle<Real>::V_dV(A_CB, A_S, B_S);
+  auto csang_2 = pt_interior_angle<Real>::V_dV(B_CB, B_S, A_S);
+  auto dihed = dihedral_angle<Real>::V_dV(A_CB, A_S, B_S, B_CB);
   auto disulf_ca_dihedral_angle_1 =
-      dihedral_angle<Real>::V_dV(rot1_CA, rot1_CB, rot1_S, rot2_S);
+      dihedral_angle<Real>::V_dV(A_CA, A_CB, A_S, B_S);
   auto disulf_ca_dihedral_angle_2 =
-      dihedral_angle<Real>::V_dV(rot2_CA, rot2_CB, rot2_S, rot1_S);
+      dihedral_angle<Real>::V_dV(B_CA, B_CB, B_S, A_S);
 
   const Real MEST = exp(-20.0);
 
-  Real score = -params.shift;
+  Real score = -params1.shift;
 
   {  // Calculate Distance
     // Score
-    Real z = (ssdist.V - params.d_location) / params.d_scale;
+    Real z = (ssdist.V - params1.d_location) / params1.d_scale;
     Real score_d =
-        z * z / 2 - log(std::erfc(-params.d_shape * z / sqrt(2.0)) + MEST);
-    score += params.wt_len * score_d;
+        z * z / 2 - log(std::erfc(-params1.d_shape * z / sqrt(2.0)) + MEST);
+    score += params1.wt_len * score_d;
 
     // Derivatives
     Real dscore_d =
-        z / params.d_scale
-        - (exp(-0.5 * z * z * params.d_shape * params.d_shape)
-           * sqrt(2.0 / M_PI) * params.d_shape)
-              / (params.d_scale * std::erfc(-params.d_shape * z / sqrt(2.0))
-                 + 1.e-12);
-    dscore_d *= params.wt_len;
+        z / params1.d_scale
+        - (exp(-0.5 * z * z * params1.d_shape * params1.d_shape)
+           * sqrt(2.0 / M_PI) * params1.d_shape)
+              / (params1.d_scale
+                 * (std::erfc(-params1.d_shape * z / sqrt(2.0)) + MEST));
+    dscore_d *= params1.wt_len;
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot1_S_ind], dscore_d * ssdist.dV_dA);
+        dV_dx[0][A_S_ind], dscore_d * ssdist.dV_dA * dTdV);
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot2_S_ind], dscore_d * ssdist.dV_dB);
+        dV_dx[0][B_S_ind], dscore_d * ssdist.dV_dB * dTdV);
   }
 
   {  // Calculate Angles
@@ -85,286 +139,83 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
     Real ang_score(0);
     Real angle1(csang_1.V), angle2(csang_2.V);
     ang_score +=
-        params.wt_ang
-        * (-params.a_logA - params.a_kappa * cos(angle1 - params.a_mu));
+        params1.wt_ang
+        * (-params1.a_logA - params1.a_kappa * cos(angle1 - params1.a_mu));
     ang_score +=
-        params.wt_ang
-        * (-params.a_logA - params.a_kappa * cos(angle2 - params.a_mu));
+        params1.wt_ang
+        * (-params1.a_logA - params1.a_kappa * cos(angle2 - params1.a_mu));
     score += ang_score;
 
     // Derivatives
-    Real dscore_a = params.a_kappa * sin(angle1 - params.a_mu) * params.wt_ang;
-    Real dscore_b = params.a_kappa * sin(angle2 - params.a_mu) * params.wt_ang;
+    Real dscore_a =
+        params1.a_kappa * sin(angle1 - params1.a_mu) * params1.wt_ang;
+    Real dscore_b =
+        params1.a_kappa * sin(angle2 - params1.a_mu) * params1.wt_ang;
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot1_CB_ind], dscore_a * csang_1.dV_dA);
+        dV_dx[0][A_CB_ind], dscore_a * csang_1.dV_dA * dTdV);
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot1_S_ind], dscore_a * csang_1.dV_dB);
+        dV_dx[0][A_S_ind], dscore_a * csang_1.dV_dB * dTdV);
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot2_S_ind], dscore_a * csang_1.dV_dC);
+        dV_dx[0][B_S_ind], dscore_a * csang_1.dV_dC * dTdV);
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot2_CB_ind], dscore_b * csang_2.dV_dA);
+        dV_dx[0][B_CB_ind], dscore_b * csang_2.dV_dA * dTdV);
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot2_S_ind], dscore_b * csang_2.dV_dB);
+        dV_dx[0][B_S_ind], dscore_b * csang_2.dV_dB * dTdV);
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot1_S_ind], dscore_b * csang_2.dV_dC);
+        dV_dx[0][A_S_ind], dscore_b * csang_2.dV_dC * dTdV);
   }
 
   {  // SS dihed
-    // Score
-    Real ang_ss(dihed.V), exp_score1(0.0), exp_score2(0.0);
-    exp_score1 = exp(params.dss_logA1)
-                 * exp(params.dss_kappa1 * cos(ang_ss - params.dss_mu1));
-    exp_score2 = exp(params.dss_logA2)
-                 * exp(params.dss_kappa2 * cos(ang_ss - params.dss_mu2));
-    Real score_ss = -log(exp_score1 + exp_score2 + MEST);
-    score += params.wt_dih_ss * score_ss;
-
-    // Derivatives
-    Real dscore_ss(0.0);
-    dscore_ss += exp_score1 * params.dss_kappa1 * sin(dihed.V - params.dss_mu1);
-    dscore_ss += exp_score2 * params.dss_kappa2 * sin(dihed.V - params.dss_mu2);
-    dscore_ss /= (exp_score1 + exp_score2 + MEST);
-    dscore_ss *= params.wt_dih_ss;
+    auto ss = ss_dihedral(dihed.V, params1, params2);
+    score += params1.wt_dih_ss * ss.V;
+    Real dscore_ss = params1.wt_dih_ss * ss.dV;
 
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot1_CB_ind], dscore_ss * dihed.dV_dI);
+        dV_dx[0][A_CB_ind], dscore_ss * dihed.dV_dI * dTdV);
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot1_S_ind], dscore_ss * dihed.dV_dJ);
+        dV_dx[0][A_S_ind], dscore_ss * dihed.dV_dJ * dTdV);
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot2_S_ind], dscore_ss * dihed.dV_dK);
+        dV_dx[0][B_S_ind], dscore_ss * dihed.dV_dK * dTdV);
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot2_CB_ind], dscore_ss * dihed.dV_dL);
+        dV_dx[0][B_CB_ind], dscore_ss * dihed.dV_dL * dTdV);
   }
 
   {  // CB-S dihed
-    // Score (angle 1)
-    Real angle1(disulf_ca_dihedral_angle_1.V);
-    Real exp_score1 = exp(params.dcs_logA1)
-                      * exp(params.dcs_kappa1 * cos(angle1 - params.dcs_mu1));
-    Real exp_score2 = exp(params.dcs_logA2)
-                      * exp(params.dcs_kappa2 * cos(angle1 - params.dcs_mu2));
-    Real exp_score3 = exp(params.dcs_logA3)
-                      * exp(params.dcs_kappa3 * cos(angle1 - params.dcs_mu3));
-    score +=
-        params.wt_dih_cs * (-log(exp_score1 + exp_score2 + exp_score3 + MEST));
-
-    // Derivatives (angle 2)
-    Real dscore_cs = 0.0;
-    dscore_cs += exp_score1 * params.dcs_kappa1 * sin(angle1 - params.dcs_mu1);
-    dscore_cs += exp_score2 * params.dcs_kappa2 * sin(angle1 - params.dcs_mu2);
-    dscore_cs += exp_score3 * params.dcs_kappa3 * sin(angle1 - params.dcs_mu3);
-    dscore_cs /= (exp_score1 + exp_score2 + exp_score3 + MEST);
-    dscore_cs *= params.wt_dih_cs;
+    auto cs1 = cs_dihedral(disulf_ca_dihedral_angle_1.V, params1);
+    auto cs2 = cs_dihedral(disulf_ca_dihedral_angle_2.V, params2);
+    score += params1.wt_dih_cs * cs1.V + params2.wt_dih_cs * cs2.V;
+    Real dscore_cs = params1.wt_dih_cs * cs1.dV;
 
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot1_CA_ind], dscore_cs * disulf_ca_dihedral_angle_1.dV_dI);
-    accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot1_CB_ind], dscore_cs * disulf_ca_dihedral_angle_1.dV_dJ);
-    accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot1_S_ind], dscore_cs * disulf_ca_dihedral_angle_1.dV_dK);
-    accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot2_S_ind], dscore_cs * disulf_ca_dihedral_angle_1.dV_dL);
-
-    // Score (angle 2)
-    Real angle2(disulf_ca_dihedral_angle_2.V);
-    exp_score1 = exp(params.dcs_logA1)
-                 * exp(params.dcs_kappa1 * cos(angle2 - params.dcs_mu1));
-    exp_score2 = exp(params.dcs_logA2)
-                 * exp(params.dcs_kappa2 * cos(angle2 - params.dcs_mu2));
-    exp_score3 = exp(params.dcs_logA3)
-                 * exp(params.dcs_kappa3 * cos(angle2 - params.dcs_mu3));
-    score +=
-        params.wt_dih_cs * (-log(exp_score1 + exp_score2 + exp_score3 + MEST));
-
-    // Derivatives (angle 2)
-    dscore_cs = 0.0;
-    dscore_cs += exp_score1 * params.dcs_kappa1 * sin(angle2 - params.dcs_mu1);
-    dscore_cs += exp_score2 * params.dcs_kappa2 * sin(angle2 - params.dcs_mu2);
-    dscore_cs += exp_score3 * params.dcs_kappa3 * sin(angle2 - params.dcs_mu3);
-    dscore_cs /= (exp_score1 + exp_score2 + exp_score3 + MEST);
-    dscore_cs *= params.wt_dih_cs;
-
-    accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot2_CA_ind], dscore_cs * disulf_ca_dihedral_angle_2.dV_dI);
-    accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot2_CB_ind], dscore_cs * disulf_ca_dihedral_angle_2.dV_dJ);
-    accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot2_S_ind], dscore_cs * disulf_ca_dihedral_angle_2.dV_dK);
-    accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot1_S_ind], dscore_cs * disulf_ca_dihedral_angle_2.dV_dL);
-  }
-
-  if (output_block_pair_energies) {
-    // Note that we must still use atomic increment here
-    // because, even though in block-pair scoring we only
-    // assign a single thread to each block pair, in
-    // rotamer-pair scoring, we assign one output thread
-    // per disulfide connection, which, you could possibly
-    // imagine there being more than one of in a single block
-    // type (some hypothetical di-cysteine non-canonical AA)
-    accumulate<D, Real>::add(V, score);
-  } else {
-    accumulate<D, Real>::add(V, score);
-  }
-}
-
-template <typename Real, tmol::Device D>
-TMOL_DEVICE_FUNC void accumulate_disulfide_derivs(
-    TView<Vec<Real, 3>, 1, D> rot_coords,
-    int block1_ind,
-    int block1_CA_ind,
-    int block1_CB_ind,
-    int block1_S_ind,
-    int block2_ind,
-    int block2_S_ind,
-    int block2_CB_ind,
-    int block2_CA_ind,
-
-    const DisulfideGlobalParams<Real>& params,
-
-    TView<Vec<Real, 3>, 2, D> dV_dx,
-    Real dTdV) {
-  //   Real block_weight =
-  //       0.5 * (dTdV[block1_ind][block2_ind] + dTdV[block2_ind][block1_ind]);
-
-  auto block1_CA = rot_coords[block1_CA_ind];
-  auto block1_CB = rot_coords[block1_CB_ind];
-  auto block1_S = rot_coords[block1_S_ind];
-
-  auto block2_S = rot_coords[block2_S_ind];
-  auto block2_CB = rot_coords[block2_CB_ind];
-  auto block2_CA = rot_coords[block2_CA_ind];
-
-  auto ssdist = distance<Real>::V_dV(block1_S, block2_S);
-  auto csang_1 = pt_interior_angle<Real>::V_dV(block1_CB, block1_S, block2_S);
-  auto csang_2 = pt_interior_angle<Real>::V_dV(block2_CB, block2_S, block1_S);
-  auto dihed =
-      dihedral_angle<Real>::V_dV(block1_CB, block1_S, block2_S, block2_CB);
-  auto disulf_ca_dihedral_angle_1 =
-      dihedral_angle<Real>::V_dV(block1_CA, block1_CB, block1_S, block2_S);
-  auto disulf_ca_dihedral_angle_2 =
-      dihedral_angle<Real>::V_dV(block2_CA, block2_CB, block2_S, block1_S);
-
-  const Real MEST = exp(-20.0);
-
-  Real score = -params.shift;
-
-  {  // Calculate Distance
-    // Derivatives
-    Real z = (ssdist.V - params.d_location) / params.d_scale;
-    Real dscore_d =
-        z / params.d_scale
-        - (exp(-0.5 * z * z * params.d_shape * params.d_shape)
-           * sqrt(2.0 / M_PI) * params.d_shape)
-              / (params.d_scale * std::erfc(-params.d_shape * z / sqrt(2.0))
-                 + 1.e-12);
-    dscore_d *= params.wt_len;
-    accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][block1_S_ind], dscore_d * ssdist.dV_dA * dTdV);
-    accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][block2_S_ind], dscore_d * ssdist.dV_dB * dTdV);
-  }
-
-  {  // Calculate Angles
-    // Derivatives
-    Real angle1(csang_1.V), angle2(csang_2.V);
-    Real dscore_a = params.a_kappa * sin(angle1 - params.a_mu) * params.wt_ang;
-    Real dscore_b = params.a_kappa * sin(angle2 - params.a_mu) * params.wt_ang;
-    accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][block1_CB_ind], dscore_a * csang_1.dV_dA * dTdV);
-    accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][block1_S_ind], dscore_a * csang_1.dV_dB * dTdV);
-    accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][block2_S_ind], dscore_a * csang_1.dV_dC * dTdV);
-    accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][block2_CB_ind], dscore_b * csang_2.dV_dA * dTdV);
-    accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][block2_S_ind], dscore_b * csang_2.dV_dB * dTdV);
-    accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][block1_S_ind], dscore_b * csang_2.dV_dC * dTdV);
-  }
-
-  {  // SS dihed
-    // Derivatives
-    Real ang_ss(dihed.V), exp_score1(0.0), exp_score2(0.0);
-    exp_score1 = exp(params.dss_logA1)
-                 * exp(params.dss_kappa1 * cos(ang_ss - params.dss_mu1));
-    exp_score2 = exp(params.dss_logA2)
-                 * exp(params.dss_kappa2 * cos(ang_ss - params.dss_mu2));
-
-    Real dscore_ss(0.0);
-    dscore_ss += exp_score1 * params.dss_kappa1 * sin(dihed.V - params.dss_mu1);
-    dscore_ss += exp_score2 * params.dss_kappa2 * sin(dihed.V - params.dss_mu2);
-    dscore_ss /= (exp_score1 + exp_score2 + MEST);
-    dscore_ss *= params.wt_dih_ss;
-
-    accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][block1_CB_ind], dscore_ss * dihed.dV_dI * dTdV);
-    accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][block1_S_ind], dscore_ss * dihed.dV_dJ * dTdV);
-    accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][block2_S_ind], dscore_ss * dihed.dV_dK * dTdV);
-    accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][block2_CB_ind], dscore_ss * dihed.dV_dL * dTdV);
-  }
-
-  {  // CB-S dihed
-    Real angle1(disulf_ca_dihedral_angle_1.V);
-    Real exp_score1 = exp(params.dcs_logA1)
-                      * exp(params.dcs_kappa1 * cos(angle1 - params.dcs_mu1));
-    Real exp_score2 = exp(params.dcs_logA2)
-                      * exp(params.dcs_kappa2 * cos(angle1 - params.dcs_mu2));
-    Real exp_score3 = exp(params.dcs_logA3)
-                      * exp(params.dcs_kappa3 * cos(angle1 - params.dcs_mu3));
-    Real dscore_cs = 0.0;
-    Real angle2(disulf_ca_dihedral_angle_2.V);
-    exp_score1 = exp(params.dcs_logA1)
-                 * exp(params.dcs_kappa1 * cos(angle2 - params.dcs_mu1));
-    exp_score2 = exp(params.dcs_logA2)
-                 * exp(params.dcs_kappa2 * cos(angle2 - params.dcs_mu2));
-    exp_score3 = exp(params.dcs_logA3)
-                 * exp(params.dcs_kappa3 * cos(angle2 - params.dcs_mu3));
-
-    // Derivatives (angle 2)
-    dscore_cs += exp_score1 * params.dcs_kappa1 * sin(angle1 - params.dcs_mu1);
-    dscore_cs += exp_score2 * params.dcs_kappa2 * sin(angle1 - params.dcs_mu2);
-    dscore_cs += exp_score3 * params.dcs_kappa3 * sin(angle1 - params.dcs_mu3);
-    dscore_cs /= (exp_score1 + exp_score2 + exp_score3 + MEST);
-    dscore_cs *= params.wt_dih_cs;
-
-    accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][block1_CA_ind],
+        dV_dx[0][A_CA_ind],
         dscore_cs * disulf_ca_dihedral_angle_1.dV_dI * dTdV);
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][block1_CB_ind],
+        dV_dx[0][A_CB_ind],
         dscore_cs * disulf_ca_dihedral_angle_1.dV_dJ * dTdV);
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][block1_S_ind],
-        dscore_cs * disulf_ca_dihedral_angle_1.dV_dK * dTdV);
+        dV_dx[0][A_S_ind], dscore_cs * disulf_ca_dihedral_angle_1.dV_dK * dTdV);
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][block2_S_ind],
-        dscore_cs * disulf_ca_dihedral_angle_1.dV_dL * dTdV);
+        dV_dx[0][B_S_ind], dscore_cs * disulf_ca_dihedral_angle_1.dV_dL * dTdV);
 
-    // Derivatives (angle 2)
-    dscore_cs = 0.0;
-    dscore_cs += exp_score1 * params.dcs_kappa1 * sin(angle2 - params.dcs_mu1);
-    dscore_cs += exp_score2 * params.dcs_kappa2 * sin(angle2 - params.dcs_mu2);
-    dscore_cs += exp_score3 * params.dcs_kappa3 * sin(angle2 - params.dcs_mu3);
-    dscore_cs /= (exp_score1 + exp_score2 + exp_score3 + MEST);
-    dscore_cs *= params.wt_dih_cs;
+    dscore_cs = params2.wt_dih_cs * cs2.dV;
 
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][block2_CA_ind],
+        dV_dx[0][B_CA_ind],
         dscore_cs * disulf_ca_dihedral_angle_2.dV_dI * dTdV);
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][block2_CB_ind],
+        dV_dx[0][B_CB_ind],
         dscore_cs * disulf_ca_dihedral_angle_2.dV_dJ * dTdV);
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][block2_S_ind],
-        dscore_cs * disulf_ca_dihedral_angle_2.dV_dK * dTdV);
+        dV_dx[0][B_S_ind], dscore_cs * disulf_ca_dihedral_angle_2.dV_dK * dTdV);
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][block1_S_ind],
-        dscore_cs * disulf_ca_dihedral_angle_2.dV_dL * dTdV);
+        dV_dx[0][A_S_ind], dscore_cs * disulf_ca_dihedral_angle_2.dV_dL * dTdV);
+  }
+
+  if (V != nullptr) {
+    // Atomic even for block-pair scoring: rotamer-pair scoring assigns one
+    // output thread per disulfide connection, and a block type could carry
+    // more than one of them.
+    accumulate<D, Real>::add(*V, score);
   }
 }
 

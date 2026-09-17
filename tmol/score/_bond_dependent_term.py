@@ -1,6 +1,8 @@
 import numpy
 import torch
 
+from ._annotation_cache import AnnotationKey, cached_annotation, store_annotation
+
 from tmol.database import ParameterDatabase
 from tmol.chemical import (
     MAX_SIG_BOND_SEPARATION,
@@ -23,25 +25,40 @@ class BondDependentTerm(EnergyTerm):
     def __init__(self, param_db: ParameterDatabase, device: torch.device, **kwargs):
         super(BondDependentTerm, self).__init__(param_db=param_db, device=device)
         self.device = device
+        self._bond_block_key = AnnotationKey.from_sources()
+        self._bond_packed_key = AnnotationKey.from_sources(settings=(self.device,))
+        self._bond_pose_key = AnnotationKey.from_sources(settings=(self.device,))
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(BondDependentTerm, self).setup_block_type(block_type)
-        if hasattr(block_type, "intrares_indexed_bonds"):
-            return
+        cached = cached_annotation(
+            block_type, "_bond_dependent_annotation", self._bond_block_key
+        )
+        if cached is not None:
+            return cached
 
         bonds = numpy.zeros((block_type.bond_indices.shape[0], 3), dtype=numpy.int32)
         bonds[:, 1:] = block_type.bond_indices.astype(numpy.int32)
         ib = IndexedBonds.from_bonds(bonds, minlength=block_type.n_atoms)
         setattr(block_type, "intrares_indexed_bonds", ib)
+        return store_annotation(
+            block_type,
+            "_bond_dependent_annotation",
+            self._bond_block_key,
+            ib,
+            fields=("intrares_indexed_bonds",),
+        )
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(BondDependentTerm, self).setup_packed_block_types(packed_block_types)
 
-        if hasattr(packed_block_types, "bond_separation"):
-            assert hasattr(packed_block_types, "n_all_bonds")
-            assert hasattr(packed_block_types, "all_bonds")
-            assert hasattr(packed_block_types, "atom_all_bond_ranges")
-            return
+        cached = cached_annotation(
+            packed_block_types,
+            "_bond_dependent_annotation",
+            self._bond_packed_key,
+        )
+        if cached is not None:
+            return cached
 
         # Concatenate the block-type path-distances arrays into a single array
         bond_separation = numpy.full(
@@ -98,14 +115,41 @@ class BondDependentTerm(EnergyTerm):
             "atom_all_bond_ranges",
             torch.as_tensor(atom_all_bond_ranges, device=self.device),
         )
+        return store_annotation(
+            packed_block_types,
+            "_bond_dependent_annotation",
+            self._bond_packed_key,
+            (
+                packed_block_types.bond_separation,
+                packed_block_types.n_all_bonds,
+                packed_block_types.all_bonds,
+                packed_block_types.atom_all_bond_ranges,
+            ),
+            fields=(
+                "bond_separation",
+                "n_all_bonds",
+                "all_bonds",
+                "atom_all_bond_ranges",
+            ),
+        )
 
     def setup_poses(self, pose_stack: PoseStack):
         super(BondDependentTerm, self).setup_poses(pose_stack)
 
-        if hasattr(pose_stack, "min_block_bondsep"):
-            return
+        cached = cached_annotation(
+            pose_stack, "_bond_dependent_annotation", self._bond_pose_key
+        )
+        if cached is not None:
+            return cached
 
         min_block_bondsep, _ = torch.min(pose_stack.inter_block_bondsep, dim=4)
         min_block_bondsep, _ = torch.min(min_block_bondsep, dim=3)
 
         setattr(pose_stack, "min_block_bondsep", min_block_bondsep)
+        return store_annotation(
+            pose_stack,
+            "_bond_dependent_annotation",
+            self._bond_pose_key,
+            min_block_bondsep,
+            fields=("min_block_bondsep",),
+        )

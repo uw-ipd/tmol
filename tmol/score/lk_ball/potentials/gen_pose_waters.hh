@@ -24,6 +24,9 @@ struct GeneratePoseWaters {
       TView<Int, 1, Dev> pose_ind_for_atom,
       TView<Int, 2, Dev> first_rot_for_block,
       TView<Int, 2, Dev> first_rot_block_type,
+      // blocks sharing an id >= 0 move in lockstep; a water reaching
+      // into one must reach into the matching rotamer
+      TView<Int, 2, Dev> lockstep_group_for_block,
       TView<Int, 1, Dev> block_ind_for_rot,
       TView<Int, 1, Dev> pose_ind_for_rot,
       TView<Int, 1, Dev> block_type_ind_for_rot,
@@ -79,6 +82,9 @@ struct GeneratePoseWaters {
       TView<Int, 1, Dev> pose_ind_for_atom,
       TView<Int, 2, Dev> first_rot_for_block,
       TView<Int, 2, Dev> first_rot_block_type,
+      // blocks sharing an id >= 0 move in lockstep; a water reaching
+      // into one must reach into the matching rotamer
+      TView<Int, 2, Dev> lockstep_group_for_block,
       TView<Int, 1, Dev> block_ind_for_rot,
       TView<Int, 1, Dev> pose_ind_for_rot,
       TView<Int, 1, Dev> block_type_ind_for_rot,
