@@ -569,9 +569,15 @@
         <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">cached</span>
         <span class="n">previous</span> <span class="o">=</span> <span class="n">latest_annotation</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"_elec_annotation"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">previous</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">previous</span><span class="o">.</span><span class="n">all_ligand_typed</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">previous</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="n">previous</span><span class="o">.</span><span class="n">all_ligand_typed</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span>
+            <span class="ow">or</span> <span class="n">previous</span><span class="o">.</span><span class="n">rosetta_typed</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rosetta_typed</span>
+        <span class="p">):</span>
             <span class="c1"># latest_annotation returns the newest entry without comparing the</span>
-            <span class="c1"># key, so it may have been staged for another device.</span>
+            <span class="c1"># key, so nothing above guarantees it was staged for this device or</span>
+            <span class="c1"># this genbonded database. The intra count-pair rule reads</span>
+            <span class="c1"># rosetta_typed, so an entry from a different one describes</span>
+            <span class="c1"># different chemistry and none of it may be reused.</span>
             <span class="n">previous</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">block_parameters</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">]</span>
         <span class="n">geometry</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">geometry</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">block_parameters</span><span class="p">)</span>
