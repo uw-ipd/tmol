@@ -559,13 +559,48 @@
 
         <span class="n">new_icoor</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">icoor_i</span><span class="p">)</span>
 
-    <span class="c1"># create final icoor list. An icoor the patch redefines is replaced where it</span>
-    <span class="c1"># already sits: appending it instead would move it behind atoms that frame</span>
-    <span class="c1"># themselves on it, and build_coords_from_icoors reads parents in order.</span>
+    <span class="c1"># create final icoor list, ordered so every icoor follows the ones that</span>
+    <span class="c1"># frame it -- build_coords_from_icoors reads parents in order. Neither</span>
+    <span class="c1"># position alone is right: a redefined icoor left where it sat can precede</span>
+    <span class="c1"># the atoms the patch added for it to hang on, and appended it can follow</span>
+    <span class="c1"># atoms that hang on it. Sort, keeping the given order among independents.</span>
     <span class="n">removed</span> <span class="o">=</span> <span class="p">{</span><span class="n">namemap</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">atoms_remove</span><span class="p">}</span>
     <span class="n">replacements</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">new_icoor</span><span class="p">}</span>
-    <span class="n">kept</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">replacements</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">res</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">removed</span><span class="p">)</span>
-    <span class="k">return</span> <span class="p">(</span><span class="o">*</span><span class="n">kept</span><span class="p">,</span> <span class="o">*</span><span class="n">replacements</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+    <span class="n">merged</span> <span class="o">=</span> <span class="p">[</span><span class="n">replacements</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">res</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">removed</span><span class="p">]</span>
+    <span class="n">merged</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">replacements</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">_icoors_in_dependency_order</span><span class="p">(</span><span class="n">merged</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_icoors_in_dependency_order</span><span class="p">(</span><span class="n">icoors</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Order icoors so each follows the ones it is framed on.</span>
+
+<span class="sd">    A stable topological sort: an icoor is emitted once its parent, grandparent</span>
+<span class="sd">    and great-grandparent have been, and ties keep the incoming order. A frame</span>
+<span class="sd">    atom no icoor defines -- a connection name -- and an icoor's reference to</span>
+<span class="sd">    itself, as the root has, impose no constraint.</span>
+<span class="sd">    """</span>
+    <span class="n">pending</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">icoors</span><span class="p">)</span>
+    <span class="n">defined</span> <span class="o">=</span> <span class="p">{</span><span class="n">icoor</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">icoor</span> <span class="ow">in</span> <span class="n">pending</span><span class="p">}</span>
+    <span class="n">emitted</span><span class="p">,</span> <span class="n">ordered</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(),</span> <span class="p">[]</span>
+    <span class="k">while</span> <span class="n">pending</span><span class="p">:</span>
+        <span class="n">deferred</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">icoor</span> <span class="ow">in</span> <span class="n">pending</span><span class="p">:</span>
+            <span class="n">frame</span> <span class="o">=</span> <span class="p">(</span><span class="n">icoor</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span> <span class="n">icoor</span><span class="o">.</span><span class="n">grand_parent</span><span class="p">,</span> <span class="n">icoor</span><span class="o">.</span><span class="n">great_grand_parent</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">(</span>
+                <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">defined</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">emitted</span> <span class="ow">or</span> <span class="n">name</span> <span class="o">==</span> <span class="n">icoor</span><span class="o">.</span><span class="n">name</span>
+                <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">frame</span>
+            <span class="p">):</span>
+                <span class="n">ordered</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">icoor</span><span class="p">)</span>
+                <span class="n">emitted</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">icoor</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">deferred</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">icoor</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">deferred</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">pending</span><span class="p">):</span>
+            <span class="c1"># A cycle among the frames. Leave the remainder as given rather than</span>
+            <span class="c1"># invent an order; assert_no_orphaned_icoors owns that report.</span>
+            <span class="n">ordered</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">deferred</span><span class="p">)</span>
+            <span class="k">break</span>
+        <span class="n">pending</span> <span class="o">=</span> <span class="n">deferred</span>
+    <span class="k">return</span> <span class="n">ordered</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">assert_no_orphaned_icoors</span><span class="p">(</span><span class="n">icoors</span><span class="p">,</span> <span class="n">removed</span><span class="p">,</span> <span class="n">res_name</span><span class="p">):</span>
