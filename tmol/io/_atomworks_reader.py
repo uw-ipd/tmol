@@ -1,0 +1,173 @@
+"""Read supplied structure information before tmol validates parameter requirements."""
+
+import biotite.structure as struc
+import numpy as np
+
+from atomworks.io.config import ParseConfig
+from atomworks.io.parser import parse
+
+_AUTHOR_FIELDS = {
+    "atom_name": "auth_atom_id",
+    "res_name": "auth_comp_id",
+    "chain_id": "auth_asym_id",
+    "res_id": "auth_seq_id",
+    "ins_code": "pdbx_PDB_ins_code",
+}
+_FIELDS = [
+    *_AUTHOR_FIELDS.values(),
+    "label_entity_id",
+    "pdbx_formal_charge",
+    "partial_charge",
+]
+
+
+def _read_declared(path, model, assembly_id):
+    """Read authored atoms and bonds without any dictionary supplementation."""
+    from atomworks.io._loaders import load_pdb
+    from atomworks.io.transforms.categories import category_to_dict
+    from atomworks.io.utils.atom_array_plus import as_atom_array_plus
+    from atomworks.io.utils.bonds import get_struct_conn_bonds
+    from atomworks.io.utils.ccd import (
+        bond_dict_from_cif_block,
+        build_ccd_entries_from_cif_block,
+    )
+    from atomworks.io.utils.io_utils import get_structure, read_any
+
+    file = read_any(path)
+    block = getattr(file, "block", None)
+    if block is None:
+        # The shared PDB loader retains CONECT and TER chain boundaries.
+        array, _ = load_pdb(path, model=model, use_ccd=False)
+        entries = {}
+    else:
+        array = get_structure(file, model=model, extra_fields=_FIELDS)
+        entries = build_ccd_entries_from_cif_block(block, supplement_from_ccd=False)
+        bonds = {name: {} for name in np.unique(array.res_name)}
+        bonds.update(bond_dict_from_cif_block(block))
+        array.bonds = struc.connect_via_residue_names(
+            array, inter_residue=False, custom_bond_dict=bonds
+        )
+        if "struct_conn" in block:
+            array.bonds = array.bonds.merge(
+                get_struct_conn_bonds(
+                    array,
+                    category_to_dict(block, "struct_conn"),
+                    add_bond_types=("covale", "disulf"),
+                    distance_policy="keep",
+                    use_ccd=False,
+                )
+            )
+    array = as_atom_array_plus(array)
+    array._custom_ccd_registry = entries
+    if assembly_id is not None:
+        from atomworks.io.utils.assembly import build_assemblies_from_asym_unit
+
+        if block is None or "pdbx_struct_assembly_gen" not in block:
+            raise ValueError(f"Structure does not declare assembly {assembly_id!r}")
+        array = build_assemblies_from_asym_unit(
+            block["pdbx_struct_assembly_gen"],
+            block["pdbx_struct_oper_list"],
+            struc.stack([array]),
+            fix_symmetry_centers=False,
+            build_assembly=[assembly_id],
+        )[assembly_id][0]
+        array = as_atom_array_plus(array)
+        array._custom_ccd_registry = entries
+    return array, block
+
+
+def read_structure(path, *, model=1, assembly_id=None, use_ccd=True):
+    """Read PDB/CIF atoms and available bonds, optionally supplemented from CCD."""
+    if model is None or model < 1:
+        raise ValueError("The structure reader requires a positive model number")
+    if use_ccd:
+        result = parse(
+            path,
+            config=ParseConfig(
+                model=model,
+                add_missing_atoms=False,
+                build_assembly=None if assembly_id is None else [assembly_id],
+                extra_fields=_FIELDS,
+                remove_ccds=[],
+                remove_waters=False,
+                fix_arginines=False,
+                fix_ligands_at_symmetry_centers=False,
+                add_bond_types_from_struct_conn=["covale", "disulf"],
+                hydrogen_policy="keep",
+                ccd_mirror_path=None,
+                cif_ccd_on_mismatch="ignore",
+                add_id_and_entity_annotations=False,
+                keep_cif_block=True,
+                return_atom_array_plus=True,
+                long_bond_policy="keep",
+                struct_conn_distance_policy="keep",
+            ),
+        )
+        array = (
+            result["asym_unit"]
+            if assembly_id is None
+            else result["assemblies"][assembly_id]
+        )
+        if array.coord.ndim == 3:
+            array = array[0]
+        block = result.get("cif_block")
+        if block is None and array.bonds is not None:
+            from tmol.io._cif import _component_dictionary_template
+
+            # CONECT gives orders only when a compatible component template supplies them.
+            unknown_names = set()
+            heavy = ~np.isin(array.element, ["H", "D"])
+            for name in np.unique(array.res_name):
+                template = _component_dictionary_template(str(name))
+                observed = set(array.atom_name[heavy & (array.res_name == name)])
+                if template is None or not observed <= set(template.atom_name):
+                    unknown_names.add(name)
+            if unknown_names:
+                residue = struc.spread_residue_wise(
+                    array, np.arange(struc.get_residue_count(array))
+                )
+                bonds = array.bonds.as_array()
+                i, j = bonds[:, 0], bonds[:, 1]
+                unknown = np.isin(array.res_name, list(unknown_names))
+                bonds[unknown[i] & (residue[i] == residue[j]), 2] = struc.BondType.ANY
+                array.bonds = struc.BondList(len(array), bonds)
+
+    else:
+        array, block = _read_declared(path, model, assembly_id)
+    if assembly_id is not None:
+        array.set_annotation("chain_id", array.chain_iid.copy())
+    for target, source in _AUTHOR_FIELDS.items():
+        # Assembly expansion owns chain_id: it distinguishes symmetry copies
+        # that share an author chain. Nothing else does, so a file without
+        # one keeps its author chains -- a reader that derives them instead
+        # splits an unrecognised residue into a chain of its own, and every
+        # neighbour then looks like a chain end.
+        if target == "chain_id" and assembly_id is not None:
+            continue
+        if source in array.get_annotation_categories():
+            array.set_annotation(target, array.get_annotation(source).copy())
+    array.ins_code[np.isin(array.ins_code, (".", "?"))] = ""
+    retained = {
+        "chain_id",
+        "res_id",
+        "ins_code",
+        "res_name",
+        "hetero",
+        "atom_name",
+        "element",
+        "charge",
+        "label_entity_id",
+        "pdbx_formal_charge",
+        "partial_charge",
+        "is_polymer",
+        "chain_type",
+        "chem_comp_type",
+        "auth_asym_id",
+        "occupancy",
+        "b_factor",
+        "chain_iid",
+        "transformation_id",
+    }
+    for name in set(array.get_annotation_categories()) - retained:
+        array.del_annotation(name)
+    return array, block

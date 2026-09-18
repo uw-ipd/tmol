@@ -88,8 +88,9 @@ jobs:
 
       - name: build CPU-only package
         env:
+          ATOMWORKS_DEPLOY_KEY: ${{ secrets.ATOMWORKS_DEPLOY_KEY }}
           MAX_JOBS: ${{ matrix.build_workers }}
-        run: .github/ci/build_cpu_package.sh
+        run: .github/ci/with_atomworks_access.sh .github/ci/build_cpu_package.sh
 
       - name: compile representative CPU JIT extension
         if: matrix.platform == 'linux-x86_64'
@@ -150,7 +151,7 @@ jobs:
       SLURM_MEM: 128G
       SLURM_TIME: 06:00:00
       # Exclude nodes with known uncorrectable ECC faults until repaired.
-      SLURM_EXCLUDE: g2547,g2548
+      SLURM_EXCLUDE: g2543,g2547,g2548
       SRUN_GPU_MAX_ATTEMPTS: 5
       SRUN_GPU_RETRY_SLEEP: 10
       # PR tests need only the architecture of the allocated DIGS GPU.
@@ -165,6 +166,8 @@ jobs:
 
       - name: build and test
         env:
+          # Apptainer forwards this environment variable through --containall.
+          APPTAINERENV_ATOMWORKS_DEPLOY_KEY: ${{ secrets.ATOMWORKS_DEPLOY_KEY }}
           GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.gpu_alloc_started
         run: |
           rm -f "$GPU_ALLOC_SENTINEL"

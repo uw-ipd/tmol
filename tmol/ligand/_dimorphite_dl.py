@@ -14,12 +14,21 @@
 
 """Dimorphite-DL: enumerate ionization states of drug-like small molecules.
 
+Limitations:
+    - Only protonates N, O, and S atoms. Other elements (e.g., P, metals)
+      are not considered for ionization.
+    - Relies on SMILES string representation and repeated mol<->SMILES
+      interconversion, which may lose stereochemistry or produce unexpected
+      results for exotic non-drug-like molecules.
+    - pKa predictions are based on substructure SMARTS patterns calibrated
+      for drug-like molecules; accuracy may degrade for unusual chemistries.
+
 Identifies and enumerates the possible protonation sites of SMILES strings
 at a user-specified pH range using pre-calculated pKa distributions.
 
 Originally authored by Jacob D. Durrant (Dimorphite-DL 1.2.4). Vendored
 into tmol and cleaned up for lint compliance, type annotations, and
-Google-style docstrings. Protonation logic is unchanged.
+Google-style docstrings. Rule providers select the scientific rule inventory.
 
 Reference:
     Ropp PJ, Kaminsky JC, Yablonski S, Durrant JD (2019) Dimorphite-DL: An
@@ -36,7 +45,7 @@ import logging
 import os
 import sys
 from io import StringIO
-from typing import Any, IO, Optional
+from typing import IO, Any, ClassVar
 
 logger = logging.getLogger(__name__)
 
@@ -53,15 +62,14 @@ def _log_error(*args: Any) -> None:
 
 try:
     import rdkit
-    from rdkit import Chem
+    from rdkit import Chem, RDLogger
     from rdkit.Chem import AllChem
-    from rdkit import RDLogger
 
     RDLogger.DisableLog("rdApp.*")
-except ImportError:
+except ImportError as err:
     msg = "Dimorphite-DL requires RDKit. See https://www.rdkit.org/"
     _log_error(msg)
-    raise ImportError(msg)
+    raise ImportError(msg) from err
 
 
 def print_header() -> None:
@@ -75,7 +83,7 @@ def print_header() -> None:
     _log_info("molecules. J Cheminform 11:14. doi:10.1186/s13321-019-0336-9.\n")
 
 
-def main(params: dict[str, Any] | None = None) -> list[str] | None:  # noqa: C901
+def main(params: dict[str, Any] | None = None) -> list[str] | None:
     """Entry point when the script is called from the command line.
 
     Args:
@@ -132,7 +140,7 @@ class MyParser(argparse.ArgumentParser):
             Exception: Always raised with the error message.
         """
         self.print_help()
-        msg = "ERROR: %s\n\n" % message
+        msg = f"ERROR: {message}\n\n"
         _log_error(msg)
         raise Exception(msg)
 
@@ -272,9 +280,8 @@ class ArgParseFuncs:
             _log_error(msg)
             raise Exception(msg)
 
-        if "smiles" in args:
-            if isinstance(args["smiles"], str):
-                args["smiles_file"] = StringIO(args["smiles"])
+        if "smiles" in args and isinstance(args["smiles"], str):
+            args["smiles_file"] = StringIO(args["smiles"])
 
         args["smiles_and_data"] = LoadSMIFile(args["smiles_file"], args)
 
@@ -298,6 +305,17 @@ class UtilFuncs:
         Returns:
             The neutralised Mol object, or None if sanitisation fails.
         """
+        if len(Chem.GetMolFrags(mol)) > 1:
+            result = None
+            for fragment in Chem.GetMolFrags(mol, asMols=True, sanitizeFrags=False):
+                neutral = UtilFuncs.neutralize_mol(fragment)
+                if neutral is None:
+                    return None
+                result = (
+                    neutral if result is None else Chem.CombineMols(result, neutral)
+                )
+            return result
+
         rxn_data: list[list[Any]] = [
             ["[Ov1-1:1]", "[Ov2+0:1]-[H]", None, None],
             ["[#7v4+1:1]-[H]", "[#7v3+0:1]", None, None],
@@ -337,13 +355,25 @@ class UtilFuncs:
             else:
                 reactant = mol
                 mol = current_rxn.RunReactants((mol,))[0][0]
-                # maintain react_atom_idx (if it exists) through reactions
-                for prod_atom in mol.GetAtoms():
-                    if prod_atom.HasProp("react_atom_idx"):
-                        src = reactant.GetAtomWithIdx(
-                            prod_atom.GetIntProp("react_atom_idx")
+                # Reaction SMARTS use their own map labels. Restore caller
+                # identity using RDKit's reactant-index provenance instead.
+                for atom in mol.GetAtoms():
+                    if atom.HasProp("react_atom_idx"):
+                        source = reactant.GetAtomWithIdx(
+                            atom.GetIntProp("react_atom_idx")
                         )
-                        prod_atom.SetAtomMapNum(src.GetAtomMapNum())
+                        atom.SetAtomMapNum(source.GetAtomMapNum())
+                        for name, value in source.GetPropsAsDict(
+                            includePrivate=True, includeComputed=False
+                        ).items():
+                            if isinstance(value, bool):
+                                atom.SetBoolProp(name, value)
+                            elif isinstance(value, int):
+                                atom.SetIntProp(name, value)
+                            elif isinstance(value, float):
+                                atom.SetDoubleProp(name, value)
+                            elif isinstance(value, str):
+                                atom.SetProp(name, value)
                 mol.UpdatePropertyCache(strict=False)
 
         sanitize_string = Chem.SanitizeMol(
@@ -373,19 +403,7 @@ class UtilFuncs:
         smiles_str = smiles_str.replace("N=N=N", "N=[N+]=N")
         smiles_str = smiles_str.replace("NN#N", "N=[N+]=N")
 
-        stderr_fileno = sys.stderr.fileno()
-        stderr_save = os.dup(stderr_fileno)
-        stderr_pipe = os.pipe()
-        os.dup2(stderr_pipe[1], stderr_fileno)
-        os.close(stderr_pipe[1])
-
         mol = Chem.MolFromSmiles(smiles_str)
-
-        os.close(stderr_fileno)
-        os.close(stderr_pipe[0])
-        os.dup2(stderr_save, stderr_fileno)
-        os.close(stderr_save)
-
         return None if mol is None else mol
 
     @staticmethod
@@ -413,7 +431,7 @@ class LoadSMIFile:
         self.args = args
 
         if type(filename) is str:
-            self.f: IO[str] = open(filename, "r")
+            self.f: IO[str] = open(filename)  # noqa: SIM115
         else:
             self.f = filename
 
@@ -425,7 +443,7 @@ class LoadSMIFile:
         """Return the next SMILES record (Python 3 iterator protocol)."""
         return self.next()
 
-    def next(self) -> dict[str, Any]:  # noqa: C901
+    def next(self) -> dict[str, Any]:
         """Read and process the next line from the SMILES file.
 
         Converts the raw SMILES to a canonical, neutralised form with
@@ -503,7 +521,8 @@ class Protonate:
 
         ProtSubstructFuncs.args = args
 
-        self.subs = ProtSubstructFuncs.load_protonation_substructs_calc_state_for_ph(
+        rule_provider = self.args.get("rule_provider", ProtSubstructFuncs)
+        self.subs = rule_provider.load_protonation_substructs_calc_state_for_ph(
             self.args["min_ph"], self.args["max_ph"], self.args["pka_precision"]
         )
 
@@ -515,7 +534,7 @@ class Protonate:
         """Return the next protonated SMILES (Python 3 iterator protocol)."""
         return self.next()
 
-    def next(self) -> str:  # noqa: C901
+    def next(self) -> str:
         """Return the next protonated SMILES string.
 
         Handles multi-site protonation by expanding combinations and
@@ -534,7 +553,7 @@ class Protonate:
         try:
             smile_and_datum = self.args["smiles_and_data"].next()
         except StopIteration:
-            raise StopIteration()
+            raise StopIteration() from None
 
         orig_smi = smile_and_datum["smiles"]
         properly_formed_smi_found = [orig_smi]
@@ -569,12 +588,7 @@ class Protonate:
             properly_formed_smi_found.append(Chem.MolToSmiles(mol_used_to_idx_sites))
 
         new_smis = list(
-            set(
-                [
-                    Chem.MolToSmiles(m, isomericSmiles=True, canonical=True)
-                    for m in new_mols
-                ]
-            )
+            {Chem.MolToSmiles(m, isomericSmiles=True, canonical=True) for m in new_mols}
         )
 
         new_smis = [
@@ -602,7 +616,7 @@ class Protonate:
 class ProtSubstructFuncs:
     """Namespace for protonation-substructure matching and site modification."""
 
-    args: dict[str, Any] = {}
+    args: ClassVar[dict[str, Any]] = {}
 
     @staticmethod
     def load_substructre_smarts_file() -> list[str]:
@@ -612,19 +626,16 @@ class ProtSubstructFuncs:
             Non-blank, non-comment lines from ``site_substructures.smarts``.
         """
         pwd = os.path.dirname(os.path.realpath(__file__))
-        site_structures_file = "{}/{}".format(pwd, "site_substructures.smarts")
-        lines = [
-            line
-            for line in open(site_structures_file, "r")
-            if line.strip() != "" and not line.startswith("#")
-        ]
-
+        site_structures_file = f"{pwd}/site_substructures.smarts"
+        with open(site_structures_file) as f:
+            lines = [
+                line for line in f if line.strip() != "" and not line.startswith("#")
+            ]
         return lines
 
-    @staticmethod
-    @functools.lru_cache(maxsize=None)
+    @classmethod
     def load_protonation_substructs_calc_state_for_ph(
-        min_ph: float = 6.4, max_ph: float = 8.4, pka_std_range: float = 1
+        cls, min_ph: float = 6.4, max_ph: float = 8.4, pka_std_range: float = 1
     ) -> list[dict[str, Any]]:
         """Load protonation substructures and calculate states for a pH range.
 
@@ -642,33 +653,57 @@ class ProtSubstructFuncs:
             A list of substructure dicts, each containing ``"name"``,
             ``"smart"``, ``"mol"``, and ``"prot_states_for_pH"``.
         """
-        subs: list[dict[str, Any]] = []
-
-        for line in ProtSubstructFuncs.load_substructre_smarts_file():
-            line = line.strip()
-            sub: dict[str, Any] = {}
-            if line != "":
-                splits = line.split()
-                sub["name"] = splits[0]
-                sub["smart"] = splits[1]
-                sub["mol"] = Chem.MolFromSmarts(sub["smart"])
-
-                pka_ranges = [splits[i : i + 3] for i in range(2, len(splits) - 1, 3)]
-
-                prot: list[list[Any]] = []
-                for pka_range in pka_ranges:
-                    site = pka_range[0]
-                    std = float(pka_range[2]) * pka_std_range
-                    mean = float(pka_range[1])
-                    protonation_state = ProtSubstructFuncs.define_protonation_state(
-                        mean, std, min_ph, max_ph
-                    )
-
-                    prot.append([site, protonation_state])
-
-                sub["prot_states_for_pH"] = prot
-                subs.append(sub)
+        # Public callers own both the nested state containers and RDKit queries.
+        subs = cls._substructures_for_ph(min_ph, max_ph, pka_std_range)
+        for sub in subs:
+            sub["mol"] = Chem.Mol(sub["mol"])
         return subs
+
+    @classmethod
+    @functools.lru_cache(maxsize=8)
+    def _compiled_substructures(
+        cls,
+    ) -> tuple[tuple[str, str, Chem.Mol, tuple[tuple[str, float, float], ...]], ...]:
+        """Compile the fixed rule file once, independent of requested pH.
+
+        Queries stay private and are only used for read-only substructure
+        matching. Never retain input molecules or a growing set of pH values.
+        """
+        rules = []
+        for line in cls.load_substructre_smarts_file():
+            fields = line.split()
+            if not fields:
+                continue
+            name, smart = fields[:2]
+            sites = tuple(
+                (fields[i], float(fields[i + 1]), float(fields[i + 2]))
+                for i in range(2, len(fields) - 1, 3)
+            )
+            rules.append((name, smart, Chem.MolFromSmarts(smart), sites))
+        return tuple(rules)
+
+    @classmethod
+    def _substructures_for_ph(
+        cls, min_ph: float, max_ph: float, pka_std_range: float
+    ) -> list[dict[str, Any]]:
+        """Fresh state containers borrowing private, read-only query molecules."""
+        return [
+            {
+                "name": name,
+                "smart": smart,
+                "mol": query,
+                "prot_states_for_pH": [
+                    [
+                        site,
+                        ProtSubstructFuncs.define_protonation_state(
+                            mean, std * pka_std_range, min_ph, max_ph
+                        ),
+                    ]
+                    for site, mean, std in sites
+                ],
+            }
+            for name, smart, query, sites in cls._compiled_substructures()
+        ]
 
     @staticmethod
     def define_protonation_state(
@@ -916,7 +951,7 @@ class ProtectUnprotectFuncs:
     def get_unprotected_matches(
         mol: Chem.rdchem.Mol,
         substruct: Chem.rdchem.Mol,
-        site_indices: Optional[list[int]] = None,
+        site_indices: list[int] | None = None,
     ) -> list[tuple[int, ...]]:
         """Find matches this rule is still allowed to ionize.
 
@@ -933,35 +968,30 @@ class ProtectUnprotectFuncs:
         matches = mol.GetSubstructMatches(substruct)
         unprotected_matches = []
         for match in matches:
-            if ProtectUnprotectFuncs.is_match_unprotected(mol, match, site_indices):
+            atom_indices = (
+                match
+                if site_indices is None
+                else tuple(match[i] for i in site_indices if i < len(match))
+            )
+            if ProtectUnprotectFuncs.is_match_unprotected(mol, atom_indices):
                 unprotected_matches.append(match)
         return unprotected_matches
 
     @staticmethod
     def is_match_unprotected(
         mol: Chem.rdchem.Mol,
-        match: tuple[int, ...],
-        site_indices: Optional[list[int]] = None,
+        atom_indices: tuple[int, ...],
     ) -> bool:
         """Check whether the atoms this rule would ionize are unprotected.
 
-        (fd) ONLY protonation sites can block it;
-             protected context atoms (carbons) carry no ionization decision.
-
         Args:
             mol: The RDKit Mol object.
-            match: Tuple of atom indices to check.
-            site_indices: Positions within ``match`` that this rule ionizes.
-                When None, every matched atom is checked (legacy behavior).
+            atom_indices: Atom indices to check.
 
         Returns:
             True if none of the checked atoms are protected.
         """
-        if site_indices is None:
-            to_check = match
-        else:
-            to_check = [match[i] for i in site_indices if i < len(match)]
-        for idx in to_check:
+        for idx in atom_indices:
             atom = mol.GetAtomWithIdx(idx)
             protected = atom.GetProp("_protected")
             if protected == "1":
@@ -973,7 +1003,7 @@ class TestFuncs:
     """Built-in self-tests for all 38 protonation groups."""
 
     @staticmethod
-    def test() -> None:  # noqa: C901
+    def test() -> None:
         """Run the full test suite for all ionisable groups."""
         # fmt: off
         smis = [
@@ -1057,11 +1087,11 @@ class TestFuncs:
             "silent": True,
         }
 
-        for smi, protonated, deprotonated, category in smis:
+        for smi, protonated, _deprotonated, _category in smis:
             args["smiles"] = smi
             TestFuncs.test_check(args, [protonated], ["PROTONATED"])
 
-        for smi, protonated, mix, deprotonated, category in smis_phos:
+        for smi, protonated, _mix, _deprotonated, _category in smis_phos:
             args["smiles"] = smi
             TestFuncs.test_check(args, [protonated], ["PROTONATED"])
 
@@ -1073,11 +1103,11 @@ class TestFuncs:
         _log_info("------------------------")
         _log_info("")
 
-        for smi, protonated, deprotonated, category in smis:
+        for smi, _protonated, deprotonated, _category in smis:
             args["smiles"] = smi
             TestFuncs.test_check(args, [deprotonated], ["DEPROTONATED"])
 
-        for smi, protonated, mix, deprotonated, category in smis_phos:
+        for smi, _protonated, _mix, deprotonated, _category in smis_phos:
             args["smiles"] = smi
             TestFuncs.test_check(args, [deprotonated], ["DEPROTONATED"])
 
@@ -1252,7 +1282,7 @@ class TestFuncs:
             UtilFuncs.eprint(msg)
             raise Exception(msg)
 
-        if len(set([entry[0] for entry in output]) - set(expected_output)) != 0:
+        if len({entry[0] for entry in output} - set(expected_output)) != 0:
             msg = (
                 args["smiles"]
                 + " is not "
@@ -1267,7 +1297,7 @@ class TestFuncs:
             UtilFuncs.eprint(msg)
             raise Exception(msg)
 
-        if len(set([entry[1] for entry in output]) - set(labels)) != 0:
+        if len({entry[1] for entry in output} - set(labels)) != 0:
             msg = (
                 args["smiles"]
                 + " not labeled as "
@@ -1278,8 +1308,8 @@ class TestFuncs:
             UtilFuncs.eprint(msg)
             raise Exception(msg)
 
-        ph_range = sorted(list(set([args["min_ph"], args["max_ph"]])))
-        ph_range_str = "(" + " - ".join("{0:.2f}".format(n) for n in ph_range) + ")"
+        ph_range = sorted({args["min_ph"], args["max_ph"]})
+        ph_range_str = "(" + " - ".join(f"{n:.2f}" for n in ph_range) + ")"
         _log_info(
             "(CORRECT) "
             + ph_range_str.ljust(10)
@@ -1290,6 +1320,19 @@ class TestFuncs:
         )
 
 
+def run(**kwargs: Any) -> None:
+    """Run Dimorphite-DL from another Python script.
+
+    Accepts keyword arguments matching the command-line parameters.
+    For passing/returning RDKit Mol objects, use :func:`run_with_mol_list`
+    instead.
+
+    Args:
+        **kwargs: Command-line parameters (see ``--help``).
+    """
+    main(kwargs)
+
+
 def protonate_mol_variants(  # noqa: C901
     mol: Chem.rdchem.Mol,
     min_ph: float = 6.4,
@@ -1297,8 +1340,26 @@ def protonate_mol_variants(  # noqa: C901
     pka_precision: float = 1.0,
     max_variants: int = 128,
     silent: bool = True,
+    *,
+    rule_provider: type[ProtSubstructFuncs] = ProtSubstructFuncs,
 ) -> list[Chem.rdchem.Mol]:
-    """Protonate an RDKit Mol directly, without a SMILES roundtrip."""
+    """Enumerate protonation states while preserving atom identity and order.
+
+    Args:
+        mol: Input molecule, copied before modification.
+        min_ph: Lower pH bound.
+        max_ph: Upper pH bound.
+        pka_precision: Number of pKa standard deviations in the range.
+        max_variants: Maximum intermediate variants retained after each site.
+        silent: Suppress warnings for invalid products.
+        rule_provider: Provider of the ordered scientific rule inventory.
+            Subclass :class:`ProtSubstructFuncs` and override its SMARTS loader
+            to select a different fixed inventory. At most eight providers are
+            cached; pH requests do not create additional compiled inventories.
+
+    Returns:
+        Valid molecular states in first-occurrence order, retaining atom maps.
+    """
     args: dict[str, Any] = {
         "min_ph": min_ph,
         "max_ph": max_ph,
@@ -1309,6 +1370,9 @@ def protonate_mol_variants(  # noqa: C901
     ProtSubstructFuncs.args = args
 
     prepared = copy.deepcopy(mol)
+    source_index_property = "_tmol_protonation_source_index"
+    for atom in prepared.GetAtoms():
+        atom.SetIntProp(source_index_property, atom.GetIdx())
     prepared = UtilFuncs.neutralize_mol(prepared)
     if prepared is None:
         return []
@@ -1319,9 +1383,7 @@ def protonate_mol_variants(  # noqa: C901
     if prepared is None:
         return []
 
-    subs = ProtSubstructFuncs.load_protonation_substructs_calc_state_for_ph(
-        min_ph, max_ph, pka_precision
-    )
+    subs = rule_provider._substructures_for_ph(min_ph, max_ph, pka_precision)
     sites, mol_used_to_idx_sites = (
         ProtSubstructFuncs.get_prot_sites_and_target_states_from_mol(prepared, subs)
     )
@@ -1329,38 +1391,120 @@ def protonate_mol_variants(  # noqa: C901
         return []
 
     new_mols = [mol_used_to_idx_sites]
-    properly_formed_smi_found = [Chem.MolToSmiles(prepared, isomericSmiles=True)]
+    properly_formed_mols = [prepared]
     if len(sites) > 0:
         for site in sites:
             new_mols = ProtSubstructFuncs.protonate_site(new_mols, site)
             if len(new_mols) > max_variants:
                 new_mols = new_mols[:max_variants]
-            properly_formed_smi_found += [Chem.MolToSmiles(m) for m in new_mols]
+            properly_formed_mols.extend(new_mols)
     else:
         mol_used_to_idx_sites = Chem.RemoveHs(mol_used_to_idx_sites)
         new_mols = [mol_used_to_idx_sites]
-        properly_formed_smi_found.append(Chem.MolToSmiles(mol_used_to_idx_sites))
+        properly_formed_mols.append(mol_used_to_idx_sites)
 
     seen: set[str] = set()
     output_mols: list[Chem.rdchem.Mol] = []
-    for m in new_mols:
-        smi = Chem.MolToSmiles(m, isomericSmiles=True, canonical=True)
-        if smi in seen:
-            continue
-        if UtilFuncs.convert_smiles_str_to_mol(smi) is None:
+    for product in new_mols:
+        smi = Chem.MolToSmiles(product, isomericSmiles=True, canonical=True)
+        if smi in seen or UtilFuncs.convert_smiles_str_to_mol(smi) is None:
             continue
         seen.add(smi)
-        output_mols.append(m)
-
-    if len(output_mols) == 0:
-        properly_formed_smi_found.reverse()
-        for smi in properly_formed_smi_found:
-            m = UtilFuncs.convert_smiles_str_to_mol(smi)
-            if m is not None:
-                output_mols = [m]
+        output_mols.append(product)
+    if not output_mols:
+        for previous in reversed(properly_formed_mols):
+            smi = Chem.MolToSmiles(previous, isomericSmiles=True)
+            if UtilFuncs.convert_smiles_str_to_mol(smi) is not None:
+                output_mols = [previous]
                 break
+    ordered_products = []
+    for product in output_mols:
+        order = sorted(
+            range(product.GetNumAtoms()),
+            key=lambda i: (
+                product.GetAtomWithIdx(i).GetIntProp(source_index_property)
+                if product.GetAtomWithIdx(i).HasProp(source_index_property)
+                else mol.GetNumAtoms() + i
+            ),
+        )
+        product = Chem.RenumberAtoms(product, order)
+        Chem.SanitizeMol(product)
+        product.RemoveAllConformers()
+        for source_conf in mol.GetConformers():
+            conf = Chem.Conformer(product.GetNumAtoms())
+            conf.Set3D(source_conf.Is3D())
+            for atom in product.GetAtoms():
+                if atom.HasProp(source_index_property):
+                    conf.SetAtomPosition(
+                        atom.GetIdx(),
+                        source_conf.GetAtomPosition(
+                            atom.GetIntProp(source_index_property)
+                        ),
+                    )
+            product.AddConformer(conf, assignId=True)
+        for atom in product.GetAtoms():
+            if atom.HasProp(source_index_property):
+                atom.ClearProp(source_index_property)
+        ordered_products.append(product)
+    return ordered_products
 
-    return output_mols
+
+def run_with_mol_list(
+    mol_lst: list[Chem.rdchem.Mol], **kwargs: Any
+) -> list[Chem.rdchem.Mol]:
+    """Run Dimorphite-DL on a list of RDKit Mol objects.
+
+    Converts Mol objects to SMILES, protonates them, and converts back.
+    Properties from the original Mol objects are preserved.
+
+    Args:
+        mol_lst: Input RDKit Mol objects.
+        **kwargs: Additional command-line parameters (must not include
+            ``smiles``, ``smiles_file``, ``output_file``, or ``test``).
+
+    Returns:
+        A list of protonated RDKit Mol objects with properties preserved.
+
+    Raises:
+        Exception: If forbidden keyword arguments are provided.
+    """
+    for bad_arg in ["smiles", "smiles_file", "output_file", "test"]:
+        if bad_arg in kwargs:
+            msg = (
+                "You're using Dimorphite-DL's run_with_mol_list(mol_lst, "
+                + '**kwargs) function, but you also passed the "'
+                + bad_arg
+                + '" argument. Did you mean to use the '
+                + "run(**kwargs) function instead?"
+            )
+            UtilFuncs.eprint(msg)
+            raise Exception(msg)
+
+    mols: list[Chem.rdchem.Mol] = []
+    for m in mol_lst:
+        props = m.GetPropsAsDict()
+        variants = protonate_mol_variants(
+            m,
+            min_ph=float(kwargs.get("min_ph", 6.4)),
+            max_ph=float(kwargs.get("max_ph", 8.4)),
+            pka_precision=float(kwargs.get("pka_precision", 1.0)),
+            max_variants=int(kwargs.get("max_variants", 128)),
+            silent=bool(kwargs.get("silent", True)),
+            rule_provider=kwargs.get("rule_provider", ProtSubstructFuncs),
+        )
+        for v in variants:
+            for prop, val in props.items():
+                if type(val) is int:
+                    v.SetIntProp(prop, val)
+                elif type(val) is float:
+                    v.SetDoubleProp(prop, val)
+                elif type(val) is bool:
+                    v.SetBoolProp(prop, val)
+                else:
+                    v.SetProp(prop, str(val))
+            mols.append(v)
+
+    return mols
 
 
 if __name__ == "__main__":

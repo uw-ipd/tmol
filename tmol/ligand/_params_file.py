@@ -4,7 +4,7 @@ Provides load/write/inject functions for a unified YAML format that
 bundles residue type definitions, cartbonded parameters, and electrostatic
 charges in a single file.  The top-level shape mirrors ``ParameterDatabase``:
 
-    version: "1.0"
+    version: "2.0"
     chemical:
       residues:
         - name: LIG
@@ -14,6 +14,12 @@ charges in a single file.  The top-level shape mirrors ``ParameterDatabase``:
           icoors: [...]
           properties: {...}
           # atom_aliases / chi_samples / default_jump_connection_atom optional
+      # Patches for the residue and any canonical attachment partners.
+      adds_patches:
+        - name: LIG_CarboxyTerminus
+          display_name: cterm
+          applies_to: { base_names: [LIG] }
+          ...
     elec:
       atom_charge_parameters:
         - {res: LIG, atom: C1, charge: 0.123}
@@ -25,6 +31,7 @@ charges in a single file.  The top-level shape mirrors ``ParameterDatabase``:
           torsion_parameters: [...]
           improper_parameters: [...]
           hxltorsion_parameters: []
+      connection_params: []  # optional complete ConnectionCartRes records
 
 Each subsection's schema matches the corresponding canonical database
 YAML so entries can be copy-pasted between params files and
@@ -34,7 +41,6 @@ YAML so entries can be copy-pasted between params files and
 import copy
 import functools
 import logging
-from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -42,9 +48,14 @@ import cattr
 
 from tmol.database import ParameterDatabase
 from tmol.database._yaml import safe_load
-from tmol.database.chemical import RawResidueType, normalize_bond_tuples
+from tmol.database.chemical import (
+    RawResidueType,
+    VariantType,
+    normalize_bond_tuples,
+)
 from tmol.database.scoring import (
     CartRes,
+    ConnectionCartRes,
     PartialCharges,
 )
 
@@ -54,10 +65,12 @@ if TYPE_CHECKING:
     from tmol.ligand._registry import LigandPreparation
 
 
-# Current .tmol format version.  Bump the major version on breaking
-# schema changes; bump the minor version on backward-compatible additions.
-# The version string is written into every .tmol file and checked on load.
-TMOL_FORMAT_VERSION: str = "1.0"
+# Current .tmol format version. Bump the major version on breaking schema
+# changes; bump the minor version on backward-compatible additions. Writers
+# always emit this version: until the format settles at 1.0, tracking a
+# per-feature minimum version costs more than it buys. Every file is checked
+# on load.
+TMOL_FORMAT_VERSION: str = "5.1"
 
 
 _RAW_RESIDUE_DEFAULTS: dict[str, Any] = {
@@ -117,6 +130,55 @@ def _structure_residue(item: dict[str, Any]) -> RawResidueType:
     return cattr.structure(populated, RawResidueType)
 
 
+def _replacement_metadata(chem, elec, cart, residues):
+    """Read guarded metadata separately from ordinary additions."""
+    residue_names = {r.name for r in residues}
+    replacement_baselines = chem.get("replacement_baselines") or {}
+    if replacement_baselines:
+        if (
+            not isinstance(replacement_baselines, dict)
+            or not set(replacement_baselines) <= residue_names
+        ):
+            raise ValueError("Replacement baselines must name residues in the bundle")
+        if len(residue_names) != len(residues):
+            raise ValueError("Replacement bundles require unique residue definitions")
+        import re
+
+        if any(
+            not isinstance(v, str) or not re.fullmatch(r"[0-9a-f]{64}", v)
+            for v in replacement_baselines.values()
+        ):
+            raise ValueError("Invalid replacement baseline_sha256")
+    baseline_charges = elec.get("replacement_baseline_charges") or {}
+    baseline_cart = cart.get("replacement_baseline_params") or {}
+    for records in (baseline_charges, baseline_cart):
+        if not isinstance(records, dict) or not set(records) <= set(
+            replacement_baselines
+        ):
+            raise ValueError(
+                "Replacement baseline parameters must name guarded residues"
+            )
+    if replacement_baselines and not set(replacement_baselines) <= set(
+        cart.get("residue_params") or {}
+    ):
+        raise ValueError("Replacement requires an explicit complete bonded record")
+    return replacement_baselines, baseline_charges, baseline_cart
+
+
+def _element_metadata(chem, residues):
+    from tmol.ligand._registry import _validate_atom_type_elements
+
+    elements = chem.get("atom_type_elements")
+    if elements is not None:
+        elements = _validate_atom_type_elements(elements)
+
+    if elements and not residues:
+        raise ValueError(
+            "A params bundle with atom_type_elements must define a residue"
+        )
+    return elements
+
+
 def load_params_file(path: str | Path) -> list["LigandPreparation"]:
     """Load a tmol params YAML file as a list of ``LigandPreparation``.
 
@@ -136,19 +198,7 @@ def load_params_file(path: str | Path) -> list["LigandPreparation"]:
     cached = _load_params_file_cached(
         str(path), stat.st_mtime_ns, stat.st_ctime_ns, stat.st_size
     )
-    return [
-        replace(
-            prep,
-            residue_type=copy.copy(prep.residue_type),
-            partial_charges=prep.partial_charges.copy(),
-            atom_type_elements=(
-                None
-                if prep.atom_type_elements is None
-                else prep.atom_type_elements.copy()
-            ),
-        )
-        for prep in cached
-    ]
+    return copy.deepcopy(list(cached))
 
 
 @functools.lru_cache(maxsize=32)
@@ -160,7 +210,7 @@ def _load_params_file_cached(
 
 
 def _load_params_file_uncached(path: Path) -> list["LigandPreparation"]:
-    from tmol.ligand._registry import LigandPreparation
+    from tmol.ligand._registry import LigandPreparation, _charges_from_rows
 
     raw = safe_load(path.read_text())
 
@@ -170,22 +220,18 @@ def _load_params_file_uncached(path: Path) -> list["LigandPreparation"]:
     # --- .tmol format version check ---
     file_version = raw.get("version")
     if file_version is None:
-        logger.warning(
-            "%s: no 'version' field found; assuming format %s "
-            "(consider regenerating this file with the current writer)",
-            path,
-            TMOL_FORMAT_VERSION,
-        )
         raise ValueError(
             f"{path}: no 'version' field found for .tmol file. "
             f"Current format version is {TMOL_FORMAT_VERSION}. "
             f"Regenerate the file with the current version."
         )
     file_version = str(file_version)
-    # Compare major version numbers only (the part before the first dot).
+    # Read legacy single-residue bundles as well as complete conjugates. The
+    # majors below are the ones this reader understands; writers always stamp
+    # the current version rather than the lowest that describes the file, so
+    # there is no per-feature minimum to enforce here.
     file_major = file_version.split(".")[0]
-    current_major = TMOL_FORMAT_VERSION.split(".")[0]
-    if file_major != current_major:
+    if file_major not in {"1", "2", "3", "4", "5"}:
         raise ValueError(
             f"{path}: .tmol format version {file_version} is incompatible "
             f"with the current format version {TMOL_FORMAT_VERSION}. "
@@ -194,7 +240,7 @@ def _load_params_file_uncached(path: Path) -> list["LigandPreparation"]:
     if file_version != TMOL_FORMAT_VERSION:
         logger.info(
             "%s: .tmol format version %s differs from current %s "
-            "(backward-compatible minor version change)",
+            "(supported compatibility version)",
             path,
             file_version,
             TMOL_FORMAT_VERSION,
@@ -216,16 +262,66 @@ def _load_params_file_uncached(path: Path) -> list["LigandPreparation"]:
 
     res_list = chem.get("residues") or []
     residues = [_structure_residue(item) for item in res_list]
+    elements = _element_metadata(chem, residues)
+
+    # Bundle-wide additions need not target a residue defined in this file:
+    # a glycan, for example, brings a patch for its canonical ASN partner.
+    # Carry patches once, in file order. Assigning them to individual residue
+    # owners would reorder patches when a bundle's residue order changes.
+    residue_names = {r.name for r in residues}
+    replacement_baselines, baseline_charges, baseline_cart = _replacement_metadata(
+        chem, elec, cart, residues
+    )
+    patches = []
+    for item in chem.get("adds_patches") or []:
+        patch = cattr.structure(_fill_patch_defaults(item), VariantType)
+        if not residues:
+            raise ValueError("A params bundle with patches must define a residue")
+        patches.append(patch)
+
+    connections = tuple(
+        cattr.structure(item, ConnectionCartRes)
+        for item in cart.get("connection_params") or ()
+    )
+    if connections and not residues:
+        raise ValueError("A params bundle with connections must define a residue")
 
     cb_raw = cart.get("residue_params") or {}
     cart_by_res = {
         str(name): cattr.structure(payload, CartRes) for name, payload in cb_raw.items()
     }
+    additional_cart = {
+        name: params
+        for name, params in cart_by_res.items()
+        if name not in residue_names
+    }
+    additional_cart.update(
+        {
+            str(name): cattr.structure(payload, CartRes)
+            for name, payload in baseline_cart.items()
+        }
+    )
+    if additional_cart and not residues:
+        raise ValueError("A params bundle with bonded parameters must define a residue")
 
-    charges_by_res: dict[str, dict[str, float]] = {}
-    for item in elec.get("atom_charge_parameters") or []:
-        pc = cattr.structure(item, PartialCharges)
-        charges_by_res.setdefault(pc.res, {})[pc.atom] = pc.charge
+    charge_rows = (
+        cattr.structure(item, PartialCharges)
+        for item in elec.get("atom_charge_parameters") or ()
+    )
+    charges_by_res = _charges_from_rows(
+        (pc.res, pc.atom, pc.charge) for pc in charge_rows
+    )
+
+    variant_charges_by_res: dict[str, dict[str, dict[str, float]]] = {}
+    if baseline_charges:
+        variant_charges_by_res[residues[0].name] = baseline_charges
+    for name, atom_charges in charges_by_res.items():
+        base_name = name.partition(":")[0]
+        if name not in residue_names:
+            if not residues:
+                raise ValueError("A params bundle with charges must define a residue")
+            owner = base_name if base_name in residue_names else residues[0].name
+            variant_charges_by_res.setdefault(owner, {})[name] = atom_charges
 
     preps = []
     for rt in residues:
@@ -241,10 +337,38 @@ def _load_params_file_uncached(path: Path) -> list["LigandPreparation"]:
                 residue_type=rt,
                 partial_charges=charges,
                 cartbonded_params=cart_by_res.get(rt.name, _empty_cartres()),
-                atom_type_elements=None,
+                atom_type_elements=(elements or None) if not preps else None,
+                adds_patches=tuple(patches) if not preps else (),
+                variant_partial_charges=variant_charges_by_res.get(rt.name) or None,
+                connection_params=connections if not preps else (),
+                additional_cartbonded_params=(
+                    (additional_cart or None) if not preps else None
+                ),
+                baseline_sha256=replacement_baselines.get(rt.name),
             )
         )
     return preps
+
+
+_VARIANT_DEFAULTS: dict[str, Any] = {
+    "remove_atoms": [],
+    "add_atoms": [],
+    "add_atom_aliases": [],
+    "modify_atoms": [],
+    "add_connections": [],
+    "add_bonds": [],
+    "icoors": [],
+    "add_torsions": [],
+    "add_chi_samples": [],
+    "applies_to": {},
+}
+
+
+def _fill_patch_defaults(item: dict[str, Any]) -> dict[str, Any]:
+    """Fill a patch record's optional collections so a terse file still loads."""
+    filled = {**_VARIANT_DEFAULTS, **item}
+    filled["add_bonds"] = [list(b) for b in filled["add_bonds"]]
+    return filled
 
 
 def _empty_cartres() -> CartRes:
@@ -276,6 +400,15 @@ def inject_params_file(
     )
 
 
+def _load_params_files(paths):
+    """Read each supplied path once within a batch, preserving source order."""
+    return [
+        prep
+        for path in dict.fromkeys(Path(p) for p in paths)
+        for prep in load_params_file(path)
+    ]
+
+
 def inject_params_files(
     param_db: ParameterDatabase,
     paths: list[str | Path],
@@ -285,9 +418,6 @@ def inject_params_files(
     """Load multiple ``.tmol`` files and inject them in one shot."""
     from tmol.ligand._registry import inject_ligand_preparations
 
-    preps: list = []
-    for path in paths:
-        preps.extend(load_params_file(path))
     return inject_ligand_preparations(
-        param_db, preps, strict_atom_types=strict_atom_types
+        param_db, _load_params_files(paths), strict_atom_types=strict_atom_types
     )

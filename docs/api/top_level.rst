@@ -34,21 +34,13 @@ Structure and chemistry
    :nosignatures:
 
    atom_records_from_pose_stack
-   canonical_form_from_openfold
    canonical_form_from_pdb
-   canonical_form_from_rosettafold2
-   canonical_ordering_for_openfold
-   canonical_ordering_for_rosettafold2
    default_canonical_ordering
    default_packed_block_types
    extended_pose_stack_from_sequences
    one2three
-   packed_block_types_for_openfold
-   packed_block_types_for_rosettafold2
    pose_stack_from_canonical_form
-   pose_stack_from_openfold
    pose_stack_from_pdb
-   pose_stack_from_rosettafold2
    pose_stack_to_pdb_string
    selection_gallery
    switchable_view

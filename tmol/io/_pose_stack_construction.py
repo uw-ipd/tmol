@@ -31,8 +31,12 @@ def pose_stack_from_canonical_form(  # noqa: C901
     atom_b_factor: Optional[NDArray[numpy.float32][:, :, :]] = None,
     disulfides: Optional[Tensor[torch.int64][:, 3]] = None,
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
+    cyclic_bonds: Optional[Tensor[torch.int64][:, 3]] = None,
+    covalent_bonds: Optional[Tensor[torch.int64][:, 5]] = None,
     *,
+    trust_hydrogen_names: bool = False,
     find_additional_disulfides: Optional[bool] = True,
+    find_additional_cyclic_closures: Optional[bool] = True,
     return_chain_ind: bool = False,
     return_atom_mapping: bool = False,
     return_block_has_missing_atoms: bool = False,
@@ -62,6 +66,13 @@ def pose_stack_from_canonical_form(  # noqa: C901
             polymer connections absent before or after each residue.
         find_additional_disulfides: Detect geometrically plausible disulfides
             not included in ``disulfides``.
+        covalent_bonds: Explicit ``[pose, res1, atom1, res2, atom2]`` rows in
+            canonical ordering, with matching ports on prepared block types.
+        cyclic_bonds: Explicit ``[pose, up_res, down_res]`` polymer closures.
+            If omitted, terminal connection atoms within 2 A imply a closure.
+        find_additional_cyclic_closures: Detect closures absent from cyclic_bonds.
+        trust_hydrogen_names: Preserve generated-residue hydrogens whose names
+            match the prepared database, for example in canonical roundtrips.
         return_chain_ind: Include the left-justified ``chain_ind`` tensor.
         return_atom_mapping: Include ``can_atom_mapping`` and
             ``ps_atom_mapping`` tensors between canonical and pose atom order.
@@ -74,7 +85,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
     """
 
     from tmol.io.details import left_justify_canonical_form
-    from tmol.io.details import find_disulfides
+    from tmol.io.details import find_cyclic_closures, find_disulfides
     from tmol.io.details import resolve_his_tautomerization
     from tmol.io.details import (
         assign_block_types,
@@ -107,7 +118,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
     #         in the input coordinate tensor.
     # step 2: remove any "virtual residues," marked with a res-type ind of -1
     #         by shifting all of the residues in each Pose "to the left"
-    # step 3: resolve disulfides
+    # step 3: resolve disulfides and cyclic-chain closures
     # step 4: resolve his tautomer
     # step 5: resolve termini variants, assign block-types to each input
     #         residue, and populate the inter-block connectivity tensors
@@ -128,9 +139,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
     # their Poses to ensure that the polymeric-bond-detection logic
     # downstream will work properly. This effectively means "shifting left"
     # all the other residues in the Pose to fill the vacated slots.
-    # A single residue slot is already left-justified: each pose either has its
-    # residue in slot zero or is empty. Avoid the GPU compaction and host index
-    # copies for the common batched-ligand scoring case.
+    # Single-slot poses are already left-justified.
     if res_types.shape[1] != 1:
         (
             chain_id,
@@ -138,6 +147,8 @@ def pose_stack_from_canonical_form(  # noqa: C901
             coords,
             atom_is_present,
             disulfides,
+            cyclic_bonds,
+            covalent_bonds,
             res_not_connected,
             res_labels,
             res_ins_codes,
@@ -150,6 +161,8 @@ def pose_stack_from_canonical_form(  # noqa: C901
             coords,
             atom_is_present,
             disulfides,
+            cyclic_bonds,
+            covalent_bonds,
             res_not_connected,
             res_labels,
             res_ins_codes,
@@ -181,6 +194,16 @@ def pose_stack_from_canonical_form(  # noqa: C901
             find_additional_disulfides,
         )
 
+    # 3b
+    cyclic_closures = find_cyclic_closures(
+        canonical_ordering,
+        chain_id,
+        res_types,
+        coords,
+        cyclic_bonds,
+        find_additional_cyclic_closures,
+    )
+
     # 4
     (
         his_taut,
@@ -205,6 +228,8 @@ def pose_stack_from_canonical_form(  # noqa: C901
         res_type_variants,
         found_disulfides,
         res_not_connected,
+        cyclic_closures,
+        covalent_bonds,
     )
 
     # 6
@@ -216,7 +241,13 @@ def pose_stack_from_canonical_form(  # noqa: C901
         atom_occupancy,
         atom_b_factor,
     ) = take_block_type_atoms_from_canonical(
-        pbt, block_types64, coords, atom_is_present, atom_occupancy, atom_b_factor
+        pbt,
+        block_types64,
+        coords,
+        atom_is_present,
+        atom_occupancy,
+        atom_b_factor,
+        trust_hydrogen_names=trust_hydrogen_names,
     )
 
     # 7

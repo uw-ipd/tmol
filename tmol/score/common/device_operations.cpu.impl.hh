@@ -70,6 +70,10 @@ struct DeviceOperations<tmol::Device::CPU> {
     __atomic_store_n(&target, value, __ATOMIC_RELAXED);
   }
 
+  static EIGEN_DEVICE_FUNC void bitwise_or(int32_t& target, int32_t value) {
+    __atomic_fetch_or(&target, value, __ATOMIC_RELAXED);
+  }
+
   template <typename Int, typename Func>
   static void foreach_combination_triple(
       ContextManager&, Int dim1, Int dim2, Int dim3, Func f) {

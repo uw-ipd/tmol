@@ -46,6 +46,7 @@ interactive :doc:`examples <examples_index>`, use a concise
    Quickstart <quickstart>
    Workflows <workflows/index>
    Examples <examples_index>
+   Model input interfaces <model_inputs>
    Agent skills <agent_skills>
    API <api_reference>
    Contributing <contributor_guide>

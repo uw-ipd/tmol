@@ -1,3 +1,5 @@
+import math
+
 import numpy
 import torch
 import attr
@@ -17,7 +19,19 @@ from tmol.pose import (
     PoseStack,
 )
 from tmol.pack import SetPackerTask
-from tmol.pack.rotamer import ChiSampler
+from tmol.pack._packer_task import (
+    DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT,
+    DEFAULT_CHI_SAMPLE_LIMIT,
+)
+from tmol.pack.rotamer._chi_budget import (
+    apply_chi_sample_budget,
+    chi_depths,
+    sampler_for_task,
+)
+from tmol.pack.rotamer._single_residue_kinforest import (
+    construct_single_residue_kinforest,
+)
+from tmol.pack.rotamer import ChiSampler, sc_roots_for_chis
 from tmol.score.na_torsion import (
     NaTorsionParams,
     N_PUCKER,
@@ -42,20 +56,6 @@ CHI_STEPS = {
 # a syn well deeper than this is too rare to be worth a rotamer
 MAX_SYN_WELL = 5.0
 
-# Sidechain root for each nucleotide proton chi. Normally the chi's pivot atom,
-# except for the 5'-OH: O5' roots the whole block, so the hydroxyl hydrogen
-# roots itself and everything upstream stays mainchain.
-NA_PROTON_CHI_ROOT = {"chi2": "O2'", "chi3": "HO5'", "chi4": "O3'"}
-
-
-def na_proton_chi_roots(rt):
-    """Sidechain roots for the proton chis a nucleotide actually samples."""
-    return tuple(
-        NA_PROTON_CHI_ROOT[cs.chi_dihedral]
-        for cs in rt.chi_samples
-        if cs.chi_dihedral in NA_PROTON_CHI_ROOT
-    )
-
 
 @attr.s(auto_attribs=True, frozen=True)
 class NaChiRotamerSampler(ChiSampler):
@@ -77,6 +77,9 @@ class NaChiRotamerSampler(ChiSampler):
     chi_sample_level: int = 0
     sample_syn: bool = True
     device: torch.device = torch.device("cpu")
+
+    chi_sample_expanded_limit: int = DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT
+    chi_sample_limit: int = DEFAULT_CHI_SAMPLE_LIMIT
 
     @classmethod
     def from_database(
@@ -112,46 +115,77 @@ class NaChiRotamerSampler(ChiSampler):
     def sampler_name(cls):
         return "NaChiRotamerSampler"
 
+    def _annotation_key(self):
+        # Keep only the most recent tables on each type/PBT, but validate all
+        # inputs to those tables. A different sampler must not inherit the
+        # first sampler's budget or chemical element assignments.
+        return (
+            self.chi_sample_expanded_limit,
+            self.chi_sample_limit,
+            tuple(sorted(self.element_for_atom_type.items())),
+        )
+
     @validate_args
     def annotate_residue_type(self, rt: RefinedResidueType):
-        if hasattr(rt, "na_chi_sampler_params"):
-            return
+        key = self._annotation_key()
+        if getattr(rt, "_na_chi_sampler_key", None) == key and hasattr(
+            rt, "na_chi_sampler_params"
+        ):
+            return rt.na_chi_sampler_params
         p = block_type_params(rt, self.element_for_atom_type)
         chi1 = rt.torsion_to_uaids.get("chi1")
         # the third atom of a torsion is the one whose dof carries it
         p["chi1_atom"] = -1 if chi1 is None else chi1[2][0]
+        # one residue at a time, so the budget is per residue: no grouping, but
+        #    the same limits the rest of the packer applies
+        # Protein/ligand chi must not enlarge this sampler's Cartesian product
+        # or padded tensors. Other samplers own those residues.
+        sampled = list(rt.chi_samples) if p["base"] >= 0 else []
+        if sampled:
+            construct_single_residue_kinforest(rt)
+            depths = chi_depths(
+                rt.residue_kinforest_data,
+                [rt.torsion_to_uaids[cs.chi_dihedral][2][0] for cs in sampled],
+            )
+            sampled = list(
+                apply_chi_sample_budget(
+                    sampled,
+                    depths,
+                    self.chi_sample_expanded_limit,
+                    self.chi_sample_limit,
+                )
+            )
         p["proton_chi"] = [
             (
                 int(samp.chi_dihedral[3:]) - 1,
                 rt.torsion_to_uaids[samp.chi_dihedral][2][0],
-                tuple(float(x) for x in samp.samples),
+                _expanded_samples(samp),
             )
-            for samp in rt.chi_samples
+            for samp in sampled
         ]
         setattr(rt, "na_chi_sampler_params", p)
+        setattr(rt, "_na_chi_sampler_key", key)
+        return p
 
     @validate_args
     def annotate_packed_block_types(self, packed_block_types: PackedBlockTypes):
-        if hasattr(packed_block_types, "na_chi_sampler_cache"):
-            return
-        for bt in packed_block_types.active_block_types:
-            self.annotate_residue_type(bt)
+        key = self._annotation_key()
+        if getattr(packed_block_types, "_na_chi_sampler_key", None) == key:
+            return packed_block_types.na_chi_sampler_cache
         bts = packed_block_types.active_block_types
-        n_chi = max(1 + len(bt.na_chi_sampler_params["proton_chi"]) for bt in bts)
+        params = [self.annotate_residue_type(bt) for bt in bts]
+        n_chi = max(1 + len(p["proton_chi"]) for p in params)
 
         def to_t(arr, dtype=torch.int32):
             return torch.tensor(arr, dtype=dtype, device=packed_block_types.device)
 
-        ring = numpy.stack([bt.na_chi_sampler_params["ring"] for bt in bts])
-        base = numpy.array([bt.na_chi_sampler_params["base"] for bt in bts])
+        ring = numpy.stack([p["ring"] for p in params])
+        base = numpy.array([p["base"] for p in params])
         chi_atom = numpy.full((len(bts), n_chi), -1, dtype=numpy.int32)
-        combos = [
-            _proton_combinations(bt.na_chi_sampler_params["proton_chi"]) for bt in bts
-        ]
+        combos = [_proton_combinations(p["proton_chi"]) for p in params]
         n_combos = numpy.array([len(c) for c in combos], dtype=numpy.int64)
         proton = numpy.zeros((len(bts), n_combos.max(), n_chi - 1), dtype=numpy.float32)
-        for i, bt in enumerate(bts):
-            p = bt.na_chi_sampler_params
+        for i, p in enumerate(params):
             if p["base"] < 0:
                 continue
             chi_atom[i, 0] = p["chi1_atom"]
@@ -170,40 +204,23 @@ class NaChiRotamerSampler(ChiSampler):
             n_chi=n_chi,
         )
         setattr(packed_block_types, "na_chi_sampler_cache", cache)
+        setattr(packed_block_types, "_na_chi_sampler_key", key)
+        return cache
 
     @validate_args
     def defines_rotamers_for_rt(self, rt: RefinedResidueType):
-        self.annotate_residue_type(rt)
-        return rt.na_chi_sampler_params["base"] >= 0
+        return self.annotate_residue_type(rt)["base"] >= 0
 
     def defines_rotamers_for_bts(
         self, pbt: PackedBlockTypes, bt_inds: Tensor[torch.int64]
     ) -> Tensor[torch.bool]:
-        self.annotate_packed_block_types(pbt)
-        return pbt.na_chi_sampler_cache["builds_bt"][bt_inds]
+        return self.annotate_packed_block_types(pbt)["builds_bt"][bt_inds]
 
     @validate_args
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
-        # long-term, it probably makes more sense to generate this programatically
-        # e.g., the pivot atom of the first chi(?)
-        # the base hangs off the glycosidic nitrogen, which chi1 rotates; each
-        # proton chi is rooted separately so that it has something downstream
-        chi1 = rt.torsion_to_uaids["chi1"]
-        return (rt.atoms[chi1[2][0]].name,) + na_proton_chi_roots(rt)
-
-    def _chi_sets(self, base, pucker):
-        """(anti, syn) chi values in degrees for one (base, pucker) pair."""
-        p = self.params
-        poly = int(polymer_index(torch.tensor(base)))
-        sdev = float(p.sdev_chi[poly])
-        steps = CHI_STEPS[self.chi_sample_level]
-        anti = float(p.chi_means[base, pucker])
-        chis = [anti + k * sdev for k in steps]
-        # syn rotamers RNA only (for now)
-        syn_ok = self.sample_syn and poly == POLYMER_IND["rna"]
-        if syn_ok and float(p.well_chi_syn[1, pucker, base]) <= MAX_SYN_WELL:
-            chis += [SYN_MEAN + k * sdev for k in steps]
-        return chis
+        return sc_roots_for_chis(
+            rt, ("chi1",) + tuple(cs.chi_dihedral for cs in rt.chi_samples)
+        )
 
     def _pucker_for_blocks(
         self,
@@ -212,9 +229,9 @@ class NaChiRotamerSampler(ChiSampler):
         pose_indices: Tensor[torch.int64][:],
         block_indices: Tensor[torch.int64][:],
         block_type_indices: Tensor[torch.int64][:],
+        cache,
     ) -> Tensor[torch.int64][:]:
         """Return the most likely input-sugar pucker for selected blocks."""
-        cache = pbt.na_chi_sampler_cache
         ring_local = cache["ring"][block_type_indices]
         offset = poses.block_coord_offset64[pose_indices, block_indices].unsqueeze(-1)
         ok = ring_local >= 0
@@ -238,9 +255,11 @@ class NaChiRotamerSampler(ChiSampler):
         Tensor[torch.int32][:, :],  # chi_defining_atom_for_rotamer
         Tensor[torch.float32][:, :],  # chi_for_rotamers
     ]:
+        configured, task = sampler_for_task(self, task)
+        if configured is not self:
+            return configured.sample_chi_for_poses(poses, task)
         pbt = poses.packed_block_types
-        self.annotate_packed_block_types(pbt)
-        cache = pbt.na_chi_sampler_cache
+        cache = self.annotate_packed_block_types(pbt)
 
         self_ind = task.conformer_sampler_index[id(self)]
         allowed = task.per_block_conformer_sampler_allowed[:, :, self_ind]
@@ -270,6 +289,7 @@ class NaChiRotamerSampler(ChiSampler):
                 unique_pose,
                 unique_block,
                 poses.block_type_ind64[unique_pose, unique_block],
+                cache,
             )
             pucker[active_gbt] = unique_pucker[inverse]
         base = cache["base"][task.cons_bt_block_type]
@@ -297,11 +317,21 @@ class NaChiRotamerSampler(ChiSampler):
             syn_ok = torch.zeros_like(syn_ok)
         n_modes = torch.where(syn_ok, 2, 1)
         n_combos = cache["n_combos"][bt_for_gbt]
-        n_rots_for_gbt = torch.where(
-            active, n_modes * n_steps * n_combos, torch.zeros_like(n_combos)
-        ).to(torch.int32)
+        # Preserve an out-of-range sentinel while bounding the int64 product.
+        # Chi levels have at most five steps and two modes. Narrow only after
+        # validating both the individual counts and their total.
+        bounded_combos = n_combos.clamp(-1, torch.iinfo(torch.int32).max + 1)
+        counts = torch.where(
+            active, n_modes * n_steps * bounded_combos, torch.zeros_like(n_combos)
+        )
 
-        n_rots = int(n_rots_for_gbt.sum())
+        from tmol.pack.rotamer._chi_budget import checked_sample_count
+
+        n_rots = checked_sample_count(
+            counts, self.chi_sample_expanded_limit, self.chi_sample_limit
+        )
+        n_rots_for_gbt = counts.to(torch.int32)
+
         if n_rots == 0:
             return (
                 n_rots_for_gbt,
@@ -310,8 +340,6 @@ class NaChiRotamerSampler(ChiSampler):
                 torch.zeros((0, n_chi), dtype=torch.float32, device=poses.device),
             )
 
-        counts = n_rots_for_gbt
-        # Reuse the synchronized total so these kernels need not infer it again.
         gbt_for_rotamer = torch.repeat_interleave(
             torch.arange(n_gbt, dtype=torch.int32, device=poses.device),
             counts,
@@ -342,7 +370,11 @@ class NaChiRotamerSampler(ChiSampler):
 
         rot_bt = bt_for_gbt[gbt_for_rotamer]
         chi = torch.cat(
-            [chi1.unsqueeze(-1), cache["proton"][rot_bt, combo_slot]], dim=-1
+            [
+                torch.deg2rad(chi1).unsqueeze(-1),
+                cache["proton"][rot_bt, combo_slot],
+            ],
+            dim=-1,
         )
         return (
             n_rots_for_gbt,
@@ -350,6 +382,16 @@ class NaChiRotamerSampler(ChiSampler):
             cache["chi_atom"][rot_bt],
             chi,
         )
+
+
+def _expanded_samples(samp):
+    """A proton chi's samples in radians, each with its expansions either side."""
+    values = []
+    for sample in samp.samples:
+        values.append(sample)
+        for expansion in samp.expansions:
+            values.extend((sample + expansion, sample - expansion))
+    return tuple(math.radians(float(v)) for v in values)
 
 
 def _proton_combinations(proton_chi):

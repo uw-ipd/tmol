@@ -506,7 +506,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     -> std::tuple<
         TPack<Real, 4, Dev>,
         TPack<Vec<Real, 3>, 2, Dev>,
-        TPack<Int, 3, Dev> > {
+        TPack<Int, 3, Dev>> {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
 
@@ -1143,6 +1143,80 @@ template <
     tmol::Device Dev,
     typename Real,
     typename Int>
+auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::rotamer_spheres(
+    ContextManager& mgr,
+    TView<Vec<Real, 3>, 1, Dev> rot_coords,
+    TView<Int, 1, Dev> rot_coord_offset,
+    TView<Int, 2, Dev> first_rot_block_type,
+    TView<Int, 1, Dev> block_type_ind_for_rot,
+    TView<Int, 2, Dev> n_rots_for_block,
+    TView<Int, 2, Dev> rot_offset_for_block,
+    TView<Int, 1, Dev> block_type_n_atoms)
+    -> std::tuple<TPack<Real, 2, Dev>, TPack<Real, 3, Dev>> {
+  auto rot_spheres = TPack<Real, 2, Dev>::empty({rot_coord_offset.size(0), 4});
+  auto block_spheres = TPack<Real, 3, Dev>::empty(
+      {first_rot_block_type.size(0), first_rot_block_type.size(1), 4});
+  score::common::sphere_overlap::
+      compute_rot_spheres<DeviceDispatch, Dev, Real, Int>::f(
+          mgr,
+          rot_coords,
+          rot_coord_offset,
+          block_type_ind_for_rot,
+          block_type_n_atoms,
+          rot_spheres.view);
+  score::common::sphere_overlap::
+      compute_block_spheres_from_rot_spheres<DeviceDispatch, Dev, Real, Int>::f(
+          mgr,
+          rot_spheres.view,
+          n_rots_for_block,
+          rot_offset_for_block,
+          block_spheres.view);
+  return {rot_spheres, block_spheres};
+}
+
+template <
+    template <tmol::Device> class DeviceDispatch,
+    tmol::Device Dev,
+    typename Real,
+    typename Int>
+auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
+    rotamer_dispatch_page(
+        ContextManager& mgr,
+        TView<Int, 2, Dev> first_rot_block_type,
+        TView<Real, 3, Dev> block_spheres,
+        TView<Int, 2, Dev> n_rots_for_block,
+        TView<Int, 2, Dev> rot_offset_for_block,
+        TView<Real, 2, Dev> rot_spheres,
+        TView<Int, 2, Dev> lockstep_group_for_block,
+        Real reach,
+        Int candidate_begin,
+        Int candidate_end) -> TPack<Int, 2, Dev> {
+  return score::common::sphere_overlap::
+      rot_neighbor_indices_from_block_neighbors<
+          DeviceDispatch,
+          Dev,
+          Real,
+          Int>::
+          f(mgr,
+            first_rot_block_type,
+            block_spheres,
+            n_rots_for_block,
+            rot_offset_for_block,
+            rot_spheres,
+            lockstep_group_for_block,
+            reach,
+            int64_t(candidate_begin),
+            // The shared window API is count-based; -1 means "to the end".
+            candidate_end < 0
+                ? int64_t(-1)
+                : int64_t(candidate_end) - int64_t(candidate_begin));
+}
+
+template <
+    template <tmol::Device> class DeviceDispatch,
+    tmol::Device Dev,
+    typename Real,
+    typename Int>
 auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     ContextManager& mgr,
     // common params
@@ -1158,6 +1232,9 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     TView<Int, 1, Dev> rot_offset_for_pose,
     TView<Int, 2, Dev> n_rots_for_block,
     TView<Int, 2, Dev> rot_offset_for_block,
+    // [n_poses, max_n_blocks]; blocks sharing an id >= 0 move in
+    // lockstep, so only matching rotamer indices ever coexist
+    TView<Int, 2, Dev> lockstep_group_for_block,
     Int max_n_rots_per_pose,
 
     // For determining which atoms to retrieve from neighboring
@@ -1229,7 +1306,7 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     -> std::tuple<
         TPack<Real, 2, Dev>,
         TPack<Vec<Real, 3>, 2, Dev>,
-        TPack<Int, 2, Dev> > {
+        TPack<Int, 2, Dev>> {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
 
@@ -1333,12 +1410,6 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
             : TPack<Real, 3, Dev>::empty({n_poses, max_n_blocks, 4});
     auto scratch_block_spheres = scratch_block_spheres_t.view;
 
-    auto scratch_block_neighbors_t =
-        Dev == Device::CPU
-            ? TPack<Int, 3, Dev>::zeros({n_poses, max_n_blocks, max_n_blocks})
-            : TPack<Int, 3, Dev>::empty({n_poses, max_n_blocks, max_n_blocks});
-    auto scratch_block_neighbors = scratch_block_neighbors_t.view;
-
     score::common::sphere_overlap::
         compute_rot_spheres<DeviceDispatch, Dev, Real, Int>::f(
             mgr,
@@ -1356,14 +1427,6 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
               rot_offset_for_block,
               scratch_block_spheres);
 
-    score::common::sphere_overlap::
-        detect_block_neighbors<DeviceDispatch, Dev, Real, Int>::f(
-            mgr,
-            first_rot_block_type,
-            scratch_block_spheres,
-            scratch_block_neighbors,
-            Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
-
     dispatch_indices_t = score::common::sphere_overlap::
         rot_neighbor_indices_from_block_neighbors<
             DeviceDispatch,
@@ -1371,10 +1434,12 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
             Real,
             Int>::
             f(mgr,
-              scratch_block_neighbors,
+              first_rot_block_type,
+              scratch_block_spheres,
               n_rots_for_block,
               rot_offset_for_block,
               scratch_rot_spheres,
+              lockstep_group_for_block,
               Real(5.5));
   }
 

@@ -162,7 +162,10 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           continue;
         }
 
-        const auto& params = global_params[0];
+        // one parameter row per block type; a d-amino acid's row carries
+        //    negated dihedral means
+        const auto& params1 = global_params[block_type1];
+        const auto& params2 = global_params[block_type2];
 
         int atom_offset1 = rot_coord_offset[rot_ind1];
         int atom_offset2 = rot_coord_offset[rot_ind2];
@@ -197,23 +200,19 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         int const Vind1 = output_block_pair_energies ? block_ind1 : 0;
         int const Vind2 = output_block_pair_energies ? block_ind2 : 0;
         // Calculate score and derivatives and put them in the out tensors
-        accumulate_disulfide_potential<Real, D>(
+        accumulate_disulfide<Real, D>(
             rot_coords,
-            pose_ind,
-            block_ind1,
             block1_CA_ind,
             block1_CB_ind,
             block1_S_ind,
-            block_ind2,
             block2_S_ind,
             block2_CB_ind,
             block2_CA_ind,
-
-            params,
-
-            output_block_pair_energies,
-            V[0][pose_ind][Vind1][Vind2],
-            dV_dx);
+            params1,
+            params2,
+            dV_dx,
+            Real(1),
+            &V[0][pose_ind][Vind1][Vind2]);
       }
     }
   });
@@ -327,7 +326,10 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
           continue;
         }
 
-        const auto& params = global_params[0];
+        // one parameter row per block type; a d-amino acid's row carries
+        //    negated dihedral means
+        const auto& params1 = global_params[block_type1];
+        const auto& params2 = global_params[block_type2];
 
         int atom_offset1 = rot_coord_offset[rot_ind1];
         int atom_offset2 = rot_coord_offset[rot_ind2];
@@ -356,21 +358,19 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
             + block_type_atom_downstream_of_conn[block_type2][conn_ind2][2];
 
         // Calculate score and derivatives and put them in the out tensors
-        accumulate_disulfide_derivs<Real, D>(
+        accumulate_disulfide<Real, D>(
             rot_coords,
-            block_ind1,
             block1_CA_ind,
             block1_CB_ind,
             block1_S_ind,
-            block_ind2,
             block2_S_ind,
             block2_CB_ind,
             block2_CA_ind,
-
-            params,
-
+            params1,
+            params2,
             dV_dx,
-            dTdV[0][pose_ind][block_ind1][block_ind2]);
+            dTdV[0][pose_ind][block_ind1][block_ind2],
+            nullptr);
       }
     }
   });
@@ -604,7 +604,10 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     int const block_type1 = block_type_ind_for_rot[rot_ind1];
     int const block_type2 = block_type_ind_for_rot[rot_ind2];
 
-    const auto& params = global_params[0];
+    // one parameter row per block type; a d-amino acid's row carries
+    //    negated dihedral means
+    const auto& params1 = global_params[block_type1];
+    const auto& params2 = global_params[block_type2];
 
     int atom_offset1 = rot_coord_offset[rot_ind1];
     int atom_offset2 = rot_coord_offset[rot_ind2];
@@ -641,23 +644,19 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         + block_type_atom_downstream_of_conn[block_type2][conn_ind2][2];
 
     // Calculate score and derivatives and put them in the out tensors
-    accumulate_disulfide_potential<Real, D>(
+    accumulate_disulfide<Real, D>(
         rot_coords,
-        pose_ind,
-        block_ind1,
         block1_CA_ind,
         block1_CB_ind,
         block1_S_ind,
-        block_ind2,
         block2_S_ind,
         block2_CB_ind,
         block2_CA_ind,
-
-        params,
-
-        output_block_pair_energies,
-        V[0][dispatch_ind],
-        dV_dx);
+        params1,
+        params2,
+        dV_dx,
+        Real(1),
+        &V[0][dispatch_ind]);
   });
   DeviceDispatch<D>::template forall<launch_t>(
       mgr, n_dispatch_total, eval_energies);
@@ -749,7 +748,10 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     int const block_type1 = block_type_ind_for_rot[rot_ind1];
     int const block_type2 = block_type_ind_for_rot[rot_ind2];
 
-    const auto& params = global_params[0];
+    // one parameter row per block type; a d-amino acid's row carries
+    //    negated dihedral means
+    const auto& params1 = global_params[block_type1];
+    const auto& params2 = global_params[block_type2];
 
     int atom_offset1 = rot_coord_offset[rot_ind1];
     int atom_offset2 = rot_coord_offset[rot_ind2];
@@ -780,21 +782,19 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
         + block_type_atom_downstream_of_conn[block_type2][conn_ind2][2];
 
     // Calculate score and derivatives and put them in the out tensors
-    accumulate_disulfide_derivs<Real, D>(
+    accumulate_disulfide<Real, D>(
         rot_coords,
-        block_ind1,
         block1_CA_ind,
         block1_CB_ind,
         block1_S_ind,
-        block_ind2,
         block2_S_ind,
         block2_CB_ind,
         block2_CA_ind,
-
-        params,
-
+        params1,
+        params2,
         dV_dx,
-        dTdV[0][dispatch_ind]);
+        dTdV[0][dispatch_ind],
+        nullptr);
   });
 
   DeviceDispatch<D>::template forall<launch_t>(

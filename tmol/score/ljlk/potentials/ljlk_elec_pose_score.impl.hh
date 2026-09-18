@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <type_traits>
+#include <vector>
 
 #include <moderngpu/operators.hxx>
 
@@ -266,13 +267,23 @@ TMOL_DEVICE_FUNC void store_score_totals(
     int tid,
     ScoringData<Real>& data,
     Shared& shared,
-    TView<Real, 4, D> output) {
+    TView<Real, 4, D> output,
+    double* cpu_pose_accum,
+    int n_outputs) {
+  // CPU workgroups execute serially, so thousands of small block-pair totals
+  // are rounded away in a large float pose total. Accumulate them in double and
+  // write back once, exactly as the unfused LJ/LK kernel does; without this the
+  // fused path (always taken for a single pose on CPU) is a hundredfold looser
+  // than the bound the term's own accumulation test asserts.
+  constexpr bool host_accumulate = (D == tmol::Device::CPU) && !rotamer_pairs;
   if constexpr (weighted) {
     Real const total = DeviceOperations<D>::template reduce_in_workgroup<nt>(
         data.total_weighted, shared, mgpu::plus_t<Real>());
     if (tid == 0) {
       if constexpr (rotamer_pairs) {
         output[0][0][0][data.output_ind] = total;
+      } else if constexpr (host_accumulate) {
+        cpu_pose_accum[data.pose_ind] += double(total);
       } else {
         accumulate<D, Real>::add(output[0][data.pose_ind][0][0], total);
       }
@@ -289,8 +300,13 @@ TMOL_DEVICE_FUNC void store_score_totals(
             data.total_elec, shared, mgpu::plus_t<Real>())};
     if (tid == 0) {
       for (int score_type = 0; score_type < 4; ++score_type) {
-        accumulate<D, Real>::add(
-            output[score_type][data.pose_ind][0][0], totals[score_type]);
+        if constexpr (host_accumulate) {
+          cpu_pose_accum[score_type * n_outputs + data.pose_ind] +=
+              double(totals[score_type]);
+        } else {
+          accumulate<D, Real>::add(
+              output[score_type][data.pose_ind][0][0], totals[score_type]);
+        }
       }
     }
   }
@@ -328,7 +344,7 @@ auto ljlk_elec_forward_impl(
     TView<Int, 1, D> block_type_n_interblock_bonds,
     TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
     TView<Int, 3, D> block_type_ljlk_path_distance,
-    TView<Int, 1, D> block_type_is_ligand_fragment,
+    TView<Int, 1, D> block_type_all_atoms_ligand_typed,
     TView<LJLKTypeParams<Real>, 1, D> ljlk_type_params,
     TView<LJGlobalParams<Real>, 1, D> ljlk_global_params,
     TView<Real, 2, D> block_type_partial_charge,
@@ -373,6 +389,11 @@ auto ljlk_elec_forward_impl(
                 {n_output_scores, 1, 1, compute_scores ? n_outputs : 0})
           : TPack<Real, 4, D>::zeros({n_output_scores, n_outputs, 1, 1});
   auto output = output_t.view;
+  std::vector<double> cpu_pose_totals;
+  if constexpr (D == tmol::Device::CPU && !rotamer_pairs) {
+    cpu_pose_totals.resize(n_output_scores * n_outputs, 0.0);
+  }
+  double* cpu_pose_accum = cpu_pose_totals.data();
   auto dV_dcoords_t =
       require_gradient ? TPack<Real3, 2, D>::zeros({n_output_scores, n_atoms})
                        : TPack<Real3, 2, D>::empty({n_output_scores, 0});
@@ -611,8 +632,8 @@ auto ljlk_elec_forward_impl(
                            int start2,
                            bool intra) {
       bool const crossover_3full =
-          block_type_is_ligand_fragment[data.r1.block_type]
-          && block_type_is_ligand_fragment[data.r2.block_type];
+          block_type_all_atoms_ligand_typed[data.r1.block_type]
+          && block_type_all_atoms_ligand_typed[data.r2.block_type];
       auto pair_score = ([=] TMOL_DEVICE_FUNC(
                              int pair_start1,
                              int pair_start2,
@@ -787,8 +808,13 @@ auto ljlk_elec_forward_impl(
       eval_pairs(data, start1, start2, true);
     });
 
+    // Both are named in the capture list rather than left to [=]: an extended
+    // __device__ lambda may not first-capture a variable inside a constexpr-if,
+    // and the only use of either below sits in one. ljlk_pose_score.impl.hh
+    // captures cpu_pose_accum the same way for the same reason.
     auto store_energies =
-        ([=] TMOL_DEVICE_FUNC(ScoringData<Real> & data, shared_mem_union & sm) {
+        ([=, cpu_pose_accum = cpu_pose_accum, n_outputs = n_outputs] TMOL_DEVICE_FUNC(
+             ScoringData<Real> & data, shared_mem_union & sm) {
           if constexpr (!require_gradient || !rotamer_pairs) {
             auto reduce = ([&](int tid) {
               store_score_totals<
@@ -796,7 +822,7 @@ auto ljlk_elec_forward_impl(
                   rotamer_pairs,
                   DeviceOperations,
                   D,
-                  score_nt>(tid, data, sm, output);
+                  score_nt>(tid, data, sm, output, cpu_pose_accum, n_outputs);
             });
             DeviceOperations<D>::template for_each_in_workgroup<score_nt>(
                 reduce);
@@ -875,6 +901,13 @@ auto ljlk_elec_forward_impl(
           n_poses,
           max_n_blocks,
           eval_intra);
+      if constexpr (D == tmol::Device::CPU && !rotamer_pairs) {
+        for (int term = 0; term < n_output_scores; ++term) {
+          for (int p = 0; p < n_outputs; ++p) {
+            output[term][p][0][0] = Real(cpu_pose_accum[term * n_outputs + p]);
+          }
+        }
+      }
       return {output_t, dV_dcoords_t};
     }
   }
@@ -898,6 +931,13 @@ auto ljlk_elec_forward_impl(
             n_poses,
             max_n_blocks,
             eval_neighbor);
+  }
+  if constexpr (D == tmol::Device::CPU && !rotamer_pairs) {
+    for (int term = 0; term < n_output_scores; ++term) {
+      for (int p = 0; p < n_outputs; ++p) {
+        output[term][p][0][0] = Real(cpu_pose_accum[term * n_outputs + p]);
+      }
+    }
   }
   return {output_t, dV_dcoords_t};
 }
@@ -929,7 +969,7 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     TView<Int, 1, D> block_type_n_interblock_bonds,
     TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
     TView<Int, 3, D> block_type_ljlk_path_distance,
-    TView<Int, 1, D> block_type_is_ligand_fragment,
+    TView<Int, 1, D> block_type_all_atoms_ligand_typed,
     TView<LJLKTypeParams<Real>, 1, D> ljlk_type_params,
     TView<LJGlobalParams<Real>, 1, D> ljlk_global_params,
     TView<Real, 2, D> block_type_partial_charge,
@@ -949,7 +989,7 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
       pose_stack_min_bond_separation, pose_stack_inter_block_bondsep,         \
       block_type_n_atoms, block_type_atom_types,                              \
       block_type_n_interblock_bonds, block_type_atoms_forming_chemical_bonds, \
-      block_type_ljlk_path_distance, block_type_is_ligand_fragment,           \
+      block_type_ljlk_path_distance, block_type_all_atoms_ligand_typed,       \
       ljlk_type_params, ljlk_global_params, block_type_partial_charge,        \
       block_type_elec_inter_repr_path_distance,                               \
       block_type_elec_intra_repr_path_distance, elec_global_params,           \
@@ -1015,7 +1055,7 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
         TView<Int, 1, D> block_type_n_interblock_bonds,
         TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
         TView<Int, 3, D> block_type_ljlk_path_distance,
-        TView<Int, 1, D> block_type_is_ligand_fragment,
+        TView<Int, 1, D> block_type_all_atoms_ligand_typed,
         TView<LJLKTypeParams<Real>, 1, D> ljlk_type_params,
         TView<LJGlobalParams<Real>, 1, D> ljlk_global_params,
         TView<Real, 2, D> block_type_partial_charge,
@@ -1036,7 +1076,7 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
       pose_stack_min_bond_separation, pose_stack_inter_block_bondsep,         \
       block_type_n_atoms, block_type_atom_types,                              \
       block_type_n_interblock_bonds, block_type_atoms_forming_chemical_bonds, \
-      block_type_ljlk_path_distance, block_type_is_ligand_fragment,           \
+      block_type_ljlk_path_distance, block_type_all_atoms_ligand_typed,       \
       ljlk_type_params, ljlk_global_params, block_type_partial_charge,        \
       block_type_elec_inter_repr_path_distance,                               \
       block_type_elec_intra_repr_path_distance, elec_global_params,           \
@@ -1080,6 +1120,67 @@ template <
     typename Real,
     typename Int>
 auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
+    build_rotamer_dispatch(
+        ContextManager& mgr,
+        TView<LJLKExternalVec<Real, 3>, 1, D> rot_coords,
+        TView<Int, 1, D> rot_coord_offset,
+        TView<Int, 2, D> first_rot_block_type,
+        TView<Int, 1, D> block_type_ind_for_rot,
+        TView<Int, 2, D> n_rots_for_block,
+        TView<Int, 2, D> rot_offset_for_block,
+        TView<Int, 2, D> lockstep_group_for_block,
+        TView<Int, 1, D> block_type_n_atoms,
+        Real max_dis,
+        int64_t candidate_begin,
+        int64_t candidate_count) -> TPack<Int, 2, D> {
+  int const n_rots = rot_coord_offset.size(0);
+  int const n_poses = first_rot_block_type.size(0);
+  int const max_n_blocks = first_rot_block_type.size(1);
+  auto scratch_rot_spheres_t = D == Device::CPU
+                                   ? TPack<Real, 2, D>::zeros({n_rots, 4})
+                                   : TPack<Real, 2, D>::empty({n_rots, 4});
+  auto scratch_block_spheres_t =
+      D == Device::CPU ? TPack<Real, 3, D>::zeros({n_poses, max_n_blocks, 4})
+                       : TPack<Real, 3, D>::empty({n_poses, max_n_blocks, 4});
+  score::common::sphere_overlap::
+      compute_rot_spheres<DeviceOperations, D, Real, Int>::f(
+          mgr,
+          rot_coords,
+          rot_coord_offset,
+          block_type_ind_for_rot,
+          block_type_n_atoms,
+          scratch_rot_spheres_t.view);
+  score::common::sphere_overlap::
+      compute_block_spheres_from_rot_spheres<DeviceOperations, D, Real, Int>::f(
+          mgr,
+          scratch_rot_spheres_t.view,
+          n_rots_for_block,
+          rot_offset_for_block,
+          scratch_block_spheres_t.view);
+  return score::common::sphere_overlap::
+      rot_neighbor_indices_from_block_neighbors<
+          DeviceOperations,
+          D,
+          Real,
+          Int>::
+          f(mgr,
+            first_rot_block_type,
+            scratch_block_spheres_t.view,
+            n_rots_for_block,
+            rot_offset_for_block,
+            scratch_rot_spheres_t.view,
+            lockstep_group_for_block,
+            max_dis,
+            candidate_begin,
+            candidate_count);
+}
+
+template <
+    template <tmol::Device> class DeviceOperations,
+    tmol::Device D,
+    typename Real,
+    typename Int>
+auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
     forward_weighted_rotamers(
         ContextManager& mgr,
         TView<LJLKExternalVec<Real, 3>, 1, D> rot_coords,
@@ -1094,6 +1195,7 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
         TView<Int, 1, D> rot_offset_for_pose,
         TView<Int, 2, D> n_rots_for_block,
         TView<Int, 2, D> rot_offset_for_block,
+        TView<Int, 2, D> lockstep_group_for_block,
         Int max_n_rots_per_pose,
         TView<Int, 3, D> pose_stack_min_bond_separation,
         TView<Int, 5, D> pose_stack_inter_block_bondsep,
@@ -1102,7 +1204,7 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
         TView<Int, 1, D> block_type_n_interblock_bonds,
         TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
         TView<Int, 3, D> block_type_ljlk_path_distance,
-        TView<Int, 1, D> block_type_is_ligand_fragment,
+        TView<Int, 1, D> block_type_all_atoms_ligand_typed,
         TView<LJLKTypeParams<Real>, 1, D> ljlk_type_params,
         TView<LJGlobalParams<Real>, 1, D> ljlk_global_params,
         TView<Real, 2, D> block_type_partial_charge,
@@ -1118,57 +1220,21 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
             TPack<Real, 4, D>,
             TPack<LJLKExternalVec<Real, 3>, 2, D>,
             TPack<Int, 2, D>> {
-  int const n_rots = rot_coord_offset.size(0);
-  int const n_poses = first_rot_for_block.size(0);
-  int const max_n_blocks = first_rot_for_block.size(1);
   TPack<Int, 2, D> rotamer_dispatch_indices;
   if (shared_dispatch_indices.size(0) == 3) {
     rotamer_dispatch_indices = shared_dispatch_indices;
   } else {
-    auto scratch_rot_spheres_t = D == Device::CPU
-                                     ? TPack<Real, 2, D>::zeros({n_rots, 4})
-                                     : TPack<Real, 2, D>::empty({n_rots, 4});
-    auto scratch_block_spheres_t =
-        D == Device::CPU ? TPack<Real, 3, D>::zeros({n_poses, max_n_blocks, 4})
-                         : TPack<Real, 3, D>::empty({n_poses, max_n_blocks, 4});
-    auto scratch_block_neighbors_t =
-        D == Device::CPU
-            ? TPack<Int, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks})
-            : TPack<Int, 3, D>::empty({n_poses, max_n_blocks, max_n_blocks});
-    score::common::sphere_overlap::
-        compute_rot_spheres<DeviceOperations, D, Real, Int>::f(
-            mgr,
-            rot_coords,
-            rot_coord_offset,
-            block_type_ind_for_rot,
-            block_type_n_atoms,
-            scratch_rot_spheres_t.view);
-    score::common::sphere_overlap::
-        compute_block_spheres_from_rot_spheres<DeviceOperations, D, Real, Int>::
-            f(mgr,
-              scratch_rot_spheres_t.view,
-              n_rots_for_block,
-              rot_offset_for_block,
-              scratch_block_spheres_t.view);
-    score::common::sphere_overlap::
-        detect_block_neighbors<DeviceOperations, D, Real, Int>::f(
-            mgr,
-            first_rot_block_type,
-            scratch_block_spheres_t.view,
-            scratch_block_neighbors_t.view,
-            max_dis);
-    rotamer_dispatch_indices = score::common::sphere_overlap::
-        rot_neighbor_indices_from_block_neighbors<
-            DeviceOperations,
-            D,
-            Real,
-            Int>::
-            f(mgr,
-              scratch_block_neighbors_t.view,
-              n_rots_for_block,
-              rot_offset_for_block,
-              scratch_rot_spheres_t.view,
-              max_dis);
+    rotamer_dispatch_indices = build_rotamer_dispatch(
+        mgr,
+        rot_coords,
+        rot_coord_offset,
+        first_rot_block_type,
+        block_type_ind_for_rot,
+        n_rots_for_block,
+        rot_offset_for_block,
+        lockstep_group_for_block,
+        block_type_n_atoms,
+        max_dis);
   }
   assert(
       output_gradients.size(0) == 0
@@ -1182,13 +1248,25 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
       pose_stack_min_bond_separation, pose_stack_inter_block_bondsep,         \
       block_type_n_atoms, block_type_atom_types,                              \
       block_type_n_interblock_bonds, block_type_atoms_forming_chemical_bonds, \
-      block_type_ljlk_path_distance, block_type_is_ligand_fragment,           \
+      block_type_ljlk_path_distance, block_type_all_atoms_ligand_typed,       \
       ljlk_type_params, ljlk_global_params, block_type_partial_charge,        \
       block_type_elec_inter_repr_path_distance,                               \
       block_type_elec_intra_repr_path_distance, elec_global_params,           \
       empty_compact_block_neighbors.view, rotamer_dispatch_indices.view,      \
       score_weights, output_gradients
   if (shared_dispatch_indices.size(0) == 3) {
+    if (output_gradients.size(0) == 0) {
+      auto result = ljlk_elec_forward_impl<
+          false,
+          true,
+          true,
+          DeviceOperations,
+          D,
+          Real,
+          Int>(TMOL_LJLK_ELEC_WEIGHTED_ROTAMER_ARGS);
+      return {
+          std::get<0>(result), std::get<1>(result), rotamer_dispatch_indices};
+    }
     auto result = ljlk_elec_forward_impl<
         true,
         true,

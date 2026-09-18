@@ -1,6 +1,8 @@
 #include <torch/torch.h>
 #include <torch/script.h>
 
+#include <limits>
+
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
@@ -392,6 +394,7 @@ class HBondRotamerScoresOp
       Tensor rot_offset_for_pose,
       Tensor n_rots_for_block,
       Tensor rot_offset_for_block,
+      Tensor lockstep_group_for_block,
       int64_t max_n_rots_per_pose,
 
       // term specific params
@@ -459,6 +462,7 @@ class HBondRotamerScoresOp
                       TCAST(rot_offset_for_pose),
                       TCAST(n_rots_for_block),
                       TCAST(rot_offset_for_block),
+                      TCAST(lockstep_group_for_block),
                       max_n_rots_per_pose,
 
                       // term specific params
@@ -708,16 +712,9 @@ class HBondRotamerScoresOp
           }));
     }
 
-    return {dV_d_pose_coords, torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor()};
+    tensor_list gradients(39);
+    gradients[0] = dV_d_pose_coords;
+    return gradients;
   }
 };
 
@@ -843,6 +840,7 @@ std::vector<Tensor> hbond_rotamer_scores_op(
     Tensor rot_offset_for_pose,
     Tensor n_rots_for_block,
     Tensor rot_offset_for_block,
+    Tensor lockstep_group_for_block,
     int64_t max_n_rots_per_pose,
 
     // term specific params
@@ -895,6 +893,7 @@ std::vector<Tensor> hbond_rotamer_scores_op(
       rot_offset_for_pose,
       n_rots_for_block,
       rot_offset_for_block,
+      lockstep_group_for_block,
       max_n_rots_per_pose,
 
       // term specific params
@@ -948,6 +947,7 @@ std::vector<Tensor> hbond_rotamer_scores_shared_op(
     Tensor rot_offset_for_pose,
     Tensor n_rots_for_block,
     Tensor rot_offset_for_block,
+    Tensor lockstep_group_for_block,
     int64_t max_n_rots_per_pose,
     Tensor pose_stack_inter_residue_connections,
     Tensor pose_stack_min_bond_separation,
@@ -997,6 +997,7 @@ std::vector<Tensor> hbond_rotamer_scores_shared_op(
       rot_offset_for_pose,
       n_rots_for_block,
       rot_offset_for_block,
+      lockstep_group_for_block,
       max_n_rots_per_pose,
       pose_stack_inter_residue_connections,
       pose_stack_min_bond_separation,
@@ -1093,6 +1094,78 @@ std::vector<Tensor> gen_hbond_bases_op(
   return {derived_coords, derived_atom_inds};
 }
 
+template <template <tmol::Device> class DispatchMethod>
+std::vector<Tensor> hbond_rotamer_spheres_op(
+    Tensor rot_coords,
+    Tensor rot_coord_offset,
+    Tensor first_rot_block_type,
+    Tensor block_type_ind_for_rot,
+    Tensor n_rots_for_block,
+    Tensor rot_offset_for_block,
+    Tensor block_type_n_atoms) {
+  Tensor rot_spheres;
+  Tensor block_spheres;
+  using Int = int32_t;
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      rot_coords.options(), "hbond_rotamer_spheres", ([&] {
+        using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+        auto result =
+            HBondRotamerScoreDispatch<DispatchMethod, Dev, Real, Int>::
+                rotamer_spheres(
+                    mgr,
+                    TCAST(rot_coords),
+                    TCAST(rot_coord_offset),
+                    TCAST(first_rot_block_type),
+                    TCAST(block_type_ind_for_rot),
+                    TCAST(n_rots_for_block),
+                    TCAST(rot_offset_for_block),
+                    TCAST(block_type_n_atoms));
+        rot_spheres = std::get<0>(result).tensor;
+        block_spheres = std::get<1>(result).tensor;
+      }));
+  return {rot_spheres, block_spheres};
+}
+
+template <template <tmol::Device> class DispatchMethod>
+Tensor hbond_rotamer_dispatch_page_op(
+    Tensor first_rot_block_type,
+    Tensor block_spheres,
+    Tensor n_rots_for_block,
+    Tensor rot_offset_for_block,
+    Tensor rot_spheres,
+    Tensor lockstep_group_for_block,
+    double reach,
+    int64_t candidate_begin,
+    int64_t candidate_end) {
+  Tensor dispatch_indices;
+  using Int = int32_t;
+  TORCH_CHECK(
+      candidate_begin >= 0 && candidate_end >= candidate_begin
+          && candidate_end <= std::numeric_limits<Int>::max(),
+      "invalid hydrogen-bond rotamer dispatch candidate range");
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      block_spheres.options(), "hbond_rotamer_dispatch_page", ([&] {
+        using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+        dispatch_indices =
+            HBondRotamerScoreDispatch<DispatchMethod, Dev, Real, Int>::
+                rotamer_dispatch_page(
+                    mgr,
+                    TCAST(first_rot_block_type),
+                    TCAST(block_spheres),
+                    TCAST(n_rots_for_block),
+                    TCAST(rot_offset_for_block),
+                    TCAST(rot_spheres),
+                    TCAST(lockstep_group_for_block),
+                    Real(reach),
+                    static_cast<Int>(candidate_begin),
+                    static_cast<Int>(candidate_end))
+                    .tensor;
+      }));
+  return dispatch_indices;
+}
+
 // See https://stackoverflow.com/a/3221914
 TORCH_LIBRARY(tmol_hbond, m) {
   // Preserve the inferred positional argument names for existing callers.
@@ -1112,6 +1185,12 @@ TORCH_LIBRARY(tmol_hbond, m) {
   m.def(
       "hbond_rotamer_scores_shared",
       &hbond_rotamer_scores_shared_op<common::DeviceOperations>);
+  m.def(
+      "hbond_rotamer_spheres",
+      &hbond_rotamer_spheres_op<common::DeviceOperations>);
+  m.def(
+      "hbond_rotamer_dispatch_page",
+      &hbond_rotamer_dispatch_page_op<common::DeviceOperations>);
   m.def("gen_hbond_bases", &gen_hbond_bases_op);
 }
 

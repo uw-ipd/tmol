@@ -188,17 +188,15 @@ TMol separates canonical database concerns:
 
 TMol's versioned `.tmol` YAML bundles ligand additions to those three domains. A
 {class}`tmol.ligand.LigandPreparation`
-contains the residue definition, partial charges, and cartbonded parameters,
-and the supported {func}`tmol.ligand.write_params_file`
-can emit either format from one preparation. The Rosetta writer emits
-`BOND_TYPE` records and writes partial charges in `ATOM` records, but the two
-outputs are not equivalent parameterizations.
+contains the residue definition, partial charges, and cartbonded parameters, and
+{func}`tmol.ligand.write_params_file` serializes one to `.tmol`.
 
-The Rosetta reader is intentionally partial: it recognizes `NAME`, `ATOM`,
-`BOND`/`BOND_TYPE`, `CHI`, `PROTON_CHI`, `NBR_ATOM`, and `ICOOR_INTERNAL`, but
-ignores other records and drops the charge values on `ATOM` lines. It cannot
-reconstruct the `.tmol` electrostatic and cartbonded sections, so arbitrary
-`.params` to `.tmol` conversion is not general or lossless.
+`.tmol` is TMol's only parameter format: TMol neither reads nor writes Rosetta
+`.params`. The two formats carry different content -- `.params` is a single
+line-oriented residue record, while `.tmol` bundles chemistry, electrostatics,
+and cartbonded parameters together -- so no general or lossless conversion
+exists in either direction. Parameterize a ligand for Rosetta with a
+Rosetta-native workflow, and for TMol with the ligand preparation pipeline.
 
 These facilities support preparation, registration, scoring, local pocket
 repacking, and Cartesian refinement. They do not provide native ligand docking,
@@ -212,6 +210,47 @@ batch, and locally minimizes three diagnostic states. Its score-versus-RMSD
 analysis resembles a docking funnel diagnostic, but the workflow performs no
 global pose search, decoy generation protocol, separated-state calculation, or
 affinity prediction.
+
+## Noncanonical, modified, and covalently linked residues
+
+Rosetta parameterizes a noncanonical amino acid in separate, largely manual
+steps, each with its own tool: build an acetylated, N-methylamidated form and
+optimize it quantum-mechanically, convert it with OpenBabel, annotate the
+molfile with `POLY_N_BB`, `POLY_CA_BB`, `POLY_UPPER`, `POLY_LOWER` and friends,
+and run
+[`molfile_to_params_polymer.py`](https://docs.rosettacommons.org/docs/latest/rosetta_basics/non_protein_residues/Noncanonical-Amino-Acids);
+then generate a backbone-dependent rotamer library with
+[`MakeRotLib`](https://docs.rosettacommons.org/demos/latest/public/make_rot_lib/README);
+then compute reference energies with the
+[unfolded state energy calculator](https://docs.rosettacommons.org/demos/latest/public/unfolded_state_energy_calculator/README),
+or borrow a canonical's via `BACKBONE_AA`. The
+[NCAA design demo](https://docs.rosettacommons.org/demos/latest/public/design_with_ncaa/README)
+walks the whole sequence.
+
+TMol derives the same content from the structure. {func}`tmol.ligand.prepare_ligands`,
+or `prepare_ligands=True` on the IO entry points, reads a residue the database
+does not describe and produces its residue type, partial charges, cartbonded
+parameters, and chi sampling together, as one `.tmol` bundle. The backbone is
+inferred from the chemistry rather than declared: a residue is recognized as an
+alpha, beta, gamma, D, or nucleic backbone by its own connectivity, so a
+modified residue, a post-translational modification, a D-amino acid, a glycan, a
+modified nucleotide, and a covalent conjugate all enter by the same path.
+
+Two consequences are worth stating plainly:
+
+- There is no separate rotamer-library build. Sampling for a prepared residue
+  comes from its own chemistry, and a conjugated group is sampled coherently
+  with its partner rather than independently.
+- There is no unfolded-state reference-energy step, and no `BACKBONE_AA`
+  analogue to borrow one. TMol's reference term covers the canonical residues;
+  a design calculation that needs a reference energy for a prepared residue does
+  not have one, so sequence-design comparisons against Rosetta are not
+  like-for-like.
+
+What TMol does not have: Rosetta's NCAA design protocol layer, `MakeRotLib`'s
+explicit well/centroid control, and the mature peptidomimetic protocols built on
+them, such as
+[protein-peptide interface design with NCAAs](https://docs.rosettacommons.org/demos/latest/public/using_ncaas_protein_peptide_interface_design/README).
 
 ## GPU batching and external orchestration
 
