@@ -84,6 +84,7 @@ def test_exclusive_cumsums_preserve_values_and_dtype(torch_device, dtype):
     expected = torch.tensor([[0, 3, 2], [0, 0, 2]], dtype=dtype, device=torch_device)
     expected_totals = torch.tensor([6, 7], dtype=dtype, device=torch_device)
 
+    torch.testing.assert_close(exclusive_cumsum1d(values[0]), expected[0])
     torch.testing.assert_close(exclusive_cumsum2d(values), expected)
     actual, totals = exclusive_cumsum2d_and_totals(values)
     torch.testing.assert_close(actual, expected)

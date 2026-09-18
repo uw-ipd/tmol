@@ -115,7 +115,7 @@ def test_get_named_torsions_no_args_returns_all_poses_and_blocks(torch_device):
 def test_get_named_torsions_ideal_backbone_correct(torch_device):
     """Backbone torsions of an extended-conformation pose are at their target values."""
     pose_stack = extended_pose_stack_from_sequences("AKLFG", device=torch_device)
-    targets = EXTENDED_BACKBONE_TORSIONS["alpha"]
+    targets = EXTENDED_BACKBONE_TORSIONS["alpha_aa"]
     # LYS (block 1) is interior; phi, psi, and omega are all resolvable
     measured = get_named_torsions(pose_stack, 0, 1)
     for name, target in targets.items():
