@@ -14,6 +14,7 @@
 
 #include "annealer.hh"
 #include "simulated_annealing.hh"
+#include "streaming_interaction_graph.hh"
 
 namespace tmol {
 namespace pack {
@@ -50,7 +51,9 @@ std::vector<Tensor> build_interaction_graph(
 
   at::Tensor bg_bg_energies;
   at::Tensor energy1b;
-  at::Tensor chunk_pair_offset_for_block_pair;
+  at::Tensor neighbor_row_offsets;
+  at::Tensor neighbor_blocks;
+  at::Tensor neighbor_chunk_offset_offsets;
   at::Tensor chunk_pair_offset;
   at::Tensor energy2b;
 
@@ -93,9 +96,11 @@ std::vector<Tensor> build_interaction_graph(
         bc_rot_to_orig_rot = std::get<8>(result).tensor;
         bg_bg_energies = std::get<9>(result).tensor;
         energy1b = std::get<10>(result).tensor;
-        chunk_pair_offset_for_block_pair = std::get<11>(result).tensor;
-        chunk_pair_offset = std::get<12>(result).tensor;
-        energy2b = std::get<13>(result).tensor;
+        neighbor_row_offsets = std::get<11>(result).tensor;
+        neighbor_blocks = std::get<12>(result).tensor;
+        neighbor_chunk_offset_offsets = std::get<13>(result).tensor;
+        chunk_pair_offset = std::get<14>(result).tensor;
+        energy2b = std::get<15>(result).tensor;
       }));
   std::vector<torch::Tensor> result(
       {max_n_bump_checked_rotamers_per_pose,
@@ -109,10 +114,206 @@ std::vector<Tensor> build_interaction_graph(
        bc_rot_to_orig_rot,
        bg_bg_energies,
        energy1b,
-       chunk_pair_offset_for_block_pair,
+       neighbor_row_offsets,
+       neighbor_blocks,
+       neighbor_chunk_offset_offsets,
        chunk_pair_offset,
        energy2b});
   return result;
+}
+
+std::vector<Tensor> initialize_interaction_graph_topology(
+    Tensor n_rots_for_block,
+    Tensor n_bc_rots_for_molten_block,
+    Tensor energy_template) {
+  std::vector<Tensor> result;
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      energy_template.options(), "pack_initialize_ig_topology", ([&] {
+        constexpr tmol::Device Dev = device_t;
+        auto topology = StreamingInteractionGraph<
+            score::common::DeviceOperations,
+            Dev,
+            scalar_t,
+            int64_t>::
+            initialize(
+                mgr,
+                TCAST(n_rots_for_block),
+                TCAST(n_bc_rots_for_molten_block));
+        result = {std::get<0>(topology).tensor, std::get<1>(topology).tensor};
+      }));
+  return result;
+}
+
+std::vector<Tensor> note_interaction_graph_topology(
+    Tensor block_ind_for_rot,
+    Tensor orig_block_to_molten,
+    Tensor block_adjacency,
+    Tensor sparse_inds,
+    Tensor energy_template) {
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      energy_template.options(), "pack_note_ig_topology", ([&] {
+        constexpr tmol::Device Dev = device_t;
+        StreamingInteractionGraph<
+            score::common::DeviceOperations,
+            Dev,
+            scalar_t,
+            int64_t>::
+            note(
+                mgr,
+                TCAST(block_ind_for_rot),
+                TCAST(orig_block_to_molten),
+                TCAST(block_adjacency),
+                TCAST(sparse_inds));
+      }));
+  return {block_adjacency};
+}
+
+std::vector<Tensor> finalize_interaction_graph_topology(
+    int64_t const chunk_size,
+    Tensor n_bc_rots_for_molten_block,
+    Tensor block_adjacency,
+    Tensor energy_template) {
+  std::vector<Tensor> result;
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      energy_template.options(), "pack_finalize_ig_topology", ([&] {
+        constexpr tmol::Device Dev = device_t;
+        auto topology = StreamingInteractionGraph<
+            score::common::DeviceOperations,
+            Dev,
+            scalar_t,
+            int64_t>::
+            finalize(
+                mgr,
+                chunk_size,
+                TCAST(n_bc_rots_for_molten_block),
+                TCAST(block_adjacency));
+        result = {
+            std::get<0>(topology).tensor,
+            std::get<1>(topology).tensor,
+            std::get<2>(topology).tensor,
+            std::get<3>(topology).tensor,
+            std::get<4>(topology).tensor};
+      }));
+  return result;
+}
+
+std::vector<Tensor> note_interaction_graph_chunk_topology(
+    int64_t const chunk_size,
+    Tensor n_rots_for_block,
+    Tensor rot_offset_for_block,
+    Tensor block_ind_for_rot,
+    Tensor orig_block_to_molten,
+    Tensor n_bc_rots_for_molten_block,
+    Tensor neighbor_row_offsets,
+    Tensor neighbor_blocks,
+    Tensor neighbor_chunk_bitset_offsets,
+    Tensor chunk_adjacency,
+    Tensor sparse_inds,
+    Tensor energy_template) {
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      energy_template.options(), "pack_note_ig_chunk_topology", ([&] {
+        constexpr tmol::Device Dev = device_t;
+        StreamingInteractionGraph<
+            score::common::DeviceOperations,
+            Dev,
+            scalar_t,
+            int64_t>::
+            note_chunks(
+                mgr,
+                chunk_size,
+                TCAST(n_rots_for_block),
+                TCAST(rot_offset_for_block),
+                TCAST(block_ind_for_rot),
+                TCAST(orig_block_to_molten),
+                TCAST(n_bc_rots_for_molten_block),
+                TCAST(neighbor_row_offsets),
+                TCAST(neighbor_blocks),
+                TCAST(neighbor_chunk_bitset_offsets),
+                TCAST(chunk_adjacency),
+                TCAST(sparse_inds));
+      }));
+  return {chunk_adjacency};
+}
+
+std::vector<Tensor> finalize_interaction_graph_chunk_topology(
+    int64_t const chunk_size,
+    Tensor n_bc_rots_for_molten_block,
+    Tensor neighbor_row_offsets,
+    Tensor neighbor_blocks,
+    Tensor neighbor_chunk_offset_offsets,
+    Tensor neighbor_chunk_bitset_offsets,
+    Tensor chunk_adjacency,
+    Tensor energy_template) {
+  std::vector<Tensor> result;
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      energy_template.options(), "pack_finalize_ig_chunk_topology", ([&] {
+        constexpr tmol::Device Dev = device_t;
+        auto topology = StreamingInteractionGraph<
+            score::common::DeviceOperations,
+            Dev,
+            scalar_t,
+            int64_t>::
+            finalize_chunks(
+                mgr,
+                chunk_size,
+                TCAST(n_bc_rots_for_molten_block),
+                TCAST(neighbor_row_offsets),
+                TCAST(neighbor_blocks),
+                TCAST(neighbor_chunk_offset_offsets),
+                TCAST(neighbor_chunk_bitset_offsets),
+                TCAST(chunk_adjacency));
+        result = {std::get<0>(topology).tensor, std::get<1>(topology).tensor};
+      }));
+  return result;
+}
+
+std::vector<Tensor> accumulate_interaction_graph_entries(
+    int64_t const chunk_size,
+    Tensor n_rots_for_block,
+    Tensor rot_offset_for_block,
+    Tensor block_ind_for_rot,
+    Tensor orig_block_to_molten,
+    Tensor rotamer_for_nonmolten_block,
+    Tensor n_bc_rots_for_molten_block,
+    Tensor bc_rot_offset_for_molten_block,
+    Tensor neighbor_row_offsets,
+    Tensor neighbor_blocks,
+    Tensor neighbor_chunk_offset_offsets,
+    Tensor chunk_offsets,
+    Tensor bg_bg_energies,
+    Tensor energy1b,
+    Tensor energy2b,
+    Tensor sparse_inds,
+    Tensor sparse_energies) {
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      sparse_energies.options(), "pack_accumulate_ig_entries", ([&] {
+        constexpr tmol::Device Dev = device_t;
+        StreamingInteractionGraph<
+            score::common::DeviceOperations,
+            Dev,
+            scalar_t,
+            int64_t>::
+            accumulate(
+                mgr,
+                chunk_size,
+                TCAST(n_rots_for_block),
+                TCAST(rot_offset_for_block),
+                TCAST(block_ind_for_rot),
+                TCAST(orig_block_to_molten),
+                TCAST(rotamer_for_nonmolten_block),
+                TCAST(n_bc_rots_for_molten_block),
+                TCAST(bc_rot_offset_for_molten_block),
+                TCAST(neighbor_row_offsets),
+                TCAST(neighbor_blocks),
+                TCAST(neighbor_chunk_offset_offsets),
+                TCAST(chunk_offsets),
+                TCAST(bg_bg_energies),
+                TCAST(energy1b),
+                TCAST(energy2b),
+                TCAST(sparse_inds),
+                TCAST(sparse_energies));
+      }));
+  return {bg_bg_energies, energy1b, energy2b};
 }
 
 std::vector<Tensor> anneal(
@@ -124,7 +325,9 @@ std::vector<Tensor> anneal(
     Tensor oneb_offsets,
     Tensor res_for_rot,
     int64_t chunk_size,
-    Tensor chunk_offset_offsets,
+    Tensor neighbor_row_offsets,
+    Tensor neighbor_blocks,
+    Tensor neighbor_chunk_offset_offsets,
     Tensor chunk_offsets,
     Tensor energy1b,
     Tensor energy2b) {
@@ -145,7 +348,9 @@ std::vector<Tensor> anneal(
                                       TCAST(oneb_offsets),
                                       TCAST(res_for_rot),
                                       chunk_size,
-                                      TCAST(chunk_offset_offsets),
+                                      TCAST(neighbor_row_offsets),
+                                      TCAST(neighbor_blocks),
+                                      TCAST(neighbor_chunk_offset_offsets),
                                       TCAST(chunk_offsets),
                                       TCAST(energy1b),
                                       TCAST(energy2b));
@@ -162,7 +367,9 @@ TPack<float, 2, tmol::Device::CPU> compute_energies_for_assignments(
     TView<int, 2, tmol::Device::CPU> n_rotamers_for_res,
     TView<int, 2, tmol::Device::CPU> oneb_offsets,
     int32_t chunk_size,
-    TView<int64_t, 3, tmol::Device::CPU> chunk_offset_offsets,
+    TView<int64_t, 1, tmol::Device::CPU> neighbor_row_offsets,
+    TView<int32_t, 1, tmol::Device::CPU> neighbor_blocks,
+    TView<int64_t, 1, tmol::Device::CPU> neighbor_chunk_offset_offsets,
     TView<int64_t, 1, tmol::Device::CPU> chunk_offsets,
     TView<float, 1, tmol::Device::CPU> energy1b,
     TView<float, 1, tmol::Device::CPU> energy2b,
@@ -177,7 +384,11 @@ TPack<float, 2, tmol::Device::CPU> compute_energies_for_assignments(
           n_rotamers_for_res[pose],
           oneb_offsets[pose],
           chunk_size,
-          chunk_offset_offsets[pose],
+          pose,
+          n_rotamers_for_res.size(1),
+          neighbor_row_offsets,
+          neighbor_blocks,
+          neighbor_chunk_offset_offsets,
           chunk_offsets,
           energy1b,
           energy2b,
@@ -191,7 +402,9 @@ torch::Tensor validate_energies(
     Tensor nrotamers_for_res,
     Tensor oneb_offsets,
     int64_t chunk_size,
-    Tensor chunk_offset_offsets,
+    Tensor neighbor_row_offsets,
+    Tensor neighbor_blocks,
+    Tensor neighbor_chunk_offset_offsets,
     Tensor chunk_offsets,
     Tensor energy1b,
     Tensor energy2b,
@@ -200,7 +413,9 @@ torch::Tensor validate_energies(
       TCAST(nrotamers_for_res),
       TCAST(oneb_offsets),
       int32_t(chunk_size),
-      TCAST(chunk_offset_offsets),
+      TCAST(neighbor_row_offsets),
+      TCAST(neighbor_blocks),
+      TCAST(neighbor_chunk_offset_offsets),
       TCAST(chunk_offsets),
       TCAST(energy1b),
       TCAST(energy2b),
@@ -213,6 +428,22 @@ TORCH_LIBRARY(tmol_pack, m) {
   m.def("pack_anneal", &anneal);
   m.def("validate_energies", &validate_energies);
   m.def("build_interaction_graph", &build_interaction_graph);
+  m.def(
+      "initialize_interaction_graph_topology",
+      &initialize_interaction_graph_topology);
+  m.def("note_interaction_graph_topology", &note_interaction_graph_topology);
+  m.def(
+      "finalize_interaction_graph_topology",
+      &finalize_interaction_graph_topology);
+  m.def(
+      "note_interaction_graph_chunk_topology",
+      &note_interaction_graph_chunk_topology);
+  m.def(
+      "finalize_interaction_graph_chunk_topology",
+      &finalize_interaction_graph_chunk_topology);
+  m.def(
+      "accumulate_interaction_graph_entries",
+      &accumulate_interaction_graph_entries);
 }
 
 }  // namespace compiled

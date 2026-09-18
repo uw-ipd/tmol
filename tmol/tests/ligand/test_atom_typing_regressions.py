@@ -1,9 +1,7 @@
 """Regression tests for ligand atom typing and bond-order correction helpers."""
 
 import math
-from types import SimpleNamespace
 
-import numpy as np
 from rdkit import Chem
 
 from tmol.ligand import (
@@ -22,7 +20,6 @@ from tmol.ligand import (
     _modify_polar_c,
     _get_hyb,
     sanitize_tolerant,
-    ligand_atom_array_to_rdkit_mol,
     build_residue_type,
 )
 
@@ -532,36 +529,6 @@ def test_classify_n2_protonated_formal_charge_maps_to_nam2() -> None:
     assert _classify_N(n_atom, mol, state) == "Nam2"
 
 
-def test_ligand_atom_array_allows_passthrough_unknown_bond_type(monkeypatch) -> None:
-    """Unknown bond-type codes pass through atom-array to RDKit conversion."""
-
-    class _FakeBondTable:
-        def __init__(self, rows):
-            self._rows = np.array(rows, dtype=int)
-
-        def get_bond_count(self):
-            return len(self._rows)
-
-        def as_array(self):
-            return self._rows
-
-    class _FakeAtomArray:
-        def __init__(self):
-            self.bonds = _FakeBondTable([[0, 1, 99], [1, 2, 2]])
-            self.element = np.array(["C", "C", "C"], dtype=object)
-
-        def __len__(self):
-            return len(self.element)
-
-    monkeypatch.setattr(
-        "tmol.ligand._rdkit_mol.to_mol",
-        lambda _aa: Chem.MolFromSmiles("CCC"),
-    )
-    ligand_info = SimpleNamespace(res_name="LG1", atom_array=_FakeAtomArray())
-    mol = ligand_atom_array_to_rdkit_mol(ligand_info)
-    assert mol.GetNumAtoms() == 3
-
-
 def test_conjugated_single_bond_skips_biaryl_like_ring_pivot() -> None:
     """Conjugation promotion skips the biaryl pivot bond between aromatic rings."""
     mol = Chem.MolFromSmiles("c1ccccc1-c2ccccc2")
@@ -592,7 +559,9 @@ def test_large_ring_bonds_keep_ring_flag_in_residue_type() -> None:
         AtomTypeAssignment(atom_name=f"C{i + 1}", atom_type="CS3", element="C", index=i)
         for i in range(mol.GetNumAtoms())
     ]
-    restype = build_residue_type(mol, "LG1", atom_types)
+    restype = build_residue_type(
+        mol, "LG1", atom_types, typing_state=_build_rosetta_typing_state(mol)
+    )
     assert all(not b[3] for b in restype.bonds)
 
 

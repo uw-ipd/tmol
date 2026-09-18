@@ -41,11 +41,16 @@ def apply_disambiguated_mol2_names(mol: Chem.Mol) -> list[str]:
     """
     seen: dict[str, int] = {}
     names: list[str] = []
-    for atom in mol.GetAtoms():
-        idx = atom.GetIdx()
-        raw = _raw_tripos_atom_name(atom, idx)
+    raw_names = [_raw_tripos_atom_name(a, a.GetIdx()) for a in mol.GetAtoms()]
+    reserved = set(raw_names)
+    used = set()
+    for atom, raw in zip(mol.GetAtoms(), raw_names):
         seen[raw] = seen.get(raw, 0) + 1
         name = disambiguate_mol2_atom_name(raw, seen[raw])
+        while name in used or (seen[raw] > 1 and name in reserved):
+            seen[raw] += 1
+            name = disambiguate_mol2_atom_name(raw, seen[raw])
+        used.add(name)
         atom.SetProp("_TriposAtomName", name)
         names.append(name)
     return names

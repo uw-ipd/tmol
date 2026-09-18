@@ -52,9 +52,11 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
         TPack<int64_t, 2, D>,    // rotamer_for_nonmolten_block
         TPack<int64_t, 1, D>,    // bc_rot_to_orig_rot
 
-        TPack<Real, 1, D>,  // bg/bg energies
-        TPack<Real, 1, D>,  // energy1b
-        TPack<int64_t, 3, D>,
+        TPack<Real, 1, D>,     // bg/bg energies
+        TPack<Real, 1, D>,     // energy1b
+        TPack<int64_t, 1, D>,  // neighbor row offsets
+        TPack<int32_t, 1, D>,  // neighbor blocks
+        TPack<int64_t, 1, D>,  // chunk offsets for neighbor block pairs
         TPack<int64_t, 1, D>,
         TPack<Real, 1, D> >  // energy2b
 {
@@ -103,10 +105,9 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       TPack<int64_t, 2, D>::full({n_poses, max_n_blocks}, -1);
   auto rotamer_for_nonmolten_block = rotamer_for_nonmolten_block_tp.view;
 
-  {  // scope the creation of the first-pass interaction-graph
-     // construction so that we can free its memory before
-     // re-constructing it in a second pass.
-
+  // Only bump checking consumes the preliminary energy tables.
+  // Fixed-block selection below depends solely on the retained rotamer mask.
+  if (bump_check) {
     auto energy1b_tp = TPack<Real, 1, D>::zeros({n_rotamers});
     auto energy1b = energy1b_tp.view;
     auto n_chunks_for_block_tp =
@@ -449,127 +450,123 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     DeviceDispatch<D>::template foreach_grouped_workgroup<launch_t>(
         mgr, n_rotamers, max_n_blocks, compute_best_energy_for_rotamers);
 
-    if (bump_check) {
-      // Now let's figure out the best energy for each block type
-      auto best_energy_per_block_tp =
-          TPack<Real, 2, D>::full({n_poses, max_n_blocks}, 1234);
-      auto best_energy_per_block = best_energy_per_block_tp.view;
+    // Now let's figure out the best energy for each block type
+    auto best_energy_per_block_tp =
+        TPack<Real, 2, D>::full({n_poses, max_n_blocks}, 1234);
+    auto best_energy_per_block = best_energy_per_block_tp.view;
 
-      // assign a CTA to each block and stride across the energy2b table to
-      // find its best rotamer's energy
-      auto compute_best_energy_per_block = ([=] TMOL_DEVICE_FUNC(int cta) {
-        int const pose = cta / max_n_blocks;
-        int const block = cta % max_n_blocks;
-
-        if (n_rots_for_block[pose][block] == 0) {
-          return;
-        }
-        auto find_min_energy_for_block = ([&] TMOL_DEVICE_FUNC(int tid) {
-          Real best_energy = 1234;
-          bool first_rotamer = true;
-          int const block_n_rots = n_rots_for_block[pose][block];
-          for (int rot_in_block = tid; rot_in_block < block_n_rots;
-               rot_in_block += nt) {
-            int const rot = rot_offset_for_block[pose][block] + rot_in_block;
-            Real energy_for_rot = best_energy_for_rot[rot];
-            if (first_rotamer || energy_for_rot < best_energy) {
-              best_energy = energy_for_rot;
-              first_rotamer = false;
-            }
-          }
-          bool none_found =
-              DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
-                  first_rotamer, mgpu::minimum_t<bool>());
-          Real block_best_energy =
-              DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
-                  best_energy, mgpu::minimum_t<Real>());
-          if (!none_found && tid == 0) {
-            best_energy_per_block[pose][block] = block_best_energy;
-          }
-        });
-        DeviceDispatch<D>::template for_each_in_workgroup<nt>(
-            find_min_energy_for_block);
-      });
-      DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-          mgr, n_pose_block_cells, compute_best_energy_per_block);
-
-      // Now we ask for every rotamer: should we keep it?
-      // We will reject a rotamer if there is at least one rotamer for
-      // its block which has an energy better than +5 kcal/mol,
-      // and its energy is worse than +5 kcal/mol. Otherwise, we will keep it.
-      auto decide_keep_rotamers = ([=] TMOL_DEVICE_FUNC(int index) {
-        int const rot = index;
-        int const block = block_ind_for_rot[rot];
-        int const pose = pose_for_rot[rot];
-        int const block_type = block_type_ind_for_rot[rot];
-        Real energy_for_rot = best_energy_for_rot[rot];
-        Real best_energy_for_block = best_energy_per_block[pose][block];
-        if (energy_for_rot < 5.0 || best_energy_for_block > 5.0) {
-          keep_rotamer[rot] = 1;
-        }
-      });
-      DeviceDispatch<D>::template forall<launch_t>(
-          mgr, n_rotamers, decide_keep_rotamers);
-    }
-
-    // Now, last but not least, we will eliminate any blocks
-    // which have only a single rotamer, perhaps because it only
-    // ever had one rotamer or perhaps because all of its
-    // rotamers except one were eliminate by the bump check.
-
-    auto decide_keep_blocks = ([=] TMOL_DEVICE_FUNC(int cta) {
+    // assign a CTA to each block and stride across the energy2b table to
+    // find its best rotamer's energy
+    auto compute_best_energy_per_block = ([=] TMOL_DEVICE_FUNC(int cta) {
       int const pose = cta / max_n_blocks;
       int const block = cta % max_n_blocks;
-      int const block_n_rots = n_rots_for_block[pose][block];
-      if (block_n_rots == 0) {
+
+      if (n_rots_for_block[pose][block] == 0) {
         return;
       }
-      int const block_rot_offset = rot_offset_for_block[pose][block];
-      auto count_n_rots_for_block = ([&] TMOL_DEVICE_FUNC(int tid) {
-        // Threads will distribute work of looking at all the rotamers
-        // for this block; then we'll reduce on the number of kept rotamers
-        // and the index of the biggest kept rotamer
-        int tid_n_kept_rotamers_for_block = 0;
-        int tid_biggest_kept_rotamer = -1;
+      auto find_min_energy_for_block = ([&] TMOL_DEVICE_FUNC(int tid) {
+        Real best_energy = 1234;
+        bool first_rotamer = true;
+        int const block_n_rots = n_rots_for_block[pose][block];
         for (int rot_in_block = tid; rot_in_block < block_n_rots;
              rot_in_block += nt) {
-          int const rot = block_rot_offset + rot_in_block;
-          if (keep_rotamer[rot]) {
-            tid_n_kept_rotamers_for_block += 1;
-            if (rot > tid_biggest_kept_rotamer) {
-              tid_biggest_kept_rotamer = rot;
-            }
+          int const rot = rot_offset_for_block[pose][block] + rot_in_block;
+          Real energy_for_rot = best_energy_for_rot[rot];
+          if (first_rotamer || energy_for_rot < best_energy) {
+            best_energy = energy_for_rot;
+            first_rotamer = false;
           }
         }
-        int n_kept_rotamers_for_block =
+        bool none_found =
             DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
-                tid_n_kept_rotamers_for_block, mgpu::plus_t<int>());
-        int biggest_kept_rotamer =
+                first_rotamer, mgpu::minimum_t<bool>());
+        Real block_best_energy =
             DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
-                tid_biggest_kept_rotamer, mgpu::maximum_t<int>());
-
-        if (tid == 0) {
-          if (n_kept_rotamers_for_block > 1) {
-            keep_block[pose][block] = 1;
-          } else {
-            // we are not keeping this block,
-            // so if it has exactly 1 rotamer, then we have to also
-            // note that we are not keeping that rotamer
-            if (n_kept_rotamers_for_block == 1) {
-              keep_rotamer[biggest_kept_rotamer] = 0;
-              rotamer_for_nonmolten_block[pose][block] = biggest_kept_rotamer;
-            }
-          }
+                best_energy, mgpu::minimum_t<Real>());
+        if (!none_found && tid == 0) {
+          best_energy_per_block[pose][block] = block_best_energy;
         }
       });
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
-          count_n_rots_for_block);
+          find_min_energy_for_block);
     });
     DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-        mgr, n_pose_block_cells, decide_keep_blocks);
+        mgr, n_pose_block_cells, compute_best_energy_per_block);
 
-  }  // end scope of first-pass interaction graph construction
-  // This will deallocate the energy1b and energy2b tables
+    // Now we ask for every rotamer: should we keep it?
+    // We will reject a rotamer if there is at least one rotamer for
+    // its block which has an energy better than +5 kcal/mol,
+    // and its energy is worse than +5 kcal/mol. Otherwise, we will keep it.
+    auto decide_keep_rotamers = ([=] TMOL_DEVICE_FUNC(int index) {
+      int const rot = index;
+      int const block = block_ind_for_rot[rot];
+      int const pose = pose_for_rot[rot];
+      int const block_type = block_type_ind_for_rot[rot];
+      Real energy_for_rot = best_energy_for_rot[rot];
+      Real best_energy_for_block = best_energy_per_block[pose][block];
+      if (energy_for_rot < 5.0 || best_energy_for_block > 5.0) {
+        keep_rotamer[rot] = 1;
+      }
+    });
+    DeviceDispatch<D>::template forall<launch_t>(
+        mgr, n_rotamers, decide_keep_rotamers);
+  }
+
+  // Now, last but not least, we will eliminate any blocks
+  // which have only a single rotamer, perhaps because it only
+  // ever had one rotamer or perhaps because all of its
+  // rotamers except one were eliminate by the bump check.
+
+  auto decide_keep_blocks = ([=] TMOL_DEVICE_FUNC(int cta) {
+    int const pose = cta / max_n_blocks;
+    int const block = cta % max_n_blocks;
+    int const block_n_rots = n_rots_for_block[pose][block];
+    if (block_n_rots == 0) {
+      return;
+    }
+    int const block_rot_offset = rot_offset_for_block[pose][block];
+    auto count_n_rots_for_block = ([&] TMOL_DEVICE_FUNC(int tid) {
+      // Threads will distribute work of looking at all the rotamers
+      // for this block; then we'll reduce on the number of kept rotamers
+      // and the index of the biggest kept rotamer
+      int tid_n_kept_rotamers_for_block = 0;
+      int tid_biggest_kept_rotamer = -1;
+      for (int rot_in_block = tid; rot_in_block < block_n_rots;
+           rot_in_block += nt) {
+        int const rot = block_rot_offset + rot_in_block;
+        if (keep_rotamer[rot]) {
+          tid_n_kept_rotamers_for_block += 1;
+          if (rot > tid_biggest_kept_rotamer) {
+            tid_biggest_kept_rotamer = rot;
+          }
+        }
+      }
+      int n_kept_rotamers_for_block =
+          DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
+              tid_n_kept_rotamers_for_block, mgpu::plus_t<int>());
+      int biggest_kept_rotamer =
+          DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
+              tid_biggest_kept_rotamer, mgpu::maximum_t<int>());
+
+      if (tid == 0) {
+        if (n_kept_rotamers_for_block > 1) {
+          keep_block[pose][block] = 1;
+        } else {
+          // we are not keeping this block,
+          // so if it has exactly 1 rotamer, then we have to also
+          // note that we are not keeping that rotamer
+          if (n_kept_rotamers_for_block == 1) {
+            keep_rotamer[biggest_kept_rotamer] = 0;
+            rotamer_for_nonmolten_block[pose][block] = biggest_kept_rotamer;
+          }
+        }
+      }
+    });
+    DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+        count_n_rots_for_block);
+  });
+  DeviceDispatch<D>::template foreach_workgroup<launch_t>(
+      mgr, n_pose_block_cells, decide_keep_blocks);
 
   // OKAY! Now we are ready to rebuild the interaction graph with only the
   // rotamers and blocks that we kept. Even if we did not use bump_check,
@@ -671,16 +668,6 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       mgr, n_molten_blocks_per_pose.data(), n_poses, mgpu::maximum_t<Int>());
   int const n_pose_molten_block_cells = score::common::checked_dispatch_product(
       n_poses, max_n_molten_blocks, "interaction-graph molten-block dispatch");
-  int const n_molten_block_pair_cells = score::common::checked_dispatch_product(
-      max_n_molten_blocks,
-      max_n_molten_blocks,
-      "interaction-graph molten block-pair dispatch per pose");
-  int const n_pose_molten_block_pair_cells =
-      score::common::checked_dispatch_product(
-          n_poses,
-          n_molten_block_pair_cells,
-          "interaction-graph molten block-pair dispatch");
-
   auto n_bc_rots_per_pose_tp = TPack<Int, 1, D>::zeros({n_poses});
   auto bc_rot_offset_for_pose_tp = TPack<Int, 1, D>::zeros({n_poses});
   auto n_bc_rots_for_molten_block_tp =
@@ -804,9 +791,21 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   DeviceDispatch<D>::template forall<launch_t>(
       mgr, n_pose_molten_block_cells, count_n_chunks_for_block);
 
+  // Keep construction bounded while the score-term sparse entries are live.
+  // A bit adjacency matrix is the only quadratic temporary; the returned
+  // graph is CSR and therefore proportional to the number of interacting
+  // block pairs.  Rows are enumerated in ascending block order, matching the
+  // old dense matrix traversal exactly.
+  int const adjacency_words_per_row = (max_n_molten_blocks + 31) / 32;
   auto respair_is_adjacent_tp = TPack<int32_t, 3, D>::zeros(
-      {n_poses, max_n_molten_blocks, max_n_molten_blocks});
+      {n_poses, max_n_molten_blocks, adjacency_words_per_row});
   auto respair_is_adjacent = respair_is_adjacent_tp.view;
+  auto blocks_are_adjacent =
+      ([=] TMOL_DEVICE_FUNC(int pose, int block, int neighbor) {
+        int const word = neighbor / 32;
+        int32_t const mask = int32_t(uint32_t(1) << (neighbor % 32));
+        return (respair_is_adjacent[pose][block][word] & mask) != 0;
+      });
 
   auto note_adjacent_respairs = ([=] TMOL_DEVICE_FUNC(int index) {
     int const pose = sparse_inds[0][index];
@@ -825,53 +824,102 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       return;
     }
     // Assert: molten_block1 < molten_block2
-    DeviceDispatch<D>::store_idempotent(
-        respair_is_adjacent[pose][molten_block1][molten_block2], int32_t(1));
+    int const word2 = molten_block2 / 32;
+    int const word1 = molten_block1 / 32;
+    int32_t const mask2 = int32_t(uint32_t(1) << (molten_block2 % 32));
+    int32_t const mask1 = int32_t(uint32_t(1) << (molten_block1 % 32));
+    DeviceDispatch<D>::bitwise_or(
+        respair_is_adjacent[pose][molten_block1][word2], mask2);
+    DeviceDispatch<D>::bitwise_or(
+        respair_is_adjacent[pose][molten_block2][word1], mask1);
   });
   DeviceDispatch<D>::template forall_independent<launch_t>(
       mgr, n_sparse_entries_dispatch, note_adjacent_respairs);
 
-  auto n_chunks_for_block_pair_tp = TPack<int64_t, 3, D>::zeros(
-      {n_poses, max_n_molten_blocks, max_n_molten_blocks});
-  auto n_chunks_for_block_pair = n_chunks_for_block_pair_tp.view;
+  auto n_neighbors_for_block_tp =
+      TPack<int64_t, 1, D>::zeros({n_pose_molten_block_cells + 1});
+  auto n_neighbors_for_block = n_neighbors_for_block_tp.view;
+  auto count_neighbors_for_block = ([=] TMOL_DEVICE_FUNC(int row) {
+    int const pose = row / max_n_molten_blocks;
+    int const block = row % max_n_molten_blocks;
+    int64_t count = 0;
+    for (int neighbor = 0; neighbor < max_n_molten_blocks; ++neighbor) {
+      count += blocks_are_adjacent(pose, block, neighbor) ? 1 : 0;
+    }
+    n_neighbors_for_block[row] = count;
+  });
+  DeviceDispatch<D>::template forall<launch_t>(
+      mgr, n_pose_molten_block_cells, count_neighbors_for_block);
 
-  auto note_n_chunks_for_block_pair = ([=] TMOL_DEVICE_FUNC(int index) {
-    int const pose = index / n_molten_block_pair_cells;
-    index = index - pose * n_molten_block_pair_cells;
-    int const molten_block1 = index / max_n_molten_blocks;
-    int const molten_block2 = index % max_n_molten_blocks;
+  auto neighbor_row_offsets_tp =
+      TPack<int64_t, 1, D>::zeros({n_pose_molten_block_cells + 1});
+  auto neighbor_row_offsets = neighbor_row_offsets_tp.view;
+  int64_t const n_directed_block_pairs =
+      DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+          mgr,
+          n_neighbors_for_block.data(),
+          neighbor_row_offsets.data(),
+          n_pose_molten_block_cells + 1,
+          mgpu::plus_t<int64_t>());
+  int const n_directed_block_pairs_dispatch =
+      score::common::checked_dispatch_size(
+          n_directed_block_pairs,
+          "interaction-graph directed block-pair dispatch");
+  auto neighbor_blocks_tp =
+      TPack<int32_t, 1, D>::zeros({n_directed_block_pairs});
+  auto neighbor_blocks = neighbor_blocks_tp.view;
+  auto n_chunks_for_neighbor_pair_tp =
+      TPack<int64_t, 1, D>::zeros({n_directed_block_pairs});
+  auto n_chunks_for_neighbor_pair = n_chunks_for_neighbor_pair_tp.view;
 
-    // We don't have to worry about molten_block1 > molten_block2 as those will
-    // not have entries in the sparse_inds input tensors, but we do have to
-    // worry about molten_block1 == molten_block2 for one-body energies
-    if (respair_is_adjacent[pose][molten_block1][molten_block2]) {
-      int const n_chunks1 = n_chunks_for_block[pose][molten_block1];
-      int const n_chunks2 = n_chunks_for_block[pose][molten_block2];
-      int64_t const n_chunk_pairs = int64_t(n_chunks1) * n_chunks2;
-      n_chunks_for_block_pair[pose][molten_block1][molten_block2] =
-          n_chunk_pairs;
-      n_chunks_for_block_pair[pose][molten_block2][molten_block1] =
-          n_chunk_pairs;
+  auto fill_neighbor_rows = ([=] TMOL_DEVICE_FUNC(int row) {
+    int const pose = row / max_n_molten_blocks;
+    int const block = row % max_n_molten_blocks;
+    int64_t output = neighbor_row_offsets[row];
+    int const n_chunks = n_chunks_for_block[pose][block];
+    for (int neighbor = 0; neighbor < max_n_molten_blocks; ++neighbor) {
+      if (!blocks_are_adjacent(pose, block, neighbor)) {
+        continue;
+      }
+      neighbor_blocks[output] = neighbor;
+      n_chunks_for_neighbor_pair[output] =
+          int64_t(n_chunks) * n_chunks_for_block[pose][neighbor];
+      ++output;
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      mgr, n_pose_molten_block_pair_cells, note_n_chunks_for_block_pair);
+      mgr, n_pose_molten_block_cells, fill_neighbor_rows);
 
-  auto chunk_pair_offset_for_block_pair_tp = TPack<int64_t, 3, D>::zeros(
-      {n_poses, max_n_molten_blocks, max_n_molten_blocks});
-  auto chunk_pair_offset_for_block_pair =
-      chunk_pair_offset_for_block_pair_tp.view;
-
+  auto chunk_pair_offset_for_neighbor_pair_tp =
+      TPack<int64_t, 1, D>::zeros({n_directed_block_pairs});
+  auto chunk_pair_offset_for_neighbor_pair =
+      chunk_pair_offset_for_neighbor_pair_tp.view;
   int64_t const n_adjacent_chunk_pairs_total_64 =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
           mgr,
-          n_chunks_for_block_pair.data(),
-          chunk_pair_offset_for_block_pair.data(),
-          n_pose_molten_block_pair_cells,
+          n_chunks_for_neighbor_pair.data(),
+          chunk_pair_offset_for_neighbor_pair.data(),
+          n_directed_block_pairs_dispatch,
           mgpu::plus_t<int64_t>());
   int const n_adjacent_chunk_pairs_total = score::common::checked_dispatch_size(
       n_adjacent_chunk_pairs_total_64,
       "interaction-graph retained chunk-pair dispatch");
+
+  auto find_neighbor_pair =
+      ([=] TMOL_DEVICE_FUNC(int pose, int block, int neighbor) {
+        int const row = pose * max_n_molten_blocks + block;
+        int64_t lower = neighbor_row_offsets[row];
+        int64_t upper = neighbor_row_offsets[row + 1];
+        while (lower < upper) {
+          int64_t const middle = lower + (upper - lower) / 2;
+          if (neighbor_blocks[middle] < neighbor) {
+            lower = middle + 1;
+          } else {
+            upper = middle;
+          }
+        }
+        return lower;
+      });
 
   auto chunk_pair_adjacency_tp =
       TPack<int64_t, 1, D>::zeros({n_adjacent_chunk_pairs_total});
@@ -913,10 +961,14 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     int const chunk1_size = (overhang1 > chunk_size ? chunk_size : overhang1);
     int const chunk2_size = (overhang2 > chunk_size ? chunk_size : overhang2);
 
+    int64_t const neighbor_pair_ij =
+        find_neighbor_pair(pose, molten_block1, molten_block2);
+    int64_t const neighbor_pair_ji =
+        find_neighbor_pair(pose, molten_block2, molten_block1);
     int64_t const block_pair_chunk_offset_ij =
-        chunk_pair_offset_for_block_pair[pose][molten_block1][molten_block2];
+        chunk_pair_offset_for_neighbor_pair[neighbor_pair_ij];
     int64_t const block_pair_chunk_offset_ji =
-        chunk_pair_offset_for_block_pair[pose][molten_block2][molten_block1];
+        chunk_pair_offset_for_neighbor_pair[neighbor_pair_ji];
 
     // multiple threads will write exactly these values to these entries in the
     // chunk_pair_adjacency table
@@ -1056,10 +1108,14 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       int const rot_ind_wi_chunk1 = local_rot1 - chunk1 * chunk_size;
       int const rot_ind_wi_chunk2 = local_rot2 - chunk2 * chunk_size;
 
+      int64_t const neighbor_pair_ij =
+          find_neighbor_pair(pose, molten_block1, molten_block2);
+      int64_t const neighbor_pair_ji =
+          find_neighbor_pair(pose, molten_block2, molten_block1);
       int64_t const block_pair_chunk_offset_ij =
-          chunk_pair_offset_for_block_pair[pose][molten_block1][molten_block2];
+          chunk_pair_offset_for_neighbor_pair[neighbor_pair_ij];
       int64_t const block_pair_chunk_offset_ji =
-          chunk_pair_offset_for_block_pair[pose][molten_block2][molten_block1];
+          chunk_pair_offset_for_neighbor_pair[neighbor_pair_ji];
 
       int64_t const chunk_pair_offset_ij_ind =
           block_pair_chunk_offset_ij + chunk1 * n_chunks2 + chunk2;
@@ -1091,27 +1147,6 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   DeviceDispatch<D>::template forall<launch_t>(
       mgr, n_sparse_entries_dispatch, record_energies_in_energy1b_and_energy2b);
 
-  // Mark the chunk_pair_offset_for_block_pair that are not adjacent w/ -1s
-  // Mark the chunk_pair_offsets that are not adjacent w/ -1s
-  auto sentinel_out_non_adjacent_block_pairs =
-      ([=] TMOL_DEVICE_FUNC(int index) {
-        int const pose = index / n_molten_block_pair_cells;
-        index = index - pose * n_molten_block_pair_cells;
-        int const block1 = index / max_n_molten_blocks;
-        int const block2 = index % max_n_molten_blocks;
-
-        // We don't have to worry about block1 >= block2 as those will not
-        // have entries in the sparse_inds input tensors
-        if (block1 <= block2 && !respair_is_adjacent[pose][block1][block2]) {
-          chunk_pair_offset_for_block_pair[pose][block1][block2] = -1;
-          chunk_pair_offset_for_block_pair[pose][block2][block1] = -1;
-        }
-      });
-  DeviceDispatch<D>::template forall<launch_t>(
-      mgr,
-      n_pose_molten_block_pair_cells,
-      sentinel_out_non_adjacent_block_pairs);
-
   auto sentinel_out_non_adjacent_chunk_pairs =
       ([=] TMOL_DEVICE_FUNC(int index) {
         int const n_pairs_for_chunk = chunk_pair_adjacency.data()[index];
@@ -1134,7 +1169,9 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       new_to_old_rotamer_index_tp,
       bg_bg_energies_tp,
       energy1b_tp,
-      chunk_pair_offset_for_block_pair_tp,
+      neighbor_row_offsets_tp,
+      neighbor_blocks_tp,
+      chunk_pair_offset_for_neighbor_pair_tp,
       chunk_pair_offsets_tp,
       energy2b_tp);
 }

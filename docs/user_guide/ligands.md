@@ -40,10 +40,19 @@ param_db, co = prepare_ligand_from_smiles("c1ccccc1C(=O)O", res_name="BEN")
 Each returns a new `(ParameterDatabase, CanonicalOrdering)`. The input database
 is not mutated.
 
-MOL2 is the richest input. With authoritative MMFF94 charges, TMol reads atom
-names, coordinates, bond orders, and partial charges directly. CIF input uses
-the bond table to derive chemistry. SMILES input has no input geometry, so TMol
-generates protonation, conformer coordinates, and MMFF94 charges.
+MOL2 and CIF input use their bond tables to derive chemistry; source heavy-atom
+names are retained. CIF and SMILES preparation apply pH-dependent protonation
+(default pH 7.4), generate conformers and calculate MMFF94 charges.
+
+MOL2 preparation and `write_params_from_mol2()` share three modes:
+
+- `mode="auto"` (default): preserve complete inputs with supported, finite,
+  charge-conserving partial charges; otherwise run the preparation pipeline.
+- `mode="keep"`: require prepared input and preserve its protonation and charges.
+- `mode="regenerate"`: always run pH-dependent preparation, including for
+  neutralized phosphate inputs with explicit hydrogens and valid partial charges.
+
+A MOL2 charge-model label alone does not establish the intended protonation pH.
 
 ## Loading Complexes
 
@@ -56,16 +65,10 @@ import biotite.structure.io
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.io import pose_stack_from_biotite
+from tmol.io import atom_array_from_file, pose_stack_from_biotite
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-structure = biotite.structure.io.load_structure(
-    "complex.cif",
-    model=1,
-    include_bonds=True,
-)
-if isinstance(structure, struc.AtomArrayStack):
-    structure = structure[0]
+structure = atom_array_from_file("complex.cif")
 
 pose_stack, context = pose_stack_from_biotite(
     structure,
@@ -76,9 +79,34 @@ pose_stack, context = pose_stack_from_biotite(
 )
 ```
 
-PDB files are fine for protein structures, but PDB does not carry reliable
-ligand bond orders. Use CIF, MOL2, SMILES, or a prepared `.tmol` file for ligand
-chemistry.
+Known residues need only residue names, atom names, and coordinates. For example,
+prepare a ligand from MOL2 once, then load coordinate-only PDB or CIF complexes:
+
+```python
+from tmol.io import pose_stack_from_file
+from tmol.ligand import write_params_from_mol2
+
+write_params_from_mol2(
+    "ligand.mol2", "ligand.tmol", res_name="LIG", format="tmol", mode="auto"
+)
+pose_stack, context = pose_stack_from_file(
+    "complex.pdb", device,
+    ligand_params_files=["ligand.tmol"],
+    use_ccd=False,
+    return_context=True,
+)
+```
+
+Use the complex's ligand residue name and matching atom names. Alternatively,
+pass the database returned by `prepare_ligand_from_mol2()` as `param_db=`.
+Neither route regenerates known ligand parameters. `use_ccd=False` reads only
+supplied information; the default `True` permits CCD completion.
+
+For mixtures of known and unknown components, add `prepare_ligands=True`: saved
+parameters are reused, and only unknown chemistry enters preparation. Unknown
+residues need chemical bond orders from the input or CCD; otherwise the error
+names the residue that needs more information. PDB `CONECT` records alone do not
+provide those orders.
 
 ## Reuse Prepared Context
 
@@ -134,21 +162,19 @@ pose_stack, context = pose_stack_from_biotite(
 
 ## SMILES to Params CLI
 
-The ligand-prep script writes Rosetta `.params` and TMol `.tmol` files:
+The ligand-prep script writes a TMol `.tmol` parameter bundle:
 
 ```bash
 python scripts/ligand_prep/smiles_to_params.py "<SMILES>" <out_prefix> \
     --res-name LG1 --ph 7.4
 ```
 
-Useful flags include `--no-protonate`, `--sample-proton-chi`, and
-`--no-conformer-search`.
+Useful flags include `--no-protonate`, `--heavy-chi-samples`, and
+`--seed` for a reproducible conformer.
 
-The emitted Rosetta-syntax `.params` file is an experimental interchange
-artifact, not a Rosetta-validated parameterization. It carries TMol's atom-type
-strings into the Rosetta atom-type field, uses MM type `X`, and writes a
-placeholder `NBR_RADIUS 999.0`. Use a Rosetta-native preparation and validation
-workflow before running the ligand in Rosetta.
+`.tmol` is TMol's only parameter format. TMol does not read or write Rosetta
+`.params`; use a Rosetta-native preparation workflow to parameterize a ligand
+for Rosetta.
 
 ## Interaction Scores
 

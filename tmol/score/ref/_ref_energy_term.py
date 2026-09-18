@@ -1,15 +1,20 @@
 import torch
 
 from .._energy_term import EnergyTerm
+from .._annotation_cache import AnnotationKey, cached_annotation, store_annotation
 
 from tmol.database import ParameterDatabase
 from tmol.score.common._scoring_module import _coordinate_independent_score
 
-from tmol.chemical import RefinedResidueType
+from tmol.chemical import RefinedResidueType, l_base_name
 from tmol.pose import (
     PackedBlockTypes,
     PoseStack,
 )
+
+
+class _RefAnnotationSource:
+    pass
 
 
 class RefEnergyTerm(EnergyTerm):
@@ -22,6 +27,8 @@ class RefEnergyTerm(EnergyTerm):
         self.weights_override = None
         self.soft_rep = False
         self.device = device
+        self._default_annotation_source = param_db.scoring.ref
+        self._override_annotation_source = None
 
     @classmethod
     def class_name(cls):
@@ -37,7 +44,18 @@ class RefEnergyTerm(EnergyTerm):
         return 1
 
     def set_options(self, options: dict):
-        self.weights_override = options.get("ref_weights")
+        weights_override = options.get("ref_weights")
+        if weights_override is not self.weights_override:
+            self._override_annotation_source = (
+                _RefAnnotationSource() if weights_override else None
+            )
+        self.weights_override = weights_override
+
+    def _annotation_key(self, *, packed=False):
+        source = self._override_annotation_source or self._default_annotation_source
+        signature = tuple(sorted(self._resolved_weights().items()))
+        settings = (signature, self.device) if packed else (signature,)
+        return AnnotationKey.from_sources(source, settings=settings)
 
     def _resolved_weights(self) -> dict:
         """The ref-weight map this term scores with (override beats the db default)."""
@@ -53,15 +71,26 @@ class RefEnergyTerm(EnergyTerm):
         # beta2016) silently reuses the first's ref weights. (See the matching
         # guard in ``setup_packed_block_types``.)
         src = self._resolved_weights()
-        if getattr(block_type, "_ref_weight_src", None) is src:
-            return
+        key = self._annotation_key()
+        cached = cached_annotation(block_type, "_ref_annotation", key)
+        if cached is not None:
+            return cached
 
-        ref_weight = 0.0
-        if block_type.base_name in self.ref_weights:
-            ref_weight = src[block_type.base_name]
+        # read the map actually in use: a score function may override the
+        #    database weights with one covering fewer residues, so a d-amino
+        #    acid falls back to the l form it mirrors rather than to zero
+        ref_weight = src.get(block_type.base_name)
+        if ref_weight is None:
+            ref_weight = src.get(l_base_name(block_type), 0.0)
 
         setattr(block_type, "ref_weight", ref_weight)
-        setattr(block_type, "_ref_weight_src", src)
+        return store_annotation(
+            block_type,
+            "_ref_annotation",
+            key,
+            ref_weight,
+            fields=("ref_weight",),
+        )
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(RefEnergyTerm, self).setup_packed_block_types(packed_block_types)
@@ -70,23 +99,31 @@ class RefEnergyTerm(EnergyTerm):
         # ``setup_block_type``: the PackedBlockTypes is cached and shared across
         # score functions, so reusing a stale ``ref_weights`` tensor would leak
         # one score function's reference energies into another.
-        src = self._resolved_weights()
-        if (
-            hasattr(packed_block_types, "ref_weights")
-            and getattr(packed_block_types, "_ref_weights_src", None) is src
-        ):
-            return
+        key = self._annotation_key(packed=True)
+        cached = cached_annotation(packed_block_types, "_ref_annotation", key)
+        if cached is not None:
+            return cached
 
-        ref_weights = []
-        for bt in packed_block_types.active_block_types:
-            ref_weights += [bt.ref_weight]
+        ref_weights = [
+            self.setup_block_type(bt) for bt in packed_block_types.active_block_types
+        ]
 
         ref_weights = torch.as_tensor(
             ref_weights, dtype=torch.float32, device=self.device
         )
 
         setattr(packed_block_types, "ref_weights", ref_weights)
-        setattr(packed_block_types, "_ref_weights_src", src)
+        return store_annotation(
+            packed_block_types,
+            "_ref_annotation",
+            key,
+            ref_weights,
+            fields=("ref_weights",),
+            bindings=tuple(
+                (block_type, "ref_weight")
+                for block_type in packed_block_types.active_block_types
+            ),
+        )
 
     def setup_poses(self, poses: PoseStack):
         super(RefEnergyTerm, self).setup_poses(poses)
@@ -154,6 +191,7 @@ def eval_ref_energy_for_rotamers(
     _rot_offset_for_pose,
     _n_rots_for_block,
     _rot_offset_for_block,
+    _lockstep_group_for_block,
     _max_n_rots_per_pose,
     _block_ref,
     _pose_ref,

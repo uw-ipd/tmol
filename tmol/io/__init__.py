@@ -1,6 +1,7 @@
 """Structure conversion between external formats and TMol poses."""
 
 import torch
+from pathlib import Path
 from typing import Optional, Union
 
 from tmol.types import (
@@ -53,11 +54,16 @@ from ._pose_stack_deconstruction import (  # noqa: F401
     canonical_form_from_pose_stack,
     determine_res_not_connected_from_pose_stack,
 )
+from ._pose_stack_from_atom37 import (  # noqa: F401
+    atom37_slot_map_for_ordering,
+    canonical_form_from_atom37,
+    pose_stack_from_atom37,
+)
 from ._pose_stack_from_atomworks import (  # noqa: F401
     ATOMWORKS_NAME3S,
     ATOMWORKS_ATOM37_NAMES,
-    pose_stack_from_atomworks,
-    pose_stack_from_atom37_and_biotite,
+    pose_stack_from_canonical_aa_atom37,
+    pose_stack_from_atom37_and_topology,
     canonical_form_from_atomworks,
     atomworks_from_pose_stack,
     canonical_ordering_for_atomworks,
@@ -67,6 +73,13 @@ from ._pose_stack_from_atomworks import (  # noqa: F401
     _paramdb_for_atomworks,
 )
 from tmol.chemical import get_element_from_atom_name  # noqa: F401
+from tmol.io._cif import (  # noqa: F401
+    atom_array_from_cif,
+    atom_array_from_file,
+    component_chemistry_from_cif,
+    pose_stack_from_cif,
+    pose_stack_from_file,
+)
 from ._pose_stack_from_biotite import (  # noqa: F401
     Atom37MappingError,
     PreparedAtom37PoseBuilder,
@@ -76,22 +89,9 @@ from ._pose_stack_from_biotite import (  # noqa: F401
     canonical_form_from_biotite,
     canonical_ordering_for_biotite,
     packed_block_types_for_biotite,
-    prepare_pose_stack_from_atom37,
+    pose_stack_from_canonical_form_and_context,
+    prepare_atom37_pose_builder,
     biotite_from_canonical_form,
-)
-from ._pose_stack_from_openfold import (  # noqa: F401
-    pose_stack_from_openfold,
-    canonical_form_from_openfold,
-    canonical_ordering_for_openfold,
-    packed_block_types_for_openfold,
-    _paramdb_for_openfold,
-)
-from ._pose_stack_from_rosettafold2 import (  # noqa: F401
-    pose_stack_from_rosettafold2,
-    canonical_form_from_rosettafold2,
-    canonical_ordering_for_rosettafold2,
-    packed_block_types_for_rosettafold2,
-    _paramdb_for_rosettafold2,
 )
 from ._write_pose_stack_pdb import (  # noqa: F401
     write_pose_stack_pdb,
@@ -100,6 +100,7 @@ from ._write_pose_stack_pdb import (  # noqa: F401
 )
 
 __all__ = [
+    "atom_array_from_file",
     "Atom37MappingError",
     "CanonicalForm",
     "CanonicalOrdering",
@@ -117,8 +118,6 @@ __all__ = [
     "canonical_form_from_pose_stack",
     "canonical_ordering_for_atomworks",
     "canonical_ordering_for_biotite",
-    "canonical_ordering_for_openfold",
-    "canonical_ordering_for_rosettafold2",
     "create_pose_stack_from_sequences",
     "default_canonical_ordering",
     "default_packed_block_types",
@@ -126,15 +125,19 @@ __all__ = [
     "fetch_pdb",
     "packed_block_types_for_atomworks",
     "packed_block_types_for_biotite",
-    "packed_block_types_for_openfold",
-    "packed_block_types_for_rosettafold2",
-    "pose_stack_from_atomworks",
-    "prepare_pose_stack_from_atom37",
-    "pose_stack_from_atom37_and_biotite",
+    "atom37_slot_map_for_ordering",
+    "canonical_form_from_atom37",
+    "pose_stack_from_atom37",
+    "pose_stack_from_canonical_aa_atom37",
+    "pose_stack_from_file",
+    "pose_stack_from_canonical_form_and_context",
+    "prepare_atom37_pose_builder",
+    "pose_stack_from_atom37_and_topology",
     "pose_stack_from_biotite",
-    "pose_stack_from_openfold",
+    "pose_stack_from_cif",
+    "atom_array_from_cif",
+    "component_chemistry_from_cif",
     "pose_stack_from_pdb",
-    "pose_stack_from_rosettafold2",
     "pose_stack_to_pdb_string",
     "selection_gallery",
     "switchable_view",
@@ -148,33 +151,39 @@ __all__ = [
 
 @validate_args
 def pose_stack_from_pdb(
-    pdb_lines_or_fname: Union[str, list],
+    pdb_lines_or_fname: Union[str, list, Path],
     device: torch.device,
     *,
     residue_start: Optional[int] = None,
     residue_end: Optional[int] = None,
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
     **kwargs,
-) -> PoseStack:
-    """Construct a PoseStack given the contents of a PDB file or the name of a PDB file,
-    using the full set of residue types contained in tmol's chemical.yaml file.
+) -> PoseStack | tuple[PoseStack, dict] | tuple[PoseStack, PoseBuildContext]:
+    """Read PDB through AtomWorks and the shared annotated-array constructor.
 
-    Optionally, a subset of the residues in the range from residue_start to residue_end-1
-    can be requested.
-    Any additional keyword arguments will be passed to pose_stack_from_canonical_form
+    Accept a path, PDB text or a list of lines. Residue slicing uses a half-open
+    index range. Additional keywords follow :func:`pose_stack_from_file`, including
+    ``prepare_ligands`` and ``return_context``. Supplied hydrogens are retained
+    and hydrogen optimization is disabled unless explicitly requested.
     """
-    from tmol.utility import resolve_device
+    import io
 
-    device = resolve_device(device)
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(device)
-    cf = canonical_form_from_pdb(
-        co,
-        pdb_lines_or_fname,
+    source = pdb_lines_or_fname
+    if isinstance(source, list):
+        source = io.StringIO("\n".join(line.rstrip("\n") for line in source))
+    elif isinstance(source, str) and (
+        "\n" in source or source.startswith(("ATOM  ", "HETATM", "MODEL ", "HEADER"))
+    ):
+        source = io.StringIO(source)
+    kwargs.setdefault("no_optH", True)
+    kwargs.setdefault("trust_hydrogen_names", True)
+    kwargs.setdefault("missing_density_distance_threshold", 0.0)
+    if res_not_connected is not None:
+        kwargs["res_not_connected"] = res_not_connected
+    return pose_stack_from_file(
+        source,
         device,
         residue_start=residue_start,
         residue_end=residue_end,
-        res_not_connected=res_not_connected,
+        **kwargs,
     )
-
-    return pose_stack_from_canonical_form(co, pbt, *cf, **kwargs)

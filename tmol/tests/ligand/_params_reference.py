@@ -2,8 +2,8 @@
 
 The regression suite and the parity harness both need to read a Rosetta
 ``.params`` file into structured fields and, in particular, recover the
-per-atom partial charges. ``read_params_file`` in :mod:`tmol.ligand._params_io`
-builds a ``RawResidueType`` but drops the charge column, so this module
+per-atom partial charges. These files are Rosetta-authored ground truth for
+comparison; tmol itself neither reads nor writes ``.params``. This module
 provides a light-weight, charge-bearing parser plus a ``{atom_name: charge}``
 sidecar accessor.
 """
@@ -16,6 +16,21 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from tmol.tests.ligand import EquivalenceResult
+
+
+# Rosetta ``.params`` BOND_TYPE tokens. These describe the reference-file format
+# the parity fixtures are written in, not any tmol output.
+BOND_TOKEN_TO_TYPE = {
+    "1": "SINGLE",
+    "2": "DOUBLE",
+    "3": "TRIPLE",
+    "4": "AROMATIC",
+    "SINGLE": "SINGLE",
+    "DOUBLE": "DOUBLE",
+    "TRIPLE": "TRIPLE",
+    "AROMATIC": "AROMATIC",
+    "ARO": "AROMATIC",
+}
 
 
 @dataclass(frozen=True)
@@ -46,8 +61,8 @@ class ReferenceParams:
     def charges(self) -> dict[str, float]:
         """Return the ``{atom_name: charge}`` sidecar map.
 
-        ``read_params_file`` discards charges, so this is the canonical way to
-        recover the per-atom charge column from a ``.params`` reference.
+        This is the way to recover the per-atom charge column from a
+        Rosetta-authored ``.params`` reference.
         """
         return {name: charge for name, _atype, charge in self.atoms}
 
@@ -238,11 +253,10 @@ def reference_bond_keys(
     table in :mod:`tmol.ligand._params_io`, so a reference and a generated
     preparation can be compared on the same vocabulary.
     """
-    from tmol.ligand import _BOND_TOK_TO_TYPE
 
     keys: set[tuple[frozenset[str], str, bool]] = set()
     for pair, order, ring in ref.bond_types:
-        label = _BOND_TOK_TO_TYPE.get(str(order).upper(), "SINGLE")
+        label = BOND_TOKEN_TO_TYPE.get(str(order).upper(), "SINGLE")
         keys.add((pair, label, ring == "RING"))
     return keys
 

@@ -125,7 +125,15 @@ class ConstraintEnergyTerm(EnergyTerm):
         return self.constraint_pose_scores
 
     def get_rotamer_score_term_function(self):
-        return self.constraint_pose_scores
+        return self.constraint_rotamer_scores
+
+    def constraint_rotamer_scores(self, *args):
+        """Score rotamers with the same routine the whole pose uses.
+
+        The rotamer arg list carries one extra tensor -- which blocks sample in
+        lockstep -- that only the pair terms' rotamer-pair enumerator reads.
+        """
+        return self.constraint_pose_scores(*args[:12], *args[13:])
 
     def get_score_term_attributes(self, pose_stack: PoseStack):
         return [
@@ -160,7 +168,7 @@ class ConstraintEnergyTerm(EnergyTerm):
                 # block. Handle it before inspecting the CUDA tensor so an
                 # empty constraint set does not synchronize every evaluation.
                 return (
-                    torch.zeros((1, n_poses), dtype=torch.float32, device=device),
+                    torch.zeros((1, n_poses), dtype=coords.dtype, device=device),
                     torch.zeros((3, 0), dtype=torch.int32, device=device),
                 )
 
@@ -177,7 +185,7 @@ class ConstraintEnergyTerm(EnergyTerm):
             return (
                 torch.zeros(
                     (1, n_poses, max_n_blocks, max_n_blocks),
-                    dtype=torch.float32,
+                    dtype=coords.dtype,
                     device=device,
                 ),
                 torch.zeros((3, 0), dtype=torch.int32, device=device),
@@ -425,7 +433,7 @@ class ConstraintEnergyTerm(EnergyTerm):
 
         def score_cnstrs(functions, types, atom_coords, params):
             cnstr_scores = torch.full(
-                (len(types),), 0, dtype=torch.float32, device=coords.device
+                (len(types),), 0, dtype=coords.dtype, device=coords.device
             )
             for ind, fn in enumerate(functions):
 

@@ -15,4 +15,8 @@ CUDA_VISIBLE_DEVICES="" COVERAGE_FILE="${GITHUB_WORKSPACE}/.coverage.cpu" \
   -n "${CPU_PYTEST_WORKERS}" --dist=worksteal \
   --cov="${GITHUB_WORKSPACE}/tmol" \
   --cov-report="xml:${GITHUB_WORKSPACE}/coverage.cpu.xml" \
-  --junitxml="${GITHUB_WORKSPACE}/testing.cpu.junit.xml" -k "not cuda"
+  --junitxml="${GITHUB_WORKSPACE}/testing.cpu.junit.xml" -k "not cuda" \
+  . .github/scripts
+# .github/scripts is named explicitly: pytest's default norecursedirs skips
+# dot-directories, so the release/publish wiring tests there were collected by
+# nobody and had never run.

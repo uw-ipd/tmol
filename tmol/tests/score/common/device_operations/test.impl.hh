@@ -2,6 +2,7 @@
 
 #include <tmol/score/common/device_operations.hh>
 #include <tmol/score/common/launch_box_macros.hh>
+#include <tmol/score/common/sphere_overlap.impl.hh>
 #include <tmol/extern/moderngpu/operators.hxx>
 #include <tmol/tests/score/common/device_operations/test.hh>
 #include <tmol/utility/tensor/context_manager.hh>
@@ -215,6 +216,32 @@ auto DevOpsTests<D>::test_segmented_scan_exclusive(
       seg_starts.size(0),
       mgpu::plus_t<int32_t>(),
       0);
+}
+
+template <tmol::Device D>
+auto DevOpsTests<D>::test_rot_neighbor_indices_from_block_spheres(
+    TView<int32_t, 2, D> pose_stack_block_type,
+    TView<float, 3, D> block_spheres,
+    TView<int32_t, 2, D> n_rots_for_block,
+    TView<int32_t, 2, D> rot_offset_for_block,
+    TView<float, 2, D> rot_spheres,
+    TView<int32_t, 2, D> lockstep_group_for_block,
+    float reach) -> TPack<int32_t, 2, D> {
+  ContextManager mgr;
+  return tmol::score::common::sphere_overlap::
+      rot_neighbor_indices_from_block_neighbors<
+          tmol::score::common::DeviceOperations,
+          D,
+          float,
+          int32_t>::
+          f(mgr,
+            pose_stack_block_type,
+            block_spheres,
+            n_rots_for_block,
+            rot_offset_for_block,
+            rot_spheres,
+            lockstep_group_for_block,
+            reach);
 }
 
 }  // namespace device_operations

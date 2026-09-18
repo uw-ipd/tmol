@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <stdexcept>
 #include <vector>
 
 #include <Eigen/Core>
@@ -1076,85 +1077,126 @@ inline TMOL_DEVICE_FUNC bool rot_spheres_overlap(
   return dx * dx + dy * dy + dz * dz < threshold * threshold;
 }
 
-// Convert a block-level neighbor matrix into rotamer-pair dispatch indices
-// (the same [3, n_pairs] format as rot_neighbor_indices). The block spheres
-// cheaply reject whole block pairs; the rotamer spheres then omit individual
-// pairs that cannot interact. This avoids the O(max_n_rots^2) dense matrix
-// used by rot_neighbor_indices without retaining guaranteed-zero score-table
-// entries.
+// Convert block and rotamer bounding spheres into rotamer-pair dispatch indices
+// (the same [3, n_pairs] format as rot_neighbor_indices). Canonical packed
+// upper-triangle block pairs avoid all square block-pair scratch while
+// retaining the original pose-major, b1-major, b2-major ordering.
 template <
     template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
 struct rot_neighbor_indices_from_block_neighbors {
-  static auto
-  f(ContextManager& mgr,
-    TView<Int, 3, D> block_neighbors,   // [n_poses, max_n_blocks, max_n_blocks]
-    TView<Int, 2, D> n_rots_for_block,  // [n_poses, max_n_blocks]
-    TView<Int, 2, D> rot_offset_for_block,  // [n_poses, max_n_blocks] global
-    TView<Real, 2, D> rot_spheres,          // [n_rots_global, 4]
-    Real reach) -> TPack<Int, 2, D> {
+  static auto f(
+      ContextManager& mgr,
+      TView<Int, 2, D> pose_stack_block_type,
+      TView<Real, 3, D> block_spheres,
+      TView<Int, 2, D> n_rots_for_block,      // [n_poses, max_n_blocks]
+      TView<Int, 2, D> rot_offset_for_block,  // [n_poses, max_n_blocks] global
+      TView<Real, 2, D> rot_spheres,          // [n_rots_global, 4]
+      TView<Int, 2, D> lockstep_group_for_block,
+      Real reach,
+      int64_t candidate_begin = 0,
+      int64_t candidate_count = -1) -> TPack<Int, 2, D> {
     LAUNCH_BOX_32;
 
-    int const n_poses = block_neighbors.size(0);
-    int const max_n_blocks = block_neighbors.size(1);
-    int const block_pair_cells = common::checked_dispatch_product(
-        max_n_blocks,
-        max_n_blocks,
-        "rotamer block-pair dispatch candidates per pose");
-    int const n_cells = common::checked_dispatch_product(
-        n_poses, block_pair_cells, "rotamer block-pair dispatch candidates");
+    int const n_poses = pose_stack_block_type.size(0);
+    int const max_n_blocks = pose_stack_block_type.size(1);
+    int const block_pairs_per_pose = common::checked_triangular_size(
+        max_n_blocks, true, "rotamer block-pair dispatch candidates per pose");
+    int const total_candidates = common::checked_dispatch_product(
+        n_poses,
+        block_pairs_per_pose,
+        "rotamer block-pair dispatch candidates");
+    if (candidate_count < 0) {
+      candidate_count = int64_t(total_candidates) - candidate_begin;
+    }
+    if (candidate_begin < 0 || candidate_count < 0
+        || candidate_begin + candidate_count > total_candidates) {
+      throw std::out_of_range("rotamer block-pair dispatch window is invalid");
+    }
+    int const n_candidates = common::checked_dispatch_size(
+        candidate_count, "rotamer block-pair dispatch window");
+    if (n_candidates == 0) {
+      return TPack<Int, 2, D>::empty({3, 0});
+    }
 
     // Step 1: per-block-pair rotamer pair counts.
     // For diagonal (b1==b2): only self-pairs (r,r), count = n_rots[b1].
     // For off-diagonal (b1<b2): count the overlapping rotamer spheres.
-    auto pair_counts_t =
-        TPack<int64_t, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks});
+    auto pair_counts_t = TPack<Int, 1, D>::zeros({n_candidates});
     auto pair_counts = pair_counts_t.view;
+    auto pair_count_overflow_t = TPack<int64_t, 1, D>::zeros({1});
+    auto pair_count_overflow = pair_count_overflow_t.view;
 
-    auto compute_counts = ([=] TMOL_DEVICE_FUNC(int ind) {
-      int const pose = ind / block_pair_cells;
-      int const bp = ind % block_pair_cells;
-      int const b1 = bp / max_n_blocks;
-      int const b2 = bp % max_n_blocks;
-      if (block_neighbors[pose][b1][b2]) {
-        int const nr1 = n_rots_for_block[pose][b1];
-        int const nr2 = n_rots_for_block[pose][b2];
-        int const off1 = rot_offset_for_block[pose][b1];
-        int const off2 = rot_offset_for_block[pose][b2];
-        if (nr1 <= 0 || nr2 <= 0 || off1 < 0 || off2 < 0) return;
-        if (b1 == b2) {
-          pair_counts[pose][b1][b2] = nr1;
-        } else {
-          int64_t count = 0;
-          for (int i = 0; i < nr1; ++i) {
-            for (int j = 0; j < nr2; ++j) {
-              count += rot_spheres_overlap<D>(
-                  rot_spheres, off1 + i, off2 + j, reach);
-            }
+    auto compute_counts = ([=] TMOL_DEVICE_FUNC(int candidate) {
+      int const global_candidate = candidate_begin + candidate;
+      int const pose = global_candidate / block_pairs_per_pose;
+      auto pair = common::upper_triangle_inds_from_linear_index(
+          global_candidate % block_pairs_per_pose, max_n_blocks + 1);
+      int const b1 = common::get<0>(pair);
+      int const b2 = common::get<1>(pair) - 1;
+
+      if (pose_stack_block_type[pose][b1] < 0
+          || pose_stack_block_type[pose][b2] < 0) {
+        return;
+      }
+      Real const dx = block_spheres[pose][b1][0] - block_spheres[pose][b2][0];
+      Real const dy = block_spheres[pose][b1][1] - block_spheres[pose][b2][1];
+      Real const dz = block_spheres[pose][b1][2] - block_spheres[pose][b2][2];
+      Real const block_threshold =
+          block_spheres[pose][b1][3] + block_spheres[pose][b2][3] + reach;
+      if (!(dx * dx + dy * dy + dz * dz < block_threshold * block_threshold)) {
+        return;
+      }
+
+      int const nr1 = n_rots_for_block[pose][b1];
+      int const nr2 = n_rots_for_block[pose][b2];
+      int const off1 = rot_offset_for_block[pose][b1];
+      int const off2 = rot_offset_for_block[pose][b2];
+      if (nr1 <= 0 || nr2 <= 0 || off1 < 0 || off2 < 0) return;
+      int const g1 = lockstep_group_for_block[pose][b1];
+      int const g2 = lockstep_group_for_block[pose][b2];
+      int64_t count = 0;
+      if (b1 == b2 || (g1 >= 0 && g1 == g2)) {
+        count = nr1 < nr2 ? nr1 : nr2;
+      } else {
+        for (int i = 0; i < nr1; ++i) {
+          for (int j = 0; j < nr2; ++j) {
+            count +=
+                rot_spheres_overlap<D>(rot_spheres, off1 + i, off2 + j, reach);
           }
-          pair_counts[pose][b1][b2] = count;
         }
       }
+      if (count > std::numeric_limits<Int>::max()) {
+        DeviceDispatch<D>::store_idempotent(pair_count_overflow[0], int64_t(1));
+        return;
+      }
+      pair_counts[candidate] = static_cast<Int>(count);
     });
     DeviceDispatch<D>::template forall_independent<launch_t>(
-        mgr, n_cells, compute_counts);
+        mgr, n_candidates, compute_counts);
 
-    // Step 2: prefix scan → per-block-pair offsets and total
-    auto pair_offsets_t =
-        TPack<int64_t, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks});
-    auto pair_offsets = pair_offsets_t.view;
-
+    // Step 2: check an int64 reduction before scanning int32 offsets. This
+    // preserves the signed-32-bit dispatch limit without two int64 pair arrays.
+    if (pair_count_overflow_t.tensor.template item<int64_t>() != 0) {
+      throw std::overflow_error(
+          "rotamer block-pair dispatch exceeds the signed 32-bit native "
+          "dispatch limit (2147483647)");
+    }
     int64_t const total_64 =
-        DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
-            mgr,
-            pair_counts.data(),
-            pair_offsets.data(),
-            n_cells,
-            mgpu::plus_t<int64_t>());
+        pair_counts_t.tensor.sum(at::ScalarType::Long).template item<int64_t>();
     int const total =
         common::checked_dispatch_size(total_64, "rotamer block-pair dispatch");
+
+    auto pair_offsets_t = TPack<Int, 1, D>::zeros({n_candidates});
+    auto pair_offsets = pair_offsets_t.view;
+    DeviceDispatch<D>::template scan<mgpu::scan_type_exc>(
+        mgr,
+        pair_counts.data(),
+        pair_offsets.data(),
+        n_candidates,
+        mgpu::plus_t<Int>());
 
     // Step 3: allocate output [3, total]
     auto indices_t = TPack<Int, 2, D>::full({3, total}, -1);
@@ -1162,13 +1204,15 @@ struct rot_neighbor_indices_from_block_neighbors {
 
     // Step 4: fill — one thread per block pair, serial loop over rot pairs.
     // Diagonal (b1==b2): only (r,r) self-pairs (intrares scoring).
-    // Off-diagonal (b1<b2): only overlapping rotamer spheres.
-    auto fill = ([=] TMOL_DEVICE_FUNC(int ind) {
-      int const pose = ind / block_pair_cells;
-      int const bp = ind % block_pair_cells;
-      int const b1 = bp / max_n_blocks;
-      int const b2 = bp % max_n_blocks;
-      if (!block_neighbors[pose][b1][b2]) return;
+    // Same lockstep group: matching states; otherwise overlapping spheres.
+    auto fill = ([=] TMOL_DEVICE_FUNC(int candidate) {
+      if (pair_counts[candidate] == 0) return;
+      int const global_candidate = candidate_begin + candidate;
+      int const pose = global_candidate / block_pairs_per_pose;
+      auto pair = common::upper_triangle_inds_from_linear_index(
+          global_candidate % block_pairs_per_pose, max_n_blocks + 1);
+      int const b1 = common::get<0>(pair);
+      int const b2 = common::get<1>(pair) - 1;
 
       int const nr1 = n_rots_for_block[pose][b1];
       int const nr2 = n_rots_for_block[pose][b2];
@@ -1176,12 +1220,25 @@ struct rot_neighbor_indices_from_block_neighbors {
       int const off2 = rot_offset_for_block[pose][b2];
       if (off1 < 0 || off2 < 0) return;
 
-      int64_t offset = pair_offsets[pose][b1][b2];
+      int const g1 = lockstep_group_for_block[pose][b1];
+      int const g2 = lockstep_group_for_block[pose][b2];
+
+      Int offset = pair_offsets[candidate];
       if (b1 == b2) {
         for (int i = 0; i < nr1; ++i) {
           indices[0][offset] = pose;
           indices[1][offset] = off1 + i;
           indices[2][offset] = off1 + i;  // same rot
+          ++offset;
+        }
+      } else if (g1 >= 0 && g1 == g2) {
+        // lockstep: any pair of differing rotamer indices describes a
+        // conformer combination the group cannot adopt
+        int const n = nr1 < nr2 ? nr1 : nr2;
+        for (int i = 0; i < n; ++i) {
+          indices[0][offset] = pose;
+          indices[1][offset] = off1 + i;
+          indices[2][offset] = off2 + i;
           ++offset;
         }
       } else {
@@ -1200,7 +1257,7 @@ struct rot_neighbor_indices_from_block_neighbors {
       }
     });
     DeviceDispatch<D>::template forall_independent<launch_t>(
-        mgr, n_cells, fill);
+        mgr, n_candidates, fill);
 
     return indices_t;
   }

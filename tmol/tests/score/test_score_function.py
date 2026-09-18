@@ -389,6 +389,10 @@ def test_cpu_fused_shard_planner_preserves_fallbacks(
     (fused_grad,) = torch.autograd.grad(fused_score.sum(), fused_coords)
     torch.testing.assert_close(fused_score, separate_score, atol=2e-3, rtol=3e-5)
     torch.testing.assert_close(fused_grad, separate_grad, atol=5e-5, rtol=5e-5)
+    repeated = fused(fused_coords)
+    (repeated_grad,) = torch.autograd.grad(repeated.sum(), fused_coords)
+    torch.testing.assert_close(repeated, fused_score, atol=0, rtol=0)
+    torch.testing.assert_close(repeated_grad, fused_grad, atol=0, rtol=0)
 
     monkeypatch.setattr(torch, "get_num_threads", lambda: 2)
     two_threads = beta2016_score_function(
@@ -695,7 +699,7 @@ def test_packed_block_setup_reuses_annotations_for_identical_types(
 
     assert packed_block_types[1].ref_weights is first_weights
     assert (
-        packed_block_types[1]._ref_weights_src is packed_block_types[0]._ref_weights_src
+        packed_block_types[1]._ref_annotation is packed_block_types[0]._ref_annotation
     )
     assert not hasattr(packed_block_types[1], "unrelated_annotation")
 
@@ -1003,6 +1007,99 @@ def test_rotamer_scorer_combines_identical_sparse_layouts(
     )
     dense_scores.sum().backward()
     torch.testing.assert_close(coords.grad, torch.tensor(61.0, device=torch_device))
+
+
+def test_rotamer_weighted_reduction_preserves_layout_values_and_gradients(
+    torch_device: torch.device,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        score_function_module, "_CUDA_ROTAMER_LAYOUT_DEDUP_MIN_BYTES", 0
+    )
+
+    class SparseTerm(torch.nn.Module):
+        def __init__(self, scores: torch.Tensor, indices: torch.Tensor) -> None:
+            super().__init__()
+            self.scores = scores
+            self.indices = indices
+            self.n_score_types = scores.shape[0]
+            self.n_poses = 1
+            self.n_rots = 3
+
+        def forward(self, coords: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+            return self.scores * coords, self.indices
+
+    shared = torch.tensor(
+        [[0, 0, 0], [0, 0, 1], [0, 1, 2]],
+        dtype=torch.int32,
+        device=torch_device,
+    )
+    distinct = torch.tensor(
+        [[0, 0], [1, 2], [0, 1]], dtype=torch.int32, device=torch_device
+    )
+    score_lanes = [
+        torch.tensor(
+            [[1.0, 2.0, 3.0], [4.0, -1.0, 2.0], [0.5, 1.5, -2.0]],
+            device=torch_device,
+        ),
+        torch.tensor([[7.0, 8.0, 9.0], [-3.0, 2.0, 1.0]], device=torch_device),
+        torch.tensor([[2.0, 5.0], [4.0, -6.0]], device=torch_device),
+    ]
+    weights = torch.tensor([0.0, 2.0, -1.0, 0.0, 4.0, -3.0, 0.5], device=torch_device)
+    scorer = RotamerScoringModule(
+        weights,
+        [
+            SparseTerm(score_lanes[0], shared),
+            SparseTerm(score_lanes[1], shared.clone()),
+            SparseTerm(score_lanes[2], distinct),
+        ],
+    )
+    scorer.weights.requires_grad_(True)
+    coords = torch.tensor(1.25, device=torch_device, requires_grad=True)
+
+    indices, values = scorer.forward_sparse_entries(coords)
+
+    reference_weights = weights.detach().clone().requires_grad_(True)
+    reference_coords = coords.detach().clone().requires_grad_(True)
+    first = (reference_weights[:3, None] * score_lanes[0] * reference_coords).sum(dim=0)
+    second = (reference_weights[3:5, None] * score_lanes[1] * reference_coords).sum(
+        dim=0
+    )
+    third = (reference_weights[5:, None] * score_lanes[2] * reference_coords).sum(dim=0)
+    reference_values = torch.cat((first + second, third))
+    upstream = torch.linspace(0.25, 1.25, values.numel(), device=torch_device)
+    actual_grads = torch.autograd.grad(
+        (values * upstream).sum(), (coords, scorer.weights)
+    )
+    reference_grads = torch.autograd.grad(
+        (reference_values * upstream).sum(),
+        (reference_coords, reference_weights),
+    )
+
+    assert torch.equal(indices, torch.cat((shared, distinct), dim=1))
+    torch.testing.assert_close(values, reference_values)
+    torch.testing.assert_close(actual_grads[0], reference_grads[0])
+    torch.testing.assert_close(actual_grads[1].reshape(-1), reference_grads[1])
+
+
+def test_weighted_score_sum_has_output_sized_cuda_peak(
+    torch_device: torch.device,
+) -> None:
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA allocation accounting test")
+
+    scores = torch.ones((4, 4 * 1024 * 1024), device=torch_device)
+    weights = torch.tensor([0.0, 2.0, -1.0, 0.5], device=torch_device)
+    torch.cuda.synchronize()
+    torch.cuda.reset_peak_memory_stats()
+    baseline = torch.cuda.memory_allocated()
+
+    result = score_function_module._weighted_score_sum(weights, scores)
+    torch.cuda.synchronize()
+    peak_delta = torch.cuda.max_memory_allocated() - baseline
+
+    torch.testing.assert_close(result, torch.full_like(result, 1.5))
+    assert peak_delta <= result.nbytes + 8 * 1024 * 1024
 
 
 def test_rotamer_scorer_raw_entries_keep_int32_and_uncoalesced_duplicates() -> None:
@@ -1663,8 +1760,8 @@ def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_de
     gold_score_map = {
         ScoreType.cart_lengths: n([38.056973]),
         ScoreType.cart_angles: n([183.9738]),
-        ScoreType.cart_torsions: n([46.02357]),
-        ScoreType.cart_impropers: n([9.430529]),
+        ScoreType.cart_torsions: n([27.477385]),
+        ScoreType.cart_impropers: n([20.951893]),
         ScoreType.cart_hxltorsions: n([47.41971]),
         ScoreType.disulfide: n([0.0]),
         ScoreType.fa_ljatr: n([-417.02362]),
@@ -1713,8 +1810,8 @@ def test_score_function_all_score_types(ubq_pdb):
     gold_score_map = {
         ScoreType.cart_lengths: n([38.056973]),
         ScoreType.cart_angles: n([183.9738]),
-        ScoreType.cart_torsions: n([46.02357]),
-        ScoreType.cart_impropers: n([9.430529]),
+        ScoreType.cart_torsions: n([27.477385]),
+        ScoreType.cart_impropers: n([20.951893]),
         ScoreType.cart_hxltorsions: n([47.41971]),
         ScoreType.disulfide: n([0.0]),
         ScoreType.fa_ljatr: n([-417.02362]),
@@ -1766,8 +1863,8 @@ def test_score_function_all_score_types_protein_dna(protein_dna_pdb):
         ScoreType.hbond: n([-173.997391]),
         ScoreType.cart_lengths: n([157.134415]),
         ScoreType.cart_angles: n([963.831909]),
-        ScoreType.cart_torsions: n([134.518875]),
-        ScoreType.cart_impropers: n([11.086108]),
+        ScoreType.cart_torsions: n([24.962362]),
+        ScoreType.cart_impropers: n([23.998163]),
         ScoreType.cart_hxltorsions: n([26.123291]),
         ScoreType.disulfide: n([0.0]),
         ScoreType.rama: n([91.406868]),

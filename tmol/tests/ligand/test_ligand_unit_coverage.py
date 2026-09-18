@@ -19,6 +19,17 @@ import biotite.structure as struc
 
 DATA = data_path()
 GROUND_TRUTH = DATA / "ligand_test" / "ligand_ground_truth"
+NEUTRALIZED_AMMONIUM_MOL2 = (
+    "@<TRIPOS>MOLECULE\nammonium\n5 4 0 0 0\nSMALL\n{charge_model}\n"
+    "@<TRIPOS>ATOM\n"
+    "1 N 0 0 0 N.4 1 NH4 -0.4\n"
+    "2 H1 1 0 0 H 1 NH4 0.1\n"
+    "3 H2 -1 0 0 H 1 NH4 0.1\n"
+    "4 H3 0 1 0 H 1 NH4 0.1\n"
+    "5 H4 0 0 1 H 1 NH4 0.1\n"
+    "@<TRIPOS>UNITY_ATOM_ATTR\n1 1\ncharge 1\n"
+    "@<TRIPOS>BOND\n1 1 2 1\n2 1 3 1\n3 1 4 1\n4 1 5 1\n"
+)
 
 
 # --------------------------------------------------------------------------- #
@@ -72,7 +83,7 @@ class TestDetectHelpers:
         rw2.AddAtom(Chem.Atom(6))
         rw2.AddBond(0, 1, Chem.BondType.DATIVE)
         dative = rw2.GetBondBetweenAtoms(0, 1)
-        assert _rdkit_bond_to_biotite_type(dative) == int(struc.BondType.SINGLE)
+        assert _rdkit_bond_to_biotite_type(dative) == int(struc.BondType.ANY)
 
     def test_infer_res_name_from_mol2(self) -> None:
         from tmol.ligand import _infer_res_name_from_mol2
@@ -126,12 +137,210 @@ class TestDetectHelpers:
         assert frozenset((2, 3)) not in bonds
         assert len(bonds) == 1
 
-    def test_charge_model_is_authoritative(self) -> None:
+    @pytest.mark.parametrize(
+        "model, expected",
+        [
+            ("MMFF94", True),
+            ("MMFF94_CHARGES", True),
+            ("AM1-BCC", True),
+            ("USER_CHARGES", True),
+            ("NO_CHARGES", False),
+            ("DEL_RE", False),
+            ("GASTEIGER", False),
+            ("GAST_HUCK", False),
+            ("HUCKEL", False),
+            ("PULLMAN", False),
+            ("MULLIKEN_CHARGES", False),
+            ("GAUSS80_CHARGES", False),
+            ("AMPAC_CHARGES", False),
+        ],
+    )
+    def test_charge_model_is_authoritative(self, model, expected) -> None:
         from tmol.ligand import _charge_model_is_authoritative
 
-        assert _charge_model_is_authoritative("MMFF94") is True
-        assert _charge_model_is_authoritative("GASTEIGER") is False
-        assert _charge_model_is_authoritative("") is False
+        assert _charge_model_is_authoritative(model) is expected
+
+    @pytest.mark.parametrize(
+        "center_atomic_number, n_substituents",
+        [(6, 0), (15, 1), (16, 1)],
+        ids=["carbonate", "phosphate", "sulfonate"],
+    )
+    def test_infer_oxyacid_bonds_is_generic(
+        self, center_atomic_number, n_substituents
+    ) -> None:
+        from tmol.ligand._detect import _infer_oxyacid_bonds
+
+        mol = Chem.RWMol()
+        center = mol.AddAtom(Chem.Atom(center_atomic_number))
+        delocalized_bonds = set()
+        declared_charges = {}
+        oxygen_indices = []
+        for charge in (0, -1, -1):
+            oxygen = Chem.Atom(8)
+            oxygen.SetFormalCharge(charge)
+            oxygen.SetProp("_TriposAtomType", "O.co2")
+            oxygen_index = mol.AddAtom(oxygen)
+            mol.AddBond(center, oxygen_index, Chem.BondType.SINGLE)
+            oxygen_indices.append(oxygen_index)
+            delocalized_bonds.add(frozenset((center, oxygen_index)))
+            if charge:
+                declared_charges[oxygen_index] = charge
+        for _ in range(n_substituents):
+            substituent = mol.AddAtom(Chem.Atom(6))
+            mol.AddBond(center, substituent, Chem.BondType.SINGLE)
+
+        _infer_oxyacid_bonds(mol, declared_charges, delocalized_bonds)
+
+        orders = [
+            mol.GetBondBetweenAtoms(center, oxygen).GetBondTypeAsDouble()
+            for oxygen in oxygen_indices
+        ]
+        assert sorted(orders) == [1.0, 1.0, 2.0]
+
+    def test_authoritative_neutralized_charges_need_not_match_formal_charge(
+        self,
+    ) -> None:
+        from tmol.ligand import nonstandard_residue_info_from_mol2_block
+
+        mol2 = NEUTRALIZED_AMMONIUM_MOL2.format(charge_model="USER_CHARGES")
+        info = nonstandard_residue_info_from_mol2_block(mol2)
+
+        assert info.atom_array.charge.sum() == 1
+        assert sum(info.partial_charges.values()) == pytest.approx(0)
+        assert info.skip_protonation
+
+    @pytest.mark.parametrize(
+        "charge_model",
+        [
+            "NO_CHARGES",
+            "DEL_RE",
+            "GASTEIGER",
+            "GAST_HUCK",
+            "HUCKEL",
+            "PULLMAN",
+            "MULLIKEN_CHARGES",
+            "GAUSS80_CHARGES",
+            "AMPAC_CHARGES",
+        ],
+    )
+    def test_non_authoritative_charge_models_regenerate_in_auto(
+        self, monkeypatch, tmp_path, charge_model
+    ) -> None:
+        import tmol.ligand._preparation as preparation
+
+        path = tmp_path / "ammonium.mol2"
+        path.write_text(NEUTRALIZED_AMMONIUM_MOL2.format(charge_model=charge_model))
+        with pytest.raises(ValueError, match="authoritative partial charges"):
+            preparation._prepare_mol2(path, mode="keep")
+        monkeypatch.setattr(
+            preparation,
+            "_prepare_ligand_via_smiles",
+            lambda _info, **_kwargs: "regenerated",
+        )
+
+        assert preparation._prepare_mol2(path, mode="auto") == "regenerated"
+
+    @pytest.mark.parametrize(
+        "charges, n_atoms, succeeds",
+        [
+            ([0.17, -0.03], 2, True),
+            ([np.nan, 0.0], 2, False),
+            ([0.0], 2, False),
+        ],
+        ids=["nonintegral-net", "nonfinite", "wrong-shape"],
+    )
+    def test_openbabel_charge_validation(self, charges, n_atoms, succeeds) -> None:
+        from tmol.ligand._openbabel_compat import _compute_charges_with_fallback
+
+        class Atom:
+            def __init__(self, charge):
+                self.charge = charge
+
+            def GetPartialCharge(self):
+                return self.charge
+
+        class Molecule:
+            def __init__(self):
+                self.atoms = [Atom(charge) for charge in charges]
+                self.provenance = []
+
+            def DeleteData(self, _name):
+                pass
+
+            def NumAtoms(self):
+                return n_atoms
+
+            def GetTotalCharge(self):
+                return 0
+
+            def CloneData(self, value):
+                self.provenance.append(value)
+
+        class ChargeModel:
+            def ComputeCharges(self, _mol):
+                return True
+
+        class ChargeModels:
+            @staticmethod
+            def FindType(_name):
+                return ChargeModel()
+
+        class PairData:
+            def SetAttribute(self, value):
+                self.attribute = value
+
+            def SetValue(self, value):
+                self.value = value
+
+        class OpenBabel:
+            OBChargeModel = ChargeModels
+            OBPairData = PairData
+
+            @staticmethod
+            def OBMolAtomIter(mol):
+                return iter(mol.atoms)
+
+        pymol = type("PyMol", (), {"OBMol": Molecule()})()
+        if succeeds:
+            assert (
+                _compute_charges_with_fallback(OpenBabel, pymol, "mmff94", "[NH4+]")
+                == "mmff94"
+            )
+            assert len(pymol.OBMol.provenance) == 1
+        else:
+            with pytest.raises(ValueError, match="could not compute"):
+                _compute_charges_with_fallback(OpenBabel, pymol, "mmff94", "[NH4+]")
+
+    @pytest.mark.parametrize(
+        "mode, prepared_input, expected",
+        [
+            ("keep", True, "kept"),
+            ("auto", True, "kept"),
+            ("auto", False, "regenerated"),
+            ("regenerate", True, "regenerated"),
+            ("regenerate", False, "regenerated"),
+        ],
+    )
+    def test_mol2_preparation_mode_dispatch(
+        self, monkeypatch, mode, prepared_input, expected
+    ) -> None:
+        from types import SimpleNamespace
+
+        import tmol.ligand._detect as detect
+        import tmol.ligand._preparation as preparation
+
+        info = SimpleNamespace(skip_protonation=prepared_input)
+        monkeypatch.setattr(
+            detect, "nonstandard_residue_info_from_mol2", lambda *_a, **_k: info
+        )
+        monkeypatch.setattr(preparation, "prepare_single_ligand", lambda _info: "kept")
+        monkeypatch.setattr(
+            preparation,
+            "_prepare_ligand_via_smiles",
+            lambda _info, **_k: "regenerated",
+        )
+
+        assert preparation._prepare_mol2("lig.mol2", mode=mode) == expected
 
     def test_normalize_radical_oxygens(self) -> None:
         from tmol.ligand import _normalize_radical_oxygens
@@ -162,14 +371,11 @@ class TestDetectHelpers:
 # --------------------------------------------------------------------------- #
 class TestStructureToSmiles:
     def _array(self):
-        import biotite.structure.io.pdbx as pdbx
+        from tmol.io import atom_array_from_cif
 
         fixture = DATA / "ligand_cif_fixtures" / "vww.bonds_present.cif"
-        cif = pdbx.CIFFile.read(str(fixture))
-        arr = pdbx.get_structure(cif, model=1, include_bonds=True)
-        if isinstance(arr, struc.AtomArrayStack):
-            arr = arr[0]
-        return arr
+        # a single-ligand file supplying a whole molecule under a code of its own
+        return atom_array_from_cif(fixture, use_ccd=False)
 
     def test_mol_to_smiles_returns_none_on_failure(self, monkeypatch) -> None:
         import tmol.ligand._structure_to_smiles as mod
@@ -250,7 +456,7 @@ class TestLigandAtomArrayToRdkitMol:
 
         return NonStandardResidueInfo(
             res_name="LG1",
-            ccd_type="UNKNOWN",
+            component_type="UNKNOWN",
             atom_names=tuple(str(n) for n in arr.atom_name),
             elements=tuple(str(e) for e in arr.element),
             coords=arr.coord.copy(),
@@ -315,23 +521,3 @@ class TestPreparationHelpers:
 
         # Empty CIF heavy-atom set short-circuits to True without inspecting prep.
         assert _residue_covers_cif_heavy_atoms(object(), set()) is True
-
-
-# --------------------------------------------------------------------------- #
-# params_io.py reader + format guard
-# --------------------------------------------------------------------------- #
-class TestParamsIo:
-    def test_read_rosetta_params_file(self) -> None:
-        from tmol.ligand import read_params_file
-
-        params = sorted((GROUND_TRUTH / "params").glob("*.params"))
-        assert params, "expected ground-truth .params fixtures"
-        rt = read_params_file(params[0])
-        assert len(rt.atoms) > 0
-        assert len(rt.bonds) > 0
-
-    def test_write_params_file_rejects_unknown_format(self) -> None:
-        from tmol.ligand import write_params_file
-
-        with pytest.raises(ValueError, match="unknown params format"):
-            write_params_file(object(), "/tmp/ignored.out", format="bogus")

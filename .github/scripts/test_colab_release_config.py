@@ -138,9 +138,10 @@ def test_release_matrix_drives_publish_smoke_and_manifest():
     smoke_rows = matrix.linux_wheel_rows()
     expected_keys = matrix.expected_wheel_keys()
 
+    # The CPU lanes follow the GPU families, so only the GPU count stands alone.
     assert len(publish_rows) == 34
-    assert len(smoke_rows) == 50
-    assert len(expected_keys) == 58
+    assert len(smoke_rows) == len(publish_rows) + len(matrix.cpu_wheel_rows())
+    assert len(expected_keys) == len(smoke_rows) + len(matrix.macos_wheel_rows())
     assert len(
         {(row["python-tag"], row["local-tag"], row["arch"]) for row in smoke_rows}
     ) == len(smoke_rows)

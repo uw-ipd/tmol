@@ -89,7 +89,7 @@ def test_include_current_sampler_smoke(ubq_pdb, torch_device):
 
     assert results[0].device == torch_device
     assert results[1].device == torch_device
-    assert results[2] == {}
+    assert results[2] == {"copy_input_coordinates": True}
 
     n_rots_for_rt_gold = numpy.zeros((21 * 13,), dtype=numpy.int32)
     rt_for_rot_gold = numpy.full((len(enabled_residues),), -1, dtype=numpy.int32)
