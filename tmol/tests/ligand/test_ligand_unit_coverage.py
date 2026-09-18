@@ -35,6 +35,37 @@ NEUTRALIZED_AMMONIUM_MOL2 = (
 # --------------------------------------------------------------------------- #
 # detect.py helpers
 # --------------------------------------------------------------------------- #
+
+
+def delocalized_center(neighbors, center, substituents):
+    """Build one acyclic center whose neighbour bonds are Tripos ``ar``.
+
+    ``neighbors`` is ``(atomic_number, n_hydrogens, n_carbon_substituents)`` per
+    delocalized neighbour, ordered nearest-first: among the neighbours that may
+    take it, the double bond goes to the nearest.
+    """
+    mol = Chem.RWMol()
+    center_index = mol.AddAtom(Chem.Atom(center))
+    delocalized_bonds = set()
+    coordinates = {center_index: (0.0, 0.0, 0.0)}
+    for rank, (atomic_number, n_hydrogens, n_substituents) in enumerate(neighbors):
+        index = mol.AddAtom(Chem.Atom(atomic_number))
+        coordinates[index] = (1.25 + 0.2 * rank, 0.0, 0.0)
+        mol.AddBond(center_index, index, Chem.BondType.AROMATIC)
+        delocalized_bonds.add(frozenset((center_index, index)))
+        for _ in range(n_hydrogens):
+            mol.AddBond(index, mol.AddAtom(Chem.Atom(1)), Chem.BondType.SINGLE)
+        for _ in range(n_substituents):
+            mol.AddBond(index, mol.AddAtom(Chem.Atom(6)), Chem.BondType.SINGLE)
+    for _ in range(substituents):
+        mol.AddBond(center_index, mol.AddAtom(Chem.Atom(6)), Chem.BondType.SINGLE)
+    conformer = Chem.Conformer(mol.GetNumAtoms())
+    for index in range(mol.GetNumAtoms()):
+        conformer.SetAtomPosition(index, coordinates.get(index, (0.0, 0.0, 5.0)))
+    mol.AddConformer(conformer)
+    return mol.GetMol(), delocalized_bonds
+
+
 class TestDetectHelpers:
     def test_strip_metals_removes_metal_atoms(self) -> None:
         from tmol.ligand import _strip_metals
@@ -196,6 +227,117 @@ class TestDetectHelpers:
             for oxygen in oxygen_indices
         ]
         assert sorted(orders) == [1.0, 1.0, 2.0]
+
+    @pytest.mark.parametrize(
+        "neighbors, center, substituents, expected",
+        [
+            (((7, 1, 0), (7, 2, 0)), 6, 1, "CC(=N)N"),
+            (((7, 0, 0), (7, 0, 0)), 6, 1, "CC(=N)N"),
+            (((7, 1, 0), (7, 2, 0), (7, 2, 0)), 6, 0, "N=C(N)N"),
+            (((7, 1, 1), (7, 2, 0), (7, 2, 0)), 6, 0, "C[NH+]=C(N)N"),
+            (((7, 2, 0), (7, 1, 1), (7, 2, 0)), 6, 0, "CNC(N)=[NH2+]"),
+            (((8, 0, 0), (8, 1, 0)), 6, 1, "CC(=O)O"),
+            (((8, 1, 0), (8, 0, 0)), 6, 1, "CC(=O)O"),
+            (((8, 0, 0), (8, 0, 0)), 6, 1, "CC(=O)[O-]"),
+            (((8, 0, 0), (8, 0, 0), (8, 0, 1)), 15, 1, "COP(C)(=O)[O-]"),
+            (((8, 0, 0), (8, 0, 0)), 7, 1, "C[N+](=O)[O-]"),
+        ],
+        ids=[
+            "amidine",
+            "amidine_without_hydrogens",
+            "guanidine",
+            "guanidinium_substituted_nitrogen_nearest",
+            "guanidinium_substituted_nitrogen_second",
+            "carboxylic_acid",
+            "carboxylic_acid_hydroxyl_nearest",
+            "carboxylate",
+            "phosphonate_ester",
+            "nitro",
+        ],
+    )
+    def test_localization_places_the_double_bond_without_reprotonating(
+        self, neighbors, center, substituents, expected
+    ) -> None:
+        """The double bond goes where it does not force a neighbour positive.
+
+        A hydroxyl oxygen and a phosphodiester's bridging oxygen would both have
+        to become cations to take it, so they keep their single bond. A
+        guanidinium has no such option -- every nitrogen is the cation in some
+        Kekule form -- and refusing it there left the center a bond short: a
+        carbanion whose nitrogens come back with an extra hydrogen each.
+        """
+        from tmol.ligand._detect import _infer_oxyacid_bonds
+
+        molecule, delocalized_bonds = delocalized_center(
+            neighbors, center, substituents
+        )
+
+        _infer_oxyacid_bonds(molecule, {}, delocalized_bonds)
+
+        Chem.SanitizeMol(molecule)
+        assert Chem.MolToSmiles(Chem.RemoveHs(molecule)) == expected
+
+    @pytest.mark.parametrize(
+        "neighbors, center, substituents, declared, expected, net",
+        [
+            (((7, 1, 1), (7, 2, 0), (7, 2, 0)), 6, 0, {4: 1}, "CNC(N)=[NH2+]", 1),
+            (((7, 2, 0), (7, 2, 0)), 6, 1, {4: 1}, "CC(N)=[NH2+]", 1),
+            (((8, 0, 0), (8, 0, 0)), 6, 1, {2: -1}, "CC(=O)[O-]", -1),
+            (((8, 0, 0), (8, 0, 0), (8, 0, 0)), 16, 1, {3: -1}, "CS(=O)(=O)[O-]", -1),
+        ],
+        ids=["guanidinium", "amidinium", "carboxylate", "mesylate"],
+    )
+    def test_a_declared_charge_and_an_inferred_one_agree(
+        self, neighbors, center, substituents, declared, expected, net
+    ) -> None:
+        """What the file says settles where the double bond goes, not what it adds.
+
+        A guanidinium's +1 nitrogen is the one holding the double bond; a
+        carboxylate's -1 oxygen is the one that is not. Reading the declaration
+        as an extra charge instead of as a placement gave the guanidinium a
+        second cation -- a net the caller could not catch, since it compares
+        against the declared charges plus the ones localization invented.
+        """
+        from tmol.ligand._detect import _infer_oxyacid_bonds
+
+        molecule, delocalized_bonds = delocalized_center(
+            neighbors, center, substituents
+        )
+        for index, charge in declared.items():
+            molecule.GetAtomWithIdx(index).SetFormalCharge(charge)
+
+        _infer_oxyacid_bonds(molecule, dict(declared), delocalized_bonds)
+
+        Chem.SanitizeMol(molecule)
+        assert Chem.MolToSmiles(Chem.RemoveHs(molecule)) == expected
+        assert Chem.GetFormalCharge(molecule) == net
+
+    def test_contradictory_declared_charges_fail_rather_than_invent_a_center(
+        self,
+    ) -> None:
+        """Both carboxylate oxygens cannot be the anion; refuse instead of balancing.
+
+        Handing the double bond only to neighbours the file left uncharged meant
+        there were none here, so no double bond was written at all and the
+        carbon absorbed the difference as a charge -- which localization then
+        recorded, moving the expected net with it so nothing downstream noticed.
+        Leaving it unsanitizable routes the molecule to the fallback reader.
+        """
+        from tmol.ligand._detect import _infer_oxyacid_bonds
+
+        molecule, delocalized_bonds = delocalized_center(((8, 0, 0), (8, 0, 0)), 6, 1)
+        declared = {1: -1, 2: -1}
+        for index, charge in declared.items():
+            molecule.GetAtomWithIdx(index).SetFormalCharge(charge)
+
+        _infer_oxyacid_bonds(molecule, dict(declared), delocalized_bonds)
+
+        assert not any(
+            atom.GetSymbol() == "C" and atom.GetFormalCharge()
+            for atom in molecule.GetAtoms()
+        )
+        with pytest.raises(Chem.AtomValenceException):
+            Chem.SanitizeMol(molecule)
 
     def test_authoritative_neutralized_charges_need_not_match_formal_charge(
         self,
