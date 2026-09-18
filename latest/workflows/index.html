@@ -161,25 +161,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -292,6 +309,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -469,7 +493,7 @@ corresponding Tutorials for deeper analysis.</p>
   <a class="docs-card" href="../user_guide/integrations.html">
     <span class="docs-card-kicker">Connect</span>
     <span class="docs-card-title">Model and structure integrations</span>
-    <span class="docs-card-description">Convert RoseTTAFold2, OpenFold, Biotite, and AtomWorks representations into compatible PoseStacks.</span>
+    <span class="docs-card-description">Read structures through AtomWorks or map named model tensors into differentiable PoseStacks.</span>
   </a>
   <a class="docs-card" href="gpu_batching.html">
     <span class="docs-card-kicker">Scale</span>
@@ -528,9 +552,9 @@ corresponding Tutorials for deeper analysis.</p>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/integrations.html">Model and structure integrations</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/integrations.html#rosettafold2">RoseTTAFold2</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/integrations.html#openfold">OpenFold</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/integrations.html#biotite-and-atomarray">Biotite and AtomArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/integrations.html#structure-files-and-annotated-arrays">Structure files and annotated arrays</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/integrations.html#direct-prediction-tensors">Direct prediction tensors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/integrations.html#one-tensor-path-for-any-chemistry">One tensor path for any chemistry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../user_guide/integrations.html#differentiable-atomworks-atom37-coordinates">Differentiable AtomWorks Atom37 coordinates</a></li>
 </ul>
 </li>
@@ -580,6 +604,7 @@ corresponding Tutorials for deeper analysis.</p>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Specialized chemistry</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/ligands.html">Ligand Preparation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/ligands.html#chemistry-classes">Chemistry Classes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../user_guide/ligands.html#entry-points">Entry Points</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../user_guide/ligands.html#loading-complexes">Loading Complexes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../user_guide/ligands.html#reuse-prepared-context">Reuse Prepared Context</a></li>

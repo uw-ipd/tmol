@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -417,13 +441,12 @@
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Tensor</span><span class="p">,</span>
     <span class="n">validate_args</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.tensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">exclusive_cumsum1d</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">PackedBlockTypes</span><span class="p">,</span>
@@ -512,7 +535,7 @@
         <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:],</span>  <span class="c1"># n_rots_for_rt</span>
         <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>  <span class="c1"># rt_for_rotamer</span>
         <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:],</span>  <span class="c1"># chi_defining_atom_for_rotamer</span>
-        <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="p">:],</span>  <span class="c1"># chi_for_rotamers</span>
+        <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="p">:],</span>  <span class="c1"># chi_for_rotamers, in radians</span>
     <span class="p">]:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
 
@@ -539,7 +562,7 @@
         <span class="n">copy_dofs_from_orig_to_rotamers_for_sampler</span><span class="p">(</span>
             <span class="n">pose_stack</span><span class="p">,</span>
             <span class="n">task</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">sampler_name</span><span class="p">(),</span>
+            <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
             <span class="n">gbt_for_conformer</span><span class="p">,</span>
             <span class="n">block_type_ind_for_conformer</span><span class="p">,</span>
             <span class="n">conf_inds_for_sampler</span><span class="p">,</span>
@@ -574,7 +597,7 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">copy_dofs_from_orig_to_rotamers_for_sampler</span><span class="p">(</span>
     <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
     <span class="n">task</span><span class="p">,</span>
-    <span class="n">sampler_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">sampler_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
     <span class="n">gbt_for_rot</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
     <span class="n">block_type_ind_for_rot</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
     <span class="n">conf_inds_for_sampler</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
@@ -596,13 +619,19 @@
         <span class="n">n_dof_atoms_offset_for_rot</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">rot_dofs_kto</span><span class="p">[</span><span class="n">dst</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">orig_dofs_kto</span><span class="p">[</span><span class="n">src</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="c1"># Missing sidechains can also leave dependent mainchain hydrogens unresolved</span>
+    <span class="c1"># (e.g. N-terminal proline H2/H3 depend on CD). Keep their ideal DOFs rather</span>
+    <span class="c1"># than overwriting freshly generated conformers with non-finite measurements.</span>
+    <span class="n">measured</span> <span class="o">=</span> <span class="n">orig_dofs_kto</span><span class="p">[</span><span class="n">src</span><span class="p">]</span>
+    <span class="n">rot_dofs_kto</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">measured</span><span class="p">),</span> <span class="n">measured</span><span class="p">,</span> <span class="n">rot_dofs_kto</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span>
+    <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler</span><span class="p">(</span>
     <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
     <span class="n">task</span><span class="p">:</span> <span class="s2">"PackerTask"</span><span class="p">,</span>  <span class="c1"># noqa F821</span>
-    <span class="n">sampler_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">sampler_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
     <span class="n">gbt_for_rot</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>  <span class="c1"># max-n-rots</span>
     <span class="n">block_type_ind_for_rot</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
     <span class="n">conf_inds_for_sampler</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
@@ -616,165 +645,45 @@
 <span class="sd">        Destination and source indices, each shaped ``[n_copied_dofs]``.</span>
 <span class="sd">    """</span>
 
+    <span class="c1"># A sampler with no states need not have an ownership fingerprint at all.</span>
+    <span class="k">if</span> <span class="n">conf_inds_for_sampler</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">conf_inds_for_sampler</span><span class="p">,</span> <span class="n">conf_inds_for_sampler</span>
     <span class="n">pbt</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">packed_block_types</span>
-    <span class="n">n_rots_for_sampler</span> <span class="o">=</span> <span class="n">sampler_gbt_for_rotamer</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_chi_dof_metadata</span>
+    <span class="n">fingerprints</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">mc_fingerprints</span>
+    <span class="k">if</span> <span class="n">fingerprints</span><span class="o">.</span><span class="n">atom_mapping</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">empty</span> <span class="o">=</span> <span class="n">conf_inds_for_sampler</span><span class="p">[:</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">empty</span><span class="p">,</span> <span class="n">empty</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._build_rotamers</span><span class="w"> </span><span class="kn">import</span> <span class="n">_kinforest_device_indices</span>
 
-    <span class="n">kinforest_idx</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_get_chi_dof_metadata</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
-
-    <span class="c1"># This could 100% be pre-computed</span>
-    <span class="n">pbts_sampler_ind</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="o">.</span><span class="n">sampler_mapping</span><span class="p">[</span><span class="n">sampler_name</span><span class="p">]</span>
-
-    <span class="n">orig_block_type_ind</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">poses</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">[</span><span class="n">poses</span><span class="o">.</span><span class="n">block_type_ind</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-    <span class="p">)</span>
-
-    <span class="c1"># consider making this an argument and passing in</span>
-    <span class="n">poses_res_to_real_poses_res</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-        <span class="p">(</span><span class="n">poses</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">poses</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],),</span>
-        <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
-        <span class="n">device</span><span class="o">=</span><span class="n">poses</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">poses_res_to_real_poses_res</span><span class="p">[</span><span class="n">poses</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
-        <span class="n">orig_block_type_ind</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">poses</span><span class="o">.</span><span class="n">device</span>
-    <span class="p">)</span>
-
-    <span class="c1"># get the residue index for each rotamer</span>
-    <span class="n">res_ind_for_gbt</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">global_block_ind_for_considered_block_types</span>
-
-    <span class="n">gbt_for_samplers_rots</span> <span class="o">=</span> <span class="n">gbt_for_rot</span><span class="p">[</span><span class="n">conf_inds_for_sampler</span><span class="p">]</span>
-    <span class="n">res_ind_for_samplers_rots</span> <span class="o">=</span> <span class="n">res_ind_for_gbt</span><span class="p">[</span><span class="n">gbt_for_samplers_rots</span><span class="p">]</span>
-    <span class="n">real_res_ind_for_samplers_rots</span> <span class="o">=</span> <span class="n">poses_res_to_real_poses_res</span><span class="p">[</span>
-        <span class="n">res_ind_for_samplers_rots</span>
+    <span class="n">kfo</span> <span class="o">=</span> <span class="n">_kinforest_device_indices</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">flat_types</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">flat_types</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">flat_types</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">counts</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">source_offsets</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">counts</span>
+    <span class="n">considered</span> <span class="o">=</span> <span class="n">gbt_for_rot</span><span class="p">[</span><span class="n">conf_inds_for_sampler</span><span class="p">]</span>
+    <span class="n">source_residues</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">global_block_ind_for_considered_block_types</span><span class="p">[</span><span class="n">considered</span><span class="p">]</span>
+    <span class="n">source_types</span> <span class="o">=</span> <span class="n">flat_types</span><span class="p">[</span><span class="n">source_residues</span><span class="p">]</span>
+    <span class="n">target_types</span> <span class="o">=</span> <span class="n">block_type_ind_for_rot</span><span class="p">[</span><span class="n">conf_inds_for_sampler</span><span class="p">]</span>
+    <span class="n">source_fingerprints</span> <span class="o">=</span> <span class="n">fingerprints</span><span class="o">.</span><span class="n">source_fingerprint</span><span class="p">[</span><span class="n">source_types</span><span class="p">]</span>
+    <span class="n">source_atoms</span> <span class="o">=</span> <span class="n">fingerprints</span><span class="o">.</span><span class="n">source_atom_mapping</span><span class="p">[</span><span class="n">source_types</span><span class="p">]</span>
+    <span class="n">source_local</span> <span class="o">=</span> <span class="n">kfo</span><span class="p">[</span><span class="n">source_types</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">source_atoms</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span>
+    <span class="n">source_local</span><span class="o">.</span><span class="n">masked_fill_</span><span class="p">(</span><span class="n">source_atoms</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">del</span> <span class="n">source_atoms</span>
+    <span class="n">target_atoms</span> <span class="o">=</span> <span class="n">fingerprints</span><span class="o">.</span><span class="n">atom_mapping</span><span class="p">[</span>
+        <span class="n">fingerprints</span><span class="o">.</span><span class="n">sampler_mapping</span><span class="p">[</span><span class="n">sampler_name</span><span class="p">],</span>
+        <span class="n">source_fingerprints</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+        <span class="n">target_types</span><span class="p">,</span>
     <span class="p">]</span>
-    <span class="n">block_type_ind_for_samplers_rots</span> <span class="o">=</span> <span class="n">block_type_ind_for_rot</span><span class="p">[</span><span class="n">conf_inds_for_sampler</span><span class="p">]</span>
-
-    <span class="c1"># look up which mainchain fingerprint each</span>
-    <span class="c1"># original residue should use</span>
-
-    <span class="n">mcfp</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">mc_fingerprints</span>
-
-    <span class="n">sampler_ind_for_orig</span> <span class="o">=</span> <span class="n">mcfp</span><span class="o">.</span><span class="n">max_sampler</span><span class="p">[</span><span class="n">orig_block_type_ind</span><span class="p">]</span>
-    <span class="n">orig_res_mcfp</span> <span class="o">=</span> <span class="n">mcfp</span><span class="o">.</span><span class="n">max_fingerprint</span><span class="p">[</span><span class="n">orig_block_type_ind</span><span class="p">]</span>
-    <span class="n">orig_res_mcfp_for_samplers_rots</span> <span class="o">=</span> <span class="n">orig_res_mcfp</span><span class="p">[</span><span class="n">real_res_ind_for_samplers_rots</span><span class="p">]</span>
-
-    <span class="c1"># now lets find the kinforest-ordered indices of the</span>
-    <span class="c1"># mainchain atoms for the rotamers that represents</span>
-    <span class="c1"># the destination for the dofs we're copying</span>
-    <span class="n">max_n_mcfp_atoms</span> <span class="o">=</span> <span class="n">mcfp</span><span class="o">.</span><span class="n">atom_mapping</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
-
-    <span class="n">samplers_rots_mcfp_at_inds_rto</span> <span class="o">=</span> <span class="n">mcfp</span><span class="o">.</span><span class="n">atom_mapping</span><span class="p">[</span>
-        <span class="n">pbts_sampler_ind</span><span class="p">,</span>
-        <span class="n">orig_res_mcfp_for_samplers_rots</span><span class="p">,</span>
-        <span class="n">block_type_ind_for_samplers_rots</span><span class="p">,</span>
-        <span class="p">:,</span>
-    <span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-
-    <span class="n">is_samplers_rots_mcfp_at_inds_rto_real</span> <span class="o">=</span> <span class="n">samplers_rots_mcfp_at_inds_rto</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="n">real_samplers_rots_mcfp_at_inds_rto</span> <span class="o">=</span> <span class="n">samplers_rots_mcfp_at_inds_rto</span><span class="p">[</span>
-        <span class="n">is_samplers_rots_mcfp_at_inds_rto_real</span>
-    <span class="p">]</span>
-
-    <span class="n">samplers_rots_block_type_ind_for_mcfp_ats</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">block_type_ind_for_samplers_rots</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
-        <span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_rots_for_sampler</span><span class="p">,</span> <span class="n">max_n_mcfp_atoms</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">target_local</span> <span class="o">=</span> <span class="n">kfo</span><span class="p">[</span><span class="n">target_types</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">target_atoms</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span>
+    <span class="n">target_local</span><span class="o">.</span><span class="n">masked_fill_</span><span class="p">(</span><span class="n">target_atoms</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">del</span> <span class="n">target_atoms</span>
+    <span class="n">present</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">source_fingerprints</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">source_local</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">target_local</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
     <span class="p">)</span>
-    <span class="n">real_samplers_rots_block_type_ind_for_mcfp_ats</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">samplers_rots_block_type_ind_for_mcfp_ats</span><span class="p">[</span>
-            <span class="n">is_samplers_rots_mcfp_at_inds_rto_real</span>
-        <span class="p">]</span>
-    <span class="p">)</span>
-
-    <span class="n">samplers_rots_mcfp_at_inds_kto</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">samplers_rots_mcfp_at_inds_rto</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">samplers_rots_mcfp_at_inds_kto</span><span class="p">[</span><span class="n">is_samplers_rots_mcfp_at_inds_rto_real</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">kinforest_idx</span><span class="p">[</span>
-            <span class="n">real_samplers_rots_block_type_ind_for_mcfp_ats</span><span class="p">,</span>
-            <span class="n">real_samplers_rots_mcfp_at_inds_rto</span><span class="p">,</span>
-        <span class="p">]</span>
-    <span class="p">)</span>
-
-    <span class="n">is_samplers_rots_mcfp_at_inds_kto_real</span> <span class="o">=</span> <span class="n">samplers_rots_mcfp_at_inds_kto</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="n">n_dof_atoms_offset_for_samplers_rot</span> <span class="o">=</span> <span class="n">n_dof_atoms_offset_for_rot</span><span class="p">[</span>
-        <span class="n">conf_inds_for_sampler</span>
-    <span class="p">]</span>
-    <span class="n">samplers_rots_mcfp_at_inds_kto</span><span class="p">[</span><span class="n">is_samplers_rots_mcfp_at_inds_kto_real</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span>
-        <span class="n">n_dof_atoms_offset_for_samplers_rot</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
-        <span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_rots_for_sampler</span><span class="p">,</span> <span class="n">max_n_mcfp_atoms</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="n">is_samplers_rots_mcfp_at_inds_kto_real</span><span class="p">]</span>
-    <span class="p">)</span>
-
-    <span class="c1"># now get the indices in the orig_dofs array for the atoms to copy from.</span>
-    <span class="c1"># The steps:</span>
-    <span class="c1"># 1. get the mainchain atom indices for each of the original residues</span>
-    <span class="c1">#    in residue-type order (rto)</span>
-    <span class="c1"># 2. sample 1. for each rotamer</span>
-    <span class="c1"># 3. find the real subset of these atoms</span>
-    <span class="c1"># 4. note the residue index for each of these real atoms</span>
-    <span class="c1"># 5. remap these to kinforest order (kto)</span>
-    <span class="c1"># 6. increment the indices with the original-residue dof-index offsets</span>
-
-    <span class="c1"># orig_mcfp_at_inds_for_orig_rto:</span>
-    <span class="c1"># 1. these are the mainchain fingerprint atoms from the original</span>
-    <span class="c1">#    residues on the pose</span>
-    <span class="c1"># 2. they are stored in residue-type order (rto)</span>
-    <span class="c1"># 3. they are indexed by original residue index</span>
-
-    <span class="n">orig_mcfp_at_inds_rto</span> <span class="o">=</span> <span class="n">mcfp</span><span class="o">.</span><span class="n">atom_mapping</span><span class="p">[</span>
-        <span class="n">sampler_ind_for_orig</span><span class="p">,</span> <span class="n">orig_res_mcfp</span><span class="p">,</span> <span class="n">orig_block_type_ind</span><span class="p">,</span> <span class="p">:</span>
-    <span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-
-    <span class="n">n_orig_blocks</span> <span class="o">=</span> <span class="n">orig_block_type_ind</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">orig_block_type_ind_for_mcfp_ats</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">orig_block_type_ind</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_orig_blocks</span><span class="p">,</span> <span class="n">max_n_mcfp_atoms</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="p">)</span>
-    <span class="n">real_orig_block_type_ind_for_orig_mcfp_ats</span> <span class="o">=</span> <span class="n">orig_block_type_ind_for_mcfp_ats</span><span class="p">[</span>
-        <span class="n">orig_mcfp_at_inds_rto</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="p">]</span>
-
-    <span class="n">orig_dof_atom_offset</span> <span class="o">=</span> <span class="n">exclusive_cumsum1d</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">orig_block_type_ind</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">int64</span>
-    <span class="p">)</span>
-
-    <span class="n">orig_mcfp_at_inds_kto</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">orig_mcfp_at_inds_rto</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">orig_mcfp_at_inds_kto</span><span class="p">[</span><span class="n">orig_mcfp_at_inds_rto</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">kinforest_idx</span><span class="p">[</span>
-            <span class="n">real_orig_block_type_ind_for_orig_mcfp_ats</span><span class="p">,</span>
-            <span class="n">orig_mcfp_at_inds_rto</span><span class="p">[</span><span class="n">orig_mcfp_at_inds_rto</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-        <span class="p">]</span>
-        <span class="o">+</span> <span class="n">orig_dof_atom_offset</span><span class="p">[</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_orig_blocks</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
-            <span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_orig_blocks</span><span class="p">,</span> <span class="n">max_n_mcfp_atoms</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-        <span class="p">][</span><span class="n">orig_mcfp_at_inds_rto</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-    <span class="p">)</span>
-
-    <span class="n">orig_mcfp_at_inds_kto</span> <span class="o">=</span> <span class="n">orig_mcfp_at_inds_kto</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
-        <span class="n">orig_block_type_ind</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">max_n_mcfp_atoms</span>
-    <span class="p">)</span>
-
-    <span class="n">orig_mcfp_at_inds_for_samplers_rots_kto</span> <span class="o">=</span> <span class="n">orig_mcfp_at_inds_kto</span><span class="p">[</span>
-        <span class="n">real_res_ind_for_samplers_rots</span><span class="p">,</span> <span class="p">:</span>
-    <span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-
-    <span class="c1"># pare down the subset to those where the mc atom is present for</span>
-    <span class="c1"># both the original block type and the alternate block type;</span>
-    <span class="c1"># take the subset and also increment the indices of all the atoms</span>
-    <span class="c1"># by one to take into account the virtual root atom at the origin</span>
-
-    <span class="n">both_present</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
-        <span class="n">samplers_rots_mcfp_at_inds_kto</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-        <span class="n">orig_mcfp_at_inds_for_samplers_rots_kto</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="c1"># add one for the virtual root</span>
-    <span class="n">samplers_rots_mcfp_at_inds_kto</span> <span class="o">=</span> <span class="n">samplers_rots_mcfp_at_inds_kto</span><span class="p">[</span><span class="n">both_present</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
-    <span class="n">orig_mcfp_at_inds_for_samplers_rots_kto</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">orig_mcfp_at_inds_for_samplers_rots_kto</span><span class="p">[</span><span class="n">both_present</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
-    <span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">samplers_rots_mcfp_at_inds_kto</span><span class="p">,</span> <span class="n">orig_mcfp_at_inds_for_samplers_rots_kto</span>
+    <span class="c1"># Both DOF arrays reserve their first row for the virtual root.</span>
+    <span class="n">source_local</span><span class="o">.</span><span class="n">add_</span><span class="p">(</span><span class="n">source_offsets</span><span class="p">[</span><span class="n">source_residues</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">target_local</span><span class="o">.</span><span class="n">add_</span><span class="p">(</span><span class="n">n_dof_atoms_offset_for_rot</span><span class="p">[</span><span class="n">conf_inds_for_sampler</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">target_local</span><span class="p">[</span><span class="n">present</span><span class="p">],</span> <span class="n">source_local</span><span class="p">[</span><span class="n">present</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="assign_chi_dofs_from_samples">
@@ -798,41 +707,31 @@
 <span class="sd">    """</span>
     <span class="k">assert</span> <span class="n">chi_atoms</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">chi</span><span class="o">.</span><span class="n">shape</span>
 
-    <span class="n">n_rots_for_sampler</span> <span class="o">=</span> <span class="n">sampler_gbt_for_rotamer</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-
-    <span class="n">max_n_chi_atoms</span> <span class="o">=</span> <span class="n">chi_atoms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-    <span class="n">real_atoms</span> <span class="o">=</span> <span class="n">chi_atoms</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
-
-    <span class="n">sampler_rot_ind_for_real_atom</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
-        <span class="n">n_rots_for_sampler</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span>
-    <span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span><span class="o">.</span><span class="n">expand_as</span><span class="p">(</span><span class="n">chi_atoms</span><span class="p">)[</span><span class="n">real_atoms</span><span class="p">]</span>
-    <span class="n">global_rot_ind_for_real_atom</span> <span class="o">=</span> <span class="n">conf_inds_for_sampler</span><span class="p">[</span><span class="n">sampler_rot_ind_for_real_atom</span><span class="p">]</span>
-
-    <span class="n">block_type_ind_for_rot_atom</span> <span class="o">=</span> <span class="n">block_type_ind_for_rot</span><span class="p">[</span><span class="n">global_rot_ind_for_real_atom</span><span class="p">]</span>
-
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">_get_chi_dof_metadata</span>
-
-    <span class="n">kinforest_idx</span><span class="p">,</span> <span class="n">correction_table</span> <span class="o">=</span> <span class="n">_get_chi_dof_metadata</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
-    <span class="n">rot_chi_atoms_kto</span> <span class="o">=</span> <span class="n">kinforest_idx</span><span class="p">[</span>
-        <span class="n">block_type_ind_for_rot_atom</span><span class="p">,</span> <span class="n">chi_atoms</span><span class="p">[</span><span class="n">real_atoms</span><span class="p">]</span>
-    <span class="p">]</span>
-
-    <span class="c1"># increment with the atom offsets for the source rotamer and by</span>
-    <span class="c1"># one to include the virtual root</span>
-    <span class="n">rot_chi_atoms_kto</span> <span class="o">+=</span> <span class="p">(</span>
-        <span class="n">n_dof_atoms_offset_for_rot</span><span class="p">[</span><span class="n">global_rot_ind_for_real_atom</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">chi_atoms</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._build_rotamers</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">_build_ring_chi_phi_c_corrections</span><span class="p">,</span>
+        <span class="n">_kinforest_device_indices</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="c1"># chi index (0, 1, 2, ...) for each real (rot, chi) entry</span>
-    <span class="n">chi_idx_for_real_atom</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
-        <span class="n">max_n_chi_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span>
-    <span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">expand_as</span><span class="p">(</span><span class="n">chi_atoms</span><span class="p">)[</span><span class="n">real_atoms</span><span class="p">]</span>
-
-    <span class="c1"># phi_c = chi_intended - correction =&gt; chi_measured = chi_intended</span>
-    <span class="n">corrections</span> <span class="o">=</span> <span class="n">correction_table</span><span class="p">[</span><span class="n">block_type_ind_for_rot_atom</span><span class="p">,</span> <span class="n">chi_idx_for_real_atom</span><span class="p">]</span>
-
-    <span class="c1"># overwrite the "downstream torsion" for the atoms that control each chi</span>
-    <span class="n">rot_dofs_kto</span><span class="p">[</span><span class="n">rot_chi_atoms_kto</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">chi</span><span class="p">[</span><span class="n">real_atoms</span><span class="p">]</span> <span class="o">-</span> <span class="n">corrections</span></div>
+    <span class="n">rows</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">chi_atoms</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">atoms</span> <span class="o">=</span> <span class="n">chi_atoms</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="n">columns</span><span class="p">]</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">chi</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="n">columns</span><span class="p">]</span>
+    <span class="n">conformers</span> <span class="o">=</span> <span class="n">conf_inds_for_sampler</span><span class="p">[</span><span class="n">rows</span><span class="p">]</span>
+    <span class="k">del</span> <span class="n">rows</span><span class="p">,</span> <span class="n">columns</span>
+    <span class="n">types</span> <span class="o">=</span> <span class="n">block_type_ind_for_rot</span><span class="p">[</span><span class="n">conformers</span><span class="p">]</span>
+    <span class="n">offsets</span> <span class="o">=</span> <span class="n">n_dof_atoms_offset_for_rot</span><span class="p">[</span><span class="n">conformers</span><span class="p">]</span>
+    <span class="k">del</span> <span class="n">conformers</span>
+    <span class="n">destinations</span> <span class="o">=</span> <span class="n">_kinforest_device_indices</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">)[</span><span class="n">types</span><span class="p">,</span> <span class="n">atoms</span><span class="p">]</span>
+    <span class="c1"># Both DOF arrays reserve their first row for the virtual root.</span>
+    <span class="n">destinations</span><span class="o">.</span><span class="n">add_</span><span class="p">(</span><span class="n">offsets</span><span class="p">)</span><span class="o">.</span><span class="n">add_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">del</span> <span class="n">offsets</span>
+    <span class="c1"># Ring-closing chi retain their ideal-geometry offset; ordinary chi have</span>
+    <span class="c1"># zero offset here and are corrected by coordinate measurement later.</span>
+    <span class="n">corrections</span> <span class="o">=</span> <span class="n">_build_ring_chi_phi_c_corrections</span><span class="p">(</span><span class="n">pbt</span><span class="p">)[</span><span class="n">types</span><span class="p">,</span> <span class="n">atoms</span><span class="p">]</span>
+    <span class="c1"># These are fresh gathers, so input samples and static tables stay intact.</span>
+    <span class="n">values</span><span class="o">.</span><span class="n">sub_</span><span class="p">(</span><span class="n">corrections</span><span class="p">)</span>
+    <span class="n">rot_dofs_kto</span><span class="p">[</span><span class="n">destinations</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span></div>
 
 </pre></div>
 

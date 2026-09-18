@@ -161,25 +161,42 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../agent_skills.html">
-    Agent skills
-  </a>
-</li>
-
-
-<li class="nav-item current active">
-  <a class="nav-link nav-internal" href="../api_reference.html">
-    API
+  <a class="nav-link nav-internal" href="../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../contributor_guide.html">
+  <a class="nav-link nav-internal" href="../agent_skills.html">
+    Agent skills
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -292,6 +309,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -465,8 +489,8 @@
 <p id="module-tmol.optimization">Minimizers and scoring-function optimization adapters.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="tmol.optimization.CartesianMinimizer">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.optimization.</span></span><span class="sig-name descname"><span class="pre">CartesianMinimizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cuda_graph</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/optimization/_minimizers.html#CartesianMinimizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.CartesianMinimizer" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.optimization.</span></span><span class="sig-name descname"><span class="pre">CartesianMinimizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cuda_graph</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/optimization/_minimizers.html#CartesianMinimizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.CartesianMinimizer" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Reusable Cartesian minimizer for pose stacks with stable topology.</p>
 <p>Rendering a score function builds topology-dependent tensors and, when
 requested, captures a CUDA graph.  Those are setup costs rather than part
@@ -482,11 +506,20 @@ score path.  This has a one-time setup and memory cost and requires
 CUDA, so it is most useful when the instance will be reused.</p>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmol.optimization.CartesianMinimizer.release_retained_state">
+<span class="sig-name descname"><span class="pre">release_retained_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/tmol/optimization/_minimizers.html#CartesianMinimizer.release_retained_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.CartesianMinimizer.release_retained_state" title="Link to this definition">#</a></dt>
+<dd><p>Release topology-specific scoring and optimizer state.</p>
+<p>The returned pose from <code class="xref py py-meth docutils literal notranslate"><span class="pre">__call__()</span></code> owns its coordinates, so callers
+may drop the rendered scorer, CUDA graph pools, gradients, and L-BFGS
+history before entering another memory-intensive phase.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="tmol.optimization.CartesianSfxnNetwork">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.optimization.</span></span><span class="sig-name descname"><span class="pre">CartesianSfxnNetwork</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">score_function</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="score.html#tmol.score.ScoreFunction" title="tmol.score._score_function.ScoreFunction"><span class="pre">ScoreFunction</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cuda_graph</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/optimization/_sfxn_modules.html#CartesianSfxnNetwork"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.CartesianSfxnNetwork" title="Link to this definition">#</a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmol.optimization.</span></span><span class="sig-name descname"><span class="pre">CartesianSfxnNetwork</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">score_function</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="score.html#tmol.score.ScoreFunction" title="tmol.score._score_function.ScoreFunction"><span class="pre">ScoreFunction</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose._pose_stack.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cuda_graph</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/optimization/_sfxn_modules.html#CartesianSfxnNetwork"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.CartesianSfxnNetwork" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.pytorch.org/docs/2.14/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a></p>
 <p>Differentiable score network over selected Cartesian coordinates.</p>
 <dl class="py method">
@@ -528,7 +561,7 @@ registered hooks while the latter silently ignores them.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmol.optimization.build_kinforest_network">
-<span class="sig-prename descclassname"><span class="pre">tmol.optimization.</span></span><span class="sig-name descname"><span class="pre">build_kinforest_network</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sfxn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="score.html#tmol.score.ScoreFunction" title="tmol.score.ScoreFunction"><span class="pre">ScoreFunction</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ff</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kinematics.html#tmol.kinematics.FoldForest" title="tmol.kinematics.FoldForest"><span class="pre">FoldForest</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kinematics.html#tmol.kinematics.MoveMap" title="tmol.kinematics.MoveMap"><span class="pre">MoveMap</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kin_dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.14/tensor_attributes.html#torch.dtype" title="(in PyTorch v2.14)"><span class="pre">torch.dtype</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">torch.float32</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#tmol.optimization.KinForestSfxnNetwork" title="tmol.optimization.KinForestSfxnNetwork"><span class="pre">KinForestSfxnNetwork</span></a></span></span><a class="reference internal" href="../_modules/tmol/optimization/_minimizers.html#build_kinforest_network"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.build_kinforest_network" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmol.optimization.</span></span><span class="sig-name descname"><span class="pre">build_kinforest_network</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose_stack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="pose.html#tmol.pose.PoseStack" title="tmol.pose.PoseStack"><span class="pre">PoseStack</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sfxn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="score.html#tmol.score.ScoreFunction" title="tmol.score.ScoreFunction"><span class="pre">ScoreFunction</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ff</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kinematics.html#tmol.kinematics.FoldForest" title="tmol.kinematics.FoldForest"><span class="pre">FoldForest</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="kinematics.html#tmol.kinematics.MoveMap" title="tmol.kinematics.MoveMap"><span class="pre">MoveMap</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kin_dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.14/tensor_attributes.html#torch.dtype" title="(in PyTorch v2.14)"><span class="pre">torch.dtype</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">torch.float32</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#tmol.optimization.KinForestSfxnNetwork" title="tmol.optimization.KinForestSfxnNetwork"><span class="pre">KinForestSfxnNetwork</span></a></span></span><a class="reference internal" href="../_modules/tmol/optimization/_minimizers.html#build_kinforest_network"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.optimization.build_kinforest_network" title="Link to this definition">#</a></dt>
 <dd><p>Build a differentiable kinematic scoring network for a pose stack.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -672,7 +705,10 @@ support it.</p></li>
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.CartesianMinimizer"><code class="docutils literal notranslate"><span class="pre">CartesianMinimizer</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.CartesianMinimizer"><code class="docutils literal notranslate"><span class="pre">CartesianMinimizer</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.CartesianMinimizer.release_retained_state"><code class="docutils literal notranslate"><span class="pre">CartesianMinimizer.release_retained_state()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.CartesianSfxnNetwork"><code class="docutils literal notranslate"><span class="pre">CartesianSfxnNetwork</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.optimization.CartesianSfxnNetwork.forward"><code class="docutils literal notranslate"><span class="pre">CartesianSfxnNetwork.forward()</span></code></a></li>
 </ul>

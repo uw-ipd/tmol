@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -422,11 +446,17 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomType</span><span class="p">,</span> <span class="n">ChemicalDatabase</span><span class="p">,</span> <span class="n">RawResidueType</span>  <span class="c1"># noqa: F401</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: F401</span>
+    <span class="n">AtomType</span><span class="p">,</span>
+    <span class="n">ChemicalDatabase</span><span class="p">,</span>
+    <span class="n">RawResidueType</span><span class="p">,</span>
+    <span class="n">l_base_name</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._patched_chemdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">PatchedChemicalDatabase</span>  <span class="c1"># noqa: F401</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.scoring</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoringDatabase</span>  <span class="c1"># noqa: F401</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.scoring._elec</span><span class="w"> </span><span class="kn">import</span> <span class="n">PartialCharges</span>  <span class="c1"># noqa: F401</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.scoring._cartbonded</span><span class="w"> </span><span class="kn">import</span> <span class="n">CartRes</span>  <span class="c1"># noqa: F401</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.scoring._cartbonded</span><span class="w"> </span><span class="kn">import</span> <span class="n">CartRes</span><span class="p">,</span> <span class="n">ConnectionCartRes</span>  <span class="c1"># noqa: F401</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.scoring._mirrored_dunbrack</span><span class="w"> </span><span class="kn">import</span> <span class="n">with_mirrored_libraries</span>
 
 
 <div class="viewcode-block" id="ParameterDatabase">
@@ -464,9 +494,80 @@
 <span class="w">        </span><span class="sd">"""Load chemical and scoring parameters rooted at ``path``."""</span>
         <span class="n">chemdb</span> <span class="o">=</span> <span class="n">ChemicalDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"chemical"</span><span class="p">))</span>
         <span class="n">patched_chemdb</span> <span class="o">=</span> <span class="n">PatchedChemicalDatabase</span><span class="o">.</span><span class="n">from_chem_db</span><span class="p">(</span><span class="n">chemdb</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-            <span class="n">scoring</span><span class="o">=</span><span class="n">ScoringDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"scoring"</span><span class="p">)),</span>
-            <span class="n">chemical</span><span class="o">=</span><span class="n">patched_chemdb</span><span class="p">,</span>
+        <span class="n">scoring</span> <span class="o">=</span> <span class="n">ScoringDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"scoring"</span><span class="p">))</span>
+
+        <span class="c1"># a d-amino acid's rotamer statistics are its l form's at negated</span>
+        <span class="c1">#    torsions; the mirrored libraries are built here rather than stored,</span>
+        <span class="c1">#    since which residues need them is a property of the chemical database</span>
+        <span class="n">d_names</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">l_base_name</span><span class="p">(</span><span class="n">residue</span><span class="p">):</span> <span class="n">residue</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">for</span> <span class="n">residue</span> <span class="ow">in</span> <span class="n">patched_chemdb</span><span class="o">.</span><span class="n">residues</span>
+            <span class="k">if</span> <span class="n">residue</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">residue</span><span class="o">.</span><span class="n">base_name</span>
+            <span class="ow">and</span> <span class="n">residue</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">sidechain_chirality</span> <span class="o">==</span> <span class="s2">"d"</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">d_names</span><span class="p">:</span>
+            <span class="n">scoring</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+                <span class="n">scoring</span><span class="p">,</span> <span class="n">dun</span><span class="o">=</span><span class="n">with_mirrored_libraries</span><span class="p">(</span><span class="n">scoring</span><span class="o">.</span><span class="n">dun</span><span class="p">,</span> <span class="n">d_names</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">scoring</span><span class="o">=</span><span class="n">scoring</span><span class="p">,</span> <span class="n">chemical</span><span class="o">=</span><span class="n">patched_chemdb</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ParameterDatabase.with_symmetric_gly">
+<a class="viewcode-back" href="../../api/database.html#tmol.database.ParameterDatabase.with_symmetric_gly">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">with_symmetric_gly</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"ParameterDatabase"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""A copy with symmetric glycine backbone tables and C-alpha hydrogens.</span>
+
+<span class="sd">        Glycine is achiral, but the tables derived from PDB statistics are not,</span>
+<span class="sd">        so by default a structure and its mirror image score differently. This</span>
+<span class="sd">        points glycine at the symmetrized tables instead. Its two C-alpha</span>
+<span class="sd">        hydrogen ideal lengths and bonded targets are averaged, so rebuilding</span>
+<span class="sd">        glycine also preserves reflection when the equivalent H names exchange.</span>
+<span class="sd">        Other residues are untouched.</span>
+
+<span class="sd">        This optional model uses uniformly trans glycine bbdep-omega tables.</span>
+<span class="sd">        Uniformity is a modeling choice, not a consequence of achirality.</span>
+<span class="sd">        """</span>
+        <span class="n">rama</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">rama</span>
+        <span class="n">omega</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">omega_bbdep</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">retarget</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">mapping</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">table_id</span><span class="o">=</span><span class="n">mapping</span><span class="p">[</span><span class="n">row</span><span class="o">.</span><span class="n">table_id</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">row</span><span class="o">.</span><span class="n">res_middle</span> <span class="o">==</span> <span class="s2">"GLY"</span> <span class="ow">and</span> <span class="n">row</span><span class="o">.</span><span class="n">table_id</span> <span class="ow">in</span> <span class="n">mapping</span>
+                    <span class="k">else</span> <span class="n">row</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span>
+            <span class="p">)</span>
+
+        <span class="n">rama</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+            <span class="n">rama</span><span class="p">,</span>
+            <span class="n">rama_lookup</span><span class="o">=</span><span class="n">retarget</span><span class="p">(</span>
+                <span class="n">rama</span><span class="o">.</span><span class="n">rama_lookup</span><span class="p">,</span>
+                <span class="p">{</span><span class="s2">"GLY"</span><span class="p">:</span> <span class="s2">"GLY_symm"</span><span class="p">,</span> <span class="s2">"GLY_prepro"</span><span class="p">:</span> <span class="s2">"GLY_prepro_symm"</span><span class="p">},</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">omega</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+            <span class="n">omega</span><span class="p">,</span>
+            <span class="n">bbdep_omega_lookup</span><span class="o">=</span><span class="n">retarget</span><span class="p">(</span>
+                <span class="n">omega</span><span class="o">.</span><span class="n">bbdep_omega_lookup</span><span class="p">,</span>
+                <span class="p">{</span><span class="s2">"gly"</span><span class="p">:</span> <span class="s2">"gly_symm"</span><span class="p">,</span> <span class="s2">"prepro"</span><span class="p">:</span> <span class="s2">"prepro_gly_symm"</span><span class="p">},</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">._symmetric_gly</span><span class="w"> </span><span class="kn">import</span> <span class="n">symmetric_gly_geometry</span>
+
+        <span class="n">chemical</span><span class="p">,</span> <span class="n">cartbonded</span> <span class="o">=</span> <span class="n">symmetric_gly_geometry</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">cartbonded</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">chemical</span><span class="o">=</span><span class="n">chemical</span><span class="p">,</span>
+            <span class="n">scoring</span><span class="o">=</span><span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scoring</span><span class="p">,</span>
+                <span class="n">cartbonded</span><span class="o">=</span><span class="n">cartbonded</span><span class="p">,</span>
+                <span class="n">rama</span><span class="o">=</span><span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">rama</span><span class="p">,</span> <span class="n">uniq_id</span><span class="o">=</span><span class="n">rama</span><span class="o">.</span><span class="n">content_id</span><span class="p">()),</span>
+                <span class="n">omega_bbdep</span><span class="o">=</span><span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">omega</span><span class="p">,</span> <span class="n">uniq_id</span><span class="o">=</span><span class="n">omega</span><span class="o">.</span><span class="n">content_id</span><span class="p">()),</span>
+            <span class="p">),</span>
         <span class="p">)</span></div>
 
 
@@ -507,6 +608,16 @@
             <span class="n">atom_types</span><span class="o">=</span><span class="n">chem_atom_types</span><span class="p">,</span>
             <span class="n">residues</span><span class="o">=</span><span class="n">unpatched_residue_subset</span><span class="p">,</span>
             <span class="n">variants</span><span class="o">=</span><span class="n">desired_variants</span><span class="p">,</span>
+            <span class="c1"># An alias whose target the subset kept still reads: dropping them</span>
+            <span class="c1"># left the atomworks reader unable to resolve MSE to MET while the</span>
+            <span class="c1"># default database resolved it, so the two disagreed on the same</span>
+            <span class="c1"># file with neither raising. CanonicalOrdering filters again on the</span>
+            <span class="c1"># residue types it ends up with.</span>
+            <span class="n">name3_aliases</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span>
+                <span class="n">alias</span>
+                <span class="k">for</span> <span class="n">alias</span> <span class="ow">in</span> <span class="n">chem_db</span><span class="o">.</span><span class="n">name3_aliases</span>
+                <span class="k">if</span> <span class="n">alias</span><span class="o">.</span><span class="n">read_as</span> <span class="ow">in</span> <span class="n">desired_names</span>
+            <span class="p">),</span>
         <span class="p">)</span>
         <span class="n">patched_chemical_db_subset</span> <span class="o">=</span> <span class="n">PatchedChemicalDatabase</span><span class="o">.</span><span class="n">from_chem_db</span><span class="p">(</span>
             <span class="n">chemical_db_subset</span>
@@ -527,6 +638,8 @@
     <span class="n">atom_types</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">AtomType</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">partial_charges</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">cartbonded_params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">CartRes</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">variants</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">connection_params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">ConnectionCartRes</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParameterDatabase</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Return a new ParameterDatabase with additional residue type data.</span>
 
@@ -539,12 +652,13 @@
 <span class="sd">        atom_types: Optional new AtomType entries (deduplicated by name).</span>
 <span class="sd">        partial_charges: Per-residue charge dicts ``{res_name: {atom: charge}}``.</span>
 <span class="sd">        cartbonded_params: Per-residue CartRes ``{res_name: CartRes}``.</span>
+<span class="sd">        connection_params: Complete length/angle records for named connection pairs.</span>
+<span class="sd">        variants: Optional patches the new residues bring with them, applied</span>
+<span class="sd">            alongside the database's own.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        A new frozen ParameterDatabase with the additional data.</span>
 <span class="sd">    """</span>
-    <span class="n">new_chem_residues</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="o">.</span><span class="n">residues</span><span class="p">,</span> <span class="o">*</span><span class="n">residue_types</span><span class="p">)</span>
-
     <span class="n">new_atom_types</span> <span class="o">=</span> <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="o">.</span><span class="n">atom_types</span>
     <span class="k">if</span> <span class="n">atom_types</span><span class="p">:</span>
         <span class="n">existing_names</span> <span class="o">=</span> <span class="p">{</span><span class="n">at</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">new_atom_types</span><span class="p">}</span>
@@ -552,11 +666,14 @@
         <span class="k">if</span> <span class="n">deduped</span><span class="p">:</span>
             <span class="n">new_atom_types</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">new_atom_types</span><span class="p">,</span> <span class="o">*</span><span class="n">deduped</span><span class="p">)</span>
 
-    <span class="n">new_patched</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
-        <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span>
-        <span class="n">residues</span><span class="o">=</span><span class="n">new_chem_residues</span><span class="p">,</span>
-        <span class="n">atom_types</span><span class="o">=</span><span class="n">new_atom_types</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="c1"># patching runs at db load</span>
+    <span class="c1"># injected residues get all db variants applied here</span>
+    <span class="n">chemical</span> <span class="o">=</span> <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span>
+    <span class="k">if</span> <span class="n">variants</span><span class="p">:</span>
+        <span class="c1"># Attachments also patch partners already present in the database.</span>
+        <span class="n">chemical</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">chemical</span><span class="p">,</span> <span class="n">atom_types</span><span class="o">=</span><span class="n">new_atom_types</span><span class="p">)</span>
+        <span class="n">chemical</span> <span class="o">=</span> <span class="n">chemical</span><span class="o">.</span><span class="n">with_variants_applied</span><span class="p">(</span><span class="n">variants</span><span class="p">)</span>
+    <span class="n">new_patched</span> <span class="o">=</span> <span class="n">chemical</span><span class="o">.</span><span class="n">with_added_residues</span><span class="p">(</span><span class="n">residue_types</span><span class="p">,</span> <span class="n">atom_types</span><span class="o">=</span><span class="n">new_atom_types</span><span class="p">)</span>
 
     <span class="n">new_elec</span> <span class="o">=</span> <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">elec</span>
     <span class="k">if</span> <span class="n">partial_charges</span><span class="p">:</span>
@@ -571,9 +688,15 @@
         <span class="p">)</span>
 
     <span class="n">new_cart</span> <span class="o">=</span> <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">cartbonded</span>
-    <span class="k">if</span> <span class="n">cartbonded_params</span><span class="p">:</span>
-        <span class="n">new_res_params</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">new_cart</span><span class="o">.</span><span class="n">residue_params</span><span class="p">,</span> <span class="o">**</span><span class="n">cartbonded_params</span><span class="p">}</span>
-        <span class="n">new_cart</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">new_cart</span><span class="p">,</span> <span class="n">residue_params</span><span class="o">=</span><span class="n">new_res_params</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">cartbonded_params</span> <span class="ow">or</span> <span class="n">connection_params</span><span class="p">:</span>
+        <span class="n">new_res_params</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">new_cart</span><span class="o">.</span><span class="n">residue_params</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">cartbonded_params</span> <span class="ow">or</span> <span class="p">{})}</span>
+        <span class="n">new_connections</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">((</span><span class="o">*</span><span class="n">new_cart</span><span class="o">.</span><span class="n">connection_params</span><span class="p">,</span> <span class="o">*</span><span class="p">(</span><span class="n">connection_params</span> <span class="ow">or</span> <span class="p">())))</span>
+        <span class="p">)</span>
+        <span class="c1"># Scoring annotations are keyed by this content hash. Carrying the</span>
+        <span class="c1"># old hash into an extended database can reuse another database's</span>
+        <span class="c1"># bonded parameters on an already annotated block type or pose.</span>
+        <span class="n">new_cart</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">new_cart</span><span class="p">)</span><span class="o">.</span><span class="n">from_cartres_dict</span><span class="p">(</span><span class="n">new_res_params</span><span class="p">,</span> <span class="n">new_connections</span><span class="p">)</span>
 
     <span class="n">new_scoring</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
         <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="p">,</span>

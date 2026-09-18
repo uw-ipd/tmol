@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -692,6 +716,24 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="p">:</span> <span class="n">LBFGS_Armijo</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">last_optimizer_reused</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span> <span class="o">=</span> <span class="n">_ReusableLBFGSFactory</span><span class="p">()</span>
+
+<div class="viewcode-block" id="CartesianMinimizer.release_retained_state">
+<a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.CartesianMinimizer.release_retained_state">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">release_retained_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Release topology-specific scoring and optimizer state.</span>
+
+<span class="sd">        The returned pose from :meth:`__call__` owns its coordinates, so callers</span>
+<span class="sd">        may drop the rendered scorer, CUDA graph pools, gradients, and L-BFGS</span>
+<span class="sd">        history before entering another memory-intensive phase.</span>
+<span class="sd">        """</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_optimizer_reused</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span><span class="o">.</span><span class="n">parameter</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lbfgs_factory</span><span class="o">.</span><span class="n">last_reused</span> <span class="o">=</span> <span class="kc">False</span></div>
+
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>

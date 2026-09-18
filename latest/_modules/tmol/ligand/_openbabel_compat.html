@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -432,6 +456,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 
@@ -601,39 +626,102 @@
 <span class="c1"># fallback to eem in these cases</span>
 <span class="n">_CHARGE_MODEL_FALLBACKS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"eem"</span><span class="p">,)</span>
 
+<span class="c1"># Partial charges partition the molecule's formal charge, so their sum has to</span>
+<span class="c1"># reproduce it. Allow only for floating-point accumulation.</span>
+<span class="n">_NET_CHARGE_TOLERANCE</span> <span class="o">=</span> <span class="mf">1e-3</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_model_partial_charges</span><span class="p">(</span><span class="n">openbabel</span><span class="p">,</span> <span class="n">pymol</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Return this model's complete, finite charges, or None if unusable."""</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBChargeModel</span><span class="o">.</span><span class="n">FindType</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="o">.</span><span class="n">DeleteData</span><span class="p">(</span><span class="s2">"PartialCharges"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">ComputeCharges</span><span class="p">(</span><span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">charges</span> <span class="o">=</span> <span class="p">[</span><span class="n">atom</span><span class="o">.</span><span class="n">GetPartialCharge</span><span class="p">()</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBMolAtomIter</span><span class="p">(</span><span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">charges</span><span class="p">)</span> <span class="o">!=</span> <span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="o">.</span><span class="n">NumAtoms</span><span class="p">()</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span>
+        <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">charges</span>
+    <span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">"Rejecting incomplete or non-finite </span><span class="si">%s</span><span class="s2"> partial charges for </span><span class="si">%r</span><span class="s2">"</span><span class="p">,</span>
+            <span class="n">name</span><span class="p">,</span>
+            <span class="n">smiles</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">charges</span>
+
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_compute_charges_with_fallback</span><span class="p">(</span><span class="n">openbabel</span><span class="p">,</span> <span class="n">pymol</span><span class="p">,</span> <span class="n">forcefield</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Compute charges for molecule, falling back on failure.</span>
+<span class="w">    </span><span class="sd">"""Compute complete finite charges that reproduce the formal charge.</span>
+
+<span class="sd">    A model whose charges do not sum to ``OBMol.GetTotalCharge()`` has mistyped</span>
+<span class="sd">    the molecule -- MMFF94 leaves a bare iodide at zero and types phosphate as</span>
+<span class="sd">    the monoanion -- so it is rejected in favour of one that does. If no model</span>
+<span class="sd">    reproduces the formal charge the closest is kept and the discrepancy is</span>
+<span class="sd">    reported, since approximate charges remain more useful than none.</span>
 
 <span class="sd">    Returns the name of the model actually used.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If neither the primary model nor any fallback succeeds.</span>
 <span class="sd">    """</span>
-    <span class="n">primary</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBChargeModel</span><span class="o">.</span><span class="n">FindType</span><span class="p">(</span><span class="n">forcefield</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">primary</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">primary</span><span class="o">.</span><span class="n">ComputeCharges</span><span class="p">(</span><span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">forcefield</span>
-
-    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">_CHARGE_MODEL_FALLBACKS</span><span class="p">:</span>
-        <span class="n">model</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBChargeModel</span><span class="o">.</span><span class="n">FindType</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">ComputeCharges</span><span class="p">(</span><span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="p">):</span>
+    <span class="n">formal_charge</span> <span class="o">=</span> <span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="o">.</span><span class="n">GetTotalCharge</span><span class="p">()</span>
+    <span class="n">chosen</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">unbalanced</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="n">forcefield</span><span class="p">,</span> <span class="o">*</span><span class="n">_CHARGE_MODEL_FALLBACKS</span><span class="p">):</span>
+        <span class="n">charges</span> <span class="o">=</span> <span class="n">_model_partial_charges</span><span class="p">(</span><span class="n">openbabel</span><span class="p">,</span> <span class="n">pymol</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">smiles</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">charges</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">continue</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">charges</span><span class="p">)</span> <span class="o">-</span> <span class="n">formal_charge</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">_NET_CHARGE_TOLERANCE</span><span class="p">:</span>
+            <span class="n">chosen</span> <span class="o">=</span> <span class="n">name</span>
+            <span class="k">break</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">"</span><span class="si">%s</span><span class="s2"> partial charges for SMILES </span><span class="si">%r</span><span class="s2"> sum to </span><span class="si">%+.4f</span><span class="s2">, not the molecule's "</span>
+            <span class="s2">"formal charge of </span><span class="si">%+d</span><span class="s2">; trying another model."</span><span class="p">,</span>
+            <span class="n">name</span><span class="p">,</span>
+            <span class="n">smiles</span><span class="p">,</span>
+            <span class="nb">sum</span><span class="p">(</span><span class="n">charges</span><span class="p">),</span>
+            <span class="n">formal_charge</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">unbalanced</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unbalanced</span> <span class="o">=</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">sum</span><span class="p">(</span><span class="n">charges</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">chosen</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">unbalanced</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">chosen</span><span class="p">,</span> <span class="n">charge_sum</span> <span class="o">=</span> <span class="n">unbalanced</span>
+        <span class="c1"># The loop left a later model's charges on the molecule; restore these.</span>
+        <span class="n">_model_partial_charges</span><span class="p">(</span><span class="n">openbabel</span><span class="p">,</span> <span class="n">pymol</span><span class="p">,</span> <span class="n">chosen</span><span class="p">,</span> <span class="n">smiles</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">"No charge model reproduced the formal charge </span><span class="si">%+d</span><span class="s2"> of SMILES </span><span class="si">%r</span><span class="s2">; "</span>
+            <span class="s2">"keeping </span><span class="si">%s</span><span class="s2"> charges, which sum to </span><span class="si">%+.4f</span><span class="s2">."</span><span class="p">,</span>
+            <span class="n">formal_charge</span><span class="p">,</span>
+            <span class="n">smiles</span><span class="p">,</span>
+            <span class="n">chosen</span><span class="p">,</span>
+            <span class="n">charge_sum</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">chosen</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"OpenBabel could not compute </span><span class="si">{</span><span class="n">forcefield</span><span class="si">}</span><span class="s2"> partial charges for "</span>
+            <span class="sa">f</span><span class="s2">"SMILES </span><span class="si">{</span><span class="n">smiles</span><span class="si">!r}</span><span class="s2">, and no fallback model "</span>
+            <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_CHARGE_MODEL_FALLBACKS</span><span class="p">)</span><span class="si">}</span><span class="s2">) could parameterize it either"</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">chosen</span> <span class="o">!=</span> <span class="n">forcefield</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
             <span class="s2">"</span><span class="si">%s</span><span class="s2"> partial charges are unavailable for SMILES </span><span class="si">%r</span><span class="s2">; falling back to "</span>
             <span class="s2">"</span><span class="si">%r</span><span class="s2">. These charges come from a different model and are not directly "</span>
             <span class="s2">"comparable to </span><span class="si">%s</span><span class="s2"> charges."</span><span class="p">,</span>
             <span class="n">forcefield</span><span class="p">,</span>
             <span class="n">smiles</span><span class="p">,</span>
-            <span class="n">name</span><span class="p">,</span>
+            <span class="n">chosen</span><span class="p">,</span>
             <span class="n">forcefield</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">name</span>
-
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-        <span class="sa">f</span><span class="s2">"OpenBabel could not compute </span><span class="si">{</span><span class="n">forcefield</span><span class="si">}</span><span class="s2"> partial charges for "</span>
-        <span class="sa">f</span><span class="s2">"SMILES </span><span class="si">{</span><span class="n">smiles</span><span class="si">!r}</span><span class="s2">, and no fallback model "</span>
-        <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_CHARGE_MODEL_FALLBACKS</span><span class="p">)</span><span class="si">}</span><span class="s2">) could parameterize it either"</span>
-    <span class="p">)</span>
+    <span class="c1"># Some models (including EEM) omit this tag, making the mol2 writer</span>
+    <span class="c1"># incorrectly label their computed charges as Gasteiger.</span>
+    <span class="n">provenance</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBPairData</span><span class="p">()</span>
+    <span class="n">provenance</span><span class="o">.</span><span class="n">SetAttribute</span><span class="p">(</span><span class="s2">"PartialCharges"</span><span class="p">)</span>
+    <span class="n">provenance</span><span class="o">.</span><span class="n">SetValue</span><span class="p">(</span><span class="n">chosen</span><span class="p">)</span>
+    <span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="o">.</span><span class="n">CloneData</span><span class="p">(</span><span class="n">provenance</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">chosen</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_build_charged_3d_mol2_mol</span><span class="p">(</span>

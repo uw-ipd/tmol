@@ -161,25 +161,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -292,6 +309,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -469,29 +493,23 @@ of <a class="reference internal" href="../terminology.html"><span class="doc">Po
 <section id="choose-an-input-path">
 <h2>Choose an input path<a class="headerlink" href="#choose-an-input-path" title="Link to this heading">#</a></h2>
 <ul class="simple">
-<li><p>Prefer <strong>mmCIF through Biotite</strong> for general scientific input, especially when
-chain metadata, explicit bonds, ligands, or noncanonical chemistry matter.</p></li>
-<li><p>Use the direct <strong>PDB compatibility path</strong> for simple canonical structures or
-existing PDB-based pipelines.</p></li>
-<li><p>Use <strong>OpenFold, RosettaFold2, or AtomWorks adapters</strong> when coordinates already
-exist as model tensors; see the <a class="reference internal" href="../user_guide/integrations.html"><span class="doc">integrations guide</span></a>.</p></li>
+<li><p>Read <strong>mmCIF and PDB through AtomWorks</strong> with <code class="docutils literal notranslate"><span class="pre">atom_array_from_file()</span></code> to
+preserve chemical identities, declared bonds, and unresolved atoms.</p></li>
+<li><p>Pass an existing <strong>Biotite AtomArray</strong> to <code class="docutils literal notranslate"><span class="pre">pose_stack_from_biotite()</span></code>.</p></li>
+<li><p>Use the <strong>Atom37 tensor paths</strong> for differentiable model coordinates, or map
+another named layout such as Atom14 to canonical tensors as shown in the
+<a class="reference internal" href="../model_inputs.html"><span class="doc">model input tutorial</span></a>.</p></li>
 </ul>
 </section>
 <section id="build-a-posestack-from-mmcif">
 <h2>Build a PoseStack from mmCIF<a class="headerlink" href="#build-a-posestack-from-mmcif" title="Link to this heading">#</a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">struc</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure.io</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_biotite</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_file</span><span class="p">,</span> <span class="n">pose_stack_from_biotite</span>
 
 <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span><span class="p">)</span>
-<span class="n">structure</span> <span class="o">=</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">load_structure</span><span class="p">(</span>
-    <span class="s2">"input.cif"</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">include_bonds</span><span class="o">=</span><span class="kc">True</span>
-<span class="p">)</span>
-<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">):</span>
-    <span class="n">structure</span> <span class="o">=</span> <span class="n">structure</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">structure</span> <span class="o">=</span> <span class="n">atom_array_from_file</span><span class="p">(</span><span class="s2">"input.cif"</span><span class="p">)</span>
 
 <span class="n">pose_stack</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span>
     <span class="n">structure</span><span class="p">,</span>

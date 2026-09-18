@@ -161,25 +161,42 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../agent_skills.html">
-    Agent skills
-  </a>
-</li>
-
-
-<li class="nav-item current active">
-  <a class="nav-link nav-internal" href="../api_reference.html">
-    API
+  <a class="nav-link nav-internal" href="../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../contributor_guide.html">
+  <a class="nav-link nav-internal" href="../agent_skills.html">
+    Agent skills
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" current active">
+  <a class="nav-link dropdown-item nav-internal" href="../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -292,6 +309,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -518,20 +542,8 @@ such as <a class="reference internal" href="io.html#module-tmol.io" title="tmol.
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">atom_records_from_pose_stack</span></code></p></td>
 <td><p>Create a numpy array holding the atom records needed to write a PDB file from a PoseStack.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">canonical_form_from_openfold</span></code></p></td>
-<td><p>The canonical form is intended to represent a stable, serializable intermediate format for a structure so that it can be created today and then be read in years from now and be used to construct a PoseStack in tmol.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">canonical_form_from_pdb</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">canonical_form_from_pdb</span></code></p></td>
 <td><p>Create a canonical form from either the contents of a PDB file as one long string or a list of individual lines from the file or by providing the name/path of a PDB file</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">canonical_form_from_rosettafold2</span></code></p></td>
-<td><p>The canonical form is intended to represent a stable, serializable intermediate format for a structure so that it can be created today and then be read in years from now and be used to construct a PoseStack in tmol.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">canonical_ordering_for_openfold</span></code></p></td>
-<td><p>Construct the CanonicalOrdering object that will be used for the subset of residue types that are used by OpenFold; this will be stable so that the entries in &quot;coords&quot; tensor member of the canonical form dictionary will be interpretable indefinitely and thus a canonical form dictionary can be serialized to disk and read again after an arbitrary amount of time</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">canonical_ordering_for_rosettafold2</span></code></p></td>
-<td><p>Construct the CanonicalOrdering object that will be used for the subset of residue types that are used by RoseTTAFold2; this will be stable so that the entries in &quot;coords&quot; tensor member of the canonical form dictionary will be interpretable indefinitely and thus a canonical form dictionary can be serialized to disk and read again after an arbitrary amount of time</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">default_canonical_ordering</span></code></p></td>
 <td><p>Create a CanonicalOrdering object from the default set of residue types</p></td>
@@ -545,23 +557,11 @@ such as <a class="reference internal" href="io.html#module-tmol.io" title="tmol.
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">one2three</span></code></p></td>
 <td><p>Return the three-letter amino acid code given its one-letter code, or None if not a valid one-letter code.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">packed_block_types_for_openfold</span></code></p></td>
-<td><p>Construct the PackedBlockTypes (PBT) object that will be used for the subset of residue types that are used by OpenFold.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">packed_block_types_for_rosettafold2</span></code></p></td>
-<td><p>Construct the PackedBlockTypes (PBT) object that will be used for the subset of residue types that are used by RoseTTAFold2.</p></td>
-</tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pose_stack_from_canonical_form</span></code></p></td>
 <td><p>Build a pose stack from tensors in canonical atom ordering.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pose_stack_from_openfold</span></code></p></td>
-<td><p>Build a PoseStack from the output generated by openfold</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pose_stack_from_pdb</span></code></p></td>
-<td><p>Construct a PoseStack given the contents of a PDB file or the name of a PDB file, using the full set of residue types contained in tmol's chemical.yaml file.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pose_stack_from_rosettafold2</span></code></p></td>
-<td><p>Build a PoseStack from the output generated by RoseTTAFold2</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pose_stack_from_pdb</span></code></p></td>
+<td><p>Read PDB through AtomWorks and the shared annotated-array constructor.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pose_stack_to_pdb_string</span></code></p></td>
 <td><p>Convert a <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code> into PDB text suitable for molecular viewers.</p></td>

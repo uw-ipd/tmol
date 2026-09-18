@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -420,7 +444,7 @@
 <span class="sd">bundles residue type definitions, cartbonded parameters, and electrostatic</span>
 <span class="sd">charges in a single file.  The top-level shape mirrors ``ParameterDatabase``:</span>
 
-<span class="sd">    version: "1.0"</span>
+<span class="sd">    version: "2.0"</span>
 <span class="sd">    chemical:</span>
 <span class="sd">      residues:</span>
 <span class="sd">        - name: LIG</span>
@@ -430,6 +454,12 @@
 <span class="sd">          icoors: [...]</span>
 <span class="sd">          properties: {...}</span>
 <span class="sd">          # atom_aliases / chi_samples / default_jump_connection_atom optional</span>
+<span class="sd">      # Patches for the residue and any canonical attachment partners.</span>
+<span class="sd">      adds_patches:</span>
+<span class="sd">        - name: LIG_CarboxyTerminus</span>
+<span class="sd">          display_name: cterm</span>
+<span class="sd">          applies_to: { base_names: [LIG] }</span>
+<span class="sd">          ...</span>
 <span class="sd">    elec:</span>
 <span class="sd">      atom_charge_parameters:</span>
 <span class="sd">        - {res: LIG, atom: C1, charge: 0.123}</span>
@@ -441,6 +471,7 @@
 <span class="sd">          torsion_parameters: [...]</span>
 <span class="sd">          improper_parameters: [...]</span>
 <span class="sd">          hxltorsion_parameters: []</span>
+<span class="sd">      connection_params: []  # optional complete ConnectionCartRes records</span>
 
 <span class="sd">Each subsection's schema matches the corresponding canonical database</span>
 <span class="sd">YAML so entries can be copy-pasted between params files and</span>
@@ -450,7 +481,6 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">replace</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span>
 
@@ -458,9 +488,14 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database._yaml</span><span class="w"> </span><span class="kn">import</span> <span class="n">safe_load</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RawResidueType</span><span class="p">,</span> <span class="n">normalize_bond_tuples</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">RawResidueType</span><span class="p">,</span>
+    <span class="n">VariantType</span><span class="p">,</span>
+    <span class="n">normalize_bond_tuples</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.scoring</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">CartRes</span><span class="p">,</span>
+    <span class="n">ConnectionCartRes</span><span class="p">,</span>
     <span class="n">PartialCharges</span><span class="p">,</span>
 <span class="p">)</span>
 
@@ -470,10 +505,12 @@
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">LigandPreparation</span>
 
 
-<span class="c1"># Current .tmol format version.  Bump the major version on breaking</span>
-<span class="c1"># schema changes; bump the minor version on backward-compatible additions.</span>
-<span class="c1"># The version string is written into every .tmol file and checked on load.</span>
-<span class="n">TMOL_FORMAT_VERSION</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"1.0"</span>
+<span class="c1"># Current .tmol format version. Bump the major version on breaking schema</span>
+<span class="c1"># changes; bump the minor version on backward-compatible additions. Writers</span>
+<span class="c1"># always emit this version: until the format settles at 1.0, tracking a</span>
+<span class="c1"># per-feature minimum version costs more than it buys. Every file is checked</span>
+<span class="c1"># on load.</span>
+<span class="n">TMOL_FORMAT_VERSION</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"5.1"</span>
 
 
 <span class="n">_RAW_RESIDUE_DEFAULTS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
@@ -533,6 +570,55 @@
     <span class="k">return</span> <span class="n">cattr</span><span class="o">.</span><span class="n">structure</span><span class="p">(</span><span class="n">populated</span><span class="p">,</span> <span class="n">RawResidueType</span><span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_replacement_metadata</span><span class="p">(</span><span class="n">chem</span><span class="p">,</span> <span class="n">elec</span><span class="p">,</span> <span class="n">cart</span><span class="p">,</span> <span class="n">residues</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Read guarded metadata separately from ordinary additions."""</span>
+    <span class="n">residue_names</span> <span class="o">=</span> <span class="p">{</span><span class="n">r</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">residues</span><span class="p">}</span>
+    <span class="n">replacement_baselines</span> <span class="o">=</span> <span class="n">chem</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"replacement_baselines"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">replacement_baselines</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">replacement_baselines</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="n">replacement_baselines</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">residue_names</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Replacement baselines must name residues in the bundle"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">residue_names</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">residues</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Replacement bundles require unique residue definitions"</span><span class="p">)</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span>
+            <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[0-9a-f]</span><span class="si">{64}</span><span class="s2">"</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">replacement_baselines</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Invalid replacement baseline_sha256"</span><span class="p">)</span>
+    <span class="n">baseline_charges</span> <span class="o">=</span> <span class="n">elec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"replacement_baseline_charges"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">baseline_cart</span> <span class="o">=</span> <span class="n">cart</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"replacement_baseline_params"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">records</span> <span class="ow">in</span> <span class="p">(</span><span class="n">baseline_charges</span><span class="p">,</span> <span class="n">baseline_cart</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">records</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="n">records</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="nb">set</span><span class="p">(</span>
+            <span class="n">replacement_baselines</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"Replacement baseline parameters must name guarded residues"</span>
+            <span class="p">)</span>
+    <span class="k">if</span> <span class="n">replacement_baselines</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="n">replacement_baselines</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="nb">set</span><span class="p">(</span>
+        <span class="n">cart</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"residue_params"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Replacement requires an explicit complete bonded record"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">replacement_baselines</span><span class="p">,</span> <span class="n">baseline_charges</span><span class="p">,</span> <span class="n">baseline_cart</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_element_metadata</span><span class="p">(</span><span class="n">chem</span><span class="p">,</span> <span class="n">residues</span><span class="p">):</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">_validate_atom_type_elements</span>
+
+    <span class="n">elements</span> <span class="o">=</span> <span class="n">chem</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"atom_type_elements"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">elements</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">elements</span> <span class="o">=</span> <span class="n">_validate_atom_type_elements</span><span class="p">(</span><span class="n">elements</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">elements</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">residues</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"A params bundle with atom_type_elements must define a residue"</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">elements</span>
+
+
 <div class="viewcode-block" id="load_params_file">
 <a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.load_params_file">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">load_params_file</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="s2">"LigandPreparation"</span><span class="p">]:</span>
@@ -554,19 +640,7 @@
     <span class="n">cached</span> <span class="o">=</span> <span class="n">_load_params_file_cached</span><span class="p">(</span>
         <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="n">stat</span><span class="o">.</span><span class="n">st_mtime_ns</span><span class="p">,</span> <span class="n">stat</span><span class="o">.</span><span class="n">st_ctime_ns</span><span class="p">,</span> <span class="n">stat</span><span class="o">.</span><span class="n">st_size</span>
     <span class="p">)</span>
-    <span class="k">return</span> <span class="p">[</span>
-        <span class="n">replace</span><span class="p">(</span>
-            <span class="n">prep</span><span class="p">,</span>
-            <span class="n">residue_type</span><span class="o">=</span><span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">prep</span><span class="o">.</span><span class="n">residue_type</span><span class="p">),</span>
-            <span class="n">partial_charges</span><span class="o">=</span><span class="n">prep</span><span class="o">.</span><span class="n">partial_charges</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
-            <span class="n">atom_type_elements</span><span class="o">=</span><span class="p">(</span>
-                <span class="kc">None</span>
-                <span class="k">if</span> <span class="n">prep</span><span class="o">.</span><span class="n">atom_type_elements</span> <span class="ow">is</span> <span class="kc">None</span>
-                <span class="k">else</span> <span class="n">prep</span><span class="o">.</span><span class="n">atom_type_elements</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-            <span class="p">),</span>
-        <span class="p">)</span>
-        <span class="k">for</span> <span class="n">prep</span> <span class="ow">in</span> <span class="n">cached</span>
-    <span class="p">]</span></div>
+    <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">cached</span><span class="p">))</span></div>
 
 
 
@@ -579,7 +653,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_load_params_file_uncached</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="s2">"LigandPreparation"</span><span class="p">]:</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">LigandPreparation</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">LigandPreparation</span><span class="p">,</span> <span class="n">_charges_from_rows</span>
 
     <span class="n">raw</span> <span class="o">=</span> <span class="n">safe_load</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">read_text</span><span class="p">())</span>
 
@@ -589,22 +663,18 @@
     <span class="c1"># --- .tmol format version check ---</span>
     <span class="n">file_version</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"version"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">file_version</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-            <span class="s2">"</span><span class="si">%s</span><span class="s2">: no 'version' field found; assuming format </span><span class="si">%s</span><span class="s2"> "</span>
-            <span class="s2">"(consider regenerating this file with the current writer)"</span><span class="p">,</span>
-            <span class="n">path</span><span class="p">,</span>
-            <span class="n">TMOL_FORMAT_VERSION</span><span class="p">,</span>
-        <span class="p">)</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">: no 'version' field found for .tmol file. "</span>
             <span class="sa">f</span><span class="s2">"Current format version is </span><span class="si">{</span><span class="n">TMOL_FORMAT_VERSION</span><span class="si">}</span><span class="s2">. "</span>
             <span class="sa">f</span><span class="s2">"Regenerate the file with the current version."</span>
         <span class="p">)</span>
     <span class="n">file_version</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">file_version</span><span class="p">)</span>
-    <span class="c1"># Compare major version numbers only (the part before the first dot).</span>
+    <span class="c1"># Read legacy single-residue bundles as well as complete conjugates. The</span>
+    <span class="c1"># majors below are the ones this reader understands; writers always stamp</span>
+    <span class="c1"># the current version rather than the lowest that describes the file, so</span>
+    <span class="c1"># there is no per-feature minimum to enforce here.</span>
     <span class="n">file_major</span> <span class="o">=</span> <span class="n">file_version</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">current_major</span> <span class="o">=</span> <span class="n">TMOL_FORMAT_VERSION</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="k">if</span> <span class="n">file_major</span> <span class="o">!=</span> <span class="n">current_major</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">file_major</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"1"</span><span class="p">,</span> <span class="s2">"2"</span><span class="p">,</span> <span class="s2">"3"</span><span class="p">,</span> <span class="s2">"4"</span><span class="p">,</span> <span class="s2">"5"</span><span class="p">}:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">: .tmol format version </span><span class="si">{</span><span class="n">file_version</span><span class="si">}</span><span class="s2"> is incompatible "</span>
             <span class="sa">f</span><span class="s2">"with the current format version </span><span class="si">{</span><span class="n">TMOL_FORMAT_VERSION</span><span class="si">}</span><span class="s2">. "</span>
@@ -613,7 +683,7 @@
     <span class="k">if</span> <span class="n">file_version</span> <span class="o">!=</span> <span class="n">TMOL_FORMAT_VERSION</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
             <span class="s2">"</span><span class="si">%s</span><span class="s2">: .tmol format version </span><span class="si">%s</span><span class="s2"> differs from current </span><span class="si">%s</span><span class="s2"> "</span>
-            <span class="s2">"(backward-compatible minor version change)"</span><span class="p">,</span>
+            <span class="s2">"(supported compatibility version)"</span><span class="p">,</span>
             <span class="n">path</span><span class="p">,</span>
             <span class="n">file_version</span><span class="p">,</span>
             <span class="n">TMOL_FORMAT_VERSION</span><span class="p">,</span>
@@ -635,16 +705,66 @@
 
     <span class="n">res_list</span> <span class="o">=</span> <span class="n">chem</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"residues"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]</span>
     <span class="n">residues</span> <span class="o">=</span> <span class="p">[</span><span class="n">_structure_residue</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">res_list</span><span class="p">]</span>
+    <span class="n">elements</span> <span class="o">=</span> <span class="n">_element_metadata</span><span class="p">(</span><span class="n">chem</span><span class="p">,</span> <span class="n">residues</span><span class="p">)</span>
+
+    <span class="c1"># Bundle-wide additions need not target a residue defined in this file:</span>
+    <span class="c1"># a glycan, for example, brings a patch for its canonical ASN partner.</span>
+    <span class="c1"># Carry patches once, in file order. Assigning them to individual residue</span>
+    <span class="c1"># owners would reorder patches when a bundle's residue order changes.</span>
+    <span class="n">residue_names</span> <span class="o">=</span> <span class="p">{</span><span class="n">r</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">residues</span><span class="p">}</span>
+    <span class="n">replacement_baselines</span><span class="p">,</span> <span class="n">baseline_charges</span><span class="p">,</span> <span class="n">baseline_cart</span> <span class="o">=</span> <span class="n">_replacement_metadata</span><span class="p">(</span>
+        <span class="n">chem</span><span class="p">,</span> <span class="n">elec</span><span class="p">,</span> <span class="n">cart</span><span class="p">,</span> <span class="n">residues</span>
+    <span class="p">)</span>
+    <span class="n">patches</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">chem</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"adds_patches"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]:</span>
+        <span class="n">patch</span> <span class="o">=</span> <span class="n">cattr</span><span class="o">.</span><span class="n">structure</span><span class="p">(</span><span class="n">_fill_patch_defaults</span><span class="p">(</span><span class="n">item</span><span class="p">),</span> <span class="n">VariantType</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">residues</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"A params bundle with patches must define a residue"</span><span class="p">)</span>
+        <span class="n">patches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">patch</span><span class="p">)</span>
+
+    <span class="n">connections</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+        <span class="n">cattr</span><span class="o">.</span><span class="n">structure</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">ConnectionCartRes</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">cart</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"connection_params"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">()</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">connections</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">residues</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"A params bundle with connections must define a residue"</span><span class="p">)</span>
 
     <span class="n">cb_raw</span> <span class="o">=</span> <span class="n">cart</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"residue_params"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
     <span class="n">cart_by_res</span> <span class="o">=</span> <span class="p">{</span>
         <span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">):</span> <span class="n">cattr</span><span class="o">.</span><span class="n">structure</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">CartRes</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">payload</span> <span class="ow">in</span> <span class="n">cb_raw</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
     <span class="p">}</span>
+    <span class="n">additional_cart</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">name</span><span class="p">:</span> <span class="n">params</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">cart_by_res</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">residue_names</span>
+    <span class="p">}</span>
+    <span class="n">additional_cart</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">):</span> <span class="n">cattr</span><span class="o">.</span><span class="n">structure</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="n">CartRes</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">payload</span> <span class="ow">in</span> <span class="n">baseline_cart</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">additional_cart</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">residues</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"A params bundle with bonded parameters must define a residue"</span><span class="p">)</span>
 
-    <span class="n">charges_by_res</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">elec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"atom_charge_parameters"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]:</span>
-        <span class="n">pc</span> <span class="o">=</span> <span class="n">cattr</span><span class="o">.</span><span class="n">structure</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">PartialCharges</span><span class="p">)</span>
-        <span class="n">charges_by_res</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">pc</span><span class="o">.</span><span class="n">res</span><span class="p">,</span> <span class="p">{})[</span><span class="n">pc</span><span class="o">.</span><span class="n">atom</span><span class="p">]</span> <span class="o">=</span> <span class="n">pc</span><span class="o">.</span><span class="n">charge</span>
+    <span class="n">charge_rows</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">cattr</span><span class="o">.</span><span class="n">structure</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">PartialCharges</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">elec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"atom_charge_parameters"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">charges_by_res</span> <span class="o">=</span> <span class="n">_charges_from_rows</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">pc</span><span class="o">.</span><span class="n">res</span><span class="p">,</span> <span class="n">pc</span><span class="o">.</span><span class="n">atom</span><span class="p">,</span> <span class="n">pc</span><span class="o">.</span><span class="n">charge</span><span class="p">)</span> <span class="k">for</span> <span class="n">pc</span> <span class="ow">in</span> <span class="n">charge_rows</span>
+    <span class="p">)</span>
+
+    <span class="n">variant_charges_by_res</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">baseline_charges</span><span class="p">:</span>
+        <span class="n">variant_charges_by_res</span><span class="p">[</span><span class="n">residues</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">baseline_charges</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">atom_charges</span> <span class="ow">in</span> <span class="n">charges_by_res</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">base_name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">":"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">residue_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">residues</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"A params bundle with charges must define a residue"</span><span class="p">)</span>
+            <span class="n">owner</span> <span class="o">=</span> <span class="n">base_name</span> <span class="k">if</span> <span class="n">base_name</span> <span class="ow">in</span> <span class="n">residue_names</span> <span class="k">else</span> <span class="n">residues</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
+            <span class="n">variant_charges_by_res</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">owner</span><span class="p">,</span> <span class="p">{})[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_charges</span>
 
     <span class="n">preps</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">residues</span><span class="p">:</span>
@@ -660,10 +780,38 @@
                 <span class="n">residue_type</span><span class="o">=</span><span class="n">rt</span><span class="p">,</span>
                 <span class="n">partial_charges</span><span class="o">=</span><span class="n">charges</span><span class="p">,</span>
                 <span class="n">cartbonded_params</span><span class="o">=</span><span class="n">cart_by_res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">_empty_cartres</span><span class="p">()),</span>
-                <span class="n">atom_type_elements</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">atom_type_elements</span><span class="o">=</span><span class="p">(</span><span class="n">elements</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">preps</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">adds_patches</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">patches</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">preps</span> <span class="k">else</span> <span class="p">(),</span>
+                <span class="n">variant_partial_charges</span><span class="o">=</span><span class="n">variant_charges_by_res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">connection_params</span><span class="o">=</span><span class="n">connections</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">preps</span> <span class="k">else</span> <span class="p">(),</span>
+                <span class="n">additional_cartbonded_params</span><span class="o">=</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">additional_cart</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">preps</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
+                <span class="n">baseline_sha256</span><span class="o">=</span><span class="n">replacement_baselines</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">name</span><span class="p">),</span>
             <span class="p">)</span>
         <span class="p">)</span>
     <span class="k">return</span> <span class="n">preps</span>
+
+
+<span class="n">_VARIANT_DEFAULTS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"remove_atoms"</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s2">"add_atoms"</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s2">"add_atom_aliases"</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s2">"modify_atoms"</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s2">"add_connections"</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s2">"add_bonds"</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s2">"icoors"</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s2">"add_torsions"</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s2">"add_chi_samples"</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="s2">"applies_to"</span><span class="p">:</span> <span class="p">{},</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_fill_patch_defaults</span><span class="p">(</span><span class="n">item</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Fill a patch record's optional collections so a terse file still loads."""</span>
+    <span class="n">filled</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">_VARIANT_DEFAULTS</span><span class="p">,</span> <span class="o">**</span><span class="n">item</span><span class="p">}</span>
+    <span class="n">filled</span><span class="p">[</span><span class="s2">"add_bonds"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">filled</span><span class="p">[</span><span class="s2">"add_bonds"</span><span class="p">]]</span>
+    <span class="k">return</span> <span class="n">filled</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_empty_cartres</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">CartRes</span><span class="p">:</span>
@@ -698,6 +846,15 @@
 
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_params_files</span><span class="p">(</span><span class="n">paths</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Read each supplied path once within a batch, preserving source order."""</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">prep</span>
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">prep</span> <span class="ow">in</span> <span class="n">load_params_file</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="p">]</span>
+
+
 <div class="viewcode-block" id="inject_params_files">
 <a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.inject_params_files">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">inject_params_files</span><span class="p">(</span>
@@ -709,11 +866,8 @@
 <span class="w">    </span><span class="sd">"""Load multiple ``.tmol`` files and inject them in one shot."""</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">inject_ligand_preparations</span>
 
-    <span class="n">preps</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
-        <span class="n">preps</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">load_params_file</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">inject_ligand_preparations</span><span class="p">(</span>
-        <span class="n">param_db</span><span class="p">,</span> <span class="n">preps</span><span class="p">,</span> <span class="n">strict_atom_types</span><span class="o">=</span><span class="n">strict_atom_types</span>
+        <span class="n">param_db</span><span class="p">,</span> <span class="n">_load_params_files</span><span class="p">(</span><span class="n">paths</span><span class="p">),</span> <span class="n">strict_atom_types</span><span class="o">=</span><span class="n">strict_atom_types</span>
     <span class="p">)</span></div>
 
 </pre></div>

@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -420,15 +444,20 @@
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.._energy_term</span><span class="w"> </span><span class="kn">import</span> <span class="n">EnergyTerm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._annotation_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnnotationKey</span><span class="p">,</span> <span class="n">cached_annotation</span><span class="p">,</span> <span class="n">store_annotation</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.common._scoring_module</span><span class="w"> </span><span class="kn">import</span> <span class="n">_coordinate_independent_score</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span><span class="p">,</span> <span class="n">l_base_name</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">PackedBlockTypes</span><span class="p">,</span>
     <span class="n">PoseStack</span><span class="p">,</span>
 <span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_RefAnnotationSource</span><span class="p">:</span>
+    <span class="k">pass</span>
 
 
 <div class="viewcode-block" id="RefEnergyTerm">
@@ -443,6 +472,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">weights_override</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">soft_rep</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_default_annotation_source</span> <span class="o">=</span> <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">ref</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_override_annotation_source</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">class_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
@@ -458,7 +489,18 @@
         <span class="k">return</span> <span class="mi">1</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">set_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">options</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">weights_override</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"ref_weights"</span><span class="p">)</span>
+        <span class="n">weights_override</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"ref_weights"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">weights_override</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights_override</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_override_annotation_source</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">_RefAnnotationSource</span><span class="p">()</span> <span class="k">if</span> <span class="n">weights_override</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weights_override</span> <span class="o">=</span> <span class="n">weights_override</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_annotation_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">packed</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_override_annotation_source</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_annotation_source</span>
+        <span class="n">signature</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_resolved_weights</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+        <span class="n">settings</span> <span class="o">=</span> <span class="p">(</span><span class="n">signature</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="k">if</span> <span class="n">packed</span> <span class="k">else</span> <span class="p">(</span><span class="n">signature</span><span class="p">,)</span>
+        <span class="k">return</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">settings</span><span class="o">=</span><span class="n">settings</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_resolved_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""The ref-weight map this term scores with (override beats the db default)."""</span>
@@ -474,15 +516,26 @@
         <span class="c1"># beta2016) silently reuses the first's ref weights. (See the matching</span>
         <span class="c1"># guard in ``setup_packed_block_types``.)</span>
         <span class="n">src</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolved_weights</span><span class="p">()</span>
-        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"_ref_weight_src"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="n">src</span><span class="p">:</span>
-            <span class="k">return</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_key</span><span class="p">()</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"_ref_annotation"</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cached</span>
 
-        <span class="n">ref_weight</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="k">if</span> <span class="n">block_type</span><span class="o">.</span><span class="n">base_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_weights</span><span class="p">:</span>
-            <span class="n">ref_weight</span> <span class="o">=</span> <span class="n">src</span><span class="p">[</span><span class="n">block_type</span><span class="o">.</span><span class="n">base_name</span><span class="p">]</span>
+        <span class="c1"># read the map actually in use: a score function may override the</span>
+        <span class="c1">#    database weights with one covering fewer residues, so a d-amino</span>
+        <span class="c1">#    acid falls back to the l form it mirrors rather than to zero</span>
+        <span class="n">ref_weight</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block_type</span><span class="o">.</span><span class="n">base_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ref_weight</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ref_weight</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">l_base_name</span><span class="p">(</span><span class="n">block_type</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">)</span>
 
         <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"ref_weight"</span><span class="p">,</span> <span class="n">ref_weight</span><span class="p">)</span>
-        <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"_ref_weight_src"</span><span class="p">,</span> <span class="n">src</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+            <span class="n">block_type</span><span class="p">,</span>
+            <span class="s2">"_ref_annotation"</span><span class="p">,</span>
+            <span class="n">key</span><span class="p">,</span>
+            <span class="n">ref_weight</span><span class="p">,</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">(</span><span class="s2">"ref_weight"</span><span class="p">,),</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_packed_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">RefEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_packed_block_types</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">)</span>
@@ -491,23 +544,31 @@
         <span class="c1"># ``setup_block_type``: the PackedBlockTypes is cached and shared across</span>
         <span class="c1"># score functions, so reusing a stale ``ref_weights`` tensor would leak</span>
         <span class="c1"># one score function's reference energies into another.</span>
-        <span class="n">src</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolved_weights</span><span class="p">()</span>
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"ref_weights"</span><span class="p">)</span>
-            <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"_ref_weights_src"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="n">src</span>
-        <span class="p">):</span>
-            <span class="k">return</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_key</span><span class="p">(</span><span class="n">packed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"_ref_annotation"</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cached</span>
 
-        <span class="n">ref_weights</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">:</span>
-            <span class="n">ref_weights</span> <span class="o">+=</span> <span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">ref_weight</span><span class="p">]</span>
+        <span class="n">ref_weights</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+        <span class="p">]</span>
 
         <span class="n">ref_weights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
             <span class="n">ref_weights</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
         <span class="p">)</span>
 
         <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"ref_weights"</span><span class="p">,</span> <span class="n">ref_weights</span><span class="p">)</span>
-        <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"_ref_weights_src"</span><span class="p">,</span> <span class="n">src</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="p">,</span>
+            <span class="s2">"_ref_annotation"</span><span class="p">,</span>
+            <span class="n">key</span><span class="p">,</span>
+            <span class="n">ref_weights</span><span class="p">,</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">(</span><span class="s2">"ref_weights"</span><span class="p">,),</span>
+            <span class="n">bindings</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"ref_weight"</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">block_type</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_poses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">RefEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_poses</span><span class="p">(</span><span class="n">poses</span><span class="p">)</span>
@@ -576,6 +637,7 @@
     <span class="n">_rot_offset_for_pose</span><span class="p">,</span>
     <span class="n">_n_rots_for_block</span><span class="p">,</span>
     <span class="n">_rot_offset_for_block</span><span class="p">,</span>
+    <span class="n">_lockstep_group_for_block</span><span class="p">,</span>
     <span class="n">_max_n_rots_per_pose</span><span class="p">,</span>
     <span class="n">_block_ref</span><span class="p">,</span>
     <span class="n">_pose_ref</span><span class="p">,</span>

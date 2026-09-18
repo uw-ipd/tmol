@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -449,6 +473,8 @@
         <li><a href="api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.annotate_packed_block_types">(tmol.pack.rotamer.NaChiRotamerSampler method)</a>
 </li>
       </ul></li>
+      <li><a href="api/pose.html#tmol.pose.annotate_packed_block_types_w_dslf_conn_inds">annotate_packed_block_types_w_dslf_conn_inds() (in module tmol.pose)</a>
+</li>
       <li><a href="api/pack.html#tmol.pack.rotamer.ChiSampler.annotate_residue_type">annotate_residue_type() (tmol.pack.rotamer.ChiSampler method)</a>
 
       <ul>
@@ -469,9 +495,17 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/ligand.html#tmol.ligand.apply_fragment_connections">apply_fragment_connections() (in module tmol.ligand)</a>
 </li>
+      <li><a href="api/io.html#tmol.io.CanonicalForm.as_dict">as_dict() (tmol.io.CanonicalForm method)</a>
+</li>
       <li><a href="api/pack.html#tmol.pack.rotamer.assign_chi_dofs_from_samples">assign_chi_dofs_from_samples() (in module tmol.pack.rotamer)</a>
 </li>
+      <li><a href="api/io.html#tmol.io.atom37_slot_map_for_ordering">atom37_slot_map_for_ordering() (in module tmol.io)</a>
+</li>
       <li><a href="api/io.html#tmol.io.Atom37MappingError">Atom37MappingError</a>
+</li>
+      <li><a href="api/io.html#tmol.io.atom_array_from_cif">atom_array_from_cif() (in module tmol.io)</a>
+</li>
+      <li><a href="api/io.html#tmol.io.atom_array_from_file">atom_array_from_file() (in module tmol.io)</a>
 </li>
       <li><a href="api/database.html#tmol.database.RawResidueType.atom_name">atom_name() (tmol.database.RawResidueType method)</a>
 </li>
@@ -519,6 +553,8 @@
 </li>
       <li><a href="api/pose.html#tmol.pose.PoseStack.block_type">block_type() (tmol.pose.PoseStack method)</a>
 </li>
+      <li><a href="api/score.html#tmol.score.AtomTypeParamResolver.block_type_indices">block_type_indices() (tmol.score.AtomTypeParamResolver method)</a>
+</li>
       <li><a href="api/score_terms.html#tmol.score.na_torsion.block_type_params">block_type_params() (in module tmol.score.na_torsion)</a>
 </li>
       <li><a href="api/pack.html#tmol.pack.PackerPalette.block_types_from_original">block_types_from_original() (tmol.pack.PackerPalette method)</a>
@@ -527,10 +563,10 @@
 </li>
       <li><a href="api/kinematics.html#tmol.kinematics.BondDOF">BondDOF (class in tmol.kinematics)</a>
 </li>
-      <li><a href="api/kinematics.html#tmol.kinematics.BondDOFTypes">BondDOFTypes (class in tmol.kinematics)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/kinematics.html#tmol.kinematics.BondDOFTypes">BondDOFTypes (class in tmol.kinematics)</a>
+</li>
       <li><a href="api/chemical.html#tmol.chemical.bonds_and_bond_ranges">bonds_and_bond_ranges() (in module tmol.chemical)</a>
 </li>
       <li><a href="api/chemical.html#tmol.chemical.BondType">BondType (class in tmol.chemical)</a>
@@ -571,6 +607,8 @@
 </li>
       <li><a href="api/pack.html#tmol.pack.rotamer.calculate_rotamer_coords">calculate_rotamer_coords() (in module tmol.pack.rotamer)</a>
 </li>
+      <li><a href="api/io.html#tmol.io.canonical_form_from_atom37">canonical_form_from_atom37() (in module tmol.io)</a>
+</li>
       <li><a href="api/io.html#tmol.io.canonical_form_from_atomworks">canonical_form_from_atomworks() (in module tmol.io)</a>
 </li>
       <li><a href="api/io.html#tmol.io.canonical_form_from_biotite">canonical_form_from_biotite() (in module tmol.io)</a>
@@ -582,10 +620,6 @@
       <li><a href="api/io.html#tmol.io.canonical_ordering_for_atomworks">canonical_ordering_for_atomworks() (in module tmol.io)</a>
 </li>
       <li><a href="api/io.html#tmol.io.canonical_ordering_for_biotite">canonical_ordering_for_biotite() (in module tmol.io)</a>
-</li>
-      <li><a href="api/io.html#tmol.io.canonical_ordering_for_openfold">canonical_ordering_for_openfold() (in module tmol.io)</a>
-</li>
-      <li><a href="api/io.html#tmol.io.canonical_ordering_for_rosettafold2">canonical_ordering_for_rosettafold2() (in module tmol.io)</a>
 </li>
       <li><a href="api/io.html#tmol.io.CanonicalForm">CanonicalForm (class in tmol.io)</a>
 </li>
@@ -607,6 +641,8 @@
 </li>
       <li><a href="api/utility.html#tmol.utility.tensor.cat_differently_sized_tensors">cat_differently_sized_tensors() (in module tmol.utility.tensor)</a>
 </li>
+      <li><a href="api/ligand.html#tmol.ligand.chem_comp_types_from_cif">chem_comp_types_from_cif() (in module tmol.ligand)</a>
+</li>
       <li><a href="api/database.html#tmol.database.ChemicalDatabase">ChemicalDatabase (class in tmol.database)</a>
 </li>
       <li><a href="api/pack.html#tmol.pack.rotamer.ChiSampler">ChiSampler (class in tmol.pack.rotamer)</a>
@@ -619,6 +655,10 @@
         <li><a href="api/pose.html#tmol.pose.PoseStack.clone">(tmol.pose.PoseStack method)</a>
 </li>
       </ul></li>
+      <li><a href="api/pose.html#tmol.pose.PoseStack.clone_sharing_topology">clone_sharing_topology() (tmol.pose.PoseStack method)</a>
+</li>
+      <li><a href="api/io.html#tmol.io.component_chemistry_from_cif">component_chemistry_from_cif() (in module tmol.io)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/analysis.html#tmol.ops.compute_block_adjacency">compute_block_adjacency() (in module tmol.ops)</a>
@@ -628,6 +668,8 @@
       <li><a href="api/pose.html#tmol.pose.ConstraintSet.concatenate">concatenate() (tmol.pose.ConstraintSet class method)</a>
 </li>
       <li><a href="api/pack.html#tmol.pack.rotamer.ConformerSampler">ConformerSampler (class in tmol.pack.rotamer)</a>
+</li>
+      <li><a href="api/pack.html#tmol.pack.rotamer.ConjugatedSCSampler">ConjugatedSCSampler (class in tmol.pack.rotamer)</a>
 </li>
       <li><a href="api/score_terms.html#tmol.score.constraint.constrain_all_ca">constrain_all_ca() (in module tmol.score.constraint)</a>
 </li>
@@ -713,6 +755,8 @@
 </li>
       <li><a href="api/pack.html#tmol.pack.PackerTask.disable_packing_by_block_mask">disable_packing_by_block_mask() (tmol.pack.PackerTask method)</a>
 </li>
+      <li><a href="api/pack.html#tmol.pack.PackerTask.disable_sampler_by_block_mask">disable_sampler_by_block_mask() (tmol.pack.PackerTask method)</a>
+</li>
       <li><a href="api/score_terms.html#tmol.score.disulfide.DisulfideEnergyTerm">DisulfideEnergyTerm (class in tmol.score.disulfide)</a>
 </li>
       <li><a href="api/score_terms.html#tmol.score.terms.DisulfideTermCreator">DisulfideTermCreator (class in tmol.score.terms)</a>
@@ -771,6 +815,12 @@
 </li>
       <li><a href="api/ligand.html#tmol.ligand.expand_fragmented_ligands">expand_fragmented_ligands() (in module tmol.ligand)</a>
 </li>
+      <li><a href="api/pack.html#tmol.pack.rotamer.ConjugatedSCSampler.expand_into_task">expand_into_task() (tmol.pack.rotamer.ConjugatedSCSampler method)</a>
+
+      <ul>
+        <li><a href="api/pack.html#tmol.pack.rotamer.SidechainSampler.expand_into_task">(tmol.pack.rotamer.SidechainSampler method)</a>
+</li>
+      </ul></li>
       <li><a href="api/io.html#tmol.io.extended_pose_stack_from_sequences">extended_pose_stack_from_sequences() (in module tmol.io)</a>
 </li>
   </ul></td>
@@ -844,6 +894,8 @@
       <li><a href="api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.from_database">from_database() (tmol.pack.rotamer.NaChiRotamerSampler class method)</a>
 
       <ul>
+        <li><a href="api/pack.html#tmol.pack.rotamer.SidechainSampler.from_database">(tmol.pack.rotamer.SidechainSampler class method)</a>
+</li>
         <li><a href="api/score.html#tmol.score.AtomTypeParamResolver.from_database">(tmol.score.AtomTypeParamResolver class method)</a>
 </li>
       </ul></li>
@@ -935,10 +987,10 @@
 </li>
       <li><a href="api/ligand.html#tmol.ligand.inject_ligand_preparations">inject_ligand_preparations() (in module tmol.ligand)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/ligand.html#tmol.ligand.inject_params_file">inject_params_file() (in module tmol.ligand)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/ligand.html#tmol.ligand.inject_params_files">inject_params_files() (in module tmol.ligand)</a>
 </li>
       <li><a href="api/database.html#tmol.database.inject_residue_params">inject_residue_params() (in module tmol.database)</a>
@@ -948,6 +1000,8 @@
       <li><a href="api/kinematics.html#tmol.kinematics.inverseKin">inverseKin() (in module tmol.kinematics)</a>
 </li>
       <li><a href="api/utility.html#tmol.utility.tensor.invert_mapping">invert_mapping() (in module tmol.utility.tensor)</a>
+</li>
+      <li><a href="api/ligand.html#tmol.ligand.is_polymer_linking_component_type">is_polymer_linking_component_type() (in module tmol.ligand)</a>
 </li>
       <li><a href="api/pose.html#tmol.pose.PoseStack.is_real_block">is_real_block() (tmol.pose.PoseStack method)</a>
 </li>
@@ -1034,8 +1088,6 @@
       <li><a href="api/score_terms.html#tmol.score.constraint.MCAtomIndices">MCAtomIndices (class in tmol.score.constraint)</a>
 </li>
       <li><a href="api/pack.html#tmol.pack.rotamer.MCFingerprint">MCFingerprint (class in tmol.pack.rotamer)</a>
-</li>
-      <li><a href="api/pack.html#tmol.pack.rotamer.MCFingerprints">MCFingerprints (class in tmol.pack.rotamer)</a>
 </li>
       <li><a href="api/pack.html#tmol.pack.rotamer.measure_pose_dofs">measure_pose_dofs() (in module tmol.pack.rotamer)</a>
 </li>
@@ -1168,10 +1220,6 @@
 </li>
       <li><a href="api/io.html#tmol.io.packed_block_types_for_biotite">packed_block_types_for_biotite() (in module tmol.io)</a>
 </li>
-      <li><a href="api/io.html#tmol.io.packed_block_types_for_openfold">packed_block_types_for_openfold() (in module tmol.io)</a>
-</li>
-      <li><a href="api/io.html#tmol.io.packed_block_types_for_rosettafold2">packed_block_types_for_rosettafold2() (in module tmol.io)</a>
-</li>
       <li><a href="api/pose.html#tmol.pose.PackedBlockTypes">PackedBlockTypes (class in tmol.pose)</a>
 </li>
       <li><a href="api/pack.html#tmol.pack.rotamer.PackedRotamerKintree">PackedRotamerKintree (class in tmol.pack.rotamer)</a>
@@ -1188,21 +1236,27 @@
 </li>
       <li><a href="api/database.html#tmol.database.PatchedChemicalDatabase">PatchedChemicalDatabase (class in tmol.database)</a>
 </li>
+      <li><a href="api/ligand.html#tmol.ligand.polymer_entity_residues">polymer_entity_residues() (in module tmol.ligand)</a>
+</li>
       <li><a href="api/score_terms.html#tmol.score.na_torsion.polymer_index">polymer_index() (in module tmol.score.na_torsion)</a>
 </li>
-      <li><a href="api/io.html#tmol.io.pose_stack_from_atom37_and_biotite">pose_stack_from_atom37_and_biotite() (in module tmol.io)</a>
+      <li><a href="api/io.html#tmol.io.pose_stack_from_atom37">pose_stack_from_atom37() (in module tmol.io)</a>
 </li>
-      <li><a href="api/io.html#tmol.io.pose_stack_from_atomworks">pose_stack_from_atomworks() (in module tmol.io)</a>
+      <li><a href="api/io.html#tmol.io.pose_stack_from_atom37_and_topology">pose_stack_from_atom37_and_topology() (in module tmol.io)</a>
 </li>
       <li><a href="api/io.html#tmol.io.pose_stack_from_biotite">pose_stack_from_biotite() (in module tmol.io)</a>
 </li>
-      <li><a href="api/io.html#tmol.io.pose_stack_from_openfold">pose_stack_from_openfold() (in module tmol.io)</a>
+      <li><a href="api/io.html#tmol.io.pose_stack_from_canonical_aa_atom37">pose_stack_from_canonical_aa_atom37() (in module tmol.io)</a>
+</li>
+      <li><a href="api/io.html#tmol.io.pose_stack_from_canonical_form_and_context">pose_stack_from_canonical_form_and_context() (in module tmol.io)</a>
+</li>
+      <li><a href="api/io.html#tmol.io.pose_stack_from_cif">pose_stack_from_cif() (in module tmol.io)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/io.html#tmol.io.pose_stack_from_pdb">pose_stack_from_pdb() (in module tmol.io)</a>
+      <li><a href="api/io.html#tmol.io.pose_stack_from_file">pose_stack_from_file() (in module tmol.io)</a>
 </li>
-      <li><a href="api/io.html#tmol.io.pose_stack_from_rosettafold2">pose_stack_from_rosettafold2() (in module tmol.io)</a>
+      <li><a href="api/io.html#tmol.io.pose_stack_from_pdb">pose_stack_from_pdb() (in module tmol.io)</a>
 </li>
       <li><a href="api/io.html#tmol.io.pose_stack_to_pdb_string">pose_stack_to_pdb_string() (in module tmol.io)</a>
 </li>
@@ -1216,6 +1270,8 @@
 </li>
       <li><a href="api/score.html#tmol.score.ScoreFunction.pre_work_initialization">pre_work_initialization() (tmol.score.ScoreFunction method)</a>
 </li>
+      <li><a href="api/io.html#tmol.io.prepare_atom37_pose_builder">prepare_atom37_pose_builder() (in module tmol.io)</a>
+</li>
       <li><a href="api/ligand.html#tmol.ligand.prepare_ligand_from_cif">prepare_ligand_from_cif() (in module tmol.ligand)</a>
 </li>
       <li><a href="api/ligand.html#tmol.ligand.prepare_ligand_from_mol2">prepare_ligand_from_mol2() (in module tmol.ligand)</a>
@@ -1226,7 +1282,7 @@
 </li>
       <li><a href="api/ligand.html#tmol.ligand.prepare_ligands_from_smiles">prepare_ligands_from_smiles() (in module tmol.ligand)</a>
 </li>
-      <li><a href="api/io.html#tmol.io.prepare_pose_stack_from_atom37">prepare_pose_stack_from_atom37() (in module tmol.io)</a>
+      <li><a href="api/ligand.html#tmol.ligand.prepare_polymer_residue">prepare_polymer_residue() (in module tmol.ligand)</a>
 </li>
       <li><a href="api/ligand.html#tmol.ligand.prepare_single_ligand">prepare_single_ligand() (in module tmol.ligand)</a>
 </li>
@@ -1252,8 +1308,6 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/database.html#tmol.database.RawResidueType">RawResidueType (class in tmol.database)</a>
 </li>
-      <li><a href="api/ligand.html#tmol.ligand.read_params_file">read_params_file() (in module tmol.ligand)</a>
-</li>
       <li><a href="api/pose.html#tmol.pose.PoseStack.real_atoms">real_atoms (tmol.pose.PoseStack property)</a>
 </li>
       <li><a href="api/kinematics.html#tmol.kinematics.FoldForest.reasonable_fold_forest">reasonable_fold_forest() (tmol.kinematics.FoldForest class method)</a>
@@ -1272,16 +1326,18 @@
 </li>
       <li><a href="api/relax.html#tmol.relax.relax_pack_min_step">relax_pack_min_step() (in module tmol.relax)</a>
 </li>
+      <li><a href="api/optimization.html#tmol.optimization.CartesianMinimizer.release_retained_state">release_retained_state() (tmol.optimization.CartesianMinimizer method)</a>
+</li>
       <li><a href="api/score.html#tmol.score.ScoreFunction.remove_term_for_score_type">remove_term_for_score_type() (tmol.score.ScoreFunction method)</a>
 </li>
       <li><a href="api/score.html#tmol.score.ScoreFunction.render_block_pair_scoring_module">render_block_pair_scoring_module() (tmol.score.ScoreFunction method)</a>
 </li>
       <li><a href="api/score.html#tmol.score.ScoreFunction.render_rotamer_scoring_module">render_rotamer_scoring_module() (tmol.score.ScoreFunction method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/score.html#tmol.score.ScoreFunction.render_whole_pose_scoring_module">render_whole_pose_scoring_module() (tmol.score.ScoreFunction method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/pose.html#tmol.pose.ConstraintSet.replicate_constraints">replicate_constraints() (tmol.pose.ConstraintSet static method)</a>
 </li>
       <li><a href="api/analysis.html#tmol.ops.res_mask_to_coord_mask">res_mask_to_coord_mask() (in module tmol.ops)</a>
@@ -1291,6 +1347,8 @@
       <li><a href="api/pose.html#tmol.pose.resolve_block_type_names">resolve_block_type_names() (in module tmol.pose)</a>
 </li>
       <li><a href="api/utility.html#tmol.utility.resolve_device">resolve_device() (in module tmol.utility)</a>
+</li>
+      <li><a href="api/io.html#tmol.io.CanonicalOrdering.resolve_name3">resolve_name3() (tmol.io.CanonicalOrdering method)</a>
 </li>
       <li><a href="api/pack.html#tmol.pack.PackerTask.restrict_absent_name3s">restrict_absent_name3s() (tmol.pack.PackerTask method)</a>
 </li>
@@ -1332,11 +1390,19 @@
         <li><a href="api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.sampler_name">(tmol.pack.rotamer.NaChiRotamerSampler class method)</a>
 </li>
       </ul></li>
+      <li><a href="api/pack.html#tmol.pack.rotamer.ConformerSampler.samples_after_other_samplers">samples_after_other_samplers (tmol.pack.rotamer.ConformerSampler attribute)</a>
+
+      <ul>
+        <li><a href="api/pack.html#tmol.pack.rotamer.FallbackSampler.samples_after_other_samplers">(tmol.pack.rotamer.FallbackSampler attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api/score.html#tmol.score.BlockPairScoringModule.score_interactions">score_interactions() (tmol.score.BlockPairScoringModule method)</a>
 </li>
       <li><a href="api/score_terms.html#tmol.score.terms.score_term_creator">score_term_creator() (in module tmol.score.terms)</a>
 </li>
       <li><a href="api/score.html#tmol.score.ScoreFunction.score_type_covered_by_contained_term">score_type_covered_by_contained_term() (tmol.score.ScoreFunction method)</a>
+</li>
+      <li><a href="api/score_terms.html#tmol.score.na_torsion.scored_torsion_bonds">scored_torsion_bonds() (in module tmol.score.na_torsion)</a>
 </li>
       <li><a href="api/score.html#tmol.score.ScoreFunction">ScoreFunction (class in tmol.score)</a>
 </li>
@@ -1350,6 +1416,8 @@
 </li>
       <li><a href="api/pose.html#tmol.pose.SeqToken">SeqToken (class in tmol.pose)</a>
 </li>
+      <li><a href="api/pack.html#tmol.pack.PackerTask.set_chi_sample_budget">set_chi_sample_budget() (tmol.pack.PackerTask method)</a>
+</li>
       <li><a href="api/pack.html#tmol.pack.set_compare">set_compare() (in module tmol.pack)</a>
 </li>
       <li><a href="api/kinematics.html#tmol.kinematics.MoveMap.set_move_all_jump_dofs_for_jump">set_move_all_jump_dofs_for_jump() (tmol.kinematics.MoveMap method)</a>
@@ -1360,10 +1428,10 @@
 </li>
       <li><a href="api/kinematics.html#tmol.kinematics.MoveMap.set_move_atom_dof_for_blocks">set_move_atom_dof_for_blocks() (tmol.kinematics.MoveMap method)</a>
 </li>
-      <li><a href="api/kinematics.html#tmol.kinematics.MoveMap.set_move_jump_dof_for_jumps">set_move_jump_dof_for_jumps() (tmol.kinematics.MoveMap method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/kinematics.html#tmol.kinematics.MoveMap.set_move_jump_dof_for_jumps">set_move_jump_dof_for_jumps() (tmol.kinematics.MoveMap method)</a>
+</li>
       <li><a href="api/kinematics.html#tmol.kinematics.MoveMap.set_move_jump_dof_for_root_jumps">set_move_jump_dof_for_root_jumps() (tmol.kinematics.MoveMap method)</a>
 </li>
       <li><a href="api/kinematics.html#tmol.kinematics.MoveMap.set_move_mc_tor_for_blocks">set_move_mc_tor_for_blocks() (tmol.kinematics.MoveMap method)</a>
@@ -1385,6 +1453,8 @@
       <li><a href="api/types.html#tmol.types.Shape">Shape (class in tmol.types)</a>
 </li>
       <li><a href="api/types.html#tmol.types.Shape.Factory">Shape.Factory (class in tmol.types)</a>
+</li>
+      <li><a href="api/pack.html#tmol.pack.rotamer.SidechainSampler">SidechainSampler (class in tmol.pack.rotamer)</a>
 </li>
       <li><a href="api/pose.html#tmol.pose.smiles_in_tokens">smiles_in_tokens() (in module tmol.pose)</a>
 </li>
@@ -1645,8 +1715,14 @@
 </li>
       <li><a href="api/score.html#tmol.score.WholePoseScoringModule">WholePoseScoringModule (class in tmol.score)</a>
 </li>
+      <li><a href="api/database.html#tmol.database.PatchedChemicalDatabase.with_added_residues">with_added_residues() (tmol.database.PatchedChemicalDatabase method)</a>
+</li>
+      <li><a href="api/database.html#tmol.database.ParameterDatabase.with_symmetric_gly">with_symmetric_gly() (tmol.database.ParameterDatabase method)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/database.html#tmol.database.PatchedChemicalDatabase.with_variants_applied">with_variants_applied() (tmol.database.PatchedChemicalDatabase method)</a>
+</li>
       <li><a href="api/ligand.html#tmol.ligand.write_params_file">write_params_file() (in module tmol.ligand)</a>
 </li>
       <li><a href="api/ligand.html#tmol.ligand.write_params_from_mol2">write_params_from_mol2() (in module tmol.ligand)</a>

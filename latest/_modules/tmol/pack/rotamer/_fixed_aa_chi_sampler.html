@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -428,7 +452,7 @@
     <span class="n">Tensor</span><span class="p">,</span>
     <span class="n">validate_args</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span><span class="p">,</span> <span class="n">l_base_name</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">PackedBlockTypes</span><span class="p">,</span>
     <span class="n">PoseStack</span><span class="p">,</span>
@@ -461,10 +485,10 @@
             <span class="k">return</span> <span class="kc">False</span>
         <span class="k">if</span> <span class="n">rt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">polymer_type</span> <span class="o">!=</span> <span class="s2">"amino_acid"</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">False</span>
-        <span class="k">if</span> <span class="n">rt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">backbone_type</span> <span class="o">!=</span> <span class="s2">"alpha"</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">rt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">backbone_type</span> <span class="o">!=</span> <span class="s2">"alpha_aa"</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">False</span>
 
-        <span class="k">if</span> <span class="n">rt</span><span class="o">.</span><span class="n">base_name</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"GLY"</span> <span class="ow">or</span> <span class="n">rt</span><span class="o">.</span><span class="n">base_name</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"ALA"</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">l_base_name</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"GLY"</span><span class="p">,</span> <span class="s2">"ALA"</span><span class="p">):</span>
             <span class="k">return</span> <span class="kc">True</span>
 
         <span class="k">return</span> <span class="kc">False</span></div>
@@ -479,9 +503,13 @@
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.FixedAAChiSampler.first_sc_atoms_for_rt">[docs]</a>
     <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">first_sc_atoms_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-        <span class="k">if</span> <span class="n">rt</span><span class="o">.</span><span class="n">base_name</span> <span class="o">==</span> <span class="s2">"GLY"</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">(</span><span class="s2">"HA3"</span><span class="p">,)</span>
-        <span class="k">if</span> <span class="n">rt</span><span class="o">.</span><span class="n">base_name</span> <span class="o">==</span> <span class="s2">"ALA"</span><span class="p">:</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">l_base_name</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">base</span> <span class="o">==</span> <span class="s2">"GLY"</span><span class="p">:</span>
+            <span class="c1"># Glycine's alpha hydrogens exchange under reflection. Rebuilding</span>
+            <span class="c1"># only one can place it on top of the retained hydrogen, and a</span>
+            <span class="c1"># glycine-to-amino-acid design must not inherit an arbitrary one.</span>
+            <span class="k">return</span> <span class="p">(</span><span class="s2">"HA2"</span><span class="p">,</span> <span class="s2">"HA3"</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">base</span> <span class="o">==</span> <span class="s2">"ALA"</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">(</span><span class="s2">"CB"</span><span class="p">,)</span></div>
 
 
@@ -491,7 +519,7 @@
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"fixed_aa_chi_sampler_builds_bt"</span><span class="p">):</span>
             <span class="k">return</span>
         <span class="n">builds_bt</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="k">if</span> <span class="n">block_type</span><span class="o">.</span><span class="n">base_name</span> <span class="o">==</span> <span class="s2">"GLY"</span> <span class="ow">or</span> <span class="n">block_type</span><span class="o">.</span><span class="n">base_name</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"ALA"</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">l_base_name</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"GLY"</span><span class="p">,</span> <span class="s2">"ALA"</span><span class="p">):</span>
             <span class="n">builds_bt</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"fixed_aa_chi_sampler_builds_bt"</span><span class="p">,</span> <span class="n">builds_bt</span><span class="p">)</span></div>
 

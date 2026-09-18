@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -451,18 +475,14 @@
 <span class="sd">    (specifically, RefinedResidueTypes); once constructed, this order will not</span>
 <span class="sd">    change, so residue types may be referred to by index within this object.</span>
 
-<span class="sd">    The PackedBlockTypes object is the bag in which scoring terms cache their</span>
-<span class="sd">    tensors holding the chemical/scoring properties of the block types in use.</span>
-<span class="sd">    Each term needs several tensors in order to map from block-type index to</span>
-<span class="sd">    the data required to score that block type, and the construction of these</span>
-<span class="sd">    tensors and moving these tensors can be slowThe idiom we follow to ensure</span>
-<span class="sd">    that these tensors are preserved between score evaluations is to cache</span>
-<span class="sd">    them in this object. The term will annotate the PackedBlockTypes object,</span>
-<span class="sd">    pbt, using setattr(pbt, "tensor_name", tensor) and then will later decide</span>
-<span class="sd">    if the annotation has already been made using hasattr(pbt, "tensor_name").</span>
-<span class="sd">    Thus, it is more efficient to use a single PackedBlockTypes object between</span>
-<span class="sd">    multiple PoseStack objects so that the expense of creating the annotations</span>
-<span class="sd">    can be amortized of many score evaluations.</span>
+<span class="sd">    Score terms cache derived tensors on this object to share annotation work</span>
+<span class="sd">    across poses with the same ordered residue types. Topology annotations can</span>
+<span class="sd">    be reused for the object's lifetime. Parameter-dependent annotations must</span>
+<span class="sd">    also identify their chemical/scoring sources, settings and tensor device;</span>
+<span class="sd">    the presence of an attribute alone does not establish a valid cache hit.</span>
+<span class="sd">    Keep historical configurations bounded, and let rendered scoring modules</span>
+<span class="sd">    capture their requested annotation tensors instead of reading whichever</span>
+<span class="sd">    configuration happens to be stored here during a later forward call.</span>
 
 <span class="sd">    Annotation process:</span>
 <span class="sd">    There are three steps to the annotation process. 1) Terms</span>
@@ -862,9 +882,51 @@
         <span class="p">)</span>
         <span class="k">for</span> <span class="n">self_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">self_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">new_inst</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
-                <span class="nb">setattr</span><span class="p">(</span><span class="n">new_inst</span><span class="p">,</span> <span class="n">self_key</span><span class="p">,</span> <span class="n">cpu_equiv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict___</span><span class="p">[</span><span class="n">self_key</span><span class="p">]))</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">new_inst</span><span class="p">,</span> <span class="n">self_key</span><span class="p">,</span> <span class="n">cpu_equiv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">self_key</span><span class="p">]))</span>
         <span class="k">return</span> <span class="n">new_inst</span></div>
 
+
+
+<div class="viewcode-block" id="annotate_packed_block_types_w_dslf_conn_inds">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.annotate_packed_block_types_w_dslf_conn_inds">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">annotate_packed_block_types_w_dslf_conn_inds</span><span class="p">(</span><span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Annotate each block type with its disulfide connection index, or -1."""</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"canonical_dslf_conn_ind"</span><span class="p">):</span>
+        <span class="k">return</span>
+    <span class="n">canonical_dslf_conn_ind</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s2">"dslf"</span> <span class="ow">in</span> <span class="n">bt</span><span class="o">.</span><span class="n">connection_to_cidx</span><span class="p">:</span>
+            <span class="n">canonical_dslf_conn_ind</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">connection_to_cidx</span><span class="p">[</span><span class="s2">"dslf"</span><span class="p">]</span>
+    <span class="n">canonical_dslf_conn_ind</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+        <span class="n">canonical_dslf_conn_ind</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"canonical_dslf_conn_ind"</span><span class="p">,</span> <span class="n">canonical_dslf_conn_ind</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">annotate_packed_block_types_w_conjugation_conns</span><span class="p">(</span><span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Mark, per block type, which connections are conjugations.</span>
+
+<span class="sd">    A connection that is neither the polymer up or down nor the disulfide joins</span>
+<span class="sd">    a residue to something other than its own chain: a glycan on a serine, a</span>
+<span class="sd">    ligand on a lysine. Read from the connections themselves, so a generated</span>
+<span class="sd">    component and a patched canonical residue are treated alike.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"conjugation_conn"</span><span class="p">):</span>
+        <span class="k">return</span>
+    <span class="n">annotate_packed_block_types_w_dslf_conn_inds</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
+    <span class="n">dslf</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">canonical_dslf_conn_ind</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+    <span class="n">conjugation_conn</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_conn</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
+        <span class="n">structural</span> <span class="o">=</span> <span class="p">{</span><span class="n">bt</span><span class="o">.</span><span class="n">down_connection_ind</span><span class="p">,</span> <span class="n">bt</span><span class="o">.</span><span class="n">up_connection_ind</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">dslf</span><span class="p">[</span><span class="n">i</span><span class="p">])}</span>
+        <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">connections</span><span class="p">)):</span>
+            <span class="n">conjugation_conn</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">ind</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">structural</span>
+    <span class="nb">setattr</span><span class="p">(</span>
+        <span class="n">pbt</span><span class="p">,</span>
+        <span class="s2">"conjugation_conn"</span><span class="p">,</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">conjugation_conn</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+    <span class="p">)</span>
 </pre></div>
 
                 </article>

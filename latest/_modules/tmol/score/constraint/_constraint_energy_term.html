@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -546,7 +570,15 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">constraint_pose_scores</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_rotamer_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">constraint_pose_scores</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">constraint_rotamer_scores</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">constraint_rotamer_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Score rotamers with the same routine the whole pose uses.</span>
+
+<span class="sd">        The rotamer arg list carries one extra tensor -- which blocks sample in</span>
+<span class="sd">        lockstep -- that only the pair terms' rotamer-pair enumerator reads.</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">constraint_pose_scores</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">[:</span><span class="mi">12</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">[</span><span class="mi">13</span><span class="p">:])</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_score_term_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">[</span>
@@ -581,7 +613,7 @@
                 <span class="c1"># block. Handle it before inspecting the CUDA tensor so an</span>
                 <span class="c1"># empty constraint set does not synchronize every evaluation.</span>
                 <span class="k">return</span> <span class="p">(</span>
-                    <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
                     <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
                 <span class="p">)</span>
 
@@ -598,7 +630,7 @@
             <span class="k">return</span> <span class="p">(</span>
                 <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
                     <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">),</span>
-                    <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
                     <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
                 <span class="p">),</span>
                 <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
@@ -846,7 +878,7 @@
 
         <span class="k">def</span><span class="w"> </span><span class="nf">score_cnstrs</span><span class="p">(</span><span class="n">functions</span><span class="p">,</span> <span class="n">types</span><span class="p">,</span> <span class="n">atom_coords</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
             <span class="n">cnstr_scores</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-                <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">types</span><span class="p">),),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span>
+                <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">types</span><span class="p">),),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span>
             <span class="p">)</span>
             <span class="k">for</span> <span class="n">ind</span><span class="p">,</span> <span class="n">fn</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">functions</span><span class="p">):</span>
 

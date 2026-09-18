@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -419,7 +443,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">enum</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">NDArray</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">annotate_packed_block_types_w_dslf_conn_inds</span>
 
 
 <div class="viewcode-block" id="EdgeType">
@@ -429,16 +453,19 @@
 
     <span class="n">polymer</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">jump</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
-    <span class="n">root_jump</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span></div>
+    <span class="n">root_jump</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
+    <span class="n">chemical</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span></div>
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_build_pose_fold_forest</span><span class="p">(</span><span class="n">bti_p</span><span class="p">,</span> <span class="n">irc_p</span><span class="p">,</span> <span class="n">up_c</span><span class="p">,</span> <span class="n">down_c</span><span class="p">,</span> <span class="n">chain_id_p</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Build fold forest edges for a single pose from polymer connectivity only.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_pose_fold_forest</span><span class="p">(</span><span class="n">bti_p</span><span class="p">,</span> <span class="n">irc_p</span><span class="p">,</span> <span class="n">up_c</span><span class="p">,</span> <span class="n">down_c</span><span class="p">,</span> <span class="n">dslf_c</span><span class="p">,</span> <span class="n">n_conn</span><span class="p">,</span> <span class="n">chain_id_p</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Build fold forest edges for a single pose from its chemical connectivity.</span>
 
-<span class="sd">    Only backbone (up/down) connections are considered.  The resulting graph is</span>
-<span class="sd">    a disjoint union of simple paths (linear chains) and simple cycles (C→N</span>
-<span class="sd">    cyclisation).  Non-polymer connections (disulfides, etc.) are ignored.</span>
+<span class="sd">    Backbone (up/down) connections give a disjoint union of simple paths</span>
+<span class="sd">    (linear chains) and simple cycles (C→N cyclisation).  Every other</span>
+<span class="sd">    connection except the disulfide is a chemical bond joining two such</span>
+<span class="sd">    chains, and becomes a chemical edge; disulfides are left to close on</span>
+<span class="sd">    their own, as they always have.</span>
 
 <span class="sd">    poly_succ / poly_pred are built with a vectorised numpy gather:</span>
 <span class="sd">    for each residue r, r's *up*-conn slot points to the C-terminal neighbour s,</span>
@@ -536,32 +563,117 @@
         <span class="n">c_term</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">poly_pred_arr</span><span class="p">[</span><span class="n">n_term</span><span class="p">])</span>
         <span class="n">chains</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">n_term</span><span class="p">,</span> <span class="n">c_term</span><span class="p">))</span>
 
+    <span class="n">chains</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">chains</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
     <span class="c1"># ------------------------------------------------------------------</span>
-    <span class="c1"># Emit edges: one root-jump (or intra-chain jump) per chain,</span>
-    <span class="c1"># one polymer edge if len &gt; 1.</span>
-    <span class="c1">#</span>
-    <span class="c1"># If the residue immediately before this chain's N-terminus belongs to</span>
-    <span class="c1"># the same biological chain (same chain_id), the break is a chain gap</span>
-    <span class="c1"># within one chain and is represented as a jump from that predecessor.</span>
-    <span class="c1"># Otherwise the chain is rooted at the virtual root.</span>
+    <span class="c1"># Contract each chain to a node and span the chemical bonds between</span>
+    <span class="c1"># them.  Chemical bonds are the connections that are neither polymeric</span>
+    <span class="c1"># nor the disulfide: a glycan on a serine, a ligand on a lysine.</span>
     <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="n">chem_parent</span> <span class="o">=</span> <span class="n">_chemical_spanning_forest</span><span class="p">(</span>
+        <span class="n">chains</span><span class="p">,</span> <span class="n">poly_succ_arr</span><span class="p">,</span> <span class="n">bti_p</span><span class="p">,</span> <span class="n">irc_p</span><span class="p">,</span> <span class="n">up_c</span><span class="p">,</span> <span class="n">down_c</span><span class="p">,</span> <span class="n">dslf_c</span><span class="p">,</span> <span class="n">n_conn</span><span class="p">,</span> <span class="n">real_mask</span>
+    <span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Emit edges.  A chain is entered either through a chemical bond, or --</span>
+    <span class="c1"># as before -- by a jump from the residue preceding its N-terminus when</span>
+    <span class="c1"># that residue belongs to the same biological chain (a chain gap), or</span>
+    <span class="c1"># by a root jump.  Polymer edges then run outward from the entry</span>
+    <span class="c1"># residue in both directions.</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Every edge must start at a block some other edge ends at, so a polymer</span>
+    <span class="c1"># edge is split wherever a chemical edge leaves from its middle -- a glycan</span>
+    <span class="c1"># on a serine partway along a chain. Rosetta splits its peptide edges at</span>
+    <span class="c1"># branch points for the same reason.</span>
+    <span class="n">branch_blocks</span> <span class="o">=</span> <span class="p">{</span><span class="n">parent_res</span> <span class="k">for</span> <span class="n">parent_res</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">chem_parent</span><span class="o">.</span><span class="n">values</span><span class="p">()}</span>
+
     <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">jump_idx</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">chains</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
-        <span class="n">prev</span> <span class="o">=</span> <span class="n">start</span> <span class="o">-</span> <span class="mi">1</span>
-        <span class="k">if</span> <span class="n">prev</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">bti_p</span><span class="p">[</span><span class="n">prev</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">chain_id_p</span><span class="p">[</span><span class="n">prev</span><span class="p">]</span> <span class="o">==</span> <span class="n">chain_id_p</span><span class="p">[</span><span class="n">start</span><span class="p">]:</span>
-            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">EdgeType</span><span class="o">.</span><span class="n">jump</span><span class="p">),</span> <span class="n">prev</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">jump_idx</span><span class="p">])</span>
-            <span class="c1"># only true jumps are numbered; a root jump is identified by its</span>
-            <span class="c1"># downstream block, and numbering it would leave a gap in the</span>
-            <span class="c1"># jump indices, which must run contiguously from 0</span>
-            <span class="n">jump_idx</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">for</span> <span class="n">ci</span><span class="p">,</span> <span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">chains</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">ci</span> <span class="ow">in</span> <span class="n">chem_parent</span><span class="p">:</span>
+            <span class="n">parent_res</span><span class="p">,</span> <span class="n">parent_conn</span><span class="p">,</span> <span class="n">entry</span> <span class="o">=</span> <span class="n">chem_parent</span><span class="p">[</span><span class="n">ci</span><span class="p">]</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">EdgeType</span><span class="o">.</span><span class="n">chemical</span><span class="p">),</span> <span class="n">parent_res</span><span class="p">,</span> <span class="n">entry</span><span class="p">,</span> <span class="n">parent_conn</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">EdgeType</span><span class="o">.</span><span class="n">root_jump</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-        <span class="k">if</span> <span class="n">start</span> <span class="o">!=</span> <span class="n">end</span><span class="p">:</span>
-            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">EdgeType</span><span class="o">.</span><span class="n">polymer</span><span class="p">),</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">entry</span> <span class="o">=</span> <span class="n">start</span>
+            <span class="n">prev</span> <span class="o">=</span> <span class="n">start</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">prev</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">bti_p</span><span class="p">[</span><span class="n">prev</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">chain_id_p</span><span class="p">[</span><span class="n">prev</span><span class="p">]</span> <span class="o">==</span> <span class="n">chain_id_p</span><span class="p">[</span><span class="n">start</span><span class="p">]:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">EdgeType</span><span class="o">.</span><span class="n">jump</span><span class="p">),</span> <span class="n">prev</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">jump_idx</span><span class="p">])</span>
+                <span class="c1"># only true jumps are numbered; a root jump is identified by its</span>
+                <span class="c1"># downstream block, and numbering it would leave a gap in the</span>
+                <span class="c1"># jump indices, which must run contiguously from 0</span>
+                <span class="n">jump_idx</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">EdgeType</span><span class="o">.</span><span class="n">root_jump</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">run_end</span> <span class="ow">in</span> <span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">entry</span> <span class="o">==</span> <span class="n">run_end</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">entry</span> <span class="o">&lt;</span> <span class="n">run_end</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">entry</span>
+            <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">entry</span> <span class="o">+</span> <span class="n">step</span><span class="p">,</span> <span class="n">run_end</span> <span class="o">+</span> <span class="n">step</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">branch_blocks</span> <span class="ow">and</span> <span class="n">b</span> <span class="o">!=</span> <span class="n">run_end</span><span class="p">:</span>
+                    <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">EdgeType</span><span class="o">.</span><span class="n">polymer</span><span class="p">),</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="n">a</span> <span class="o">=</span> <span class="n">b</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">EdgeType</span><span class="o">.</span><span class="n">polymer</span><span class="p">),</span> <span class="n">a</span><span class="p">,</span> <span class="n">run_end</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
     <span class="k">return</span> <span class="n">result</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_chemical_spanning_forest</span><span class="p">(</span>
+    <span class="n">chains</span><span class="p">,</span> <span class="n">poly_succ_arr</span><span class="p">,</span> <span class="n">bti_p</span><span class="p">,</span> <span class="n">irc_p</span><span class="p">,</span> <span class="n">up_c</span><span class="p">,</span> <span class="n">down_c</span><span class="p">,</span> <span class="n">dslf_c</span><span class="p">,</span> <span class="n">n_conn</span><span class="p">,</span> <span class="n">real_mask</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Which chemical bond, if any, builds each polymer chain.</span>
+
+<span class="sd">    Each chain is contracted to a node and the bonds between them -- the</span>
+<span class="sd">    connections that are neither polymeric nor the disulfide -- are spanned</span>
+<span class="sd">    breadth-first from each component's lowest-index chain.  A bond reaching</span>
+<span class="sd">    an already-visited chain would close a cycle and is dropped; because the</span>
+<span class="sd">    polymer chains are contracted first, a cycle of mixed polymer and</span>
+<span class="sd">    chemical bonds can only break at a chemical bond.</span>
+
+<span class="sd">    Returns a map from chain index to (parent residue, connection on it, the</span>
+<span class="sd">    residue it builds).</span>
+<span class="sd">    """</span>
+    <span class="n">chain_of</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">real_mask</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ci</span><span class="p">,</span> <span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">chains</span><span class="p">):</span>
+        <span class="n">cur</span> <span class="o">=</span> <span class="n">start</span>
+        <span class="n">chain_of</span><span class="p">[</span><span class="n">cur</span><span class="p">]</span> <span class="o">=</span> <span class="n">ci</span>
+        <span class="k">while</span> <span class="n">cur</span> <span class="o">!=</span> <span class="n">end</span><span class="p">:</span>
+            <span class="n">cur</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">poly_succ_arr</span><span class="p">[</span><span class="n">cur</span><span class="p">])</span>
+            <span class="n">chain_of</span><span class="p">[</span><span class="n">cur</span><span class="p">]</span> <span class="o">=</span> <span class="n">ci</span>
+
+    <span class="n">incident</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">chains</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">numpy</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">real_mask</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+        <span class="n">bt</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">bti_p</span><span class="p">[</span><span class="n">r</span><span class="p">])</span>
+        <span class="n">structural</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">(</span><span class="n">up_c</span><span class="p">[</span><span class="n">bt</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">down_c</span><span class="p">[</span><span class="n">bt</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">dslf_c</span><span class="p">[</span><span class="n">bt</span><span class="p">])}</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">n_conn</span><span class="p">[</span><span class="n">bt</span><span class="p">])):</span>
+            <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">structural</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">partner</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">irc_p</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">partner</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">real_mask</span><span class="p">[</span><span class="n">partner</span><span class="p">]:</span>
+                <span class="k">continue</span>
+            <span class="n">incident</span><span class="p">[</span><span class="n">chain_of</span><span class="p">[</span><span class="n">r</span><span class="p">]]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">partner</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">bonds</span> <span class="ow">in</span> <span class="n">incident</span><span class="p">:</span>
+        <span class="n">bonds</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+
+    <span class="n">chem_parent</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">seen</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">chains</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ci</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">chains</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">seen</span><span class="p">[</span><span class="n">ci</span><span class="p">]:</span>
+            <span class="k">continue</span>
+        <span class="n">seen</span><span class="p">[</span><span class="n">ci</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">queue</span> <span class="o">=</span> <span class="p">[</span><span class="n">ci</span><span class="p">]</span>
+        <span class="k">while</span> <span class="n">queue</span><span class="p">:</span>
+            <span class="n">cur</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">partner</span> <span class="ow">in</span> <span class="n">incident</span><span class="p">[</span><span class="n">cur</span><span class="p">]:</span>
+                <span class="n">child</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">chain_of</span><span class="p">[</span><span class="n">partner</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">seen</span><span class="p">[</span><span class="n">child</span><span class="p">]:</span>
+                    <span class="k">continue</span>
+                <span class="n">seen</span><span class="p">[</span><span class="n">child</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">chem_parent</span><span class="p">[</span><span class="n">child</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">partner</span><span class="p">)</span>
+                <span class="n">queue</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">child</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">chem_parent</span>
 
 
 <div class="viewcode-block" id="FoldForest">
@@ -572,11 +684,12 @@
 <span class="sd">    Each tensor in the class has its first dimension over the number of poses.</span>
 
 <span class="sd">    The primary definition of a FoldTree is the Edge. The Edge defines a connection</span>
-<span class="sd">    between two parts of a Pose. The three types of edges are 1. polymer edges</span>
+<span class="sd">    between two parts of a Pose. The four types of edges are 1. polymer edges</span>
 <span class="sd">    (analgous to the previously named "peptide edges" from Rosetta++ and Rosetta3), 2.</span>
-<span class="sd">    jump edges which connect any pair of residues in the Pose, and 3. root-jump</span>
+<span class="sd">    jump edges which connect any pair of residues in the Pose, 3. root-jump</span>
 <span class="sd">    edges, which originate at the explicit virtual root and connect to a particular</span>
-<span class="sd">    residue. A polymer edge spans a contiguous range of polymeric block types where</span>
+<span class="sd">    residue, and 4. chemical edges, which join two residues through a single</span>
+<span class="sd">    non-polymeric bond (Rosetta's Edge::CHEMICAL). A polymer edge spans a contiguous range of polymeric block types where</span>
 <span class="sd">    the "up" connection of residue i is connected to the "down" connection of residue</span>
 <span class="sd">    i+1 for all i in the range between the "start" and "end" blocks.</span>
 
@@ -584,7 +697,10 @@
 <span class="sd">    where type is one of the EdgeType enum values, start is the index of the upstream</span>
 <span class="sd">    residue of the edge, end is the index of the downstream residue of the edge, and</span>
 <span class="sd">    jump-index is used to assign an id to any particular jump edge; jump-edge indices</span>
-<span class="sd">    must be unique and ascending from 0 to n_jumps-1. "Root jump" edges take their</span>
+<span class="sd">    must be unique and ascending from 0 to n_jumps-1. A chemical edge stores in that</span>
+<span class="sd">    fourth slot the index of the connection on its start residue that leads to its</span>
+<span class="sd">    end residue; the connection on the end residue follows from the PoseStack's</span>
+<span class="sd">    inter-residue connections. "Root jump" edges take their</span>
 <span class="sd">    "identity" from the downstream residue of the edge, so they do not need an index.</span>
 
 <span class="sd">    The FoldForest in tmol differs from the FoldTree in Rosetta3 in that there</span>
@@ -624,7 +740,10 @@
 <span class="sd">        between different biological chains produce separate root-jumps.</span>
 <span class="sd">        Cyclic polymers (C→N cyclisation) are broken at the bond entering</span>
 <span class="sd">        the lowest-index residue; that bond is dropped to keep the forest</span>
-<span class="sd">        a valid tree.  Non-polymer connections (disulfides, etc.) are ignored.</span>
+<span class="sd">        a valid tree.  Every remaining connection except the disulfide --</span>
+<span class="sd">        a glycan on a serine, a ligand on a lysine -- becomes a chemical</span>
+<span class="sd">        edge, so torsions across it propagate downstream; a chemical bond</span>
+<span class="sd">        that would close a cycle is the one dropped.</span>
 <span class="sd">        """</span>
         <span class="n">irc</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
         <span class="n">bti</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
@@ -632,9 +751,14 @@
         <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
         <span class="n">up_c</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">up_conn_inds</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
         <span class="n">down_c</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">down_conn_inds</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">n_conn</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_conn</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">annotate_packed_block_types_w_dslf_conn_inds</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
+        <span class="n">dslf_c</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">canonical_dslf_conn_ind</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
 
         <span class="n">all_pose_edges</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">_build_pose_fold_forest</span><span class="p">(</span><span class="n">bti</span><span class="p">[</span><span class="n">p</span><span class="p">],</span> <span class="n">irc</span><span class="p">[</span><span class="n">p</span><span class="p">],</span> <span class="n">up_c</span><span class="p">,</span> <span class="n">down_c</span><span class="p">,</span> <span class="n">chain_id</span><span class="p">[</span><span class="n">p</span><span class="p">])</span>
+            <span class="n">_build_pose_fold_forest</span><span class="p">(</span>
+                <span class="n">bti</span><span class="p">[</span><span class="n">p</span><span class="p">],</span> <span class="n">irc</span><span class="p">[</span><span class="n">p</span><span class="p">],</span> <span class="n">up_c</span><span class="p">,</span> <span class="n">down_c</span><span class="p">,</span> <span class="n">dslf_c</span><span class="p">,</span> <span class="n">n_conn</span><span class="p">,</span> <span class="n">chain_id</span><span class="p">[</span><span class="n">p</span><span class="p">]</span>
+            <span class="p">)</span>
             <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">)</span>
         <span class="p">]</span>
 

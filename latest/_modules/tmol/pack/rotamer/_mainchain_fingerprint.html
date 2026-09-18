@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -414,11 +438,13 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.pack.rotamer._mainchain_fingerprint</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
+<span></span><span class="sd">"""Match retained backbone atoms across residue types and sampler ownership."""</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Mapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">NDArray</span><span class="p">,</span>
@@ -429,78 +455,28 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">PatchedChemicalDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score._annotation_cache</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AnnotationKey</span><span class="p">,</span>
+    <span class="n">cached_annotation</span><span class="p">,</span>
+    <span class="n">store_annotation</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">ChiSampler</span><span class="p">,</span>
     <span class="n">bfs_sidechain_atoms_jit</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="c1"># what atoms should we copy over?</span>
-<span class="c1"># everything north of "first sidechain atom"?</span>
-<span class="c1"># let's have a map from rt x bb-type --&gt; atom-indices on that rt for those bb</span>
-<span class="c1"># and then when we want to map between two rts, we ask "what is their rt compatibility"?</span>
-<span class="c1"># and then use that mapping</span>
-
-<span class="c1"># so</span>
-<span class="c1"># all canonical aas except proline are class 1</span>
-<span class="c1"># pro is class 2</span>
-<span class="c1"># gly is class 3</span>
-<span class="c1">#</span>
-<span class="c1"># class 1 has n, ca, c, o, h, and ha</span>
-<span class="c1"># class 2 has n, ca, c, o, and ha</span>
-<span class="c1"># class 3 has n, ca, c, o, and the "left" ha</span>
-
-<span class="c1"># how do we tell what classes of backbones there are?</span>
-<span class="c1"># we ask:</span>
-<span class="c1"># what atoms are upstream of the first sidechain atom</span>
-<span class="c1"># for each atom that's upstream of the first sidechain atom</span>
-<span class="c1"># who is chemically bound to it, what is the chirality</span>
-<span class="c1"># of that connection, and what is the element type of that</span>
-<span class="c1"># connection</span>
-
-<span class="c1"># then we need to hash that</span>
-<span class="c1"># (how???)</span>
-<span class="c1"># atoms then should be sorted along mainchain?? and then</span>
-<span class="c1"># with chirality</span>
-
-<span class="c1"># n -- &gt; (0, 0, 0, 7)</span>
-<span class="c1"># h -- &gt; (0, 1, 0, 1)</span>
-<span class="c1"># ca --&gt; (1, 0, 0, 6)</span>
-<span class="c1"># ha --&gt; (1, 1, 1, 1)</span>
-<span class="c1"># c  --&gt; (2, 0, 0, 6)</span>
-<span class="c1"># o  --&gt; (2, 1, 0, 8)</span>
-
-<span class="c1"># position 0: position along the backbone or backbone you're bonded to</span>
-<span class="c1"># position 1: number of bonds from the backbone</span>
-<span class="c1"># position 2: chirality: 0 - achiral, 1 - left, 2 - right</span>
-<span class="c1"># position 3: element</span>
-
-<span class="c1"># how do I determine chirality?</span>
-<span class="c1">#</span>
-<span class="c1"># if bb atom has three chemical bonds, then</span>
-<span class="c1"># treat it as achiral.</span>
-<span class="c1"># if it has four chemical bonds, then</span>
-<span class="c1"># measure chirality of 4th bond by taking</span>
-<span class="c1"># the dot product of sc-i and the cross</span>
-<span class="c1"># product of (p_i - p_{i-1}) and (p_{i+1}, p_i)</span>
-<span class="c1"># if it's positive, then chirality value of 1</span>
-<span class="c1"># if it's negative, then chirality value of 2</span>
-
-<span class="c1"># and then the 4th column is the element, so, that needs to be encoded somehow...</span>
-
-<span class="c1"># how do we sort atoms further from the backbone?</span>
-<span class="c1"># what about when something like: put into the chirality position</span>
-<span class="c1"># a counter so that things further from the backbone get noted</span>
-<span class="c1"># with a higher count; how can you guarantee uniqueness, though??</span>
-<span class="c1"># maybe it should be like an array with an offset based on the chirality</span>
-<span class="c1"># of its ancestors back to the backbone where you put</span>
-
 
 <div class="viewcode-block" id="AtomFingerprint">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.AtomFingerprint">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AtomFingerprint</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Topology signature locating an atom relative to the main chain."""</span>
+<span class="w">    </span><span class="sd">"""Backbone position, tree distance, side of its frame and atomic number.</span>
+
+<span class="sd">    Chirality is 0 when unclassified, 1/2 on opposite sides, and 3 in-plane.</span>
+<span class="sd">    This distinguishes even glycine's equivalent hydrogens. Duplicate indices</span>
+<span class="sd">    disambiguate atoms with the same descriptor independently of sampler roots.</span>
+<span class="sd">    """</span>
 
     <span class="n">mc_ind</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">mc_bond_dist</span><span class="p">:</span> <span class="nb">int</span>
@@ -523,17 +499,12 @@
 
 
 
-<div class="viewcode-block" id="MCFingerprints">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.MCFingerprints">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MCFingerprints</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Packed main-chain fingerprint mappings indexed by conformer sampler."""</span>
-
-    <span class="n">atom_mapping</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span>  <span class="c1"># make int64</span>
-    <span class="n">sampler_mapping</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
-    <span class="n">max_sampler</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
-    <span class="n">max_fingerprint</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span></div>
-
+    <span class="n">atom_mapping</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="n">sampler_mapping</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">int</span><span class="p">]</span>
+    <span class="n">source_atom_mapping</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:]</span>
+    <span class="n">source_fingerprint</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:]</span>
 
 
 <span class="nd">@validate_args</span>
@@ -544,8 +515,13 @@
     <span class="n">chem_db</span><span class="p">:</span> <span class="n">PatchedChemicalDatabase</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="n">non_sc_atoms</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">sc_atoms</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="c1"># TO DO: mainchain_atoms determined programatically from</span>
-    <span class="c1"># shortest path between up- and down-connection atoms</span>
+    <span class="c1"># Preserve the first record for each name, matching the scalar lookups.</span>
+    <span class="n">element_for_type</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">chem_db</span><span class="o">.</span><span class="n">atom_types</span><span class="p">:</span>
+        <span class="n">element_for_type</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">at</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">at</span><span class="o">.</span><span class="n">element</span><span class="p">)</span>
+    <span class="n">number_for_element</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">chem_db</span><span class="o">.</span><span class="n">element_types</span><span class="p">:</span>
+        <span class="n">number_for_element</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">element</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">element</span><span class="o">.</span><span class="n">atomic_number</span><span class="p">)</span>
     <span class="n">mc_at_names</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">mainchain_atoms</span>
     <span class="n">mc_atoms</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
         <span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">atom_to_idx</span><span class="p">[</span><span class="n">at</span><span class="p">]</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">mc_at_names</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span>
@@ -571,7 +547,7 @@
         <span class="k">for</span> <span class="n">bond_distance</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">):</span>
             <span class="n">mainchain</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">frontier</span> <span class="k">if</span> <span class="n">mc_ind</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">mainchain</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">mc_ind</span><span class="p">[</span><span class="n">mainchain</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">bond_distance</span>
+                <span class="k">return</span> <span class="n">mainchain</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">bond_distance</span>
             <span class="n">frontier</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
                 <span class="p">{</span>
                     <span class="n">neighbor</span>
@@ -583,29 +559,34 @@
             <span class="n">visited</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">frontier</span><span class="p">)</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Atom </span><span class="si">{</span><span class="n">atom</span><span class="si">}</span><span class="s2"> in </span><span class="si">{</span><span class="n">rt</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> is disconnected from its mainchain"</span><span class="p">)</span>
 
-    <span class="c1"># fd temporary fix for terminal variants</span>
-    <span class="c1"># count the number of bonds to non-H for each atom</span>
-    <span class="c1"># apl maybe undoing this change</span>
-    <span class="n">n_bonds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-    <span class="n">n_nonh_bonds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">bond_indices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
-        <span class="n">bonded_atom_type</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">bond_indices</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">atom_type</span>
-        <span class="n">bonded_elem_name</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
-            <span class="n">at</span><span class="o">.</span><span class="n">element</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">chem_db</span><span class="o">.</span><span class="n">atom_types</span> <span class="k">if</span> <span class="n">at</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">bonded_atom_type</span>
-        <span class="p">)</span>
-        <span class="n">n_bonds</span><span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">bond_indices</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="k">if</span> <span class="n">bonded_elem_name</span> <span class="o">!=</span> <span class="s2">"H"</span><span class="p">:</span>
-            <span class="n">n_nonh_bonds</span><span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">bond_indices</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">+=</span> <span class="mi">1</span>
-    <span class="k">for</span> <span class="n">conn</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">connection_to_idx</span><span class="p">:</span>
-        <span class="n">n_bonds</span><span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">bond_indices</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="n">n_nonh_bonds</span><span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">connection_to_idx</span><span class="p">[</span><span class="n">conn</span><span class="p">]]</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="c1"># Each directed internal edge and each external connection is one neighbour.</span>
+    <span class="n">n_bonds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span>
+        <span class="n">numpy</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">rt</span><span class="o">.</span><span class="n">bond_indices</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">rt</span><span class="o">.</span><span class="n">ordered_connection_atoms</span><span class="p">)),</span>
+        <span class="n">minlength</span><span class="o">=</span><span class="n">rt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">icoor_coords</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">ideal_coords</span>
+    <span class="n">chiral_frames</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="n">non_sc_atom_fingerprints</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">at_for_fingerprint</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">fp_seen_count</span> <span class="o">=</span> <span class="p">{}</span>
 
-    <span class="k">for</span> <span class="n">nsc_at</span> <span class="ow">in</span> <span class="n">non_sc_atoms</span><span class="p">:</span>
-        <span class="c1"># find the index of the mc atom this branches from using the kinforest</span>
+    <span class="c1"># Every atom is walked, but only the backbone ones are described. The</span>
+    <span class="c1">#    duplicate index breaks ties between atoms the four fields cannot tell</span>
+    <span class="c1">#    apart, and counting over the whole residue keeps it a property of the</span>
+    <span class="c1">#    residue type: a sampler that calls an atom sidechain must not renumber</span>
+    <span class="c1">#    the atoms it shares with a sampler that calls it backbone.</span>
+    <span class="n">is_non_sc</span> <span class="o">=</span> <span class="n">sc_atoms</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">nsc_at</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">):</span>
+        <span class="c1"># a protein's non-sidechain atoms all lie within one bond of the</span>
+        <span class="c1">#    mainchain, so the branches below set this. A nucleotide's do not:</span>
+        <span class="c1">#    its sugar is backbone and reaches two bonds out, where there is</span>
+        <span class="c1">#    no side to be on, and the default stands.</span>
+        <span class="n">chirality</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1"># find the mc atom this branches from using the kinforest. mc_anc is</span>
+        <span class="c1">#    its position along the mainchain, which is what a fingerprint</span>
+        <span class="c1">#    records; `atom` is that same atom's index, for reading per-atom</span>
+        <span class="c1">#    arrays. The two coincide only when the mainchain atoms come first.</span>
         <span class="n">mc_anc</span> <span class="o">=</span> <span class="n">mc_ind</span><span class="p">[</span><span class="n">nsc_at</span><span class="p">]</span>
         <span class="n">bonds_from_mc</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">atom</span> <span class="o">=</span> <span class="n">nsc_at</span>
@@ -613,73 +594,46 @@
             <span class="k">if</span> <span class="n">mc_anc</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
                 <span class="k">break</span>
             <span class="n">par</span> <span class="o">=</span> <span class="n">parents</span><span class="p">[</span><span class="n">atom</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">par</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">par</span> <span class="o">==</span> <span class="n">atom</span><span class="p">:</span>
+                <span class="k">break</span>
             <span class="n">mc_anc</span> <span class="o">=</span> <span class="n">mc_ind</span><span class="p">[</span><span class="n">par</span><span class="p">]</span>
             <span class="n">atom</span> <span class="o">=</span> <span class="n">par</span>
             <span class="n">bonds_from_mc</span> <span class="o">+=</span> <span class="mi">1</span>
 
         <span class="k">if</span> <span class="n">mc_anc</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
-            <span class="n">mc_anc</span><span class="p">,</span> <span class="n">bonds_from_mc</span> <span class="o">=</span> <span class="n">closest_mainchain_atom</span><span class="p">(</span><span class="n">nsc_at</span><span class="p">)</span>
+            <span class="n">atom</span><span class="p">,</span> <span class="n">bonds_from_mc</span> <span class="o">=</span> <span class="n">closest_mainchain_atom</span><span class="p">(</span><span class="n">nsc_at</span><span class="p">)</span>
+            <span class="n">mc_anc</span> <span class="o">=</span> <span class="n">mc_ind</span><span class="p">[</span><span class="n">atom</span><span class="p">]</span>
 
-        <span class="c1"># now lets figure out the chirality of this atom</span>
-        <span class="c1"># "chirality" here is interpretted in the most liberal of ways</span>
-        <span class="c1"># where it can refer to L or D for H-alpha (connected to CA), or</span>
-        <span class="c1"># achiral for the H or O atoms bound to the planar N and C atoms,</span>
-        <span class="c1"># but it will also interpret something as "chiral" if its MC atom</span>
-        <span class="c1"># has four substituents even when two of those substituents are</span>
-        <span class="c1"># chemically identical; i.e. as long as the atoms for thse</span>
-        <span class="c1"># substituents have different names they are different, thus the</span>
-        <span class="c1"># atom that binds them is chiral. So, unintuitively, glycine's CA</span>
-        <span class="c1"># will be declared as chiral and we will calculate the chirality</span>
-        <span class="c1"># of its substituents</span>
-
-        <span class="k">if</span> <span class="n">bonds_from_mc</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">chirality</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">elif</span> <span class="n">bonds_from_mc</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">n_bonds</span><span class="p">[</span><span class="n">mc_anc</span><span class="p">]</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
-                <span class="c1"># now we need to measure the chirality of the atom</span>
-                <span class="c1"># or, rather, whether this atom is on the "left"</span>
-                <span class="c1"># or "right" of the chiral backbone atom.</span>
-                <span class="c1"># Measure the improper dihedral given by the</span>
-                <span class="c1"># mc atom and two other mc atoms</span>
-
-                <span class="n">mc_ind_for_mc_anc</span> <span class="o">=</span> <span class="n">mc_ind</span><span class="p">[</span><span class="n">mc_anc</span><span class="p">]</span>
-                <span class="n">mc1_icoor_ind</span><span class="p">,</span> <span class="n">mc2_icoor_ind</span> <span class="o">=</span> <span class="n">_mc_inds_for_chiral_mc_atom</span><span class="p">(</span>
-                    <span class="n">rt</span><span class="p">,</span> <span class="n">mc_atoms</span><span class="p">,</span> <span class="n">mc_ind_for_mc_anc</span>
+        <span class="c1"># Four substituents need side-of-plane labels even if chemically equal.</span>
+        <span class="k">if</span> <span class="n">bonds_from_mc</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">n_bonds</span><span class="p">[</span><span class="n">atom</span><span class="p">]</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">mc_anc</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">chiral_frames</span><span class="p">:</span>
+                <span class="n">chiral_frames</span><span class="p">[</span><span class="n">mc_anc</span><span class="p">]</span> <span class="o">=</span> <span class="n">_mc_inds_for_chiral_mc_atom</span><span class="p">(</span>
+                    <span class="n">rt</span><span class="p">,</span> <span class="n">mc_atoms</span><span class="p">,</span> <span class="n">mc_anc</span>
                 <span class="p">)</span>
-
-                <span class="n">mc_anc_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">mc_anc</span><span class="p">]</span>
-
-                <span class="c1"># Measure the improper dihedral around the main-chain atom.</span>
-                <span class="n">dihe</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span>
-                    <span class="n">_numpy_coord_dihedrals</span><span class="p">(</span>
-                        <span class="n">rt</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">nsc_at</span><span class="p">]],</span>
-                        <span class="n">rt</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">mc_anc_icoor_ind</span><span class="p">],</span>
-                        <span class="n">rt</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">mc1_icoor_ind</span><span class="p">],</span>
-                        <span class="n">rt</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">mc2_icoor_ind</span><span class="p">],</span>
-                    <span class="p">)</span>
+            <span class="n">first</span><span class="p">,</span> <span class="n">second</span> <span class="o">=</span> <span class="n">chiral_frames</span><span class="p">[</span><span class="n">mc_anc</span><span class="p">]</span>
+            <span class="n">dihe</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span>
+                <span class="n">_numpy_coord_dihedrals</span><span class="p">(</span>
+                    <span class="n">icoor_coords</span><span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">nsc_at</span><span class="p">]],</span>
+                    <span class="n">icoor_coords</span><span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">atom</span><span class="p">]],</span>
+                    <span class="n">icoor_coords</span><span class="p">[</span><span class="n">first</span><span class="p">],</span>
+                    <span class="n">icoor_coords</span><span class="p">[</span><span class="n">second</span><span class="p">],</span>
                 <span class="p">)</span>
-                <span class="c1"># some atoms are going to be placed in the plane</span>
-                <span class="c1"># defined by the three "main chain" atoms. If the</span>
-                <span class="c1"># atoms are within an epsilon of a dihedral angle of 0 or 180</span>
-                <span class="c1"># then we will label their "chirality" as 3</span>
-                <span class="n">epsilon</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># 1 degree of fudge for planarity</span>
-                <span class="n">abs_dihe</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">absolute</span><span class="p">(</span><span class="n">dihe</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">abs_dihe</span> <span class="o">&lt;</span> <span class="n">epsilon</span> <span class="ow">or</span> <span class="n">numpy</span><span class="o">.</span><span class="n">absolute</span><span class="p">(</span><span class="mi">180</span> <span class="o">-</span> <span class="n">abs_dihe</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">epsilon</span><span class="p">:</span>
-                    <span class="n">chirality</span> <span class="o">=</span> <span class="mi">3</span>
-                <span class="k">elif</span> <span class="n">dihe</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="n">chirality</span> <span class="o">=</span> <span class="mi">1</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">chirality</span> <span class="o">=</span> <span class="mi">2</span>
+            <span class="p">)</span>
+            <span class="c1"># some atoms are going to be placed in the plane</span>
+            <span class="c1"># defined by the three "main chain" atoms. If the</span>
+            <span class="c1"># atoms are within an epsilon of a dihedral angle of 0 or 180</span>
+            <span class="c1"># then we will label their "chirality" as 3</span>
+            <span class="n">epsilon</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># 1 degree of fudge for planarity</span>
+            <span class="n">abs_dihe</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">absolute</span><span class="p">(</span><span class="n">dihe</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">abs_dihe</span> <span class="o">&lt;</span> <span class="n">epsilon</span> <span class="ow">or</span> <span class="n">numpy</span><span class="o">.</span><span class="n">absolute</span><span class="p">(</span><span class="mi">180</span> <span class="o">-</span> <span class="n">abs_dihe</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">epsilon</span><span class="p">:</span>
+                <span class="n">chirality</span> <span class="o">=</span> <span class="mi">3</span>
+            <span class="k">elif</span> <span class="n">dihe</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">chirality</span> <span class="o">=</span> <span class="mi">1</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">chirality</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">chirality</span> <span class="o">=</span> <span class="mi">2</span>
 
         <span class="n">atom_type_name</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="n">nsc_at</span><span class="p">]</span><span class="o">.</span><span class="n">atom_type</span>
-        <span class="n">elem_name</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
-            <span class="n">at</span><span class="o">.</span><span class="n">element</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">chem_db</span><span class="o">.</span><span class="n">atom_types</span> <span class="k">if</span> <span class="n">at</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">atom_type_name</span>
-        <span class="p">)</span>
-        <span class="n">atomic_number</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
-            <span class="n">el</span><span class="o">.</span><span class="n">atomic_number</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">chem_db</span><span class="o">.</span><span class="n">element_types</span> <span class="k">if</span> <span class="n">el</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">elem_name</span>
-        <span class="p">)</span>
+        <span class="n">atomic_number</span> <span class="o">=</span> <span class="n">number_for_element</span><span class="p">[</span><span class="n">element_for_type</span><span class="p">[</span><span class="n">atom_type_name</span><span class="p">]]</span>
         <span class="n">base_fp</span> <span class="o">=</span> <span class="n">AtomFingerprint</span><span class="p">(</span>
             <span class="n">mc_ind</span><span class="o">=</span><span class="n">mc_anc</span><span class="p">,</span>
             <span class="n">mc_bond_dist</span><span class="o">=</span><span class="n">bonds_from_mc</span><span class="p">,</span>
@@ -696,77 +650,68 @@
             <span class="n">duplicate_index</span><span class="o">=</span><span class="n">dup_idx</span><span class="p">,</span>
         <span class="p">)</span>
 
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_non_sc</span><span class="p">[</span><span class="n">nsc_at</span><span class="p">]:</span>
+            <span class="k">continue</span>
         <span class="n">non_sc_atom_fingerprints</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">at_fingerprint</span><span class="p">)</span>
         <span class="n">at_for_fingerprint</span><span class="p">[</span><span class="n">at_fingerprint</span><span class="p">]</span> <span class="o">=</span> <span class="n">nsc_at</span>
     <span class="k">return</span> <span class="n">non_sc_atoms</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">non_sc_atom_fingerprints</span><span class="p">),</span> <span class="n">at_for_fingerprint</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_mc_inds_for_chiral_mc_atom</span><span class="p">(</span>
-    <span class="n">rt</span><span class="p">,</span>
-    <span class="n">mc_atoms</span><span class="p">,</span>
-    <span class="n">mc_ind_for_mc_anc</span><span class="p">,</span>
-<span class="p">):</span>
-    <span class="k">if</span> <span class="n">mc_ind_for_mc_anc</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">if</span> <span class="s2">"down"</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">icoors</span><span class="p">:</span>
-            <span class="n">mc1_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">icoors_index</span><span class="p">[</span><span class="s2">"down"</span><span class="p">]</span>
-            <span class="n">mc2_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">mc_atoms</span><span class="p">[</span><span class="n">mc_ind_for_mc_anc</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]]</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># ok, so, this gets a little complicated if</span>
-            <span class="c1"># there are fewer than 3 mainchain atoms</span>
-            <span class="c1"># so let's handle those cases later</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mc_atoms</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">:</span>
-                <span class="n">mc1_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">mc_atoms</span><span class="p">[</span><span class="n">mc_ind_for_mc_anc</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]]</span>
-                <span class="n">mc2_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">mc_atoms</span><span class="p">[</span><span class="n">mc_ind_for_mc_anc</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]]</span>
-            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">mc_atoms</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-                <span class="c1"># TO DO</span>
-                <span class="c1"># ?? I don't know</span>
-                <span class="c1"># I am having trouble envisioning this "main chain"</span>
-                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-                    <span class="s2">"No logic yet to handle packing a two-atom main chain"</span>
-                <span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="c1"># TO DO</span>
-                <span class="c1"># ie. elif len(mc_atoms) == 1:</span>
-                <span class="c1"># ?? Perhaps this might come up if the</span>
-                <span class="c1"># block type is just a single hydroxyl that's been</span>
-                <span class="c1"># sheared off a sugar residue to be packed</span>
-                <span class="c1"># independently and the "sidechain" is the hydroxyl H</span>
-                <span class="c1"># and the "mainchain" is the hydroxyl O.</span>
-                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-                    <span class="s2">"No logic yet to handle packing a one-atom main chain"</span>
-                <span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_mc_inds_for_chiral_mc_atom</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="n">mc_atoms</span><span class="p">,</span> <span class="n">mc_index</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Two reference points defining the sides of a mainchain atom.</span>
 
-    <span class="k">elif</span> <span class="n">mc_ind_for_mc_anc</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">mc_atoms</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">if</span> <span class="s2">"up"</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">icoors</span><span class="p">:</span>
-            <span class="n">mc1_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">mc_atoms</span><span class="p">[</span><span class="n">mc_ind_for_mc_anc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]</span>
-            <span class="n">mc2_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">icoors_index</span><span class="p">[</span><span class="s2">"up"</span><span class="p">]</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># ok, so this gets a little complicated if there are</span>
-            <span class="c1"># fewer than 3 mainchain atoms</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mc_atoms</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
-                <span class="n">mc1_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">mc_atoms</span><span class="p">[</span><span class="n">mc_ind_for_mc_anc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]</span>
-                <span class="n">mc2_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">mc_atoms</span><span class="p">[</span><span class="n">mc_ind_for_mc_anc</span> <span class="o">-</span> <span class="mi">2</span><span class="p">]]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="c1"># TO DO</span>
-                <span class="c1"># i.e. len(mc_atoms) == 2; if there is only one MC atom, then</span>
-                <span class="c1"># it will be the first MC atom, and then we will not reach</span>
-                <span class="c1"># the "elif mc_ind_for_mc_anc == len(mc_atoms) - 1"</span>
-                <span class="c1"># I don't know what this mainchain looks like</span>
-                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-                    <span class="s2">"No logic yet to handle packing a two-atom main chain"</span>
-                <span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># somewhere in the middle of the main chain (e.g. CA)</span>
-        <span class="n">mc1_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">mc_atoms</span><span class="p">[</span><span class="n">mc_ind_for_mc_anc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]</span>
-        <span class="n">mc2_icoor_ind</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">mc_atoms</span><span class="p">[</span><span class="n">mc_ind_for_mc_anc</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]]</span>
+<span class="sd">    Extend the backbone with its connection coordinates. Short caps lacking a</span>
+<span class="sd">    third backbone point use their declared construction frame. These labels</span>
+<span class="sd">    distinguish substituent positions; they are not CIP stereochemical labels.</span>
+<span class="sd">    """</span>
+    <span class="n">backbone</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">atom</span><span class="p">])</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">mc_atoms</span><span class="p">]</span>
+    <span class="k">if</span> <span class="s2">"down"</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">icoors_index</span><span class="p">:</span>
+        <span class="n">backbone</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">rt</span><span class="o">.</span><span class="n">icoors_index</span><span class="p">[</span><span class="s2">"down"</span><span class="p">])</span>
+        <span class="n">mc_index</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="s2">"up"</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">icoors_index</span><span class="p">:</span>
+        <span class="n">backbone</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">icoors_index</span><span class="p">[</span><span class="s2">"up"</span><span class="p">])</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">backbone</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">mc_index</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">backbone</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">backbone</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">mc_index</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">backbone</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">backbone</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="n">backbone</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">backbone</span><span class="p">[</span><span class="n">mc_index</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">backbone</span><span class="p">[</span><span class="n">mc_index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
 
-    <span class="k">return</span> <span class="n">mc1_icoor_ind</span><span class="p">,</span> <span class="n">mc2_icoor_ind</span>
+    <span class="n">center</span> <span class="o">=</span> <span class="n">backbone</span><span class="p">[</span><span class="n">mc_index</span><span class="p">]</span>
+    <span class="n">candidates</span> <span class="o">=</span> <span class="p">[</span><span class="n">index</span> <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">backbone</span> <span class="k">if</span> <span class="n">index</span> <span class="o">!=</span> <span class="n">center</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="p">(</span><span class="o">*</span><span class="n">candidates</span><span class="p">,</span> <span class="n">center</span><span class="p">):</span>
+        <span class="n">candidates</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">icoors_ancestors</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+    <span class="c1"># The first two construction points use self references; the first child</span>
+    <span class="c1"># placed off their axis supplies the missing plane (e.g. a one-atom cap).</span>
+    <span class="n">candidates</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+        <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ancestors</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">icoors_ancestors</span><span class="p">)</span> <span class="k">if</span> <span class="n">ancestors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">backbone</span>
+    <span class="p">)</span>
+    <span class="n">references</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">origin</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">center</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">candidates</span><span class="p">):</span>
+        <span class="n">vector</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">-</span> <span class="n">origin</span>
+        <span class="k">if</span> <span class="n">index</span> <span class="o">==</span> <span class="n">center</span> <span class="ow">or</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">vector</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-8</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">references</span><span class="p">:</span>
+            <span class="n">first</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">references</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">-</span> <span class="n">origin</span>
+            <span class="k">if</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">vector</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mf">1e-8</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">references</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">index</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">references</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">rt</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: no noncollinear construction frame at </span><span class="si">{</span><span class="n">rt</span><span class="o">.</span><span class="n">icoors</span><span class="p">[</span><span class="n">center</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span>
+    <span class="p">)</span>
 
 
 <span class="nd">@validate_args</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">create_mainchain_fingerprint</span><span class="p">(</span>
     <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">,</span> <span class="n">sc_roots</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">chem_db</span><span class="p">:</span> <span class="n">PatchedChemicalDatabase</span>
 <span class="p">):</span>
+    <span class="n">parents</span><span class="p">,</span> <span class="n">sidechain_atoms</span> <span class="o">=</span> <span class="n">_mainchain_region</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="n">sc_roots</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">create_non_sidechain_fingerprint</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="n">parents</span><span class="p">,</span> <span class="n">sidechain_atoms</span><span class="p">,</span> <span class="n">chem_db</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_mainchain_region</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="n">sc_roots</span><span class="p">):</span>
     <span class="nb">id</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">id</span>
     <span class="n">parents</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">parents</span><span class="p">[</span><span class="n">parents</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
@@ -777,7 +722,7 @@
     <span class="n">sidechain_atoms</span> <span class="o">=</span> <span class="n">bfs_sidechain_atoms_jit</span><span class="p">(</span>
         <span class="n">parents</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sc_roots</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
     <span class="p">)</span>
-    <span class="k">return</span> <span class="n">create_non_sidechain_fingerprint</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="n">parents</span><span class="p">,</span> <span class="n">sidechain_atoms</span><span class="p">,</span> <span class="n">chem_db</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">parents</span><span class="p">,</span> <span class="n">sidechain_atoms</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">annotate_residue_type_with_sampler_fingerprints</span><span class="p">(</span>
@@ -785,125 +730,137 @@
     <span class="n">samplers</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">ChiSampler</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
     <span class="n">chem_db</span><span class="p">:</span> <span class="n">PatchedChemicalDatabase</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="c1"># Mainchain fingerprints describe how to transfer sidechain DOFs across</span>
-    <span class="c1"># mainchains; they require polymer.mainchain_atoms and are meaningless for</span>
-    <span class="c1"># non-polymer residues (e.g. ligands).</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">restype</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">is_polymer</span><span class="p">:</span>
-        <span class="k">return</span>
-    <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="n">samplers</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">sampler</span><span class="o">.</span><span class="n">defines_rotamers_for_rt</span><span class="p">(</span><span class="n">restype</span><span class="p">):</span>
-            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">restype</span><span class="p">,</span> <span class="s2">"mc_fingerprints"</span><span class="p">):</span>
-                <span class="k">if</span> <span class="n">sampler</span><span class="o">.</span><span class="n">sampler_name</span><span class="p">()</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="p">:</span>
-                    <span class="k">continue</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="nb">setattr</span><span class="p">(</span><span class="n">restype</span><span class="p">,</span> <span class="s2">"mc_fingerprints"</span><span class="p">,</span> <span class="p">{})</span>
-
-            <span class="n">sc_roots</span> <span class="o">=</span> <span class="n">sampler</span><span class="o">.</span><span class="n">first_sc_atoms_for_rt</span><span class="p">(</span><span class="n">restype</span><span class="p">)</span>
-            <span class="n">mc_ats</span><span class="p">,</span> <span class="n">mc_at_fps</span><span class="p">,</span> <span class="n">at_for_fp</span> <span class="o">=</span> <span class="n">create_mainchain_fingerprint</span><span class="p">(</span>
-                <span class="n">restype</span><span class="p">,</span> <span class="n">sc_roots</span><span class="p">,</span> <span class="n">chem_db</span>
+    <span class="c1"># Keep only the current task's ownership configurations. A sampler class</span>
+    <span class="c1"># may have several instances with different roots in the same task.</span>
+    <span class="n">previous</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">restype</span><span class="p">,</span> <span class="s2">"_mc_fingerprint_annotations"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+    <span class="n">records</span><span class="p">,</span> <span class="n">fingerprints</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">aliases</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">{},</span> <span class="p">{},</span> <span class="p">{}</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">sampler</span><span class="o">.</span><span class="n">sampler_name</span><span class="p">()</span> <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="n">samplers</span><span class="p">]</span>
+    <span class="n">all_atom_fps</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">restype</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">is_polymer</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">samplers</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">sampler</span><span class="o">.</span><span class="n">defines_rotamers_for_rt</span><span class="p">(</span><span class="n">restype</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">names</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="n">slot</span> <span class="o">=</span> <span class="n">name</span> <span class="k">if</span> <span class="n">names</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="nb">id</span><span class="p">(</span><span class="n">sampler</span><span class="p">)</span>
+            <span class="n">roots</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">first_sc_atoms_for_rt</span><span class="p">(</span><span class="n">restype</span><span class="p">))))</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span><span class="n">chem_db</span><span class="p">,</span> <span class="n">settings</span><span class="o">=</span><span class="n">roots</span><span class="p">)</span>
+            <span class="n">cached</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="p">(</span><span class="n">old_key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">old_key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">previous</span>
+                    <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">matches</span><span class="p">(</span><span class="n">old_key</span><span class="p">)</span>
+                <span class="p">),</span>
+                <span class="kc">None</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="n">fingerprint</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">mc_at_fps</span><span class="p">))</span>
-            <span class="n">restype</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="p">[</span><span class="n">sampler</span><span class="o">.</span><span class="n">sampler_name</span><span class="p">()]</span> <span class="o">=</span> <span class="n">MCFingerprint</span><span class="p">(</span>
-                <span class="n">mc_ats</span><span class="o">=</span><span class="n">mc_ats</span><span class="p">,</span>
-                <span class="n">mc_at_fingerprints</span><span class="o">=</span><span class="n">mc_at_fps</span><span class="p">,</span>
-                <span class="n">fingerprint</span><span class="o">=</span><span class="n">fingerprint</span><span class="p">,</span>
-                <span class="n">at_for_fingerprint</span><span class="o">=</span><span class="n">at_for_fp</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Atom descriptors do not depend on the selected roots. Compute</span>
+                <span class="c1"># them once for this call, then keep only each retained region.</span>
+                <span class="k">if</span> <span class="n">all_atom_fps</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">all_atom_fps</span> <span class="o">=</span> <span class="n">create_mainchain_fingerprint</span><span class="p">(</span><span class="n">restype</span><span class="p">,</span> <span class="p">(),</span> <span class="n">chem_db</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">sidechain_atoms</span> <span class="o">=</span> <span class="n">_mainchain_region</span><span class="p">(</span><span class="n">restype</span><span class="p">,</span> <span class="n">roots</span><span class="p">)</span>
+                <span class="n">mc_ats</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">sidechain_atoms</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">mc_at_fps</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">all_atom_fps</span><span class="p">[</span><span class="n">at</span><span class="p">]</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">mc_ats</span><span class="p">)</span>
+                <span class="n">at_for_fp</span> <span class="o">=</span> <span class="p">{</span><span class="n">all_atom_fps</span><span class="p">[</span><span class="n">at</span><span class="p">]:</span> <span class="nb">int</span><span class="p">(</span><span class="n">at</span><span class="p">)</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">mc_ats</span><span class="p">}</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">MCFingerprint</span><span class="p">(</span>
+                    <span class="n">mc_ats</span><span class="o">=</span><span class="n">mc_ats</span><span class="p">,</span>
+                    <span class="n">mc_at_fingerprints</span><span class="o">=</span><span class="n">mc_at_fps</span><span class="p">,</span>
+                    <span class="n">fingerprint</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">mc_at_fps</span><span class="p">)),</span>
+                    <span class="n">at_for_fingerprint</span><span class="o">=</span><span class="n">at_for_fp</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">cached</span> <span class="o">=</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+                <span class="n">previous</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cached</span><span class="p">)</span>
+            <span class="n">records</span><span class="p">[</span><span class="n">slot</span><span class="p">]</span> <span class="o">=</span> <span class="n">cached</span>
+            <span class="n">fingerprints</span><span class="p">[</span><span class="n">slot</span><span class="p">]</span> <span class="o">=</span> <span class="n">cached</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">labels</span><span class="p">[</span><span class="n">slot</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+            <span class="n">aliases</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">sampler</span><span class="p">)]</span> <span class="o">=</span> <span class="n">slot</span>
+    <span class="n">restype</span><span class="o">.</span><span class="n">_mc_fingerprint_annotations</span> <span class="o">=</span> <span class="n">records</span>
+    <span class="n">restype</span><span class="o">.</span><span class="n">mc_fingerprints</span> <span class="o">=</span> <span class="n">fingerprints</span>
+    <span class="n">restype</span><span class="o">.</span><span class="n">_mc_sampler_labels</span> <span class="o">=</span> <span class="n">labels</span>
+    <span class="n">restype</span><span class="o">.</span><span class="n">_mc_sampler_aliases</span> <span class="o">=</span> <span class="n">aliases</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">find_max_length_fp_among_res_samplers</span><span class="p">(</span>
-    <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span> <span class="n">sampler_types</span><span class="p">,</span> <span class="n">fp_sets</span>
-<span class="p">):</span>
-    <span class="n">fp_to_ind</span> <span class="o">=</span> <span class="p">{</span><span class="n">fp</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">fp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fp_sets</span><span class="p">)}</span>
-    <span class="n">n_fps_for_rt</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-    <span class="n">max_sampler_for_rt</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-    <span class="n">max_fp_for_rt</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">find_unique_fingerprints</span><span class="p">(</span><span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Copy from the union of regions retained by the current samplers.</span>
 
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">rt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="s2">"mc_fingerprints"</span><span class="p">):</span>
-            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sampler_types</span><span class="p">):</span>
-                <span class="k">if</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="p">:</span>
-                    <span class="n">j_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="p">[</span><span class="n">sampler</span><span class="p">]</span><span class="o">.</span><span class="n">mc_ats</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="n">j_len</span> <span class="o">&gt;</span> <span class="n">n_fps_for_rt</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
-                        <span class="n">n_fps_for_rt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">j_len</span>
-                        <span class="n">max_sampler_for_rt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">j</span>
-                        <span class="n">max_fp_for_rt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">fp_to_ind</span><span class="p">[</span>
-                            <span class="n">rt</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="p">[</span><span class="n">sampler</span><span class="p">]</span><span class="o">.</span><span class="n">fingerprint</span>
-                        <span class="p">]</span>
-    <span class="k">return</span> <span class="p">(</span><span class="n">n_fps_for_rt</span><span class="p">,</span> <span class="n">max_sampler_for_rt</span><span class="p">,</span> <span class="n">max_fp_for_rt</span><span class="p">,</span> <span class="n">fp_to_ind</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">find_unique_fingerprints</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
-    <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
-<span class="p">):</span>
-    <span class="n">sampler_types</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+<span class="sd">    Source regions need not be nested. Each destination sampler still copies</span>
+<span class="sd">    only its own retained atoms, matched against the source union by chemistry.</span>
+<span class="sd">    """</span>
+    <span class="n">labels</span><span class="p">,</span> <span class="n">aliases</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="s2">"mc_fingerprints"</span><span class="p">):</span>
-            <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="p">:</span>
-                <span class="n">sampler_types</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">sampler</span><span class="p">)</span>
-
-    <span class="c1"># we do not need to re-annotate this PackedBlockTypes object if there</span>
-    <span class="c1"># are no sidechain samplers that it has not encountered before</span>
-    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"mc_fingerprints"</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">sampler_types</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="o">.</span><span class="n">sampler_mapping</span><span class="p">):</span>
-            <span class="k">return</span>
-    <span class="n">sampler_types</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">sampler_types</span><span class="p">))</span>
-    <span class="n">n_samplers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sampler_types</span><span class="p">)</span>
+        <span class="n">labels</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="s2">"_mc_sampler_labels"</span><span class="p">,</span> <span class="p">{}))</span>
+        <span class="n">aliases</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="s2">"_mc_sampler_aliases"</span><span class="p">,</span> <span class="p">{}))</span>
+    <span class="n">sampler_types</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">labels</span><span class="o">.</span><span class="n">get</span><span class="p">)</span>
     <span class="n">sampler_inds</span> <span class="o">=</span> <span class="p">{</span><span class="n">sampler</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sampler_types</span><span class="p">)}</span>
-
-    <span class="n">fp_sets</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
-    <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="s2">"mc_fingerprints"</span><span class="p">):</span>
-            <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">mcfps</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="n">fp_sets</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">mcfps</span><span class="o">.</span><span class="n">fingerprint</span><span class="p">)</span>
-    <span class="n">fp_sets</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">fp_sets</span><span class="p">)</span>
-
-    <span class="n">n_mcs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">fp_sets</span><span class="p">)</span>
-    <span class="n">max_n_mc_atoms</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fp</span><span class="p">)</span> <span class="k">for</span> <span class="n">fp</span> <span class="ow">in</span> <span class="n">fp_sets</span><span class="p">)</span>
-
-    <span class="p">(</span>
-        <span class="n">n_fps_for_rt</span><span class="p">,</span>
-        <span class="n">max_sampler_for_rt</span><span class="p">,</span>
-        <span class="n">max_fp_for_rt</span><span class="p">,</span>
-        <span class="n">fp_to_ind</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">=</span> <span class="n">find_max_length_fp_among_res_samplers</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="n">sampler_types</span><span class="p">,</span> <span class="n">fp_sets</span><span class="p">)</span>
-
-    <span class="c1"># ok, we need have n mainchain types</span>
-    <span class="c1"># and we have m residue types</span>
-    <span class="c1"># we have n x n different ways to map atoms from one mainchain</span>
-    <span class="c1"># type onto another mainchain type</span>
-
-    <span class="c1"># we will create an b x n x m x n-ats array that says which atom l</span>
-    <span class="c1"># on mc-type j maps to which atom on residue type k as defined by</span>
-    <span class="c1"># sampler i</span>
-
-    <span class="n">mc_atom_inds_for_rt_for_sampler</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-        <span class="p">(</span><span class="n">n_samplers</span><span class="p">,</span> <span class="n">n_mcs</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">max_n_mc_atoms</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span>
+    <span class="n">sampler_mapping</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">sampler_inds</span><span class="p">)</span>
+    <span class="n">sampler_mapping</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+        <span class="p">{</span><span class="n">identity</span><span class="p">:</span> <span class="n">sampler_inds</span><span class="p">[</span><span class="n">slot</span><span class="p">]</span> <span class="k">for</span> <span class="n">identity</span><span class="p">,</span> <span class="n">slot</span> <span class="ow">in</span> <span class="n">aliases</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
     <span class="p">)</span>
-    <span class="k">for</span> <span class="n">ii</span><span class="p">,</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sampler_types</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">jj</span><span class="p">,</span> <span class="n">fp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fp_sets</span><span class="p">):</span>
-            <span class="k">for</span> <span class="n">kk</span><span class="p">,</span> <span class="n">rt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
-                <span class="c1"># now we'er going to find the index of the mainchain atom</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="s2">"mc_fingerprints"</span><span class="p">):</span>
-                    <span class="k">continue</span>
-                <span class="k">if</span> <span class="n">sampler</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="p">:</span>
-                    <span class="k">continue</span>
-                <span class="n">rt_fingerprint</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">mc_fingerprints</span><span class="p">[</span><span class="n">sampler</span><span class="p">]</span>
-                <span class="k">for</span> <span class="n">ll</span><span class="p">,</span> <span class="n">at_fp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fp</span><span class="p">):</span>
-                    <span class="n">mc_atom_inds_for_rt_for_sampler</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">jj</span><span class="p">,</span> <span class="n">kk</span><span class="p">,</span> <span class="n">ll</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                        <span class="n">rt_fingerprint</span><span class="o">.</span><span class="n">at_for_fingerprint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">at_fp</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-                    <span class="p">)</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="s2">"mc_fingerprints"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">sampler</span><span class="p">)</span> <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="n">sampler_types</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span>
+    <span class="p">]</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span>
+        <span class="o">*</span><span class="p">(</span><span class="n">fp</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span> <span class="k">for</span> <span class="n">fp</span> <span class="ow">in</span> <span class="n">row</span> <span class="k">if</span> <span class="n">fp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="n">settings</span><span class="o">=</span><span class="p">(</span>
+            <span class="nb">tuple</span><span class="p">(</span><span class="n">labels</span><span class="p">[</span><span class="n">sampler</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="n">sampler_types</span><span class="p">),</span>
+            <span class="nb">tuple</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">fp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">fp</span> <span class="ow">in</span> <span class="n">row</span><span class="p">)</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">),</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"_mc_packed_annotation"</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># New instances with identical ownership reuse the large tensor plan.</span>
+        <span class="k">if</span> <span class="n">cached</span><span class="o">.</span><span class="n">sampler_mapping</span> <span class="o">!=</span> <span class="n">sampler_mapping</span><span class="p">:</span>
+            <span class="n">cached</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">cached</span><span class="p">,</span> <span class="n">sampler_mapping</span><span class="o">=</span><span class="n">sampler_mapping</span><span class="p">)</span>
+        <span class="n">pbt</span><span class="o">.</span><span class="n">mc_fingerprints</span> <span class="o">=</span> <span class="n">cached</span>
+        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"_mc_packed_annotation"</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">cached</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_t</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">sources</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">fp</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">fp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">for</span> <span class="n">atom_fp</span><span class="p">,</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">fp</span><span class="o">.</span><span class="n">at_for_fingerprint</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">atom_fp</span> <span class="ow">in</span> <span class="n">source</span> <span class="ow">and</span> <span class="n">source</span><span class="p">[</span><span class="n">atom_fp</span><span class="p">]</span> <span class="o">!=</span> <span class="n">atom</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">"Sampler fingerprints disagree on an atom identity"</span>
+                    <span class="p">)</span>
+                <span class="n">source</span><span class="p">[</span><span class="n">atom_fp</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom</span>
+        <span class="n">sources</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+    <span class="n">source_fps</span> <span class="o">=</span> <span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">source</span><span class="p">))</span> <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">]</span>
+    <span class="n">fp_sets</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">fp</span> <span class="k">for</span> <span class="n">fp</span> <span class="ow">in</span> <span class="n">source_fps</span> <span class="k">if</span> <span class="n">fp</span><span class="p">))</span>
+    <span class="n">fp_to_ind</span> <span class="o">=</span> <span class="p">{</span><span class="n">fp</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">fp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fp_sets</span><span class="p">)}</span>
+    <span class="n">max_n_mc_atoms</span> <span class="o">=</span> <span class="nb">max</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">fp</span><span class="p">)</span> <span class="k">for</span> <span class="n">fp</span> <span class="ow">in</span> <span class="n">fp_sets</span><span class="p">),</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">source_indices</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">max_n_mc_atoms</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">source_fp_indices</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">fp</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">sources</span><span class="p">,</span> <span class="n">source_fps</span><span class="p">)):</span>
+        <span class="n">source_indices</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">fp</span><span class="p">)]</span> <span class="o">=</span> <span class="p">[</span><span class="n">source</span><span class="p">[</span><span class="n">atom_fp</span><span class="p">]</span> <span class="k">for</span> <span class="n">atom_fp</span> <span class="ow">in</span> <span class="n">fp</span><span class="p">]</span>
+        <span class="n">source_fp_indices</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">fp_to_ind</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">atom_mapping</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+        <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sampler_types</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">fp_sets</span><span class="p">),</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">max_n_mc_atoms</span><span class="p">),</span>
+        <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">ti</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rows</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">si</span><span class="p">,</span> <span class="n">fingerprint</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">row</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">fingerprint</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">lookup</span> <span class="o">=</span> <span class="n">fingerprint</span><span class="o">.</span><span class="n">at_for_fingerprint</span>
+            <span class="k">for</span> <span class="n">fi</span><span class="p">,</span> <span class="n">fp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fp_sets</span><span class="p">):</span>
+                <span class="n">atom_mapping</span><span class="p">[</span><span class="n">si</span><span class="p">,</span> <span class="n">fi</span><span class="p">,</span> <span class="n">ti</span><span class="p">,</span> <span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">fp</span><span class="p">)]</span> <span class="o">=</span> <span class="p">[</span><span class="n">lookup</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">at</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">fp</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_device</span><span class="p">(</span><span class="n">array</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
     <span class="n">fingerprints</span> <span class="o">=</span> <span class="n">MCFingerprints</span><span class="p">(</span>
-        <span class="n">atom_mapping</span><span class="o">=</span><span class="n">_t</span><span class="p">(</span><span class="n">mc_atom_inds_for_rt_for_sampler</span><span class="p">),</span>
-        <span class="n">sampler_mapping</span><span class="o">=</span><span class="n">sampler_inds</span><span class="p">,</span>
-        <span class="n">max_sampler</span><span class="o">=</span><span class="n">_t</span><span class="p">(</span><span class="n">max_sampler_for_rt</span><span class="p">),</span>
-        <span class="n">max_fingerprint</span><span class="o">=</span><span class="n">_t</span><span class="p">(</span><span class="n">max_fp_for_rt</span><span class="p">),</span>
+        <span class="n">atom_mapping</span><span class="o">=</span><span class="n">to_device</span><span class="p">(</span><span class="n">atom_mapping</span><span class="p">),</span>
+        <span class="n">sampler_mapping</span><span class="o">=</span><span class="n">sampler_mapping</span><span class="p">,</span>
+        <span class="n">source_atom_mapping</span><span class="o">=</span><span class="n">to_device</span><span class="p">(</span><span class="n">source_indices</span><span class="p">),</span>
+        <span class="n">source_fingerprint</span><span class="o">=</span><span class="n">to_device</span><span class="p">(</span><span class="n">source_fp_indices</span><span class="p">),</span>
     <span class="p">)</span>
-    <span class="nb">setattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"mc_fingerprints"</span><span class="p">,</span> <span class="n">fingerprints</span><span class="p">)</span>
+    <span class="n">pbt</span><span class="o">.</span><span class="n">mc_fingerprints</span> <span class="o">=</span> <span class="n">fingerprints</span>
+    <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"_mc_packed_annotation"</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">fingerprints</span><span class="p">)</span>
 </pre></div>
 
                 </article>

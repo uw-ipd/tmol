@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -435,18 +459,24 @@
 <span class="n">TORSION_NAMES</span> <span class="o">=</span> <span class="n">BACKBONE_TORSIONS</span> <span class="o">+</span> <span class="p">(</span><span class="s2">"nu4"</span><span class="p">,</span> <span class="s2">"nu0"</span><span class="p">,</span> <span class="s2">"nu1"</span><span class="p">,</span> <span class="n">CHI_TORSION</span><span class="p">)</span>
 <span class="n">TORSION_IND</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">TORSION_NAMES</span><span class="p">)}</span>
 
-<span class="c1"># one index space for both polymers: DNA occupies 0-3 and RNA 4-7, so the</span>
-<span class="c1"># polymer of a base is base &gt;&gt; 2 and the tables that vary only by polymer are</span>
-<span class="c1"># gathered with that shift.</span>
+<span class="c1"># one index space for both polymers: DNA occupies the first block and RNA the</span>
+<span class="c1"># second, so the polymer of a base is base // N_BASE_PER_POLYMER and the tables</span>
+<span class="c1"># that vary only by polymer are gathered on that.</span>
 <span class="n">POLYMERS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"dna"</span><span class="p">,</span> <span class="s2">"rna"</span><span class="p">)</span>
 <span class="n">POLYMER_IND</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">POLYMERS</span><span class="p">)}</span>
-<span class="n">BASES</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"dna"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"a"</span><span class="p">,</span> <span class="s2">"c"</span><span class="p">,</span> <span class="s2">"g"</span><span class="p">,</span> <span class="s2">"t"</span><span class="p">),</span> <span class="s2">"rna"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"a"</span><span class="p">,</span> <span class="s2">"c"</span><span class="p">,</span> <span class="s2">"g"</span><span class="p">,</span> <span class="s2">"u"</span><span class="p">)}</span>
-<span class="n">N_BASE_PER_POLYMER</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="c1"># "x" is a nucleotide whose base is not one of the four: averaged over them, so</span>
+<span class="c1"># a residue with an unrecognized or absent base is still placed on the polymer's</span>
+<span class="c1"># distribution rather than left unscored</span>
+<span class="n">UNKNOWN_BASE</span> <span class="o">=</span> <span class="s2">"x"</span>
+<span class="n">BASES</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"dna"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"a"</span><span class="p">,</span> <span class="s2">"c"</span><span class="p">,</span> <span class="s2">"g"</span><span class="p">,</span> <span class="s2">"t"</span><span class="p">,</span> <span class="s2">"x"</span><span class="p">),</span> <span class="s2">"rna"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"a"</span><span class="p">,</span> <span class="s2">"c"</span><span class="p">,</span> <span class="s2">"g"</span><span class="p">,</span> <span class="s2">"u"</span><span class="p">,</span> <span class="s2">"x"</span><span class="p">)}</span>
+<span class="n">N_BASE_PER_POLYMER</span> <span class="o">=</span> <span class="mi">5</span>
 <span class="n">N_BASE</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">POLYMERS</span><span class="p">)</span> <span class="o">*</span> <span class="n">N_BASE_PER_POLYMER</span>
 <span class="n">BASE_FOR_NAME3</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">"DA"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"DC"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"DG"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">"DT"</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
-    <span class="s2">"A"</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s2">"G"</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="s2">"U"</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>
+    <span class="s2">"DA"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"DC"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"DG"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">"DT"</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">"DX"</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="s2">"A"</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="s2">"G"</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span> <span class="s2">"U"</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="s2">"RX"</span><span class="p">:</span> <span class="mi">9</span><span class="p">,</span>
 <span class="p">}</span>  <span class="c1"># fmt: skip</span>
+<span class="c1"># the reference a nucleotide falls back to when its base cannot be identified</span>
+<span class="n">UNKNOWN_BASE_REFERENCE</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"dna"</span><span class="p">:</span> <span class="s2">"DX"</span><span class="p">,</span> <span class="s2">"rna"</span><span class="p">:</span> <span class="s2">"RX"</span><span class="p">}</span>
 <span class="n">N_PUCKER</span> <span class="o">=</span> <span class="mi">10</span>
 
 <span class="c1"># pucker states on the C3'-endo side; the rest are south</span>
@@ -460,9 +490,10 @@
 <span class="n">N_TORSION</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">TORSION_NAMES</span><span class="p">)</span>
 <span class="n">DELTA</span> <span class="o">=</span> <span class="n">TORSION_IND</span><span class="p">[</span><span class="s2">"delta"</span><span class="p">]</span>
 <span class="n">CHI</span> <span class="o">=</span> <span class="n">TORSION_IND</span><span class="p">[</span><span class="n">CHI_TORSION</span><span class="p">]</span>
-<span class="c1"># the sugar and glycosidic torsions must all be present for a block to score;</span>
-<span class="c1"># the backbone ones may be absent at a terminus and are masked at scoring time</span>
-<span class="n">REQUIRED_TORSIONS</span> <span class="o">=</span> <span class="p">[</span><span class="n">DELTA</span><span class="p">,</span> <span class="n">CHI</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">TORSION_IND</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"nu0"</span><span class="p">,</span> <span class="s2">"nu1"</span><span class="p">,</span> <span class="s2">"nu4"</span><span class="p">)]</span>
+<span class="c1"># every torsion is optional and masked at scoring time: the backbone ones are</span>
+<span class="c1"># absent at a terminus, chi wherever the base is not attached through a torsion</span>
+<span class="c1"># we can name, and the sugar ones wherever the ring does not resolve</span>
+<span class="n">REQUIRED_TORSIONS</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]</span>
 
 
 <div class="viewcode-block" id="sugar_ring_atoms">
@@ -499,10 +530,12 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">block_type_params</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="n">element_for_atom_type</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Per-block-type indices this term needs, shared by scoring and packing.</span>
 
-<span class="sd">    base is -1 for anything this term does not handle, including a nucleotide</span>
-<span class="sd">    whose sugar or glycosidic torsions cannot be resolved.</span>
+<span class="sd">    base is -1 for anything this term does not handle. A nucleotide whose sugar</span>
+<span class="sd">    ring or glycosidic torsion cannot be resolved still scores: those subterms</span>
+<span class="sd">    are masked, and what remains of its backbone is scored as usual.</span>
 <span class="sd">    """</span>
-    <span class="n">base</span> <span class="o">=</span> <span class="n">BASE_FOR_NAME3</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block_type</span><span class="o">.</span><span class="n">name3</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># a modified nucleotide may borrow a canonical base table</span>
+    <span class="n">base</span> <span class="o">=</span> <span class="n">BASE_FOR_NAME3</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block_type</span><span class="o">.</span><span class="n">na_base_reference</span> <span class="ow">or</span> <span class="n">block_type</span><span class="o">.</span><span class="n">name3</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">uaids</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">N_TORSION</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
     <span class="n">ring</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">5</span><span class="p">,),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">base</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
@@ -513,11 +546,51 @@
         <span class="n">ring_atoms</span> <span class="o">=</span> <span class="n">sugar_ring_atoms</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="n">element_for_atom_type</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">ring_atoms</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">ring</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">ring_atoms</span>
+        <span class="c1"># A residue whose sugar ring does not resolve has no pucker, and this</span>
+        <span class="c1"># term's chi and sugar energies are both multiplied by it -- so it would</span>
+        <span class="c1"># contribute nothing while still claiming the delta/nu/chi central bonds</span>
+        <span class="c1"># and keeping genbonded off them. Nothing would restrain them at all.</span>
+        <span class="c1"># Disown it instead. REQUIRED_TORSIONS is empty by design: the torsions</span>
+        <span class="c1"># themselves are optional and masked at scoring time.</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">ring</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">()</span> <span class="ow">or</span> <span class="p">(</span><span class="n">uaids</span><span class="p">[</span><span class="n">REQUIRED_TORSIONS</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
             <span class="n">base</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
     <span class="n">down</span> <span class="o">=</span> <span class="n">block_type</span><span class="o">.</span><span class="n">connection_to_cidx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"down"</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">base</span><span class="o">=</span><span class="n">base</span><span class="p">,</span> <span class="n">uaids</span><span class="o">=</span><span class="n">uaids</span><span class="p">,</span> <span class="n">ring</span><span class="o">=</span><span class="n">ring</span><span class="p">,</span> <span class="n">down</span><span class="o">=</span><span class="n">down</span><span class="p">)</span></div>
 
+
+
+<div class="viewcode-block" id="scored_torsion_bonds">
+<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.na_torsion.scored_torsion_bonds">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">scored_torsion_bonds</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="n">element_for_atom_type</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Central bonds, as index pairs, of the torsions this term scores.</span>
+
+<span class="sd">    Empty for anything the term does not handle. Another term that would</span>
+<span class="sd">    otherwise constrain the same rotation reads this to stay off it.</span>
+<span class="sd">    """</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">block_type_params</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="n">element_for_atom_type</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="s2">"base"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">frozenset</span><span class="p">()</span>
+    <span class="n">bonds</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">torsion</span> <span class="ow">in</span> <span class="n">params</span><span class="p">[</span><span class="s2">"uaids"</span><span class="p">]:</span>
+        <span class="c1"># a uaid names an atom of this block only when its atom index is set</span>
+        <span class="n">second</span><span class="p">,</span> <span class="n">third</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">torsion</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">torsion</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">second</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">third</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">bonds</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="nb">frozenset</span><span class="p">((</span><span class="n">second</span><span class="p">,</span> <span class="n">third</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">bonds</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_circular_mean</span><span class="p">(</span><span class="n">degrees</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Mean of angles, over the leading axis, in degrees.</span>
+
+<span class="sd">    Averaging angles directly puts the mean of 179 and -179 at zero, which is</span>
+<span class="sd">    the opposite side of the circle from either.</span>
+<span class="sd">    """</span>
+    <span class="n">radians</span> <span class="o">=</span> <span class="n">degrees</span> <span class="o">*</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.0</span><span class="p">)</span>
+    <span class="n">mean</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">radians</span><span class="o">.</span><span class="n">sin</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">radians</span><span class="o">.</span><span class="n">cos</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+    <span class="c1"># the database writes its means in [0, 360); wrap_degrees does not care,</span>
+    <span class="c1">#    but a row in a different range invites a wrong comparison later</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">mean</span> <span class="o">*</span> <span class="p">(</span><span class="mf">180.0</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">pi</span><span class="p">))</span> <span class="o">%</span> <span class="mf">360.0</span>
 
 
 <div class="viewcode-block" id="polymer_index">
@@ -600,8 +673,22 @@
         <span class="n">chi_syn</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">N_PUCKER</span><span class="p">,</span> <span class="n">N_BASE</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">pi</span><span class="p">,</span> <span class="n">poly</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">POLYMERS</span><span class="p">):</span>
             <span class="n">w</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">well_energies</span><span class="p">[</span><span class="n">poly</span><span class="p">]</span>
+            <span class="n">named</span> <span class="o">=</span> <span class="p">[</span><span class="n">b</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">BASES</span><span class="p">[</span><span class="n">poly</span><span class="p">]</span> <span class="k">if</span> <span class="n">b</span> <span class="o">!=</span> <span class="n">UNKNOWN_BASE</span><span class="p">]</span>
             <span class="k">for</span> <span class="n">b</span><span class="p">,</span> <span class="n">base</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">BASES</span><span class="p">[</span><span class="n">poly</span><span class="p">]):</span>
                 <span class="n">ind</span> <span class="o">=</span> <span class="n">pi</span> <span class="o">*</span> <span class="n">N_BASE_PER_POLYMER</span> <span class="o">+</span> <span class="n">b</span>
+                <span class="k">if</span> <span class="n">base</span> <span class="o">==</span> <span class="n">UNKNOWN_BASE</span><span class="p">:</span>
+                    <span class="c1"># chi means are angles, so they average on the circle; the</span>
+                    <span class="c1">#    well energies are energies and average directly</span>
+                    <span class="n">chi</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">_circular_mean</span><span class="p">(</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+                            <span class="p">[</span><span class="n">t</span><span class="p">(</span><span class="n">database</span><span class="o">.</span><span class="n">sugar_means</span><span class="p">[</span><span class="n">poly</span><span class="p">][</span><span class="s2">"chi"</span><span class="p">][</span><span class="n">n</span><span class="p">])</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">named</span><span class="p">]</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">si</span><span class="p">,</span> <span class="n">state</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">((</span><span class="s2">"anti"</span><span class="p">,</span> <span class="s2">"syn"</span><span class="p">)):</span>
+                        <span class="n">chi_syn</span><span class="p">[</span><span class="n">si</span><span class="p">,</span> <span class="p">:,</span> <span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+                            <span class="p">[</span><span class="n">t</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">chi_syn_given_pucker</span><span class="p">[</span><span class="n">state</span><span class="p">][</span><span class="n">n</span><span class="p">])</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">named</span><span class="p">]</span>
+                        <span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="k">continue</span>
                 <span class="n">chi</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">t</span><span class="p">(</span><span class="n">database</span><span class="o">.</span><span class="n">sugar_means</span><span class="p">[</span><span class="n">poly</span><span class="p">][</span><span class="s2">"chi"</span><span class="p">][</span><span class="n">base</span><span class="p">])</span>
                 <span class="k">for</span> <span class="n">si</span><span class="p">,</span> <span class="n">state</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">((</span><span class="s2">"anti"</span><span class="p">,</span> <span class="s2">"syn"</span><span class="p">)):</span>
                     <span class="n">chi_syn</span><span class="p">[</span><span class="n">si</span><span class="p">,</span> <span class="p">:,</span> <span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">t</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">chi_syn_given_pucker</span><span class="p">[</span><span class="n">state</span><span class="p">][</span><span class="n">base</span><span class="p">])</span>

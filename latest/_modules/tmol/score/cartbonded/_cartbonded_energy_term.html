@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -421,9 +445,14 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">attrs</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">permutations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">permutations</span><span class="p">,</span> <span class="n">product</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomTypeDependentTerm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score._annotation_cache</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AnnotationKey</span><span class="p">,</span>
+    <span class="n">cached_annotation</span><span class="p">,</span>
+    <span class="n">store_annotation</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 
@@ -458,8 +487,16 @@
     <span class="n">cartbonded_subgraph_param_indices</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="n">cartbonded_max_subgraphs_per_block</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">cartbonded_atom_unique_id_index</span><span class="p">:</span> <span class="nb">dict</span>
+    <span class="n">atom_unique_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">atom_wildcard_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">atom_cross_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="n">cartbonded_params_hash_keys</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="n">cartbonded_params_hash_values</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">connection_hash_keys</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">connection_spans</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">connection_paths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">atom_is_rosetta</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">rosetta_typed</span><span class="p">:</span> <span class="nb">frozenset</span>
 
 
 <div class="viewcode-block" id="CartBondedEnergyTerm">
@@ -482,9 +519,22 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">improper_roots</span> <span class="o">=</span> <span class="n">find_improper_roots</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">cartbonded</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">cart_database</span> <span class="o">=</span> <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">cartbonded</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rosetta_typed</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">genbonded</span><span class="o">.</span><span class="n">rosetta_typed</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cart_database</span><span class="o">.</span><span class="n">hash</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_params_for_res_cache</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cart_database</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_packed_annotation_key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span>
+            <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cart_database</span><span class="p">,</span>
+            <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">genbonded</span><span class="p">,</span>
+            <span class="n">settings</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fragment_annotation_key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span>
+            <span class="n">settings</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ownership_annotation_key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span>
+            <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">genbonded</span><span class="p">,</span> <span class="n">settings</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,)</span>
+        <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">class_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
@@ -613,23 +663,19 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_block_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_type</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">CartBondedEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="nb">hasattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"cartbonded_annotations"</span><span class="p">)</span>
-            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">hash</span> <span class="ow">in</span> <span class="n">block_type</span><span class="o">.</span><span class="n">cartbonded_annotations</span>
-        <span class="p">):</span>
-            <span class="k">return</span>
-
-        <span class="c1"># if hasattr(block_type, "cartbonded_subgraphs"):</span>
-        <span class="c1">#     assert hasattr(block_type, "cartbonded_subgraph_type_counts")</span>
-        <span class="c1">#     assert hasattr(block_type, "cartbonded_subgraph_type_offsets")</span>
-        <span class="c1">#     assert hasattr(block_type, "cartbonded_params")</span>
-        <span class="c1">#     return</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+            <span class="n">block_type</span><span class="p">,</span> <span class="s2">"_cartbonded_annotation"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cached</span>
 
         <span class="c1"># Get the subgraphs for this block type</span>
         <span class="n">lengths</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">torsions</span><span class="p">,</span> <span class="n">improper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_subgraphs</span><span class="p">(</span>
             <span class="n">block_type</span><span class="o">.</span><span class="n">bond_indices</span><span class="p">,</span> <span class="n">block_type</span>
         <span class="p">)</span>
-        <span class="n">cart_subgraphs</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lengths</span> <span class="o">+</span> <span class="n">angles</span> <span class="o">+</span> <span class="n">torsions</span> <span class="o">+</span> <span class="n">improper</span><span class="p">)</span>
+        <span class="n">cart_subgraphs</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+            <span class="n">lengths</span> <span class="o">+</span> <span class="n">angles</span> <span class="o">+</span> <span class="n">torsions</span> <span class="o">+</span> <span class="n">improper</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
         <span class="n">cart_subgraph_type_counts</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
             <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">lengths</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">angles</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">torsions</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">improper</span><span class="p">)]</span>
         <span class="p">)</span>
@@ -642,16 +688,55 @@
         <span class="p">)</span>
 
         <span class="c1"># Fetch the params from the database, updating the atom id store if necessary</span>
-        <span class="n">cartbonded_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_params_for_res</span><span class="p">(</span><span class="n">block_type</span><span class="o">.</span><span class="n">base_name</span><span class="p">)</span>
+        <span class="c1"># An exact patched name replaces this residue's complete CartRes.</span>
+        <span class="c1"># Keep its atom namespace separate so the unpatched type, other</span>
+        <span class="c1"># variants and other score terms can retain their existing parameters.</span>
+        <span class="n">parameter_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_name</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
+        <span class="n">cartbonded_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_params_for_res</span><span class="p">(</span><span class="n">parameter_name</span><span class="p">)</span>
         <span class="n">cb_block_ann</span> <span class="o">=</span> <span class="n">CartBondedBlockAnnotations</span><span class="p">(</span>
             <span class="n">cartbonded_subgraphs</span><span class="o">=</span><span class="n">cart_subgraphs</span><span class="p">,</span>
             <span class="n">cartbonded_subgraph_type_counts</span><span class="o">=</span><span class="n">cart_subgraph_type_counts</span><span class="p">,</span>
             <span class="n">cartbonded_subgraph_type_offsets</span><span class="o">=</span><span class="n">cart_subgraph_type_offsets</span><span class="p">,</span>
             <span class="n">cartbonded_params</span><span class="o">=</span><span class="n">cartbonded_params</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"cartbonded_annotations"</span><span class="p">):</span>
-            <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"cartbonded_annotations"</span><span class="p">,</span> <span class="p">{})</span>
-        <span class="n">block_type</span><span class="o">.</span><span class="n">cartbonded_annotations</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hash</span><span class="p">]</span> <span class="o">=</span> <span class="n">cb_block_ann</span>
+        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+            <span class="n">block_type</span><span class="p">,</span>
+            <span class="s2">"_cartbonded_annotation"</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span><span class="p">,</span>
+            <span class="n">cb_block_ann</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parameter_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_type</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">block_type</span><span class="o">.</span><span class="n">is_ligand_fragment</span><span class="p">:</span>
+            <span class="n">records</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cart_database</span><span class="o">.</span><span class="n">residue_params</span>
+            <span class="c1"># Fragment preparations carry the source ligand's complete</span>
+            <span class="c1"># CartRes. Equal records must share its namespace so paths across</span>
+            <span class="c1"># a cut still resolve to the original ligand parameters. This</span>
+            <span class="c1"># also covers separately deserialized copies of those records.</span>
+            <span class="k">if</span> <span class="n">records</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block_type</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="o">==</span> <span class="n">records</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block_type</span><span class="o">.</span><span class="n">base_name</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">block_type</span><span class="o">.</span><span class="n">base_name</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">block_type</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">if</span> <span class="n">block_type</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cart_database</span><span class="o">.</span><span class="n">residue_params</span>
+            <span class="k">else</span> <span class="n">block_type</span><span class="o">.</span><span class="n">base_name</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_cartbonded_atom_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">,</span> <span class="n">id_index</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Reuse ordinary IDs unless an exact variant needs its own namespace."""</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">atom_unique_ids</span>
+        <span class="n">overrides</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">bt</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_name</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span> <span class="o">!=</span> <span class="n">bt</span><span class="o">.</span><span class="n">base_name</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">overrides</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ids</span>
+        <span class="n">array</span> <span class="o">=</span> <span class="n">ids</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">overrides</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">atom</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">atoms</span><span class="p">):</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_atom_unique_id_name</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">atom</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="n">array</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">id_index</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">id_index</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">array</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_padded_param_key</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
@@ -669,16 +754,18 @@
         <span class="n">subgraph_offsets</span><span class="p">,</span>
         <span class="n">total_subgraphs</span><span class="p">,</span>
         <span class="n">param_key_to_index</span><span class="p">,</span>
+        <span class="n">atom_unique_ids</span><span class="p">,</span>
+        <span class="n">atom_wildcard_ids</span><span class="p">,</span>
+        <span class="n">block_annotations</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Resolve invariant intra-block parameter searches once during setup."""</span>
-        <span class="n">atom_unique_ids</span> <span class="o">=</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">atom_unique_ids</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-        <span class="n">atom_wildcard_ids</span> <span class="o">=</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">atom_wildcard_ids</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">atom_unique_ids</span> <span class="o">=</span> <span class="n">atom_unique_ids</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="c1"># Scoped reference IDs, not the block types' own: param_key_to_index is</span>
+        <span class="c1"># keyed on the scoped IDs and the kernel is handed the same table.</span>
+        <span class="n">atom_wildcard_ids</span> <span class="o">=</span> <span class="n">atom_wildcard_ids</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
         <span class="n">param_indices</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">total_subgraphs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">block_type_index</span><span class="p">,</span> <span class="n">block_type</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
-            <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
-        <span class="p">):</span>
-            <span class="n">block_params</span> <span class="o">=</span> <span class="n">block_type</span><span class="o">.</span><span class="n">cartbonded_annotations</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hash</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">block_type_index</span><span class="p">,</span> <span class="n">block_params</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">block_annotations</span><span class="p">):</span>
             <span class="n">block_offset</span> <span class="o">=</span> <span class="n">subgraph_offsets</span><span class="p">[</span><span class="n">block_type_index</span><span class="p">]</span>
             <span class="n">unique_ids</span> <span class="o">=</span> <span class="n">atom_unique_ids</span><span class="p">[</span><span class="n">block_type_index</span><span class="p">]</span>
             <span class="n">wildcard_ids</span> <span class="o">=</span> <span class="n">atom_wildcard_ids</span><span class="p">[</span><span class="n">block_type_index</span><span class="p">]</span>
@@ -716,8 +803,13 @@
     <span class="p">):</span>  <span class="c1"># noqa: C901</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">CartBondedEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_packed_block_types</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"cartbonded_is_fragment"</span><span class="p">):</span>
-            <span class="n">packed_block_types</span><span class="o">.</span><span class="n">cartbonded_is_fragment</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
+        <span class="n">fragment</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="p">,</span>
+            <span class="s2">"_cartbonded_fragment_annotation"</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fragment_annotation_key</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">fragment</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fragment</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
                 <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
                     <span class="p">[</span>
                         <span class="n">block_type</span><span class="o">.</span><span class="n">is_ligand_fragment</span>
@@ -727,24 +819,30 @@
                 <span class="p">),</span>
                 <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"cartbonded_annotations"</span><span class="p">)</span>
-            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">hash</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">cartbonded_annotations</span>
-        <span class="p">):</span>
-            <span class="k">return</span>
-
-        <span class="c1"># if hasattr(packed_block_types, "cartbonded_subgraphs"):</span>
-        <span class="c1">#     assert hasattr(packed_block_types, "cartbonded_subgraph_offsets")</span>
-        <span class="c1">#     assert hasattr(packed_block_types, "cartbonded_max_subgraphs_per_block")</span>
-        <span class="c1">#     assert hasattr(packed_block_types, "cartbonded_atom_unique_id_index")</span>
-        <span class="c1">#     assert hasattr(packed_block_types, "cartbonded_params_hash_keys")</span>
-        <span class="c1">#     assert hasattr(packed_block_types, "cartbonded_params_hash_values")</span>
-        <span class="c1">#     return</span>
+            <span class="n">packed_block_types</span><span class="o">.</span><span class="n">cartbonded_is_fragment</span> <span class="o">=</span> <span class="n">fragment</span>
+            <span class="n">store_annotation</span><span class="p">(</span>
+                <span class="n">packed_block_types</span><span class="p">,</span>
+                <span class="s2">"_cartbonded_fragment_annotation"</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_fragment_annotation_key</span><span class="p">,</span>
+                <span class="n">fragment</span><span class="p">,</span>
+                <span class="n">fields</span><span class="o">=</span><span class="p">(</span><span class="s2">"cartbonded_is_fragment"</span><span class="p">,),</span>
+            <span class="p">)</span>
+        <span class="n">previous</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="p">,</span>
+            <span class="s2">"_cartbonded_annotation"</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_packed_annotation_key</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">previous</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">previous</span>
+        <span class="c1"># Capture returned block annotations; cache eviction or another setup</span>
+        <span class="c1"># must not switch the parameters while this packed set is assembled.</span>
+        <span class="n">block_annotations</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+        <span class="p">]</span>
 
         <span class="c1"># Aggregate the subgraphs and collect metadata</span>
         <span class="n">total_subgraphs</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
-            <span class="n">bt</span><span class="o">.</span><span class="n">cartbonded_annotations</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hash</span><span class="p">]</span><span class="o">.</span><span class="n">cartbonded_subgraphs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+            <span class="n">annotation</span><span class="o">.</span><span class="n">cartbonded_subgraphs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">annotation</span> <span class="ow">in</span> <span class="n">block_annotations</span>
         <span class="p">)</span>
         <span class="n">subgraphs</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">total_subgraphs</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
         <span class="n">subgraph_offsets</span> <span class="o">=</span> <span class="p">[]</span>
@@ -752,9 +850,8 @@
         <span class="n">subgraph_type_offsets</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">max_subgraphs_per_block</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">for</span> <span class="n">block_type</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">bt_params</span> <span class="ow">in</span> <span class="n">block_annotations</span><span class="p">:</span>
             <span class="n">subgraph_offsets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span>
-            <span class="n">bt_params</span> <span class="o">=</span> <span class="n">block_type</span><span class="o">.</span><span class="n">cartbonded_annotations</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hash</span><span class="p">]</span>
             <span class="n">n_subgraphs</span> <span class="o">=</span> <span class="n">bt_params</span><span class="o">.</span><span class="n">cartbonded_subgraphs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">subgraph_type_counts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bt_params</span><span class="o">.</span><span class="n">cartbonded_subgraph_type_counts</span><span class="p">)</span>
             <span class="n">subgraph_type_offsets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bt_params</span><span class="o">.</span><span class="n">cartbonded_subgraph_type_offsets</span><span class="p">)</span>
@@ -772,6 +869,9 @@
         <span class="c1"># we will be adding new "wildcard" atom ids, so we will copy the</span>
         <span class="c1"># atom_unique_id_index annotation</span>
         <span class="n">cbet_atom_unique_id_index</span> <span class="o">=</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">atom_unique_id_index</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">atom_unique_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cartbonded_atom_ids</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="p">,</span> <span class="n">cbet_atom_unique_id_index</span>
+        <span class="p">)</span>
 
         <span class="c1"># get the params not associated with any specific residue</span>
         <span class="n">wildcard_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_params_for_res</span><span class="p">(</span><span class="s2">"wildcard"</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
@@ -783,12 +883,8 @@
                 <span class="k">if</span> <span class="n">at</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cbet_atom_unique_id_index</span><span class="p">:</span>
                     <span class="n">cbet_atom_unique_id_index</span><span class="p">[</span><span class="n">at</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cbet_atom_unique_id_index</span><span class="p">)</span>
 
-        <span class="n">block_param_sets</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="n">bt</span><span class="o">.</span><span class="n">base_name</span><span class="p">:</span> <span class="n">bt</span><span class="o">.</span><span class="n">cartbonded_annotations</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hash</span><span class="p">]</span><span class="o">.</span><span class="n">cartbonded_params</span>
-            <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
-        <span class="p">}</span>
-        <span class="k">for</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">block_param_sets</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">bt_params</span> <span class="ow">in</span> <span class="n">block_annotations</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">bt_params</span><span class="o">.</span><span class="n">cartbonded_params</span><span class="p">:</span>
                 <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">key</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">at</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cbet_atom_unique_id_index</span><span class="p">:</span>
                         <span class="n">cbet_atom_unique_id_index</span><span class="p">[</span><span class="n">at</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cbet_atom_unique_id_index</span><span class="p">)</span>
@@ -796,22 +892,25 @@
         <span class="c1"># Collect each parameter key once. Residue variants with the same base</span>
         <span class="c1"># name share parameter dictionaries, and hash lookup uses the first</span>
         <span class="c1"># inserted value for duplicate keys.</span>
-        <span class="n">padded_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_padded_param_key</span>
-        <span class="n">unique_params</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">block_param_sets</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-            <span class="k">for</span> <span class="n">key_w_str</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="n">key</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">cbet_atom_unique_id_index</span><span class="p">[</span><span class="n">at</span><span class="p">]</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">key_w_str</span><span class="p">)</span>
-                <span class="n">unique_params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">padded_key</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+        <span class="n">named_params</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">annotation</span> <span class="ow">in</span> <span class="n">block_annotations</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key_w_str</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">annotation</span><span class="o">.</span><span class="n">cartbonded_params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">named_params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key_w_str</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">key_w_str</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">wildcard_params</span><span class="p">:</span>
-            <span class="n">key</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">cbet_atom_unique_id_index</span><span class="p">[</span><span class="n">at</span><span class="p">]</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">key_w_str</span><span class="p">)</span>
-            <span class="n">unique_params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">padded_key</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
-
-        <span class="n">hash_keys</span><span class="p">,</span> <span class="n">hash_values</span> <span class="o">=</span> <span class="n">make_hashtable_keys_values</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">unique_params</span><span class="p">),</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>
+            <span class="n">named_params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key_w_str</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="n">atom_wildcard_ids</span><span class="p">,</span> <span class="n">atom_cross_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reference_params</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="p">,</span> <span class="n">cbet_atom_unique_id_index</span><span class="p">,</span> <span class="n">named_params</span>
+        <span class="p">)</span>
+        <span class="n">padded_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_padded_param_key</span>
+        <span class="n">hash_keys</span><span class="p">,</span> <span class="n">hash_values</span> <span class="o">=</span> <span class="n">make_hashtable_keys_values</span><span class="p">(</span>
+            <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">named_params</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span>
+        <span class="p">)</span>
         <span class="n">param_key_to_index</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">cur_val</span><span class="p">,</span> <span class="p">(</span><span class="n">padded</span><span class="p">,</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">unique_params</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+        <span class="k">for</span> <span class="n">cur_val</span><span class="p">,</span> <span class="p">(</span><span class="n">key_w_str</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">named_params</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">cbet_atom_unique_id_index</span><span class="p">[</span><span class="n">at</span><span class="p">]</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">key_w_str</span><span class="p">)</span>
             <span class="n">add_to_hashtable</span><span class="p">(</span><span class="n">hash_keys</span><span class="p">,</span> <span class="n">hash_values</span><span class="p">,</span> <span class="n">cur_val</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
-            <span class="n">param_key_to_index</span><span class="p">[</span><span class="n">padded</span><span class="p">]</span> <span class="o">=</span> <span class="n">cur_val</span>
+            <span class="n">param_key_to_index</span><span class="p">[</span><span class="n">padded_key</span><span class="p">(</span><span class="n">key</span><span class="p">)]</span> <span class="o">=</span> <span class="n">cur_val</span>
 
         <span class="c1"># Intra-block topology and atom naming are fixed for a packed block</span>
         <span class="c1"># type. Resolve the exact/reversed/wildcard parameter search once here</span>
@@ -821,6 +920,9 @@
             <span class="n">subgraph_offsets</span><span class="p">,</span>
             <span class="n">total_subgraphs</span><span class="p">,</span>
             <span class="n">param_key_to_index</span><span class="p">,</span>
+            <span class="n">atom_unique_ids</span><span class="p">,</span>
+            <span class="n">atom_wildcard_ids</span><span class="p">,</span>
+            <span class="n">block_annotations</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="n">subgraphs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">subgraphs</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
@@ -831,6 +933,21 @@
         <span class="n">subgraph_type_offsets</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">subgraph_type_offsets</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
             <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
         <span class="p">)</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">._connection_parameters</span><span class="w"> </span><span class="kn">import</span> <span class="n">compile_connection_parameters</span>
+
+        <span class="n">connection_keys</span><span class="p">,</span> <span class="n">connection_spans</span><span class="p">,</span> <span class="n">connection_paths</span><span class="p">,</span> <span class="n">connection_values</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">compile_connection_parameters</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cart_database</span><span class="o">.</span><span class="n">connection_params</span><span class="p">,</span>
+                <span class="n">packed_block_types</span><span class="p">,</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">hash_values</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">hash_values</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">numpy</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">hash_values</span><span class="p">,</span> <span class="n">connection_values</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">connection_values</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">hash_values</span>
+        <span class="p">)</span>
+
         <span class="n">hash_keys_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">hash_keys</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="n">hash_values_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">hash_values</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="n">subgraph_param_indices_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">subgraph_param_indices</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
@@ -845,12 +962,98 @@
             <span class="n">cartbonded_subgraph_param_indices</span><span class="o">=</span><span class="n">subgraph_param_indices_tensor</span><span class="p">,</span>
             <span class="n">cartbonded_max_subgraphs_per_block</span><span class="o">=</span><span class="n">max_subgraphs_per_block</span><span class="p">,</span>
             <span class="n">cartbonded_atom_unique_id_index</span><span class="o">=</span><span class="n">cbet_atom_unique_id_index</span><span class="p">,</span>
+            <span class="n">atom_unique_ids</span><span class="o">=</span><span class="n">atom_unique_ids</span><span class="p">,</span>
+            <span class="n">atom_wildcard_ids</span><span class="o">=</span><span class="n">atom_wildcard_ids</span><span class="p">,</span>
+            <span class="n">atom_cross_ids</span><span class="o">=</span><span class="n">atom_cross_ids</span><span class="p">,</span>
             <span class="n">cartbonded_params_hash_keys</span><span class="o">=</span><span class="n">hash_keys_tensor</span><span class="p">,</span>
             <span class="n">cartbonded_params_hash_values</span><span class="o">=</span><span class="n">hash_values_tensor</span><span class="p">,</span>
+            <span class="n">connection_hash_keys</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">connection_keys</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">connection_spans</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">connection_spans</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">connection_paths</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">connection_paths</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">atom_is_rosetta</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ownership_mask</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">),</span>
+            <span class="n">rosetta_typed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rosetta_typed</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"cartbonded_annotations"</span><span class="p">):</span>
-            <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"cartbonded_annotations"</span><span class="p">,</span> <span class="p">{})</span>
-        <span class="n">packed_block_types</span><span class="o">.</span><span class="n">cartbonded_annotations</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hash</span><span class="p">]</span> <span class="o">=</span> <span class="n">cb_pbt_ann</span>
+        <span class="n">packed_block_types</span><span class="o">.</span><span class="n">cartbonded_atom_is_rosetta</span> <span class="o">=</span> <span class="n">cb_pbt_ann</span><span class="o">.</span><span class="n">atom_is_rosetta</span>
+        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="p">,</span>
+            <span class="s2">"_cartbonded_annotation"</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_packed_annotation_key</span><span class="p">,</span>
+            <span class="n">cb_pbt_ann</span><span class="p">,</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">(</span><span class="s2">"cartbonded_atom_is_rosetta"</span><span class="p">,),</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_reference_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pbt</span><span class="p">,</span> <span class="n">atom_ids</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Compile name fallbacks once, scoped to the actual block type.</span>
+
+<span class="sd">        Keep native lookup unchanged: renamed atoms use private IDs with</span>
+<span class="sd">        exact-name rows first and borrowed chemical-role rows second.</span>
+<span class="sd">        Unrelated blocks never acquire that alias; ordinary types reuse their</span>
+<span class="sd">        existing IDs and allocate no additional table.</span>
+<span class="sd">        """</span>
+        <span class="n">changed</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">bt</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">cartbonded_reference</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">bt</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">originals</span> <span class="o">=</span> <span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">atom_wildcard_ids</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">atom_cross_ids</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">changed</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">originals</span>
+        <span class="n">tables</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">original</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">((</span><span class="s2">"WILDCARD_ID:"</span><span class="p">,</span> <span class="s2">"CROSS_ID:"</span><span class="p">),</span> <span class="n">originals</span><span class="p">):</span>
+            <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">key</span><span class="p">)</span>
+            <span class="p">]</span>
+            <span class="n">ids</span> <span class="o">=</span> <span class="n">original</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">changed</span><span class="p">:</span>
+                <span class="n">exact</span><span class="p">,</span> <span class="n">borrowed</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">atom</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">atoms</span><span class="p">):</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="n">atom</span><span class="o">.</span><span class="n">name</span>
+                    <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">cartbonded_reference</span><span class="p">:</span>
+                        <span class="n">scoped</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">bt</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">atom</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span>
+                        <span class="n">ids</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_ids</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">scoped</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">atom_ids</span><span class="p">))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">scoped</span> <span class="o">=</span> <span class="n">name</span>
+                    <span class="n">exact</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">scoped</span><span class="p">,)</span>
+                    <span class="n">reference</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">cartbonded_reference</span> <span class="ow">or</span> <span class="n">atom</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                    <span class="n">borrowed</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">reference</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">scoped</span><span class="p">)</span>
+                <span class="c1"># Exact supplied rows win regardless of parameter ordering.</span>
+                <span class="k">for</span> <span class="n">names</span> <span class="ow">in</span> <span class="p">(</span><span class="n">exact</span><span class="p">,</span> <span class="n">borrowed</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+                        <span class="n">choices</span> <span class="o">=</span> <span class="p">[</span>
+                            <span class="n">names</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">atom</span><span class="p">,</span> <span class="p">())</span> <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="k">else</span> <span class="p">(</span><span class="n">atom</span><span class="p">,)</span>
+                            <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">key</span>
+                        <span class="p">]</span>
+                        <span class="k">for</span> <span class="n">mapped</span> <span class="ow">in</span> <span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="n">choices</span><span class="p">):</span>
+                            <span class="n">params</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">mapped</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="n">tables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">tables</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ownership_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">):</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="p">,</span>
+            <span class="s2">"_cartbonded_ownership_annotation"</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ownership_annotation_key</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cached</span>
+        <span class="c1"># A planarity centre the Rosetta terms type is theirs; one they do</span>
+        <span class="c1"># not is the generic term's, which carries its own improper for it.</span>
+        <span class="n">rosetta_typed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rosetta_typed</span>
+        <span class="n">bts</span> <span class="o">=</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+        <span class="n">max_atoms</span> <span class="o">=</span> <span class="nb">max</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">bts</span><span class="p">),</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">bts</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">max_atoms</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bts</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">atom</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">atoms</span><span class="p">):</span>
+                <span class="n">mask</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom</span><span class="o">.</span><span class="n">atom_type</span> <span class="ow">in</span> <span class="n">rosetta_typed</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="p">,</span>
+            <span class="s2">"_cartbonded_ownership_annotation"</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ownership_annotation_key</span><span class="p">,</span>
+            <span class="n">value</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_poses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">CartBondedEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_poses</span><span class="p">(</span><span class="n">poses</span><span class="p">)</span>
@@ -868,17 +1071,18 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">get_score_term_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">):</span>
         <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
 
-        <span class="k">def</span><span class="w"> </span><span class="nf">_t</span><span class="p">(</span><span class="n">ts</span><span class="p">):</span>
-            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">),</span> <span class="n">ts</span><span class="p">))</span>
-
-        <span class="n">pbt_cb_ann</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">cartbonded_annotations</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hash</span><span class="p">]</span>
+        <span class="n">pbt_cb_ann</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">setup_packed_block_types</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">[</span>
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="p">,</span>
             <span class="n">pbt</span><span class="o">.</span><span class="n">atom_paths_from_conn</span><span class="p">,</span>
-            <span class="n">pbt</span><span class="o">.</span><span class="n">atom_unique_ids</span><span class="p">,</span>
-            <span class="n">pbt</span><span class="o">.</span><span class="n">atom_wildcard_ids</span><span class="p">,</span>
+            <span class="n">pbt_cb_ann</span><span class="o">.</span><span class="n">atom_unique_ids</span><span class="p">,</span>
+            <span class="n">pbt_cb_ann</span><span class="o">.</span><span class="n">atom_wildcard_ids</span><span class="p">,</span>
+            <span class="n">pbt_cb_ann</span><span class="o">.</span><span class="n">atom_is_rosetta</span><span class="p">,</span>
             <span class="n">pbt</span><span class="o">.</span><span class="n">cartbonded_is_fragment</span><span class="p">,</span>
-            <span class="n">pbt</span><span class="o">.</span><span class="n">atom_cross_ids</span><span class="p">,</span>
+            <span class="n">pbt_cb_ann</span><span class="o">.</span><span class="n">atom_cross_ids</span><span class="p">,</span>
+            <span class="n">pbt_cb_ann</span><span class="o">.</span><span class="n">connection_hash_keys</span><span class="p">,</span>
+            <span class="n">pbt_cb_ann</span><span class="o">.</span><span class="n">connection_spans</span><span class="p">,</span>
+            <span class="n">pbt_cb_ann</span><span class="o">.</span><span class="n">connection_paths</span><span class="p">,</span>
             <span class="n">pbt_cb_ann</span><span class="o">.</span><span class="n">cartbonded_params_hash_keys</span><span class="p">,</span>
             <span class="n">pbt_cb_ann</span><span class="o">.</span><span class="n">cartbonded_params_hash_values</span><span class="p">,</span>
             <span class="n">pbt_cb_ann</span><span class="o">.</span><span class="n">cartbonded_subgraphs</span><span class="p">,</span>

@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -452,7 +476,8 @@
     <span class="n">partner_connection_name</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">atom_name</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">partner_atom_name</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">bond_type</span><span class="p">:</span> <span class="nb">str</span></div>
+    <span class="n">bond_type</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">in_ring</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></div>
 
 
 
@@ -911,8 +936,15 @@
         <span class="n">fa</span><span class="p">,</span> <span class="n">fb</span> <span class="o">=</span> <span class="n">atom_to_fragment</span><span class="p">[</span><span class="n">a</span><span class="p">],</span> <span class="n">atom_to_fragment</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
         <span class="n">name_a</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"conn_</span><span class="si">{</span><span class="n">cut_index</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">fa</span><span class="si">}</span><span class="s2">_to_</span><span class="si">{</span><span class="n">fb</span><span class="si">}</span><span class="s2">"</span>
         <span class="n">name_b</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"conn_</span><span class="si">{</span><span class="n">cut_index</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">fb</span><span class="si">}</span><span class="s2">_to_</span><span class="si">{</span><span class="n">fa</span><span class="si">}</span><span class="s2">"</span>
-        <span class="n">conn_a</span> <span class="o">=</span> <span class="n">FragmentConnection</span><span class="p">(</span><span class="n">fa</span><span class="p">,</span> <span class="n">fb</span><span class="p">,</span> <span class="n">name_a</span><span class="p">,</span> <span class="n">name_b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_bond_type_name</span><span class="p">(</span><span class="n">bond</span><span class="p">))</span>
-        <span class="n">conn_b</span> <span class="o">=</span> <span class="n">FragmentConnection</span><span class="p">(</span><span class="n">fb</span><span class="p">,</span> <span class="n">fa</span><span class="p">,</span> <span class="n">name_b</span><span class="p">,</span> <span class="n">name_a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">_bond_type_name</span><span class="p">(</span><span class="n">bond</span><span class="p">))</span>
+        <span class="c1"># A cut through a ring leaves a connection whose bond is still a ring</span>
+        <span class="c1"># bond; only the residue it belonged to has been split.</span>
+        <span class="n">in_ring</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">bond</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bond</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">3</span> <span class="k">else</span> <span class="kc">False</span>
+        <span class="n">conn_a</span> <span class="o">=</span> <span class="n">FragmentConnection</span><span class="p">(</span>
+            <span class="n">fa</span><span class="p">,</span> <span class="n">fb</span><span class="p">,</span> <span class="n">name_a</span><span class="p">,</span> <span class="n">name_b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_bond_type_name</span><span class="p">(</span><span class="n">bond</span><span class="p">),</span> <span class="n">in_ring</span>
+        <span class="p">)</span>
+        <span class="n">conn_b</span> <span class="o">=</span> <span class="n">FragmentConnection</span><span class="p">(</span>
+            <span class="n">fb</span><span class="p">,</span> <span class="n">fa</span><span class="p">,</span> <span class="n">name_b</span><span class="p">,</span> <span class="n">name_a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">_bond_type_name</span><span class="p">(</span><span class="n">bond</span><span class="p">),</span> <span class="n">in_ring</span>
+        <span class="p">)</span>
         <span class="n">connections_by_fragment</span><span class="p">[</span><span class="n">fa</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">conn_a</span><span class="p">)</span>
         <span class="n">connections_by_fragment</span><span class="p">[</span><span class="n">fb</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">conn_b</span><span class="p">)</span>
         <span class="n">directed_connections</span><span class="o">.</span><span class="n">extend</span><span class="p">((</span><span class="n">conn_a</span><span class="p">,</span> <span class="n">conn_b</span><span class="p">))</span>
@@ -1004,7 +1036,10 @@
             <span class="n">bonds</span><span class="o">=</span><span class="n">local_bonds</span><span class="p">,</span>
             <span class="n">connections</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span>
                 <span class="n">Connection</span><span class="p">(</span>
-                    <span class="n">name</span><span class="o">=</span><span class="n">conn</span><span class="o">.</span><span class="n">connection_name</span><span class="p">,</span> <span class="n">atom</span><span class="o">=</span><span class="n">conn</span><span class="o">.</span><span class="n">atom_name</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">conn</span><span class="o">.</span><span class="n">bond_type</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">conn</span><span class="o">.</span><span class="n">connection_name</span><span class="p">,</span>
+                    <span class="n">atom</span><span class="o">=</span><span class="n">conn</span><span class="o">.</span><span class="n">atom_name</span><span class="p">,</span>
+                    <span class="nb">type</span><span class="o">=</span><span class="n">conn</span><span class="o">.</span><span class="n">bond_type</span><span class="p">,</span>
+                    <span class="n">in_ring</span><span class="o">=</span><span class="n">conn</span><span class="o">.</span><span class="n">in_ring</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="k">for</span> <span class="n">conn</span> <span class="ow">in</span> <span class="n">connections_by_fragment</span><span class="p">[</span><span class="n">fragment_id</span><span class="p">]</span>
             <span class="p">),</span>
@@ -1167,6 +1202,21 @@
         <span class="p">),</span>
     <span class="p">)</span>
     <span class="n">expanded</span><span class="o">.</span><span class="n">set_annotation</span><span class="p">(</span><span class="s2">"res_id"</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">output_residue_labels</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+
+    <span class="c1"># Cut bonds belong to the prepared fragment mapping and are installed by</span>
+    <span class="c1"># apply_fragment_connections. Leaving them in the input bond table makes</span>
+    <span class="c1"># canonical conversion request conjugation patches for the same cuts.</span>
+    <span class="c1"># Preserve all bonds within fragments and between original residues.</span>
+    <span class="k">if</span> <span class="n">expanded</span><span class="o">.</span><span class="n">bonds</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">original_residue</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">residue_starts</span><span class="p">)),</span> <span class="n">residue_ends</span> <span class="o">-</span> <span class="n">residue_starts</span>
+        <span class="p">)[</span><span class="n">atom_order</span><span class="p">]</span>
+        <span class="n">bonds</span> <span class="o">=</span> <span class="n">expanded</span><span class="o">.</span><span class="n">bonds</span><span class="o">.</span><span class="n">as_array</span><span class="p">()</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">is_cut</span> <span class="o">=</span> <span class="p">(</span><span class="n">original_residue</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">==</span> <span class="n">original_residue</span><span class="p">[</span><span class="n">b</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span>
+            <span class="n">expanded</span><span class="o">.</span><span class="n">res_id</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">!=</span> <span class="n">expanded</span><span class="o">.</span><span class="n">res_id</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">expanded</span><span class="o">.</span><span class="n">bonds</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">BondList</span><span class="p">(</span><span class="n">expanded</span><span class="o">.</span><span class="n">array_length</span><span class="p">(),</span> <span class="n">bonds</span><span class="p">[</span><span class="o">~</span><span class="n">is_cut</span><span class="p">])</span>
 
     <span class="n">n_poses</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">structure</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">)</span> <span class="k">else</span> <span class="mi">1</span>
     <span class="n">blocks</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>

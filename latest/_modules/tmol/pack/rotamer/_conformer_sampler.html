@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -417,7 +441,7 @@
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">ClassVar</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Tensor</span><span class="p">,</span>
@@ -441,11 +465,46 @@
 <span class="p">]</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">chi_moving_roots</span><span class="p">(</span><span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">,</span> <span class="n">chi_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""The atoms a chi turns: everything bonded to its third atom but its second.</span>
+
+<span class="sd">    Sidechain roots mark where a sampler stops copying degrees of freedom from</span>
+<span class="sd">    the input structure and starts rebuilding them from ideal internal</span>
+<span class="sd">    coordinates. The third atom of a torsion carries the degree of freedom but</span>
+<span class="sd">    does not itself move, so it must not be a root.</span>
+<span class="sd">    """</span>
+    <span class="n">uaids</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">chi_name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">uaids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">()</span>
+    <span class="n">held</span><span class="p">,</span> <span class="n">turned</span> <span class="o">=</span> <span class="n">uaids</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">uaids</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">held</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">turned</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">()</span>
+    <span class="n">moved</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">(</span><span class="n">j</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">bond_indices</span> <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">==</span> <span class="n">turned</span> <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">j</span><span class="p">)</span> <span class="o">!=</span> <span class="n">held</span><span class="p">}</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="n">at</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">moved</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">sc_roots_for_chis</span><span class="p">(</span><span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">,</span> <span class="n">chi_names</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Sidechain roots for a sampler that turns the named chis."""</span>
+    <span class="n">roots</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">chi_name</span> <span class="ow">in</span> <span class="n">chi_names</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">chi_moving_roots</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="n">chi_name</span><span class="p">):</span>
+            <span class="n">roots</span><span class="p">[</span><span class="n">at</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">roots</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="ConformerSampler">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.ConformerSampler">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ConformerSampler</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Interface for creating and applying packing conformer samples."""</span>
+
+    <span class="c1">#: Sample only after every other sampler has run, receiving the rotamer</span>
+    <span class="c1">#: counts they actually produced. A sampler that fills gaps left by others</span>
+    <span class="c1">#: must measure what was built rather than trust what was declared: a</span>
+    <span class="c1">#: sampler may report that it covers a block type and still return no</span>
+    <span class="c1">#: rotamers for a particular block, which would otherwise leave that</span>
+    <span class="c1">#: position with nothing to pack.</span>
+    <span class="n">samples_after_other_samplers</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
 
 <div class="viewcode-block" id="ConformerSampler.sampler_name">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.ConformerSampler.sampler_name">[docs]</a>
@@ -499,7 +558,23 @@
         <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
         <span class="n">task</span><span class="p">:</span> <span class="s2">"PackerTask"</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ConformerSample</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Create per-block sample counts, block indices, and metadata."""</span>
+<span class="w">        </span><span class="sd">"""Return counts, considered-block index per rotamer, and sampler data.</span>
+
+<span class="sd">        A sampler that sets :py:attr:`samples_after_other_samplers` is called</span>
+<span class="sd">        with an extra ``built_rotamer_counts`` keyword holding the per</span>
+<span class="sd">        considered-block total produced by every other sampler.</span>
+
+<span class="sd">        A producer of joint conformers declares ``correlated_gbts`` in its data:</span>
+<span class="sd">        a tuple of considered-block-index tuples, one per joint group. Rotamer k</span>
+<span class="sd">        must correspond across all members. Merging rejects additional states</span>
+<span class="sd">        from other samplers on those blocks. Without a declaration, samples are</span>
+<span class="sd">        independent even when their residues are covalently connected.</span>
+
+<span class="sd">        Producers of unchanged input conformers may set</span>
+<span class="sd">        ``copy_input_coordinates=True``. Their rows must use the original block</span>
+<span class="sd">        type; Cartesian coordinates are copied exactly after DOF construction</span>
+<span class="sd">        to avoid rounding from an unnecessary inverse/forward kinematics cycle.</span>
+<span class="sd">        """</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
 

@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -432,7 +456,7 @@
     <span class="n">PatchedChemicalDatabase</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">ResidueTypeSet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">ResidueTypeSet</span><span class="p">,</span> <span class="n">l_base_name</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._canonical_form</span><span class="w"> </span><span class="kn">import</span> <span class="n">CanonicalForm</span>
@@ -455,14 +479,29 @@
 
 
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PolymerConnectionIndices</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The canonical atom index of each equivalence class's down and up connection.</span>
+
+<span class="sd">    Entries are -1 where the class has no such connection, either because it is</span>
+<span class="sd">    not polymeric or because it connects in only one direction, as a cap does.</span>
+<span class="sd">    """</span>
+
+    <span class="c1"># n-equivalence-class</span>
+    <span class="n">down_atom_for_co_restype</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">up_atom_for_co_restype</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">CysSpecialCaseIndices</span><span class="p">:</span>
-    <span class="n">cys_co_aa_ind</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="c1"># every equivalence class that forms disulfides, l and d alike</span>
+    <span class="n">cys_co_aa_inds</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="n">sg_atom_for_co_cys</span><span class="p">:</span> <span class="nb">int</span>
 
 
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">HisSpecialCaseIndices</span><span class="p">:</span>
-    <span class="n">his_co_aa_ind</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+    <span class="c1"># every equivalence class of histidine, l and d alike</span>
+    <span class="n">his_co_aa_inds</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
     <span class="n">his_ND1_in_co</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
     <span class="n">his_NE2_in_co</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
     <span class="n">his_HD1_in_co</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
@@ -477,7 +516,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_init_hash</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span>
             <span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">his_co_aa_ind</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">his_co_aa_inds</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">his_ND1_in_co</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">his_NE2_in_co</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">his_HD1_in_co</span><span class="p">,</span>
@@ -581,6 +620,7 @@
     <span class="n">max_n_canonical_atoms</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">restype_io_equiv_classes</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="n">restypes_ordered_atom_names</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span>
+    <span class="n">restypes_atom_elements</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>
     <span class="n">restypes_atom_index_mapping</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span>
     <span class="n">restypes_mainchain_atoms</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]]</span>
 
@@ -591,23 +631,63 @@
     <span class="c1"># variant drops P, so P is mainchain but not required.</span>
     <span class="n">restypes_required_mainchain_atoms</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]]</span>
 
-    <span class="n">restypes_default_termini_mapping</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>
+    <span class="n">restypes_default_termini_mapping</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]</span>
+
+    <span class="c1"># terminal variant names, in the order they are preferred</span>
+    <span class="n">NTERM_VARIANTS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"na5prime"</span><span class="p">)</span>
+    <span class="n">CTERM_VARIANTS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"cterm"</span><span class="p">,</span> <span class="s2">"na3prime"</span><span class="p">)</span>
     <span class="n">down_termini_patches</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="n">up_termini_patches</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
-    <span class="n">termini_patch_added_atoms</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span>
+    <span class="c1"># Added terminal atoms by (base chemistry, patch display name).</span>
+    <span class="n">termini_patch_added_atoms</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span>
+    <span class="c1"># Atoms that exist *only* on a terminal variant, by the same key. A patch</span>
+    <span class="c1"># that retypes an atom the residue already carries lists it as added -- the</span>
+    <span class="c1"># cterm patch re-adds the backbone O alongside OXT -- but that atom is base</span>
+    <span class="c1"># chemistry present on every residue, so it is not terminus-only.</span>
+    <span class="n">termini_only_atoms</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span>
+    <span class="c1"># The same atoms keyed by io-equivalence class, which is what a consumer</span>
+    <span class="c1"># indexing residue types has. Flattening across classes instead would</span>
+    <span class="c1"># unroute H1/H2/H3, base atoms of DG/DA/DT and HOH.</span>
+    <span class="n">termini_only_atoms_by_class</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span>
     <span class="n">cys_inds</span><span class="p">:</span> <span class="n">CysSpecialCaseIndices</span>
     <span class="n">his_inds</span><span class="p">:</span> <span class="n">HisSpecialCaseIndices</span>
+    <span class="n">polymer_conn_inds</span><span class="p">:</span> <span class="n">PolymerConnectionIndices</span>
+
+    <span class="c1"># input residue names read as another residue's, from the chemical database</span>
+    <span class="n">name3_aliases</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">n_restype_io_equiv_classes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">restype_io_equiv_classes</span><span class="p">)</span>
 
+<div class="viewcode-block" id="CanonicalOrdering.resolve_name3">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.CanonicalOrdering.resolve_name3">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">resolve_name3</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name3</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The residue name to read this input name as."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name3_aliases</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name3</span><span class="p">,</span> <span class="n">name3</span><span class="p">)</span></div>
+
+
+    <span class="c1"># placeholder names an input may use when a histidine's tautomer is not</span>
+    <span class="c1"># yet decided; every histidine class needs them, d as well as l</span>
+    <span class="n">HIS_TAUTOMER_ATOMS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"NN"</span><span class="p">,</span> <span class="s2">"NH"</span><span class="p">,</span> <span class="s2">"HN"</span><span class="p">]</span>
+
     <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">extra_atoms</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">extra_atoms</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">:</span> <span class="n">PatchedChemicalDatabase</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">chemdb</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s2">"HIS"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">HIS_TAUTOMER_ATOMS</span><span class="p">)}</span>
         <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">"HIS"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"NN"</span><span class="p">,</span> <span class="s2">"NH"</span><span class="p">,</span> <span class="s2">"HN"</span><span class="p">]</span>
-            <span class="c1"># to do: "CYS": ["HGT"]</span>
+            <span class="n">equiv</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">HIS_TAUTOMER_ATOMS</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">equiv</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_histidine_classes</span><span class="p">(</span><span class="n">chemdb</span><span class="p">)</span>
         <span class="p">}</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_histidine_classes</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">:</span> <span class="n">PatchedChemicalDatabase</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Equivalence classes whose residues are histidines, l and d alike."""</span>
+        <span class="k">return</span> <span class="n">ordered_set</span><span class="p">(</span>
+            <span class="n">restype</span><span class="o">.</span><span class="n">io_equiv_class</span>
+            <span class="k">for</span> <span class="n">restype</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">residues</span>
+            <span class="k">if</span> <span class="n">l_base_name</span><span class="p">(</span><span class="n">restype</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"HIS"</span><span class="p">,</span> <span class="s2">"HIS_D"</span><span class="p">,</span> <span class="s2">"HIS_POS"</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">ordered_vals</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_chemdb</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">:</span> <span class="n">PatchedChemicalDatabase</span><span class="p">):</span>  <span class="c1"># noqa: C901</span>
@@ -618,11 +698,21 @@
             <span class="k">return</span> <span class="n">ordered_set</span><span class="p">()</span>
 
         <span class="n">restypes_all_atom_names</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="n">newset</span><span class="p">)</span>
+        <span class="n">restypes_atom_elements</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+        <span class="n">elements</span> <span class="o">=</span> <span class="p">{</span><span class="n">at</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">at</span><span class="o">.</span><span class="n">element</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">atom_types</span><span class="p">}</span>
         <span class="n">restypes_alt_atom_name_mapping</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">restype</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">residues</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">atoms</span><span class="p">:</span>
                 <span class="n">restypes_all_atom_names</span><span class="p">[</span><span class="n">restype</span><span class="o">.</span><span class="n">name3</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">at</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="n">element</span> <span class="o">=</span> <span class="n">elements</span><span class="p">[</span><span class="n">at</span><span class="o">.</span><span class="n">atom_type</span><span class="p">]</span>
+                <span class="n">previous</span> <span class="o">=</span> <span class="n">restypes_atom_elements</span><span class="p">[</span><span class="n">restype</span><span class="o">.</span><span class="n">name3</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
+                    <span class="n">at</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">element</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">previous</span> <span class="o">!=</span> <span class="n">element</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">"Conflicting elements for </span><span class="si">{</span><span class="n">restype</span><span class="o">.</span><span class="n">name3</span><span class="si">}</span><span class="s2"> atom </span><span class="si">{</span><span class="n">at</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span>
+                    <span class="p">)</span>
             <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">atom_aliases</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">at</span><span class="o">.</span><span class="n">alt_name</span> <span class="ow">in</span> <span class="n">restypes_alt_atom_name_mapping</span><span class="p">[</span><span class="n">restype</span><span class="o">.</span><span class="n">name3</span><span class="p">]:</span>
                     <span class="k">assert</span> <span class="p">(</span>
@@ -633,10 +723,11 @@
                     <span class="n">restypes_alt_atom_name_mapping</span><span class="p">[</span><span class="n">restype</span><span class="o">.</span><span class="n">name3</span><span class="p">][</span><span class="n">at</span><span class="o">.</span><span class="n">alt_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">at</span><span class="o">.</span><span class="n">name</span>
 
         <span class="c1"># note that extra atoms are internal-use only and do not have "alternate" names</span>
-        <span class="n">extra</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">extra_atoms</span><span class="p">()</span>
+        <span class="n">extra</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">extra_atoms</span><span class="p">(</span><span class="n">chemdb</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">rt_name3</span><span class="p">,</span> <span class="n">atoms</span> <span class="ow">in</span> <span class="n">extra</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">:</span>
                 <span class="n">restypes_all_atom_names</span><span class="p">[</span><span class="n">rt_name3</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">at</span><span class="p">)</span>
+                <span class="n">restypes_atom_elements</span><span class="p">[</span><span class="n">rt_name3</span><span class="p">][</span><span class="n">at</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"H"</span> <span class="k">if</span> <span class="n">at</span> <span class="o">==</span> <span class="s2">"HN"</span> <span class="k">else</span> <span class="s2">"N"</span>
 
         <span class="n">restypes_ordered_atom_names</span> <span class="o">=</span> <span class="p">{</span>
             <span class="n">name3</span><span class="p">:</span> <span class="n">ats</span><span class="o">.</span><span class="n">ordered_vals</span> <span class="k">for</span> <span class="n">name3</span><span class="p">,</span> <span class="n">ats</span> <span class="ow">in</span> <span class="n">restypes_all_atom_names</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
@@ -663,8 +754,8 @@
                 <span class="n">restypes_mainchain_atoms</span><span class="p">[</span><span class="n">equiv</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">mc</span><span class="p">)</span> <span class="k">if</span> <span class="n">mc</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="n">restypes_required_mainchain_atoms</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_required_mainchain_atoms</span><span class="p">(</span><span class="n">chemdb</span><span class="p">)</span>
 
-        <span class="n">default_termini_mapping</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_temp_termini_mapping</span><span class="p">()</span>
-        <span class="n">termini_patch_added_atoms</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="nb">set</span><span class="p">([]))</span>
+        <span class="n">default_termini_mapping</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_default_termini_mapping</span><span class="p">(</span><span class="n">chemdb</span><span class="p">)</span>
+        <span class="n">terminal_patches</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
 
         <span class="c1"># we need to know which variants create down- and up termini</span>
         <span class="c1"># so we can build the right termini types</span>
@@ -674,17 +765,54 @@
             <span class="k">for</span> <span class="n">rm</span> <span class="ow">in</span> <span class="n">patch</span><span class="o">.</span><span class="n">remove_atoms</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">rm</span> <span class="o">==</span> <span class="s2">"&lt;</span><span class="si">{down}</span><span class="s2">&gt;"</span><span class="p">:</span>
                     <span class="n">down_termini_patches</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">patch</span><span class="o">.</span><span class="n">display_name</span><span class="p">)</span>
-                    <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">patch</span><span class="o">.</span><span class="n">add_atoms</span><span class="p">:</span>
-                        <span class="n">termini_patch_added_atoms</span><span class="p">[</span><span class="n">patch</span><span class="o">.</span><span class="n">display_name</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
                 <span class="k">elif</span> <span class="n">rm</span> <span class="o">==</span> <span class="s2">"&lt;</span><span class="si">{up}</span><span class="s2">&gt;"</span><span class="p">:</span>
                     <span class="n">up_termini_patches</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">patch</span><span class="o">.</span><span class="n">display_name</span><span class="p">)</span>
-                    <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">patch</span><span class="o">.</span><span class="n">add_atoms</span><span class="p">:</span>
-                        <span class="n">termini_patch_added_atoms</span><span class="p">[</span><span class="n">patch</span><span class="o">.</span><span class="n">display_name</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">"&lt;</span><span class="si">{down}</span><span class="s2">&gt;"</span> <span class="ow">in</span> <span class="n">patch</span><span class="o">.</span><span class="n">remove_atoms</span> <span class="ow">or</span> <span class="s2">"&lt;</span><span class="si">{up}</span><span class="s2">&gt;"</span> <span class="ow">in</span> <span class="n">patch</span><span class="o">.</span><span class="n">remove_atoms</span><span class="p">:</span>
+                <span class="n">terminal_patches</span><span class="p">[</span><span class="n">patch</span><span class="o">.</span><span class="n">display_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">patch</span><span class="p">)</span>
+        <span class="n">termini_patch_added_atoms</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">display</span><span class="p">):</span> <span class="nb">tuple</span><span class="p">(</span>
+                <span class="nb">sorted</span><span class="p">(</span>
+                    <span class="p">{</span>
+                        <span class="n">atom</span><span class="o">.</span><span class="n">name</span>
+                        <span class="k">for</span> <span class="n">patch</span> <span class="ow">in</span> <span class="n">patches</span>
+                        <span class="k">if</span> <span class="n">patch</span><span class="o">.</span><span class="n">applies_to</span><span class="o">.</span><span class="n">matches</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">patch</span><span class="o">.</span><span class="n">add_atoms</span>
+                    <span class="p">}</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">base</span><span class="p">,</span> <span class="n">rt</span> <span class="ow">in</span> <span class="p">{</span><span class="n">r</span><span class="o">.</span><span class="n">base_name</span><span class="p">:</span> <span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">residues</span><span class="p">}</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">display</span><span class="p">,</span> <span class="n">patches</span> <span class="ow">in</span> <span class="n">terminal_patches</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="c1"># patch_residue emits [base, *variants], so a last-wins dict here would</span>
+        <span class="c1"># take the deepest variant -- which already carries OXT/H1/H2/H3 -- and</span>
+        <span class="c1"># every difference below would come out empty.</span>
+        <span class="n">unpatched</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">residue</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">residues</span><span class="p">:</span>
+            <span class="n">unpatched</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">residue</span><span class="o">.</span><span class="n">base_name</span><span class="p">,</span> <span class="n">residue</span><span class="p">)</span>
+        <span class="n">base_atom_names</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">base</span><span class="p">:</span> <span class="p">{</span><span class="n">atom</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">atoms</span><span class="p">}</span> <span class="k">for</span> <span class="n">base</span><span class="p">,</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">unpatched</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="n">termini_only_atoms</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">key</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">added</span><span class="p">)</span> <span class="o">-</span> <span class="n">base_atom_names</span><span class="p">[</span><span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">]]))</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">added</span> <span class="ow">in</span> <span class="n">termini_patch_added_atoms</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="n">equiv_for_base</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">residue</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">residues</span><span class="p">:</span>
+            <span class="n">equiv_for_base</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">residue</span><span class="o">.</span><span class="n">base_name</span><span class="p">,</span> <span class="n">residue</span><span class="o">.</span><span class="n">io_equiv_class</span><span class="p">)</span>
+        <span class="n">by_class</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">_display</span><span class="p">),</span> <span class="n">atoms</span> <span class="ow">in</span> <span class="n">termini_only_atoms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">equiv</span> <span class="o">=</span> <span class="n">equiv_for_base</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">equiv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">by_class</span><span class="p">[</span><span class="n">equiv</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span>
+        <span class="n">termini_only_atoms_by_class</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">equiv</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">atoms</span><span class="p">))</span> <span class="k">for</span> <span class="n">equiv</span><span class="p">,</span> <span class="n">atoms</span> <span class="ow">in</span> <span class="n">by_class</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
 
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">max_n_canonical_atoms</span><span class="o">=</span><span class="n">max_n_canonical_atoms</span><span class="p">,</span>
             <span class="n">restype_io_equiv_classes</span><span class="o">=</span><span class="n">ordered_restypes</span><span class="p">,</span>
             <span class="n">restypes_ordered_atom_names</span><span class="o">=</span><span class="n">restypes_ordered_atom_names</span><span class="p">,</span>
+            <span class="n">restypes_atom_elements</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">restypes_atom_elements</span><span class="p">),</span>
             <span class="n">restypes_atom_index_mapping</span><span class="o">=</span><span class="n">restypes_atom_index_mapping</span><span class="p">,</span>
             <span class="n">restypes_mainchain_atoms</span><span class="o">=</span><span class="n">restypes_mainchain_atoms</span><span class="p">,</span>
             <span class="n">restypes_required_mainchain_atoms</span><span class="o">=</span><span class="n">restypes_required_mainchain_atoms</span><span class="p">,</span>
@@ -692,12 +820,60 @@
             <span class="n">down_termini_patches</span><span class="o">=</span><span class="n">down_termini_patches</span><span class="p">,</span>
             <span class="n">up_termini_patches</span><span class="o">=</span><span class="n">up_termini_patches</span><span class="p">,</span>
             <span class="n">termini_patch_added_atoms</span><span class="o">=</span><span class="n">termini_patch_added_atoms</span><span class="p">,</span>
+            <span class="n">termini_only_atoms</span><span class="o">=</span><span class="n">termini_only_atoms</span><span class="p">,</span>
+            <span class="n">termini_only_atoms_by_class</span><span class="o">=</span><span class="n">termini_only_atoms_by_class</span><span class="p">,</span>
+            <span class="n">name3_aliases</span><span class="o">=</span><span class="p">{</span>
+                <span class="n">alias</span><span class="o">.</span><span class="n">name3</span><span class="p">:</span> <span class="n">alias</span><span class="o">.</span><span class="n">read_as</span>
+                <span class="k">for</span> <span class="n">alias</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">name3_aliases</span>
+                <span class="k">if</span> <span class="n">alias</span><span class="o">.</span><span class="n">read_as</span> <span class="ow">in</span> <span class="n">ordered_restypes</span>
+            <span class="p">},</span>
             <span class="n">cys_inds</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_init_cys_special_case_indices</span><span class="p">(</span>
-                <span class="n">ordered_restypes</span><span class="p">,</span> <span class="n">restypes_ordered_atom_names</span>
+                <span class="n">chemdb</span><span class="p">,</span> <span class="n">ordered_restypes</span><span class="p">,</span> <span class="n">restypes_ordered_atom_names</span>
             <span class="p">),</span>
             <span class="n">his_inds</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_init_his_special_case_indices</span><span class="p">(</span>
-                <span class="n">ordered_restypes</span><span class="p">,</span> <span class="n">restypes_ordered_atom_names</span>
+                <span class="n">chemdb</span><span class="p">,</span> <span class="n">ordered_restypes</span><span class="p">,</span> <span class="n">restypes_ordered_atom_names</span>
             <span class="p">),</span>
+            <span class="n">polymer_conn_inds</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_init_polymer_connection_indices</span><span class="p">(</span>
+                <span class="n">chemdb</span><span class="p">,</span> <span class="n">ordered_restypes</span><span class="p">,</span> <span class="n">restypes_atom_index_mapping</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_init_polymer_connection_indices</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">chemdb</span><span class="p">:</span> <span class="n">PatchedChemicalDatabase</span><span class="p">,</span>
+        <span class="n">restype_name3s</span><span class="p">,</span>
+        <span class="n">restypes_atom_index_mapping</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Where each equivalence class's down and up connections attach.</span>
+
+<span class="sd">        Read off the residue types' own connections, so a nucleic acid's P and</span>
+<span class="sd">        O3' are found by the same rule that finds a protein's N and C.</span>
+<span class="sd">        """</span>
+        <span class="n">down</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">restype_name3s</span><span class="p">)</span>
+        <span class="n">up</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">restype_name3s</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">restype</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">residues</span><span class="p">:</span>
+            <span class="n">equiv</span> <span class="o">=</span> <span class="n">restype</span><span class="o">.</span><span class="n">io_equiv_class</span>
+            <span class="k">if</span> <span class="n">equiv</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">restype_name3s</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">equiv_ind</span> <span class="o">=</span> <span class="n">restype_name3s</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">equiv</span><span class="p">)</span>
+            <span class="n">atom_inds</span> <span class="o">=</span> <span class="n">restypes_atom_index_mapping</span><span class="p">[</span><span class="n">equiv</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">conn</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">connections</span><span class="p">:</span>
+                <span class="n">target</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">down</span> <span class="k">if</span> <span class="n">conn</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">"down"</span> <span class="k">else</span> <span class="n">up</span> <span class="k">if</span> <span class="n">conn</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">"up"</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">target</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">conn</span><span class="o">.</span><span class="n">atom</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">atom_inds</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">atom_ind</span> <span class="o">=</span> <span class="n">atom_inds</span><span class="p">[</span><span class="n">conn</span><span class="o">.</span><span class="n">atom</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">target</span><span class="p">[</span><span class="n">equiv_ind</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">atom_ind</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">"equivalence class </span><span class="si">{</span><span class="n">equiv</span><span class="si">}</span><span class="s2"> disagrees on where its "</span>
+                        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">conn</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> connection attaches"</span>
+                    <span class="p">)</span>
+                <span class="n">target</span><span class="p">[</span><span class="n">equiv_ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_ind</span>
+        <span class="k">return</span> <span class="n">PolymerConnectionIndices</span><span class="p">(</span>
+            <span class="n">down_atom_for_co_restype</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">down</span><span class="p">),</span>
+            <span class="n">up_atom_for_co_restype</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">up</span><span class="p">),</span>
         <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
@@ -721,63 +897,76 @@
         <span class="k">return</span> <span class="n">required</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_temp_termini_mapping</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">"ALA"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"CYS"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"CYD"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"ASP"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"GLU"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"PHE"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"GLY"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"HIS"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"HIS_D"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"HIS_POS"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"ILE"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"LYS"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"LEU"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"MET"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"ASN"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"PRO"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"GLN"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"ARG"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"SER"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"THR"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"VAL"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"TRP"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"TYR"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"nterm"</span><span class="p">,</span> <span class="s2">"cterm"</span><span class="p">),</span>
-            <span class="s2">"DA"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"na5prime"</span><span class="p">,</span> <span class="s2">"na3prime"</span><span class="p">),</span>
-            <span class="s2">"DC"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"na5prime"</span><span class="p">,</span> <span class="s2">"na3prime"</span><span class="p">),</span>
-            <span class="s2">"DG"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"na5prime"</span><span class="p">,</span> <span class="s2">"na3prime"</span><span class="p">),</span>
-            <span class="s2">"DT"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"na5prime"</span><span class="p">,</span> <span class="s2">"na3prime"</span><span class="p">),</span>
-            <span class="s2">"A"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"na5prime"</span><span class="p">,</span> <span class="s2">"na3prime"</span><span class="p">),</span>
-            <span class="s2">"C"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"na5prime"</span><span class="p">,</span> <span class="s2">"na3prime"</span><span class="p">),</span>
-            <span class="s2">"G"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"na5prime"</span><span class="p">,</span> <span class="s2">"na3prime"</span><span class="p">),</span>
-            <span class="s2">"U"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"na5prime"</span><span class="p">,</span> <span class="s2">"na3prime"</span><span class="p">),</span>
-        <span class="p">}</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_default_termini_mapping</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">:</span> <span class="n">PatchedChemicalDatabase</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""The terminal variants each equivalence class takes.</span>
+
+<span class="sd">        Read from the variants the database actually carries, so a residue type</span>
+<span class="sd">        added to the database is covered without an edit here. An end with no</span>
+<span class="sd">        applicable terminal patch is represented by None.</span>
+<span class="sd">        """</span>
+        <span class="n">suffixes</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">restype</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">residues</span><span class="p">:</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">tail</span> <span class="o">=</span> <span class="n">restype</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">":"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">tail</span><span class="p">:</span>
+                <span class="n">suffixes</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">restype</span><span class="o">.</span><span class="n">io_equiv_class</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                    <span class="n">tail</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">":"</span><span class="p">)</span>
+                <span class="p">)</span>
+
+        <span class="n">mapping</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">equiv</span><span class="p">,</span> <span class="n">present</span> <span class="ow">in</span> <span class="n">suffixes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">nterm</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">NTERM_VARIANTS</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">present</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">cterm</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">CTERM_VARIANTS</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">present</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">nterm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">cterm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">mapping</span><span class="p">[</span><span class="n">equiv</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">nterm</span><span class="p">,</span> <span class="n">cterm</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">mapping</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_init_cys_special_case_indices</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span> <span class="n">restype_name3s</span><span class="p">,</span> <span class="n">restypes_ordered_atom_names</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">chemdb</span><span class="p">:</span> <span class="n">PatchedChemicalDatabase</span><span class="p">,</span>
+        <span class="n">restype_name3s</span><span class="p">,</span>
+        <span class="n">restypes_ordered_atom_names</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">if</span> <span class="s2">"CYS"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">restype_name3s</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">CysSpecialCaseIndices</span><span class="p">(</span>
-                <span class="n">cys_co_aa_ind</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
-                <span class="n">sg_atom_for_co_cys</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="sd">"""The equivalence classes of cysteine, l and d alike.</span>
+
+<span class="sd">        Taken from the residue types themselves rather than from the presence of</span>
+<span class="sd">        an SG atom, which any thiol-bearing noncanonical would also have.</span>
+<span class="sd">        """</span>
+        <span class="n">cys_classes</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">name</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">restype_name3s</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span>
+                <span class="n">l_base_name</span><span class="p">(</span><span class="n">restype</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"CYS"</span><span class="p">,</span> <span class="s2">"CYD"</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">restype</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">residues</span>
+                <span class="k">if</span> <span class="n">restype</span><span class="o">.</span><span class="n">io_equiv_class</span> <span class="o">==</span> <span class="n">name</span>
             <span class="p">)</span>
-        <span class="n">cys_co_aa_ind</span> <span class="o">=</span> <span class="n">restype_name3s</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">"CYS"</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">cys_classes</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">CysSpecialCaseIndices</span><span class="p">(</span><span class="n">cys_co_aa_inds</span><span class="o">=</span><span class="p">(),</span> <span class="n">sg_atom_for_co_cys</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">sg_inds</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">restypes_ordered_atom_names</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">"SG"</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">cys_classes</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sg_inds</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"disulfide-forming classes </span><span class="si">{</span><span class="n">cys_classes</span><span class="si">}</span><span class="s2"> disagree on the position "</span>
+                <span class="sa">f</span><span class="s2">"of SG in the canonical ordering: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">sg_inds</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
         <span class="k">return</span> <span class="n">CysSpecialCaseIndices</span><span class="p">(</span>
-            <span class="n">cys_co_aa_ind</span><span class="o">=</span><span class="n">cys_co_aa_ind</span><span class="p">,</span>
-            <span class="n">sg_atom_for_co_cys</span><span class="o">=</span><span class="n">restypes_ordered_atom_names</span><span class="p">[</span><span class="s2">"CYS"</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">"SG"</span><span class="p">),</span>
+            <span class="n">cys_co_aa_inds</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">restype_name3s</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">cys_classes</span><span class="p">),</span>
+            <span class="n">sg_atom_for_co_cys</span><span class="o">=</span><span class="n">sg_inds</span><span class="o">.</span><span class="n">pop</span><span class="p">(),</span>
         <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_init_his_special_case_indices</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span> <span class="n">restype_name3s</span><span class="p">,</span> <span class="n">restypes_ordered_atom_names</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">,</span> <span class="n">restype_name3s</span><span class="p">,</span> <span class="n">restypes_ordered_atom_names</span>
     <span class="p">):</span>
-        <span class="k">if</span> <span class="s2">"HIS"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">restype_name3s</span><span class="p">:</span>
+        <span class="n">his_classes</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_histidine_classes</span><span class="p">(</span><span class="n">chemdb</span><span class="p">)</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">restype_name3s</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">his_classes</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">HisSpecialCaseIndices</span><span class="p">(</span>
-                <span class="n">his_co_aa_ind</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">his_co_aa_inds</span><span class="o">=</span><span class="p">(),</span>
                 <span class="n">his_ND1_in_co</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
                 <span class="n">his_NE2_in_co</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
                 <span class="n">his_HD1_in_co</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
@@ -787,22 +976,31 @@
                 <span class="n">his_NN_in_co</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
                 <span class="n">his_CG_in_co</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="n">his_co_aa_ind</span> <span class="o">=</span> <span class="n">restype_name3s</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">"HIS"</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
 
-        <span class="k">def</span><span class="w"> </span><span class="nf">his_at_ind</span><span class="p">(</span><span class="n">atname</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">restypes_ordered_atom_names</span><span class="p">[</span><span class="s2">"HIS"</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">atname</span><span class="p">)</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">his_at_ind</span><span class="p">(</span><span class="n">atname</span><span class="p">):</span>
+                <span class="n">inds</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="n">restypes_ordered_atom_names</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">atname</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">his_classes</span>
+                <span class="p">}</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">inds</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">"histidine classes </span><span class="si">{</span><span class="n">his_classes</span><span class="si">}</span><span class="s2"> disagree on the position "</span>
+                        <span class="sa">f</span><span class="s2">"of </span><span class="si">{</span><span class="n">atname</span><span class="si">}</span><span class="s2"> in the canonical ordering: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">inds</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+                    <span class="p">)</span>
+                <span class="k">return</span> <span class="n">inds</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
 
-        <span class="k">return</span> <span class="n">HisSpecialCaseIndices</span><span class="p">(</span>
-            <span class="n">his_co_aa_ind</span><span class="o">=</span><span class="n">his_co_aa_ind</span><span class="p">,</span>
-            <span class="n">his_ND1_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"ND1"</span><span class="p">),</span>
-            <span class="n">his_NE2_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"NE2"</span><span class="p">),</span>
-            <span class="n">his_HD1_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"HD1"</span><span class="p">),</span>
-            <span class="n">his_HE2_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"HE2"</span><span class="p">),</span>
-            <span class="n">his_HN_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"HN"</span><span class="p">),</span>
-            <span class="n">his_NH_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"NH"</span><span class="p">),</span>
-            <span class="n">his_NN_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"NN"</span><span class="p">),</span>
-            <span class="n">his_CG_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"CG"</span><span class="p">),</span>
-        <span class="p">)</span>
+            <span class="k">return</span> <span class="n">HisSpecialCaseIndices</span><span class="p">(</span>
+                <span class="n">his_co_aa_inds</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">restype_name3s</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">his_classes</span><span class="p">),</span>
+                <span class="n">his_ND1_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"ND1"</span><span class="p">),</span>
+                <span class="n">his_NE2_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"NE2"</span><span class="p">),</span>
+                <span class="n">his_HD1_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"HD1"</span><span class="p">),</span>
+                <span class="n">his_HE2_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"HE2"</span><span class="p">),</span>
+                <span class="n">his_HN_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"HN"</span><span class="p">),</span>
+                <span class="n">his_NH_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"NH"</span><span class="p">),</span>
+                <span class="n">his_NN_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"NN"</span><span class="p">),</span>
+                <span class="n">his_CG_in_co</span><span class="o">=</span><span class="n">his_at_ind</span><span class="p">(</span><span class="s2">"CG"</span><span class="p">),</span>
+            <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">create_src_2_tmol_mappings</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">src_aa_name3s</span><span class="p">,</span> <span class="n">src_atom_names_for_name3s</span><span class="p">,</span> <span class="n">device</span>
@@ -987,6 +1185,7 @@
     <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">atom_records</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="n">resid</span> <span class="o">=</span> <span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">chain</span><span class="p">,</span> <span class="n">row</span><span class="o">.</span><span class="n">resi</span><span class="p">,</span> <span class="n">row</span><span class="o">.</span><span class="n">insert</span><span class="p">)</span>
         <span class="n">res_ind</span> <span class="o">=</span> <span class="n">uniq_res_ind</span><span class="p">[</span><span class="n">resid</span><span class="p">]</span>
+        <span class="n">resn</span> <span class="o">=</span> <span class="n">canonical_ordering</span><span class="o">.</span><span class="n">resolve_name3</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">resn</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">row</span><span class="o">.</span><span class="n">chaini</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">chains_seen</span><span class="p">:</span>
             <span class="n">chains_seen</span><span class="p">[</span><span class="n">row</span><span class="o">.</span><span class="n">chaini</span><span class="p">]</span> <span class="o">=</span> <span class="n">chain_id_counter</span>
             <span class="n">chain_id_to_label</span><span class="p">[</span><span class="n">chain_id_counter</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">chain</span>
@@ -994,7 +1193,7 @@
         <span class="n">chain_id</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">res_ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">chains_seen</span><span class="p">[</span><span class="n">row</span><span class="o">.</span><span class="n">chaini</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">res_types</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">res_ind</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">2</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="n">aa_ind</span> <span class="o">=</span> <span class="n">canonical_ordering</span><span class="o">.</span><span class="n">restype_io_equiv_classes</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">resn</span><span class="p">)</span>
+                <span class="n">aa_ind</span> <span class="o">=</span> <span class="n">canonical_ordering</span><span class="o">.</span><span class="n">restype_io_equiv_classes</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">resn</span><span class="p">)</span>
                 <span class="n">res_types</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">res_ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">aa_ind</span>
                 <span class="n">chain_labels</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">res_ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">chain_id_to_label</span><span class="p">[</span><span class="n">chain_id</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">res_ind</span><span class="p">]]</span>
                 <span class="n">res_labels</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">res_ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">uniq_res_list</span><span class="p">[</span><span class="n">res_ind</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
@@ -1005,7 +1204,7 @@
                 <span class="n">res_labels</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">res_ind</span><span class="p">]</span> <span class="o">=</span> <span class="s2">""</span>
                 <span class="n">res_ins_codes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">res_ind</span><span class="p">]</span> <span class="o">=</span> <span class="s2">""</span>
         <span class="k">if</span> <span class="n">res_types</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">res_ind</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">res_at_mapping</span> <span class="o">=</span> <span class="n">canonical_ordering</span><span class="o">.</span><span class="n">restypes_atom_index_mapping</span><span class="p">[</span><span class="n">row</span><span class="o">.</span><span class="n">resn</span><span class="p">]</span>
+            <span class="n">res_at_mapping</span> <span class="o">=</span> <span class="n">canonical_ordering</span><span class="o">.</span><span class="n">restypes_atom_index_mapping</span><span class="p">[</span><span class="n">resn</span><span class="p">]</span>
 
             <span class="n">atname</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">atomn</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
             <span class="k">try</span><span class="p">:</span>

@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -467,32 +491,22 @@
     <span class="n">disulfides</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="mi">3</span><span class="p">]]</span>
     <span class="c1"># n_poses x max_n_res x 2</span>
     <span class="n">res_not_connected</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">]]</span>
+    <span class="c1"># n_cyclic_closures x 3</span>
+    <span class="n">cyclic_bonds</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="mi">3</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># n_covalent_bonds x 5: pose, res1, canonical atom1, res2, canonical atom2</span>
+    <span class="n">covalent_bonds</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="mi">5</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">chain_id</span>
-        <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">res_types</span>
-        <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span>
-        <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">res_labels</span>
-        <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">residue_insertion_codes</span>
-        <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">chain_labels</span>
-        <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_occupancy</span>
-        <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_b_factor</span>
-        <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">disulfides</span>
-        <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">res_not_connected</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="n">attr</span><span class="o">.</span><span class="n">astuple</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">recurse</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
 
+<div class="viewcode-block" id="CanonicalForm.as_dict">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.CanonicalForm.as_dict">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">as_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">"chain_id"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">chain_id</span><span class="p">,</span>
-            <span class="s2">"res_types"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">res_types</span><span class="p">,</span>
-            <span class="s2">"coords"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span>
-            <span class="s2">"res_labels"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">res_labels</span><span class="p">,</span>
-            <span class="s2">"residue_insertion_codes"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">residue_insertion_codes</span><span class="p">,</span>
-            <span class="s2">"chain_labels"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">chain_labels</span><span class="p">,</span>
-            <span class="s2">"atom_occupancy"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_occupancy</span><span class="p">,</span>
-            <span class="s2">"atom_b_factor"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_b_factor</span><span class="p">,</span>
-            <span class="s2">"disulfides"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">disulfides</span><span class="p">,</span>
-            <span class="s2">"res_not_connected"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">res_not_connected</span><span class="p">,</span>
-        <span class="p">}</span></div>
+<span class="w">        </span><span class="sd">"""Constructor keyword arguments sharing the original tensors and arrays."""</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">recurse</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">values</span><span class="p">[</span><span class="s2">"res_ins_codes"</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"residue_insertion_codes"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">values</span></div>
+</div>
 
 </pre></div>
 

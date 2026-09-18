@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -428,6 +452,40 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility</span><span class="w"> </span><span class="kn">import</span> <span class="n">exclusive_cumsum2d_w_totals</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">chosen_rotamer_for_block</span><span class="p">(</span>
+    <span class="n">orig_pose_stack</span><span class="p">,</span>
+    <span class="n">rotamer_for_nonmolten_block</span><span class="p">,</span>
+    <span class="n">n_molten_blocks_per_pose</span><span class="p">,</span>
+    <span class="n">bc_rot_offset_for_molten_block</span><span class="p">,</span>
+    <span class="n">bc_rot_to_orig_rot</span><span class="p">,</span>
+    <span class="n">bc_assignment</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""The rotamer each block ends up with, in the original rotamer indexing.</span>
+
+<span class="sd">    A block the packer did not move keeps the rotamer it was given; a molten one</span>
+<span class="sd">    takes what annealing chose, mapped back out of the bump-checked indexing.</span>
+<span class="sd">    """</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">device</span>
+    <span class="n">max_n_molten_blocks</span> <span class="o">=</span> <span class="n">bc_assignment</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">assignment</span> <span class="o">=</span> <span class="n">rotamer_for_nonmolten_block</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+
+    <span class="n">is_real_block</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">is_molten_block</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+        <span class="n">rotamer_for_nonmolten_block</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">is_real_block</span>
+    <span class="p">)</span>
+    <span class="n">molten_block_arange</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+        <span class="n">max_n_molten_blocks</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+    <span class="p">)</span>
+    <span class="n">is_real_molten_block</span> <span class="o">=</span> <span class="n">molten_block_arange</span> <span class="o">&lt;</span> <span class="n">n_molten_blocks_per_pose</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">bc_assignment_global</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">bc_assignment</span><span class="p">[</span><span class="n">is_real_molten_block</span><span class="p">]</span>
+        <span class="o">+</span> <span class="n">bc_rot_offset_for_molten_block</span><span class="p">[</span><span class="n">is_real_molten_block</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">assignment</span><span class="p">[</span><span class="n">is_molten_block</span><span class="p">]</span> <span class="o">=</span> <span class="n">bc_rot_to_orig_rot</span><span class="p">[</span><span class="n">bc_assignment_global</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">assignment</span>
+
+
 <div class="viewcode-block" id="impose_top_rotamer_assignments">
 <a class="viewcode-back" href="../../../api/pack.html#tmol.pack.impose_top_rotamer_assignments">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">impose_top_rotamer_assignments</span><span class="p">(</span>
@@ -461,27 +519,17 @@
     <span class="n">n_poses</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">n_poses</span>
     <span class="n">max_n_blocks</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span>
     <span class="n">max_n_atoms_per_block</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">max_n_atoms</span>
-    <span class="n">max_n_molten_blocks</span> <span class="o">=</span> <span class="n">bc_assignment</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
     <span class="n">bc_assignment</span> <span class="o">=</span> <span class="n">bc_assignment</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
 
-    <span class="c1"># map from the subset of blocks and bump-checked rotamer</span>
-    <span class="c1"># to an assignment in the original rotamer-set indexing</span>
-    <span class="n">assignment</span> <span class="o">=</span> <span class="n">rotamer_for_nonmolten_block</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
-
+    <span class="n">assignment</span> <span class="o">=</span> <span class="n">chosen_rotamer_for_block</span><span class="p">(</span>
+        <span class="n">orig_pose_stack</span><span class="p">,</span>
+        <span class="n">rotamer_for_nonmolten_block</span><span class="p">,</span>
+        <span class="n">n_molten_blocks_per_pose</span><span class="p">,</span>
+        <span class="n">bc_rot_offset_for_molten_block</span><span class="p">,</span>
+        <span class="n">bc_rot_to_orig_rot</span><span class="p">,</span>
+        <span class="n">bc_assignment</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="n">is_real_block</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="n">is_molten_block</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
-        <span class="n">rotamer_for_nonmolten_block</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">is_real_block</span>
-    <span class="p">)</span>
-    <span class="n">molten_block_arange</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
-        <span class="n">max_n_molten_blocks</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
-    <span class="p">)</span>
-    <span class="n">is_real_molten_block</span> <span class="o">=</span> <span class="n">molten_block_arange</span> <span class="o">&lt;</span> <span class="n">n_molten_blocks_per_pose</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="n">bc_assignment_global</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">bc_assignment</span><span class="p">[</span><span class="n">is_real_molten_block</span><span class="p">]</span>
-        <span class="o">+</span> <span class="n">bc_rot_offset_for_molten_block</span><span class="p">[</span><span class="n">is_real_molten_block</span><span class="p">]</span>
-    <span class="p">)</span>
-
-    <span class="n">assignment</span><span class="p">[</span><span class="n">is_molten_block</span><span class="p">]</span> <span class="o">=</span> <span class="n">bc_rot_to_orig_rot</span><span class="p">[</span><span class="n">bc_assignment_global</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="c1"># lets figure out how many atoms per pose</span>
     <span class="n">new_block_type_ind64</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>

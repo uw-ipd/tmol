@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -414,7 +438,9 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.pack.rotamer._na_chi_sampler</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
 
@@ -433,7 +459,19 @@
     <span class="n">PoseStack</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">SetPackerTask</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChiSampler</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack._packer_task</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT</span><span class="p">,</span>
+    <span class="n">DEFAULT_CHI_SAMPLE_LIMIT</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._chi_budget</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">apply_chi_sample_budget</span><span class="p">,</span>
+    <span class="n">chi_depths</span><span class="p">,</span>
+    <span class="n">sampler_for_task</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._single_residue_kinforest</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">construct_single_residue_kinforest</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChiSampler</span><span class="p">,</span> <span class="n">sc_roots_for_chis</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.na_torsion</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">NaTorsionParams</span><span class="p">,</span>
     <span class="n">N_PUCKER</span><span class="p">,</span>
@@ -458,20 +496,6 @@
 <span class="c1"># a syn well deeper than this is too rare to be worth a rotamer</span>
 <span class="n">MAX_SYN_WELL</span> <span class="o">=</span> <span class="mf">5.0</span>
 
-<span class="c1"># Sidechain root for each nucleotide proton chi. Normally the chi's pivot atom,</span>
-<span class="c1"># except for the 5'-OH: O5' roots the whole block, so the hydroxyl hydrogen</span>
-<span class="c1"># roots itself and everything upstream stays mainchain.</span>
-<span class="n">NA_PROTON_CHI_ROOT</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"chi2"</span><span class="p">:</span> <span class="s2">"O2'"</span><span class="p">,</span> <span class="s2">"chi3"</span><span class="p">:</span> <span class="s2">"HO5'"</span><span class="p">,</span> <span class="s2">"chi4"</span><span class="p">:</span> <span class="s2">"O3'"</span><span class="p">}</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">na_proton_chi_roots</span><span class="p">(</span><span class="n">rt</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Sidechain roots for the proton chis a nucleotide actually samples."""</span>
-    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span>
-        <span class="n">NA_PROTON_CHI_ROOT</span><span class="p">[</span><span class="n">cs</span><span class="o">.</span><span class="n">chi_dihedral</span><span class="p">]</span>
-        <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">chi_samples</span>
-        <span class="k">if</span> <span class="n">cs</span><span class="o">.</span><span class="n">chi_dihedral</span> <span class="ow">in</span> <span class="n">NA_PROTON_CHI_ROOT</span>
-    <span class="p">)</span>
-
 
 <div class="viewcode-block" id="NaChiRotamerSampler">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler">[docs]</a>
@@ -495,6 +519,9 @@
     <span class="n">chi_sample_level</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">sample_syn</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">)</span>
+
+    <span class="n">chi_sample_expanded_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT</span>
+    <span class="n">chi_sample_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_CHI_SAMPLE_LIMIT</span>
 
 <div class="viewcode-block" id="NaChiRotamerSampler.from_database">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.from_database">[docs]</a>
@@ -536,51 +563,82 @@
         <span class="k">return</span> <span class="s2">"NaChiRotamerSampler"</span></div>
 
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_annotation_key</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Keep only the most recent tables on each type/PBT, but validate all</span>
+        <span class="c1"># inputs to those tables. A different sampler must not inherit the</span>
+        <span class="c1"># first sampler's budget or chemical element assignments.</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">chi_sample_expanded_limit</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">chi_sample_limit</span><span class="p">,</span>
+            <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">element_for_atom_type</span><span class="o">.</span><span class="n">items</span><span class="p">())),</span>
+        <span class="p">)</span>
+
 <div class="viewcode-block" id="NaChiRotamerSampler.annotate_residue_type">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.annotate_residue_type">[docs]</a>
     <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">annotate_residue_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="s2">"na_chi_sampler_params"</span><span class="p">):</span>
-            <span class="k">return</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_key</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="s2">"_na_chi_sampler_key"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">==</span> <span class="n">key</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span>
+            <span class="n">rt</span><span class="p">,</span> <span class="s2">"na_chi_sampler_params"</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="n">rt</span><span class="o">.</span><span class="n">na_chi_sampler_params</span>
         <span class="n">p</span> <span class="o">=</span> <span class="n">block_type_params</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">element_for_atom_type</span><span class="p">)</span>
         <span class="n">chi1</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"chi1"</span><span class="p">)</span>
         <span class="c1"># the third atom of a torsion is the one whose dof carries it</span>
         <span class="n">p</span><span class="p">[</span><span class="s2">"chi1_atom"</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="k">if</span> <span class="n">chi1</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">chi1</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c1"># one residue at a time, so the budget is per residue: no grouping, but</span>
+        <span class="c1">#    the same limits the rest of the packer applies</span>
+        <span class="c1"># Protein/ligand chi must not enlarge this sampler's Cartesian product</span>
+        <span class="c1"># or padded tensors. Other samplers own those residues.</span>
+        <span class="n">sampled</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">chi_samples</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="p">[</span><span class="s2">"base"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">sampled</span><span class="p">:</span>
+            <span class="n">construct_single_residue_kinforest</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span>
+            <span class="n">depths</span> <span class="o">=</span> <span class="n">chi_depths</span><span class="p">(</span>
+                <span class="n">rt</span><span class="o">.</span><span class="n">residue_kinforest_data</span><span class="p">,</span>
+                <span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">[</span><span class="n">cs</span><span class="o">.</span><span class="n">chi_dihedral</span><span class="p">][</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="n">sampled</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="n">sampled</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+                <span class="n">apply_chi_sample_budget</span><span class="p">(</span>
+                    <span class="n">sampled</span><span class="p">,</span>
+                    <span class="n">depths</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">chi_sample_expanded_limit</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">chi_sample_limit</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
         <span class="n">p</span><span class="p">[</span><span class="s2">"proton_chi"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
             <span class="p">(</span>
                 <span class="nb">int</span><span class="p">(</span><span class="n">samp</span><span class="o">.</span><span class="n">chi_dihedral</span><span class="p">[</span><span class="mi">3</span><span class="p">:])</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
                 <span class="n">rt</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">[</span><span class="n">samp</span><span class="o">.</span><span class="n">chi_dihedral</span><span class="p">][</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
-                <span class="nb">tuple</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">samp</span><span class="o">.</span><span class="n">samples</span><span class="p">),</span>
+                <span class="n">_expanded_samples</span><span class="p">(</span><span class="n">samp</span><span class="p">),</span>
             <span class="p">)</span>
-            <span class="k">for</span> <span class="n">samp</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">chi_samples</span>
+            <span class="k">for</span> <span class="n">samp</span> <span class="ow">in</span> <span class="n">sampled</span>
         <span class="p">]</span>
-        <span class="nb">setattr</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="s2">"na_chi_sampler_params"</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span></div>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="s2">"na_chi_sampler_params"</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="s2">"_na_chi_sampler_key"</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">p</span></div>
 
 
 <div class="viewcode-block" id="NaChiRotamerSampler.annotate_packed_block_types">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.annotate_packed_block_types">[docs]</a>
     <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">annotate_packed_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"na_chi_sampler_cache"</span><span class="p">):</span>
-            <span class="k">return</span>
-        <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">annotate_residue_type</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_key</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"_na_chi_sampler_key"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">==</span> <span class="n">key</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">na_chi_sampler_cache</span>
         <span class="n">bts</span> <span class="o">=</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
-        <span class="n">n_chi</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">na_chi_sampler_params</span><span class="p">[</span><span class="s2">"proton_chi"</span><span class="p">])</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">bts</span><span class="p">)</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">annotate_residue_type</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">bts</span><span class="p">]</span>
+        <span class="n">n_chi</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">"proton_chi"</span><span class="p">])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">)</span>
 
         <span class="k">def</span><span class="w"> </span><span class="nf">to_t</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
-        <span class="n">ring</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">bt</span><span class="o">.</span><span class="n">na_chi_sampler_params</span><span class="p">[</span><span class="s2">"ring"</span><span class="p">]</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">bts</span><span class="p">])</span>
-        <span class="n">base</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">bt</span><span class="o">.</span><span class="n">na_chi_sampler_params</span><span class="p">[</span><span class="s2">"base"</span><span class="p">]</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">bts</span><span class="p">])</span>
+        <span class="n">ring</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="s2">"ring"</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="s2">"base"</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>
         <span class="n">chi_atom</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">bts</span><span class="p">),</span> <span class="n">n_chi</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-        <span class="n">combos</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">_proton_combinations</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">na_chi_sampler_params</span><span class="p">[</span><span class="s2">"proton_chi"</span><span class="p">])</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">bts</span>
-        <span class="p">]</span>
+        <span class="n">combos</span> <span class="o">=</span> <span class="p">[</span><span class="n">_proton_combinations</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">"proton_chi"</span><span class="p">])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">]</span>
         <span class="n">n_combos</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">combos</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
         <span class="n">proton</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">bts</span><span class="p">),</span> <span class="n">n_combos</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">n_chi</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bts</span><span class="p">):</span>
-            <span class="n">p</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">na_chi_sampler_params</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">p</span><span class="p">[</span><span class="s2">"base"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">continue</span>
             <span class="n">chi_atom</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="s2">"chi1_atom"</span><span class="p">]</span>
@@ -598,48 +656,31 @@
             <span class="n">proton</span><span class="o">=</span><span class="n">to_t</span><span class="p">(</span><span class="n">proton</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
             <span class="n">n_chi</span><span class="o">=</span><span class="n">n_chi</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"na_chi_sampler_cache"</span><span class="p">,</span> <span class="n">cache</span><span class="p">)</span></div>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"na_chi_sampler_cache"</span><span class="p">,</span> <span class="n">cache</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"_na_chi_sampler_key"</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cache</span></div>
 
 
 <div class="viewcode-block" id="NaChiRotamerSampler.defines_rotamers_for_rt">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.defines_rotamers_for_rt">[docs]</a>
     <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">defines_rotamers_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">annotate_residue_type</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">rt</span><span class="o">.</span><span class="n">na_chi_sampler_params</span><span class="p">[</span><span class="s2">"base"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotate_residue_type</span><span class="p">(</span><span class="n">rt</span><span class="p">)[</span><span class="s2">"base"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">defines_rotamers_for_bts</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span> <span class="n">bt_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">]:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">annotate_packed_block_types</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">pbt</span><span class="o">.</span><span class="n">na_chi_sampler_cache</span><span class="p">[</span><span class="s2">"builds_bt"</span><span class="p">][</span><span class="n">bt_inds</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotate_packed_block_types</span><span class="p">(</span><span class="n">pbt</span><span class="p">)[</span><span class="s2">"builds_bt"</span><span class="p">][</span><span class="n">bt_inds</span><span class="p">]</span>
 
 <div class="viewcode-block" id="NaChiRotamerSampler.first_sc_atoms_for_rt">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.NaChiRotamerSampler.first_sc_atoms_for_rt">[docs]</a>
     <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">first_sc_atoms_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-        <span class="c1"># long-term, it probably makes more sense to generate this programatically</span>
-        <span class="c1"># e.g., the pivot atom of the first chi(?)</span>
-        <span class="c1"># the base hangs off the glycosidic nitrogen, which chi1 rotates; each</span>
-        <span class="c1"># proton chi is rooted separately so that it has something downstream</span>
-        <span class="n">chi1</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">[</span><span class="s2">"chi1"</span><span class="p">]</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="n">chi1</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">name</span><span class="p">,)</span> <span class="o">+</span> <span class="n">na_proton_chi_roots</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">sc_roots_for_chis</span><span class="p">(</span>
+            <span class="n">rt</span><span class="p">,</span> <span class="p">(</span><span class="s2">"chi1"</span><span class="p">,)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">cs</span><span class="o">.</span><span class="n">chi_dihedral</span> <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">chi_samples</span><span class="p">)</span>
+        <span class="p">)</span></div>
 
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_chi_sets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">pucker</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""(anti, syn) chi values in degrees for one (base, pucker) pair."""</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-        <span class="n">poly</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">polymer_index</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">base</span><span class="p">)))</span>
-        <span class="n">sdev</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sdev_chi</span><span class="p">[</span><span class="n">poly</span><span class="p">])</span>
-        <span class="n">steps</span> <span class="o">=</span> <span class="n">CHI_STEPS</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">chi_sample_level</span><span class="p">]</span>
-        <span class="n">anti</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">chi_means</span><span class="p">[</span><span class="n">base</span><span class="p">,</span> <span class="n">pucker</span><span class="p">])</span>
-        <span class="n">chis</span> <span class="o">=</span> <span class="p">[</span><span class="n">anti</span> <span class="o">+</span> <span class="n">k</span> <span class="o">*</span> <span class="n">sdev</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">steps</span><span class="p">]</span>
-        <span class="c1"># syn rotamers RNA only (for now)</span>
-        <span class="n">syn_ok</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_syn</span> <span class="ow">and</span> <span class="n">poly</span> <span class="o">==</span> <span class="n">POLYMER_IND</span><span class="p">[</span><span class="s2">"rna"</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">syn_ok</span> <span class="ow">and</span> <span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">well_chi_syn</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">pucker</span><span class="p">,</span> <span class="n">base</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="n">MAX_SYN_WELL</span><span class="p">:</span>
-            <span class="n">chis</span> <span class="o">+=</span> <span class="p">[</span><span class="n">SYN_MEAN</span> <span class="o">+</span> <span class="n">k</span> <span class="o">*</span> <span class="n">sdev</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">steps</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">chis</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_pucker_for_blocks</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -648,9 +689,9 @@
         <span class="n">pose_indices</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
         <span class="n">block_indices</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
         <span class="n">block_type_indices</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
+        <span class="n">cache</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:]:</span>
 <span class="w">        </span><span class="sd">"""Return the most likely input-sugar pucker for selected blocks."""</span>
-        <span class="n">cache</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">na_chi_sampler_cache</span>
         <span class="n">ring_local</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="s2">"ring"</span><span class="p">][</span><span class="n">block_type_indices</span><span class="p">]</span>
         <span class="n">offset</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">block_coord_offset64</span><span class="p">[</span><span class="n">pose_indices</span><span class="p">,</span> <span class="n">block_indices</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">ok</span> <span class="o">=</span> <span class="n">ring_local</span> <span class="o">&gt;=</span> <span class="mi">0</span>
@@ -674,9 +715,11 @@
         <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:],</span>  <span class="c1"># chi_defining_atom_for_rotamer</span>
         <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="p">:],</span>  <span class="c1"># chi_for_rotamers</span>
     <span class="p">]:</span>
+        <span class="n">configured</span><span class="p">,</span> <span class="n">task</span> <span class="o">=</span> <span class="n">sampler_for_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">configured</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">configured</span><span class="o">.</span><span class="n">sample_chi_for_poses</span><span class="p">(</span><span class="n">poses</span><span class="p">,</span> <span class="n">task</span><span class="p">)</span>
         <span class="n">pbt</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">packed_block_types</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">annotate_packed_block_types</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
-        <span class="n">cache</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">na_chi_sampler_cache</span>
+        <span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotate_packed_block_types</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
 
         <span class="n">self_ind</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">conformer_sampler_index</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span>
         <span class="n">allowed</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">per_block_conformer_sampler_allowed</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">self_ind</span><span class="p">]</span>
@@ -706,6 +749,7 @@
                 <span class="n">unique_pose</span><span class="p">,</span>
                 <span class="n">unique_block</span><span class="p">,</span>
                 <span class="n">poses</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">unique_pose</span><span class="p">,</span> <span class="n">unique_block</span><span class="p">],</span>
+                <span class="n">cache</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">pucker</span><span class="p">[</span><span class="n">active_gbt</span><span class="p">]</span> <span class="o">=</span> <span class="n">unique_pucker</span><span class="p">[</span><span class="n">inverse</span><span class="p">]</span>
         <span class="n">base</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="s2">"base"</span><span class="p">][</span><span class="n">task</span><span class="o">.</span><span class="n">cons_bt_block_type</span><span class="p">]</span>
@@ -733,11 +777,21 @@
             <span class="n">syn_ok</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">syn_ok</span><span class="p">)</span>
         <span class="n">n_modes</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">syn_ok</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
         <span class="n">n_combos</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="s2">"n_combos"</span><span class="p">][</span><span class="n">bt_for_gbt</span><span class="p">]</span>
-        <span class="n">n_rots_for_gbt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
-            <span class="n">active</span><span class="p">,</span> <span class="n">n_modes</span> <span class="o">*</span> <span class="n">n_steps</span> <span class="o">*</span> <span class="n">n_combos</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">n_combos</span><span class="p">)</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="c1"># Preserve an out-of-range sentinel while bounding the int64 product.</span>
+        <span class="c1"># Chi levels have at most five steps and two modes. Narrow only after</span>
+        <span class="c1"># validating both the individual counts and their total.</span>
+        <span class="n">bounded_combos</span> <span class="o">=</span> <span class="n">n_combos</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span><span class="o">.</span><span class="n">max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">counts</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="n">active</span><span class="p">,</span> <span class="n">n_modes</span> <span class="o">*</span> <span class="n">n_steps</span> <span class="o">*</span> <span class="n">bounded_combos</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">n_combos</span><span class="p">)</span>
+        <span class="p">)</span>
 
-        <span class="n">n_rots</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_rots_for_gbt</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._chi_budget</span><span class="w"> </span><span class="kn">import</span> <span class="n">checked_sample_count</span>
+
+        <span class="n">n_rots</span> <span class="o">=</span> <span class="n">checked_sample_count</span><span class="p">(</span>
+            <span class="n">counts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_sample_expanded_limit</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_sample_limit</span>
+        <span class="p">)</span>
+        <span class="n">n_rots_for_gbt</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
         <span class="k">if</span> <span class="n">n_rots</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">(</span>
                 <span class="n">n_rots_for_gbt</span><span class="p">,</span>
@@ -746,8 +800,6 @@
                 <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_chi</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">poses</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
             <span class="p">)</span>
 
-        <span class="n">counts</span> <span class="o">=</span> <span class="n">n_rots_for_gbt</span>
-        <span class="c1"># Reuse the synchronized total so these kernels need not infer it again.</span>
         <span class="n">gbt_for_rotamer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_gbt</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">poses</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
             <span class="n">counts</span><span class="p">,</span>
@@ -778,7 +830,11 @@
 
         <span class="n">rot_bt</span> <span class="o">=</span> <span class="n">bt_for_gbt</span><span class="p">[</span><span class="n">gbt_for_rotamer</span><span class="p">]</span>
         <span class="n">chi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">chi1</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">cache</span><span class="p">[</span><span class="s2">"proton"</span><span class="p">][</span><span class="n">rot_bt</span><span class="p">,</span> <span class="n">combo_slot</span><span class="p">]],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span>
+            <span class="p">[</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">chi1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+                <span class="n">cache</span><span class="p">[</span><span class="s2">"proton"</span><span class="p">][</span><span class="n">rot_bt</span><span class="p">,</span> <span class="n">combo_slot</span><span class="p">],</span>
+            <span class="p">],</span>
+            <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="p">(</span>
             <span class="n">n_rots_for_gbt</span><span class="p">,</span>
@@ -787,6 +843,16 @@
             <span class="n">chi</span><span class="p">,</span>
         <span class="p">)</span></div>
 
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_expanded_samples</span><span class="p">(</span><span class="n">samp</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""A proton chi's samples in radians, each with its expansions either side."""</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">samp</span><span class="o">.</span><span class="n">samples</span><span class="p">:</span>
+        <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">expansion</span> <span class="ow">in</span> <span class="n">samp</span><span class="o">.</span><span class="n">expansions</span><span class="p">:</span>
+            <span class="n">values</span><span class="o">.</span><span class="n">extend</span><span class="p">((</span><span class="n">sample</span> <span class="o">+</span> <span class="n">expansion</span><span class="p">,</span> <span class="n">sample</span> <span class="o">-</span> <span class="n">expansion</span><span class="p">))</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">))</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_proton_combinations</span><span class="p">(</span><span class="n">proton_chi</span><span class="p">):</span>

@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -609,6 +633,51 @@
             <span class="n">inter_residue_connections64</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inter_residue_connections64</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
             <span class="n">inter_block_bondsep</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inter_block_bondsep</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
             <span class="n">inter_block_bondsep64</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inter_block_bondsep64</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
+            <span class="n">block_type_ind</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
+            <span class="n">block_type_ind64</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
+            <span class="n">chain_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">chain_id</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
+            <span class="n">chain_id64</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">chain_id64</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
+            <span class="n">pdb_info</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pdb_info</span><span class="p">,</span>
+            <span class="n">constraint_set</span><span class="o">=</span><span class="n">new_constraint_set</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">split_block_mapping</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">split_block_mapping</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PoseStack.clone_sharing_topology">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PoseStack.clone_sharing_topology">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clone_sharing_topology</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"PoseStack"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Copy per-pose state but share this stack's immutable bond topology.</span>
+
+<span class="sd">        :py:meth:`clone` deep-copies every tensor, including</span>
+<span class="sd">        ``inter_block_bondsep``, whose size grows as</span>
+<span class="sd">        ``n_poses * max_n_blocks**2 * max_n_conn**2``. For large assemblies</span>
+<span class="sd">        that single copy dominates peak memory even though nothing ever</span>
+<span class="sd">        mutates it in place: the connection tensors are built once by</span>
+<span class="sd">        :py:class:`~tmol.pose.PoseStackBuilder` and thereafter only read.</span>
+
+<span class="sd">        Callers that vary coordinates while holding topology fixed -- the</span>
+<span class="sd">        FastRelax accept/restore loop, for example -- should use this instead.</span>
+<span class="sd">        Sharing is also what lets a rendered scoring module recognise the</span>
+<span class="sd">        result as the same topology and reuse its cached parameters.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">          A PoseStack whose coordinate and block state are independently</span>
+<span class="sd">          owned, and whose connection topology aliases this stack's.</span>
+<span class="sd">        """</span>
+        <span class="n">new_constraint_set</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">constraint_set</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">constraint_set</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">PoseStack</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">packed_block_types</span><span class="p">,</span>
+            <span class="n">coords</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
+            <span class="n">block_coord_offset</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">block_coord_offset</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
+            <span class="n">block_coord_offset64</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">block_coord_offset64</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
+            <span class="c1"># Shared, never mutated in place.</span>
+            <span class="n">inter_residue_connections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="p">,</span>
+            <span class="n">inter_residue_connections64</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inter_residue_connections64</span><span class="p">,</span>
+            <span class="n">inter_block_bondsep</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inter_block_bondsep</span><span class="p">,</span>
+            <span class="n">inter_block_bondsep64</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inter_block_bondsep64</span><span class="p">,</span>
             <span class="n">block_type_ind</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
             <span class="n">block_type_ind64</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
             <span class="n">chain_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">chain_id</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>

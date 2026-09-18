@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -423,7 +447,6 @@
     <span class="n">Tensor</span><span class="p">,</span>
     <span class="n">validate_args</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.tensor</span><span class="w"> </span><span class="kn">import</span> <span class="n">exclusive_cumsum1d</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">PackedBlockTypes</span><span class="p">,</span>
@@ -511,7 +534,7 @@
         <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
 
         <span class="n">gbt_for_rotamer</span> <span class="o">=</span> <span class="n">n_rots_for_gbt</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">as_tuple</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">n_rots_for_gbt</span><span class="p">,</span> <span class="n">gbt_for_rotamer</span><span class="p">,</span> <span class="p">{})</span></div>
+        <span class="k">return</span> <span class="p">(</span><span class="n">n_rots_for_gbt</span><span class="p">,</span> <span class="n">gbt_for_rotamer</span><span class="p">,</span> <span class="p">{</span><span class="s2">"copy_input_coordinates"</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span></div>
 
 
 <div class="viewcode-block" id="IncludeCurrentSampler.fill_dofs_for_samples">
@@ -567,66 +590,32 @@
     <span class="n">sampler_gbt_for_rotamer</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
     <span class="n">n_dof_atoms_offset_for_rot</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:]]:</span>
-    <span class="c1"># we want to copy from the orig_dofs tensor into the</span>
-    <span class="c1"># rot_dofs tensor for the "mainchain" atoms in the</span>
-    <span class="c1"># original residues into the appropriate positions</span>
-    <span class="c1"># for the rotamers thta we are building at those</span>
-    <span class="c1"># residues. This requires a good deal of reindexing.</span>
-
+    <span class="k">if</span> <span class="n">conf_inds_for_sampler</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">conf_inds_for_sampler</span><span class="p">,</span> <span class="n">conf_inds_for_sampler</span>
     <span class="n">pbt</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">packed_block_types</span>
-    <span class="n">n_rots_for_sampler</span> <span class="o">=</span> <span class="n">sampler_gbt_for_rotamer</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">types</span> <span class="o">=</span> <span class="n">poses</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">types</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+    <span class="n">counts</span><span class="o">.</span><span class="n">masked_fill_</span><span class="p">(</span><span class="n">types</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">source_offsets</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">counts</span>
+    <span class="n">considered</span> <span class="o">=</span> <span class="n">gbt_for_rot</span><span class="p">[</span><span class="n">conf_inds_for_sampler</span><span class="p">]</span>
+    <span class="n">residues</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">global_block_ind_for_considered_block_types</span><span class="p">[</span><span class="n">considered</span><span class="p">]</span>
+    <span class="n">target_offsets</span> <span class="o">=</span> <span class="n">n_dof_atoms_offset_for_rot</span><span class="p">[</span><span class="n">conf_inds_for_sampler</span><span class="p">]</span>
+    <span class="n">source_minus_target</span> <span class="o">=</span> <span class="n">source_offsets</span><span class="p">[</span><span class="n">residues</span><span class="p">]</span> <span class="o">-</span> <span class="n">target_offsets</span>
+    <span class="k">del</span> <span class="n">considered</span><span class="p">,</span> <span class="n">residues</span><span class="p">,</span> <span class="n">types</span><span class="p">,</span> <span class="n">counts</span><span class="p">,</span> <span class="n">source_offsets</span>
+    <span class="n">sizes</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">block_type_ind_for_rot</span><span class="p">[</span><span class="n">conf_inds_for_sampler</span><span class="p">]]</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+    <span class="n">packed_offsets</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">sizes</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">sizes</span>
 
-    <span class="n">orig_block_type_ind</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">poses</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">[</span><span class="n">poses</span><span class="o">.</span><span class="n">block_type_ind</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-    <span class="p">)</span>
-    <span class="n">orig_dof_atom_offset</span> <span class="o">=</span> <span class="n">exclusive_cumsum1d</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">orig_block_type_ind</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">int64</span>
-    <span class="p">)</span>  <span class="c1"># TO DO: pass this in as an input parameter as each Sampler needs it</span>
-
-    <span class="c1"># TO DO: make this an argument and pass it in</span>
-    <span class="n">poses_res_to_real_poses_res</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-        <span class="p">(</span><span class="n">poses</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">poses</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],),</span>
-        <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
-        <span class="n">device</span><span class="o">=</span><span class="n">poses</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">poses_res_to_real_poses_res</span><span class="p">[</span><span class="n">poses</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
-        <span class="n">orig_block_type_ind</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">poses</span><span class="o">.</span><span class="n">device</span>
-    <span class="p">)</span>
-
-    <span class="c1"># get the residue index for each rotamer</span>
-    <span class="n">res_ind_for_gbt</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">global_block_ind_for_considered_block_types</span>
-
-    <span class="n">gbt_for_samplers_rots</span> <span class="o">=</span> <span class="n">gbt_for_rot</span><span class="p">[</span><span class="n">conf_inds_for_sampler</span><span class="p">]</span>
-    <span class="n">res_ind_for_samplers_rots</span> <span class="o">=</span> <span class="n">res_ind_for_gbt</span><span class="p">[</span><span class="n">gbt_for_samplers_rots</span><span class="p">]</span>
-    <span class="n">block_type_ind_for_samplers_rots</span> <span class="o">=</span> <span class="n">block_type_ind_for_rot</span><span class="p">[</span><span class="n">conf_inds_for_sampler</span><span class="p">]</span>
-
-    <span class="c1"># find the number of atoms for each rotamer / orig_res</span>
-    <span class="n">orig_res_n_atoms</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">block_type_ind_for_samplers_rots</span><span class="p">]</span>
-
-    <span class="c1"># now lets note which atoms are real</span>
-    <span class="n">dummy_rotamer_atom_inds</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">poses</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_rots_for_sampler</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="p">)</span>
-    <span class="n">atom_is_real_for_rot</span> <span class="o">=</span> <span class="n">dummy_rotamer_atom_inds</span> <span class="o">&lt;</span> <span class="n">orig_res_n_atoms</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span>
-        <span class="mi">1</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_rots_for_sampler</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">)</span>
-    <span class="n">orig_atom_inds</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">orig_dof_atom_offset</span><span class="p">[</span><span class="n">poses_res_to_real_poses_res</span><span class="p">[</span><span class="n">res_ind_for_samplers_rots</span><span class="p">]]</span>
-        <span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">)</span>
-        <span class="o">+</span> <span class="n">dummy_rotamer_atom_inds</span>
-    <span class="p">)[</span><span class="n">atom_is_real_for_rot</span><span class="p">]</span>
-
-    <span class="n">rot_atom_inds</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">n_dof_atoms_offset_for_rot</span><span class="p">[</span><span class="n">conf_inds_for_sampler</span><span class="p">]</span>
-        <span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">)</span>
-        <span class="o">+</span> <span class="n">dummy_rotamer_atom_inds</span>
-    <span class="p">)[</span><span class="n">atom_is_real_for_rot</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">rot_atom_inds</span><span class="p">,</span> <span class="n">orig_atom_inds</span>
+    <span class="c1"># The one-argument form returns each conformer's index once per atom.</span>
+    <span class="c1"># Work scales with copied atoms, independent of unrelated large types.</span>
+    <span class="n">source</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">sizes</span><span class="p">)</span>
+    <span class="n">destination</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">numel</span><span class="p">(),</span> <span class="n">device</span><span class="o">=</span><span class="n">poses</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">destination</span><span class="o">.</span><span class="n">add_</span><span class="p">((</span><span class="n">target_offsets</span> <span class="o">-</span> <span class="n">packed_offsets</span><span class="p">)[</span><span class="n">source</span><span class="p">])</span>
+    <span class="c1"># Reuse the fresh conformer-index buffer for source atom indices. Neither</span>
+    <span class="c1"># input metadata nor DOFs are modified, and no padded atom matrix is built.</span>
+    <span class="n">source</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">source_minus_target</span><span class="p">[</span><span class="n">source</span><span class="p">])</span>
+    <span class="n">source</span><span class="o">.</span><span class="n">add_</span><span class="p">(</span><span class="n">destination</span><span class="p">)</span>
+    <span class="c1"># These exclude the virtual-root row; the caller adds one to both indices.</span>
+    <span class="k">return</span> <span class="n">destination</span><span class="p">,</span> <span class="n">source</span>
 </pre></div>
 
                 </article>

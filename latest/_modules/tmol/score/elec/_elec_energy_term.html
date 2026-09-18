@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -421,9 +445,16 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.._atom_type_dependent_term</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomTypeDependentTerm</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.._bond_dependent_term</span><span class="w"> </span><span class="kn">import</span> <span class="n">BondDependentTerm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._annotation_cache</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AnnotationKey</span><span class="p">,</span>
+    <span class="n">cached_annotation</span><span class="p">,</span>
+    <span class="n">latest_annotation</span><span class="p">,</span>
+    <span class="n">store_annotation</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.elec</span><span class="w"> </span><span class="kn">import</span> <span class="n">ElecParamResolver</span><span class="p">,</span> <span class="n">ElecGlobalParams</span>
@@ -432,6 +463,32 @@
     <span class="n">PackedBlockTypes</span><span class="p">,</span>
     <span class="n">PoseStack</span><span class="p">,</span>
 <span class="p">)</span>
+
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_BlockGeometry</span><span class="p">:</span>
+    <span class="n">representatives</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span>
+    <span class="n">inter</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span>
+    <span class="n">intra</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span>
+
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_BlockParameters</span><span class="p">:</span>
+    <span class="n">charges</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span>
+    <span class="n">geometry</span><span class="p">:</span> <span class="n">_BlockGeometry</span>
+    <span class="c1"># The intra count-pair rule rewrites ligand-typed 1-4 pairs, so the geometry</span>
+    <span class="c1"># describes one genbonded database and cannot be reused against another.</span>
+    <span class="n">rosetta_typed</span><span class="p">:</span> <span class="nb">frozenset</span>
+
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_PackedParameters</span><span class="p">:</span>
+    <span class="n">rosetta_typed</span><span class="p">:</span> <span class="nb">frozenset</span>
+    <span class="n">charges</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">inter</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">intra</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">all_ligand_typed</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="n">block_geometry</span><span class="p">:</span> <span class="nb">tuple</span>
 
 
 <div class="viewcode-block" id="ElecEnergyTerm">
@@ -447,11 +504,26 @@
         <span class="nb">super</span><span class="p">(</span><span class="n">ElecEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">param_db</span><span class="o">=</span><span class="n">param_db</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">param_resolver</span> <span class="o">=</span> <span class="n">param_resolver</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_resolver</span><span class="o">.</span><span class="n">global_params</span>
-        <span class="c1"># The cutoff/smoothing coefficients depend only on the parameter</span>
-        <span class="c1"># database. Computing them from CUDA scalar tensors synchronizes the</span>
-        <span class="c1"># stream, so retain the first exact result for subsequent renders.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rosetta_typed</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">genbonded</span><span class="o">.</span><span class="n">rosetta_typed</span><span class="p">)</span>
+        <span class="c1"># One most-recent annotation per BT/PBT. A weak owner reference cannot</span>
+        <span class="c1"># alias a reused id or keep old parameter databases alive.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">elec_database</span> <span class="o">=</span> <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">elec</span>
+        <span class="c1"># genbonded belongs here as well as in the packed key below: the intra</span>
+        <span class="c1"># count-pair rule now reads rosetta_typed, so two terms differing only in</span>
+        <span class="c1"># their genbonded database must not share a block annotation. Evolving</span>
+        <span class="c1"># genbonded leaves scoring.elec the same object, so an elec-only key</span>
+        <span class="c1"># cannot tell them apart and the second term silently inherits the</span>
+        <span class="c1"># first's 1-4 encoding.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">elec_database</span><span class="p">,</span> <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">genbonded</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_packed_annotation_key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">elec_database</span><span class="p">,</span>
+            <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">genbonded</span><span class="p">,</span>
+            <span class="n">settings</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,),</span>
+        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_scoring_global_params</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_max_dis</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_max_dis</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">elec_database</span><span class="o">.</span><span class="n">global_parameters</span><span class="o">.</span><span class="n">elec_max_dis</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">class_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
@@ -468,101 +540,124 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_block_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_type</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">ElecEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"elec_inter_repr_path_distance"</span><span class="p">):</span>
-            <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"elec_intra_repr_path_distance"</span><span class="p">)</span>
-            <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"elec_partial_charge"</span><span class="p">)</span>
-            <span class="k">return</span>
-
-        <span class="c1"># fd let's try not to grab data members from the param resolver ...</span>
-
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+            <span class="n">block_type</span><span class="p">,</span> <span class="s2">"_elec_annotation"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cached</span>
+        <span class="n">previous</span> <span class="o">=</span> <span class="n">latest_annotation</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"_elec_annotation"</span><span class="p">)</span>
         <span class="n">partial_charge</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_resolver</span><span class="o">.</span><span class="n">get_partial_charges_for_block</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
-
-        <span class="c1"># count pair representative logic:</span>
-        <span class="c1"># decide whether or not two atoms i and j should have their interaction counted</span>
-        <span class="c1"># on the basis of the number of chemical bonds that separate their respective</span>
-        <span class="c1"># representative atoms r(i) and r(j).</span>
-        <span class="c1"># We will create a tensor to measure the distance of all representative atoms</span>
-        <span class="c1"># to all connection atoms:</span>
-        <span class="c1"># Let rpd be the acronym for "representative_path_distance"</span>
-        <span class="c1"># inter_rpd[a,b] will be the number of chemical bonds between atom a and</span>
-        <span class="c1"># atom r(b). Then we can answer how far apart the representative atoms are for</span>
-        <span class="c1"># atoms i and j on residues k and l by computing:</span>
-        <span class="c1"># min(ci cj, inter_rpd_k[ck, i] + inter_rpd_l[cl, j] + sep(ck, cl))</span>
-        <span class="c1"># over all pairs of connection atoms ck and cl on residues k and l.</span>
-        <span class="c1"># The second tensor intra_rpd[a,b] will hold path_dist[rep(a), rep(b)] so that</span>
-        <span class="c1"># it can be looked up directly in the intra-block energy evaluation step</span>
         <span class="n">representative_mapping</span> <span class="o">=</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">param_resolver</span><span class="o">.</span><span class="n">get_bonded_path_length_mapping_for_block</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
         <span class="p">)</span>
-
-        <span class="n">inter_rep_path_dist</span> <span class="o">=</span> <span class="n">block_type</span><span class="o">.</span><span class="n">path_distance</span><span class="p">[:,</span> <span class="n">representative_mapping</span><span class="p">]</span>
-        <span class="n">intra_rep_path_dist</span> <span class="o">=</span> <span class="n">inter_rep_path_dist</span><span class="p">[</span><span class="n">representative_mapping</span><span class="p">,</span> <span class="p">:]</span>
-
-        <span class="c1"># Ligands (non-polymer residues) use CP_CROSSOVER_3FULL: 1-4 pairs get</span>
-        <span class="c1"># full weight (1.0) rather than the standard 0.2. Encode these pairs as</span>
-        <span class="c1"># distance 5 so connectivity_weight() returns 1.0 without C++ changes.</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">block_type</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">is_polymer</span><span class="p">:</span>
-            <span class="n">intra_rep_path_dist</span> <span class="o">=</span> <span class="n">intra_rep_path_dist</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-            <span class="c1"># CP_CROSSOVER_3FULL: path_dist &gt;= 3 bonds counts at weight 1.0.</span>
-            <span class="c1"># Encode path_dist 3 and 4 as 5 so connectivity_weight returns 1.0.</span>
-            <span class="n">intra_rep_path_dist</span><span class="p">[</span>
-                <span class="p">(</span><span class="n">intra_rep_path_dist</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">intra_rep_path_dist</span> <span class="o">==</span> <span class="mi">4</span><span class="p">)</span>
-            <span class="p">]</span> <span class="o">=</span> <span class="mi">5</span>
-
+        <span class="c1"># latest_annotation returns the newest snapshot regardless of key, so the</span>
+        <span class="c1"># genbonded component of _block_annotation_key does not reach here;</span>
+        <span class="c1"># compare it explicitly or a term built on a different genbonded database</span>
+        <span class="c1"># silently inherits this one's 1-4 encoding.</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">previous</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="n">previous</span><span class="o">.</span><span class="n">rosetta_typed</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">rosetta_typed</span>
+            <span class="ow">and</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span>
+                <span class="n">representative_mapping</span><span class="p">,</span> <span class="n">previous</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">representatives</span>
+            <span class="p">)</span>
+        <span class="p">):</span>
+            <span class="n">geometry</span> <span class="o">=</span> <span class="n">previous</span><span class="o">.</span><span class="n">geometry</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># inter[a,b] = path_dist[a, rep(b)]; intra[a,b] =</span>
+            <span class="c1"># path_dist[rep(a), rep(b)]. Reuse these quadratic arrays when</span>
+            <span class="c1"># only charges change. Advanced indexing already owns the arrays.</span>
+            <span class="n">inter</span> <span class="o">=</span> <span class="n">block_type</span><span class="o">.</span><span class="n">path_distance</span><span class="p">[:,</span> <span class="n">representative_mapping</span><span class="p">]</span>
+            <span class="n">intra</span> <span class="o">=</span> <span class="n">inter</span><span class="p">[</span><span class="n">representative_mapping</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="c1"># Full weight for 3/4-bond paths between ligand-typed atoms, keyed</span>
+            <span class="c1"># on the atoms rather than on the residue -- the same convention</span>
+            <span class="c1"># ljlk uses, and elec's own inter rule. A noncanonical with a</span>
+            <span class="c1"># ligand-typed sidechain is still a polymer, so a residue-level</span>
+            <span class="c1"># test left ljlk weighting such a 1-4 pair at 1.0 while elec</span>
+            <span class="c1"># weighted it at 0.2.</span>
+            <span class="n">ligand</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">atom_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rosetta_typed</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">block_type</span><span class="o">.</span><span class="n">atoms</span><span class="p">],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">both</span> <span class="o">=</span> <span class="n">ligand</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">&amp;</span> <span class="n">ligand</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">intra</span><span class="p">[</span><span class="n">both</span> <span class="o">&amp;</span> <span class="p">((</span><span class="n">intra</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">intra</span> <span class="o">==</span> <span class="mi">4</span><span class="p">))]</span> <span class="o">=</span> <span class="mi">5</span>
+            <span class="n">geometry</span> <span class="o">=</span> <span class="n">_BlockGeometry</span><span class="p">(</span><span class="n">representative_mapping</span><span class="p">,</span> <span class="n">inter</span><span class="p">,</span> <span class="n">intra</span><span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"elec_partial_charge"</span><span class="p">,</span> <span class="n">partial_charge</span><span class="p">)</span>
-        <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"elec_inter_repr_path_distance"</span><span class="p">,</span> <span class="n">inter_rep_path_dist</span><span class="p">)</span>
-        <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"elec_intra_repr_path_distance"</span><span class="p">,</span> <span class="n">intra_rep_path_dist</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"elec_inter_repr_path_distance"</span><span class="p">,</span> <span class="n">geometry</span><span class="o">.</span><span class="n">inter</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"elec_intra_repr_path_distance"</span><span class="p">,</span> <span class="n">geometry</span><span class="o">.</span><span class="n">intra</span><span class="p">)</span>
+        <span class="n">annotation</span> <span class="o">=</span> <span class="n">_BlockParameters</span><span class="p">(</span><span class="n">partial_charge</span><span class="p">,</span> <span class="n">geometry</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rosetta_typed</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+            <span class="n">block_type</span><span class="p">,</span>
+            <span class="s2">"_elec_annotation"</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span><span class="p">,</span>
+            <span class="n">annotation</span><span class="p">,</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">(</span>
+                <span class="s2">"elec_partial_charge"</span><span class="p">,</span>
+                <span class="s2">"elec_inter_repr_path_distance"</span><span class="p">,</span>
+                <span class="s2">"elec_intra_repr_path_distance"</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_packed_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">ElecEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_packed_block_types</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"elec_inter_repr_path_distance"</span><span class="p">):</span>
-            <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"elec_intra_repr_path_distance"</span><span class="p">)</span>
-            <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"elec_partial_charge"</span><span class="p">)</span>
-            <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"elec_is_ligand_fragment"</span><span class="p">)</span>
-            <span class="k">return</span>
-
         <span class="n">pbt</span> <span class="o">=</span> <span class="n">packed_block_types</span>
-        <span class="n">elec_partial_charge</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span>
-        <span class="p">)</span>
-        <span class="n">elec_inter_repr_path_distance</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">elec_intra_repr_path_distance</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"_elec_annotation"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_packed_annotation_key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cached</span>
+        <span class="n">previous</span> <span class="o">=</span> <span class="n">latest_annotation</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"_elec_annotation"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">previous</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="n">previous</span><span class="o">.</span><span class="n">all_ligand_typed</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span>
+            <span class="ow">or</span> <span class="n">previous</span><span class="o">.</span><span class="n">rosetta_typed</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rosetta_typed</span>
+        <span class="p">):</span>
+            <span class="c1"># latest_annotation returns the newest entry without comparing the</span>
+            <span class="c1"># key, so nothing above guarantees it was staged for this device or</span>
+            <span class="c1"># this genbonded database. The intra count-pair rule reads</span>
+            <span class="c1"># rosetta_typed, so an entry from a different one describes</span>
+            <span class="c1"># different chemistry and none of it may be reused.</span>
+            <span class="n">previous</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">block_parameters</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">]</span>
+        <span class="n">geometry</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">geometry</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">block_parameters</span><span class="p">)</span>
+        <span class="n">reuse_geometry</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">previous</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">geometry</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">previous</span><span class="o">.</span><span class="n">block_geometry</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="n">a</span> <span class="ow">is</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">geometry</span><span class="p">,</span> <span class="n">previous</span><span class="o">.</span><span class="n">block_geometry</span><span class="p">))</span>
         <span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
-            <span class="n">n_atoms</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span>
-            <span class="n">elec_partial_charge</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">n_atoms</span><span class="p">]</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">elec_partial_charge</span>
-            <span class="n">elec_inter_repr_path_distance</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">n_atoms</span><span class="p">,</span> <span class="p">:</span><span class="n">n_atoms</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">bt</span><span class="o">.</span><span class="n">elec_inter_repr_path_distance</span>
-            <span class="p">)</span>
-            <span class="n">elec_intra_repr_path_distance</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">n_atoms</span><span class="p">,</span> <span class="p">:</span><span class="n">n_atoms</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">bt</span><span class="o">.</span><span class="n">elec_intra_repr_path_distance</span>
-            <span class="p">)</span>
-
-        <span class="nb">setattr</span><span class="p">(</span>
-            <span class="n">packed_block_types</span><span class="p">,</span>
-            <span class="s2">"elec_partial_charge"</span><span class="p">,</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">elec_partial_charge</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+        <span class="c1"># Stage once on the host, retaining geometry tensors when only charges change.</span>
+        <span class="n">charges</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">reuse_geometry</span><span class="p">:</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span><span class="p">)</span>
+            <span class="n">inter</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="n">intra</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">bt</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">,</span> <span class="n">block_parameters</span><span class="p">)):</span>
+            <span class="n">charges</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">charges</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">reuse_geometry</span><span class="p">:</span>
+                <span class="n">inter</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span> <span class="p">:</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">inter</span>
+                <span class="n">intra</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span> <span class="p">:</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">intra</span>
+        <span class="n">elec_partial_charge</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">charges</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">elec_inter_repr_path_distance</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">previous</span><span class="o">.</span><span class="n">inter</span>
+            <span class="k">if</span> <span class="n">reuse_geometry</span>
+            <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">inter</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="p">)</span>
-        <span class="nb">setattr</span><span class="p">(</span>
-            <span class="n">packed_block_types</span><span class="p">,</span>
-            <span class="s2">"elec_is_ligand_fragment"</span><span class="p">,</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
-                <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
-                    <span class="p">[</span>
-                        <span class="n">bt</span><span class="o">.</span><span class="n">is_ligand_fragment</span>
-                        <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
-                    <span class="p">],</span>
-                    <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-                <span class="p">),</span>
+        <span class="n">elec_intra_repr_path_distance</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">previous</span><span class="o">.</span><span class="n">intra</span>
+            <span class="k">if</span> <span class="n">reuse_geometry</span>
+            <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">intra</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">pbt</span><span class="o">.</span><span class="n">elec_partial_charge</span> <span class="o">=</span> <span class="n">elec_partial_charge</span>
+        <span class="n">all_ligand_typed</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">previous</span><span class="o">.</span><span class="n">all_ligand_typed</span>
+            <span class="k">if</span> <span class="n">previous</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">previous</span><span class="o">.</span><span class="n">rosetta_typed</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">rosetta_typed</span>
+            <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="nb">all</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">atom_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rosetta_typed</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">bt</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+                <span class="p">],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
                 <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-            <span class="p">),</span>
+            <span class="p">)</span>
         <span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"elec_all_atoms_ligand_typed"</span><span class="p">,</span> <span class="n">all_ligand_typed</span><span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span>
             <span class="n">packed_block_types</span><span class="p">,</span>
             <span class="s2">"elec_inter_repr_path_distance"</span><span class="p">,</span>
@@ -572,6 +667,35 @@
             <span class="n">packed_block_types</span><span class="p">,</span>
             <span class="s2">"elec_intra_repr_path_distance"</span><span class="p">,</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">elec_intra_repr_path_distance</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">annotation</span> <span class="o">=</span> <span class="n">_PackedParameters</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rosetta_typed</span><span class="p">,</span>
+            <span class="n">elec_partial_charge</span><span class="p">,</span>
+            <span class="n">elec_inter_repr_path_distance</span><span class="p">,</span>
+            <span class="n">elec_intra_repr_path_distance</span><span class="p">,</span>
+            <span class="n">all_ligand_typed</span><span class="p">,</span>
+            <span class="n">geometry</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+            <span class="n">pbt</span><span class="p">,</span>
+            <span class="s2">"_elec_annotation"</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_packed_annotation_key</span><span class="p">,</span>
+            <span class="n">annotation</span><span class="p">,</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">(</span>
+                <span class="s2">"elec_partial_charge"</span><span class="p">,</span>
+                <span class="s2">"elec_inter_repr_path_distance"</span><span class="p">,</span>
+                <span class="s2">"elec_intra_repr_path_distance"</span><span class="p">,</span>
+                <span class="s2">"elec_all_atoms_ligand_typed"</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">bindings</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">block_type</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span>
+                <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">(</span>
+                    <span class="s2">"elec_partial_charge"</span><span class="p">,</span>
+                    <span class="s2">"elec_inter_repr_path_distance"</span><span class="p">,</span>
+                    <span class="s2">"elec_intra_repr_path_distance"</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">),</span>
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_poses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
@@ -600,11 +724,11 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_score_term_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scoring_global_params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">D</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">elec_sigmoidal_die_D</span>
-            <span class="n">D0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">elec_sigmoidal_die_D0</span>
-            <span class="n">S</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">elec_sigmoidal_die_S</span>
-            <span class="n">min_dis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">elec_min_dis</span>
-            <span class="n">max_dis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">elec_max_dis</span>
+            <span class="n">D</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">elec_database</span><span class="o">.</span><span class="n">global_parameters</span><span class="o">.</span><span class="n">elec_sigmoidal_die_D</span><span class="p">)</span>
+            <span class="n">D0</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">elec_database</span><span class="o">.</span><span class="n">global_parameters</span><span class="o">.</span><span class="n">elec_sigmoidal_die_D0</span><span class="p">)</span>
+            <span class="n">S</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">elec_database</span><span class="o">.</span><span class="n">global_parameters</span><span class="o">.</span><span class="n">elec_sigmoidal_die_S</span><span class="p">)</span>
+            <span class="n">min_dis</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">elec_database</span><span class="o">.</span><span class="n">global_parameters</span><span class="o">.</span><span class="n">elec_min_dis</span><span class="p">)</span>
+            <span class="n">max_dis</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">elec_database</span><span class="o">.</span><span class="n">global_parameters</span><span class="o">.</span><span class="n">elec_max_dis</span><span class="p">)</span>
 
             <span class="k">def</span><span class="w"> </span><span class="nf">eps</span><span class="p">(</span><span class="n">dist</span><span class="p">):</span>
                 <span class="k">return</span> <span class="n">D</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">D</span> <span class="o">-</span> <span class="n">D0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span>
@@ -654,17 +778,20 @@
                 <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
             <span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_max_dis</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">max_dis</span><span class="p">)</span>
+        <span class="c1"># Capture this term's tables even after another database used the PBT.</span>
+        <span class="c1"># Previously rendered modules retain their original tensor references.</span>
+        <span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">setup_packed_block_types</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="p">[</span>
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">min_block_bondsep</span><span class="p">,</span>
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_block_bondsep</span><span class="p">,</span>
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span>
-            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">elec_partial_charge</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">.</span><span class="n">charges</span><span class="p">,</span>
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_conn</span><span class="p">,</span>
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">conn_atom</span><span class="p">,</span>
-            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">elec_inter_repr_path_distance</span><span class="p">,</span>
-            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">elec_intra_repr_path_distance</span><span class="p">,</span>
-            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">elec_is_ligand_fragment</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">.</span><span class="n">inter</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">.</span><span class="n">intra</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">.</span><span class="n">all_ligand_typed</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_scoring_global_params</span><span class="p">,</span>
             <span class="c1"># elec_max_dis as host scalar for detect-neighbors call</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_max_dis</span><span class="p">,</span>

@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -426,8 +450,23 @@
     <span class="n">validate_args</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.dunbrack</span><span class="w"> </span><span class="kn">import</span> <span class="n">DunbrackParamResolver</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score._annotation_cache</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AnnotationKey</span><span class="p">,</span>
+    <span class="n">cached_annotation</span><span class="p">,</span>
+    <span class="n">store_annotation</span><span class="p">,</span>
+<span class="p">)</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChiSampler</span>  <span class="c1"># noqa F401</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ChiSampler</span><span class="p">,</span>
+    <span class="n">sc_roots_for_chis</span><span class="p">,</span>
+    <span class="n">construct_single_residue_kinforest</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack._packer_task</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEFAULT_CHI_SAMPLE_LIMIT</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer._chi_budget</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">apply_chi_sample_budget</span><span class="p">,</span>
+    <span class="n">chi_depths</span><span class="p">,</span>
+    <span class="n">sampler_for_task</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 
@@ -452,7 +491,8 @@
     <span class="n">chi_defining_atom</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
     <span class="n">non_dunbrack_sample_counts</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="mi">2</span><span class="p">]</span>
     <span class="n">non_dunbrack_samples</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">:]</span>
-    <span class="n">rottable_set_for_bt</span><span class="p">:</span> <span class="nb">int</span></div>
+    <span class="n">rottable_set_for_bt</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">frozen_chi</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="p">()</span></div>
 
 
 
@@ -470,6 +510,7 @@
     <span class="n">non_dunbrack_samples</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">:]</span>
     <span class="n">defines_rotamers_for_bts</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:]</span>
     <span class="n">rottable_set_for_bt</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:]</span>
+    <span class="n">frozen_chi</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="p">()</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">max_n_chi</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -477,29 +518,62 @@
 
 
 
-<span class="c1"># I can't use attr here because the DunbrackParamResolver contains the</span>
-<span class="c1"># mutable datatype of a Pandas DataFrame. This might make it seem like</span>
-<span class="c1"># using a DunbrackChiSampler in a set is dangerous; however, the</span>
-<span class="c1"># ParamResolver is singleton-esq in that, when it is constructed from</span>
-<span class="c1"># a dunbrack database (identified by the database's path), it is</span>
-<span class="c1"># memoized. So each database should construct one and only one</span>
-<span class="c1"># ParamResolver.</span>
-<span class="c1"># @attr.s(auto_attribs=True, slots=True, frozen=True)</span>
 <div class="viewcode-block" id="DunbrackChiSampler">
 <a class="viewcode-back" href="../../../../../api/pack.html#tmol.pack.rotamer.dunbrack.DunbrackChiSampler">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">DunbrackChiSampler</span><span class="p">(</span><span class="n">ChiSampler</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Sample amino-acid side-chain conformers from Dunbrack libraries."""</span>
 
     <span class="n">dun_param_resolver</span><span class="p">:</span> <span class="n">DunbrackParamResolver</span>
+    <span class="c1"># Existing canonical proton grids exceed the generic expansion threshold.</span>
+    <span class="c1"># Retain them while bounding supplemental products; explicit tasks override both.</span>
+    <span class="n">chi_sample_expanded_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_CHI_SAMPLE_LIMIT</span>
+    <span class="n">chi_sample_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_CHI_SAMPLE_LIMIT</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__hash__</span><span class="p">()</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="fm">__hash__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">DunbrackChiSampler</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dun_param_resolver</span> <span class="ow">is</span> <span class="n">other</span><span class="o">.</span><span class="n">dun_param_resolver</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_sample_expanded_limit</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">chi_sample_expanded_limit</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_sample_limit</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">chi_sample_limit</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dun_param_resolver</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dun_param_resolver</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">chi_sample_expanded_limit</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">chi_sample_limit</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dun_param_resolver</span><span class="p">:</span> <span class="n">DunbrackParamResolver</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dun_param_resolver</span> <span class="o">=</span> <span class="n">dun_param_resolver</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">__attrs_post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_key</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_annotation_key</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">resolver</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dun_param_resolver</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_annotation_resolver"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">resolver</span><span class="p">:</span>
+            <span class="c1"># Resolver tables are immutable inputs. Keep small lookup metadata</span>
+            <span class="c1"># on the host instead of creating/synchronizing a tensor per type.</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">resolver</span><span class="o">.</span><span class="n">all_table_indices</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">is_unique</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Dunbrack residue-to-library names must be unique"</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_library_indices</span> <span class="o">=</span> <span class="n">resolver</span><span class="o">.</span><span class="n">all_table_indices</span><span class="p">[</span>
+                <span class="s2">"dun_table_name"</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_nchi_for_table</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+                <span class="n">resolver</span><span class="o">.</span><span class="n">scoring_db_aux</span><span class="o">.</span><span class="n">nchi_for_table_set</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_library_sizes</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+                <span class="n">resolver</span><span class="o">.</span><span class="n">sampling_db</span><span class="o">.</span><span class="n">n_rotamers_for_tableset</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_resolver</span> <span class="o">=</span> <span class="n">resolver</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_settings</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">settings</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chi_sample_expanded_limit</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_sample_limit</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_settings</span> <span class="o">!=</span> <span class="n">settings</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_sampler_key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span><span class="n">resolver</span><span class="p">,</span> <span class="n">settings</span><span class="o">=</span><span class="n">settings</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_settings</span> <span class="o">=</span> <span class="n">settings</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sampler_key</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">device</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -517,20 +591,20 @@
         <span class="k">return</span> <span class="s2">"DunbrackChiSampler"</span></div>
 
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_library_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lib_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Index of a rotamer library by name, or -1 if there is none."""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_key</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_library_indices</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">lib_name</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
 <div class="viewcode-block" id="DunbrackChiSampler.annotate_residue_type">
 <a class="viewcode-back" href="../../../../../api/pack.html#tmol.pack.rotamer.dunbrack.DunbrackChiSampler.annotate_residue_type">[docs]</a>
     <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">annotate_residue_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">restype</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>  <span class="c1"># noqa: C901</span>
 <span class="w">        </span><span class="sd">"""TEMP TEMP TEMP: assume the dihedrals we care about are phi and psi"""</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">restype</span><span class="p">,</span> <span class="s2">"dun_sampler_cache"</span><span class="p">):</span>
-            <span class="k">return</span>
-
-        <span class="c1"># n-bb-dihedrals = 2; n-atoms in a dihedral = 4; n-entries in a uaid  = 3</span>
-        <span class="n">uaids</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-        <span class="k">if</span> <span class="s2">"phi"</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">:</span>
-            <span class="n">uaids</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">restype</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">[</span><span class="s2">"phi"</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-        <span class="k">if</span> <span class="s2">"psi"</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">:</span>
-            <span class="n">uaids</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">restype</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">[</span><span class="s2">"psi"</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_key</span><span class="p">()</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span><span class="n">restype</span><span class="p">,</span> <span class="s2">"_dun_sampler_annotation"</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cached</span>
 
         <span class="c1"># ok; lets ask the appropriate library what chi it defines samples for</span>
         <span class="c1"># and also incorporate additional chi that the residue type itself</span>
@@ -538,17 +612,79 @@
         <span class="c1"># that the dunbrack library handles.</span>
         <span class="c1"># Strip away any patches and use the "base name" of the residue type to make</span>
         <span class="c1"># the "which library should I read from?" decision</span>
-        <span class="n">dun_lib_ind</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dun_param_resolver</span><span class="o">.</span><span class="n">_indices_from_names</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">dun_param_resolver</span><span class="o">.</span><span class="n">all_table_indices</span><span class="p">,</span>
-            <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">restype</span><span class="o">.</span><span class="n">base_name</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">),</span>
-            <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-        <span class="p">)[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="n">dun_lib_ind</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">n_chi</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dun_param_resolver</span><span class="o">.</span><span class="n">scoring_db_aux</span><span class="o">.</span><span class="n">nchi_for_table_set</span><span class="p">[</span>
-                <span class="n">dun_lib_ind</span>
-            <span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="c1"># fd  noncanonicals may borrow a canonical's rotamers (sampling only);</span>
+        <span class="c1">#     a d-amino acid has a mirrored library of its own, so its own name</span>
+        <span class="c1">#     is tried before any reference it carries</span>
+        <span class="n">dun_lib_ind</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_library_index</span><span class="p">(</span><span class="n">restype</span><span class="o">.</span><span class="n">base_name</span><span class="p">)</span>
+        <span class="n">borrowed</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">dun_lib_ind</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">restype</span><span class="o">.</span><span class="n">dunbrack_reference</span><span class="p">:</span>
+            <span class="n">dun_lib_ind</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_library_index</span><span class="p">(</span><span class="n">restype</span><span class="o">.</span><span class="n">dunbrack_reference</span><span class="p">)</span>
+            <span class="n">borrowed</span> <span class="o">=</span> <span class="n">dun_lib_ind</span> <span class="o">&gt;=</span> <span class="mi">0</span>
 
+        <span class="c1"># n-bb-dihedrals = 2; n-atoms in a dihedral = 4; n-entries in a uaid  = 3</span>
+        <span class="n">uaids</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="c1"># fd  a borrowed library was fit against an alpha backbone; on any other</span>
+        <span class="c1">#     backbone its phi/psi are not this residue's, so they are left</span>
+        <span class="c1">#     unresolved and the library is read at neutral phi/psi</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">borrowed</span> <span class="ow">and</span> <span class="n">restype</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">backbone_type</span> <span class="o">!=</span> <span class="s2">"alpha_aa"</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s2">"phi"</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">:</span>
+                <span class="n">uaids</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                    <span class="n">restype</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">[</span><span class="s2">"phi"</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="s2">"psi"</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">:</span>
+                <span class="n">uaids</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                    <span class="n">restype</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">[</span><span class="s2">"psi"</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span>
+                <span class="p">)</span>
+
+        <span class="c1"># a residue with no library still builds rotamers if it samples chi of</span>
+        <span class="c1">#    its own; the library supplies the leading n_chi and its own</span>
+        <span class="c1">#    samples supply the rest, so with no library it supplies them all</span>
+        <span class="n">n_chi</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nchi_for_table</span><span class="p">[</span><span class="n">dun_lib_ind</span><span class="p">]</span> <span class="k">if</span> <span class="n">dun_lib_ind</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="n">sampled</span> <span class="o">=</span> <span class="n">restype</span><span class="o">.</span><span class="n">chi_samples</span>
+        <span class="k">if</span> <span class="n">sampled</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">defines_rotamers_for_rt</span><span class="p">(</span><span class="n">restype</span><span class="p">):</span>
+            <span class="n">construct_single_residue_kinforest</span><span class="p">(</span><span class="n">restype</span><span class="p">)</span>
+            <span class="n">depths</span> <span class="o">=</span> <span class="n">chi_depths</span><span class="p">(</span>
+                <span class="n">restype</span><span class="o">.</span><span class="n">residue_kinforest_data</span><span class="p">,</span>
+                <span class="p">[</span><span class="n">restype</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">[</span><span class="n">cs</span><span class="o">.</span><span class="n">chi_dihedral</span><span class="p">][</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="n">sampled</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="c1"># Bound supplemental products before native enumeration. The full</span>
+            <span class="c1"># library size is a conservative bound on phi/psi-specific coverage;</span>
+            <span class="c1"># retain all selected library states even when a budget is smaller.</span>
+            <span class="n">library_size</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_library_sizes</span><span class="p">[</span><span class="n">dun_lib_ind</span><span class="p">])</span> <span class="k">if</span> <span class="n">dun_lib_ind</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">1</span>
+            <span class="p">)</span>
+            <span class="n">sampled</span> <span class="o">=</span> <span class="n">apply_chi_sample_budget</span><span class="p">(</span>
+                <span class="n">sampled</span><span class="p">,</span>
+                <span class="n">depths</span><span class="p">,</span>
+                <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_sample_expanded_limit</span> <span class="o">//</span> <span class="n">library_size</span><span class="p">),</span>
+                <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">chi_sample_limit</span> <span class="o">//</span> <span class="n">library_size</span><span class="p">),</span>
+                <span class="n">n_library_chi</span><span class="o">=</span><span class="n">n_chi</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">selected_names</span> <span class="o">=</span> <span class="p">{</span><span class="n">cs</span><span class="o">.</span><span class="n">chi_dihedral</span> <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="n">sampled</span><span class="p">}</span>
+        <span class="n">frozen_chi</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="n">cs</span><span class="o">.</span><span class="n">chi_dihedral</span>
+            <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">chi_samples</span>
+            <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">cs</span><span class="o">.</span><span class="n">chi_dihedral</span><span class="p">[</span><span class="mi">3</span><span class="p">:])</span> <span class="o">&gt;</span> <span class="n">n_chi</span>
+            <span class="ow">and</span> <span class="n">cs</span><span class="o">.</span><span class="n">chi_dihedral</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">selected_names</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">frozen_chi</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.numeric._dihedrals</span><span class="w"> </span><span class="kn">import</span> <span class="n">_numpy_coord_dihedrals</span>
+
+            <span class="n">ideal</span> <span class="o">=</span> <span class="n">restype</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">restype</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">chi_samples</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">cs</span><span class="o">.</span><span class="n">chi_dihedral</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">frozen_chi</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">atoms</span> <span class="o">=</span> <span class="p">[</span><span class="n">u</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">[</span><span class="n">cs</span><span class="o">.</span><span class="n">chi_dihedral</span><span class="p">]]</span>
+                <span class="n">angle</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="nb">float</span><span class="p">(</span><span class="n">_numpy_coord_dihedrals</span><span class="p">(</span><span class="o">*</span><span class="n">ideal</span><span class="p">[</span><span class="n">atoms</span><span class="p">]))</span>
+                    <span class="k">if</span> <span class="nb">min</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+                    <span class="k">else</span> <span class="n">numpy</span><span class="o">.</span><span class="n">nan</span>
+                <span class="p">)</span>
+                <span class="n">sampled</span> <span class="o">+=</span> <span class="p">(</span>
+                    <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">cs</span><span class="p">,</span> <span class="n">samples</span><span class="o">=</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">angle</span><span class="p">),),</span> <span class="n">expansions</span><span class="o">=</span><span class="p">()),</span>
+                <span class="p">)</span>
+        <span class="k">if</span> <span class="n">dun_lib_ind</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">restype</span><span class="o">.</span><span class="n">chi_samples</span><span class="p">:</span>
             <span class="n">n_chi_total</span> <span class="o">=</span> <span class="n">n_chi</span>
             <span class="k">for</span> <span class="n">rt_chi</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">chi_samples</span><span class="p">:</span>
                 <span class="n">chi_name</span> <span class="o">=</span> <span class="n">rt_chi</span><span class="o">.</span><span class="n">chi_dihedral</span>
@@ -570,16 +706,14 @@
                 <span class="n">restype</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">[</span><span class="n">chi_name</span><span class="p">][</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">chi_name</span> <span class="ow">in</span> <span class="n">chi_names</span>
             <span class="p">]</span>
 
-            <span class="k">if</span> <span class="n">restype</span><span class="o">.</span><span class="n">chi_samples</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">sampled</span><span class="p">:</span>
                 <span class="n">chi_inds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-                    <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">samp</span><span class="o">.</span><span class="n">chi_dihedral</span><span class="p">[</span><span class="mi">3</span><span class="p">:])</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">samp</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">chi_samples</span><span class="p">],</span>
+                    <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">samp</span><span class="o">.</span><span class="n">chi_dihedral</span><span class="p">[</span><span class="mi">3</span><span class="p">:])</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">samp</span> <span class="ow">in</span> <span class="n">sampled</span><span class="p">],</span>
                     <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">sort_inds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">chi_inds</span><span class="p">)</span>
                 <span class="n">chi_defining_atom</span><span class="p">[</span><span class="n">chi_inds</span><span class="p">[</span><span class="n">sort_inds</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span>
-                    <span class="n">restype</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">[</span><span class="n">restype</span><span class="o">.</span><span class="n">chi_samples</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span><span class="o">.</span><span class="n">chi_dihedral</span><span class="p">][</span><span class="mi">2</span><span class="p">][</span>
-                        <span class="mi">0</span>
-                    <span class="p">]</span>
+                    <span class="n">restype</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">[</span><span class="n">sampled</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span><span class="o">.</span><span class="n">chi_dihedral</span><span class="p">][</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
                     <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="n">sort_inds</span>
                 <span class="p">]</span>
 
@@ -587,7 +721,7 @@
                 <span class="p">(</span><span class="n">n_chi_total</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span>
             <span class="p">)</span>
             <span class="n">max_chi_samples</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="k">for</span> <span class="n">rt_chi</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">chi_samples</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">rt_chi</span> <span class="ow">in</span> <span class="n">sampled</span><span class="p">:</span>
                 <span class="n">chi_name</span> <span class="o">=</span> <span class="n">rt_chi</span><span class="o">.</span><span class="n">chi_dihedral</span>
                 <span class="k">assert</span> <span class="n">chi_name</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"chi"</span>
                 <span class="n">chi_ind</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">chi_name</span><span class="p">[</span><span class="mi">3</span><span class="p">:])</span> <span class="o">-</span> <span class="mi">1</span>
@@ -602,7 +736,7 @@
                 <span class="p">(</span><span class="n">n_chi_total</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">max_chi_samples</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span>
             <span class="p">)</span>
             <span class="n">deg_to_rad</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span>
-            <span class="k">for</span> <span class="n">rt_chi</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">chi_samples</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">rt_chi</span> <span class="ow">in</span> <span class="n">sampled</span><span class="p">:</span>
                 <span class="n">chi_name</span> <span class="o">=</span> <span class="n">rt_chi</span><span class="o">.</span><span class="n">chi_dihedral</span>
                 <span class="n">chi_ind</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">chi_name</span><span class="p">[</span><span class="mi">3</span><span class="p">:])</span> <span class="o">-</span> <span class="mi">1</span>
                 <span class="n">n_expansions</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">rt_chi</span><span class="o">.</span><span class="n">expansions</span><span class="p">)</span>
@@ -638,22 +772,31 @@
             <span class="n">non_dunbrack_sample_counts</span><span class="o">=</span><span class="n">non_dunbrack_sample_counts</span><span class="p">,</span>
             <span class="n">non_dunbrack_samples</span><span class="o">=</span><span class="n">non_dunbrack_samples</span><span class="p">,</span>
             <span class="n">rottable_set_for_bt</span><span class="o">=</span><span class="n">dun_lib_ind</span><span class="p">,</span>
+            <span class="n">frozen_chi</span><span class="o">=</span><span class="n">frozen_chi</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="nb">setattr</span><span class="p">(</span><span class="n">restype</span><span class="p">,</span> <span class="s2">"dun_sampler_cache"</span><span class="p">,</span> <span class="n">cache</span><span class="p">)</span></div>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">restype</span><span class="p">,</span> <span class="s2">"dun_sampler_cache"</span><span class="p">,</span> <span class="n">cache</span><span class="p">)</span>
+        <span class="c1"># sample_chi_for_poses reads the alias, not the returned snapshot, so a</span>
+        <span class="c1"># later cache hit has to restore it or one sampler reads another's tables.</span>
+        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+            <span class="n">restype</span><span class="p">,</span>
+            <span class="s2">"_dun_sampler_annotation"</span><span class="p">,</span>
+            <span class="n">key</span><span class="p">,</span>
+            <span class="n">cache</span><span class="p">,</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">(</span><span class="s2">"dun_sampler_cache"</span><span class="p">,),</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="DunbrackChiSampler.annotate_packed_block_types">
 <a class="viewcode-back" href="../../../../../api/pack.html#tmol.pack.rotamer.dunbrack.DunbrackChiSampler.annotate_packed_block_types">[docs]</a>
     <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">annotate_packed_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"dun_sampler_cache"</span><span class="p">):</span>
-            <span class="c1"># assert hasattr(packed_block_types, "dun_sampler_chi_defining_atom")</span>
-            <span class="k">return</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_key</span><span class="p">()</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"_dun_sampler_annotation"</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cached</span>
 
         <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="s2">"dun_sampler_cache"</span><span class="p">)</span>
-            <span class="c1"># assert hasattr(rt, "dun_sampler_bbdihe_uaids")</span>
-            <span class="c1"># assert hasattr(rt, "dun_sampler_chi_defining_atom")</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">annotate_residue_type</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span>
 
         <span class="n">uaids</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
             <span class="p">[</span>
@@ -731,29 +874,55 @@
             <span class="n">non_dunbrack_samples</span><span class="o">=</span><span class="n">_d</span><span class="p">(</span><span class="n">non_dunbrack_samples</span><span class="p">),</span>
             <span class="n">defines_rotamers_for_bts</span><span class="o">=</span><span class="n">_d</span><span class="p">(</span><span class="n">defines_rotamers_for_bts</span><span class="p">),</span>
             <span class="n">rottable_set_for_bt</span><span class="o">=</span><span class="n">_d</span><span class="p">(</span><span class="n">rottable_set_for_bt</span><span class="p">),</span>
+            <span class="n">frozen_chi</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span>
+                <span class="n">rt</span><span class="o">.</span><span class="n">dun_sampler_cache</span><span class="o">.</span><span class="n">frozen_chi</span>
+                <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+            <span class="p">),</span>
         <span class="p">)</span>
-        <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"dun_sampler_cache"</span><span class="p">,</span> <span class="n">cache</span><span class="p">)</span></div>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"dun_sampler_cache"</span><span class="p">,</span> <span class="n">cache</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="p">,</span>
+            <span class="s2">"_dun_sampler_annotation"</span><span class="p">,</span>
+            <span class="n">key</span><span class="p">,</span>
+            <span class="n">cache</span><span class="p">,</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">(</span><span class="s2">"dun_sampler_cache"</span><span class="p">,),</span>
+        <span class="p">)</span></div>
 
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_library_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Index of the rotamer library this residue type reads, or -1.</span>
+
+<span class="sd">        A residue with a library of its own uses it, under its own name: a</span>
+<span class="sd">        d-amino acid has a mirrored library, and reading the l one would give</span>
+<span class="sd">        it unmirrored rotamers. A noncanonical has none, and borrows whichever</span>
+<span class="sd">        its ``dunbrack_reference`` names, if it names one.</span>
+<span class="sd">        """</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_library_index</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">base_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">rt</span><span class="o">.</span><span class="n">dunbrack_reference</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_library_index</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">dunbrack_reference</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
 
 <div class="viewcode-block" id="DunbrackChiSampler.defines_rotamers_for_rt">
 <a class="viewcode-back" href="../../../../../api/pack.html#tmol.pack.rotamer.dunbrack.DunbrackChiSampler.defines_rotamers_for_rt">[docs]</a>
     <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">defines_rotamers_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
-        <span class="c1"># ugly hack for now:</span>
+<span class="w">        </span><span class="sd">"""Whether a rotamer library reaches this residue type.</span>
+
+<span class="sd">        A library resolving answers it for most residues: glycine and alanine</span>
+<span class="sd">        have nothing to rotate and no library, and a noncanonical has one only</span>
+<span class="sd">        where a reference names it. A residue that samples heavy chi of its</span>
+<span class="sd">        own is built from those alone.</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">rt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">is_polymer</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">False</span>
         <span class="k">if</span> <span class="n">rt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">polymer_type</span> <span class="o">!=</span> <span class="s2">"amino_acid"</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">False</span>
-        <span class="k">if</span> <span class="n">rt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">backbone_type</span> <span class="o">!=</span> <span class="s2">"alpha"</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">False</span>
-
-        <span class="c1"># and then what??</span>
-        <span class="k">if</span> <span class="n">rt</span><span class="o">.</span><span class="n">base_name</span> <span class="o">==</span> <span class="s2">"GLY"</span> <span class="ow">or</span> <span class="n">rt</span><span class="o">.</span><span class="n">base_name</span> <span class="o">==</span> <span class="s2">"ALA"</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">False</span>
-
-        <span class="c1"># all amino acids except GLY and ALA?? That feels wrong</span>
-        <span class="c1"># go with it for now</span>
-        <span class="k">return</span> <span class="kc">True</span></div>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_library_for_rt</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="c1"># no library, but chi of its own to turn. A proton chi alone is not</span>
+        <span class="c1">#    enough: optH samples those, and rotamers varying only hydrogens</span>
+        <span class="c1">#    would duplicate its work.</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="ow">not</span> <span class="n">cs</span><span class="o">.</span><span class="n">is_proton</span> <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">chi_samples</span><span class="p">)</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">defines_rotamers_for_bts</span><span class="p">(</span>
@@ -766,8 +935,18 @@
 <a class="viewcode-back" href="../../../../../api/pack.html#tmol.pack.rotamer.dunbrack.DunbrackChiSampler.first_sc_atoms_for_rt">[docs]</a>
     <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">first_sc_atoms_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""The atom chi1 rotates, which is where the sidechain starts.</span>
+
+<span class="sd">        Read off the residue rather than named, so a noncanonical whose</span>
+<span class="sd">        sidechain does not begin at an atom called CB still transfers its</span>
+<span class="sd">        rotamers correctly. Empty for a residue with no chi to rotate.</span>
+<span class="sd">        """</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">defines_rotamers_for_rt</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">(</span><span class="s2">"CB"</span><span class="p">,)</span></div>
+        <span class="c1"># Explicit chi can start after an unsampled axis. Copy upstream input</span>
+        <span class="c1"># geometry instead of treating the entire chi1 branch as rebuilt.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_library_for_rt</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">sc_roots_for_chis</span><span class="p">(</span><span class="n">rt</span><span class="p">,</span> <span class="p">(</span><span class="n">cs</span><span class="o">.</span><span class="n">chi_dihedral</span> <span class="k">for</span> <span class="n">cs</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">chi_samples</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">atom</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">torsions</span> <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">"chi1"</span><span class="p">)</span></div>
 
 
     <span class="nd">@validate_args</span>
@@ -779,6 +958,9 @@
         <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:],</span>  <span class="c1"># chi_defining_atom_for_rotamer</span>
         <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:,</span> <span class="p">:],</span>  <span class="c1"># chi_for_rotamers</span>
     <span class="p">]:</span>
+        <span class="n">configured</span><span class="p">,</span> <span class="n">task</span> <span class="o">=</span> <span class="n">sampler_for_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">configured</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">configured</span><span class="o">.</span><span class="n">sample_chi_for_poses</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">task</span><span class="p">)</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span>
         <span class="c1"># there are three sets of block types:</span>
         <span class="c1"># 1. the global-block-type list: all considered block-types at all positions (gbt)</span>
@@ -791,6 +973,7 @@
         <span class="c1">#    show up as dun-allowed, but the library will not build rotamers for them.)</span>
 
         <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">annotate_packed_block_types</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
         <span class="n">self_ind_in_packer_task</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">conformer_sampler_index</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span>
 
         <span class="c1"># the subset of blocktypes which are allowed at the positions and</span>
@@ -837,8 +1020,11 @@
             <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span>
         <span class="p">)</span>
 
-        <span class="c1"># what is the subset of dun-allowed block types that are buildable by the Dunbrack library?</span>
-        <span class="n">is_dun_allowed_bt_bbt</span> <span class="o">=</span> <span class="n">rottable_set_for_dun_allowed_bts</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="c1"># Types may use a library or explicitly sample their own heavy chi.</span>
+        <span class="c1"># The native sampler uses one base state when the library index is -1.</span>
+        <span class="n">is_dun_allowed_bt_bbt</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">dun_sampler_cache</span><span class="o">.</span><span class="n">defines_rotamers_for_bts</span><span class="p">[</span>
+            <span class="n">dun_allowed_bt</span>
+        <span class="p">]</span>
 
         <span class="n">dun_allowed_bt_that_are_bbt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span>
             <span class="n">is_dun_allowed_bt_bbt</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">True</span>
@@ -927,39 +1113,67 @@
         <span class="c1"># choice (more rotamers).</span>
         <span class="n">sc</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">dun_sampler_cache</span>
 
-        <span class="c1"># Use total chi count per residue type (Dunbrack chis + proton chis)</span>
-        <span class="c1"># rather than only the Dunbrack library's nchi. The C++ kernel loops</span>
-        <span class="c1"># over indices [n_dun_chi .. n_chi) to sample non-Dunbrack (proton)</span>
-        <span class="c1"># chis; if n_chi == n_dun_chi that loop never runs.</span>
-        <span class="n">n_chi_for_bbt</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="p">(</span><span class="n">sc</span><span class="o">.</span><span class="n">chi_defining_atom</span><span class="p">[</span><span class="n">block_type_ind_for_bbt</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-        <span class="p">)</span>
-
         <span class="n">non_dunbrack_expansion_counts_for_bbt</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">non_dunbrack_sample_counts</span><span class="p">[</span>
             <span class="n">block_type_ind_for_bbt</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">1</span>  <span class="c1"># dim2: burial state (0=exposed, 1=buried)</span>
         <span class="p">]</span>
+        <span class="c1"># Include frozen gaps before the last chi slot. Real slots have a</span>
+        <span class="c1"># nonnegative count (zero for library/frozen chi); padding is -1.</span>
+        <span class="c1"># Counting only defining atoms would truncate chi2 when chi1 is frozen.</span>
+        <span class="n">n_chi_for_bbt</span> <span class="o">=</span> <span class="p">(</span><span class="n">non_dunbrack_expansion_counts_for_bbt</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+            <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span>
+        <span class="p">)</span>
 
         <span class="c1"># treat all residues as buried (index 1)</span>
         <span class="n">non_dunbrack_expansion_for_bbt</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">non_dunbrack_samples</span><span class="p">[</span>
             <span class="n">block_type_ind_for_bbt</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">1</span>  <span class="c1"># dim2: burial state (0=exposed, 1=buried)</span>
         <span class="p">]</span>
 
-        <span class="c1"># Rosetta defaults (buried): rotameric=0.98, semi-rotameric=0.95.</span>
-        <span class="c1"># Based on testing (alf) semi-rot should also be 0.98</span>
-        <span class="c1"># Table sets are ordered rotameric-first; semi-rotameric sets start at</span>
-        <span class="c1"># index n_rotameric_sets.</span>
-        <span class="n">n_rotameric_sets</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">dun_param_resolver</span><span class="o">.</span><span class="n">rotameric_table_indices</span><span class="p">[</span><span class="s2">"dun_table_name"</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span>
-        <span class="p">)</span>
-        <span class="n">is_semi</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">bubl_and_rottable_set_for_bbt</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">n_rotameric_sets</span>
-        <span class="p">)</span>
-        <span class="n">prob_cumsum_limit_for_bbt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
-            <span class="n">is_semi</span><span class="p">,</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">n_bbts</span><span class="p">,),</span> <span class="mf">0.98</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">n_bbts</span><span class="p">,),</span> <span class="mf">0.98</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">sc</span><span class="o">.</span><span class="n">frozen_chi</span><span class="p">):</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose._util</span><span class="w"> </span><span class="kn">import</span> <span class="n">_measure_torsions</span>
+
+            <span class="n">poses_blocks</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+                    <span class="p">(</span>
+                        <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_pose</span><span class="p">[</span><span class="n">bbt_to_gbt_torch</span><span class="p">],</span>
+                        <span class="n">task</span><span class="o">.</span><span class="n">cons_bt_block</span><span class="p">[</span><span class="n">bbt_to_gbt_torch</span><span class="p">],</span>
+                    <span class="p">),</span>
+                    <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+                <span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="n">original_types</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">requests</span><span class="p">,</span> <span class="n">destinations</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">row</span><span class="p">,</span> <span class="p">(</span><span class="n">bt_index</span><span class="p">,</span> <span class="p">(</span><span class="n">pi</span><span class="p">,</span> <span class="n">bi</span><span class="p">))</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+                <span class="nb">zip</span><span class="p">(</span><span class="n">block_type_ind_for_bbt</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">poses_blocks</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="k">if</span> <span class="n">bt_index</span> <span class="o">!=</span> <span class="n">original_types</span><span class="p">[</span><span class="n">pi</span><span class="p">,</span> <span class="n">bi</span><span class="p">]:</span>
+                    <span class="k">continue</span>  <span class="c1"># A new chemical identity retains its generated ideal chi.</span>
+                <span class="n">bt</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">[</span><span class="n">bt_index</span><span class="p">]</span>
+                <span class="n">torsions</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">torsions</span><span class="p">)}</span>
+                <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">sc</span><span class="o">.</span><span class="n">frozen_chi</span><span class="p">[</span><span class="n">bt_index</span><span class="p">]:</span>
+                    <span class="n">requests</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">pi</span><span class="p">,</span> <span class="n">bi</span><span class="p">,</span> <span class="n">torsions</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">name</span><span class="p">))</span>
+                    <span class="n">destinations</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">row</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">name</span><span class="p">[</span><span class="mi">3</span><span class="p">:])</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">requests</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+                    <span class="n">values</span> <span class="o">=</span> <span class="n">_measure_torsions</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">requests</span><span class="p">,</span> <span class="n">degrees</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">numpy</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">"Cannot freeze chi without resolved defining atoms"</span>
+                    <span class="p">)</span>
+                <span class="n">row</span><span class="p">,</span> <span class="n">chi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">destinations</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+                <span class="n">non_dunbrack_expansion_for_bbt</span><span class="p">[</span><span class="n">row</span><span class="p">,</span> <span class="n">chi</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
+                    <span class="n">values</span><span class="p">,</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">non_dunbrack_expansion_for_bbt</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">non_dunbrack_expansion_for_bbt</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">"Frozen chi lack resolved input or generated ideal geometry"</span>
+                <span class="p">)</span>
+        <span class="c1"># Both rotameric and semi-rotameric libraries use 0.98 coverage.</span>
+        <span class="n">prob_cumsum_limit_for_bbt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">n_bbts</span><span class="p">,),</span> <span class="mf">0.98</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
         <span class="p">)</span>
 
         <span class="c1"># the sampled chi returned are a tuple containing info for BBTs:</span>
@@ -976,6 +1190,9 @@
             <span class="n">non_dunbrack_expansion_counts_for_bbt</span><span class="p">,</span>
             <span class="n">prob_cumsum_limit_for_bbt</span><span class="p">,</span>
             <span class="n">n_chi_for_bbt</span><span class="p">,</span>
+            <span class="n">max_samples_per_restype</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span>
+                <span class="nb">getattr</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="s2">"chi_sample_budget"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="mi">0</span><span class="p">,)</span>
+            <span class="p">),</span>
         <span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_samples_for_output</span><span class="p">(</span>
@@ -992,7 +1209,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">atom_indices_for_backbone_dihedral</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">bb_dihedral_ind</span><span class="p">:</span> <span class="nb">int</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"dun_sampler_cache"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">annotate_packed_block_types</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="p">)</span>
         <span class="c1"># coords: (n_poses, max_n_atoms_per_pose, 3)</span>
         <span class="c1"># flat atom index = pose * max_n_atoms_per_pose + block_coord_offset[pose,block] + local</span>
         <span class="n">max_n_atoms_per_pose</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
@@ -1075,6 +1292,7 @@
         <span class="n">non_dunbrack_expansion_counts_for_buildable_restype</span><span class="p">,</span>
         <span class="n">prob_cumsum_limit_for_buildable_restype</span><span class="p">,</span>
         <span class="n">nchi_for_buildable_restype</span><span class="p">,</span>
+        <span class="n">max_samples_per_restype</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">dun_sample_chi</span>
 
@@ -1091,6 +1309,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">dun_param_resolver</span><span class="o">.</span><span class="n">sampling_db</span><span class="o">.</span><span class="n">rotameric_bb_start</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dun_param_resolver</span><span class="o">.</span><span class="n">sampling_db</span><span class="o">.</span><span class="n">rotameric_bb_step</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dun_param_resolver</span><span class="o">.</span><span class="n">sampling_db</span><span class="o">.</span><span class="n">rotameric_bb_periodicity</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dun_param_resolver</span><span class="o">.</span><span class="n">sampling_db</span><span class="o">.</span><span class="n">rotameric_bb_source_start</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dun_param_resolver</span><span class="o">.</span><span class="n">sampling_db</span><span class="o">.</span><span class="n">rotameric_bb_is_mirrored</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dun_param_resolver</span><span class="o">.</span><span class="n">sampling_db</span><span class="o">.</span><span class="n">semirotameric_tables</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dun_param_resolver</span><span class="o">.</span><span class="n">sampling_db</span><span class="o">.</span><span class="n">semirot_table_sizes</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dun_param_resolver</span><span class="o">.</span><span class="n">sampling_db</span><span class="o">.</span><span class="n">semirot_table_strides</span><span class="p">,</span>
@@ -1115,6 +1335,7 @@
             <span class="n">non_dunbrack_expansion_counts_for_buildable_restype</span><span class="p">,</span>
             <span class="n">prob_cumsum_limit_for_buildable_restype</span><span class="p">,</span>
             <span class="n">nchi_for_buildable_restype</span><span class="p">,</span>
+            <span class="n">max_samples_per_restype</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="nd">@validate_args</span>

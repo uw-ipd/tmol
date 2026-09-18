@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -420,6 +444,7 @@
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._annotation_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnnotationKey</span><span class="p">,</span> <span class="n">cached_annotation</span><span class="p">,</span> <span class="n">store_annotation</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.._atom_type_dependent_term</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomTypeDependentTerm</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.._bond_dependent_term</span><span class="w"> </span><span class="kn">import</span> <span class="n">BondDependentTerm</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._params</span><span class="w"> </span><span class="kn">import</span> <span class="n">LJLKTypeParams</span><span class="p">,</span> <span class="n">LJLKGlobalParams</span>
@@ -448,10 +473,24 @@
         <span class="p">)</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">LJLKEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">param_db</span><span class="o">=</span><span class="n">param_db</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">type_params</span> <span class="o">=</span> <span class="n">ljlk_param_resolver</span><span class="o">.</span><span class="n">type_params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ljlk_param_resolver</span> <span class="o">=</span> <span class="n">ljlk_param_resolver</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span> <span class="o">=</span> <span class="n">ljlk_param_resolver</span><span class="o">.</span><span class="n">global_params</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_max_dis</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">ljlk</span><span class="o">.</span><span class="n">global_parameters</span><span class="o">.</span><span class="n">max_dis</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tile_size</span> <span class="o">=</span> <span class="n">LJLKEnergyTerm</span><span class="o">.</span><span class="n">tile_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">soft_repulsive</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rosetta_typed</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">genbonded</span><span class="o">.</span><span class="n">rosetta_typed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ljlk_block_key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span>
+            <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span> <span class="n">settings</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tile_size</span><span class="p">,)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ljlk_packed_key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span>
+            <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span>
+            <span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">ljlk</span><span class="p">,</span>
+            <span class="n">settings</span><span class="o">=</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">type_params</span><span class="o">.</span><span class="n">lj_radius</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">tile_size</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">rosetta_typed</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">class_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
@@ -470,23 +509,36 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">soft_repulsive</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"soft_rep"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_block_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_type</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">LJLKEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"ljlk_heavy_atoms_in_tile"</span><span class="p">):</span>
-            <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"ljlk_n_heavy_atoms_in_tile"</span><span class="p">)</span>
-            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ljlk_param_resolver</span><span class="o">.</span><span class="n">validate_block_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
+        <span class="n">atom_params</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">LJLKEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"_ljlk_annotation"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ljlk_block_key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cached</span>
         <span class="n">heavy_atoms_in_tile</span><span class="p">,</span> <span class="n">n_in_tile</span> <span class="o">=</span> <span class="n">tile_subset_indices</span><span class="p">(</span>
-            <span class="n">block_type</span><span class="o">.</span><span class="n">heavy_atom_inds</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tile_size</span>
+            <span class="n">atom_params</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">tile_size</span>
         <span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"ljlk_heavy_atoms_in_tile"</span><span class="p">,</span> <span class="n">heavy_atoms_in_tile</span><span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"ljlk_n_heavy_atoms_in_tile"</span><span class="p">,</span> <span class="n">n_in_tile</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+            <span class="n">block_type</span><span class="p">,</span>
+            <span class="s2">"_ljlk_annotation"</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ljlk_block_key</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">heavy_atoms_in_tile</span><span class="p">,</span> <span class="n">n_in_tile</span><span class="p">),</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">(</span><span class="s2">"ljlk_heavy_atoms_in_tile"</span><span class="p">,</span> <span class="s2">"ljlk_n_heavy_atoms_in_tile"</span><span class="p">),</span>
+        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_packed_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">LJLKEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_packed_block_types</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"ljlk_heavy_atoms_in_tile"</span><span class="p">):</span>
-            <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"ljlk_n_heavy_atoms_in_tile"</span><span class="p">)</span>
-            <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"ljlk_bond_separation"</span><span class="p">)</span>
-            <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"ljlk_is_ligand_fragment"</span><span class="p">)</span>
-            <span class="k">return</span>
+        <span class="n">atom_params</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">LJLKEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_packed_block_types</span><span class="p">(</span>
+            <span class="n">packed_block_types</span>
+        <span class="p">)</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"_ljlk_annotation"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ljlk_packed_key</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cached</span>
+        <span class="n">blocks</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+        <span class="p">]</span>
         <span class="n">max_n_tiles</span> <span class="o">=</span> <span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">max_n_atoms</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">tile_size</span> <span class="o">+</span> <span class="mi">1</span>
         <span class="n">heavy_atoms_in_tile</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
             <span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">max_n_tiles</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">tile_size</span><span class="p">),</span>
@@ -499,11 +551,11 @@
             <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">rt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
-            <span class="n">i_n_tiles</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">ljlk_n_heavy_atoms_in_tile</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">heavy</span><span class="p">,</span> <span class="n">counts</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">blocks</span><span class="p">):</span>
+            <span class="n">i_n_tiles</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">i_n_tile_ats</span> <span class="o">=</span> <span class="n">i_n_tiles</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">tile_size</span>
-            <span class="n">heavy_atoms_in_tile</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">i_n_tile_ats</span><span class="p">]</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">ljlk_heavy_atoms_in_tile</span>
-            <span class="n">n_heavy_ats_in_tile</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">i_n_tiles</span><span class="p">]</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">ljlk_n_heavy_atoms_in_tile</span>
+            <span class="n">heavy_atoms_in_tile</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">i_n_tile_ats</span><span class="p">]</span> <span class="o">=</span> <span class="n">heavy</span>
+            <span class="n">n_heavy_ats_in_tile</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">i_n_tiles</span><span class="p">]</span> <span class="o">=</span> <span class="n">counts</span>
 
         <span class="nb">setattr</span><span class="p">(</span>
             <span class="n">packed_block_types</span><span class="p">,</span>
@@ -516,29 +568,61 @@
             <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">n_heavy_ats_in_tile</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
         <span class="p">)</span>
 
-        <span class="c1"># Ligands (non-polymer) use CP_CROSSOVER_3FULL: 1-4 pairs get full</span>
-        <span class="c1"># weight (1.0). Build a modified bond_separation where path_dist=4 is</span>
-        <span class="c1"># encoded as 5 for non-polymer block types so connectivity_weight</span>
-        <span class="c1"># returns 1.0. Keep bond_separation unchanged for hbond (binary excl.).</span>
+        <span class="c1"># A pair of ligand-typed atoms uses CP_CROSSOVER_3FULL: 1-4 pairs get</span>
+        <span class="c1"># full weight (1.0), encoded by rewriting path_dist 3 and 4 to 5 so</span>
+        <span class="c1"># connectivity_weight returns 1.0. The convention follows the atoms,</span>
+        <span class="c1"># not the residue: a noncanonical whose sidechain is ligand-typed is</span>
+        <span class="c1"># still a polymer. Keep bond_separation unchanged for hbond, which</span>
+        <span class="c1"># excludes on a binary rule.</span>
+        <span class="n">rosetta_typed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rosetta_typed</span>
         <span class="n">ljlk_bond_separation</span> <span class="o">=</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">bond_separation</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">is_polymer</span><span class="p">:</span>
-                <span class="n">n</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span>
-                <span class="n">slab</span> <span class="o">=</span> <span class="n">ljlk_bond_separation</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">n</span><span class="p">,</span> <span class="p">:</span><span class="n">n</span><span class="p">]</span>
-                <span class="n">slab</span><span class="p">[(</span><span class="n">slab</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">slab</span> <span class="o">==</span> <span class="mi">4</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">5</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+            <span class="n">ligand</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">atom_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">rosetta_typed</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">bt</span><span class="o">.</span><span class="n">atoms</span><span class="p">],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">ljlk_bond_separation</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">both</span> <span class="o">=</span> <span class="n">ligand</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">ligand</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">slab</span> <span class="o">=</span> <span class="n">ljlk_bond_separation</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">n</span><span class="p">,</span> <span class="p">:</span><span class="n">n</span><span class="p">]</span>
+            <span class="n">slab</span><span class="p">[</span><span class="n">both</span><span class="p">[:</span><span class="n">n</span><span class="p">,</span> <span class="p">:</span><span class="n">n</span><span class="p">]</span> <span class="o">&amp;</span> <span class="p">((</span><span class="n">slab</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">slab</span> <span class="o">==</span> <span class="mi">4</span><span class="p">))]</span> <span class="o">=</span> <span class="mi">5</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"ljlk_bond_separation"</span><span class="p">,</span> <span class="n">ljlk_bond_separation</span><span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span>
             <span class="n">packed_block_types</span><span class="p">,</span>
-            <span class="s2">"ljlk_is_ligand_fragment"</span><span class="p">,</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
-                <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
-                    <span class="p">[</span>
-                        <span class="n">bt</span><span class="o">.</span><span class="n">is_ligand_fragment</span>
-                        <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
-                    <span class="p">],</span>
-                    <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-                <span class="p">),</span>
+            <span class="s2">"ljlk_all_atoms_ligand_typed"</span><span class="p">,</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="nb">all</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">atom_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rosetta_typed</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">bt</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+                <span class="p">],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
                 <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">store_annotation</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="p">,</span>
+            <span class="s2">"_ljlk_annotation"</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ljlk_packed_key</span><span class="p">,</span>
+            <span class="p">(</span>
+                <span class="n">packed_block_types</span><span class="o">.</span><span class="n">ljlk_n_heavy_atoms_in_tile</span><span class="p">,</span>
+                <span class="n">packed_block_types</span><span class="o">.</span><span class="n">ljlk_heavy_atoms_in_tile</span><span class="p">,</span>
+                <span class="n">atom_params</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">ljlk_bond_separation</span><span class="p">,</span>
+                <span class="n">packed_block_types</span><span class="o">.</span><span class="n">ljlk_all_atoms_ligand_typed</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">(</span>
+                <span class="s2">"ljlk_n_heavy_atoms_in_tile"</span><span class="p">,</span>
+                <span class="s2">"ljlk_heavy_atoms_in_tile"</span><span class="p">,</span>
+                <span class="s2">"ljlk_bond_separation"</span><span class="p">,</span>
+                <span class="s2">"ljlk_all_atoms_ligand_typed"</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">bindings</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">block_type</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+                <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">(</span>
+                    <span class="s2">"ljlk_heavy_atoms_in_tile"</span><span class="p">,</span>
+                    <span class="s2">"ljlk_n_heavy_atoms_in_tile"</span><span class="p">,</span>
+                <span class="p">)</span>
             <span class="p">),</span>
         <span class="p">)</span>
 
@@ -562,6 +646,8 @@
         <span class="k">return</span> <span class="s2">"sphere_overlap"</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_score_term_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">):</span>
+        <span class="n">annotation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">setup_packed_block_types</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="p">)</span>
+
         <span class="k">def</span><span class="w"> </span><span class="nf">_t</span><span class="p">(</span><span class="n">ts</span><span class="p">):</span>
             <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">),</span> <span class="n">ts</span><span class="p">))</span>
 
@@ -606,13 +692,13 @@
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">min_block_bondsep</span><span class="p">,</span>
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_block_bondsep</span><span class="p">,</span>
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span>
-            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">ljlk_n_heavy_atoms_in_tile</span><span class="p">,</span>
-            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">ljlk_heavy_atoms_in_tile</span><span class="p">,</span>
-            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">atom_types</span><span class="p">,</span>
+            <span class="n">annotation</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">annotation</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">annotation</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_conn</span><span class="p">,</span>
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">conn_atom</span><span class="p">,</span>
-            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">ljlk_bond_separation</span><span class="p">,</span>
-            <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">ljlk_is_ligand_fragment</span><span class="p">,</span>
+            <span class="n">annotation</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+            <span class="n">annotation</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
             <span class="n">type_params</span><span class="p">,</span>
             <span class="n">global_params</span><span class="p">,</span>
             <span class="c1"># max_dis as host scalar for detect-neighbors call</span>

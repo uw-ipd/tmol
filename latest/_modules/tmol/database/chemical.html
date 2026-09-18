@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -501,7 +525,10 @@
     <span class="n">is_donor</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">is_hydroxyl</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">is_polarh</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="n">acceptor_hybridization</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AcceptorHybridization</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
+    <span class="n">acceptor_hybridization</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AcceptorHybridization</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># the type this atom takes when a covalent bond replaces its hydrogen:</span>
+    <span class="c1">#    a hydroxyl becomes an ether, a thiol a thioether</span>
+    <span class="n">conjugated_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 
 
@@ -511,6 +538,23 @@
 
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
     <span class="n">atom_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+    <span class="c1"># Generic bonded lookup can describe a changed local environment without</span>
+    <span class="c1"># changing nonbonded typing or transferring Rosetta torsion ownership.</span>
+    <span class="c1">#</span>
+    <span class="c1"># This is deliberately per atom rather than a wider genbonded hierarchy.</span>
+    <span class="c1"># The hierarchy is a property of an atom type and is global: it fixes gaps</span>
+    <span class="c1"># like Nbb reaching NG2 without passing through Nad, and that fix belongs</span>
+    <span class="c1"># in scoring/genbonded.yaml. Conjugation is different -- it changes one</span>
+    <span class="c1"># atom's chemistry as a function of what became bonded to it, while the</span>
+    <span class="c1"># base residue keeps the Rosetta type that owns its canonical torsions.</span>
+    <span class="c1"># ASN:conj_ND2 is the worked example: ND2 stays Nglyc for the Rosetta</span>
+    <span class="c1"># terms and looks up generic parameters as the amide Nad it has become.</span>
+    <span class="c1"># No per-type hierarchy can express that, because it depends on the</span>
+    <span class="c1"># partner, not on the atom type.</span>
+    <span class="n">genbonded_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># Fallback peptide role for cross-residue Cartesian parameter lookup.</span>
+    <span class="c1"># Authored atom names and explicitly supplied parameters retain priority.</span>
+    <span class="n">cartbonded_reference</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
 
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -519,6 +563,19 @@
 
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
     <span class="n">alt_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+
+
+<span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Name3Alias</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""An input residue name that is read as another residue's.</span>
+
+<span class="sd">    The residue is read, scored and written as ``read_as``; its own name does</span>
+<span class="sd">    not survive. Reserved for a component the database deliberately does not</span>
+<span class="sd">    describe, where the substitute is chemically the same molecule.</span>
+<span class="sd">    """</span>
+
+    <span class="n">name3</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">read_as</span><span class="p">:</span> <span class="nb">str</span>
 
 
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -541,6 +598,12 @@
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">atom</span><span class="p">:</span> <span class="nb">str</span>
     <span class="nb">type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"SINGLE"</span>
+    <span class="c1"># Whether the bond this connection completes closes a ring. Generic bonded</span>
+    <span class="c1"># lookup bins a bond by order *and* ring membership, and the two sets are</span>
+    <span class="c1"># disjoint, so a connection that defaults to False can never match a rule</span>
+    <span class="c1"># written for a ring bond. Only a cut that splits a ring sets this: a</span>
+    <span class="c1"># polymer up/down bond and an ordinary attachment do not close one.</span>
+    <span class="n">in_ring</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 
 
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -565,11 +628,17 @@
 
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ChiSamples</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Discrete samples and expansions for one chi dihedral."""</span>
+<span class="w">    </span><span class="sd">"""Discrete values a torsion is sampled at, where no library supplies them.</span>
+
+<span class="sd">    A proton chi turns a hydrogen and is optH's to place as well as the</span>
+<span class="sd">    packer's; any other sampled chi moves heavy atoms and is the packer's</span>
+<span class="sd">    alone.</span>
+<span class="sd">    """</span>
 
     <span class="n">chi_dihedral</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">samples</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="n">expansions</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">is_proton</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
 
 
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -640,9 +709,18 @@
     <span class="n">hydrogens_regenerated</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="c1"># True only for blocks produced by user-defined ligand fragmentation.</span>
     <span class="n">is_ligand_fragment</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="c1"># reference restype supplying each torsion potential; None = no reference</span>
+    <span class="n">rama_reference</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">dunbrack_reference</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">na_base_reference</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># D-AAs: residue is mirror image of reference</span>
+    <span class="n">reference_mirrored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="c1"># One-letter sequence code; unique only within a backbone type ...</span>
     <span class="c1">#   "a" is both DA and RA.</span>
     <span class="n">one_letter_code</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># Attachment atom, partner equivalence class, partner atom. Equal atom</span>
+    <span class="c1"># inventories can need different parameters (e.g. ester vs thioester).</span>
+    <span class="n">conjugation_context</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
 
 <div class="viewcode-block" id="RawResidueType.atom_name">
 <a class="viewcode-back" href="../../../api/database.html#tmol.database.RawResidueType.atom_name">[docs]</a>
@@ -659,9 +737,10 @@
 
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">phi</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">DihedralAngle</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
-    <span class="n">theta</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BondAngle</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
-    <span class="n">d</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="c1"># absent means "take the source's", so 0.0 can be asked for outright</span>
+    <span class="n">phi</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">DihedralAngle</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">theta</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BondAngle</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">d</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">parent</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">grand_parent</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">great_grand_parent</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
@@ -720,6 +799,22 @@
     <span class="n">applies_to</span><span class="p">:</span> <span class="n">VariantScope</span> <span class="o">=</span> <span class="n">VariantScope</span><span class="p">()</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">l_base_name</span><span class="p">(</span><span class="n">restype</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The L residue type a block type's base name corresponds to.</span>
+
+<span class="sd">    A d-amino acid is named after the L form it mirrors. Tautomer and disulfide</span>
+<span class="sd">    states belong to the sidechain, which a mirror image shares, so code keying</span>
+<span class="sd">    on those states must see the same name for both forms.</span>
+<span class="sd">    """</span>
+    <span class="n">base</span> <span class="o">=</span> <span class="n">restype</span><span class="o">.</span><span class="n">base_name</span>
+    <span class="k">if</span> <span class="n">restype</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">sidechain_chirality</span> <span class="o">==</span> <span class="s2">"d"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">base</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">return</span> <span class="n">base</span>
+
+
+<span class="n">GENERATED_RESIDUE_FILES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"d_amino_acids.yaml"</span><span class="p">,)</span>
+
+
 <div class="viewcode-block" id="ChemicalDatabase">
 <a class="viewcode-back" href="../../../api/database.html#tmol.database.ChemicalDatabase">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -732,6 +827,7 @@
     <span class="n">atom_types</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">AtomType</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="n">residues</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">RawResidueType</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="n">variants</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">VariantType</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">name3_aliases</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Name3Alias</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
 
 <div class="viewcode-block" id="ChemicalDatabase.get_default">
 <a class="viewcode-back" href="../../../api/database.html#tmol.database.ChemicalDatabase.get_default">[docs]</a>
@@ -749,10 +845,17 @@
 <a class="viewcode-back" href="../../../api/database.html#tmol.database.ChemicalDatabase.from_file">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">"ChemicalDatabase"</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Load a chemical database from a directory containing YAML data."""</span>
-        <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"chemical.yaml"</span><span class="p">)</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Load chemical definitions and their generated residue tables."""</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"chemical.yaml"</span><span class="p">),</span> <span class="s2">"r"</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
             <span class="n">raw</span> <span class="o">=</span> <span class="n">safe_load</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
+        <span class="c1"># residue sets written by a support script live in their own files so</span>
+        <span class="c1">#    regenerating one does not rewrite the hand-maintained database</span>
+        <span class="k">for</span> <span class="n">generated</span> <span class="ow">in</span> <span class="n">GENERATED_RESIDUE_FILES</span><span class="p">:</span>
+            <span class="n">generated_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">generated</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">generated_path</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">generated_path</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+                <span class="n">raw</span><span class="p">[</span><span class="s2">"residues"</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">safe_load</span><span class="p">(</span><span class="n">infile</span><span class="p">)[</span><span class="s2">"residues"</span><span class="p">])</span>
         <span class="n">raw</span> <span class="o">=</span> <span class="n">normalize_bond_tuples</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">cattr</span><span class="o">.</span><span class="n">structure</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span></div>

@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -422,6 +446,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">._cartbonded</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: F401</span>
     <span class="n">AngleGroup</span><span class="p">,</span>
     <span class="n">CartRes</span><span class="p">,</span>
+    <span class="n">ConnectionCartRes</span><span class="p">,</span>
     <span class="n">HxlTorsionGroup</span><span class="p">,</span>
     <span class="n">ImproperGroup</span><span class="p">,</span>
     <span class="n">LengthGroup</span><span class="p">,</span>
@@ -486,6 +511,11 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">._ref</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefDatabase</span>  <span class="c1"># noqa: F401</span>
 
+<span class="c1"># residue sets written by a support script, merged into the databases at load</span>
+<span class="n">GENERATED_ELEC_FILES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"elec_d_amino_acids.yaml"</span><span class="p">,)</span>
+<span class="n">GENERATED_CARTBONDED_FILES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"cartbonded_d_amino_acids.yaml"</span><span class="p">,)</span>
+<span class="n">GENERATED_REF_FILES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"ref_d_amino_acids.yaml"</span><span class="p">,)</span>
+
 
 <div class="viewcode-block" id="ScoringDatabase">
 <a class="viewcode-back" href="../../../api/database.html#tmol.database.ScoringDatabase">[docs]</a>
@@ -515,7 +545,8 @@
 
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">cartbonded</span><span class="o">=</span><span class="n">CartBondedDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"cartbonded.yaml"</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"cartbonded.yaml"</span><span class="p">),</span>
+                <span class="n">generated</span><span class="o">=</span><span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">GENERATED_CARTBONDED_FILES</span><span class="p">],</span>
             <span class="p">),</span>
             <span class="n">genbonded</span><span class="o">=</span><span class="n">GenBondedDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"genbonded.yaml"</span><span class="p">)),</span>
             <span class="n">disulfide</span><span class="o">=</span><span class="n">DisulfideDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"disulfide.yaml"</span><span class="p">)),</span>
@@ -523,14 +554,20 @@
                 <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"na_torsion.yaml"</span><span class="p">)</span>
             <span class="p">),</span>
             <span class="n">dun</span><span class="o">=</span><span class="n">DunbrackRotamerLibrary</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"dunbrack.bin"</span><span class="p">)),</span>
-            <span class="n">elec</span><span class="o">=</span><span class="n">ElecDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"elec.yaml"</span><span class="p">)),</span>
+            <span class="n">elec</span><span class="o">=</span><span class="n">ElecDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"elec.yaml"</span><span class="p">),</span>
+                <span class="n">generated</span><span class="o">=</span><span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">GENERATED_ELEC_FILES</span><span class="p">],</span>
+            <span class="p">),</span>
             <span class="n">hbond</span><span class="o">=</span><span class="n">HBondDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"hbond.yaml"</span><span class="p">)),</span>
             <span class="n">ljlk</span><span class="o">=</span><span class="n">LJLKDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"ljlk.yaml"</span><span class="p">)),</span>
             <span class="n">omega_bbdep</span><span class="o">=</span><span class="n">OmegaBBDepDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span>
                 <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"omega_bbdep.zip"</span><span class="p">)</span>
             <span class="p">),</span>
             <span class="n">rama</span><span class="o">=</span><span class="n">RamaDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"rama.zip"</span><span class="p">)),</span>
-            <span class="n">ref</span><span class="o">=</span><span class="n">RefDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"ref.yaml"</span><span class="p">)),</span>
+            <span class="n">ref</span><span class="o">=</span><span class="n">RefDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"ref.yaml"</span><span class="p">),</span>
+                <span class="n">generated</span><span class="o">=</span><span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">GENERATED_REF_FILES</span><span class="p">],</span>
+            <span class="p">),</span>
         <span class="p">)</span></div>
 </div>
 

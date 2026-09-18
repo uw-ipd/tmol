@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -428,6 +452,7 @@
     <span class="n">KinForest</span><span class="p">,</span>
     <span class="n">KinForestScanOrdering</span><span class="p">,</span>
     <span class="n">annotate_block_type_with_residue_kinforest_data</span><span class="p">,</span>
+    <span class="n">block_group_kinforest_data</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackedBlockTypes</span>
@@ -484,30 +509,16 @@
 
 
 
-<div class="viewcode-block" id="construct_single_residue_kinforest">
-<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.construct_single_residue_kinforest">[docs]</a>
-<span class="nd">@validate_args</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">construct_single_residue_kinforest</span><span class="p">(</span><span class="n">restype</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Create a kinforest for a single residue and its associated</span>
-<span class="sd">    scan ordering data.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_rotamer_kinforest_from_data</span><span class="p">(</span><span class="n">rkd</span><span class="p">,</span> <span class="n">n_atoms</span><span class="p">,</span> <span class="n">atom_names</span><span class="p">,</span> <span class="n">mainchain_atoms</span><span class="p">,</span> <span class="n">ideal</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Build a RotamerKintree from a spanning tree over a flat atom array.</span>
 
-<span class="sd">    The kinforest data structure on its own is incomplete and</span>
-<span class="sd">    before it can be stored will need to be left-padded with</span>
-<span class="sd">    0s. In particular, the id, doftype, parent, frame_x, _y</span>
-<span class="sd">    and _z data all require the 0th position to be occupied</span>
-<span class="sd">    by the "root" atom</span>
-
-<span class="sd">    Also create the backbone fingerprint</span>
+<span class="sd">    Shared by the single-residue and block-group paths: nothing here asks which</span>
+<span class="sd">    block an atom belongs to. ``mainchain_atoms`` is the set whose atoms are</span>
+<span class="sd">    preferred as reference-frame atoms (they hold still across rotamers); for a</span>
+<span class="sd">    group it is the anchor block's.</span>
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics.compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">inverse_kin</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.ndarray</span><span class="w"> </span><span class="kn">import</span> <span class="n">invert_mapping</span>
-
-    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">restype</span><span class="p">,</span> <span class="s2">"rotamer_kinforest"</span><span class="p">):</span>
-        <span class="k">return</span>
-
-    <span class="n">annotate_block_type_with_residue_kinforest_data</span><span class="p">(</span><span class="n">restype</span><span class="p">)</span>
-    <span class="n">rkd</span> <span class="o">=</span> <span class="n">restype</span><span class="o">.</span><span class="n">residue_kinforest_data</span>
-    <span class="n">n_atoms</span> <span class="o">=</span> <span class="n">restype</span><span class="o">.</span><span class="n">n_atoms</span>
 
     <span class="n">kfo_2_to</span> <span class="o">=</span> <span class="n">rkd</span><span class="o">.</span><span class="n">bfto_2_orig</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>  <span class="c1"># KFO → TO (0-indexed)</span>
     <span class="n">preds</span> <span class="o">=</span> <span class="n">rkd</span><span class="o">.</span><span class="n">preds</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>  <span class="c1"># BFS predecessors in TO; -9999 for root</span>
@@ -535,19 +546,14 @@
     <span class="c1">#   if root has only 1 child:  c1 = that child, c2 = first child of c1</span>
     <span class="n">root_children</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">kfo_parents</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_atoms</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
 
-    <span class="n">polymer_mc</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">restype</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">mainchain_atoms</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">restype</span><span class="p">,</span> <span class="s2">"properties"</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">restype</span><span class="o">.</span><span class="n">properties</span><span class="p">,</span> <span class="s2">"polymer"</span><span class="p">)</span>
-        <span class="k">else</span> <span class="kc">None</span>
-    <span class="p">)</span>
-    <span class="k">if</span> <span class="n">polymer_mc</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">mainchain_atoms</span><span class="p">:</span>
         <span class="c1"># Polymer residues: prefer mainchain atoms as frame atoms because their</span>
         <span class="c1"># positions are fixed across rotamers (otherwise CB ends up as the ref</span>
         <span class="c1"># frame and is not idealized).</span>
-        <span class="n">mc_atoms</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">polymer_mc</span><span class="p">)</span>
+        <span class="n">mc_atoms</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">mainchain_atoms</span><span class="p">)</span>
 
         <span class="k">def</span><span class="w"> </span><span class="nf">sort_key</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
-            <span class="k">return</span> <span class="p">(</span><span class="n">restype</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="n">kfo_2_to</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">mc_atoms</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">atom_names</span><span class="p">[</span><span class="n">kfo_2_to</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">mc_atoms</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
 
         <span class="n">root_children</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">root_children</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">sort_key</span><span class="p">)</span>
         <span class="n">c1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">root_children</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -578,15 +584,20 @@
     <span class="n">frame_y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">frame_z</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">c2</span>
 
-    <span class="c1"># c1 (KFO 1): default frame_z = kfo_parents[kfo_parents[1]] = kfo_parents[0] = 0</span>
-    <span class="c1"># (root itself), but it should be c2.</span>
+    <span class="c1"># c1's own default frame_z is the root, which is no frame at all; it takes</span>
+    <span class="c1"># c2 instead.</span>
     <span class="n">frame_z</span><span class="p">[</span><span class="n">c1</span><span class="p">]</span> <span class="o">=</span> <span class="n">c2</span>
 
-    <span class="c1"># Other direct children of root (KFO &gt; 1, parent == 0):</span>
-    <span class="c1"># default frame_z = kfo_parents[root] = root = 0, but it should be c1.</span>
-    <span class="n">other_root_children</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">kfo_parents</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_atoms</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">))[</span>
-        <span class="mi">0</span>
-    <span class="p">]</span>
+    <span class="c1"># Every other direct child of the root takes c1. Note that c1 is whichever</span>
+    <span class="c1"># child the ordering above chose, NOT necessarily the first one: with a</span>
+    <span class="c1"># mainchain to prefer it is often a later atom. Selecting these by index</span>
+    <span class="c1"># rather than by "not c1" leaves whichever child sits at index 1 with the</span>
+    <span class="c1"># root as its frame_z -- a frame of two distinct points, which gives no</span>
+    <span class="c1"># reference direction, and every atom built on it comes out wrong.</span>
+    <span class="n">arange</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_atoms</span><span class="p">)</span>
+    <span class="n">other_root_children</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">kfo_parents</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">arange</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">arange</span> <span class="o">!=</span> <span class="n">c1</span><span class="p">)</span>
+    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">frame_z</span><span class="p">[</span><span class="n">other_root_children</span><span class="p">]</span> <span class="o">=</span> <span class="n">c1</span>
 
     <span class="c1"># --- Build KinForest with global root at position 0 (required by inverse_kin) ---</span>
@@ -622,10 +633,7 @@
     <span class="n">ideal_coords</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
         <span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
-                <span class="n">restype</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">restype</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">][</span><span class="n">kfo_2_to</span><span class="p">],</span>
-                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
-            <span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">ideal</span><span class="p">[</span><span class="n">kfo_2_to</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
         <span class="p">)</span>
     <span class="p">)</span>
 
@@ -639,7 +647,7 @@
     <span class="p">)</span>
     <span class="n">dofs_ideal</span> <span class="o">=</span> <span class="n">dofs_ideal</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
 
-    <span class="n">rotamer_kinforest</span> <span class="o">=</span> <span class="n">RotamerKintree</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">RotamerKintree</span><span class="p">(</span>
         <span class="n">kinforest_idx</span><span class="o">=</span><span class="n">to_2_kfo</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
         <span class="nb">id</span><span class="o">=</span><span class="n">kfo_2_to</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
         <span class="n">doftype</span><span class="o">=</span><span class="n">dof_type_kfo</span><span class="p">,</span>
@@ -655,8 +663,65 @@
         <span class="n">n_scans_per_gen</span><span class="o">=</span><span class="n">n_scans_per_gen</span><span class="p">,</span>
         <span class="n">dofs_ideal</span><span class="o">=</span><span class="n">dofs_ideal</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span>
     <span class="p">)</span>
-    <span class="nb">setattr</span><span class="p">(</span><span class="n">restype</span><span class="p">,</span> <span class="s2">"rotamer_kinforest"</span><span class="p">,</span> <span class="n">rotamer_kinforest</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="construct_single_residue_kinforest">
+<a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.construct_single_residue_kinforest">[docs]</a>
+<span class="nd">@validate_args</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">construct_single_residue_kinforest</span><span class="p">(</span><span class="n">restype</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Create a kinforest for a single residue and its scan ordering data.</span>
+
+<span class="sd">    The kinforest data structure on its own is incomplete and before it can be</span>
+<span class="sd">    stored will need to be left-padded with 0s. In particular, the id, doftype,</span>
+<span class="sd">    parent, frame_x, _y and _z data all require the 0th position to be occupied</span>
+<span class="sd">    by the "root" atom.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">restype</span><span class="p">,</span> <span class="s2">"rotamer_kinforest"</span><span class="p">):</span>
+        <span class="k">return</span>
+
+    <span class="n">annotate_block_type_with_residue_kinforest_data</span><span class="p">(</span><span class="n">restype</span><span class="p">)</span>
+    <span class="n">polymer</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">restype</span><span class="p">,</span> <span class="s2">"properties"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="s2">"polymer"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="nb">setattr</span><span class="p">(</span>
+        <span class="n">restype</span><span class="p">,</span>
+        <span class="s2">"rotamer_kinforest"</span><span class="p">,</span>
+        <span class="n">_rotamer_kinforest_from_data</span><span class="p">(</span>
+            <span class="n">restype</span><span class="o">.</span><span class="n">residue_kinforest_data</span><span class="p">,</span>
+            <span class="n">restype</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span>
+            <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">atoms</span><span class="p">],</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="n">polymer</span><span class="p">,</span> <span class="s2">"mainchain_atoms"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="n">restype</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">restype</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">],</span>
+        <span class="p">),</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">construct_block_group_kinforest</span><span class="p">(</span>
+    <span class="n">block_types</span><span class="p">,</span> <span class="n">links</span><span class="p">,</span> <span class="n">anchor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">kinforest_data</span><span class="o">=</span><span class="kc">None</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Create a kinforest spanning a group of blocks joined by their bonds.</span>
+
+<span class="sd">    The single-block case of construct_single_residue_kinforest: a conjugated</span>
+<span class="sd">    residue and everything hanging off it fold as one unit, so a torsion about</span>
+<span class="sd">    a linkage bond moves what is beyond it. ``links`` are (parent, parent_conn,</span>
+<span class="sd">    child, child_conn) tuples as taken by block_group_kinforest_data.</span>
+
+<span class="sd">    The inter-block bond's own geometry is not in any block's ideal coords, so</span>
+<span class="sd">    the dofs it reports are placeholders; they are overwritten by the values</span>
+<span class="sd">    measured from the pose.</span>
+<span class="sd">    """</span>
+    <span class="n">rkd</span><span class="p">,</span> <span class="n">offsets</span> <span class="o">=</span> <span class="n">kinforest_data</span> <span class="ow">or</span> <span class="n">block_group_kinforest_data</span><span class="p">(</span>
+        <span class="n">block_types</span><span class="p">,</span> <span class="n">links</span><span class="p">,</span> <span class="n">anchor</span>
+    <span class="p">)</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">block_types</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">bt</span><span class="o">.</span><span class="n">atoms</span><span class="p">]</span>
+    <span class="n">ideal</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">ideal_coords</span><span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">]</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">block_types</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">polymer</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">block_types</span><span class="p">[</span><span class="n">anchor</span><span class="p">],</span> <span class="s2">"properties"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="s2">"polymer"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">mainchain</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">polymer</span><span class="p">,</span> <span class="s2">"mainchain_atoms"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">_rotamer_kinforest_from_data</span><span class="p">(</span><span class="n">rkd</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">offsets</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">names</span><span class="p">,</span> <span class="n">mainchain</span><span class="p">,</span> <span class="n">ideal</span><span class="p">),</span>
+        <span class="n">offsets</span><span class="p">,</span>
+    <span class="p">)</span>
 
 
 <span class="nd">@validate_args</span>

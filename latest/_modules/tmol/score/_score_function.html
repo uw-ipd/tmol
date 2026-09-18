@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -418,6 +442,7 @@
                   
   <h1>Source code for tmol.score._score_function</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
@@ -468,6 +493,8 @@
 <span class="n">_CUDA_WEIGHTED_FUSED_MIN_SINGLE_POSE_ATOMS</span> <span class="o">=</span> <span class="mi">15_000</span>
 <span class="n">_CUDA_WEIGHTED_FUSED_MIN_BATCH_ATOMS_PER_POSE</span> <span class="o">=</span> <span class="mi">2_000</span>
 <span class="n">_CUDA_WEIGHTED_FUSED_MIN_GRAD_COORD_ELEMENTS</span> <span class="o">=</span> <span class="mi">64</span> <span class="o">*</span> <span class="mi">1024</span>
+<span class="n">_PACK_ROTAMER_BLOCK_PAIR_WINDOW</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
+<span class="n">_PACK_FUSED_ROTAMER_SCORE_WINDOW</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
 <span class="n">_CPU_SCORE_TERM_EXECUTORS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">ThreadPoolExecutor</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 <span class="n">_CPU_SCORE_TERM_EXECUTOR_LOCK</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
 <span class="n">_ScoreCallResult</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">"_ScoreCallResult"</span><span class="p">)</span>
@@ -735,6 +762,11 @@
         <span class="n">is_coalesced</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">check_invariants</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_weighted_score_sum</span><span class="p">(</span><span class="n">weights</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">scores</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Reduce score lanes without materializing a lane-sized product."""</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">scores</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="ScoreFunction">
@@ -1699,59 +1731,50 @@
             <span class="n">torch</span><span class="o">.</span><span class="n">get_autocast_dtype</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">),</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">is_autocast_cache_enabled</span><span class="p">(),</span>
         <span class="p">)</span>
-        <span class="n">context</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="o">*</span><span class="n">autocast_context</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">needs_grad</span>
-            <span class="k">else</span> <span class="p">(</span>
-                <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">(),</span>
-                <span class="n">torch</span><span class="o">.</span><span class="n">is_inference_mode_enabled</span><span class="p">(),</span>
-                <span class="o">*</span><span class="n">autocast_context</span><span class="p">,</span>
-            <span class="p">)</span>
-        <span class="p">)</span>
         <span class="n">fused_term</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execution_modules</span><span class="p">[</span><span class="n">fused_index</span><span class="p">]</span>
-        <span class="n">fused_score_call</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">fused_term</span><span class="o">.</span><span class="n">forward_weighted</span>
+        <span class="n">fused_call</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">partial</span><span class="p">(</span><span class="n">fused_term</span><span class="o">.</span><span class="n">forward_weighted</span><span class="p">,</span> <span class="n">score_weights</span><span class="o">=</span><span class="n">fused_score_weights</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">fused_score_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
             <span class="k">else</span> <span class="n">fused_term</span>
         <span class="p">)</span>
-        <span class="c1"># Submit the expensive shards first. Remaining workers immediately</span>
-        <span class="c1"># pick up independent terms, keeping both kinds of parallelism.</span>
-        <span class="n">fused_futures</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
-                <span class="n">_score_call_in_thread</span><span class="p">,</span>
-                <span class="n">fused_score_call</span><span class="p">,</span>
-                <span class="n">coords</span><span class="p">,</span>
-                <span class="o">*</span><span class="n">context</span><span class="p">,</span>
-                <span class="n">shard</span><span class="p">,</span>
-                <span class="n">fused_score_weights</span><span class="p">,</span>
-            <span class="p">)</span>
+        <span class="n">calls</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">partial</span><span class="p">(</span><span class="n">fused_call</span><span class="p">,</span> <span class="n">shared_block_neighbors</span><span class="o">=</span><span class="n">shard</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">shard</span> <span class="ow">in</span> <span class="n">neighbor_shards</span>
         <span class="p">]</span>
-        <span class="n">term_futures</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">term</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_execution_modules</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">index</span> <span class="o">==</span> <span class="n">fused_index</span><span class="p">:</span>
-                <span class="k">continue</span>
-            <span class="n">term_futures</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
-                <span class="n">_score_call_in_thread</span><span class="p">,</span>
-                <span class="n">term</span><span class="p">,</span>
-                <span class="n">coords</span><span class="p">,</span>
-                <span class="o">*</span><span class="n">context</span><span class="p">,</span>
-                <span class="p">(</span>
-                    <span class="n">shared_block_neighbors</span>
-                    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="s2">"block_neighbor_cutoff"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                    <span class="k">else</span> <span class="kc">None</span>
-                <span class="p">),</span>
+        <span class="n">calls</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+            <span class="n">partial</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_call_term</span><span class="p">,</span> <span class="n">term</span><span class="p">,</span> <span class="n">shared_block_neighbors</span><span class="o">=</span><span class="n">shared_block_neighbors</span>
             <span class="p">)</span>
-
-        <span class="n">fused_scores</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">fused_futures</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-        <span class="n">scores</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_execution_modules</span><span class="p">)):</span>
-            <span class="n">scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                <span class="n">fused_scores</span> <span class="k">if</span> <span class="n">index</span> <span class="o">==</span> <span class="n">fused_index</span> <span class="k">else</span> <span class="n">term_futures</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">term</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_execution_modules</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">index</span> <span class="o">!=</span> <span class="n">fused_index</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">needs_grad</span><span class="p">:</span>
+            <span class="c1"># Forward completion order must not determine gradient accumulation.</span>
+            <span class="c1"># Reuse the ordered backward used by ordinary parallel CPU terms.</span>
+            <span class="n">combined</span> <span class="o">=</span> <span class="n">_ParallelScoreTerms</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+                <span class="n">coords</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">executor</span><span class="p">,</span> <span class="n">calls</span><span class="p">,</span> <span class="o">*</span><span class="n">autocast_context</span>
             <span class="p">)</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
+                    <span class="n">_score_call_in_thread</span><span class="p">,</span>
+                    <span class="n">call</span><span class="p">,</span>
+                    <span class="n">coords</span><span class="p">,</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">(),</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">is_inference_mode_enabled</span><span class="p">(),</span>
+                    <span class="o">*</span><span class="n">autocast_context</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">call</span> <span class="ow">in</span> <span class="n">calls</span>
+            <span class="p">]</span>
+            <span class="n">combined</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">futures</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">fused_score_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">fused_term</span><span class="o">.</span><span class="n">n_score_types</span>
+        <span class="n">fused_end</span> <span class="o">=</span> <span class="n">n_shards</span> <span class="o">*</span> <span class="n">width</span>
+        <span class="n">fused_scores</span> <span class="o">=</span> <span class="n">combined</span><span class="p">[:</span><span class="n">fused_end</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_shards</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+            <span class="n">term</span><span class="o">.</span><span class="n">n_score_types</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execution_modules</span><span class="p">[:</span><span class="n">fused_index</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">other</span> <span class="o">=</span> <span class="n">combined</span><span class="p">[</span><span class="n">fused_end</span><span class="p">:]</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">other</span><span class="p">[:</span><span class="n">offset</span><span class="p">],</span> <span class="n">fused_scores</span><span class="p">,</span> <span class="n">other</span><span class="p">[</span><span class="n">offset</span><span class="p">:]),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_parallel_cuda_scores</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -2263,6 +2286,54 @@
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">iter_packing_dispatches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Yield canonical maximum-cutoff dispatches by block-pair window."""</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.ljlk.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="n">ljlk_elec_rotamer_dispatch</span>
+
+        <span class="n">native_args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_native_arguments</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+        <span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span> <span class="o">=</span> <span class="n">native_args</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">n_candidates</span> <span class="o">=</span> <span class="n">n_poses</span> <span class="o">*</span> <span class="n">max_n_blocks</span> <span class="o">*</span> <span class="p">(</span><span class="n">max_n_blocks</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="k">for</span> <span class="n">begin</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_candidates</span><span class="p">,</span> <span class="n">_PACK_ROTAMER_BLOCK_PAIR_WINDOW</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">ljlk_elec_rotamer_dispatch</span><span class="p">(</span>
+                <span class="n">native_args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">native_args</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">native_args</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+                <span class="n">native_args</span><span class="p">[</span><span class="mi">7</span><span class="p">],</span>
+                <span class="n">native_args</span><span class="p">[</span><span class="mi">10</span><span class="p">],</span>
+                <span class="n">native_args</span><span class="p">[</span><span class="mi">11</span><span class="p">],</span>
+                <span class="n">native_args</span><span class="p">[</span><span class="mi">12</span><span class="p">],</span>
+                <span class="n">native_args</span><span class="p">[</span><span class="mi">16</span><span class="p">],</span>
+                <span class="n">native_args</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">begin</span><span class="p">,</span>
+                <span class="nb">min</span><span class="p">(</span><span class="n">_PACK_ROTAMER_BLOCK_PAIR_WINDOW</span><span class="p">,</span> <span class="n">n_candidates</span> <span class="o">-</span> <span class="n">begin</span><span class="p">),</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">iter_packing_entries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">score_weights</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">topology_only</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Yield bounded canonical dispatch windows for packing."""</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.ljlk.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="n">ljlk_elec_weighted_rotamer_scores</span>
+
+        <span class="k">if</span> <span class="n">score_weights</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
+            <span class="n">score_weights</span> <span class="o">=</span> <span class="n">score_weights</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">native_args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_native_arguments</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+        <span class="n">empty_values</span> <span class="o">=</span> <span class="n">score_weights</span><span class="o">.</span><span class="n">new_empty</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">dispatch_indices</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_packing_dispatches</span><span class="p">(</span><span class="n">coords</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">begin</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
+                <span class="mi">0</span><span class="p">,</span> <span class="n">dispatch_indices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">_PACK_FUSED_ROTAMER_SCORE_WINDOW</span>
+            <span class="p">):</span>
+                <span class="n">indices</span> <span class="o">=</span> <span class="n">dispatch_indices</span><span class="p">[</span>
+                    <span class="p">:,</span> <span class="n">begin</span> <span class="p">:</span> <span class="n">begin</span> <span class="o">+</span> <span class="n">_PACK_FUSED_ROTAMER_SCORE_WINDOW</span>
+                <span class="p">]</span>
+                <span class="k">if</span> <span class="n">topology_only</span><span class="p">:</span>
+                    <span class="k">yield</span> <span class="n">indices</span><span class="p">,</span> <span class="n">empty_values</span>
+                    <span class="k">continue</span>
+                <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">ljlk_elec_weighted_rotamer_scores</span><span class="p">(</span>
+                    <span class="o">*</span><span class="n">native_args</span><span class="p">,</span>
+                    <span class="n">score_weights</span><span class="p">,</span>
+                    <span class="n">empty_values</span><span class="p">,</span>
+                    <span class="n">indices</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">yield</span> <span class="n">indices</span><span class="p">,</span> <span class="n">scores</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_fused_ljlk_elec_rotamer_module</span><span class="p">(</span><span class="n">term_modules</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Return the canonical default LJ/LK+Elec packing group, if present."""</span>
@@ -2378,12 +2449,16 @@
         <span class="p">]</span>
         <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">compatible</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">item</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">compatible</span> <span class="k">else</span> <span class="kc">None</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_sequential_term_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">execution_terms</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Evaluate terms in order while reusing compatible sparse dispatches."""</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_sequential_term_results</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">execution_terms</span><span class="p">,</span> <span class="n">retain_shared_dispatch</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Evaluate terms in order, optionally retaining reusable dispatches."""</span>
         <span class="n">dispatch_by_key</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">term</span><span class="p">,</span> <span class="n">score_weights</span><span class="p">,</span> <span class="n">already_weighted</span> <span class="ow">in</span> <span class="n">execution_terms</span><span class="p">:</span>
-            <span class="n">shared_dispatch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compatible_dispatch</span><span class="p">(</span>
-                <span class="n">term</span><span class="p">,</span> <span class="n">dispatch_by_key</span><span class="p">,</span> <span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span>
+            <span class="n">shared_dispatch</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_compatible_dispatch</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">dispatch_by_key</span><span class="p">,</span> <span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">retain_shared_dispatch</span>
+                <span class="k">else</span> <span class="kc">None</span>
             <span class="p">)</span>
             <span class="k">if</span> <span class="n">already_weighted</span><span class="p">:</span>
                 <span class="k">assert</span> <span class="n">score_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -2395,7 +2470,11 @@
 
             <span class="n">cutoff</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="s2">"block_neighbor_cutoff"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="n">dispatch_key</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="s2">"rotamer_dispatch_key"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">dispatch_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">cutoff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">retain_shared_dispatch</span>
+                <span class="ow">and</span> <span class="n">dispatch_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="ow">and</span> <span class="n">cutoff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="p">):</span>
                 <span class="n">dispatch_by_key</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">dispatch_key</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">cutoff</span><span class="p">,</span> <span class="n">result</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
             <span class="k">yield</span> <span class="n">term</span><span class="p">,</span> <span class="n">result</span><span class="p">,</span> <span class="n">already_weighted</span>
             <span class="c1"># The consumer has retained the weighted values. Release the raw</span>
@@ -2429,6 +2508,155 @@
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">layout_index</span><span class="p">,</span> <span class="n">compare_contents</span>
 
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_native_sparse_indices</span><span class="p">(</span><span class="n">indices</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Normalize sparse coordinates for the native interaction graph."""</span>
+        <span class="k">if</span> <span class="n">indices</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">indices</span>
+        <span class="k">if</span> <span class="n">indices</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"rotamer score indices must have dtype int32 or int64"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">indices</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">min_index</span><span class="p">,</span> <span class="n">max_index</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">aminmax</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">min_index</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_index</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">OverflowError</span><span class="p">(</span>
+                    <span class="s2">"rotamer score indices exceed the native int32 range"</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="n">indices</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_iter_weighted_sparse_entries</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">retain_shared_dispatch</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">topology_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Yield one weighted sparse score-term layout at a time.</span>
+
+<span class="sd">        The packing-only streaming path disables shared-dispatch retention so</span>
+<span class="sd">        advancing the iterator releases the preceding term's potentially large</span>
+<span class="sd">        index and score tensors. Public differentiable callers retain the</span>
+<span class="sd">        established dispatch reuse and consume this iterator into their current</span>
+<span class="sd">        aggregate representation.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">()</span> <span class="ow">and</span> <span class="n">coords</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
+            <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+
+        <span class="n">use_fused</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fused_ljlk_elec</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fused_ljlk_elec</span><span class="o">.</span><span class="n">is_compatible</span><span class="p">()</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="o">.</span><span class="n">requires_grad</span>
+        <span class="p">)</span>
+        <span class="n">execution_terms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execution_terms</span><span class="p">(</span><span class="n">use_fused</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">retain_shared_dispatch</span><span class="p">:</span>
+            <span class="n">weights_offset</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">term</span><span class="p">,</span> <span class="n">score_weights</span><span class="p">,</span> <span class="n">already_weighted</span> <span class="ow">in</span> <span class="n">execution_terms</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">already_weighted</span><span class="p">:</span>
+                    <span class="k">assert</span> <span class="n">score_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                    <span class="k">for</span> <span class="n">indices</span><span class="p">,</span> <span class="n">weighted_values</span> <span class="ow">in</span> <span class="n">term</span><span class="o">.</span><span class="n">iter_packing_entries</span><span class="p">(</span>
+                        <span class="n">coords</span><span class="p">,</span>
+                        <span class="n">score_weights</span><span class="p">,</span>
+                        <span class="n">topology_only</span><span class="o">=</span><span class="n">topology_only</span><span class="p">,</span>
+                    <span class="p">):</span>
+                        <span class="k">yield</span> <span class="n">term</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">weighted_values</span>
+                    <span class="n">weights_offset</span> <span class="o">+=</span> <span class="n">term</span><span class="o">.</span><span class="n">n_score_types</span>
+                    <span class="k">continue</span>
+
+                <span class="k">if</span> <span class="n">term</span><span class="o">.</span><span class="n">packing_score_iterator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">n_subterms</span> <span class="o">=</span> <span class="n">term</span><span class="o">.</span><span class="n">n_score_types</span>
+                    <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span>
+                        <span class="n">weights_offset</span> <span class="p">:</span> <span class="n">weights_offset</span> <span class="o">+</span> <span class="n">n_subterms</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+                    <span class="p">]</span>
+                    <span class="n">weights_offset</span> <span class="o">+=</span> <span class="n">n_subterms</span>
+                    <span class="n">empty_values</span> <span class="o">=</span> <span class="n">weights</span><span class="o">.</span><span class="n">new_empty</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span> <span class="ow">in</span> <span class="n">term</span><span class="o">.</span><span class="n">iter_packing_entries</span><span class="p">(</span>
+                        <span class="n">coords</span><span class="p">,</span> <span class="n">topology_only</span><span class="o">=</span><span class="n">topology_only</span>
+                    <span class="p">):</span>
+                        <span class="n">indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_native_sparse_indices</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">topology_only</span><span class="p">:</span>
+                            <span class="k">yield</span> <span class="n">term</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">empty_values</span>
+                            <span class="k">continue</span>
+                        <span class="n">weighted_values</span> <span class="o">=</span> <span class="n">_weighted_score_sum</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">scores</span><span class="p">)</span>
+                        <span class="k">yield</span> <span class="n">term</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">weighted_values</span>
+                        <span class="k">del</span> <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">weighted_values</span>
+                    <span class="k">continue</span>
+
+                <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span>
+                    <span class="n">weights_offset</span> <span class="p">:</span> <span class="n">weights_offset</span> <span class="o">+</span> <span class="n">term</span><span class="o">.</span><span class="n">n_score_types</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+                <span class="p">]</span>
+                <span class="n">empty_values</span> <span class="o">=</span> <span class="n">weights</span><span class="o">.</span><span class="n">new_empty</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">can_share_packing_dispatch</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">use_fused</span>
+                    <span class="ow">and</span> <span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cuda"</span>
+                    <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="s2">"accepts_shared_dispatch"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+                    <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="s2">"rotamer_dispatch_key"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                    <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fused_ljlk_elec</span><span class="o">.</span><span class="n">rotamer_dispatch_key</span>
+                    <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="s2">"block_neighbor_cutoff"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                    <span class="ow">and</span> <span class="n">_rotamer_dispatch_cutoff_compatible</span><span class="p">(</span>
+                        <span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_fused_ljlk_elec</span><span class="o">.</span><span class="n">block_neighbor_cutoff</span><span class="p">,</span>
+                        <span class="nb">getattr</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="s2">"block_neighbor_cutoff"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">dispatches</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_fused_ljlk_elec</span><span class="o">.</span><span class="n">iter_packing_dispatches</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">can_share_packing_dispatch</span>
+                    <span class="k">else</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">dispatch</span> <span class="ow">in</span> <span class="n">dispatches</span><span class="p">:</span>
+                    <span class="n">dispatch_windows</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="p">(</span>
+                            <span class="n">dispatch</span><span class="p">[</span>
+                                <span class="p">:,</span> <span class="n">begin</span> <span class="p">:</span> <span class="n">begin</span> <span class="o">+</span> <span class="n">_PACK_FUSED_ROTAMER_SCORE_WINDOW</span>
+                            <span class="p">]</span>
+                            <span class="k">for</span> <span class="n">begin</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
+                                <span class="mi">0</span><span class="p">,</span>
+                                <span class="n">dispatch</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                <span class="n">_PACK_FUSED_ROTAMER_SCORE_WINDOW</span><span class="p">,</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+                        <span class="k">if</span> <span class="n">dispatch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                        <span class="k">else</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">dispatch_window</span> <span class="ow">in</span> <span class="n">dispatch_windows</span><span class="p">:</span>
+                        <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="n">term</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">dispatch_window</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="n">dispatch_window</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                            <span class="k">else</span> <span class="n">term</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+                        <span class="p">)</span>
+                        <span class="n">indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_native_sparse_indices</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">topology_only</span><span class="p">:</span>
+                            <span class="c1"># The topology passes consume indices only; do not</span>
+                            <span class="c1"># retain a score table for the whole rotamer set.</span>
+                            <span class="k">del</span> <span class="n">scores</span>
+                            <span class="k">yield</span> <span class="n">term</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">empty_values</span>
+                            <span class="k">del</span> <span class="n">indices</span>
+                            <span class="k">continue</span>
+                        <span class="n">weighted_values</span> <span class="o">=</span> <span class="n">_weighted_score_sum</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">scores</span><span class="p">)</span>
+                        <span class="k">yield</span> <span class="n">term</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">weighted_values</span>
+                        <span class="k">del</span> <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">weighted_values</span>
+                <span class="n">weights_offset</span> <span class="o">+=</span> <span class="n">term</span><span class="o">.</span><span class="n">n_score_types</span>
+            <span class="k">return</span>
+
+        <span class="n">term_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sequential_term_results</span><span class="p">(</span>
+            <span class="n">coords</span><span class="p">,</span>
+            <span class="n">execution_terms</span><span class="p">,</span>
+            <span class="n">retain_shared_dispatch</span><span class="o">=</span><span class="n">retain_shared_dispatch</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">weights_offset</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">term</span><span class="p">,</span> <span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">indices</span><span class="p">),</span> <span class="n">already_weighted</span> <span class="ow">in</span> <span class="n">term_results</span><span class="p">:</span>
+            <span class="n">n_subterms</span> <span class="o">=</span> <span class="n">term</span><span class="o">.</span><span class="n">n_score_types</span> <span class="k">if</span> <span class="n">already_weighted</span> <span class="k">else</span> <span class="n">scores</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_native_sparse_indices</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">already_weighted</span><span class="p">:</span>
+                <span class="n">weighted_values</span> <span class="o">=</span> <span class="n">scores</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span>
+                    <span class="n">weights_offset</span> <span class="p">:</span> <span class="n">weights_offset</span> <span class="o">+</span> <span class="n">n_subterms</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+                <span class="p">]</span>
+                <span class="n">weighted_values</span> <span class="o">=</span> <span class="n">_weighted_score_sum</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">scores</span><span class="p">)</span>
+            <span class="n">weights_offset</span> <span class="o">+=</span> <span class="n">n_subterms</span>
+            <span class="k">yield</span> <span class="n">term</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">weighted_values</span>
+            <span class="k">del</span> <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">weighted_values</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">_weighted_entries_by_layout</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]:</span>
@@ -2438,8 +2666,6 @@
 <span class="sd">        important to the packer: COO construction promotes coordinates to</span>
 <span class="sd">        int64, and coalescing then needs another potentially very large sort.</span>
 <span class="sd">        """</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">()</span> <span class="ow">and</span> <span class="n">coords</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
-            <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
         <span class="c1"># Accumulate weighted values and their indices across all terms at the</span>
         <span class="c1"># dense [nnz] level.  This avoids torch.stack on sparse tensors, which</span>
         <span class="c1"># previously created a [n_subterms, n_poses, n_rots, n_rots] 4D sparse</span>
@@ -2449,8 +2675,6 @@
         <span class="n">layouts_by_nnz</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">n_poses</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">n_rots</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">weights_offset</span> <span class="o">=</span> <span class="mi">0</span>
-
         <span class="n">differentiable</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">()</span> <span class="ow">and</span> <span class="p">(</span>
             <span class="n">coords</span><span class="o">.</span><span class="n">requires_grad</span>
             <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="o">.</span><span class="n">requires_grad</span>
@@ -2487,44 +2711,35 @@
                 <span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">(),</span> <span class="n">already_weighted</span><span class="p">)</span>
                 <span class="k">for</span> <span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">already_weighted</span><span class="p">),</span> <span class="n">future</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">execution_terms</span><span class="p">,</span> <span class="n">futures</span><span class="p">)</span>
             <span class="p">)</span>
+
+            <span class="k">def</span><span class="w"> </span><span class="nf">parallel_weighted_entries</span><span class="p">():</span>
+                <span class="n">weights_offset</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">term</span><span class="p">,</span> <span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">indices</span><span class="p">),</span> <span class="n">already_weighted</span> <span class="ow">in</span> <span class="n">term_results</span><span class="p">:</span>
+                    <span class="n">n_subterms</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">term</span><span class="o">.</span><span class="n">n_score_types</span> <span class="k">if</span> <span class="n">already_weighted</span> <span class="k">else</span> <span class="n">scores</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">already_weighted</span><span class="p">:</span>
+                        <span class="n">weighted_values</span> <span class="o">=</span> <span class="n">scores</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span>
+                            <span class="n">weights_offset</span> <span class="p">:</span> <span class="n">weights_offset</span> <span class="o">+</span> <span class="n">n_subterms</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+                        <span class="p">]</span>
+                        <span class="n">weighted_values</span> <span class="o">=</span> <span class="n">_weighted_score_sum</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">scores</span><span class="p">)</span>
+                    <span class="n">weights_offset</span> <span class="o">+=</span> <span class="n">n_subterms</span>
+                    <span class="k">yield</span> <span class="p">(</span>
+                        <span class="n">term</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_native_sparse_indices</span><span class="p">(</span><span class="n">indices</span><span class="p">),</span>
+                        <span class="n">weighted_values</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+            <span class="n">weighted_entries</span> <span class="o">=</span> <span class="n">parallel_weighted_entries</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># Do not retain every term's complete score/index tensors. CUDA</span>
             <span class="c1"># packing layouts can be many GiB apiece, so consume each result</span>
             <span class="c1"># before evaluating the next term.</span>
-            <span class="n">term_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sequential_term_results</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">execution_terms</span><span class="p">)</span>
+            <span class="n">weighted_entries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iter_weighted_sparse_entries</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">term</span><span class="p">,</span> <span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">indices</span><span class="p">),</span> <span class="n">already_weighted</span> <span class="ow">in</span> <span class="n">term_results</span><span class="p">:</span>
-            <span class="c1"># [n_subterms, nnz], [3, nnz]</span>
-            <span class="n">n_subterms</span> <span class="o">=</span> <span class="n">term</span><span class="o">.</span><span class="n">n_score_types</span> <span class="k">if</span> <span class="n">already_weighted</span> <span class="k">else</span> <span class="n">scores</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-
-            <span class="c1"># Native rotamer terms already return compact int32 coordinates,</span>
-            <span class="c1"># while sparse/Python terms (notably constraints) may inherit</span>
-            <span class="c1"># PyTorch COO's int64 index dtype. Normalize only that uncommon</span>
-            <span class="c1"># path and reject a custom term whose coordinates cannot be</span>
-            <span class="c1"># represented by the native interaction graph.</span>
-            <span class="k">if</span> <span class="n">indices</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">indices</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-                        <span class="s2">"rotamer score indices must have dtype int32 or int64"</span>
-                    <span class="p">)</span>
-                <span class="k">if</span> <span class="n">indices</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="n">min_index</span><span class="p">,</span> <span class="n">max_index</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">aminmax</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="p">(</span>
-                        <span class="nb">int</span><span class="p">(</span><span class="n">min_index</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span>
-                        <span class="ow">or</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_index</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span><span class="o">.</span><span class="n">max</span>
-                    <span class="p">):</span>
-                        <span class="k">raise</span> <span class="ne">OverflowError</span><span class="p">(</span>
-                            <span class="s2">"rotamer score indices exceed the native int32 range"</span>
-                        <span class="p">)</span>
-                <span class="n">indices</span> <span class="o">=</span> <span class="n">indices</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-
-            <span class="c1"># Apply per-subterm weights and sum to [nnz] — no sparse tensor yet.</span>
-            <span class="k">if</span> <span class="n">already_weighted</span><span class="p">:</span>
-                <span class="n">weighted_values</span> <span class="o">=</span> <span class="n">scores</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">weights_offset</span> <span class="p">:</span> <span class="n">weights_offset</span> <span class="o">+</span> <span class="n">n_subterms</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
-                <span class="n">weighted_values</span> <span class="o">=</span> <span class="p">(</span><span class="n">w</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">scores</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-
+        <span class="k">for</span> <span class="n">term</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">weighted_values</span> <span class="ow">in</span> <span class="n">weighted_entries</span><span class="p">:</span>
             <span class="c1"># Several terms share the same block-pair dispatch. Pointer</span>
             <span class="c1"># identity is free to check at every size; reserve the device-wide</span>
             <span class="c1"># equality comparison for layouts large enough to recover its</span>
@@ -2540,8 +2755,6 @@
                     <span class="n">layouts_by_nnz</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">indices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layout_index</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">all_values</span><span class="p">[</span><span class="n">layout_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">all_values</span><span class="p">[</span><span class="n">layout_index</span><span class="p">]</span> <span class="o">+</span> <span class="n">weighted_values</span>
-            <span class="n">weights_offset</span> <span class="o">+=</span> <span class="n">n_subterms</span>
-
             <span class="k">if</span> <span class="n">n_poses</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">n_poses</span> <span class="o">=</span> <span class="n">term</span><span class="o">.</span><span class="n">n_poses</span>
                 <span class="n">n_rots</span> <span class="o">=</span> <span class="n">term</span><span class="o">.</span><span class="n">n_rots</span>
@@ -2549,7 +2762,7 @@
             <span class="c1"># merging layouts, its temporary weighted values) alive during</span>
             <span class="c1"># the next call to the result generator. Autograd retains any</span>
             <span class="c1"># tensors it still needs for differentiable scoring.</span>
-            <span class="k">del</span> <span class="n">scores</span><span class="p">,</span> <span class="n">weighted_values</span>
+            <span class="k">del</span> <span class="n">weighted_values</span>
 
         <span class="k">return</span> <span class="n">all_indices</span><span class="p">,</span> <span class="n">all_values</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="n">n_rots</span>
 

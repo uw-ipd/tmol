@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -422,7 +446,7 @@
 
 <span class="sd">The SMILES always reflects the *input atoms as given* -- there is no residue-code</span>
 <span class="sd">/ CCD-template lookup (that risks substituting an unrelated molecule when a CIF</span>
-<span class="sd">uses a generic residue code such as ``LG1``).</span>
+<span class="sd">uses a generic residue code such as ``L_1``).</span>
 
 <span class="sd">Bond orders must come from the input: the ``AtomArray`` is required to carry a</span>
 <span class="sd">bond table (e.g. a CIF with a ``_chem_comp_bond`` block, or a mol2 BOND</span>
@@ -440,9 +464,13 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomArray</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">rdkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chem</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.tools.protonation</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: F401 (compatibility exports)</span>
+    <span class="n">correct_carboxylate_bond_orders</span> <span class="k">as</span> <span class="n">apply_geometry_bond_corrections</span><span class="p">,</span>
+    <span class="n">_infer_carboxylate_bonds</span><span class="p">,</span>
+    <span class="n">_sp2_angle_sum</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._rdkit_mol</span><span class="w"> </span><span class="kn">import</span> <span class="n">rdkit_mol_from_ligand_atom_array</span>
 
@@ -465,107 +493,14 @@
     <span class="k">return</span> <span class="n">smiles</span> <span class="ow">or</span> <span class="kc">None</span>
 
 
-<span class="c1"># Below this, a C-O bond reads as double/delocalized rather than a hydroxyl</span>
-<span class="c1"># single bond (carboxylate ~1.25 A, C=O ~1.21, C-OH ~1.31, diol C-O ~1.41).</span>
-<span class="n">_CARBOXYL_CO_MAX</span> <span class="o">=</span> <span class="mf">1.36</span>
-<span class="c1"># Sum of the three bond angles at an sp2 (planar) carbon is 360; sp3 ~328.5.</span>
-<span class="n">_SP2_ANGLE_SUM_MIN</span> <span class="o">=</span> <span class="mf">355.0</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_sp2_angle_sum</span><span class="p">(</span><span class="n">conf</span><span class="p">,</span> <span class="n">center</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Sum of the three bond angles at ``center`` (deg); None if degenerate."""</span>
-    <span class="n">cpos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">conf</span><span class="o">.</span><span class="n">GetAtomPosition</span><span class="p">(</span><span class="n">center</span><span class="p">))</span>
-    <span class="n">vecs</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">conf</span><span class="o">.</span><span class="n">GetAtomPosition</span><span class="p">(</span><span class="n">n</span><span class="p">))</span> <span class="o">-</span> <span class="n">cpos</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">neighbors</span><span class="p">]</span>
-    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vecs</span><span class="p">):</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="n">units</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vecs</span><span class="p">]</span>
-    <span class="n">total</span> <span class="o">=</span> <span class="mf">0.0</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">units</span><span class="p">)):</span>
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">units</span><span class="p">)):</span>
-            <span class="n">total</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span>
-                <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">units</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">units</span><span class="p">[</span><span class="n">j</span><span class="p">]),</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))</span>
-            <span class="p">)</span>
-    <span class="k">return</span> <span class="n">total</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_infer_carboxylate_bonds</span><span class="p">(</span><span class="n">rw</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">RWMol</span><span class="p">,</span> <span class="n">conf</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Correct carboxylates mis-encoded as geminal diols; return #corrected.</span>
-
-<span class="sd">    A carbon bonded to exactly two terminal oxygens whose geometry is planar</span>
-<span class="sd">    with short C-O bonds is a delocalized carboxylate, not a diol. Some inputs</span>
-<span class="sd">    (CIFs with SING/SING C-O, mol2s with non-ring ``ar`` bonds) drop the double</span>
-<span class="sd">    bond, so the derived SMILES protonates both oxygens. Rewrite each such</span>
-<span class="sd">    center to ``C(=O)[O-]`` from the input geometry.</span>
-<span class="sd">    """</span>
-    <span class="n">n_fixed</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">rw</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">():</span>
-        <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">6</span> <span class="ow">or</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetDegree</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
-            <span class="k">continue</span>
-        <span class="n">c</span> <span class="o">=</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span>
-        <span class="n">term_os</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">nb</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span>
-            <span class="k">for</span> <span class="n">nb</span> <span class="ow">in</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">()</span>
-            <span class="k">if</span> <span class="n">nb</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">8</span> <span class="ow">and</span> <span class="n">nb</span><span class="o">.</span><span class="n">GetDegree</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span>
-        <span class="p">]</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">term_os</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="k">continue</span>
-        <span class="n">cpos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">conf</span><span class="o">.</span><span class="n">GetAtomPosition</span><span class="p">(</span><span class="n">c</span><span class="p">))</span>
-        <span class="n">co_dists</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">conf</span><span class="o">.</span><span class="n">GetAtomPosition</span><span class="p">(</span><span class="n">o</span><span class="p">))</span> <span class="o">-</span> <span class="n">cpos</span><span class="p">))</span>
-            <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">term_os</span>
-        <span class="p">]</span>
-        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">d</span> <span class="o">&gt;</span> <span class="n">_CARBOXYL_CO_MAX</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">co_dists</span><span class="p">):</span>
-            <span class="k">continue</span>
-        <span class="n">nbrs</span> <span class="o">=</span> <span class="p">[</span><span class="n">nb</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="k">for</span> <span class="n">nb</span> <span class="ow">in</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">()]</span>
-        <span class="n">angle_sum</span> <span class="o">=</span> <span class="n">_sp2_angle_sum</span><span class="p">(</span><span class="n">conf</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">nbrs</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">angle_sum</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">angle_sum</span> <span class="o">&lt;</span> <span class="n">_SP2_ANGLE_SUM_MIN</span><span class="p">:</span>
-            <span class="k">continue</span>
-
-        <span class="n">oa</span><span class="p">,</span> <span class="n">ob</span> <span class="o">=</span> <span class="n">term_os</span>
-        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">oa</span><span class="p">,</span> <span class="n">ob</span><span class="p">):</span>
-            <span class="n">rw</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span><span class="o">.</span><span class="n">SetIsAromatic</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
-        <span class="n">b_oa</span> <span class="o">=</span> <span class="n">rw</span><span class="o">.</span><span class="n">GetBondBetweenAtoms</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">oa</span><span class="p">)</span>
-        <span class="n">b_ob</span> <span class="o">=</span> <span class="n">rw</span><span class="o">.</span><span class="n">GetBondBetweenAtoms</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">ob</span><span class="p">)</span>
-        <span class="n">b_oa</span><span class="o">.</span><span class="n">SetIsAromatic</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
-        <span class="n">b_ob</span><span class="o">.</span><span class="n">SetIsAromatic</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
-        <span class="n">b_oa</span><span class="o">.</span><span class="n">SetBondType</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">)</span>
-        <span class="n">b_ob</span><span class="o">.</span><span class="n">SetBondType</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">SINGLE</span><span class="p">)</span>
-        <span class="c1"># Reset both O charges</span>
-        <span class="n">rw</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">oa</span><span class="p">)</span><span class="o">.</span><span class="n">SetFormalCharge</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="n">rw</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">ob</span><span class="p">)</span><span class="o">.</span><span class="n">SetFormalCharge</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">n_fixed</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"inferring COO- from geometry (carbon atom idx </span><span class="si">%d</span><span class="s2">)"</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">n_fixed</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">apply_geometry_bond_corrections</span><span class="p">(</span><span class="n">mol</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Repair input bond orders that disagree with the 3D geometry.</span>
-
-<span class="sd">    Runs each geometry-based correction rule (carboxylate only, for now) and</span>
-<span class="sd">    re-sanitizes. Returns the input unchanged when there is no conformer or no</span>
-<span class="sd">    correction applies. More rules (nitro, phosphate, sulfonate, ...) can be</span>
-<span class="sd">    added as separate ``_infer_*`` functions and dispatched here.</span>
-<span class="sd">    """</span>
-    <span class="k">if</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetNumConformers</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">mol</span>
-    <span class="n">rw</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">RWMol</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
-    <span class="n">conf</span> <span class="o">=</span> <span class="n">rw</span><span class="o">.</span><span class="n">GetConformer</span><span class="p">()</span>
-    <span class="n">n_fixed</span> <span class="o">=</span> <span class="n">_infer_carboxylate_bonds</span><span class="p">(</span><span class="n">rw</span><span class="p">,</span> <span class="n">conf</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">n_fixed</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">mol</span>
-    <span class="n">out</span> <span class="o">=</span> <span class="n">rw</span><span class="o">.</span><span class="n">GetMol</span><span class="p">()</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">Chem</span><span class="o">.</span><span class="n">SanitizeMol</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">"geometry bond correction failed to sanitize"</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">mol</span>
-    <span class="k">return</span> <span class="n">out</span>
-
-
 <span class="k">def</span><span class="w"> </span><span class="nf">_tag_source_atom_map</span><span class="p">(</span><span class="n">mol</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">,</span> <span class="n">atom_array</span><span class="p">:</span> <span class="n">AtomArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Tag each heavy atom with map number = source index + 1 (rides the SMILES</span>
 <span class="sd">    through the mol2 pipeline for atom naming). No-op if counts disagree."""</span>
-    <span class="n">source_heavy</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">element</span><span class="p">)</span> <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">"H"</span><span class="p">]</span>
+    <span class="c1"># RDKit reports deuterium as atomic number 1, so counting it as heavy here</span>
+    <span class="c1"># makes the two sides disagree and silently drops the map numbers.</span>
+    <span class="n">source_heavy</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">element</span><span class="p">)</span> <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"H"</span><span class="p">,</span> <span class="s2">"D"</span><span class="p">)</span>
+    <span class="p">]</span>
     <span class="n">mol_heavy</span> <span class="o">=</span> <span class="p">[</span><span class="n">atom</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()</span> <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">]</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mol_heavy</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">source_heavy</span><span class="p">):</span>
         <span class="k">return</span>
@@ -604,7 +539,7 @@
 <span class="sd">            could be derived from the bonds present.</span>
 <span class="sd">    """</span>
     <span class="n">label</span> <span class="o">=</span> <span class="n">res_name</span> <span class="ow">or</span> <span class="s2">"&lt;unknown&gt;"</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">_has_bonds</span><span class="p">(</span><span class="n">atom_array</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_has_bonds</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">"Ligand </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> has no bond table; bond orders are required to "</span>
             <span class="s2">"derive a SMILES. Supply an input with explicit bonds (CIF "</span>

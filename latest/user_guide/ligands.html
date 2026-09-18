@@ -161,25 +161,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -292,6 +309,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -479,6 +503,80 @@ generic-potential-style atom types used by TMol, and cartbonded parameters. The
 prepared ligand is injected into a new <code class="docutils literal notranslate"><span class="pre">ParameterDatabase</span></code> and can then be
 scored and minimized like a normal residue. These atom-type names do not by
 themselves make a ligand parameterization usable by Rosetta.</p>
+<section id="chemistry-classes">
+<h2>Chemistry Classes<a class="headerlink" href="#chemistry-classes" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">prepare_ligands</span></code>, and <code class="docutils literal notranslate"><span class="pre">prepare_ligands=True</span></code> on the IO entry points, is not
+limited to free small molecules. The backbone is inferred from a residue’s own
+connectivity, so every class below enters by the same path and needs no
+hand-written parameter file. Each row names a shipped fixture you can run
+directly.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Class</p></th>
+<th class="head"><p>Example fixture</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Modified alpha-amino acid (PTM)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ncaa_fixtures/collagen_hyp_1bkv.cif</span></code> (4-hydroxyproline), <code class="docutils literal notranslate"><span class="pre">ncaa_fixtures/phosphopeptide_5ema.cif</span></code> (phosphoserine)</p></td>
+</tr>
+<tr class="row-odd"><td><p>N-substituted backbone</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ncaa_fixtures/nmethyl_peptide_6mvz.cif</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Beta and gamma backbones</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ncaa_fixtures/beta_peptide_3c3g.cif</span></code>, <code class="docutils literal notranslate"><span class="pre">ncaa_fixtures/gamma_peptide_1gac.cif</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>D-amino acid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ncaa_fixtures/6dmz_mod_d.cif</span></code> (with its L mirror, <code class="docutils literal notranslate"><span class="pre">6dmz_mod_l.cif</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p>Terminal caps</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ncaa_fixtures/capped_peptide_ace_nme.cif</span></code>, <code class="docutils literal notranslate"><span class="pre">capped_peptide_ace_nh2.cif</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Chromophore / macrocycle</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ncaa_fixtures/chromophore_nrq_3svu.cif</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Modified DNA</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ncaa_fixtures/na_dna_5mc_1d17.cif</span></code> (5-methylcytosine), <code class="docutils literal notranslate"><span class="pre">na_dna_8og_183d.cif</span></code> (8-oxoguanine), <code class="docutils literal notranslate"><span class="pre">na_dna_ttd_1ttd.cif</span></code> (thymine dimer)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Modified RNA</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ncaa_fixtures/na_rna_psu_1bzt.cif</span></code> (pseudouridine), <code class="docutils literal notranslate"><span class="pre">na_rna_2ome_310d.cif</span></code> (2’-O-methyl)</p></td>
+</tr>
+<tr class="row-even"><td><p>N- and O-glycans</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">covalent_fixtures/nglycan_tree_1ax2.cif</span></code>, <code class="docutils literal notranslate"><span class="pre">covalent_fixtures/oglycan_sia_1g1s.cif</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Covalent conjugate</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">covalent_fixtures/lys_biotin_1bdo.cif</span></code> (biotinylated lysine)</p></td>
+</tr>
+<tr class="row-even"><td><p>Covalent inhibitor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">covalent_fixtures/peptide_inhibitor_7zv5.cif</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The call is the same whichever row you pick:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_cif</span><span class="p">,</span> <span class="n">pose_stack_from_biotite</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.tests.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">data_path</span>
+
+<span class="n">array</span> <span class="o">=</span> <span class="n">atom_array_from_cif</span><span class="p">(</span><span class="n">data_path</span><span class="p">(</span><span class="s2">"ncaa_fixtures"</span><span class="p">,</span> <span class="s2">"collagen_hyp_1bkv.cif"</span><span class="p">))</span>
+<span class="n">pose</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span>
+    <span class="n">array</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span><span class="p">),</span> <span class="n">prepare_ligands</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_context</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">context.parameter_database</span></code> carries the generated chemistry, and
+<a class="reference internal" href="../api/ligand.html#tmol.ligand.write_params_file" title="tmol.ligand.write_params_file"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmol.ligand.write_params_file()</span></code></a> persists it as <code class="docutils literal notranslate"><span class="pre">.tmol</span></code> so a later run reads
+it back instead of regenerating. Reuse the context across structures that share
+the same components; see <a class="reference internal" href="#reuse-prepared-context"><span class="std std-ref">Reuse Prepared Context</span></a>.</p>
+<p>A prepared polymer residue records which backbone it was recognized as in
+<code class="docutils literal notranslate"><span class="pre">properties.polymer.backbone_type</span></code>: <code class="docutils literal notranslate"><span class="pre">alpha_aa</span></code>, <code class="docutils literal notranslate"><span class="pre">nonstandard_aa</span></code>, <code class="docutils literal notranslate"><span class="pre">dna</span></code>, <code class="docutils literal notranslate"><span class="pre">rna</span></code>,
+or <code class="docutils literal notranslate"><span class="pre">nonstandard_na</span></code>. That value selects the terminus patches and the torsion
+terms the residue is scored with, so it is the first thing to check when a
+residue is not treated the way you expect.</p>
+<p>For how this maps onto Rosetta’s <code class="docutils literal notranslate"><span class="pre">molfile_to_params_polymer.py</span></code> / <code class="docutils literal notranslate"><span class="pre">MakeRotLib</span></code>
+workflow, and which of its steps have no counterpart here, see the
+<a class="reference internal" href="../tutorial/rosetta_crosswalk.html"><span class="doc">Rosetta crosswalk</span></a>.</p>
+</section>
 <section id="entry-points">
 <h2>Entry Points<a class="headerlink" href="#entry-points" title="Link to this heading">#</a></h2>
 <p>There are three single-ligand entry points:</p>
@@ -495,10 +593,18 @@ themselves make a ligand parameterization usable by Rosetta.</p>
 </div>
 <p>Each returns a new <code class="docutils literal notranslate"><span class="pre">(ParameterDatabase,</span> <span class="pre">CanonicalOrdering)</span></code>. The input database
 is not mutated.</p>
-<p>MOL2 is the richest input. With authoritative MMFF94 charges, TMol reads atom
-names, coordinates, bond orders, and partial charges directly. CIF input uses
-the bond table to derive chemistry. SMILES input has no input geometry, so TMol
-generates protonation, conformer coordinates, and MMFF94 charges.</p>
+<p>MOL2 and CIF input use their bond tables to derive chemistry; source heavy-atom
+names are retained. CIF and SMILES preparation apply pH-dependent protonation
+(default pH 7.4), generate conformers and calculate MMFF94 charges.</p>
+<p>MOL2 preparation and <code class="docutils literal notranslate"><span class="pre">write_params_from_mol2()</span></code> share three modes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">mode=&quot;auto&quot;</span></code> (default): preserve complete inputs with supported, finite,
+charge-conserving partial charges; otherwise run the preparation pipeline.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mode=&quot;keep&quot;</span></code>: require prepared input and preserve its protonation and charges.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mode=&quot;regenerate&quot;</span></code>: always run pH-dependent preparation, including for
+neutralized phosphate inputs with explicit hydrogens and valid partial charges.</p></li>
+</ul>
+<p>A MOL2 charge-model label alone does not establish the intended protonation pH.</p>
 </section>
 <section id="loading-complexes">
 <h2>Loading Complexes<a class="headerlink" href="#loading-complexes" title="Link to this heading">#</a></h2>
@@ -509,16 +615,10 @@ generates protonation, conformer coordinates, and MMFF94 charges.</p>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_biotite</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_file</span><span class="p">,</span> <span class="n">pose_stack_from_biotite</span>
 
 <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"cpu"</span><span class="p">)</span>
-<span class="n">structure</span> <span class="o">=</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">load_structure</span><span class="p">(</span>
-    <span class="s2">"complex.cif"</span><span class="p">,</span>
-    <span class="n">model</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-    <span class="n">include_bonds</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">):</span>
-    <span class="n">structure</span> <span class="o">=</span> <span class="n">structure</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">structure</span> <span class="o">=</span> <span class="n">atom_array_from_file</span><span class="p">(</span><span class="s2">"complex.cif"</span><span class="p">)</span>
 
 <span class="n">pose_stack</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span>
     <span class="n">structure</span><span class="p">,</span>
@@ -529,9 +629,31 @@ generates protonation, conformer coordinates, and MMFF94 charges.</p>
 <span class="p">)</span>
 </pre></div>
 </div>
-<p>PDB files are fine for protein structures, but PDB does not carry reliable
-ligand bond orders. Use CIF, MOL2, SMILES, or a prepared <code class="docutils literal notranslate"><span class="pre">.tmol</span></code> file for ligand
-chemistry.</p>
+<p>Known residues need only residue names, atom names, and coordinates. For example,
+prepare a ligand from MOL2 once, then load coordinate-only PDB or CIF complexes:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_file</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand</span><span class="w"> </span><span class="kn">import</span> <span class="n">write_params_from_mol2</span>
+
+<span class="n">write_params_from_mol2</span><span class="p">(</span>
+    <span class="s2">"ligand.mol2"</span><span class="p">,</span> <span class="s2">"ligand.tmol"</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="s2">"LIG"</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"tmol"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"auto"</span>
+<span class="p">)</span>
+<span class="n">pose_stack</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="n">pose_stack_from_file</span><span class="p">(</span>
+    <span class="s2">"complex.pdb"</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span>
+    <span class="n">ligand_params_files</span><span class="o">=</span><span class="p">[</span><span class="s2">"ligand.tmol"</span><span class="p">],</span>
+    <span class="n">use_ccd</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">return_context</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Use the complex’s ligand residue name and matching atom names. Alternatively,
+pass the database returned by <code class="docutils literal notranslate"><span class="pre">prepare_ligand_from_mol2()</span></code> as <code class="docutils literal notranslate"><span class="pre">param_db=</span></code>.
+Neither route regenerates known ligand parameters. <code class="docutils literal notranslate"><span class="pre">use_ccd=False</span></code> reads only
+supplied information; the default <code class="docutils literal notranslate"><span class="pre">True</span></code> permits CCD completion.</p>
+<p>For mixtures of known and unknown components, add <code class="docutils literal notranslate"><span class="pre">prepare_ligands=True</span></code>: saved
+parameters are reused, and only unknown chemistry enters preparation. Unknown
+residues need chemical bond orders from the input or CCD; otherwise the error
+names the residue that needs more information. PDB <code class="docutils literal notranslate"><span class="pre">CONECT</span></code> records alone do not
+provide those orders.</p>
 </section>
 <section id="reuse-prepared-context">
 <h2>Reuse Prepared Context<a class="headerlink" href="#reuse-prepared-context" title="Link to this heading">#</a></h2>
@@ -582,18 +704,16 @@ set, and packed block types for every structure.</p>
 </section>
 <section id="smiles-to-params-cli">
 <h2>SMILES to Params CLI<a class="headerlink" href="#smiles-to-params-cli" title="Link to this heading">#</a></h2>
-<p>The ligand-prep script writes Rosetta <code class="docutils literal notranslate"><span class="pre">.params</span></code> and TMol <code class="docutils literal notranslate"><span class="pre">.tmol</span></code> files:</p>
+<p>The ligand-prep script writes a TMol <code class="docutils literal notranslate"><span class="pre">.tmol</span></code> parameter bundle:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>scripts/ligand_prep/smiles_to_params.py<span class="w"> </span><span class="s2">"&lt;SMILES&gt;"</span><span class="w"> </span>&lt;out_prefix&gt;<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--res-name<span class="w"> </span>LG1<span class="w"> </span>--ph<span class="w"> </span><span class="m">7</span>.4
 </pre></div>
 </div>
-<p>Useful flags include <code class="docutils literal notranslate"><span class="pre">--no-protonate</span></code>, <code class="docutils literal notranslate"><span class="pre">--sample-proton-chi</span></code>, and
-<code class="docutils literal notranslate"><span class="pre">--no-conformer-search</span></code>.</p>
-<p>The emitted Rosetta-syntax <code class="docutils literal notranslate"><span class="pre">.params</span></code> file is an experimental interchange
-artifact, not a Rosetta-validated parameterization. It carries TMol’s atom-type
-strings into the Rosetta atom-type field, uses MM type <code class="docutils literal notranslate"><span class="pre">X</span></code>, and writes a
-placeholder <code class="docutils literal notranslate"><span class="pre">NBR_RADIUS</span> <span class="pre">999.0</span></code>. Use a Rosetta-native preparation and validation
-workflow before running the ligand in Rosetta.</p>
+<p>Useful flags include <code class="docutils literal notranslate"><span class="pre">--no-protonate</span></code>, <code class="docutils literal notranslate"><span class="pre">--heavy-chi-samples</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">--seed</span></code> for a reproducible conformer.</p>
+<p><code class="docutils literal notranslate"><span class="pre">.tmol</span></code> is TMol’s only parameter format. TMol does not read or write Rosetta
+<code class="docutils literal notranslate"><span class="pre">.params</span></code>; use a Rosetta-native preparation workflow to parameterize a ligand
+for Rosetta.</p>
 </section>
 <section id="interaction-scores">
 <h2>Interaction Scores<a class="headerlink" href="#interaction-scores" title="Link to this heading">#</a></h2>
@@ -687,6 +807,7 @@ lists the currently supported exports.</p>
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#chemistry-classes">Chemistry Classes</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#entry-points">Entry Points</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#loading-complexes">Loading Complexes</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reuse-prepared-context">Reuse Prepared Context</a></li>

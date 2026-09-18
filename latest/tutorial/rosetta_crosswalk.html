@@ -53,7 +53,7 @@
     <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/tutorial/rosetta_crosswalk.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Agent skills" href="../agent_skills.html" />
+    <link rel="next" title="Build an interface for your model" href="../model_inputs.html" />
     <link rel="prev" title="Find a TMol task" href="recipe_index.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
@@ -161,25 +161,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -292,6 +309,13 @@
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -637,16 +661,14 @@ show the conventional workflow.</p>
 </ul>
 <p>TMol’s versioned <code class="docutils literal notranslate"><span class="pre">.tmol</span></code> YAML bundles ligand additions to those three domains. A
 <a class="reference internal" href="../api/ligand.html#tmol.ligand.LigandPreparation" title="tmol.ligand.LigandPreparation"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.ligand.LigandPreparation</span></code></a>
-contains the residue definition, partial charges, and cartbonded parameters,
-and the supported <a class="reference internal" href="../api/ligand.html#tmol.ligand.write_params_file" title="tmol.ligand.write_params_file"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmol.ligand.write_params_file()</span></code></a>
-can emit either format from one preparation. The Rosetta writer emits
-<code class="docutils literal notranslate"><span class="pre">BOND_TYPE</span></code> records and writes partial charges in <code class="docutils literal notranslate"><span class="pre">ATOM</span></code> records, but the two
-outputs are not equivalent parameterizations.</p>
-<p>The Rosetta reader is intentionally partial: it recognizes <code class="docutils literal notranslate"><span class="pre">NAME</span></code>, <code class="docutils literal notranslate"><span class="pre">ATOM</span></code>,
-<code class="docutils literal notranslate"><span class="pre">BOND</span></code>/<code class="docutils literal notranslate"><span class="pre">BOND_TYPE</span></code>, <code class="docutils literal notranslate"><span class="pre">CHI</span></code>, <code class="docutils literal notranslate"><span class="pre">PROTON_CHI</span></code>, <code class="docutils literal notranslate"><span class="pre">NBR_ATOM</span></code>, and <code class="docutils literal notranslate"><span class="pre">ICOOR_INTERNAL</span></code>, but
-ignores other records and drops the charge values on <code class="docutils literal notranslate"><span class="pre">ATOM</span></code> lines. It cannot
-reconstruct the <code class="docutils literal notranslate"><span class="pre">.tmol</span></code> electrostatic and cartbonded sections, so arbitrary
-<code class="docutils literal notranslate"><span class="pre">.params</span></code> to <code class="docutils literal notranslate"><span class="pre">.tmol</span></code> conversion is not general or lossless.</p>
+contains the residue definition, partial charges, and cartbonded parameters, and
+<a class="reference internal" href="../api/ligand.html#tmol.ligand.write_params_file" title="tmol.ligand.write_params_file"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmol.ligand.write_params_file()</span></code></a> serializes one to <code class="docutils literal notranslate"><span class="pre">.tmol</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">.tmol</span></code> is TMol’s only parameter format: TMol neither reads nor writes Rosetta
+<code class="docutils literal notranslate"><span class="pre">.params</span></code>. The two formats carry different content – <code class="docutils literal notranslate"><span class="pre">.params</span></code> is a single
+line-oriented residue record, while <code class="docutils literal notranslate"><span class="pre">.tmol</span></code> bundles chemistry, electrostatics,
+and cartbonded parameters together – so no general or lossless conversion
+exists in either direction. Parameterize a ligand for Rosetta with a
+Rosetta-native workflow, and for TMol with the ligand preparation pipeline.</p>
 <p>These facilities support preparation, registration, scoring, local pocket
 repacking, and Cartesian refinement. They do not provide native ligand docking,
 global pose search, GALigandDock, or a binding-affinity calculation.</p>
@@ -659,6 +681,45 @@ analysis resembles a docking funnel diagnostic, but the workflow performs no
 global pose search, decoy generation protocol, separated-state calculation, or
 affinity prediction.</p>
 </section>
+</section>
+<section id="noncanonical-modified-and-covalently-linked-residues">
+<h2>Noncanonical, modified, and covalently linked residues<a class="headerlink" href="#noncanonical-modified-and-covalently-linked-residues" title="Link to this heading">#</a></h2>
+<p>Rosetta parameterizes a noncanonical amino acid in separate, largely manual
+steps, each with its own tool: build an acetylated, N-methylamidated form and
+optimize it quantum-mechanically, convert it with OpenBabel, annotate the
+molfile with <code class="docutils literal notranslate"><span class="pre">POLY_N_BB</span></code>, <code class="docutils literal notranslate"><span class="pre">POLY_CA_BB</span></code>, <code class="docutils literal notranslate"><span class="pre">POLY_UPPER</span></code>, <code class="docutils literal notranslate"><span class="pre">POLY_LOWER</span></code> and friends,
+and run
+<a class="reference external" href="https://docs.rosettacommons.org/docs/latest/rosetta_basics/non_protein_residues/Noncanonical-Amino-Acids"><code class="docutils literal notranslate"><span class="pre">molfile_to_params_polymer.py</span></code></a>;
+then generate a backbone-dependent rotamer library with
+<a class="reference external" href="https://docs.rosettacommons.org/demos/latest/public/make_rot_lib/README"><code class="docutils literal notranslate"><span class="pre">MakeRotLib</span></code></a>;
+then compute reference energies with the
+<a class="reference external" href="https://docs.rosettacommons.org/demos/latest/public/unfolded_state_energy_calculator/README">unfolded state energy calculator</a>,
+or borrow a canonical’s via <code class="docutils literal notranslate"><span class="pre">BACKBONE_AA</span></code>. The
+<a class="reference external" href="https://docs.rosettacommons.org/demos/latest/public/design_with_ncaa/README">NCAA design demo</a>
+walks the whole sequence.</p>
+<p>TMol derives the same content from the structure. <a class="reference internal" href="../api/ligand.html#tmol.ligand.prepare_ligands" title="tmol.ligand.prepare_ligands"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmol.ligand.prepare_ligands()</span></code></a>,
+or <code class="docutils literal notranslate"><span class="pre">prepare_ligands=True</span></code> on the IO entry points, reads a residue the database
+does not describe and produces its residue type, partial charges, cartbonded
+parameters, and chi sampling together, as one <code class="docutils literal notranslate"><span class="pre">.tmol</span></code> bundle. The backbone is
+inferred from the chemistry rather than declared: a residue is recognized as an
+alpha, beta, gamma, D, or nucleic backbone by its own connectivity, so a
+modified residue, a post-translational modification, a D-amino acid, a glycan, a
+modified nucleotide, and a covalent conjugate all enter by the same path.</p>
+<p>Two consequences are worth stating plainly:</p>
+<ul class="simple">
+<li><p>There is no separate rotamer-library build. Sampling for a prepared residue
+comes from its own chemistry, and a conjugated group is sampled coherently
+with its partner rather than independently.</p></li>
+<li><p>There is no unfolded-state reference-energy step, and no <code class="docutils literal notranslate"><span class="pre">BACKBONE_AA</span></code>
+analogue to borrow one. TMol’s reference term covers the canonical residues;
+a design calculation that needs a reference energy for a prepared residue does
+not have one, so sequence-design comparisons against Rosetta are not
+like-for-like.</p></li>
+</ul>
+<p>What TMol does not have: Rosetta’s NCAA design protocol layer, <code class="docutils literal notranslate"><span class="pre">MakeRotLib</span></code>’s
+explicit well/centroid control, and the mature peptidomimetic protocols built on
+them, such as
+<a class="reference external" href="https://docs.rosettacommons.org/demos/latest/public/using_ncaas_protein_peptide_interface_design/README">protein-peptide interface design with NCAAs</a>.</p>
 </section>
 <section id="gpu-batching-and-external-orchestration">
 <h2>GPU batching and external orchestration<a class="headerlink" href="#gpu-batching-and-external-orchestration" title="Link to this heading">#</a></h2>
@@ -720,11 +781,11 @@ and the TMol source as appropriate rather than inferring a fit-specific paper.</
       </div>
     </a>
     <a class="right-next"
-       href="../agent_skills.html"
+       href="../model_inputs.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Agent skills</p>
+        <p class="prev-next-title">Build an interface for your model</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -760,6 +821,7 @@ and the TMol source as appropriate rather than inferring a fit-specific paper.</
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ligand-pose-sensitivity-case-study">Ligand pose-sensitivity case study</a></li>
 </ul>
 </li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#noncanonical-modified-and-covalently-linked-residues">Noncanonical, modified, and covalently linked residues</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#gpu-batching-and-external-orchestration">GPU batching and external orchestration</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#dna-and-rna">DNA and RNA</a></li>
 </ul>

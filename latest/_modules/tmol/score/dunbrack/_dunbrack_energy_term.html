@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -423,6 +447,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.._energy_term</span><span class="w"> </span><span class="kn">import</span> <span class="n">EnergyTerm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._annotation_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnnotationKey</span><span class="p">,</span> <span class="n">cached_annotation</span><span class="p">,</span> <span class="n">store_annotation</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.dunbrack</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -435,7 +460,6 @@
     <span class="n">PoseStack</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">count</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">dataclasses</span>
 
@@ -453,6 +477,10 @@
     <span class="n">mean_table_offset</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">rotamer_index_to_table_index_offset</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">semirotameric_tableset_offset</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="c1"># a d-amino acid reads its l form's library at negated torsions; only the</span>
+    <span class="c1">#    default used for a terminus needs the sign applied here, since a</span>
+    <span class="c1">#    torsion measured from coordinates is already mirrored</span>
+    <span class="n">is_mirrored</span><span class="p">:</span> <span class="nb">int</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_empty_dunbrack_attrs</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="s2">"DunbrackBlockAttrs"</span><span class="p">:</span>
@@ -468,6 +496,7 @@
         <span class="n">mean_table_offset</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">rotamer_index_to_table_index_offset</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">semirotameric_tableset_offset</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">is_mirrored</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
     <span class="p">)</span>
 
 
@@ -486,20 +515,25 @@
             <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">scoring_db</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">attr</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="n">ScoringDunbrackDatabaseView</span><span class="p">)</span>
         <span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_table_indices</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
-            <span class="n">table</span><span class="p">[</span><span class="s2">"dun_table_name"</span><span class="p">]</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
-            <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">all_table_indices</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">rotameric_table_indices</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">semirotameric_table_indices</span><span class="p">,</span>
-            <span class="p">)</span>
-        <span class="p">)</span>
-        <span class="n">aux</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">scoring_db_aux</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_host_aux</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">aux</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-            <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">attr</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">aux</span><span class="p">))</span>
-        <span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_key</span> <span class="o">=</span> <span class="n">AnnotationKey</span><span class="o">.</span><span class="n">from_sources</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="p">)</span>
+        <span class="c1"># Small lookup metadata are host-side; do not read device scalars per RT.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_table_indices</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="s2">"all_table_indices"</span><span class="p">,</span>
+            <span class="s2">"rotameric_table_indices"</span><span class="p">,</span>
+            <span class="s2">"semirotameric_table_indices"</span><span class="p">,</span>
+        <span class="p">):</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">table</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">is_unique</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Dunbrack residue lookup names must be unique"</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_table_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="s2">"dun_table_name"</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_aux</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">scoring_db_aux</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">attr</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_params</span><span class="o">.</span><span class="n">scoring_db_aux</span><span class="p">))</span>
+        <span class="p">}</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">class_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
@@ -517,9 +551,20 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_block_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_type</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">DunbrackEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"dunbrack_attrs"</span><span class="p">):</span>
-            <span class="k">return</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+            <span class="n">block_type</span><span class="p">,</span> <span class="s2">"_dunbrack_annotation"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_key</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cached</span> <span class="o">=</span> <span class="n">store_annotation</span><span class="p">(</span>
+                <span class="n">block_type</span><span class="p">,</span>
+                <span class="s2">"_dunbrack_annotation"</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_key</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_create_block_attrs</span><span class="p">(</span><span class="n">block_type</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="n">block_type</span><span class="o">.</span><span class="n">dunbrack_attrs</span> <span class="o">=</span> <span class="n">cached</span>
+        <span class="k">return</span> <span class="n">cached</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_block_attrs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_type</span><span class="p">):</span>
         <span class="c1"># Dunbrack rotamer libraries cover alpha amino acids only. For ligands</span>
         <span class="c1"># and other non-AA block types, install a sentinel with</span>
         <span class="c1"># rotamer_table_set=-1 so the C++ kernel short-circuits the block.</span>
@@ -527,22 +572,24 @@
         <span class="k">if</span> <span class="p">(</span>
             <span class="ow">not</span> <span class="n">polymer</span><span class="o">.</span><span class="n">is_polymer</span>
             <span class="ow">or</span> <span class="n">polymer</span><span class="o">.</span><span class="n">polymer_type</span> <span class="o">!=</span> <span class="s2">"amino_acid"</span>
-            <span class="ow">or</span> <span class="n">polymer</span><span class="o">.</span><span class="n">backbone_type</span> <span class="o">!=</span> <span class="s2">"alpha"</span>
+            <span class="ow">or</span> <span class="n">polymer</span><span class="o">.</span><span class="n">backbone_type</span> <span class="o">!=</span> <span class="s2">"alpha_aa"</span>
         <span class="p">):</span>
-            <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"dunbrack_attrs"</span><span class="p">,</span> <span class="n">_empty_dunbrack_attrs</span><span class="p">())</span>
-            <span class="k">return</span>
+            <span class="k">return</span> <span class="n">_empty_dunbrack_attrs</span><span class="p">()</span>
 
         <span class="n">rotamer_table_set</span><span class="p">,</span> <span class="n">rotameric_index</span><span class="p">,</span> <span class="n">semirotameric_index</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">table</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block_type</span><span class="o">.</span><span class="n">base_name</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table_indices</span>
         <span class="p">)</span>
         <span class="n">semirotameric</span> <span class="o">=</span> <span class="n">semirotameric_index</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
 
+        <span class="c1"># An amino acid the library does not cover scores no dunbrack term;</span>
+        <span class="c1"># a borrowed dunbrack_reference is for sampling only.</span>
+        <span class="k">if</span> <span class="n">rotamer_table_set</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_empty_dunbrack_attrs</span><span class="p">()</span>
+
         <span class="n">semirotameric_tableset_offset</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">semirotameric</span>
-            <span class="k">else</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_host_aux</span><span class="p">[</span><span class="s2">"semirotameric_tableset_offsets"</span><span class="p">][</span><span class="n">semirotameric_index</span><span class="p">]</span>
-            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_aux</span><span class="p">[</span><span class="s2">"semirotameric_tableset_offsets"</span><span class="p">][</span><span class="n">semirotameric_index</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">semirotameric</span>
+            <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
         <span class="p">)</span>
 
         <span class="n">empty_tor</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
@@ -562,20 +609,18 @@
 
         <span class="n">dih_uaids</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">phi_uaids</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">psi_uaids</span><span class="p">]</span> <span class="o">+</span> <span class="n">chis</span><span class="p">)</span>
 
-        <span class="n">n_chi</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_host_aux</span><span class="p">[</span><span class="s2">"nchi_for_table_set"</span><span class="p">][</span><span class="n">rotamer_table_set</span><span class="p">])</span>
+        <span class="n">n_chi</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aux</span><span class="p">[</span><span class="s2">"nchi_for_table_set"</span><span class="p">][</span><span class="n">rotamer_table_set</span><span class="p">]</span>
         <span class="n">n_rotameric_chi</span> <span class="o">=</span> <span class="n">n_chi</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="k">if</span> <span class="n">semirotameric</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span>
         <span class="n">n_dihedrals</span> <span class="o">=</span> <span class="n">n_chi</span> <span class="o">+</span> <span class="mi">2</span>
-
-        <span class="n">probability_table_offset</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_host_aux</span><span class="p">[</span><span class="s2">"rotameric_prob_tableset_offsets"</span><span class="p">][</span><span class="n">rotameric_index</span><span class="p">]</span>
-        <span class="p">)</span>
-
-        <span class="n">mean_table_offset</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_host_aux</span><span class="p">[</span><span class="s2">"rotameric_meansdev_tableset_offsets"</span><span class="p">][</span><span class="n">rotamer_table_set</span><span class="p">]</span>
-        <span class="p">)</span>
-        <span class="n">rotamer_index_to_table_index_offset</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_host_aux</span><span class="p">[</span><span class="s2">"rotameric_chi_ri2ti_offsets"</span><span class="p">][</span><span class="n">rotamer_table_set</span><span class="p">]</span>
-        <span class="p">)</span>
+        <span class="n">probability_table_offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aux</span><span class="p">[</span><span class="s2">"rotameric_prob_tableset_offsets"</span><span class="p">][</span>
+            <span class="n">rotameric_index</span>
+        <span class="p">]</span>
+        <span class="n">mean_table_offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aux</span><span class="p">[</span><span class="s2">"rotameric_meansdev_tableset_offsets"</span><span class="p">][</span>
+            <span class="n">rotamer_table_set</span>
+        <span class="p">]</span>
+        <span class="n">rotamer_index_to_table_index_offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aux</span><span class="p">[</span><span class="s2">"rotameric_chi_ri2ti_offsets"</span><span class="p">][</span>
+            <span class="n">rotamer_table_set</span>
+        <span class="p">]</span>
 
         <span class="n">dunbrack_attrs</span> <span class="o">=</span> <span class="n">DunbrackBlockAttrs</span><span class="p">(</span>
             <span class="n">n_dihedrals</span><span class="o">=</span><span class="n">n_dihedrals</span><span class="p">,</span>
@@ -589,9 +634,10 @@
             <span class="n">mean_table_offset</span><span class="o">=</span><span class="n">mean_table_offset</span><span class="p">,</span>
             <span class="n">rotamer_index_to_table_index_offset</span><span class="o">=</span><span class="n">rotamer_index_to_table_index_offset</span><span class="p">,</span>
             <span class="n">semirotameric_tableset_offset</span><span class="o">=</span><span class="n">semirotameric_tableset_offset</span><span class="p">,</span>
+            <span class="n">is_mirrored</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">polymer</span><span class="o">.</span><span class="n">sidechain_chirality</span> <span class="o">==</span> <span class="s2">"d"</span><span class="p">),</span>
         <span class="p">)</span>
 
-        <span class="nb">setattr</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"dunbrack_attrs"</span><span class="p">,</span> <span class="n">dunbrack_attrs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dunbrack_attrs</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_torsion</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">block_type</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">block_type</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="p">:</span>
@@ -601,53 +647,53 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_packed_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">DunbrackEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_packed_block_types</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"dunbrack_packed_block_data"</span><span class="p">):</span>
-            <span class="k">return</span>
-
-        <span class="n">pack</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
-            <span class="n">DunbrackEnergyTerm</span><span class="o">.</span><span class="n">pack_data_keyed_on_block_type</span><span class="p">,</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">,</span>
-            <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span>
+            <span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"_dunbrack_packed_annotation"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_key</span>
         <span class="p">)</span>
-
-        <span class="n">packed_data</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">pack</span><span class="p">(</span><span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">dunbrack_attrs</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
-            <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="n">DunbrackBlockAttrs</span><span class="p">)</span>
-        <span class="p">]</span>
-
-        <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"dunbrack_packed_block_data"</span><span class="p">,</span> <span class="n">packed_data</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">block_type</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">setup_block_type</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
+            <span class="n">cached</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pack_data_keyed_on_block_type</span><span class="p">(</span>
+                    <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">,</span>
+                    <span class="k">lambda</span> <span class="n">bt</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">dunbrack_attrs</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">),</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="n">DunbrackBlockAttrs</span><span class="p">)</span>
+            <span class="p">]</span>
+            <span class="n">store_annotation</span><span class="p">(</span>
+                <span class="n">packed_block_types</span><span class="p">,</span>
+                <span class="s2">"_dunbrack_packed_annotation"</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_key</span><span class="p">,</span>
+                <span class="n">cached</span><span class="p">,</span>
+                <span class="n">bindings</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="s2">"dunbrack_attrs"</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">block_type</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+        <span class="n">packed_block_types</span><span class="o">.</span><span class="n">dunbrack_packed_block_data</span> <span class="o">=</span> <span class="n">cached</span>
+        <span class="k">return</span> <span class="n">cached</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">pack_data_keyed_on_block_type</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">active_block_types</span><span class="p">,</span> <span class="n">field_getter</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">default_fill</span><span class="o">=-</span><span class="mi">1</span>
     <span class="p">):</span>
-        <span class="n">max_size</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">active_block_types</span><span class="p">:</span>
-            <span class="n">bt_data</span> <span class="o">=</span> <span class="n">field_getter</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">bt_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">continue</span>
-            <span class="n">cur</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bt_data</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">max_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">max_size</span> <span class="o">=</span> <span class="n">cur</span>
-            <span class="n">max_size</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">max_size</span><span class="p">,</span> <span class="n">cur</span><span class="p">)</span>
-
-        <span class="n">n_block_types</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">active_block_types</span><span class="p">),)</span>
-        <span class="n">size</span> <span class="o">=</span> <span class="n">n_block_types</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">max_size</span><span class="p">)</span>
-
-        <span class="n">packed</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">default_fill</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">active_block_types</span><span class="p">):</span>
-            <span class="n">bt_data</span> <span class="o">=</span> <span class="n">field_getter</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">bt_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">continue</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bt_data</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">integer</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span>
-                <span class="nb">isinstance</span><span class="p">(</span><span class="n">bt_data</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="n">bt_data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span>
-            <span class="p">):</span>
-                <span class="n">packed</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">bt_data</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">slices</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span><span class="p">,)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span> <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">numpy</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bt_data</span><span class="p">))</span>
-                <span class="n">packed</span><span class="p">[</span><span class="n">slices</span><span class="p">]</span> <span class="o">=</span> <span class="n">bt_data</span>
-
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">packed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">field_getter</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">active_block_types</span><span class="p">]</span>
+        <span class="n">arrays</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="kc">None</span> <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">values</span>
+        <span class="p">]</span>
+        <span class="n">shapes</span> <span class="o">=</span> <span class="p">[</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">array</span> <span class="ow">in</span> <span class="n">arrays</span> <span class="k">if</span> <span class="n">array</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="n">maximum</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span> <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">shapes</span><span class="p">))</span>
+        <span class="n">packed</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">arrays</span><span class="p">),</span> <span class="o">*</span><span class="n">maximum</span><span class="p">),</span> <span class="n">default_fill</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">array</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">arrays</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">array</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">packed</span><span class="p">[(</span><span class="n">index</span><span class="p">,</span> <span class="o">*</span><span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span> <span class="k">for</span> <span class="n">size</span> <span class="ow">in</span> <span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">))]</span> <span class="o">=</span> <span class="n">array</span>
+        <span class="k">if</span> <span class="n">packed</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># NumPy's empty arrays have zero strides, including the consumed</span>
+            <span class="c1"># three-component UAID axis. Construct native-compatible strides</span>
+            <span class="c1"># directly without inserting a phantom dihedral into empty types.</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">packed</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">packed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_poses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">DunbrackEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_poses</span><span class="p">(</span><span class="n">poses</span><span class="p">)</span>
@@ -666,12 +712,13 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">get_score_term_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">):</span>
         <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+        <span class="n">packed_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">setup_packed_block_types</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="p">[</span>
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="p">,</span>
             <span class="n">pbt</span><span class="o">.</span><span class="n">atom_downstream_of_conn</span><span class="p">,</span>
             <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dunbrack_db</span><span class="p">,</span>
-            <span class="o">*</span><span class="n">pbt</span><span class="o">.</span><span class="n">dunbrack_packed_block_data</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">packed_data</span><span class="p">,</span>
         <span class="p">]</span></div>
 
 </pre></div>

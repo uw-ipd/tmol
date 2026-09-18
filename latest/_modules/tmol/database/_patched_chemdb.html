@@ -158,25 +158,42 @@
 
 
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../agent_skills.html">
     Agent skills
   </a>
 </li>
 
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../api_reference.html">
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
     API
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
     Contributing
   </a>
 </li>
 
+                </ul>
+            </li>
+            
   </ul>
 </nav></div>
       
@@ -287,6 +304,13 @@
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../../../examples_index.html">
     Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
   </a>
 </li>
 
@@ -427,6 +451,7 @@
     <span class="n">VariantType</span><span class="p">,</span>
     <span class="n">ChemicalDatabase</span><span class="p">,</span>
     <span class="n">Icoor</span><span class="p">,</span>
+    <span class="n">Name3Alias</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.extern.pysmiles</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_smiles</span>
@@ -469,6 +494,10 @@
         <span class="k">if</span> <span class="n">atom</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">a</span><span class="o">.</span><span class="n">connection</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">b</span><span class="o">.</span><span class="n">connection</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">connection</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">d</span><span class="o">.</span><span class="n">connection</span><span class="p">]</span>
     <span class="p">)</span>
     <span class="n">res</span><span class="o">.</span><span class="n">connections</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">connections</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="n">atom</span><span class="p">)</span>
+    <span class="c1"># a chi sample names a torsion; one whose torsion has just gone with the</span>
+    <span class="c1">#    atom would name nothing</span>
+    <span class="n">remaining</span> <span class="o">=</span> <span class="p">{</span><span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">torsions</span><span class="p">}</span>
+    <span class="n">res</span><span class="o">.</span><span class="n">chi_samples</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">chi_samples</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">chi_dihedral</span> <span class="ow">in</span> <span class="n">remaining</span><span class="p">)</span>
 
     <span class="c1"># atom_downstream_of_conn indexes every mainchain atom, so a patch that drops</span>
     <span class="c1"># one (e.g. the DNA 5' terminus dropping P) must drop it here too</span>
@@ -508,40 +537,105 @@
                 <span class="n">great_grand_parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="p">)</span>
 
-        <span class="c1"># map p, gp, ggp names</span>
-        <span class="n">p_i</span> <span class="o">=</span> <span class="n">source_i</span><span class="o">.</span><span class="n">parent</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">target_i</span><span class="o">.</span><span class="n">parent</span> <span class="k">else</span> <span class="n">target_i</span><span class="o">.</span><span class="n">parent</span>
-        <span class="k">if</span> <span class="n">p_i</span> <span class="ow">in</span> <span class="n">namemap</span><span class="p">:</span>
-            <span class="n">p_i</span> <span class="o">=</span> <span class="n">namemap</span><span class="p">[</span><span class="n">p_i</span><span class="p">]</span>
-        <span class="n">gp_i</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">source_i</span><span class="o">.</span><span class="n">grand_parent</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">target_i</span><span class="o">.</span><span class="n">grand_parent</span>
-            <span class="k">else</span> <span class="n">target_i</span><span class="o">.</span><span class="n">grand_parent</span>
-        <span class="p">)</span>
-        <span class="k">if</span> <span class="n">gp_i</span> <span class="ow">in</span> <span class="n">namemap</span><span class="p">:</span>
-            <span class="n">gp_i</span> <span class="o">=</span> <span class="n">namemap</span><span class="p">[</span><span class="n">gp_i</span><span class="p">]</span>
-        <span class="n">ggp_i</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">source_i</span><span class="o">.</span><span class="n">great_grand_parent</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">target_i</span><span class="o">.</span><span class="n">great_grand_parent</span>
-            <span class="k">else</span> <span class="n">target_i</span><span class="o">.</span><span class="n">great_grand_parent</span>
-        <span class="p">)</span>
-        <span class="k">if</span> <span class="n">ggp_i</span> <span class="ow">in</span> <span class="n">namemap</span><span class="p">:</span>
-            <span class="n">ggp_i</span> <span class="o">=</span> <span class="n">namemap</span><span class="p">[</span><span class="n">ggp_i</span><span class="p">]</span>
+        <span class="c1"># a field the patch omits is inherited from its source; only an</span>
+        <span class="c1">#    absent field is omitted, since 0.0 is a legitimate angle</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">inherited</span><span class="p">(</span><span class="n">field</span><span class="p">):</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">target_i</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">source_i</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span> <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">value</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">mapped</span><span class="p">(</span><span class="n">field</span><span class="p">):</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">inherited</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">namemap</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">namemap</span> <span class="k">else</span> <span class="n">name</span>
 
         <span class="n">icoor_i</span> <span class="o">=</span> <span class="n">Icoor</span><span class="p">(</span>
-            <span class="n">name</span><span class="o">=</span><span class="n">target_i</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="n">phi</span><span class="o">=</span><span class="n">source_i</span><span class="o">.</span><span class="n">phi</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">target_i</span><span class="o">.</span><span class="n">phi</span> <span class="k">else</span> <span class="n">target_i</span><span class="o">.</span><span class="n">phi</span><span class="p">,</span>
-            <span class="n">theta</span><span class="o">=</span><span class="n">source_i</span><span class="o">.</span><span class="n">theta</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">target_i</span><span class="o">.</span><span class="n">theta</span> <span class="k">else</span> <span class="n">target_i</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span>
-            <span class="n">d</span><span class="o">=</span><span class="n">source_i</span><span class="o">.</span><span class="n">d</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">target_i</span><span class="o">.</span><span class="n">d</span> <span class="k">else</span> <span class="n">target_i</span><span class="o">.</span><span class="n">d</span><span class="p">,</span>
-            <span class="n">parent</span><span class="o">=</span><span class="n">p_i</span><span class="p">,</span>
-            <span class="n">grand_parent</span><span class="o">=</span><span class="n">gp_i</span><span class="p">,</span>
-            <span class="n">great_grand_parent</span><span class="o">=</span><span class="n">ggp_i</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">namemap</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">target_i</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">target_i</span><span class="o">.</span><span class="n">name</span><span class="p">),</span>
+            <span class="n">phi</span><span class="o">=</span><span class="n">inherited</span><span class="p">(</span><span class="s2">"phi"</span><span class="p">),</span>
+            <span class="n">theta</span><span class="o">=</span><span class="n">inherited</span><span class="p">(</span><span class="s2">"theta"</span><span class="p">),</span>
+            <span class="n">d</span><span class="o">=</span><span class="n">inherited</span><span class="p">(</span><span class="s2">"d"</span><span class="p">),</span>
+            <span class="n">parent</span><span class="o">=</span><span class="n">mapped</span><span class="p">(</span><span class="s2">"parent"</span><span class="p">),</span>
+            <span class="n">grand_parent</span><span class="o">=</span><span class="n">mapped</span><span class="p">(</span><span class="s2">"grand_parent"</span><span class="p">),</span>
+            <span class="n">great_grand_parent</span><span class="o">=</span><span class="n">mapped</span><span class="p">(</span><span class="s2">"great_grand_parent"</span><span class="p">),</span>
         <span class="p">)</span>
 
         <span class="n">new_icoor</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">icoor_i</span><span class="p">)</span>
 
-    <span class="c1"># create final icoor list</span>
-    <span class="n">remove</span> <span class="o">=</span> <span class="p">[</span><span class="n">namemap</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">atoms_remove</span><span class="p">]</span>
-    <span class="k">return</span> <span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">res</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">remove</span><span class="p">),</span> <span class="o">*</span><span class="n">new_icoor</span><span class="p">)</span>
+    <span class="c1"># create final icoor list, ordered so every icoor follows the ones that</span>
+    <span class="c1"># frame it -- build_coords_from_icoors reads parents in order. Neither</span>
+    <span class="c1"># position alone is right: a redefined icoor left where it sat can precede</span>
+    <span class="c1"># the atoms the patch added for it to hang on, and appended it can follow</span>
+    <span class="c1"># atoms that hang on it. Sort, keeping the given order among independents.</span>
+    <span class="n">removed</span> <span class="o">=</span> <span class="p">{</span><span class="n">namemap</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">atoms_remove</span><span class="p">}</span>
+    <span class="n">replacements</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">new_icoor</span><span class="p">}</span>
+    <span class="n">merged</span> <span class="o">=</span> <span class="p">[</span><span class="n">replacements</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">res</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">removed</span><span class="p">]</span>
+    <span class="n">merged</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">replacements</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">_icoors_in_dependency_order</span><span class="p">(</span><span class="n">merged</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_icoors_in_dependency_order</span><span class="p">(</span><span class="n">icoors</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Order icoors so each follows the ones it is framed on.</span>
+
+<span class="sd">    A stable topological sort: an icoor is emitted once its parent, grandparent</span>
+<span class="sd">    and great-grandparent have been, and ties keep the incoming order. A frame</span>
+<span class="sd">    atom no icoor defines -- a connection name -- imposes no constraint.</span>
+
+<span class="sd">    The root is exempt from its whole frame, not just from naming itself. A</span>
+<span class="sd">    residue's root names the next two atoms as its grandparent and</span>
+<span class="sd">    great-grandparent -- SER's is ``N: N, CA, C`` -- and those name it back, so</span>
+<span class="sd">    honouring the root's frame makes a three-cycle that stalls the sort on its</span>
+<span class="sd">    first pass and returns the input untouched. That is inertness dressed as</span>
+<span class="sd">    conservatism: the caller would silently keep whatever order it had.</span>
+<span class="sd">    """</span>
+    <span class="n">pending</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">icoors</span><span class="p">)</span>
+    <span class="n">defined</span> <span class="o">=</span> <span class="p">{</span><span class="n">icoor</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">icoor</span> <span class="ow">in</span> <span class="n">pending</span><span class="p">}</span>
+    <span class="n">emitted</span><span class="p">,</span> <span class="n">ordered</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(),</span> <span class="p">[]</span>
+    <span class="k">while</span> <span class="n">pending</span><span class="p">:</span>
+        <span class="n">deferred</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">icoor</span> <span class="ow">in</span> <span class="n">pending</span><span class="p">:</span>
+            <span class="n">frame</span> <span class="o">=</span> <span class="p">(</span><span class="n">icoor</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span> <span class="n">icoor</span><span class="o">.</span><span class="n">grand_parent</span><span class="p">,</span> <span class="n">icoor</span><span class="o">.</span><span class="n">great_grand_parent</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">icoor</span><span class="o">.</span><span class="n">parent</span> <span class="o">==</span> <span class="n">icoor</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+                <span class="c1"># the root: it is built from nothing, so nothing constrains it</span>
+                <span class="n">frame</span> <span class="o">=</span> <span class="p">()</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">(</span>
+                <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">defined</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">emitted</span> <span class="ow">or</span> <span class="n">name</span> <span class="o">==</span> <span class="n">icoor</span><span class="o">.</span><span class="n">name</span>
+                <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">frame</span>
+            <span class="p">):</span>
+                <span class="n">ordered</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">icoor</span><span class="p">)</span>
+                <span class="n">emitted</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">icoor</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">deferred</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">icoor</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">deferred</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">pending</span><span class="p">):</span>
+            <span class="c1"># A cycle among the frames. Leave the remainder as given rather than</span>
+            <span class="c1"># invent an order; assert_no_orphaned_icoors owns that report.</span>
+            <span class="n">ordered</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">deferred</span><span class="p">)</span>
+            <span class="k">break</span>
+        <span class="n">pending</span> <span class="o">=</span> <span class="n">deferred</span>
+    <span class="k">return</span> <span class="n">ordered</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">assert_no_orphaned_icoors</span><span class="p">(</span><span class="n">icoors</span><span class="p">,</span> <span class="n">removed</span><span class="p">,</span> <span class="n">res_name</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Every surviving atom must still be framed on atoms that survive.</span>
+
+<span class="sd">    A patch removes atoms without looking at what was placed against them, so</span>
+<span class="sd">    one that takes away an atom another is built from leaves a residue that</span>
+<span class="sd">    cannot be built at all. Which atom a residue roots its tree at is what</span>
+<span class="sd">    makes a patch safe -- a nucleotide roots at its 5' oxygen so that losing</span>
+<span class="sd">    the phosphate before it orphans nothing -- and that is a property of the</span>
+<span class="sd">    residue and the patch, not something to repair here.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">removed</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="n">orphaned</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">i</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> on </span><span class="si">{</span><span class="n">ref</span><span class="si">}</span><span class="s2">"</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">icoors</span>
+        <span class="k">for</span> <span class="n">ref</span> <span class="ow">in</span> <span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span> <span class="n">i</span><span class="o">.</span><span class="n">grand_parent</span><span class="p">,</span> <span class="n">i</span><span class="o">.</span><span class="n">great_grand_parent</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ref</span> <span class="ow">in</span> <span class="n">removed</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">orphaned</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">res_name</span><span class="si">}</span><span class="s2">: patch leaves atoms framed on ones it removes "</span>
+            <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">orphaned</span><span class="p">[:</span><span class="mi">4</span><span class="p">])</span><span class="si">}</span><span class="s2">). The residue's icoor tree is rooted "</span>
+            <span class="s2">"where the patch can take the root away."</span>
+        <span class="p">)</span>
 
 
 <span class="c1"># get a list of atoms modified by a patch</span>
@@ -723,6 +817,7 @@
     <span class="n">added_ats_and_conns</span> <span class="o">=</span> <span class="n">addedatoms</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="n">i</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">patch</span><span class="o">.</span><span class="n">add_connections</span><span class="p">]))</span>
 
     <span class="n">_validate_patch_fields</span><span class="p">(</span><span class="n">patch</span><span class="p">)</span>
+    <span class="n">_validate_patch_scope</span><span class="p">(</span><span class="n">patch</span><span class="p">)</span>
     <span class="n">_validate_patch_atom_references</span><span class="p">(</span>
         <span class="n">patch</span><span class="p">,</span> <span class="s2">"remove_atoms"</span><span class="p">,</span> <span class="s2">"remove_nonreference_atom"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span>
     <span class="p">)</span>
@@ -732,6 +827,19 @@
     <span class="n">_validate_patch_atom_aliases</span><span class="p">(</span><span class="n">patch</span><span class="p">,</span> <span class="n">addedatoms</span><span class="p">)</span>
     <span class="n">_validate_patch_bonds</span><span class="p">(</span><span class="n">patch</span><span class="p">,</span> <span class="n">added_ats_and_conns</span><span class="p">)</span>
     <span class="n">_validate_patch_icoors</span><span class="p">(</span><span class="n">patch</span><span class="p">,</span> <span class="n">added_ats_and_conns</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_validate_patch_scope</span><span class="p">(</span><span class="n">patch</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""A patch naming atoms outright must name the one residue type it means."""</span>
+    <span class="k">if</span> <span class="n">patch</span><span class="o">.</span><span class="n">pattern</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="n">base_names</span> <span class="o">=</span> <span class="n">patch</span><span class="o">.</span><span class="n">applies_to</span><span class="o">.</span><span class="n">base_names</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">base_names</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">base_names</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"Bad patch: </span><span class="si">{</span><span class="n">patch</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+            <span class="s2">"Error: a patch with no pattern names atoms outright, so it must "</span>
+            <span class="s2">"be scoped with applies_to.base_names to exactly one residue type."</span>
+        <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_validate_patch_fields</span><span class="p">(</span><span class="n">patch</span><span class="p">):</span>
@@ -868,6 +976,74 @@
         <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">pattern_namemaps</span><span class="p">(</span><span class="n">variant</span><span class="p">,</span> <span class="n">resgraph</span><span class="p">,</span> <span class="n">patchgraph</span><span class="p">,</span> <span class="n">res</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Each distinct way the patch's pattern binds to the residue.</span>
+
+<span class="sd">    A namemap sends every pattern placeholder to the name it matched, which is</span>
+<span class="sd">    an atom's or, at a connection, the connection's. Two bindings that modify</span>
+<span class="sd">    the same atoms are one binding found twice.</span>
+
+<span class="sd">    A patch with no pattern names the residue's atoms outright: ``&lt;OG&gt;`` is the</span>
+<span class="sd">    atom called OG. Generated patches are written that way, since a pattern</span>
+<span class="sd">    cannot tell one hydroxyl of a sugar from another.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">patchgraph</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># the residue's own atoms, hydrogens included; resgraph carries only</span>
+        <span class="c1">#    the heavy ones a SMILES pattern can match</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">atom</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">atoms</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">connections</span><span class="p">]</span>
+        <span class="n">namemap</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"&lt;"</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"&gt;"</span><span class="p">:</span> <span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">}</span>
+        <span class="n">added</span><span class="p">,</span> <span class="n">modded</span><span class="p">,</span> <span class="n">deleted</span> <span class="o">=</span> <span class="n">get_modified_atoms</span><span class="p">(</span><span class="n">variant</span><span class="p">)</span>
+        <span class="c1"># a pattern stops matching once its atoms are gone; so does this</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span>
+            <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">namemap</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="o">*</span><span class="n">modded</span><span class="p">,</span> <span class="o">*</span><span class="n">deleted</span><span class="p">)</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">added</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="p">[]</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">namemap</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">atoms_match</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"element"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">y</span> <span class="ow">or</span> <span class="s2">"element"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">x</span> <span class="ow">or</span> <span class="n">x</span><span class="p">[</span><span class="s2">"element"</span><span class="p">]</span> <span class="o">==</span> <span class="n">y</span><span class="p">[</span><span class="s2">"element"</span><span class="p">]</span>
+
+    <span class="n">gm</span> <span class="o">=</span> <span class="n">iso</span><span class="o">.</span><span class="n">GraphMatcher</span><span class="p">(</span><span class="n">resgraph</span><span class="p">,</span> <span class="n">patchgraph</span><span class="p">,</span> <span class="n">node_match</span><span class="o">=</span><span class="n">atoms_match</span><span class="p">)</span>
+    <span class="n">_added</span><span class="p">,</span> <span class="n">modded</span><span class="p">,</span> <span class="n">_deleted</span> <span class="o">=</span> <span class="n">get_modified_atoms</span><span class="p">(</span><span class="n">variant</span><span class="p">)</span>
+
+    <span class="n">unique</span><span class="p">,</span> <span class="n">namemaps</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">subgraph_x</span> <span class="ow">in</span> <span class="n">gm</span><span class="o">.</span><span class="n">subgraph_monomorphisms_iter</span><span class="p">():</span>
+        <span class="n">namemap</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"&lt;"</span> <span class="o">+</span> <span class="n">patchgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">y</span><span class="p">][</span><span class="s2">"name"</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"&gt;"</span><span class="p">:</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">subgraph_x</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="n">mod_i</span> <span class="o">=</span> <span class="p">[</span><span class="n">namemap</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">modded</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">mod_i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">unique</span><span class="p">:</span>
+            <span class="n">unique</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mod_i</span><span class="p">)</span>
+            <span class="n">namemaps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">namemap</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">namemaps</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_patch_preserves_torsion_support</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">variant</span><span class="p">,</span> <span class="n">namemap</span><span class="p">,</span> <span class="n">deleted</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""A combination must retain the references of its connected torsions."""</span>
+    <span class="n">atoms</span> <span class="o">=</span> <span class="p">({</span><span class="n">a</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">atoms</span><span class="p">}</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">deleted</span><span class="p">))</span> <span class="o">|</span> <span class="p">{</span>
+        <span class="n">a</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">variant</span><span class="o">.</span><span class="n">add_atoms</span>
+    <span class="p">}</span>
+    <span class="n">connections</span> <span class="o">=</span> <span class="p">({</span><span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">connections</span><span class="p">}</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">deleted</span><span class="p">))</span> <span class="o">|</span> <span class="p">{</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">variant</span><span class="o">.</span><span class="n">add_connections</span>
+    <span class="p">}</span>
+    <span class="k">for</span> <span class="n">torsion</span> <span class="ow">in</span> <span class="n">variant</span><span class="o">.</span><span class="n">add_torsions</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">ref</span> <span class="ow">in</span> <span class="p">(</span><span class="n">torsion</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="n">torsion</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">torsion</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">torsion</span><span class="o">.</span><span class="n">d</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">ref</span><span class="o">.</span><span class="n">atom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">namemap</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">atom</span><span class="p">,</span> <span class="n">ref</span><span class="o">.</span><span class="n">atom</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">ref</span><span class="o">.</span><span class="n">connection</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="ow">and</span> <span class="n">namemap</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">connection</span><span class="p">,</span> <span class="n">ref</span><span class="o">.</span><span class="n">connection</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">connections</span>
+            <span class="p">):</span>
+                <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">for</span> <span class="n">torsion</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">torsions</span><span class="p">:</span>
+        <span class="n">refs</span> <span class="o">=</span> <span class="p">(</span><span class="n">torsion</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="n">torsion</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">torsion</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">torsion</span><span class="o">.</span><span class="n">d</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">connection</span> <span class="ow">in</span> <span class="n">connections</span> <span class="k">for</span> <span class="n">ref</span> <span class="ow">in</span> <span class="n">refs</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span>
+            <span class="n">ref</span><span class="o">.</span><span class="n">atom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">ref</span><span class="o">.</span><span class="n">atom</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">atoms</span> <span class="k">for</span> <span class="n">ref</span> <span class="ow">in</span> <span class="n">refs</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="kc">True</span>
+
+
 <span class="c1"># apply a patch to a rawresidue</span>
 <span class="c1">#    res, resgraph - base residue, graph</span>
 <span class="c1">#    variant, patchgraph - patch variant, patch graph</span>
@@ -876,37 +1052,21 @@
 <span class="c1">#    newreses - list of new residues produced by the patch (currently only support for 1)</span>
 <span class="c1">#    newmarked - updated list of modified atoms in new residue</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">do_patch</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">variant</span><span class="p">,</span> <span class="n">resgraph</span><span class="p">,</span> <span class="n">patchgraph</span><span class="p">,</span> <span class="n">marked</span><span class="p">):</span>  <span class="c1"># noqa: C901</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">atoms_match</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">(</span>
-            <span class="p">(</span><span class="s2">"element"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">y</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="s2">"element"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">x</span><span class="p">)</span> <span class="ow">or</span> <span class="n">x</span><span class="p">[</span><span class="s2">"element"</span><span class="p">]</span> <span class="o">==</span> <span class="n">y</span><span class="p">[</span><span class="s2">"element"</span><span class="p">]</span>
-        <span class="p">)</span>
-
-    <span class="n">gm</span> <span class="o">=</span> <span class="n">iso</span><span class="o">.</span><span class="n">GraphMatcher</span><span class="p">(</span><span class="n">resgraph</span><span class="p">,</span> <span class="n">patchgraph</span><span class="p">,</span> <span class="n">node_match</span><span class="o">=</span><span class="n">atoms_match</span><span class="p">)</span>
-
     <span class="n">added</span><span class="p">,</span> <span class="n">modded</span><span class="p">,</span> <span class="n">deleted</span> <span class="o">=</span> <span class="n">get_modified_atoms</span><span class="p">(</span><span class="n">variant</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">modded</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">deleted</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
         <span class="s2">"Patch "</span> <span class="o">+</span> <span class="n">variant</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">" does not modify any atoms!"</span>
     <span class="p">)</span>
 
-    <span class="c1"># find patchsets that are unique w.r.t. list of modded atoms</span>
-    <span class="n">mod_unique</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">namemaps</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">subgraph_x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">gm</span><span class="o">.</span><span class="n">subgraph_monomorphisms_iter</span><span class="p">()):</span>
-        <span class="n">namemap</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">"&lt;"</span> <span class="o">+</span> <span class="n">patchgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">y</span><span class="p">][</span><span class="s2">"name"</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"&gt;"</span><span class="p">:</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">subgraph_x</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-        <span class="p">}</span>
-        <span class="n">mod_i</span> <span class="o">=</span> <span class="p">[</span><span class="n">namemap</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">modded</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">mod_i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">mod_unique</span><span class="p">:</span>
-            <span class="n">mod_unique</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mod_i</span><span class="p">)</span>
-            <span class="n">namemaps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">namemap</span><span class="p">)</span>
+    <span class="n">namemaps</span> <span class="o">=</span> <span class="n">pattern_namemaps</span><span class="p">(</span><span class="n">variant</span><span class="p">,</span> <span class="n">resgraph</span><span class="p">,</span> <span class="n">patchgraph</span><span class="p">,</span> <span class="n">res</span><span class="p">)</span>
 
     <span class="c1"># fd: this could be supported in the future, with a few issues to work out</span>
     <span class="c1">#    -if the patch adds atoms, we need to figure out how to ensure unique names</span>
     <span class="c1">#    -need a patch naming scheme if a patch applied twice</span>
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">mod_unique</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">namemaps</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
         <span class="sa">f</span><span class="s2">"Patch </span><span class="si">{</span><span class="n">variant</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> applies to residue </span><span class="si">{</span><span class="n">res</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> multiple times, "</span>
-        <span class="sa">f</span><span class="s2">"matching the atom sets </span><span class="si">{</span><span class="n">mod_unique</span><span class="si">}</span><span class="s2">. Narrow the pattern, or scope the "</span>
-        <span class="sa">f</span><span class="s2">"patch with applies_to."</span>
+        <span class="sa">f</span><span class="s2">"matching the atom sets "</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="p">[[</span><span class="n">m</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">modded</span><span class="p">]</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">namemaps</span><span class="p">]</span><span class="si">}</span><span class="s2">. Narrow the pattern, or "</span>
+        <span class="sa">f</span><span class="s2">"scope the patch with applies_to."</span>
     <span class="p">)</span>
 
     <span class="c1"># apply patches</span>
@@ -928,21 +1088,10 @@
         <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">modded</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">newmark</span><span class="p">):</span>
             <span class="k">continue</span>
 
-        <span class="n">newres</span> <span class="o">=</span> <span class="n">RawResidueType</span><span class="p">(</span>
-            <span class="n">name</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">":"</span> <span class="o">+</span> <span class="n">variant</span><span class="o">.</span><span class="n">display_name</span><span class="p">,</span>
-            <span class="n">base_name</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">base_name</span><span class="p">,</span>
-            <span class="n">name3</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">name3</span><span class="p">,</span>
-            <span class="n">io_equiv_class</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">io_equiv_class</span><span class="p">,</span>
-            <span class="n">atoms</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">atoms</span><span class="p">,</span>
-            <span class="n">atom_aliases</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">atom_aliases</span><span class="p">,</span>
-            <span class="n">bonds</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">bonds</span><span class="p">,</span>
-            <span class="n">connections</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">connections</span><span class="p">,</span>
-            <span class="n">torsions</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">torsions</span><span class="p">,</span>
-            <span class="n">icoors</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">icoors</span><span class="p">,</span>
-            <span class="n">properties</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">properties</span><span class="p">,</span>
-            <span class="n">chi_samples</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">chi_samples</span><span class="p">,</span>
-            <span class="n">default_jump_connection_atom</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">default_jump_connection_atom</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_patch_preserves_torsion_support</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">variant</span><span class="p">,</span> <span class="n">namemap</span><span class="p">,</span> <span class="n">deleted</span><span class="p">):</span>
+            <span class="k">continue</span>
+
+        <span class="n">newres</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">":"</span> <span class="o">+</span> <span class="n">variant</span><span class="o">.</span><span class="n">display_name</span><span class="p">)</span>
 
         <span class="c1"># 1. remove atoms</span>
         <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">variant</span><span class="o">.</span><span class="n">remove_atoms</span><span class="p">:</span>
@@ -983,6 +1132,15 @@
         <span class="n">newres</span><span class="o">.</span><span class="n">icoors</span> <span class="o">=</span> <span class="n">update_icoor</span><span class="p">(</span>
             <span class="n">newres</span><span class="o">.</span><span class="n">icoors</span><span class="p">,</span> <span class="n">variant</span><span class="o">.</span><span class="n">icoors</span><span class="p">,</span> <span class="n">variant</span><span class="o">.</span><span class="n">remove_atoms</span><span class="p">,</span> <span class="n">namemap</span>
         <span class="p">)</span>
+        <span class="n">assert_no_orphaned_icoors</span><span class="p">(</span>
+            <span class="n">newres</span><span class="o">.</span><span class="n">icoors</span><span class="p">,</span>
+            <span class="c1"># an atom the patch removes and adds again under the same name --</span>
+            <span class="c1">#    a carboxy terminus does that with its carbonyl oxygen -- has</span>
+            <span class="c1">#    not gone anywhere</span>
+            <span class="p">{</span><span class="n">namemap</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">variant</span><span class="o">.</span><span class="n">remove_atoms</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">namemap</span><span class="p">}</span>
+            <span class="o">-</span> <span class="p">{</span><span class="n">a</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">variant</span><span class="o">.</span><span class="n">add_atoms</span><span class="p">},</span>
+            <span class="n">newres</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="c1"># 5b. add torsions and the chi samples that name them</span>
         <span class="n">newtorsions</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1016,6 +1174,53 @@
     <span class="k">return</span> <span class="n">newreses</span><span class="p">,</span> <span class="n">newmarked</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">patch_residue</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">variants</span><span class="p">,</span> <span class="n">graph_builder</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Return res plus every variant form of it."""</span>
+    <span class="c1"># resolve against the unpatched residue</span>
+    <span class="c1">#   BY DESIGN ... a patch can never be made conditional on another</span>
+    <span class="c1">#   patch having been applied</span>
+    <span class="n">applicable</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variants</span> <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">applies_to</span><span class="o">.</span><span class="n">matches</span><span class="p">(</span><span class="n">res</span><span class="p">)]</span>
+
+    <span class="n">resvariants</span><span class="p">,</span> <span class="n">resvariantnames</span><span class="p">,</span> <span class="n">marked_atoms</span> <span class="o">=</span> <span class="p">[</span><span class="n">res</span><span class="p">],</span> <span class="p">[</span><span class="s2">""</span><span class="p">],</span> <span class="p">[[]]</span>
+    <span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">done</span><span class="p">:</span>
+        <span class="n">done</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># newly added variants, variant names, marked atoms</span>
+        <span class="n">rv_new</span><span class="p">,</span> <span class="n">rvn_new</span><span class="p">,</span> <span class="n">ma_new</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">res_i</span><span class="p">,</span> <span class="n">name_i</span><span class="p">,</span> <span class="n">mark_i</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">resvariants</span><span class="p">,</span> <span class="n">resvariantnames</span><span class="p">,</span> <span class="n">marked_atoms</span><span class="p">):</span>
+            <span class="n">resgraph</span> <span class="o">=</span> <span class="n">graph_builder</span><span class="o">.</span><span class="n">from_raw_res</span><span class="p">(</span><span class="n">res_i</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">variant</span> <span class="ow">in</span> <span class="n">applicable</span><span class="p">:</span>
+                <span class="n">newtag</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="n">name_i</span><span class="p">,</span> <span class="n">variant</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+                <span class="n">newtag</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">newtag</span> <span class="ow">in</span> <span class="n">resvariantnames</span> <span class="ow">or</span> <span class="n">newtag</span> <span class="ow">in</span> <span class="n">rvn_new</span><span class="p">:</span>
+                    <span class="k">continue</span>  <span class="c1"># we already made this variant</span>
+
+                <span class="n">patchgraph</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">read_smiles</span><span class="p">(</span>
+                        <span class="n">variant</span><span class="o">.</span><span class="n">pattern</span><span class="p">,</span>
+                        <span class="n">explicit_hydrogen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">do_fill_valence</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">variant</span><span class="o">.</span><span class="n">pattern</span>
+                    <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">)</span>
+                <span class="n">patched_reses</span><span class="p">,</span> <span class="n">mark_i_new</span> <span class="o">=</span> <span class="n">do_patch</span><span class="p">(</span>
+                    <span class="n">res_i</span><span class="p">,</span> <span class="n">variant</span><span class="p">,</span> <span class="n">resgraph</span><span class="p">,</span> <span class="n">patchgraph</span><span class="p">,</span> <span class="n">mark_i</span>
+                <span class="p">)</span>
+
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">patched_reses</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">rv_new</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">patched_reses</span><span class="p">)</span>
+                    <span class="n">rvn_new</span><span class="o">.</span><span class="n">extend</span><span class="p">((</span><span class="n">newtag</span><span class="p">,)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">patched_reses</span><span class="p">))</span>
+                    <span class="n">ma_new</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">mark_i_new</span><span class="p">)</span>
+                    <span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># added new residues</span>
+
+        <span class="n">resvariants</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">rv_new</span><span class="p">)</span>
+        <span class="n">resvariantnames</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">rvn_new</span><span class="p">)</span>
+        <span class="n">marked_atoms</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">ma_new</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">resvariants</span>
+
+
 <span class="c1"># takes a ChemicalDatabase containing Tuple[RawResidueType] and Tuple[VariantType]</span>
 <span class="c1"># applies all patches to all residues types</span>
 <span class="c1"># returns PatchedChemicalDatabase containing only Tuple[RawResidueType]</span>
@@ -1029,6 +1234,7 @@
     <span class="n">atom_types</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">AtomType</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="n">residues</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">RawResidueType</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="n">variants</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">VariantType</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">name3_aliases</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Name3Alias</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_chem_db</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">:</span> <span class="n">ChemicalDatabase</span><span class="p">):</span>
@@ -1040,51 +1246,9 @@
         <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">residues</span><span class="p">:</span>
             <span class="n">validate_raw_residue</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
 
-        <span class="n">patched_residues</span><span class="p">,</span> <span class="n">patched_residues_names</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="n">patched_residues</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">residues</span><span class="p">:</span>
-            <span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
-
-            <span class="c1"># resolve against the unpatched residue</span>
-            <span class="c1">#   BY DESIGN ... a patch can never be made conditional on another</span>
-            <span class="c1">#   patch having been applied</span>
-            <span class="n">variants</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">variants</span> <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">applies_to</span><span class="o">.</span><span class="n">matches</span><span class="p">(</span><span class="n">res</span><span class="p">)]</span>
-
-            <span class="n">resvariants</span><span class="p">,</span> <span class="n">resvariantnames</span><span class="p">,</span> <span class="n">marked_atoms</span> <span class="o">=</span> <span class="p">[</span><span class="n">res</span><span class="p">],</span> <span class="p">[</span><span class="s2">""</span><span class="p">],</span> <span class="p">[[]]</span>
-            <span class="k">while</span> <span class="ow">not</span> <span class="n">done</span><span class="p">:</span>
-                <span class="n">done</span> <span class="o">=</span> <span class="kc">True</span>
-
-                <span class="c1"># newly added variants, variant names, marked atoms</span>
-                <span class="n">rv_new</span><span class="p">,</span> <span class="n">rvn_new</span><span class="p">,</span> <span class="n">ma_new</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
-                <span class="k">for</span> <span class="n">res_i</span><span class="p">,</span> <span class="n">name_i</span><span class="p">,</span> <span class="n">mark_i</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
-                    <span class="n">resvariants</span><span class="p">,</span> <span class="n">resvariantnames</span><span class="p">,</span> <span class="n">marked_atoms</span>
-                <span class="p">):</span>
-                    <span class="n">resgraph</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">from_raw_res</span><span class="p">(</span><span class="n">res_i</span><span class="p">)</span>
-                    <span class="k">for</span> <span class="n">variant</span> <span class="ow">in</span> <span class="n">variants</span><span class="p">:</span>
-                        <span class="n">newtag</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="n">name_i</span><span class="p">,</span> <span class="n">variant</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
-                        <span class="n">newtag</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
-                        <span class="k">if</span> <span class="n">newtag</span> <span class="ow">in</span> <span class="n">resvariantnames</span> <span class="ow">or</span> <span class="n">newtag</span> <span class="ow">in</span> <span class="n">rvn_new</span><span class="p">:</span>
-                            <span class="k">continue</span>  <span class="c1"># we already made this variant</span>
-
-                        <span class="n">patchgraph</span> <span class="o">=</span> <span class="n">read_smiles</span><span class="p">(</span>
-                            <span class="n">variant</span><span class="o">.</span><span class="n">pattern</span><span class="p">,</span>
-                            <span class="n">explicit_hydrogen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                            <span class="n">do_fill_valence</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                        <span class="p">)</span>
-                        <span class="n">patched_reses</span><span class="p">,</span> <span class="n">mark_i_new</span> <span class="o">=</span> <span class="n">do_patch</span><span class="p">(</span>
-                            <span class="n">res_i</span><span class="p">,</span> <span class="n">variant</span><span class="p">,</span> <span class="n">resgraph</span><span class="p">,</span> <span class="n">patchgraph</span><span class="p">,</span> <span class="n">mark_i</span>
-                        <span class="p">)</span>
-
-                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">patched_reses</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                            <span class="n">rv_new</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">patched_reses</span><span class="p">)</span>
-                            <span class="n">rvn_new</span><span class="o">.</span><span class="n">extend</span><span class="p">((</span><span class="n">newtag</span><span class="p">,)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">patched_reses</span><span class="p">))</span>
-                            <span class="n">ma_new</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">mark_i_new</span><span class="p">)</span>
-                            <span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># added new residues</span>
-
-                <span class="n">resvariants</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">rv_new</span><span class="p">)</span>
-                <span class="n">resvariantnames</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">rvn_new</span><span class="p">)</span>
-                <span class="n">marked_atoms</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">ma_new</span><span class="p">)</span>
-            <span class="n">patched_residues</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">resvariants</span><span class="p">)</span>
-            <span class="n">patched_residues_names</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">resvariantnames</span><span class="p">)</span>
+            <span class="n">patched_residues</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">patch_residue</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">variants</span><span class="p">,</span> <span class="n">G</span><span class="p">))</span>
 
         <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">patched_residues</span><span class="p">:</span>
             <span class="n">validate_raw_residue</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
@@ -1094,7 +1258,67 @@
             <span class="n">atom_types</span><span class="o">=</span><span class="n">chemdb</span><span class="o">.</span><span class="n">atom_types</span><span class="p">,</span>
             <span class="n">residues</span><span class="o">=</span><span class="n">patched_residues</span><span class="p">,</span>
             <span class="n">variants</span><span class="o">=</span><span class="n">chemdb</span><span class="o">.</span><span class="n">variants</span><span class="p">,</span>
+            <span class="n">name3_aliases</span><span class="o">=</span><span class="n">chemdb</span><span class="o">.</span><span class="n">name3_aliases</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="PatchedChemicalDatabase.with_variants_applied">
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.PatchedChemicalDatabase.with_variants_applied">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">with_variants_applied</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variants</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Return a copy with new patches applied to the residues already held.</span>
+
+<span class="sd">        ``with_added_residues`` patches only what it adds, which is right for a</span>
+<span class="sd">        patch a new residue brings with it. A conjugation patch instead acts on</span>
+<span class="sd">        a residue the database already has -- serine gains a connection at OG</span>
+<span class="sd">        -- so its forms are built here and appended alongside the base.</span>
+<span class="sd">        """</span>
+        <span class="n">known</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">variants</span><span class="p">}</span>
+        <span class="n">extra</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variants</span> <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">known</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">extra</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="n">all_variants</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">variants</span><span class="p">,</span> <span class="o">*</span><span class="n">extra</span><span class="p">)</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">RestypeGraphBuilder</span><span class="p">({</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">element</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_types</span><span class="p">})</span>
+        <span class="n">present</span> <span class="o">=</span> <span class="p">{</span><span class="n">res</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">residues</span><span class="p">}</span>
+        <span class="n">added</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">residues</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">":"</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+                <span class="k">continue</span>  <span class="c1"># a variant form; patching starts from the base</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">applies_to</span><span class="o">.</span><span class="n">matches</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">extra</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="k">for</span> <span class="n">form</span> <span class="ow">in</span> <span class="n">patch_residue</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">all_variants</span><span class="p">,</span> <span class="n">G</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">form</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">present</span><span class="p">:</span>
+                    <span class="n">added</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">form</span><span class="p">)</span>
+                    <span class="n">present</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">form</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">residues</span><span class="o">=</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">residues</span><span class="p">,</span> <span class="o">*</span><span class="n">added</span><span class="p">),</span> <span class="n">variants</span><span class="o">=</span><span class="n">all_variants</span>
         <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PatchedChemicalDatabase.with_added_residues">
+<a class="viewcode-back" href="../../../api/database.html#tmol.database.PatchedChemicalDatabase.with_added_residues">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">with_added_residues</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">residues</span><span class="p">,</span> <span class="n">atom_types</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">variants</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Return a copy with residues patched and appended.</span>
+
+<span class="sd">        ``variants`` are extra patches the residues bring with them, scoped to</span>
+<span class="sd">        their own base types; they are kept on the database so a later addition</span>
+<span class="sd">        is patched against the same set.</span>
+<span class="sd">        """</span>
+        <span class="c1"># injection happens after from_chem_db, so patch here or the new</span>
+        <span class="c1">#    residues arrive with no termini forms</span>
+        <span class="n">atom_types</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_types</span> <span class="k">if</span> <span class="n">atom_types</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">atom_types</span><span class="p">)</span>
+        <span class="n">known</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">variants</span><span class="p">}</span>
+        <span class="n">extra</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">variants</span> <span class="ow">or</span> <span class="p">())</span> <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">known</span><span class="p">)</span>
+        <span class="n">all_variants</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">variants</span><span class="p">,</span> <span class="o">*</span><span class="n">extra</span><span class="p">)</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">RestypeGraphBuilder</span><span class="p">({</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">element</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">atom_types</span><span class="p">})</span>
+        <span class="n">added</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">residues</span><span class="p">:</span>
+            <span class="n">added</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">patch_residue</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">all_variants</span><span class="p">,</span> <span class="n">G</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">atom_types</span><span class="o">=</span><span class="n">atom_types</span><span class="p">,</span>
+            <span class="n">residues</span><span class="o">=</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">residues</span><span class="p">,</span> <span class="o">*</span><span class="n">added</span><span class="p">),</span>
+            <span class="n">variants</span><span class="o">=</span><span class="n">all_variants</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
 
 </pre></div>
 
