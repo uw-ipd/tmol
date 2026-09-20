@@ -763,10 +763,9 @@
 <span class="sd">    Declared leaving groups and unobserved carbonyl/phosphoryl substitution branches are</span>
 <span class="sd">    absent at their connection sites. Other unresolved atoms retain identity.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.leaving_atoms</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-        <span class="n">get_absent_substitution_leaving_groups</span><span class="p">,</span>
-        <span class="n">get_leaving_atom_groups</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.leaving_atoms</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_leaving_atom_groups</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._input_repair</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_absent_substitution_leaving_groups</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._polymer_profile</span><span class="w"> </span><span class="kn">import</span> <span class="n">completed_connection_atoms</span>
 
     <span class="n">boundaries</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">get_residue_starts</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">add_exclusive_stop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>

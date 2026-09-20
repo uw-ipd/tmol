@@ -535,6 +535,32 @@ hydrogens whose names changed during parameter generation; pass
 Low-level PDB atom-record/DataFrame utilities retain their canonical-only contract.</p>
 <p id="module-tmol.io">Structure conversion between external formats and TMol poses.</p>
 <dl class="py function">
+<dt class="sig sig-object py" id="tmol.io.assemble_input">
+<span class="sig-prename descclassname"><span class="pre">tmol.io.</span></span><span class="sig-name descname"><span class="pre">assemble_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">parts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AtomArray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">AtomArray</span></span></span><a class="reference internal" href="../_modules/tmol/io/_assemble.html#assemble_input"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.io.assemble_input" title="Link to this definition">#</a></dt>
+<dd><p>Join separately-read parts into one structure.</p>
+<p>Chain IDs are kept as read and only moved where two parts claim the same
+one. Bonds, annotations and any component templates the parts carry all
+survive the join.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>*parts</strong> – Structures to join, in the order they should appear.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The joined structure.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If no parts are given, or chain IDs cannot be made unique.</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">complex</span> <span class="o">=</span> <span class="n">assemble_input</span><span class="p">(</span><span class="n">protein</span><span class="p">,</span> <span class="n">ligand</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="nb">complex</span><span class="o">.</span><span class="n">chain_id</span><span class="p">))</span>
+<span class="go">['A', 'L']</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="tmol.io.atom_array_from_file">
 <span class="sig-prename descclassname"><span class="pre">tmol.io.</span></span><span class="sig-name descname"><span class="pre">atom_array_from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cif_path</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assembly_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_ccd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmol.io.atom_array_from_file" title="Link to this definition">#</a></dt>
 <dd><p>Read a PDB, CIF, compressed CIF or binary CIF into an AtomArray.</p>
@@ -546,6 +572,63 @@ False never consults it, including for PDB input and custom residue codes.</p>
 parameters for known residues and requires additional chemistry only when
 preparing an unknown residue. Pose construction controls hydrogen optimization
 and whether to trust regenerated ligand hydrogen names.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.io.atom_array_from_mol2">
+<span class="sig-prename descclassname"><span class="pre">tmol.io.</span></span><span class="sig-name descname"><span class="pre">atom_array_from_mol2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mol2_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">Path</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">res_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'L'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">res_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">AtomArray</span></span></span><a class="reference internal" href="../_modules/tmol/io/_assemble.html#atom_array_from_mol2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.io.atom_array_from_mol2" title="Link to this definition">#</a></dt>
+<dd><p>Read a Tripos MOL2 ligand as an AtomArray with its chemistry intact.</p>
+<p>The returned array carries explicit bond orders, formal charges and
+aromatic flags from the file, which is what lets the ligand describe itself
+in a CIF rather than depend on a dictionary entry that does not exist.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mol2_path</strong> – Path to the MOL2 file.</p></li>
+<li><p><strong>res_name</strong> – Component code to give the ligand. Taken from the file’s
+substructure record when None.</p></li>
+<li><p><strong>chain_id</strong> – Chain to place the ligand on.</p></li>
+<li><p><strong>res_id</strong> – Residue number within that chain.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A single-residue AtomArray with a populated bond list.</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ligand</span> <span class="o">=</span> <span class="n">atom_array_from_mol2</span><span class="p">(</span><span class="s2">"ligand.mol2"</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="s2">"LIG"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ligand</span><span class="o">.</span><span class="n">bonds</span><span class="o">.</span><span class="n">get_bond_count</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmol.io.cif_from_atom_array">
+<span class="sig-prename descclassname"><span class="pre">tmol.io.</span></span><span class="sig-name descname"><span class="pre">cif_from_atom_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atom_array</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AtomArray</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entry_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'assembled'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">Path</span></a></span></span><a class="reference internal" href="../_modules/tmol/io/_assemble.html#cif_from_atom_array"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.io.cif_from_atom_array" title="Link to this definition">#</a></dt>
+<dd><p>Write a structure as a CIF that carries its own component chemistry.</p>
+<p>Components the dictionary knows are written from it; anything it does not
+know – a ligand read from a MOL2, say – has its <code class="docutils literal notranslate"><span class="pre">chem_comp_atom</span></code> and
+<code class="docutils literal notranslate"><span class="pre">chem_comp_bond</span></code> rows written from the structure itself. The result parses
+without needing a dictionary entry for the ligand.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atom_array</strong> – Structure to write.</p></li>
+<li><p><strong>path</strong> – Where to write. Returns the CIF text instead when None.</p></li>
+<li><p><strong>entry_id</strong> – Data block name.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The written path, or the CIF text when <code class="docutils literal notranslate"><span class="pre">path</span></code> is None.</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">text</span> <span class="o">=</span> <span class="n">cif_from_atom_array</span><span class="p">(</span><span class="n">assemble_input</span><span class="p">(</span><span class="n">protein</span><span class="p">,</span> <span class="n">ligand</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="s2">"_chem_comp_bond"</span> <span class="ow">in</span> <span class="n">text</span>
+<span class="go">True</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py exception">
@@ -1497,7 +1580,10 @@ fragment residues separate.</p>
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.io.assemble_input"><code class="docutils literal notranslate"><span class="pre">assemble_input()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.io.atom_array_from_file"><code class="docutils literal notranslate"><span class="pre">atom_array_from_file()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.io.atom_array_from_mol2"><code class="docutils literal notranslate"><span class="pre">atom_array_from_mol2()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.io.cif_from_atom_array"><code class="docutils literal notranslate"><span class="pre">cif_from_atom_array()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.io.Atom37MappingError"><code class="docutils literal notranslate"><span class="pre">Atom37MappingError</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.io.CanonicalForm"><code class="docutils literal notranslate"><span class="pre">CanonicalForm</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.io.CanonicalForm.as_dict"><code class="docutils literal notranslate"><span class="pre">CanonicalForm.as_dict()</span></code></a></li>
