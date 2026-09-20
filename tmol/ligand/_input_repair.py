@@ -8,7 +8,9 @@ what a file meant.
 
 import logging
 
+import biotite.structure as struc
 import numpy as np
+from atomworks.constants import HYDROGEN_LIKE_SYMBOLS
 from rdkit import Chem
 
 logger = logging.getLogger(__name__)
@@ -137,3 +139,51 @@ def normalize_radical_oxygens(mol: Chem.Mol) -> Chem.Mol:
         )
         return mol
     return out
+
+
+def get_absent_substitution_leaving_groups(
+    template: struc.AtomArray, residue: struc.AtomArray, connection_atoms: set[str]
+) -> dict[str, tuple[str, ...]]:
+    """Identify unobserved terminal O/N groups displaced at carbonyl/phosphoryl sites.
+
+    A declared extra bond at a template carbonyl C or phosphoryl P replaces an absent
+    single-bonded terminal O/N branch. Resolved atoms, carbonyl oxygens, and
+    ambiguous alternatives are retained. Coordinates only establish whether
+    atoms were observed; they do not determine chemical bond orders.
+    ``connection_atoms`` contains template atom names with extra inter-residue bonds.
+    """
+    if template.bonds is None or not connection_atoms:
+        return {}
+    observed = set(residue.atom_name[np.isfinite(residue.coord).all(axis=-1)])
+    result = {}
+    for index in np.flatnonzero(
+        np.isin(template.element, ("C", "P"))
+        & np.isin(template.atom_name, list(connection_atoms))
+    ):
+        neighbors, orders = template.bonds.get_bonds(index)
+        if not np.any(
+            (template.element[neighbors] == "O")
+            & (orders == int(struc.BondType.DOUBLE))
+        ):
+            continue
+        candidates = []
+        for neighbor, order in zip(neighbors, orders, strict=True):
+            if order != int(struc.BondType.SINGLE) or template.element[
+                neighbor
+            ] not in ("N", "O"):
+                continue
+            branch, _ = template.bonds.get_bonds(neighbor)
+            if any(
+                i != index and template.element[i] not in HYDROGEN_LIKE_SYMBOLS
+                for i in branch
+            ):
+                continue
+            group = tuple(
+                str(template.atom_name[i])
+                for i in (neighbor, *(i for i in branch if i != index))
+            )
+            if observed.isdisjoint(group):
+                candidates.append(group)
+        if len(candidates) == 1:
+            result[str(template.atom_name[index])] = candidates[0]
+    return result
