@@ -14,7 +14,10 @@ from pathlib import Path
 
 import biotite.structure as struc
 import numpy as np
-from atomworks.io.utils.atom_array_plus import concatenate_atom_array_plus
+from atomworks.io.utils.atom_array_plus import (
+    as_atom_array_plus,
+    concatenate_atom_array_plus,
+)
 from atomworks.io.utils.io_utils import CIFWriteConfig, to_cif_string
 
 # Chain IDs to draw from when a part collides with one already taken.
@@ -53,11 +56,34 @@ def atom_array_from_mol2(
     from tmol.ligand._detect import nonstandard_residue_info_from_mol2
 
     info = nonstandard_residue_info_from_mol2(mol2_path, res_name=res_name)
-    atom_array = info.atom_array.copy()
+    atom_array = as_atom_array_plus(info.atom_array.copy())
     atom_array.chain_id[:] = chain_id
     atom_array.res_id[:] = res_id
     atom_array.hetero[:] = True
+    # A ligand code is a placeholder, and placeholders collide: "LG1" is also a real
+    # dictionary entry. Registering this molecule as its own component template means the
+    # file describes what was read, not whatever else happens to share the name.
+    atom_array._custom_ccd_registry[str(atom_array.res_name[0]).upper()] = (
+        _component_template(atom_array)
+    )
     return atom_array
+
+
+def _component_template(residue: struc.AtomArray) -> struc.AtomArray:
+    """The residue as its own component template, in the annotations a CIF writer reads."""
+    template = residue.copy()
+    if "is_aromatic" not in template.get_annotation_categories():
+        aromatic = (
+            template.get_annotation("tmol_aromatic")
+            if "tmol_aromatic" in template.get_annotation_categories()
+            else np.zeros(template.array_length(), dtype=bool)
+        )
+        template.set_annotation("is_aromatic", np.asarray(aromatic, dtype=bool))
+    if "is_leaving_atom" not in template.get_annotation_categories():
+        template.set_annotation(
+            "is_leaving_atom", np.zeros(template.array_length(), dtype=bool)
+        )
+    return template
 
 
 def _harmonised(parts: list[struc.AtomArray]) -> list[struc.AtomArray]:

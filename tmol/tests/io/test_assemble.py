@@ -64,7 +64,12 @@ def test_the_written_cif_carries_the_ligand_chemistry(protein, ligand):
 
 
 def test_the_written_cif_parses_back_into_the_same_ligand(protein, ligand, tmp_path):
-    """The round trip is the whole point: chemistry travels inside the file."""
+    """The round trip is the whole point: chemistry travels inside the file.
+
+    A ligand code is a placeholder, and placeholders collide -- "LG1" is also a real
+    dictionary entry -- so this also pins that the file describes the molecule that was
+    read rather than whatever else shares its name.
+    """
     path = cif_from_atom_array(
         assemble_input(protein, ligand), path=tmp_path / "complex.cif"
     )
