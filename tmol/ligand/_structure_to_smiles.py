@@ -26,12 +26,7 @@ import logging
 
 from biotite.structure import AtomArray
 from rdkit import Chem
-from atomworks.io.tools.protonation import (  # noqa: F401 (compatibility exports)
-    correct_carboxylate_bond_orders as apply_geometry_bond_corrections,
-    _infer_carboxylate_bonds,
-    _sp2_angle_sum,
-)
-
+from tmol.ligand._input_repair import correct_carboxylate_bond_orders
 from tmol.ligand._rdkit_mol import rdkit_mol_from_ligand_atom_array
 
 logger = logging.getLogger(__name__)
@@ -113,7 +108,7 @@ def ligand_smiles_from_atom_array(
             res_name=res_name or "ligand",
             repair_chemistry=repair_chemistry,
         )
-        mol = apply_geometry_bond_corrections(mol)
+        mol = correct_carboxylate_bond_orders(mol)
         if with_atom_map:
             _tag_source_atom_map(mol, atom_array)
         return _mol_to_smiles(mol)
