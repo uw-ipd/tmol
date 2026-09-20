@@ -477,7 +477,8 @@ def transfer_tetrahedral_stereochemistry(
         not set(replaced_atoms) <= atom_mapping.keys()
         or len(set(atom_mapping.values())) != len(atom_mapping)
         or any(
-            not 0 <= source < reference.GetNumAtoms() or not 0 <= target < mol.GetNumAtoms()
+            not 0 <= source < reference.GetNumAtoms()
+            or not 0 <= target < mol.GetNumAtoms()
             for source, target in atom_mapping.items()
         )
     ):
@@ -486,14 +487,22 @@ def transfer_tetrahedral_stereochemistry(
         if source in replaced_atoms:
             continue
         left, right = reference.GetAtomWithIdx(source), mol.GetAtomWithIdx(target)
-        if (left.GetAtomicNum(), left.GetIsotope()) != (right.GetAtomicNum(), right.GetIsotope()):
-            raise ValueError(f"Stereo correspondence maps different elements/isotopes: {source} -> {target}")
+        if (left.GetAtomicNum(), left.GetIsotope()) != (
+            right.GetAtomicNum(),
+            right.GetIsotope(),
+        ):
+            raise ValueError(
+                f"Stereo correspondence maps different elements/isotopes: {source} -> {target}"
+            )
     pending = []
     for source, target in atom_mapping.items():
         if source in replaced_atoms:
             continue
         left, right = reference.GetAtomWithIdx(source), mol.GetAtomWithIdx(target)
-        if left.GetChiralTag() not in (Chem.ChiralType.CHI_TETRAHEDRAL_CW, Chem.ChiralType.CHI_TETRAHEDRAL_CCW):
+        if left.GetChiralTag() not in (
+            Chem.ChiralType.CHI_TETRAHEDRAL_CW,
+            Chem.ChiralType.CHI_TETRAHEDRAL_CCW,
+        ):
             continue
         if right.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED:
             continue
@@ -504,7 +513,8 @@ def transfer_tetrahedral_stereochemistry(
             or set(neighbors) != set(target_neighbors)
             or left.GetTotalNumHs() != right.GetTotalNumHs()
             or any(
-                bond.GetBondType() != mol.GetBondBetweenAtoms(target, neighbor).GetBondType()
+                bond.GetBondType()
+                != mol.GetBondBetweenAtoms(target, neighbor).GetBondType()
                 for bond, neighbor in zip(left.GetBonds(), neighbors, strict=True)
             )
         ):
@@ -518,4 +528,6 @@ def transfer_tetrahedral_stereochemistry(
             atom.InvertChirality()
     if pending:
         Chem.AssignStereochemistry(mol, cleanIt=True, force=True)
-    return sum(atom.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED for atom, _, _ in pending)
+    return sum(
+        atom.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED for atom, _, _ in pending
+    )

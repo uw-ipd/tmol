@@ -20,7 +20,9 @@ _CARBOXYL_CO_MAX = 1.36
 _SP2_ANGLE_SUM_MIN = 355.0
 
 
-def _sp2_angle_sum(conf: Chem.Conformer, center: int, neighbors: list[int]) -> float | None:
+def _sp2_angle_sum(
+    conf: Chem.Conformer, center: int, neighbors: list[int]
+) -> float | None:
     """Sum of the three bond angles at ``center`` (deg); None if degenerate."""
     cpos = np.asarray(conf.GetAtomPosition(center))
     vecs = [np.asarray(conf.GetAtomPosition(n)) - cpos for n in neighbors]
@@ -31,7 +33,9 @@ def _sp2_angle_sum(conf: Chem.Conformer, center: int, neighbors: list[int]) -> f
     total = 0.0
     for i in range(len(units)):
         for j in range(i + 1, len(units)):
-            total += np.degrees(np.arccos(np.clip(np.dot(units[i], units[j]), -1.0, 1.0)))
+            total += np.degrees(
+                np.arccos(np.clip(np.dot(units[i], units[j]), -1.0, 1.0))
+            )
     return total
 
 
@@ -49,11 +53,18 @@ def _infer_carboxylate_bonds(rw: Chem.RWMol, conf: Chem.Conformer) -> int:
         if atom.GetAtomicNum() != 6 or atom.GetDegree() != 3:
             continue
         c = atom.GetIdx()
-        term_os = [nb.GetIdx() for nb in atom.GetNeighbors() if nb.GetAtomicNum() == 8 and nb.GetDegree() == 1]
+        term_os = [
+            nb.GetIdx()
+            for nb in atom.GetNeighbors()
+            if nb.GetAtomicNum() == 8 and nb.GetDegree() == 1
+        ]
         if len(term_os) != 2:
             continue
         cpos = np.asarray(conf.GetAtomPosition(c))
-        co_dists = [float(np.linalg.norm(np.asarray(conf.GetAtomPosition(o)) - cpos)) for o in term_os]
+        co_dists = [
+            float(np.linalg.norm(np.asarray(conf.GetAtomPosition(o)) - cpos))
+            for o in term_os
+        ]
         if not all(0 < d <= _CARBOXYL_CO_MAX for d in co_dists):
             continue
         nbrs = [nb.GetIdx() for nb in atom.GetNeighbors()]
@@ -121,6 +132,8 @@ def normalize_radical_oxygens(mol: Chem.Mol) -> Chem.Mol:
     try:
         Chem.SanitizeMol(out)
     except Exception:
-        logger.warning("Radical-oxygen normalization failed to sanitize mol", exc_info=True)
+        logger.warning(
+            "Radical-oxygen normalization failed to sanitize mol", exc_info=True
+        )
         return mol
     return out
