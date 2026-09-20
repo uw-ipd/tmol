@@ -457,7 +457,10 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">struc</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.atom_array_plus</span><span class="w"> </span><span class="kn">import</span> <span class="n">concatenate_atom_array_plus</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.atom_array_plus</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">as_atom_array_plus</span><span class="p">,</span>
+    <span class="n">concatenate_atom_array_plus</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.io_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">CIFWriteConfig</span><span class="p">,</span> <span class="n">to_cif_string</span>
 
 <span class="c1"># Chain IDs to draw from when a part collides with one already taken.</span>
@@ -498,12 +501,35 @@
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._detect</span><span class="w"> </span><span class="kn">import</span> <span class="n">nonstandard_residue_info_from_mol2</span>
 
     <span class="n">info</span> <span class="o">=</span> <span class="n">nonstandard_residue_info_from_mol2</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span><span class="p">)</span>
-    <span class="n">atom_array</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">atom_array</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">atom_array</span> <span class="o">=</span> <span class="n">as_atom_array_plus</span><span class="p">(</span><span class="n">info</span><span class="o">.</span><span class="n">atom_array</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">chain_id</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">chain_id</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">res_id</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">res_id</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">hetero</span><span class="p">[:]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="c1"># A ligand code is a placeholder, and placeholders collide: "LG1" is also a real</span>
+    <span class="c1"># dictionary entry. Registering this molecule as its own component template means the</span>
+    <span class="c1"># file describes what was read, not whatever else happens to share the name.</span>
+    <span class="n">atom_array</span><span class="o">.</span><span class="n">_custom_ccd_registry</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">upper</span><span class="p">()]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">_component_template</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span>
+    <span class="p">)</span>
     <span class="k">return</span> <span class="n">atom_array</span></div>
 
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_component_template</span><span class="p">(</span><span class="n">residue</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The residue as its own component template, in the annotations a CIF writer reads."""</span>
+    <span class="n">template</span> <span class="o">=</span> <span class="n">residue</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">if</span> <span class="s2">"is_aromatic"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">template</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">():</span>
+        <span class="n">aromatic</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">template</span><span class="o">.</span><span class="n">get_annotation</span><span class="p">(</span><span class="s2">"tmol_aromatic"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">"tmol_aromatic"</span> <span class="ow">in</span> <span class="n">template</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">()</span>
+            <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">array_length</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">template</span><span class="o">.</span><span class="n">set_annotation</span><span class="p">(</span><span class="s2">"is_aromatic"</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">aromatic</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">))</span>
+    <span class="k">if</span> <span class="s2">"is_leaving_atom"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">template</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">():</span>
+        <span class="n">template</span><span class="o">.</span><span class="n">set_annotation</span><span class="p">(</span>
+            <span class="s2">"is_leaving_atom"</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">array_length</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">template</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_harmonised</span><span class="p">(</span><span class="n">parts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">]:</span>
