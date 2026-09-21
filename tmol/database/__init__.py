@@ -1,13 +1,22 @@
+"""Chemical and scoring parameter databases used by TMol."""
+
+from __future__ import annotations
+
 import os
 import attr
-from typing import List, Optional, Mapping
+from typing import Mapping, Optional
 
-from .chemical import AtomType, ChemicalDatabase, RawResidueType
-from .scoring import ScoringDatabase
-from .scoring.elec import PartialCharges
-from .scoring.cartbonded import CartRes
-
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
+from .chemical import (  # noqa: F401
+    AtomType,
+    ChemicalDatabase,
+    RawResidueType,
+    l_base_name,
+)
+from ._patched_chemdb import PatchedChemicalDatabase  # noqa: F401
+from .scoring import ScoringDatabase  # noqa: F401
+from .scoring._elec import PartialCharges  # noqa: F401
+from .scoring._cartbonded import CartRes, ConnectionCartRes  # noqa: F401
+from .scoring._mirrored_dunbrack import with_mirrored_libraries
 
 
 @attr.s(frozen=True)
@@ -35,15 +44,84 @@ class ParameterDatabase:
 
     @classmethod
     def from_file(cls, path: str) -> "ParameterDatabase":
+        """Load chemical and scoring parameters rooted at ``path``."""
         chemdb = ChemicalDatabase.from_file(os.path.join(path, "chemical"))
         patched_chemdb = PatchedChemicalDatabase.from_chem_db(chemdb)
-        return cls(
-            scoring=ScoringDatabase.from_file(os.path.join(path, "scoring")),
-            chemical=patched_chemdb,
+        scoring = ScoringDatabase.from_file(os.path.join(path, "scoring"))
+
+        # a d-amino acid's rotamer statistics are its l form's at negated
+        #    torsions; the mirrored libraries are built here rather than stored,
+        #    since which residues need them is a property of the chemical database
+        d_names = {
+            l_base_name(residue): residue.name
+            for residue in patched_chemdb.residues
+            if residue.name == residue.base_name
+            and residue.properties.polymer.sidechain_chirality == "d"
+        }
+        if d_names:
+            scoring = attr.evolve(
+                scoring, dun=with_mirrored_libraries(scoring.dun, d_names)
+            )
+        return cls(scoring=scoring, chemical=patched_chemdb)
+
+    def with_symmetric_gly(self) -> "ParameterDatabase":
+        """A copy with symmetric glycine backbone tables and C-alpha hydrogens.
+
+        Glycine is achiral, but the tables derived from PDB statistics are not,
+        so by default a structure and its mirror image score differently. This
+        points glycine at the symmetrized tables instead. Its two C-alpha
+        hydrogen ideal lengths and bonded targets are averaged, so rebuilding
+        glycine also preserves reflection when the equivalent H names exchange.
+        Other residues are untouched.
+
+        This optional model uses uniformly trans glycine bbdep-omega tables.
+        Uniformity is a modeling choice, not a consequence of achirality.
+        """
+        rama = self.scoring.rama
+        omega = self.scoring.omega_bbdep
+
+        def retarget(rows, mapping):
+            return tuple(
+                (
+                    attr.evolve(row, table_id=mapping[row.table_id])
+                    if row.res_middle == "GLY" and row.table_id in mapping
+                    else row
+                )
+                for row in rows
+            )
+
+        rama = attr.evolve(
+            rama,
+            rama_lookup=retarget(
+                rama.rama_lookup,
+                {"GLY": "GLY_symm", "GLY_prepro": "GLY_prepro_symm"},
+            ),
+        )
+        omega = attr.evolve(
+            omega,
+            bbdep_omega_lookup=retarget(
+                omega.bbdep_omega_lookup,
+                {"gly": "gly_symm", "prepro": "prepro_gly_symm"},
+            ),
+        )
+        from ._symmetric_gly import symmetric_gly_geometry
+
+        chemical, cartbonded = symmetric_gly_geometry(
+            self.chemical, self.scoring.cartbonded
+        )
+        return attr.evolve(
+            self,
+            chemical=chemical,
+            scoring=attr.evolve(
+                self.scoring,
+                cartbonded=cartbonded,
+                rama=attr.evolve(rama, uniq_id=rama.content_id()),
+                omega_bbdep=attr.evolve(omega, uniq_id=omega.content_id()),
+            ),
         )
 
     def create_stable_subset(
-        self, desired_names: List[str], desired_variants: List[str]
+        self, desired_names: list[str], desired_variants: list[str]
     ) -> "ParameterDatabase":
         """Create a ParameterDatabase representing a subset of the
         RefinedResidueTypes in this PD's PatchedChemicalDatabase from a list
@@ -77,6 +155,16 @@ class ParameterDatabase:
             atom_types=chem_atom_types,
             residues=unpatched_residue_subset,
             variants=desired_variants,
+            # An alias whose target the subset kept still reads: dropping them
+            # left the atomworks reader unable to resolve MSE to MET while the
+            # default database resolved it, so the two disagreed on the same
+            # file with neither raising. CanonicalOrdering filters again on the
+            # residue types it ends up with.
+            name3_aliases=tuple(
+                alias
+                for alias in chem_db.name3_aliases
+                if alias.read_as in desired_names
+            ),
         )
         patched_chemical_db_subset = PatchedChemicalDatabase.from_chem_db(
             chemical_db_subset
@@ -93,6 +181,8 @@ def inject_residue_params(
     atom_types: Optional[list[AtomType]] = None,
     partial_charges: Optional[Mapping[str, dict[str, float]]] = None,
     cartbonded_params: Optional[Mapping[str, CartRes]] = None,
+    variants: Optional[list] = None,
+    connection_params: Optional[tuple[ConnectionCartRes, ...]] = None,
 ) -> ParameterDatabase:
     """Return a new ParameterDatabase with additional residue type data.
 
@@ -105,12 +195,13 @@ def inject_residue_params(
         atom_types: Optional new AtomType entries (deduplicated by name).
         partial_charges: Per-residue charge dicts ``{res_name: {atom: charge}}``.
         cartbonded_params: Per-residue CartRes ``{res_name: CartRes}``.
+        connection_params: Complete length/angle records for named connection pairs.
+        variants: Optional patches the new residues bring with them, applied
+            alongside the database's own.
 
     Returns:
         A new frozen ParameterDatabase with the additional data.
     """
-    new_chem_residues = (*param_db.chemical.residues, *residue_types)
-
     new_atom_types = param_db.chemical.atom_types
     if atom_types:
         existing_names = {at.name for at in new_atom_types}
@@ -118,11 +209,14 @@ def inject_residue_params(
         if deduped:
             new_atom_types = (*new_atom_types, *deduped)
 
-    new_patched = attr.evolve(
-        param_db.chemical,
-        residues=new_chem_residues,
-        atom_types=new_atom_types,
-    )
+    # patching runs at db load
+    # injected residues get all db variants applied here
+    chemical = param_db.chemical
+    if variants:
+        # Attachments also patch partners already present in the database.
+        chemical = attr.evolve(chemical, atom_types=new_atom_types)
+        chemical = chemical.with_variants_applied(variants)
+    new_patched = chemical.with_added_residues(residue_types, atom_types=new_atom_types)
 
     new_elec = param_db.scoring.elec
     if partial_charges:
@@ -137,9 +231,15 @@ def inject_residue_params(
         )
 
     new_cart = param_db.scoring.cartbonded
-    if cartbonded_params:
-        new_res_params = {**new_cart.residue_params, **cartbonded_params}
-        new_cart = attr.evolve(new_cart, residue_params=new_res_params)
+    if cartbonded_params or connection_params:
+        new_res_params = {**new_cart.residue_params, **(cartbonded_params or {})}
+        new_connections = tuple(
+            dict.fromkeys((*new_cart.connection_params, *(connection_params or ())))
+        )
+        # Scoring annotations are keyed by this content hash. Carrying the
+        # old hash into an extended database can reuse another database's
+        # bonded parameters on an already annotated block type or pose.
+        new_cart = type(new_cart).from_cartres_dict(new_res_params, new_connections)
 
     new_scoring = attr.evolve(
         param_db.scoring,
@@ -148,3 +248,14 @@ def inject_residue_params(
     )
 
     return attr.evolve(param_db, scoring=new_scoring, chemical=new_patched)
+
+
+__all__ = [
+    "AtomType",
+    "ChemicalDatabase",
+    "ParameterDatabase",
+    "PatchedChemicalDatabase",
+    "RawResidueType",
+    "ScoringDatabase",
+    "inject_residue_params",
+]

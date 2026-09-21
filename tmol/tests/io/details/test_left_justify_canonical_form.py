@@ -2,15 +2,17 @@ import torch
 import numpy
 
 from functools import partial
-from tmol.io.canonical_ordering import (
+from tmol.io import (
     canonical_form_from_pdb,
     default_packed_block_types,
     default_canonical_ordering,
 )
-from tmol.io.details.left_justify_canonical_form import left_justify_canonical_form
+from tmol.io.details import left_justify_canonical_form
 
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR
+from tmol.pose import (
+    PoseStackBuilder,
+    DEFAULT_ATOM_B_FACTOR,
+)
 
 
 def get_add_two_fill_shape(x):
@@ -91,6 +93,8 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
         bf_10,
         dslf_10,
         rnc_10,
+        _cyc,
+        _cov2,
     ) = cf_as_tuple_from_pdb_lines(co, ubq_pdb[: 81 * 167], torch_device)
     assert dslf_10 is None
     assert rnc_10 is None
@@ -109,20 +113,32 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     at_is_pres_10 = not_any_nancoord(coords_10)
     at_is_pres = not_any_nancoord(coords)
 
-    ch_id, can_rts, coords, at_is_pres, _1, _2, res_lab, res_ins, ch_lab, occ, bf = (
-        left_justify_canonical_form(
-            ch_id,
-            can_rts,
-            coords,
-            at_is_pres,
-            disulfides=dslf_10,
-            res_not_connected=rnc_10,
-            res_labels=res_lab,
-            res_ins_codes=res_ins,
-            chain_labels=ch_lab,
-            atom_occupancy=occ,
-            atom_b_factor=bf,
-        )
+    (
+        ch_id,
+        can_rts,
+        coords,
+        at_is_pres,
+        _1,
+        _2,
+        _3,
+        _4,
+        res_lab,
+        res_ins,
+        ch_lab,
+        occ,
+        bf,
+    ) = left_justify_canonical_form(
+        ch_id,
+        can_rts,
+        coords,
+        at_is_pres,
+        disulfides=dslf_10,
+        res_not_connected=rnc_10,
+        res_labels=res_lab,
+        res_ins_codes=res_ins,
+        chain_labels=ch_lab,
+        atom_occupancy=occ,
+        atom_b_factor=bf,
     )
 
     ch_id_lj_gold = add_two_res_at_end(ch_id_10, -1).cpu().numpy()
@@ -162,6 +178,8 @@ def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_pdb, torch_device):
         orig_bf,
         orig_dslf,
         orig_rnc,
+        _cyc,
+        _cov2,
     ) = cf_as_tuple_from_pdb_lines(co, pertuzumab_pdb, torch_device)
 
     # the actual disulfides
@@ -191,6 +209,8 @@ def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_pdb, torch_device):
         lj_coords,
         lj_at_is_pres,
         lj_dslf,
+        _cyc,
+        _cov,
         _2,
         _res_lab,
         _res_ins,
@@ -239,6 +259,8 @@ def test_assign_block_types_for_pert_and_antigen(
         orig_bf,
         orig_dslf,
         orig_rnc,
+        _cyc,
+        _cov2,
     ) = cf_as_tuple_from_pdb_lines(co, pert_and_erbb2_lines, torch_device)
 
     orig_res_not_connected = torch.tensor(res_not_connected, device=torch_device)
@@ -258,6 +280,8 @@ def test_assign_block_types_for_pert_and_antigen(
         lj_coords,
         lj_at_is_pres,
         _1,
+        _cyc,
+        _cov,
         lj_res_not_connected,
         lj_res_lab,
         lj_res_ins,
@@ -265,7 +289,13 @@ def test_assign_block_types_for_pert_and_antigen(
         lj_occ,
         lj_bf,
     ) = left_justify_canonical_form(
-        ch_id, can_rts, coords, at_is_pres, None, res_not_connected, chain_labels=ch_lab
+        ch_id,
+        can_rts,
+        coords,
+        at_is_pres,
+        None,
+        res_not_connected=res_not_connected,
+        chain_labels=ch_lab,
     )
 
     res_not_connected_lj_gold = (

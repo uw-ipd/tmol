@@ -12,13 +12,13 @@ import pytest
 import torch
 
 from tmol import beta2016_score_function
-from tmol.score.score_types import ScoreType
-from tmol.io.canonical_ordering import (
+from tmol.score import ScoreType
+from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
     canonical_form_from_pdb,
+    pose_stack_from_canonical_form,
 )
-from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 
 # terms that must be non-zero on a nucleic-acid-only pose
 NA_ACTIVE_TERMS = (
@@ -123,3 +123,35 @@ def test_beta2016_protein_dna_is_more_than_parts(protein_dna_pdb, torch_device):
     complexed = total(protein_dna_pdb)
     separate = total(dna_only) + total(prot_only)
     assert complexed != pytest.approx(separate, abs=1.0)
+
+
+def test_cuda_graphed_na_score_matches_eager_forward_and_backward(
+    dna_pdb, torch_device
+):
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA graph test")
+
+    pose_stack = _pose_stack(dna_pdb, torch_device)
+    sfxn = beta2016_score_function(torch_device)
+
+    eager_coords = pose_stack.coords.detach().clone().requires_grad_(True)
+    eager_score = sfxn.render_whole_pose_scoring_module(pose_stack)(eager_coords)
+    eager_score.sum().backward()
+    expected_score = eager_score.detach().clone()
+    expected_grad = eager_coords.grad.detach().clone()
+    del eager_score, eager_coords
+
+    graphed = sfxn.render_whole_pose_scoring_module(pose_stack, cuda_graph=True)
+    graph_coords = pose_stack.coords.detach().clone().requires_grad_(True)
+    graph_score = graphed(graph_coords)
+    (graph_grad,) = torch.autograd.grad(graph_score.sum(), graph_coords)
+
+    torch.testing.assert_close(graph_score, expected_score, rtol=1e-5, atol=1e-3)
+    torch.testing.assert_close(graph_grad, expected_grad, rtol=1e-4, atol=1e-3)
+    with torch.no_grad():
+        torch.testing.assert_close(
+            graphed(pose_stack.coords),
+            expected_score,
+            rtol=1e-5,
+            atol=1e-3,
+        )

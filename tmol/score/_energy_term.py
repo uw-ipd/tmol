@@ -1,0 +1,220 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from tmol.chemical import RefinedResidueType
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+)
+from tmol.pose._conjugated_groups import lockstep_group_for_block
+from tmol.score.common import (
+    TermWholePoseScoringModule,
+    TermBlockPairScoringModule,
+    TermRotamerScoringModule,
+    ZeroTermPoseScoringModule,
+)
+
+if TYPE_CHECKING:
+    from tmol.pack.rotamer import RotamerSet
+
+
+class EnergyTerm:
+    """Base protocol for topology setup and rendering of one energy term.
+
+    Subclasses describe their score types and body order, cache topology-only
+    annotations through the ``setup_*`` hooks, and provide callable scoring
+    implementations for whole-pose and rotamer evaluation.
+    """
+
+    def __init__(self, **kwargs):
+        pass
+
+    @classmethod
+    def class_name(self):
+        raise NotImplementedError()
+
+    def score_types(self):
+        """Return the list of score types that this EnergyTerm computes
+
+        The order that the term reports score types in this function should be
+        the same order that it reports the scores themselves in the output
+        tensor"""
+        raise NotImplementedError()
+
+    def n_bodies(self):
+        """Return the number of residues that this term operates on
+
+        1, 2, or -1 to represent the whole structure
+        """
+        raise NotImplementedError()
+
+    def accepts_shared_rotamer_dispatch(self):
+        """Whether this term accepts a compatible rotamer-pair index list."""
+        return False
+
+    def rotamer_dispatch_key(self):
+        """Compatibility key for reusable rotamer-pair dispatch layouts."""
+        return None
+
+    def get_packing_rotamer_score_term_function(self):
+        """Return an optional bounded packing-score iterator."""
+        return None
+
+    def setup_block_type(self, block_type: RefinedResidueType):
+        """Make a one-time CPU annotation on a block type.
+
+        These annotations may require slow string comparisons. Store and
+        retrieve them through :mod:`tmol.score._annotation_cache`, keyed by
+        every immutable parameter source that affects their value. Annotations
+        should use NumPy data structures and remain on the CPU.
+
+        If the annotation requires more than one array, use a Python class to
+        store those arrays.
+
+        Annotation keys use weak source identity, not content equality. Build
+        a new immutable database snapshot when parameters change. Compatibility
+        attributes published on the block type must be listed when storing so
+        a cache hit can restore them after another term overwrites them.
+        """
+        pass
+
+    def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
+        """Make a one-time device annotation of the packed block types.
+
+        Implementations generally pack the residue-type NumPy annotations into
+        tensors whose first dimension follows ``active_block_types``. Pad
+        variable residue dimensions with a sentinel such as ``-1`` and cache
+        all tensors on the packed block types' device. If setup depends on
+        instance-specific parameters, key the cached annotation by those
+        immutable source objects and the resolved device so distinct term
+        instances cannot reuse incompatible data. List every public packed
+        attribute when storing the snapshot so alternating terms restore it.
+        """
+        pass
+
+    def setup_poses(self, pose_stack: PoseStack):
+        """Make a one-time annotation of a PoseStack. These annotations should
+        not depend on anything about the conformation or block-type identity of
+        the PoseStack, but can depend on the chemical connectivity, the number
+        of poses in the stack, and the maximum number of atoms in the stack.
+
+        Any array data should be stored in torch tensors and live on the
+        pose_stack's device.
+        """
+        pass
+
+    def set_options(self, options: dict):
+        """Receive a dictionary of options from the ScoreFunction.
+
+        Subclasses may override this method to extract configuration values
+        that affect scoring behavior, such as boolean flags, numeric
+        parameters, or other settings. This dictionary replaces the previous
+        options; omitted keys must restore their defaults. The base
+        implementation is a no-op.
+        """
+        pass
+
+    def get_score_term_attributes(self, pose_stack: PoseStack):
+        raise NotImplementedError()
+
+    def get_pose_score_term_function(self):
+        raise NotImplementedError()
+
+    def get_rotamer_score_term_function(self):
+        raise NotImplementedError()
+
+    def get_block_neighbor_cutoff(self):
+        """Maximum whole-pose block-neighbor reach, or ``None`` if unused."""
+        return None
+
+    score_only_in_no_grad = False
+
+    def get_rotamer_score_term_attributes(
+        self, pose_stack: PoseStack, rotamer_set: RotamerSet
+    ):
+        """Return immutable parameters for a rendered rotamer scorer.
+
+        Most terms use the same topology data for pose and rotamer scoring.
+        Terms whose candidate topology can be resolved once at render time may
+        override this hook instead of repeating that work on every score call.
+        """
+        return self.get_score_term_attributes(pose_stack)
+
+    def pose_score_term_is_invariant_zero(self, pose_stack: PoseStack):
+        """Whether this term is identically zero for this fixed pose topology."""
+        return False
+
+    def block_pair_score_term_is_invariant_zero_off_diagonal(
+        self, pose_stack: PoseStack
+    ):
+        """Whether this term contributes only to self-block matrix entries.
+
+        One-body terms are diagonal by definition. Terms with a higher body
+        count may override this when their block-pair attribution is still
+        strictly diagonal.
+        """
+        return self.n_bodies() == 1
+
+    def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
+        if self.pose_score_term_is_invariant_zero(pose_stack):
+            return ZeroTermPoseScoringModule(
+                self.class_name(),
+                len(self.score_types()),
+                pose_stack.n_poses,
+                pose_stack.device,
+            )
+        f = self.get_pose_score_term_function()
+        term_attributes = self.get_score_term_attributes(pose_stack)
+
+        return TermWholePoseScoringModule(
+            self.class_name(),
+            pose_stack,
+            term_attributes,
+            f,
+            self.get_block_neighbor_cutoff(),
+            score_only_in_no_grad=self.score_only_in_no_grad,
+        )
+
+    def render_block_pair_scoring_module(
+        self, pose_stack: PoseStack, *, interaction_only: bool = False
+    ):
+        if self.pose_score_term_is_invariant_zero(pose_stack) or (
+            interaction_only
+            and self.block_pair_score_term_is_invariant_zero_off_diagonal(pose_stack)
+        ):
+            return ZeroTermPoseScoringModule(
+                self.class_name(),
+                len(self.score_types()),
+                pose_stack.n_poses,
+                pose_stack.device,
+                pose_stack.max_n_blocks,
+            )
+        f = self.get_pose_score_term_function()
+        return TermBlockPairScoringModule(
+            self.class_name(),
+            pose_stack,
+            self.get_score_term_attributes(pose_stack),
+            f,
+            self.get_block_neighbor_cutoff(),
+        )
+
+    def render_rotamer_scoring_module(
+        self, pose_stack: PoseStack, rotamer_set: RotamerSet
+    ):
+        try:
+            f = self.get_rotamer_score_term_function()
+        except NotImplementedError:
+            f = self.get_score_term_function()
+
+        return TermRotamerScoringModule(
+            self.class_name(),
+            rotamer_set,
+            self.get_rotamer_score_term_attributes(pose_stack, rotamer_set),
+            f,
+            lockstep_group_for_block(pose_stack, rotamer_set),
+            self.get_block_neighbor_cutoff(),
+            self.accepts_shared_rotamer_dispatch(),
+            self.rotamer_dispatch_key(),
+            self.get_packing_rotamer_score_term_function(),
+        )

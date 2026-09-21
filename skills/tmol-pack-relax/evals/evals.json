@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "skill": "tmol-pack-relax",
+  "cases": [
+    {
+      "id": "bounded-fixed-sequence-repack",
+      "prompt": "Repack a batch of canonical protein poses on the available device without changing sequence identities. Keep a supplied block mask fixed, use a conservative packing chunk size of 10, and verify the output before reporting runtime and peak memory.",
+      "setup": {
+        "cwd": "TMol repository root",
+        "requires": ["working TMol installation", "prepared canonical PoseStack", "fixed-block mask"]
+      },
+      "expected_behavior": [
+        "Uses PackerTask.restrict_to_repacking() and the standard conformer samplers",
+        "Applies disable_packing_by_block_mask() to the supplied mask",
+        "Sets TMOL_PACK_MAX_POSES_PER_CHUNK=10 for this run",
+        "Does not require CUDA graph capture for compact packing memory",
+        "Verifies finite output and unchanged fixed blocks and identities"
+      ],
+      "success_criteria": {
+        "finite_output": true,
+        "sequence_identities_unchanged": true,
+        "fixed_blocks_unchanged": true,
+        "reports_runtime": true,
+        "reports_peak_memory": true
+      }
+    }
+  ]
+}

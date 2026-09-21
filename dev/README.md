@@ -45,19 +45,10 @@ stdout. See `.buildkite/bin/benchmark` for invocation details.
 
 # Profiling benchmarks:
 
-Benchmarks can be under under the nvprof profiler to capture perf traces
-for analysis. This runs the benchmark *without* profiling for timing
-information then executes a run under the nvprof profiler for
-tracing. As the profile introduces non-trivial overhead, the profiler will
-execute a single "warmup" pass under profiling followed by a "run" pass,
-each under a nvtx range. 
-
-Use the nvprof `-o <outfile>` option to capture a trace for
-visual inspection.
+`dev/bin/profile_benchmark` captures a timeline with Nsight Systems by default,
+or hardware counters with Nsight Compute when passed `--tool ncu`. Use
+`--output <prefix>` to choose the report path. Arguments after `--` are sent to
+the profiler; other arguments are pytest selectors.
 
 Example:
-  `dev/bin/profile_benchmark tmol/tests/score -k cuda-full-lk_ball -- -o profile.nvvp`
-
-Then view via nvidia visual profiler:
-
-  `/usr/local/cuda/bin/nvvp profile.nvvp`
+  `dev/bin/profile_benchmark --output profile/lk-ball tmol/tests/score -k cuda-full-lk_ball`

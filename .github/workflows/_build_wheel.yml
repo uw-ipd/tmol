@@ -6,7 +6,6 @@ on:
       runs-on:
         required: true
         type: string
-        default: ubuntu-22.04
       container-image:
         required: true
         type: string
@@ -24,7 +23,6 @@ on:
       python-version:
         required: true
         type: string
-        default: "3.12"
       label:
         required: true
         type: string
@@ -64,7 +62,8 @@ on:
         description: >
           Override CMAKE_CUDA_ARCHITECTURES (semicolon-separated SM list). When
           empty, this workflow defaults to "75;80;86;89;90" (CUDA<13) or
-          "80;86;89;90;100" (CUDA>=13). Set e.g. "75;80;89" to make the
+          every sm_75+ target reported by nvcc (CUDA>=13). Set e.g.
+          "75;80;89" to make the
           Colab/T4 wheel's supported architectures explicit.
 
 jobs:
@@ -75,6 +74,7 @@ jobs:
       BUILDER: builder-${{ github.run_id }}-${{ strategy.job-index }}
     steps:
       - name: Free disk space
+        if: inputs.runs-on != 'self-hosted'
         run: |
           echo "=== Before cleanup ==="
           df -h /
@@ -83,8 +83,20 @@ jobs:
             /usr/local/share/chromium /usr/local/share/powershell \
             /usr/share/swift /usr/local/julia* 2>/dev/null || true
           sudo docker image prune -af 2>/dev/null || true
+          if [ "${{ inputs.use-manylinux-build }}" = "true" ] && \
+             [ "${{ inputs.enable-cuda }}" = "true" ]; then
+            # A single full-architecture nvcc process can exceed the standard
+            # runner's 16 GB RAM. Use freed ephemeral disk for bounded overflow
+            # rather than letting the host OOM-kill the Actions runner.
+            sudo fallocate -l 16G /mnt/tmol-build.swap
+            sudo chmod 600 /mnt/tmol-build.swap
+            sudo mkswap /mnt/tmol-build.swap
+            sudo swapon /mnt/tmol-build.swap
+          fi
           echo "=== After cleanup ==="
           df -h /
+          free -h
+          swapon --show
 
       - name: Checkout
         uses: actions/checkout@v5
@@ -118,15 +130,27 @@ jobs:
 
       - name: Pull container and start builder
         run: |
-          docker pull "$CONTAINER_IMAGE"
-          docker create --name "$BUILDER" \
-            -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
-            "$CONTAINER_IMAGE" sleep infinity
-          docker start "$BUILDER"
+          if [ "${{ inputs.runs-on }}" = "self-hosted" ]; then
+            BUILDER_IMAGE="$RUNNER_TEMP/${BUILDER}.sif"
+            apptainer pull --force "$BUILDER_IMAGE" "docker://${CONTAINER_IMAGE}"
+            echo "CONTAINER_EXEC=apptainer exec --bind $GITHUB_WORKSPACE:/workspace --pwd /workspace" >> "$GITHUB_ENV"
+            echo "CONTAINER_TARGET=${BUILDER_IMAGE}" >> "$GITHUB_ENV"
+            echo "CONTAINER_ENV_FLAG=--env" >> "$GITHUB_ENV"
+            echo "BUILDER_IMAGE=${BUILDER_IMAGE}" >> "$GITHUB_ENV"
+          else
+            docker pull "$CONTAINER_IMAGE"
+            docker create --name "$BUILDER" \
+              -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+              "$CONTAINER_IMAGE" sleep infinity
+            docker start "$BUILDER"
+            echo "CONTAINER_EXEC=docker exec" >> "$GITHUB_ENV"
+            echo "CONTAINER_TARGET=${BUILDER}" >> "$GITHUB_ENV"
+            echo "CONTAINER_ENV_FLAG=-e" >> "$GITHUB_ENV"
+          fi
 
       - name: Prepare target Python runtime
         run: |
-          docker exec "$BUILDER" bash -x -e -o pipefail -c '
+          $CONTAINER_EXEC "$CONTAINER_TARGET" bash -x -e -o pipefail -c '
             PYVER="${{ inputs.python-version }}"
             USE_MANYLINUX="${{ inputs.use-manylinux-build }}"
             if [ "$USE_MANYLINUX" = "true" ]; then
@@ -183,7 +207,7 @@ jobs:
             echo "${VENV}" > /tmp/tmol_target_venv
           '
 
-          TARGET_VENV=$(docker exec "$BUILDER" cat /tmp/tmol_target_venv)
+          TARGET_VENV=$($CONTAINER_EXEC "$CONTAINER_TARGET" cat /tmp/tmol_target_venv)
           echo "TARGET_VENV=${TARGET_VENV}" >> "$GITHUB_ENV"
 
       - name: Install PyTorch for target runtime
@@ -205,6 +229,8 @@ jobs:
                 2.10) TORCH_INDEX_URL="https://download.pytorch.org/whl/cu128" ;;
                 2.11) TORCH_INDEX_URL="https://download.pytorch.org/whl/cu130" ;;
                 2.12) TORCH_INDEX_URL="https://download.pytorch.org/whl/cu132" ;;
+                2.13) TORCH_INDEX_URL="https://download.pytorch.org/whl/cu130" ;;
+                2.14) TORCH_INDEX_URL="https://download.pytorch.org/whl/cu132" ;;
                 *)
                   echo "ERROR: set pip-torch-cuda-url for torch ${{ inputs.torch-version }}"
                   exit 1
@@ -213,7 +239,7 @@ jobs:
             fi
             NEED_INSTALL=1
           else
-            DEFAULT_CUDA_TAG=$(docker exec "$BUILDER" python3 -c "import torch; print(torch.version.cuda.replace('.','')[:3])" 2>/dev/null || echo "")
+            DEFAULT_CUDA_TAG=$($CONTAINER_EXEC "$CONTAINER_TARGET" python3 -c "import torch; print(torch.version.cuda.replace('.','')[:3])" 2>/dev/null || echo "")
             if [ -n "$DEFAULT_CUDA_TAG" ]; then
               TORCH_INDEX_URL="https://download.pytorch.org/whl/cu${DEFAULT_CUDA_TAG}"
             else
@@ -225,7 +251,7 @@ jobs:
             NEED_INSTALL=1
           fi
 
-          docker exec "$BUILDER" bash -x -e -o pipefail -c "
+          $CONTAINER_EXEC "$CONTAINER_TARGET" bash -x -e -o pipefail -c "
             unset PYTHONPATH
             export PYTHONNOUSERSITE=1
             NEED_INSTALL=${NEED_INSTALL}
@@ -261,34 +287,56 @@ jobs:
 
       - name: Set version variables
         run: |
-          PYTHON_VERSION=$(docker exec "$BUILDER" bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')\"")
-          TORCH_VERSION=$(docker exec "$BUILDER" bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import torch; v=torch.__version__.split('.')[:2]; print(f'{v[0]}.{v[1]}')\"")
+          PYTHON_VERSION=$($CONTAINER_EXEC "$CONTAINER_TARGET" bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')\"")
+          TORCH_VERSION=$($CONTAINER_EXEC "$CONTAINER_TARGET" bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import torch; v=torch.__version__.split('.')[:2]; print(f'{v[0]}.{v[1]}')\"")
 
           echo "MATRIX_PYTHON_VERSION=${PYTHON_VERSION}" >> "$GITHUB_ENV"
           echo "MATRIX_TORCH_VERSION=${TORCH_VERSION}" >> "$GITHUB_ENV"
 
           if [ "${{ inputs.enable-cuda }}" = "true" ]; then
-            CUDA_VERSION=$(docker exec "$BUILDER" bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import torch; print(torch.version.cuda.replace('.','')[:3])\"")
+            CUDA_VERSION=$($CONTAINER_EXEC "$CONTAINER_TARGET" bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import torch; print(torch.version.cuda.replace('.','')[:3])\"")
             echo "WHEEL_CUDA_VERSION=${CUDA_VERSION}" >> "$GITHUB_ENV"
             echo "WHEEL_LOCAL_TAG=cu${CUDA_VERSION}torch${TORCH_VERSION}" >> "$GITHUB_ENV"
           else
             echo "WHEEL_CUDA_VERSION=cpu" >> "$GITHUB_ENV"
-            echo "WHEEL_LOCAL_TAG=cpu" >> "$GITHUB_ENV"
+            echo "WHEEL_LOCAL_TAG=cputorch${TORCH_VERSION}" >> "$GITHUB_ENV"
           fi
 
           if [ "${{ inputs.enable-cuda }}" != "true" ]; then
             echo "CPU-only wheel build; nvcc is not required."
           elif [ "${{ inputs.use-manylinux-build }}" != "true" ]; then
-            docker exec "$BUILDER" nvcc --version
+            $CONTAINER_EXEC "$CONTAINER_TARGET" nvcc --version
           else
-            docker exec "$BUILDER" bash -e -o pipefail -c "${TARGET_VENV}/bin/python -c \"import shutil; print(shutil.which('nvcc') or 'nvcc from pip package')\""
+            $CONTAINER_EXEC "$CONTAINER_TARGET" bash -e -o pipefail -c "${TARGET_VENV}/bin/python -c \"import shutil; print(shutil.which('nvcc') or 'nvcc from pip package')\""
           fi
-          docker exec "$BUILDER" bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')\""
+          $CONTAINER_EXEC "$CONTAINER_TARGET" bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')\""
 
       - name: Install manylinux CUDA build toolchain
         if: inputs.use-manylinux-build && inputs.enable-cuda
         run: |
-          docker exec "$BUILDER" bash -x -e -o pipefail -c "
+          if [ "${{ inputs.runs-on }}" = "self-hosted" ]; then
+            $CONTAINER_EXEC "$CONTAINER_TARGET" bash -x -e -o pipefail -c "
+              ${TARGET_VENV}/bin/pip install \
+                'nvidia-cuda-nvcc==13.2.86' \
+                'nvidia-nvvm==13.2.86' \
+                'nvidia-cuda-crt==13.2.86' \
+                'nvidia-cuda-cccl==13.2.86'
+              CUDA_HOME=\$(${TARGET_VENV}/bin/python -c 'from pathlib import Path; import site; print(Path(site.getsitepackages()[0]) / \"nvidia/cu13\")')
+              test -x \"\${CUDA_HOME}/bin/nvcc\"
+              test -f \"\${CUDA_HOME}/include/cublas_v2.h\"
+              test -f \"\${CUDA_HOME}/include/nvtx3/nvToolsExt.h\"
+              for CUDA_LIBRARY in cudart nvrtc; do
+                VERSIONED_LIBRARY=\$(find \"\${CUDA_HOME}/lib\" -maxdepth 1 -name \"lib\${CUDA_LIBRARY}.so.*\" -print -quit)
+                test -n \"\${VERSIONED_LIBRARY}\"
+                test -e \"\${CUDA_HOME}/lib/lib\${CUDA_LIBRARY}.so\" || \
+                  ln -s \"\$(basename \"\${VERSIONED_LIBRARY}\")\" \"\${CUDA_HOME}/lib/lib\${CUDA_LIBRARY}.so\"
+              done
+              test -e \"\${CUDA_HOME}/lib64\" || ln -s lib \"\${CUDA_HOME}/lib64\"
+              \"\${CUDA_HOME}/bin/nvcc\" --version
+              echo \"\${CUDA_HOME}\" > /tmp/tmol_cuda_home
+            "
+          else
+            $CONTAINER_EXEC "$CONTAINER_TARGET" bash -x -e -o pipefail -c "
             unset PYTHONPATH
             export PYTHONNOUSERSITE=1
             CUDA_VERSION=\$(${TARGET_VENV}/bin/python -c 'import torch; print(torch.version.cuda)')
@@ -330,27 +378,44 @@ jobs:
             test -s /tmp/tmol_nvrtc_path
             \"\${CUDA_HOME}/bin/nvcc\" --version
             echo \"\${CUDA_HOME}\" > /tmp/tmol_cuda_home
-          "
-          CUDA_HOME=$(docker exec "$BUILDER" cat /tmp/tmol_cuda_home)
+            "
+          fi
+          CUDA_HOME=$($CONTAINER_EXEC "$CONTAINER_TARGET" cat /tmp/tmol_cuda_home)
           echo "CUDA_HOME=${CUDA_HOME}" >> "$GITHUB_ENV"
 
       - name: Install build dependencies
         run: |
-          docker exec "$BUILDER" bash -x -e -o pipefail -c "
+          $CONTAINER_EXEC "$CONTAINER_TARGET" bash -x -e -o pipefail -c "
             unset PYTHONPATH
             export PYTHONNOUSERSITE=1
             ${TARGET_VENV}/bin/pip install \
-              'cmake>=3.18,<4' 'scikit-build-core>=0.10' ninja 'packaging>=24.2' 'pybind11>=2.12' auditwheel
+              'cmake>=3.24,<4' 'scikit-build-core>=0.10' ninja 'packaging>=24.2' 'pybind11>=2.12' auditwheel
           "
+
+      - name: Set ABI-qualified wheel version
+        run: |
+          $CONTAINER_EXEC "$CONTAINER_TARGET" \
+            "${TARGET_VENV}/bin/python" \
+            scripts/set_release_wheel_version.py "$WHEEL_LOCAL_TAG"
 
       - name: Build wheel
         run: |
-          docker exec \
-            -e MAX_JOBS=1 \
-            -e CUDA_ARCHS_OVERRIDE="${{ inputs.cuda-archs }}" \
-            -e CUDA_HOME="${CUDA_HOME}" \
-            -e CUDAToolkit_ROOT="${CUDA_HOME}" \
-            "$BUILDER" bash -x -e -o pipefail -c '
+          # Full-architecture nvcc compilations can exhaust standard hosted
+          # runners when two translation units compile concurrently. Keep those
+          # builds serial so the runner service retains CPU and memory headroom.
+          # Native/local builds retain the faster two-job default.
+          BUILD_MAX_JOBS=2
+          if [ "${{ inputs.use-manylinux-build }}" = "true" ] && \
+             [ "${{ inputs.enable-cuda }}" = "true" ] && \
+             [ "${{ inputs.runs-on }}" != "self-hosted" ]; then
+            BUILD_MAX_JOBS=1
+          fi
+          $CONTAINER_EXEC \
+            "$CONTAINER_ENV_FLAG" MAX_JOBS="$BUILD_MAX_JOBS" \
+            "$CONTAINER_ENV_FLAG" CUDA_ARCHS_OVERRIDE="${{ inputs.cuda-archs }}" \
+            "$CONTAINER_ENV_FLAG" CUDA_HOME="${CUDA_HOME}" \
+            "$CONTAINER_ENV_FLAG" CUDAToolkit_ROOT="${CUDA_HOME}" \
+            "$CONTAINER_TARGET" bash -x -e -o pipefail -c '
             source /etc/bash.bashrc 2>/dev/null || true
             if [ -f /opt/rh/devtoolset-10/enable ]; then
               source /opt/rh/devtoolset-10/enable
@@ -376,7 +441,7 @@ jobs:
               if [ -n "${CUDA_ARCHS_OVERRIDE}" ]; then
                 CUDA_ARCHS="${CUDA_ARCHS_OVERRIDE}"
               elif [ "$CUDA_MAJOR" -ge 13 ]; then
-                CUDA_ARCHS="80;86;89;90;100"
+                CUDA_ARCHS="all"
               else
                 CUDA_ARCHS="75;80;86;89;90"
               fi
@@ -396,23 +461,83 @@ jobs:
             fi
           '
 
+      - name: Validate CUDA architecture contract
+        if: inputs.enable-cuda
+        run: |
+          $CONTAINER_EXEC \
+            "$CONTAINER_ENV_FLAG" CUDA_ARCHS_OVERRIDE="${{ inputs.cuda-archs }}" \
+            "$CONTAINER_ENV_FLAG" CUDA_HOME="${CUDA_HOME}" \
+            "$CONTAINER_TARGET" bash -euo pipefail -c '
+            cache=$(find build -name CMakeCache.txt -print -quit)
+            test -n "${cache}"
+            actual=$(sed -n "s/^CMAKE_CUDA_ARCHITECTURES:STRING=//p" "${cache}")
+            test -n "${actual}"
+            echo "Built CMAKE_CUDA_ARCHITECTURES=${actual}"
+
+            cuda_major=$("${CUDA_HOME}/bin/nvcc" --version \
+              | sed -n "s/.*release \([0-9][0-9]*\)\..*/\1/p" \
+              | head -1)
+            validate_all=false
+            if [ "${CUDA_ARCHS_OVERRIDE}" = all ] || {
+              [ -z "${CUDA_ARCHS_OVERRIDE}" ] && [ "${cuda_major}" -ge 13 ]
+            }; then
+              validate_all=true
+            fi
+            if [ "${validate_all}" = true ]; then
+              mapfile -t supported < <(
+                "${CUDA_HOME}/bin/nvcc" --list-gpu-code \
+                  | sed -n "s/^sm_\([0-9][0-9]*\)$/\1/p" \
+                  | awk "\$1 >= 75" \
+                  | sort -nu
+              )
+              test "${#supported[@]}" -gt 0
+              expected=""
+              last=$((${#supported[@]} - 1))
+              for index in "${!supported[@]}"; do
+                arch=${supported[$index]}
+                if [ "${index}" -lt "${last}" ]; then
+                  arch="${arch}-real"
+                fi
+                expected="${expected:+${expected};}${arch}"
+              done
+              test "${actual}" = "${expected}" || {
+                echo "Expected CUDA architectures ${expected}, got ${actual}" >&2
+                exit 1
+              }
+
+              ninja_file=$(dirname "${cache}")/build.ninja
+              test -f "${ninja_file}"
+              for arch in "${supported[@]}"; do
+                grep -Fq "arch=compute_${arch}" "${ninja_file}" || {
+                  echo "Generated build omits compute_${arch}" >&2
+                  exit 1
+                }
+              done
+            fi
+          '
+
       - name: Repair wheel (auditwheel / manylinux)
         if: inputs.use-manylinux-build
         run: |
-          docker exec \
-            -e PYTHON="${TARGET_VENV}/bin/python" \
-            -e TMOL_AUDITWHEEL_PLAT="${MANYLINUX_PLATFORM}" \
-            "$BUILDER" bash -x -e -o pipefail -c '
+          $CONTAINER_EXEC \
+            "$CONTAINER_ENV_FLAG" PYTHON="${TARGET_VENV}/bin/python" \
+            "$CONTAINER_ENV_FLAG" TMOL_AUDITWHEEL_PLAT="${MANYLINUX_PLATFORM}" \
+            "$CONTAINER_TARGET" bash -x -e -o pipefail -c '
             chmod +x scripts/repair_linux_wheel.sh
             scripts/repair_linux_wheel.sh dist
           '
 
-      - name: Rename wheel with local tag
+      - name: Record wheel name
         run: |
-          docker exec "$BUILDER" bash -c "
+          $CONTAINER_EXEC "$CONTAINER_TARGET" bash -c "
             cd /workspace
-            wheel_name=\$(ls dist/*whl | xargs -n 1 basename | sed \"s/-/+${WHEEL_LOCAL_TAG}-/2\")
-            ls dist/*whl | xargs -I {} mv {} dist/\${wheel_name}
+            set -- dist/*.whl
+            test \"\$#\" -eq 1
+            wheel_name=\$(basename \"\$1\")
+            case \"\${wheel_name}\" in
+              tmol-*+${WHEEL_LOCAL_TAG}-*.whl) ;;
+              *) echo \"Unexpected wheel name: \${wheel_name}\"; exit 1 ;;
+            esac
             echo \${wheel_name}
           " | tail -1 > /tmp/wheel_name.txt
           wheel_name=$(cat /tmp/wheel_name.txt)
@@ -427,7 +552,7 @@ jobs:
           if [ -n "${TARGET_ARCH}" ]; then
             echo "arch=${TARGET_ARCH}" >> "$GITHUB_OUTPUT"
           else
-            echo "arch=$(docker exec "$BUILDER" uname -m)" >> "$GITHUB_OUTPUT"
+            echo "arch=$($CONTAINER_EXEC "$CONTAINER_TARGET" uname -m)" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Upload wheel artifact
@@ -438,4 +563,9 @@ jobs:
 
       - name: Cleanup container
         if: always()
-        run: docker rm -f "$BUILDER" 2>/dev/null || true
+        run: |
+          if [ "${{ inputs.runs-on }}" = "self-hosted" ]; then
+            [ -z "${BUILDER_IMAGE:-}" ] || rm -f "$BUILDER_IMAGE"
+          else
+            docker rm -f "$BUILDER" 2>/dev/null || true
+          fi

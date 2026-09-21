@@ -67,6 +67,26 @@ def rama_V_dV(
 }
 
 template <tmol::Device D, typename Real, typename Int>
+def rama_V(
+    CoordQuad phi,
+    CoordQuad psi,
+    TensorAccessor<Real, 2, D> coeffs,
+    Real2 bbstart,
+    Real2 bbstep) -> Real {
+  Real2 phipsi_idx;
+  phipsi_idx[0] =
+      (dihedral_angle<Real>::V(phi.row(0), phi.row(1), phi.row(2), phi.row(3))
+       - bbstart[0])
+      / bbstep[0];
+  phipsi_idx[1] =
+      (dihedral_angle<Real>::V(psi.row(0), psi.row(1), psi.row(2), psi.row(3))
+       - bbstart[1])
+      / bbstep[1];
+  return tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate_V(
+      coeffs, phipsi_idx);
+}
+
+template <tmol::Device D, typename Real, typename Int>
 def omega_V_dV(CoordQuad omega, Real K) -> tuple<Real, CoordQuad> {
   Real V;
   Real dVdomega;
@@ -92,6 +112,18 @@ def omega_V_dV(CoordQuad omega, Real K) -> tuple<Real, CoordQuad> {
   dV_domegaatm.row(3) = omegaang.dV_dL;
 
   return {V, dVdomega * dV_domegaatm};
+}
+
+template <typename Real>
+def omega_V(CoordQuad omega, Real K) -> Real {
+  Real omega_offset = dihedral_angle<Real>::V(
+      omega.row(0), omega.row(1), omega.row(2), omega.row(3));
+  if (omega_offset > 0.5 * EIGEN_PI) {
+    omega_offset -= EIGEN_PI;
+  } else if (omega_offset < -0.5 * EIGEN_PI) {
+    omega_offset += EIGEN_PI;
+  }
+  return K * omega_offset * omega_offset;
 }
 
 // bb-dep version of omega
@@ -175,6 +207,47 @@ def omega_bbdep_V_dV(
   }
 
   return {V, dV_dphiatm, dV_dpsiatm, dV_domegaatm};
+}
+
+template <tmol::Device D, typename Real, typename Int>
+def omega_bbdep_V(
+    CoordQuad phi,
+    CoordQuad psi,
+    CoordQuad omega,
+    TensorAccessor<Real, 2, D> coeffs_mu,
+    TensorAccessor<Real, 2, D> coeffs_sig,
+    Real2 bbstart,
+    Real2 bbstep,
+    Real K) -> Real {
+  const Real pi = EIGEN_PI;
+  Real omegaang = dihedral_angle<Real>::V(
+      omega.row(0), omega.row(1), omega.row(2), omega.row(3));
+  if (omegaang > -0.5 * EIGEN_PI && omegaang < 0.5 * EIGEN_PI) {
+    return omega_V(omega, K);
+  }
+
+  Real2 phipsi_idx;
+  phipsi_idx[0] =
+      (dihedral_angle<Real>::V(phi.row(0), phi.row(1), phi.row(2), phi.row(3))
+       - bbstart[0])
+      / bbstep[0];
+  phipsi_idx[1] =
+      (dihedral_angle<Real>::V(psi.row(0), psi.row(1), psi.row(2), psi.row(3))
+       - bbstart[1])
+      / bbstep[1];
+
+  Real mu = tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate_V(
+      coeffs_mu, phipsi_idx);
+  Real sig =
+      tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate_V(
+          coeffs_sig, phipsi_idx);
+  Real baseline = std::log(1. / (6. * sqrt(2. * pi)))
+                  - std::log(1. / (sig * sqrt(2. * pi)));
+  Real offset = omegaang * 180.0 / pi - mu;
+  if (offset < -180.0) {
+    offset += 360.0;
+  }
+  return baseline + offset * offset / (2 * sig * sig);
 }
 
 #undef Real2

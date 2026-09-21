@@ -18,7 +18,7 @@ from tmol.dock.ga import (
     _sidechain_context_blocks,
 )
 from tmol.dock.ligand_dofs import build_ligand_docking_dofs
-from tmol.optimization.minimizers import run_cart_min, run_kin_min
+from tmol.optimization import run_cart_min, run_kin_min
 from tmol.pose.constraint_set import ConstraintSet
 from tmol.pose.pdb_info import PDBInfo
 from tmol.pose.pose_stack import PoseStack

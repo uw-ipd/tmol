@@ -1,18 +1,23 @@
 import torch
 
-from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
+from tmol.chemical import MAX_SIG_BOND_SEPARATION
 from tmol.io import pose_stack_from_pdb
 
-from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.pose import PoseStackBuilder
 
 
 def test_concatenate_pose_stacks_ctor(ubq_pdb, default_database, torch_device):
     p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=40)
     p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=60)
-    poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
+    poses = PoseStackBuilder.from_poses([p1, p2], torch.device(torch_device.type))
     assert poses.block_type_ind.shape == (2, 60)
     assert poses.coords.shape == (2, 962, 3)  # fd 959->961 for nterm
     assert poses.inter_block_bondsep.shape == (2, 60, 60, 3, 3)
+    assert poses.device == torch_device
+    torch.testing.assert_close(
+        poses.block_ind_for_rot,
+        torch.arange(60, dtype=torch.int32, device=torch_device).repeat(2),
+    )
 
 
 def test_create_pose_from_sequence(fresh_default_packed_block_types, torch_device):
@@ -398,7 +403,11 @@ def test_calculate_interblock_bondsep_from_connectivity_graph_heavy(torch_device
     block_n_conn = torch.tensor(
         [[2, 2, 3, 2, 3], [2, 3, 2, 3, 0]], dtype=torch.int32, device=torch_device
     )
-    pose_n_pconn = torch.tensor([12, 10], dtype=torch.int32, device=torch_device)
+    pconn_offsets = torch.tensor(
+        [[0, 2, 4, 7, 9], [0, 2, 5, 7, 10]],
+        dtype=torch.int64,
+        device=torch_device,
+    )
     pconn_matrix = torch.tensor(
         [
             [
@@ -435,7 +444,7 @@ def test_calculate_interblock_bondsep_from_connectivity_graph_heavy(torch_device
     )
 
     ibb = PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph_heavy(
-        pbt_max_n_conn, torch_device, block_n_conn, pose_n_pconn, pconn_matrix
+        pbt_max_n_conn, pconn_offsets, block_n_conn, pconn_matrix
     )
     inter_block_bondsep = ibb
 
@@ -521,6 +530,22 @@ def test_calculate_interblock_bondsep_from_connectivity_graph_heavy(torch_device
     )
 
     torch.testing.assert_close(inter_block_bondsep, inter_block_bondsep_gold)
+    assert inter_block_bondsep.is_contiguous()
+
+
+def test_calculate_interblock_bondsep_without_connections(torch_device):
+    block_n_conn = torch.zeros((2, 3), dtype=torch.int32, device=torch_device)
+    pconn_offsets = torch.zeros((2, 3), dtype=torch.int64, device=torch_device)
+    pconn_matrix = torch.empty((2, 0, 0), dtype=torch.int32, device=torch_device)
+
+    result = (
+        PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph_heavy(
+            3, pconn_offsets, block_n_conn, pconn_matrix
+        )
+    )
+
+    assert result.shape == (2, 3, 3, 3, 3)
+    assert torch.all(result == MAX_SIG_BOND_SEPARATION)
 
 
 def test_incorporate_extra_connections_into_inter_res_conn_set(torch_device):
@@ -696,7 +721,9 @@ def interblock_dslf_pair_correction(ibb, res_bound_to_next, p, i, j):
         ibb[p, i, j + 1, 2, 0] = 5
 
 
-def test_from_block_type_names_smoke(fresh_default_packed_block_types, torch_device):
+def test_from_block_type_names_smoke(
+    fresh_default_packed_block_types, torch_device
+):  # noqa: C901
     pbt = fresh_default_packed_block_types
     n_poses, max_n_res, max_n_conn = 2, 8, 3
     sequences = [

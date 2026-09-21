@@ -1,0 +1,263 @@
+import torch
+import attrs
+
+from tmol.pose import PoseStack
+from tmol.score import ScoreFunction
+from tmol.kinematics import (
+    NodeType,
+    BondDOFTypes,
+    JumpDOFTypes,
+    PoseStackKinematicsModule,
+)
+from tmol.kinematics.compiled import inverse_kin
+
+
+class CartesianSfxnNetwork(torch.nn.Module):
+    """Differentiable score network over selected Cartesian coordinates."""
+
+    def __init__(
+        self,
+        score_function: ScoreFunction,
+        pose_stack: PoseStack,
+        coord_mask=None,
+        cuda_graph: bool | str = False,
+    ):
+        super(CartesianSfxnNetwork, self).__init__()
+
+        wpsm = score_function.render_whole_pose_scoring_module(
+            pose_stack, cuda_graph=cuda_graph
+        )
+        self.whole_pose_scoring_module = wpsm
+        self._score_function = score_function
+        self._score_function_versions = (
+            score_function._terms_version,
+            score_function._options_version,
+        )
+
+        self.pose_stack = pose_stack
+        # clone: forward() writes into full_coords in place, which would
+        # otherwise overwrite the caller's coordinates
+        self.full_coords = pose_stack.coords.clone().detach()
+        self._uses_default_coord_mask = coord_mask is None
+        if coord_mask is None:
+            # Padding coordinates never contribute to a pose's score. Excluding
+            # them keeps heterogeneous batches from allocating and updating
+            # meaningless optimizer degrees of freedom.
+            coord_mask = pose_stack.real_atoms
+        self.coord_mask = coord_mask
+
+        # Precompute flat integer indices for the boolean mask
+        # Flat integer is faster than bool mask
+        #   (since torch does nonzero each time under the hood)
+        self._coord_flat_idx = (
+            self.coord_mask.reshape(-1).nonzero(as_tuple=False).squeeze(-1)
+        )
+        self._all_coords_movable = (
+            self._coord_flat_idx.numel() == self.coord_mask.numel()
+        )
+
+        self.masked_coords = torch.nn.Parameter(
+            self.full_coords.view(-1, self.full_coords.shape[-1])[self._coord_flat_idx]
+        )
+        if self._all_coords_movable:
+            self.full_coords = self.masked_coords.view_as(self.full_coords)
+
+        # pose each element of masked_coords belongs to, for per-pose minimization
+        pose_for_atom = torch.div(
+            self._coord_flat_idx,
+            self.full_coords.shape[1],
+            rounding_mode="floor",
+        )
+        self.segment_ids = pose_for_atom.repeat_interleave(self.full_coords.shape[-1])
+
+    def _reusable_for(
+        self,
+        score_function: ScoreFunction,
+        pose_stack: PoseStack,
+        coord_mask=None,
+    ) -> bool:
+        """Return whether this network can score another pose without rendering."""
+        # Check cheap Python identity and shape predicates before any tensor
+        # comparison. The normal repeated-topology path shares these tensors,
+        # so it avoids both rebuilding ``real_atoms`` and synchronizing CUDA.
+        if not (
+            score_function is self._score_function
+            and self._score_function_versions
+            == (
+                self._score_function._terms_version,
+                self._score_function._options_version,
+            )
+            and pose_stack.packed_block_types is self.pose_stack.packed_block_types
+            and pose_stack.constraint_set is self.pose_stack.constraint_set
+            and pose_stack.coords.shape == self.pose_stack.coords.shape
+            and pose_stack.inter_residue_connections
+            is self.pose_stack.inter_residue_connections
+            and pose_stack.inter_block_bondsep is self.pose_stack.inter_block_bondsep
+        ):
+            return False
+
+        if coord_mask is None:
+            if not self._uses_default_coord_mask:
+                return False
+        elif coord_mask is not self.coord_mask and not torch.equal(
+            coord_mask, self.coord_mask
+        ):
+            return False
+
+        return (
+            pose_stack.block_type_ind is self.pose_stack.block_type_ind
+            or torch.equal(pose_stack.block_type_ind, self.pose_stack.block_type_ind)
+        ) and (
+            pose_stack.block_coord_offset is self.pose_stack.block_coord_offset
+            or torch.equal(
+                pose_stack.block_coord_offset, self.pose_stack.block_coord_offset
+            )
+        )
+
+    def _reset(
+        self, score_function: ScoreFunction, pose_stack: PoseStack, coord_mask=None
+    ) -> bool:
+        """Reset for a compatible pose topology; report whether it was reused."""
+        if not self._reusable_for(score_function, pose_stack, coord_mask):
+            return False
+
+        self.pose_stack = pose_stack
+        with torch.no_grad():
+            self.whole_pose_scoring_module.weights.copy_(
+                score_function.weights_tensor().unsqueeze(1)
+            )
+            if self._all_coords_movable:
+                self.masked_coords.copy_(pose_stack.coords.reshape(-1, 3))
+            else:
+                self.full_coords.copy_(pose_stack.coords)
+                self.masked_coords.copy_(
+                    pose_stack.coords.reshape(-1, 3)[self._coord_flat_idx]
+                )
+        self.masked_coords.grad = None
+        return True
+
+    def forward(self) -> torch.Tensor:
+        if not self._all_coords_movable:
+            self.full_coords = self.full_coords.detach()
+            self.full_coords.view(-1, self.full_coords.shape[-1])[
+                self._coord_flat_idx
+            ] = self.masked_coords
+        return self.whole_pose_scoring_module(self.full_coords)
+
+    def pose_stack_from_dofs(self) -> PoseStack:
+        if self._all_coords_movable:
+            full_coords = self.masked_coords.detach().view_as(self.full_coords).clone()
+            return attrs.evolve(self.pose_stack, coords=full_coords)
+        full_coords = self.full_coords.detach().clone()
+        full_coords.view(-1, full_coords.shape[-1])[
+            self._coord_flat_idx
+        ] = self.masked_coords.detach()
+        return attrs.evolve(self.pose_stack, coords=full_coords)
+
+
+class KinForestSfxnNetwork(torch.nn.Module):
+    """Differentiable score network over selected kinematic degrees of freedom."""
+
+    def __init__(
+        self,
+        score_function: ScoreFunction | None,
+        pose_stack: PoseStack,
+        kin_module: PoseStackKinematicsModule,
+        dof_mask=None,
+        kin_dtype=torch.float32,
+        whole_pose_scoring_module=None,
+    ):
+        super(KinForestSfxnNetwork, self).__init__()
+
+        torch_device = pose_stack.device
+        self.pose_stack = pose_stack
+        if whole_pose_scoring_module is None:
+            if score_function is None:
+                raise ValueError(
+                    "score_function is required when no scoring module is supplied"
+                )
+            wpsm = score_function.render_whole_pose_scoring_module(pose_stack)
+        else:
+            wpsm = whole_pose_scoring_module
+        kmd = kin_module.kmd
+        self.kin_module = kin_module
+        self.whole_pose_scoring_module = wpsm
+        self.full_coords = pose_stack.coords.clone().detach()
+        self.flat_coords = self.full_coords.view(-1, 3)
+        self.orig_coords_shape = pose_stack.coords.shape
+        self.id = kmd.forest.id
+
+        kincoords = torch.zeros(
+            (kin_module.kmd.forest.id.shape[0], 3),
+            dtype=kin_dtype,
+            device=torch_device,
+        )
+        kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]].to(kin_dtype)
+
+        raw_dofs = inverse_kin(
+            kincoords,
+            kmd.forest.parent,
+            kmd.forest.frame_x,
+            kmd.forest.frame_y,
+            kmd.forest.frame_z,
+            kmd.forest.doftype,
+        )
+        self.full_dofs = raw_dofs
+
+        if dof_mask is None:
+            # Default behavior:
+            #   Enable minimization of phi_c dofs for bonded atoms
+            #   Enable minimization of 6 dofs for jump atoms
+            #   - RBx, y, z, and
+            #   - RBdel_alpha, beta, gamma
+            dof_mask = torch.zeros(
+                raw_dofs.shape, dtype=torch.bool, device=torch_device
+            )
+            dof_mask[kmd.forest.doftype == NodeType.bond, BondDOFTypes.phi_c] = True
+            dof_mask[
+                kmd.forest.doftype == NodeType.jump, : JumpDOFTypes.RBdel_gamma
+            ] = True
+        self.dof_mask = dof_mask
+
+        # Precompute flat integer indices for the boolean mask
+        # Flat integer is faster than bool mask
+        self._dof_flat_idx = (
+            self.dof_mask.reshape(-1).nonzero(as_tuple=False).squeeze(-1)
+        )
+
+        self.masked_dofs = torch.nn.Parameter(self.full_dofs[self.dof_mask])
+
+        # pose each element of masked_dofs belongs to, for per-pose minimization.
+        # kmd.forest.id is the index into the flattened (pose, atom) coords; the
+        # root node's id of -1 never survives the dof mask.
+        n_atoms_per_pose = pose_stack.coords.shape[1]
+        pose_for_node = torch.div(self.id, n_atoms_per_pose, rounding_mode="floor")
+        pose_for_dof = pose_for_node.unsqueeze(1).expand(raw_dofs.shape).reshape(-1)
+        self.segment_ids = pose_for_dof[self._dof_flat_idx].to(torch.int64)
+        assert bool((self.segment_ids >= 0).all()), "root node dofs cannot be minimized"
+
+    def forward(self) -> torch.Tensor:
+        # get rid of any gradients from the previous iteration
+        self.full_dofs = self.full_dofs.detach()
+        self.full_coords = self.full_coords.detach()
+        self.flat_coords = self.flat_coords.detach()
+
+        # update the full-dofs, calc the coords, and map them
+        # to the pose-stack-ordered coords
+        self.full_dofs.view(-1)[self._dof_flat_idx] = self.masked_dofs
+        kin_coords = self.kin_module(self.full_dofs)
+        self.flat_coords[self.id[1:]] = kin_coords[1:].to(self.flat_coords.dtype)
+        self.full_coords = self.flat_coords.view(self.orig_coords_shape)
+
+        # now evaluate the score
+        return self.whole_pose_scoring_module(self.full_coords)
+
+    def pose_stack_from_dofs(self) -> PoseStack:
+        full_dofs = self.full_dofs.clone()
+        flat_coords = self.flat_coords.detach()
+        full_dofs.view(-1)[self._dof_flat_idx] = self.masked_dofs
+        kin_coords = self.kin_module(full_dofs)
+        flat_coords[self.id[1:]] = kin_coords[1:].to(flat_coords.dtype)
+        full_coords = flat_coords.view(self.orig_coords_shape)
+
+        return attrs.evolve(self.pose_stack, coords=full_coords)

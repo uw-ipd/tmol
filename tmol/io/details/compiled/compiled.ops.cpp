@@ -111,7 +111,7 @@ class PoseLeafAtomGen : public torch::autograd::Function<PoseLeafAtomGen> {
 
     using Int = int32_t;
 
-    auto dE_d_new_coords = grad_outputs[0];
+    auto dE_d_new_coords = grad_outputs[0].contiguous();
 
     TMOL_DISPATCH_FLOATING_DEVICE(
         orig_coords.options(), "leaf_atom_gen_backward", ([&] {

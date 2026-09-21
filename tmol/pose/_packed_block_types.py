@@ -1,0 +1,480 @@
+import attr
+
+import torch
+import numpy
+import pandas
+
+from typing import Sequence
+
+from tmol.types import Tensor
+
+from tmol.chemical import (
+    MAX_PATHS_FROM_CONNECTION,
+    RefinedResidueType,
+    ResidueTypeSet,
+)
+from tmol.database import PatchedChemicalDatabase
+from tmol.utility._device import resolve_device
+
+
+def residue_types_from_residues(residues):
+    rt_dict = {}
+    for res in residues:
+        if id(res.residue_type) not in rt_dict:
+            rt_dict[id(res.residue_type)] = res.residue_type
+    return [rt for addr, rt in rt_dict.items()]
+
+
+@attr.s(auto_attribs=True)
+class PackedBlockTypes:
+    """A class to aggregate the properties for a collection of residue types.
+
+    The PackedBlockTypes object holds an ordered set of residue types
+    (specifically, RefinedResidueTypes); once constructed, this order will not
+    change, so residue types may be referred to by index within this object.
+
+    Score terms cache derived tensors on this object to share annotation work
+    across poses with the same ordered residue types. Topology annotations can
+    be reused for the object's lifetime. Parameter-dependent annotations must
+    also identify their chemical/scoring sources, settings and tensor device;
+    the presence of an attribute alone does not establish a valid cache hit.
+    Keep historical configurations bounded, and let rendered scoring modules
+    capture their requested annotation tensors instead of reading whichever
+    configuration happens to be stored here during a later forward call.
+
+    Annotation process:
+    There are three steps to the annotation process. 1) Terms
+    annotate individual block types, 2) terms aggregate (concattenate)
+    annotations of the individual block types for the packed_block_type,
+    and 3) terms retrieve their annotations. 1) Typically, score terms will
+    create one annotation for each of the RefinedResidueType objects that the
+    PackedBlockTypes object holds in their method named "setup_block_type,"
+    and cache these annotations on each RefinedResiduetype. The idiom we use
+    is for these residue-type annotations to be held in numpy arrays (on the
+    CPU). 2) The terms will then aggregate the annotations for each of the
+    individual residue types into a single torch Tensor, one tensor for each
+    property (or property group) the term needs, in their method named
+    "setup_packed_block_types"; the idiom is for these annotations to be moved
+    to the PackedBlockType's device in this step. 3) Finally, each term will
+    retrieve the cached annotations from the PackedBlockType in their
+    "render_whole_pose_scoring_module" method.
+    """
+
+    chem_db: PatchedChemicalDatabase
+    restype_set: ResidueTypeSet
+    active_block_types: Sequence[RefinedResidueType]
+    restype_index: pandas.Index
+
+    max_n_atoms: int
+    n_atoms: Tensor[torch.int32][:]  # dim: n_types
+    atom_is_real: Tensor[torch.uint8][:, :]  # dim: n_types x max_n_atoms
+    atom_is_hydrogen: Tensor[torch.int32][:, :]  # dim: n_types x max_n_atoms
+
+    atom_downstream_of_conn: Tensor[torch.int32][:, :, :]
+
+    atom_paths_from_conn: Tensor[torch.int32][:, :, MAX_PATHS_FROM_CONNECTION, 3]
+
+    max_n_torsions: int
+    n_torsions: Tensor[torch.int32][:]  # dim: n_types x max_n_tors
+    torsion_is_real: Tensor[torch.uint8][:, :]  # dim: n_types, max_n_tors
+    # unresolved atom ids for all named torsions in the block types
+    torsion_uaids: Tensor[torch.int32][:, :, 3]
+    is_torsion_mc: Tensor[torch.bool][:, :]  # dim: n_types, max_n_tors
+    n_mc_torsions: Tensor[torch.int32][:]  # dim: n_types
+    mc_torsion_is_real: Tensor[torch.uint8][:, :]  # dim: n_types, max_n_mc_tors
+    mc_torsions: Tensor[torch.int32][:, :]
+    n_sc_torsions: Tensor[torch.int32][:]  # dim: n_types
+    sc_torsion_is_real: Tensor[torch.uint8][:, :]  # dim: n_types, max_n_sc_tors
+    sc_torsions: Tensor[torch.int32][:, :]
+    which_mcsc_torsions: Tensor[torch.int32][:, :]
+
+    max_n_bonds: int
+    n_bonds: Tensor[torch.int32][:]
+    bond_is_real: Tensor[torch.bool][:, :]
+    # the symmetric / redundant list of bonds
+    # indexed by n_types x max_n_bonds x 2
+    # where the last dimension is
+    # 0: atom1-ind
+    # 1: atom2-ind
+    bond_indices: Tensor[torch.int32][:, :, 2]
+
+    max_n_conn: int
+    n_conn: Tensor[torch.int32][:]
+    conn_is_real: Tensor[torch.bool][:, :]
+    conn_atom: Tensor[torch.int32][:, :]
+
+    down_conn_inds: Tensor[torch.int32][:]
+    up_conn_inds: Tensor[torch.int32][:]
+    polymeric_conn_inds: Tensor[torch.int32][:, 2]
+
+    default_jump_connection_atom_inds: Tensor[torch.int32][:]
+
+    device: torch.device
+
+    @property
+    def n_types(self):
+        return len(self.active_block_types)
+
+    @classmethod
+    def from_restype_list(
+        cls,
+        chem_db: PatchedChemicalDatabase,
+        restype_set: ResidueTypeSet,
+        active_block_types: Sequence[RefinedResidueType],
+        device: torch.device,
+    ) -> "PackedBlockTypes":
+        """Pack residue-type metadata onto a concrete torch device.
+
+        Args:
+            chem_db: Chemical database shared by the residue types.
+            restype_set: Source residue-type collection.
+            active_block_types: Ordered residue types to pack.
+            device: Target device. An unindexed CUDA device resolves to the
+                current CUDA device.
+
+        Returns:
+            Packed residue-type tensors and their concrete device metadata.
+        """
+        device = resolve_device(device)
+        max_n_atoms = cls.count_max_n_atoms(active_block_types)
+        n_atoms = cls.count_n_atoms(active_block_types, device)
+        atom_is_real = cls.determine_real_atoms(max_n_atoms, n_atoms, device)
+        atom_is_hydrogen = cls.determine_h_atoms(
+            chem_db, max_n_atoms, n_atoms, active_block_types, device
+        )
+        restype_index = pandas.Index([restype.name for restype in active_block_types])
+        atom_downstream_of_conn = cls.join_atom_downstream_of_conn(
+            active_block_types, device
+        )
+        atom_paths_from_conn = cls.join_atom_paths_from_conn(active_block_types, device)
+        n_torsions, torsion_is_real, torsion_uaids = cls.join_torsion_uaids(
+            active_block_types, device
+        )
+        is_torsion_mc = cls.join_is_torsion_mcs(active_block_types, device)
+        n_mc_torsions, mc_torsion_is_real, mc_torsions = cls.join_mc_torsion_inds(
+            active_block_types, device
+        )
+        n_sc_torsions, sc_torsion_is_real, sc_torsions = cls.join_sc_torsion_inds(
+            active_block_types, device
+        )
+        which_mcsc_torsions = cls.join_mcsc_torsion_inds(active_block_types, device)
+        n_bonds, bond_is_real, bond_indices = cls.join_bond_indices(
+            active_block_types, device
+        )
+        n_conn, conn_is_real, conn_atom = cls.join_conn_indices(
+            active_block_types, device
+        )
+        down_conn_inds, up_conn_inds = cls.join_polymeric_connections(
+            active_block_types, device
+        )
+        def_jumpconn_inds = cls.join_default_jump_connection_atom_inds(
+            active_block_types, device
+        )
+
+        return cls(
+            chem_db=chem_db,
+            restype_set=restype_set,
+            active_block_types=active_block_types,
+            restype_index=restype_index,
+            max_n_atoms=max_n_atoms,
+            n_atoms=n_atoms,
+            atom_is_real=atom_is_real,
+            atom_is_hydrogen=atom_is_hydrogen,
+            atom_downstream_of_conn=atom_downstream_of_conn,
+            atom_paths_from_conn=atom_paths_from_conn,
+            max_n_torsions=torsion_is_real.shape[1],
+            n_torsions=n_torsions,
+            torsion_is_real=torsion_is_real,
+            torsion_uaids=torsion_uaids,
+            is_torsion_mc=is_torsion_mc,
+            n_mc_torsions=n_mc_torsions,
+            mc_torsion_is_real=mc_torsion_is_real,
+            mc_torsions=mc_torsions,
+            n_sc_torsions=n_sc_torsions,
+            sc_torsion_is_real=sc_torsion_is_real,
+            sc_torsions=sc_torsions,
+            which_mcsc_torsions=which_mcsc_torsions,
+            max_n_bonds=bond_is_real.shape[1],
+            n_bonds=n_bonds,
+            bond_is_real=bond_is_real,
+            bond_indices=bond_indices,
+            max_n_conn=conn_is_real.shape[1],
+            n_conn=n_conn,
+            conn_is_real=conn_is_real,
+            conn_atom=conn_atom,
+            down_conn_inds=down_conn_inds,
+            up_conn_inds=up_conn_inds,
+            polymeric_conn_inds=torch.cat(
+                [down_conn_inds.unsqueeze(1), up_conn_inds.unsqueeze(1)], dim=1
+            ),
+            default_jump_connection_atom_inds=def_jumpconn_inds,
+            device=device,
+        )
+
+    @classmethod
+    def count_max_n_atoms(cls, active_block_types: Sequence[RefinedResidueType]):
+        return max(len(restype.atoms) for restype in active_block_types)
+
+    @classmethod
+    def count_n_atoms(
+        cls, active_block_types: Sequence[RefinedResidueType], device: torch.device
+    ):
+        return torch.tensor(
+            [len(restype.atoms) for restype in active_block_types],
+            dtype=torch.int32,
+            device=device,
+        )
+
+    @classmethod
+    def determine_real_atoms(
+        cls, max_n_atoms: int, n_atoms: Tensor[torch.int32][:], device: torch.device
+    ):
+        n_types = n_atoms.shape[0]
+        return torch.arange(max_n_atoms, dtype=torch.int32, device=device).unsqueeze(
+            0
+        ).expand(n_types, -1) < n_atoms.unsqueeze(1).expand(-1, max_n_atoms)
+
+    @classmethod
+    def determine_h_atoms(
+        cls,
+        chem_db: PatchedChemicalDatabase,
+        max_n_atoms: int,
+        n_atoms: Tensor[torch.int32][:],
+        active_block_types,
+        device: torch.device,
+    ):
+        atype_element = {atype.name: atype.element for atype in chem_db.atom_types}
+        atom_is_hydrogen = [
+            [int(atype_element[atom.atom_type] == "H") for atom in bt.atoms]
+            + [0] * (max_n_atoms - len(bt.atoms))
+            for bt in active_block_types
+        ]
+        return torch.tensor(atom_is_hydrogen, dtype=torch.int32, device=device)
+
+    @classmethod
+    def join_atom_downstream_of_conn(
+        cls, active_block_types: Sequence[RefinedResidueType], device: torch.device
+    ):
+        n_restypes = len(active_block_types)
+        max_n_conn = max(len(rt.connections) for rt in active_block_types)
+        max_n_atoms = max(len(rt.atoms) for rt in active_block_types)
+        atom_downstream_of_conn = numpy.full(
+            (n_restypes, max_n_conn, max_n_atoms), -1, dtype=numpy.int32
+        )
+        for i, rt in enumerate(active_block_types):
+            rt_adoc = rt.atom_downstream_of_conn
+            atom_downstream_of_conn[i, : rt_adoc.shape[0], : rt_adoc.shape[1]] = rt_adoc
+        return torch.from_numpy(atom_downstream_of_conn).to(device=device)
+
+    @classmethod
+    def join_atom_paths_from_conn(
+        clas, active_block_types: Sequence[RefinedResidueType], device: torch.device
+    ):
+        n_restypes = len(active_block_types)
+        max_n_conn = max(len(bt.connections) for bt in active_block_types)
+
+        atom_paths_from_conn = numpy.full(
+            (
+                n_restypes,
+                max_n_conn,
+                MAX_PATHS_FROM_CONNECTION,
+                3,
+            ),
+            -1,
+            dtype=numpy.int32,
+        )
+
+        for i, bt in enumerate(active_block_types):
+            paths = bt.atom_paths_from_conn
+            atom_paths_from_conn[i, : len(bt.connections)] = paths
+
+        return torch.from_numpy(atom_paths_from_conn).to(device=device)
+
+    @classmethod
+    def _join_block_type_attribute(
+        cls,
+        active_block_types,
+        attribute_name,
+        device,
+        dtype=None,
+        sentinel=-1,
+    ):
+        arrays = [
+            numpy.asarray(getattr(bt, attribute_name), dtype=dtype)
+            for bt in active_block_types
+        ]
+        n_elements = numpy.asarray(
+            [array.shape[0] for array in arrays], dtype=numpy.int32
+        )
+        joined = numpy.full(
+            (len(arrays), int(n_elements.max()), *arrays[0].shape[1:]),
+            sentinel,
+            dtype=arrays[0].dtype,
+        )
+        for i, array in enumerate(arrays):
+            joined[i, : array.shape[0]] = array
+
+        real = numpy.arange(joined.shape[1])[None, :] < n_elements[:, None]
+        return tuple(
+            torch.from_numpy(array).to(device=device)
+            for array in (n_elements, real, joined)
+        )
+
+    @classmethod
+    def join_torsion_uaids(cls, active_block_types, device):
+        # unresolved atom ids are three integers:
+        #  1st integer: an atom index, -1 if the atom is unresolved
+        #  2nd integer: the connection index for this block that the unresolved atom
+        #               is on ther other side of, -1 if
+        #  3rd integer: the number of chemical bonds into the other block that the
+        #               unresolved atom is found.
+        return cls._join_block_type_attribute(
+            active_block_types, "ordered_torsions", device
+        )
+
+    @classmethod
+    def join_is_torsion_mcs(cls, active_block_types, device):
+        return cls._join_block_type_attribute(
+            active_block_types,
+            "is_torsion_mc",
+            device,
+            dtype=numpy.int32,
+            sentinel=0,
+        )[2].to(torch.bool)
+
+    @classmethod
+    def join_mc_torsion_inds(cls, active_block_types, device):
+        return cls._join_block_type_attribute(active_block_types, "mc_torsions", device)
+
+    @classmethod
+    def join_sc_torsion_inds(cls, active_block_types, device):
+        return cls._join_block_type_attribute(active_block_types, "sc_torsions", device)
+
+    @classmethod
+    def join_mcsc_torsion_inds(cls, active_block_types, device):
+        # only return the joined tensor of mcsc indices, index 2 of the tuple
+        # returned by join_tensors_and_report_real_entries
+        return cls._join_block_type_attribute(
+            active_block_types, "which_mcsc_torsion", device
+        )[2]
+
+    @classmethod
+    def join_bond_indices(cls, active_block_types, device):
+        return cls._join_block_type_attribute(
+            active_block_types, "bond_indices", device, dtype=numpy.int32
+        )
+
+    @classmethod
+    def join_conn_indices(cls, active_block_types, device):
+        return cls._join_block_type_attribute(
+            active_block_types,
+            "ordered_connection_atoms",
+            device,
+            dtype=numpy.int32,
+        )
+
+    @classmethod
+    def join_polymeric_connections(cls, active_block_types, device):
+        down_conn_inds = torch.tensor(
+            [bt.down_connection_ind for bt in active_block_types],
+            dtype=torch.int32,
+            device=device,
+        )
+        up_conn_inds = torch.tensor(
+            [bt.up_connection_ind for bt in active_block_types],
+            dtype=torch.int32,
+            device=device,
+        )
+        return down_conn_inds, up_conn_inds
+
+    @classmethod
+    def join_default_jump_connection_atom_inds(cls, active_block_types, device):
+        return torch.tensor(
+            [bt.default_jump_connection_atom_index for bt in active_block_types],
+            dtype=torch.int32,
+            device=device,
+        )
+
+    def inds_for_restypes(self, res_types: Sequence[RefinedResidueType]):
+        return self.restype_index.get_indexer(
+            [residue_type.name for residue_type in res_types]
+        )
+
+    def cpu(self):
+        def cpu_equiv(x):
+            return x.cpu() if hasattr(x, "cpu") else x
+
+        new_inst = PackedBlockTypes(
+            chem_db=self.chem_db,
+            restype_set=self.restype_set,
+            active_block_types=cpu_equiv(self.active_block_types),
+            restype_index=cpu_equiv(self.restype_index),
+            max_n_atoms=cpu_equiv(self.max_n_atoms),
+            n_atoms=cpu_equiv(self.n_atoms),
+            atom_is_real=cpu_equiv(self.atom_is_real),
+            atom_is_hydrogen=cpu_equiv(self.atom_is_hydrogen),
+            atom_downstream_of_conn=cpu_equiv(self.atom_downstream_of_conn),
+            atom_paths_from_conn=cpu_equiv(self.atom_paths_from_conn),
+            max_n_torsions=cpu_equiv(self.max_n_torsions),
+            n_torsions=cpu_equiv(self.n_torsions),
+            torsion_is_real=cpu_equiv(self.torsion_is_real),
+            torsion_uaids=cpu_equiv(self.torsion_uaids),
+            max_n_bonds=cpu_equiv(self.max_n_bonds),
+            n_bonds=cpu_equiv(self.n_bonds),
+            bond_is_real=cpu_equiv(self.bond_is_real),
+            bond_indices=cpu_equiv(self.bond_indices),
+            max_n_conn=cpu_equiv(self.conn_is_real.shape[1]),
+            n_conn=cpu_equiv(self.n_conn),
+            conn_is_real=cpu_equiv(self.conn_is_real),
+            conn_atom=cpu_equiv(self.conn_atom),
+            down_conn_inds=cpu_equiv(self.down_conn_inds),
+            up_conn_inds=cpu_equiv(self.up_conn_inds),
+            polymeric_conn_inds=cpu_equiv(self.polymeric_conn_inds),
+            default_jump_connection_atom_inds=cpu_equiv(
+                self.default_jump_connection_atom_inds
+            ),
+            device=cpu_equiv(self.device),
+        )
+        for self_key in self.__dict__:
+            if self_key not in new_inst.__dict__:
+                setattr(new_inst, self_key, cpu_equiv(self.__dict__[self_key]))
+        return new_inst
+
+
+def annotate_packed_block_types_w_dslf_conn_inds(pbt: PackedBlockTypes):
+    """Annotate each block type with its disulfide connection index, or -1."""
+    if hasattr(pbt, "canonical_dslf_conn_ind"):
+        return
+    canonical_dslf_conn_ind = numpy.full((pbt.n_types,), -1, dtype=numpy.int64)
+    for i, bt in enumerate(pbt.active_block_types):
+        if "dslf" in bt.connection_to_cidx:
+            canonical_dslf_conn_ind[i] = bt.connection_to_cidx["dslf"]
+    canonical_dslf_conn_ind = torch.tensor(
+        canonical_dslf_conn_ind, dtype=torch.int64, device=pbt.device
+    )
+    setattr(pbt, "canonical_dslf_conn_ind", canonical_dslf_conn_ind)
+
+
+def annotate_packed_block_types_w_conjugation_conns(pbt: PackedBlockTypes):
+    """Mark, per block type, which connections are conjugations.
+
+    A connection that is neither the polymer up or down nor the disulfide joins
+    a residue to something other than its own chain: a glycan on a serine, a
+    ligand on a lysine. Read from the connections themselves, so a generated
+    component and a patched canonical residue are treated alike.
+    """
+    if hasattr(pbt, "conjugation_conn"):
+        return
+    annotate_packed_block_types_w_dslf_conn_inds(pbt)
+    dslf = pbt.canonical_dslf_conn_ind.cpu().numpy()
+
+    conjugation_conn = numpy.zeros((pbt.n_types, pbt.max_n_conn), dtype=bool)
+    for i, bt in enumerate(pbt.active_block_types):
+        structural = {bt.down_connection_ind, bt.up_connection_ind, int(dslf[i])}
+        for ind in range(len(bt.connections)):
+            conjugation_conn[i, ind] = ind not in structural
+    setattr(
+        pbt,
+        "conjugation_conn",
+        torch.tensor(conjugation_conn, dtype=torch.bool, device=pbt.device),
+    )

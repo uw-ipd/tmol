@@ -1,4 +1,4 @@
-from .rosetta import requires_pyrosetta
+from ._rosetta import requires_pyrosetta
 
 
 @requires_pyrosetta

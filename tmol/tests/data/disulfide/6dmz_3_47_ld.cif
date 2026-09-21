@@ -1,0 +1,38 @@
+# Heterochiral derivative of the experimental 6DMZ Cys3-Cys47 disulfide.
+# Residue B is residue 47 reflected through its N-CB-SG plane, which preserves
+# the observed disulfide core while changing the alpha stereocenter from L to D.
+data_6dmz_3_47_ld
+#
+loop_
+_atom_site.group_PDB
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_alt_id
+_atom_site.label_comp_id
+_atom_site.label_asym_id
+_atom_site.label_entity_id
+_atom_site.label_seq_id
+_atom_site.pdbx_PDB_ins_code
+_atom_site.auth_seq_id
+_atom_site.auth_comp_id
+_atom_site.auth_asym_id
+_atom_site.auth_atom_id
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+_atom_site.pdbx_PDB_model_num
+_atom_site.id
+ATOM N N   . CYS A 1 1 . 1 CYS A N   -7.498  -7.449  -3.679 1 1
+ATOM C CA  . CYS A 1 1 . 1 CYS A CA  -7.997  -6.694  -2.567 1 2
+ATOM C C   . CYS A 1 1 . 1 CYS A C   -6.908  -5.776  -2.060 1 3
+ATOM O O   . CYS A 1 1 . 1 CYS A O   -5.793  -6.205  -1.807 1 4
+ATOM C CB  . CYS A 1 1 . 1 CYS A CB  -8.446  -7.644  -1.465 1 5
+ATOM S SG  . CYS A 1 1 . 1 CYS A SG  -9.716  -8.836  -1.968 1 6
+ATOM N N   . DCY B 2 1 . 1 DCY B N   -7.214 -12.080  -2.907 1 7
+ATOM C CA  . DCY B 2 1 . 1 DCY B CA  -8.564 -11.838  -3.271 1 8
+ATOM C C   . DCY B 2 1 . 1 DCY B C   -8.990 -12.907  -4.262 1 9
+ATOM O O   . DCY B 2 1 . 1 DCY B O   -9.091 -12.615  -5.479 1 10
+ATOM O OXT . DCY B 2 1 . 1 DCY B OXT -9.156 -14.088  -3.843 1 11
+ATOM C CB  . DCY B 2 1 . 1 DCY B CB  -9.483 -11.849  -2.050 1 12
+ATOM S SG  . DCY B 2 1 . 1 DCY B SG  -9.194 -10.470  -0.909 1 13
+#

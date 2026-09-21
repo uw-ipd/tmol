@@ -18,7 +18,7 @@ from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
 from tmol.kinematics.fold_forest import FoldForest
 from tmol.kinematics.move_map import MinimizerMap, MoveMap
 from tmol.kinematics.script_modules import PoseStackKinematicsModule
-from tmol.optimization.minimizers import build_kinforest_network
+from tmol.optimization import build_kinforest_network
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.score.score_function import ScoreFunction

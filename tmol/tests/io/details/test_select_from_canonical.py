@@ -1,4 +1,5 @@
 import numpy
+import pytest
 import torch
 
 import cattr
@@ -7,30 +8,63 @@ from attrs import evolve
 from functools import partial
 from toolz.curried import groupby
 from tmol.database.chemical import ChemicalDatabase, VariantType, normalize_bond_tuples
-from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
-from tmol.io.canonical_ordering import (
+from tmol.chemical import RefinedResidueType, ResidueTypeSet
+from tmol.database import PatchedChemicalDatabase
+from tmol.io import (
     canonical_form_from_pdb,
     default_canonical_ordering,
     default_packed_block_types,
     CanonicalOrdering,
 )
-from tmol.io.details.left_justify_canonical_form import left_justify_canonical_form
-from tmol.io.details.disulfide_search import find_disulfides
-from tmol.io.details.his_taut_resolution import resolve_his_tautomerization
-from tmol.io.details.select_from_canonical import (
+from tmol.io.details import (
+    left_justify_canonical_form,
+    find_disulfides,
+    resolve_his_tautomerization,
     assign_block_types,
     take_block_type_atoms_from_canonical,
     _annotate_packed_block_types_w_canonical_res_order,
     CanonicalOrderingAnnotation,
 )
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.io.details._select_from_canonical import (
+    _assert_connections_are_well_formed,
+)
+from tmol.pose import (
+    PoseStackBuilder,
+    PackedBlockTypes,
+)
 from tmol.tests.io.details.test_left_justify_canonical_form import add_two_res_at_gap
 
 
 def not_any_nancoord(coords):
     return torch.logical_not(torch.any(torch.isnan(coords), dim=3))
+
+
+def test_assert_connections_are_well_formed_batched(torch_device):
+    block_types = torch.zeros((16, 3), dtype=torch.int64, device=torch_device)
+    connections = torch.full((16, 3, 2, 2), -1, dtype=torch.int64, device=torch_device)
+    connections[:, 0, 0] = torch.tensor([1, 1], device=torch_device)
+    connections[:, 1, 1] = torch.tensor([0, 0], device=torch_device)
+
+    _assert_connections_are_well_formed(None, block_types, connections)
+
+
+def test_assert_connections_are_well_formed_reports_malformed(torch_device):
+    block_types = torch.zeros((1, 3), dtype=torch.int64, device=torch_device)
+    connections = torch.full((1, 3, 2, 2), -1, dtype=torch.int64, device=torch_device)
+    connections[0, 0, 0] = torch.tensor([1, 1], device=torch_device)
+    connections[0, 1, 1] = torch.tensor([2, 0], device=torch_device)
+
+    with pytest.raises(RuntimeError, match=r"malformed.*\[0, 1, 1, 2, 0\]"):
+        _assert_connections_are_well_formed(None, block_types, connections)
+
+
+def test_assert_connections_are_well_formed_reports_out_of_range(torch_device):
+    block_types = torch.zeros((1, 3), dtype=torch.int64, device=torch_device)
+    connections = torch.full((1, 3, 2, 2), -1, dtype=torch.int64, device=torch_device)
+    connections[0, 0, 0] = torch.tensor([3, 0], device=torch_device)
+
+    with pytest.raises(RuntimeError, match=r"malformed.*\[0, 0, 0, 3, 0\]"):
+        _assert_connections_are_well_formed(None, block_types, connections)
 
 
 def dslf_and_his_resolved_pose_stack_from_canonical_form(
@@ -42,6 +76,8 @@ def dslf_and_his_resolved_pose_stack_from_canonical_form(
         coords,
         at_is_pres,
         _1,
+        _cyc,
+        _cov,
         _2,
         _res_labs,
         _res_ins,

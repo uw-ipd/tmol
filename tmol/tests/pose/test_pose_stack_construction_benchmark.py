@@ -1,9 +1,9 @@
 import pytest
 
 from tmol.io import pose_stack_from_pdb
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.tests.torch import zero_padded_counts
-from tmol.chemical.restypes import three2one
+from tmol.pose import PoseStackBuilder
+from tmol.tests import zero_padded_counts
+from tmol.chemical import three2one
 
 
 @pytest.mark.parametrize("n_poses", zero_padded_counts([1, 3, 10, 30, 100]))

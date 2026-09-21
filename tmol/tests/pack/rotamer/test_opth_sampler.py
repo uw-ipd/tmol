@@ -3,16 +3,16 @@ import math
 from types import SimpleNamespace
 
 import torch
-from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.pose import PoseStackBuilder
 
-# from tmol.score.score_function import ScoreFunction
-from tmol.pack.packer_task import PackerTask, PackerPalette, SetPackerTask
-from tmol.pack.rotamer.build_rotamers import build_rotamers
-from tmol.pack.rotamer.fixed_aa_chi_sampler import (
+# from tmol.score import ScoreFunction
+from tmol.pack import PackerTask, PackerPalette, SetPackerTask
+from tmol.pack.rotamer import (
+    build_rotamers,
     FixedAAChiSampler,
+    IncludeCurrentSampler,
+    OptHSampler,
 )
-from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
-from tmol.pack.rotamer.opth_sampler import OptHSampler
 from tmol.io import pose_stack_from_pdb
 
 
@@ -86,7 +86,7 @@ def test_optH_rotamer_sampler_flipNHQ(ubq_pdb, torch_device):
 
     # NHQ flip rotamers must have chi either matching the input (~0 deg)
     # or flipped by ~180 deg.
-    from tmol.numeric.dihedrals import coord_dihedrals as _cd
+    from tmol.numeric import coord_dihedrals as _cd
 
     for i in range(task.allowed_bt_block_type.shape[0]):
         pose_i = task.allowed_bt_pose[i].item()
@@ -140,7 +140,7 @@ def test_optH_rotamer_sampler_no_flipNHQ(ubq_pdb, torch_device):
     )
 
     #  no NHQ flip rotamers, but we do have the alt HIS tautomer
-    from tmol.numeric.dihedrals import coord_dihedrals as _cd
+    from tmol.numeric import coord_dihedrals as _cd
 
     for i in range(task.allowed_bt_block_type.shape[0]):
         pose_i = task.allowed_bt_pose[i].item()

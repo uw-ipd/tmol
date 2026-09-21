@@ -1,0 +1,610 @@
+import contextlib
+import copy
+import os
+import time
+
+import attr
+import torch
+
+from tmol.pose import PDBInfo, PoseStack, PoseStackBuilder
+from tmol.score import ScoreFunction
+
+from tmol.pack import (
+    PackerTask,
+    SetPackerTask,
+    PackerEnergyTables,
+    run_simulated_annealing,
+    impose_top_rotamer_assignments,
+)
+from tmol.pack._impose_rotamers import chosen_rotamer_for_block
+from tmol.pack.rotamer import build_rotamers
+from tmol.utility._device import synchronize_device
+from tmol.pack.rotamer._conjugated_groups import write_group_members
+
+
+def pack_rotamers(
+    pose_stack: PoseStack,
+    sfxn: ScoreFunction,
+    task: PackerTask,
+    verbose: bool = False,
+) -> PoseStack:
+    """Optimize side-chain conformers for a pose stack.
+
+    Args:
+        pose_stack: Poses whose task-enabled blocks will be packed.
+        sfxn: Score function used to rank rotamer assignments.
+        task: Allowed block types, conformers, and packing positions.
+        verbose: Print synchronized stage timings when true.
+
+    Returns:
+        A new pose stack containing the lowest-ranked assignment per pose.
+    """
+
+    max_poses_per_chunk = _max_poses_per_packing_chunk(pose_stack)
+    if pose_stack.n_poses > max_poses_per_chunk:
+        packed_chunks = []
+        for first_pose in range(0, pose_stack.n_poses, max_poses_per_chunk):
+            last_pose = min(first_pose + max_poses_per_chunk, pose_stack.n_poses)
+            chunk_pose_stack = _slice_pose_stack_for_packing(
+                pose_stack, first_pose, last_pose
+            )
+            chunk_task = _slice_packer_task(task, first_pose, last_pose)
+            packed_chunk = pack_rotamers(
+                chunk_pose_stack, sfxn, chunk_task, verbose=verbose
+            )
+            packed_chunks.append(packed_chunk)
+        combined_pose_stack = PoseStackBuilder.from_poses(
+            packed_chunks, pose_stack.device
+        )
+        return combined_pose_stack
+
+    if verbose:
+        synchronize_device(pose_stack.device)
+    start_time = time.perf_counter()
+
+    task = SetPackerTask.from_packer_task(task)
+    pbt = pose_stack.packed_block_types
+
+    pose_stack, rotamer_set = build_rotamers(pose_stack, task, pbt.chem_db)
+    if verbose:
+        synchronize_device(pose_stack.device)
+    end_time1 = time.perf_counter()
+
+    (
+        packer_energy_tables,
+        rotamer_for_nonmolten_block,
+        n_molten_blocks_per_pose,
+        bc_rot_offset_for_molten_block,
+        bc_rot_to_orig_rot,
+        collapse,
+        _bg_bg_energies,
+        end_time2,
+        end_time3,
+    ) = _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=verbose)
+
+    if verbose:
+        synchronize_device(pose_stack.device)
+    end_time4 = time.perf_counter()
+
+    _, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
+    if verbose:
+        synchronize_device(pose_stack.device)
+    end_time5 = time.perf_counter()
+
+    assignment_context = (
+        torch.no_grad()
+        if _should_stream_interaction_graph(pose_stack, rotamer_set, task)
+        else contextlib.nullcontext()
+    )
+    with assignment_context:
+        new_pose_stack = impose_top_rotamer_assignments(
+            pose_stack,
+            rotamer_set,
+            rotamer_for_nonmolten_block,
+            n_molten_blocks_per_pose,
+            bc_rot_offset_for_molten_block,
+            bc_rot_to_orig_rot,
+            rotamer_assignments,
+        )
+    if collapse is not None:
+        # the packer chose for the representative; its group moves with it
+        assignment = chosen_rotamer_for_block(
+            pose_stack,
+            rotamer_for_nonmolten_block,
+            n_molten_blocks_per_pose,
+            bc_rot_offset_for_molten_block,
+            bc_rot_to_orig_rot,
+            rotamer_assignments[:, 0, :],
+        )
+        new_pose_stack = write_group_members(
+            new_pose_stack, rotamer_set, collapse, assignment
+        )
+    if verbose:
+        synchronize_device(pose_stack.device)
+    end_time6 = time.perf_counter()
+
+    if verbose:
+        print(
+            f"pack_rotamers {end_time6 - start_time: .2f}"
+            + f" build rots: {end_time1 - start_time: .2f} calcRPEs: {end_time2 - end_time1: .2f}"
+            + f" build IG: {end_time3 - end_time2: .2f} build IG part2: {end_time4 - end_time3: .2f}"
+            + f" run SA: {end_time5 - end_time4: .2f} pose ctor: {end_time6 - end_time5: .2f}"
+        )
+
+    return new_pose_stack
+
+
+_SMALL_PACKING_POSE_CHUNK = 25
+_DEFAULT_PACKING_POSE_CHUNK = 10
+_ESTIMATED_PACKING_BYTES_PER_BLOCK = 2 * 1024 * 1024
+_PACKING_FREE_MEMORY_FRACTION = 0.25
+_CPU_INTERACTION_GRAPH_CHUNK_SIZE = 16
+_CUDA_INTERACTION_GRAPH_CHUNK_SIZE = 32
+
+
+def _interaction_graph_chunk_size(device: torch.device) -> int:
+    """Select the benchmarked backend-specific sparse-table chunk width."""
+    return (
+        _CUDA_INTERACTION_GRAPH_CHUNK_SIZE
+        if device.type == "cuda"
+        else _CPU_INTERACTION_GRAPH_CHUNK_SIZE
+    )
+
+
+def _max_poses_per_packing_chunk(pose_stack: PoseStack) -> int:
+    """Return a bounded, memory-aware native-packer batch size.
+
+    Native score dispatches use signed 32-bit per-chunk indices. Keeping the
+    batch bounded prevents a wide pose stack from overflowing those indices
+    and also limits transient score/index storage. The size cutoff and memory
+    estimate are deliberately conservative: packing scratch grows with both
+    residue count and rotamer density. The environment override is primarily
+    for deterministic tests and performance tuning.
+    """
+    configured = os.environ.get("TMOL_PACK_MAX_POSES_PER_CHUNK")
+    if configured is not None:
+        try:
+            chunk_size = int(configured)
+        except ValueError as error:
+            raise ValueError(
+                "TMOL_PACK_MAX_POSES_PER_CHUNK must be a positive integer; "
+                f"got {configured!r}"
+            ) from error
+        if chunk_size <= 0:
+            raise ValueError(
+                "TMOL_PACK_MAX_POSES_PER_CHUNK must be a positive integer; "
+                f"got {configured!r}"
+            )
+        return chunk_size
+
+    max_n_blocks = pose_stack.max_n_blocks
+    chunk_size = (
+        _SMALL_PACKING_POSE_CHUNK
+        if max_n_blocks <= 256
+        else _DEFAULT_PACKING_POSE_CHUNK
+    )
+
+    if pose_stack.device.type == "cuda":
+        free_bytes, _ = torch.cuda.mem_get_info(pose_stack.device)
+        memory_budget = int(free_bytes * _PACKING_FREE_MEMORY_FRACTION)
+        estimated_bytes_per_pose = (
+            max(1, max_n_blocks) * _ESTIMATED_PACKING_BYTES_PER_BLOCK
+        )
+        memory_limited_chunk = max(1, memory_budget // estimated_bytes_per_pose)
+        chunk_size = min(chunk_size, memory_limited_chunk)
+    return chunk_size
+
+
+_PACKER_TASK_POSE_TENSORS = (
+    "is_real_block",
+    "per_block_orig_block_type",
+    "per_block_n_considered_block_types",
+    "per_block_considered_block_types",
+    "per_block_considered_block_types_is_orig",
+    "restrict_to_repacking_masks",
+    "per_block_is_block_type_allowed",
+    "per_block_conformer_sampler_allowed",
+    "per_block_chi_expansion",
+)
+
+
+def _slice_pose_stack_for_packing(
+    pose_stack: PoseStack, first_pose: int, last_pose: int
+) -> PoseStack:
+    """Make a cheap contiguous view for an unconstrained packing chunk.
+
+    The packer reads the input topology and coordinates but returns a new pose
+    stack, so ordinary FastRelax chunks can share input storage safely. Fall
+    back to the general builder for the uncommon metadata types whose pose
+    indices need remapping.
+    """
+    if pose_stack.split_block_mapping:
+        return PoseStackBuilder.from_poses(
+            [pose_stack.split(i) for i in range(first_pose, last_pose)],
+            pose_stack.device,
+        )
+
+    chunk_constraint_set = None
+    if pose_stack.constraint_set is not None:
+        constraints = pose_stack.constraint_set
+        constraint_poses = constraints.constraint_atoms[:, :, 0]
+        selected = torch.where(
+            ((constraint_poses >= first_pose) & (constraint_poses < last_pose)).any(
+                dim=1
+            )
+        )[0]
+        chunk_atoms = constraints.constraint_atoms[selected].clone()
+        chunk_atom_poses = chunk_atoms[:, :, 0]
+        real_atoms = chunk_atom_poses != -1
+        chunk_atom_poses[real_atoms] -= first_pose
+        chunk_atoms[:, :, 0] = chunk_atom_poses
+        chunk_unique_blocks = constraints.constraint_unique_blocks[selected].clone()
+        chunk_unique_blocks[:, 0] -= first_pose
+        chunk_constraint_set = attr.evolve(
+            constraints,
+            n_poses=last_pose - first_pose,
+            constraint_function_inds=constraints.constraint_function_inds[selected],
+            constraint_atoms=chunk_atoms,
+            constraint_params=constraints.constraint_params[selected],
+            constraint_num_unique_blocks=constraints.constraint_num_unique_blocks[
+                selected
+            ],
+            constraint_unique_blocks=chunk_unique_blocks,
+        )
+
+    pdb_info = pose_stack.pdb_info
+    chunk_pdb_info = PDBInfo(
+        residue_labels=pdb_info.residue_labels[first_pose:last_pose].copy(),
+        residue_insertion_codes=pdb_info.residue_insertion_codes[
+            first_pose:last_pose
+        ].copy(),
+        chain_labels=pdb_info.chain_labels[first_pose:last_pose].copy(),
+        atom_occupancy=pdb_info.atom_occupancy[first_pose:last_pose].copy(),
+        atom_b_factor=pdb_info.atom_b_factor[first_pose:last_pose].copy(),
+    )
+
+    def view(tensor):
+        return tensor[first_pose:last_pose].detach()
+
+    return PoseStack(
+        packed_block_types=pose_stack.packed_block_types,
+        coords=view(pose_stack.coords),
+        block_coord_offset=view(pose_stack.block_coord_offset),
+        block_coord_offset64=view(pose_stack.block_coord_offset64),
+        inter_residue_connections=view(pose_stack.inter_residue_connections),
+        inter_residue_connections64=view(pose_stack.inter_residue_connections64),
+        inter_block_bondsep=view(pose_stack.inter_block_bondsep),
+        inter_block_bondsep64=view(pose_stack.inter_block_bondsep64),
+        block_type_ind=view(pose_stack.block_type_ind),
+        block_type_ind64=view(pose_stack.block_type_ind64),
+        chain_id=view(pose_stack.chain_id),
+        chain_id64=view(pose_stack.chain_id64),
+        pdb_info=chunk_pdb_info,
+        constraint_set=chunk_constraint_set,
+        device=pose_stack.device,
+        split_block_mapping=None,
+    )
+
+
+def _slice_packer_task(task: PackerTask, first_pose: int, last_pose: int) -> PackerTask:
+    """Shallow-copy a configured task and slice all pose-major tensors."""
+    chunk_task = copy.copy(task)
+    for attribute in _PACKER_TASK_POSE_TENSORS:
+        value = getattr(task, attribute)
+        setattr(chunk_task, attribute, value[first_pose:last_pose])
+    chunk_task.real_block_pose, chunk_task.real_block_block = torch.nonzero(
+        chunk_task.is_real_block, as_tuple=True
+    )
+    return chunk_task
+
+
+def _should_stream_interaction_graph(pose_stack, rotamer_set, task) -> bool:
+    """Select the non-differentiable bounded-memory CUDA packing path."""
+    return (
+        pose_stack.device.type == "cuda"
+        and not rotamer_set.correlated_groups
+        and not task.bump_check
+    )
+
+
+def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=False):
+    from tmol.pack.compiled import build_interaction_graph
+    from tmol.pack.rotamer._conjugated_groups import (
+        collapse_group_energies,
+        collapse_group_rotamers,
+    )
+
+    pbt = pose_stack.packed_block_types
+    rotamer_scoring_module = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
+    stream_interaction_graph = _should_stream_interaction_graph(
+        pose_stack, rotamer_set, task
+    )
+
+    if stream_interaction_graph:
+        energy_indices = None
+        energy_values = None
+    elif pose_stack.device.type == "cuda" and not rotamer_set.correlated_groups:
+        # CUDA graph construction atomically accumulates duplicate coordinates,
+        # so it can consume raw int32 entries. Avoid constructing/coalescing a
+        # PyTorch COO tensor: COO promotes coordinates to int64 and sorting can
+        # briefly require another full-size copy.
+        energy_indices, energy_values = rotamer_scoring_module.forward_sparse_entries(
+            rotamer_set.coords
+        )
+    else:
+        # The CPU interaction-graph accumulator is deliberately non-atomic.
+        # Coalesce cross-layout duplicates before its parallel native loops.
+        energies = rotamer_scoring_module(rotamer_set.coords).coalesce()
+        energy_indices = energies.indices().to(torch.int32)
+        energy_values = energies.values()
+
+    # a group of covalently joined blocks is one choice, not several: fold its
+    #    members onto a representative so the packer cannot pick a conformer
+    #    for one that disagrees with its neighbour
+    groups = rotamer_set.correlated_groups
+    collapsed = collapse_group_rotamers(pose_stack, rotamer_set, groups)
+    if collapsed is not None:
+        collapse, group_of_rot, conformer_of_rot = collapsed
+        energies = collapse_group_energies(
+            energies, collapse, group_of_rot, conformer_of_rot
+        )
+        energy_indices = energies.indices().to(torch.int32)
+        energy_values = energies.values()
+        n_rots_for_block = collapse.compact_n_rots_for_block
+        rot_offset_for_block = collapse.compact_rot_offset_for_block
+        block_ind_for_rot = collapse.compact_block_ind_for_rot
+        pose_for_rot = collapse.compact_pose_for_rot
+        block_type_ind_for_rot = collapse.compact_block_type_ind_for_rot
+        n_rots_for_pose = collapse.compact_n_rots_for_pose
+        rot_offset_for_pose = collapse.compact_rot_offset_for_pose
+    else:
+        collapse = None
+        n_rots_for_block = rotamer_set.n_rots_for_block
+        rot_offset_for_block = rotamer_set.rot_offset_for_block
+        block_ind_for_rot = rotamer_set.block_ind_for_rot
+        pose_for_rot = rotamer_set.pose_for_rot
+        block_type_ind_for_rot = rotamer_set.block_type_ind_for_rot
+        n_rots_for_pose = rotamer_set.n_rots_for_pose
+        rot_offset_for_pose = rotamer_set.rot_offset_for_pose
+
+    if verbose:
+        synchronize_device(pose_stack.device)
+    end_time2 = time.perf_counter()
+
+    chunk_size = _interaction_graph_chunk_size(pose_stack.device)
+
+    graph_inputs = (
+        pbt.n_types,
+        n_rots_for_pose,
+        rot_offset_for_pose,
+        n_rots_for_block,
+        rot_offset_for_block,
+        pose_for_rot,
+        block_type_ind_for_rot,
+        block_ind_for_rot,
+    )
+    if stream_interaction_graph:
+        graph_result = _build_streaming_interaction_graph(
+            rotamer_scoring_module,
+            rotamer_set.coords,
+            chunk_size,
+            graph_inputs,
+            verbose,
+        )
+    else:
+        graph_result = build_interaction_graph(
+            task.bump_check,
+            chunk_size,
+            *graph_inputs,
+            energy_indices,
+            energy_values,
+            verbose,
+        )
+    (
+        max_n_bump_checked_rotamers_per_pose_tensor,
+        n_molten_blocks_per_pose,
+        n_bc_rots_per_pose,
+        bc_rot_offset_for_pose,
+        n_bc_rots_for_molten_block,
+        bc_rot_offset_for_molten_block,
+        molten_block_ind_for_bc_rot,
+        rotamer_for_nonmolten_block,
+        bc_rot_to_orig_rot,
+        bg_bg_energies,
+        energy1b,
+        neighbor_row_offsets,
+        neighbor_blocks,
+        neighbor_chunk_offset_offsets,
+        chunk_pair_offset,
+        energy2b,
+    ) = graph_result
+    if verbose:
+        synchronize_device(pose_stack.device)
+    end_time3 = time.perf_counter()
+
+    if collapse is not None:
+        # the graph was built on the compacted numbering; everything downstream
+        #    addresses the rotamer set itself, so hand back original indices
+        bc_rot_to_orig_rot = collapse.compact_to_orig[bc_rot_to_orig_rot]
+        is_bg = rotamer_for_nonmolten_block != -1
+        rotamer_for_nonmolten_block = torch.where(
+            is_bg,
+            collapse.compact_to_orig[rotamer_for_nonmolten_block.clamp(min=0)],
+            rotamer_for_nonmolten_block,
+        )
+
+    packer_energy_tables = PackerEnergyTables(
+        max_n_rotamers_per_pose=max_n_bump_checked_rotamers_per_pose_tensor.item(),
+        pose_n_res=n_molten_blocks_per_pose,
+        pose_n_rotamers=n_bc_rots_per_pose,
+        pose_rotamer_offset=bc_rot_offset_for_pose,
+        nrotamers_for_res=n_bc_rots_for_molten_block,
+        oneb_offsets=bc_rot_offset_for_molten_block,
+        res_for_rot=molten_block_ind_for_bc_rot,
+        chunk_size=chunk_size,
+        neighbor_row_offsets=neighbor_row_offsets,
+        neighbor_blocks=neighbor_blocks,
+        neighbor_chunk_offset_offsets=neighbor_chunk_offset_offsets,
+        chunk_offsets=chunk_pair_offset,
+        energy1b=energy1b,
+        energy2b=energy2b,
+    )
+
+    return (
+        packer_energy_tables,
+        rotamer_for_nonmolten_block,
+        n_molten_blocks_per_pose,
+        bc_rot_offset_for_molten_block,
+        bc_rot_to_orig_rot,
+        collapse,
+        bg_bg_energies,
+        end_time2,
+        end_time3,
+    )
+
+
+@torch.no_grad()
+def _build_streaming_interaction_graph(
+    rotamer_scoring_module,
+    coords,
+    chunk_size,
+    graph_inputs,
+    verbose,
+):
+    """Build a CUDA interaction graph with three bounded score passes.
+
+    The graph is inference-only. Running the passes under ``no_grad`` keeps
+    each bounded page from retaining autograd state for the whole candidate
+    set, which otherwise accumulates across FastRelax packing stages.
+    """
+    from tmol.pack.compiled import (
+        accumulate_interaction_graph_entries,
+        build_interaction_graph,
+        finalize_interaction_graph_chunk_topology,
+        finalize_interaction_graph_topology,
+        initialize_interaction_graph_topology,
+        note_interaction_graph_chunk_topology,
+        note_interaction_graph_topology,
+    )
+
+    (
+        max_n_block_types,
+        n_rots_for_pose,
+        rot_offset_for_pose,
+        n_rots_for_block,
+        rot_offset_for_block,
+        pose_for_rot,
+        block_type_ind_for_rot,
+        block_ind_for_rot,
+    ) = graph_inputs
+    empty_indices = torch.empty((3, 0), dtype=torch.int32, device=coords.device)
+    empty_values = torch.empty(0, dtype=torch.float32, device=coords.device)
+
+    # Empty no-bump construction establishes the canonical kept/fixed rotamer
+    # numbering without retaining any score layout.
+    base = list(
+        build_interaction_graph(
+            False,
+            chunk_size,
+            max_n_block_types,
+            n_rots_for_pose,
+            rot_offset_for_pose,
+            n_rots_for_block,
+            rot_offset_for_block,
+            pose_for_rot,
+            block_type_ind_for_rot,
+            block_ind_for_rot,
+            empty_indices,
+            empty_values,
+            verbose,
+        )
+    )
+    block_adjacency, orig_block_to_molten = initialize_interaction_graph_topology(
+        n_rots_for_block,
+        base[4],
+        empty_values,
+    )
+
+    # Pass one records block topology only. Chunk support is allocated after
+    # the sparse block graph is known, avoiding a global n_chunks**2 bitset.
+    for _, indices, values in rotamer_scoring_module._iter_weighted_sparse_entries(
+        coords, retain_shared_dispatch=False, topology_only=True
+    ):
+        (block_adjacency,) = note_interaction_graph_topology(
+            block_ind_for_rot,
+            orig_block_to_molten,
+            block_adjacency,
+            indices,
+            values,
+        )
+        del indices, values
+
+    chunk_topology = list(
+        finalize_interaction_graph_topology(
+            chunk_size,
+            base[4],
+            block_adjacency,
+            empty_values,
+        )
+    )
+    del block_adjacency
+
+    # Pass two records chunk support inside each observed block edge.
+    for _, indices, values in rotamer_scoring_module._iter_weighted_sparse_entries(
+        coords, retain_shared_dispatch=False, topology_only=True
+    ):
+        (chunk_topology[4],) = note_interaction_graph_chunk_topology(
+            chunk_size,
+            n_rots_for_block,
+            rot_offset_for_block,
+            block_ind_for_rot,
+            orig_block_to_molten,
+            base[4],
+            chunk_topology[0],
+            chunk_topology[1],
+            chunk_topology[3],
+            chunk_topology[4],
+            indices,
+            values,
+        )
+        del indices, values
+
+    base[11], base[12], base[13] = chunk_topology[:3]
+    base[14], base[15] = finalize_interaction_graph_chunk_topology(
+        chunk_size,
+        base[4],
+        chunk_topology[0],
+        chunk_topology[1],
+        chunk_topology[2],
+        chunk_topology[3],
+        chunk_topology[4],
+        empty_values,
+    )
+    del chunk_topology
+
+    # Pass three adds terms in canonical order. Native accumulation is
+    # additive, preserving duplicate coordinates and CSR transpose symmetry.
+    for _, indices, values in rotamer_scoring_module._iter_weighted_sparse_entries(
+        coords, retain_shared_dispatch=False
+    ):
+        base[9], base[10], base[15] = accumulate_interaction_graph_entries(
+            chunk_size,
+            n_rots_for_block,
+            rot_offset_for_block,
+            block_ind_for_rot,
+            orig_block_to_molten,
+            base[7],
+            base[4],
+            base[5],
+            base[11],
+            base[12],
+            base[13],
+            base[14],
+            base[9],
+            base[10],
+            base[15],
+            indices,
+            values,
+        )
+        del indices, values
+    return tuple(base)

@@ -2,7 +2,7 @@ import numpy
 import torch
 import pytest
 
-from tmol.tests.score.common.uaid_util import resolve_uaids
+from tmol.tests.score.common import resolve_uaids
 
 
 @pytest.fixture

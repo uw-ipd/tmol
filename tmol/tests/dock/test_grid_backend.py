@@ -22,7 +22,7 @@ from tmol.dock import (
 )
 from tmol.dock.dock_loop import _repeat_pose_stack
 from tmol.dock.ga import _ligand_only_pose_stack
-from tmol.optimization.minimizers import build_kinforest_network, run_min
+from tmol.optimization import build_kinforest_network, run_min
 from tmol.score import beta2016_score_function
 from tmol.score.gridscore import (
     score_ligand_intra,

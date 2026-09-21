@@ -1,5 +1,7 @@
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #include <tmol/utility/tensor/pybind.h>
+#include <ATen/Dispatch.h>
 #include <torch/torch.h>
 
 #include <tmol/numeric/bspline_compiled/bspline.hh>
@@ -7,6 +9,17 @@
 namespace tmol {
 namespace numeric {
 namespace bspline {
+
+template <std::size_t N>
+void compute_coeffs_batch(std::vector<at::Tensor> const& tensors) {
+  for (at::Tensor const& tensor : tensors) {
+    AT_DISPATCH_FLOATING_TYPES(
+        tensor.scalar_type(), "compute_coeffs_batch", [&] {
+          ndspline<N, 3, Device::CPU, scalar_t, int32_t>::computeCoeffs(
+              view_tensor<scalar_t, N, Device::CPU>(tensor));
+        });
+  }
+}
 
 template <tmol::Device D, typename Real, typename Int>
 void bind(pybind11::module& m) {
@@ -54,6 +67,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 
   bind<tmol::Device::CPU, float, int32_t>(m);
   bind<tmol::Device::CPU, double, int32_t>(m);
+  m.def("computeCoeffs2Batch", &compute_coeffs_batch<2>, "data"_a);
+  m.def("computeCoeffs3Batch", &compute_coeffs_batch<3>, "data"_a);
+  m.def("computeCoeffs4Batch", &compute_coeffs_batch<4>, "data"_a);
 }
 
 }  // namespace bspline

@@ -1,6 +1,6 @@
 import pytest
 import torch
-from .torch import requires_cuda
+from ._torch import requires_cuda
 
 
 @requires_cuda

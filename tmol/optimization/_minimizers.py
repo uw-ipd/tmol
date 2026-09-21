@@ -1,0 +1,368 @@
+from __future__ import annotations
+
+import time
+from typing import TYPE_CHECKING
+
+import torch
+
+from tmol.pose import PoseStack
+from tmol.types import Tensor
+
+from tmol.kinematics import (
+    FoldForest,
+    MoveMap,
+    MinimizerMap,
+)
+from tmol.score import ScoreFunction
+
+from tmol.optimization import LBFGS_Armijo
+from tmol.utility._device import synchronize_device
+
+if TYPE_CHECKING:
+    from tmol.optimization import CartesianSfxnNetwork, KinForestSfxnNetwork
+
+
+def build_kinforest_network(
+    pose_stack: PoseStack,
+    sfxn: ScoreFunction | None,
+    ff: FoldForest,
+    mm: MoveMap,
+    verbose: bool = False,
+    kin_dtype: torch.dtype = torch.float32,
+    whole_pose_scoring_module=None,
+) -> KinForestSfxnNetwork:
+    """Build a differentiable kinematic scoring network for a pose stack.
+
+    Args:
+        pose_stack: Structures and topology to score.
+        sfxn: Score function to render against ``pose_stack``. May be ``None``
+            when ``whole_pose_scoring_module`` is supplied.
+        ff: Fold forest defining the kinematic tree.
+        mm: Internal-coordinate degrees of freedom allowed to move.
+        verbose: Print synchronized setup timings.
+        kin_dtype: Floating-point dtype for kinematic degrees of freedom.
+        whole_pose_scoring_module: Optional pre-rendered scoring module to use
+            instead of rendering one from ``sfxn``.
+
+    Returns:
+        A network mapping movable kinematic degrees of freedom to pose energies.
+    """
+    from tmol.kinematics import PoseStackKinematicsModule
+    from tmol.optimization import KinForestSfxnNetwork
+
+    if verbose:
+        synchronize_device(pose_stack.device)
+    start_time = time.perf_counter()
+
+    kin_module = PoseStackKinematicsModule(pose_stack, ff)
+    if verbose:
+        synchronize_device(pose_stack.device)
+    end_time1 = time.perf_counter()
+
+    minimizer_map = MinimizerMap(pose_stack, kin_module.kmd, mm)
+    if verbose:
+        synchronize_device(pose_stack.device)
+    end_time2 = time.perf_counter()
+
+    kf_network = KinForestSfxnNetwork(
+        sfxn,
+        pose_stack,
+        kin_module,
+        minimizer_map.dof_mask,
+        kin_dtype=kin_dtype,
+        whole_pose_scoring_module=whole_pose_scoring_module,
+    )
+    if verbose:
+        synchronize_device(pose_stack.device)
+    end_time3 = time.perf_counter()
+
+    if verbose:
+        print(
+            f"build_kinforest_network {end_time3 - start_time: .2f}"
+            + f" s1: {end_time1 - start_time: .2f} s2: {end_time2 - end_time1: .2f}"
+            + f" s3: {end_time3 - end_time2: .2f}"
+        )
+
+    return kf_network
+
+
+def run_min(
+    sfxn_module: CartesianSfxnNetwork | KinForestSfxnNetwork,
+    optimizer_cls: type[torch.optim.Optimizer] = LBFGS_Armijo,
+    optimizer_kwargs: dict[str, object] | None = None,
+    verbose: bool = False,
+    per_pose: bool = True,
+) -> PoseStack:
+    """Run minimization on any sfxn module (Cartesian or KinForest).
+
+    The sfxn_module must be a torch.nn.Module whose forward() returns
+    per-pose energies and which provides a pose_stack_from_dofs() method
+    to extract the optimized PoseStack.
+
+    Args:
+        sfxn_module: A CartesianSfxnNetwork, KinForestSfxnNetwork, or
+            any nn.Module with a compatible interface.
+        optimizer_cls: A torch.optim.Optimizer class. Must support a
+            closure-based step() call (e.g. LBFGS_Armijo, torch LBFGS).
+        optimizer_kwargs: Dict of keyword arguments passed to the optimizer
+            constructor.
+        verbose: Print timing information.
+        per_pose: Give each pose its own inverse-Hessian estimate and
+            convergence test, so that minimizing a stack matches minimizing
+            its poses one at a time. Ignored by optimizers that do not
+            support it.
+
+    Returns:
+        A new PoseStack with optimized coordinates.
+    """
+    if optimizer_kwargs is None:
+        optimizer_kwargs = {}
+
+    timing_device = next(sfxn_module.parameters()).device if verbose else None
+    if timing_device is not None:
+        synchronize_device(timing_device)
+    start_time = time.perf_counter()
+
+    segment_ids = getattr(sfxn_module, "segment_ids", None)
+    segmented = (
+        per_pose
+        and segment_ids is not None
+        and getattr(optimizer_cls, "supports_segments", False)
+    )
+    if segmented:
+        optimizer_kwargs = dict(optimizer_kwargs, segment_ids=segment_ids)
+
+    optimizer = optimizer_cls(sfxn_module.parameters(), **optimizer_kwargs)
+
+    def closure() -> torch.Tensor:
+        optimizer.zero_grad()
+        E = sfxn_module()
+        total = E.sum()
+        total.backward()
+        return E if segmented else total
+
+    def value_only_closure() -> torch.Tensor:
+        with torch.no_grad():
+            E = sfxn_module()
+        return E if segmented else E.sum()
+
+    if timing_device is not None:
+        synchronize_device(timing_device)
+    end_time1 = time.perf_counter()
+    if getattr(optimizer, "value_only_line_search", False):
+        optimizer.step(closure, value_only_closure)
+    else:
+        optimizer.step(closure)
+    if timing_device is not None:
+        synchronize_device(timing_device)
+    end_time2 = time.perf_counter()
+
+    new_pose_stack = sfxn_module.pose_stack_from_dofs()
+    if timing_device is not None:
+        synchronize_device(timing_device)
+    end_time3 = time.perf_counter()
+
+    if verbose:
+        print(
+            f"run_min {end_time3 - start_time: .2f} setup: {end_time1 - start_time: .2f}"
+            + f" opt {end_time2 - end_time1: .2f} stack-ctor: {end_time3 - end_time2: .2f}"
+        )
+
+    return new_pose_stack
+
+
+def run_kin_min(
+    pose_stack: PoseStack,
+    sfxn: ScoreFunction,
+    ff: FoldForest,
+    mm: MoveMap,
+    optimizer_cls: type[torch.optim.Optimizer] = LBFGS_Armijo,
+    optimizer_kwargs: dict[str, object] | None = None,
+    verbose: bool = False,
+    kin_dtype: torch.dtype = torch.float32,
+) -> PoseStack:
+    """Run minimization on a PoseStack in internal DOF space.
+
+    Builds a ``KinForestSfxnNetwork`` and delegates to :func:`run_min`.
+
+    Args:
+        pose_stack: Structures and coordinates to minimize.
+        sfxn: Score function defining the objective.
+        ff: Fold forest defining the kinematic tree.
+        mm: Internal-coordinate degrees of freedom allowed to move.
+        optimizer_cls: Closure-based PyTorch optimizer class.
+        optimizer_kwargs: Optional optimizer constructor arguments.
+        verbose: Print synchronized setup and minimization timings.
+        kin_dtype: Floating-point dtype for kinematic degrees of freedom.
+
+    Returns:
+        A new pose stack containing the minimized coordinates.
+    """
+    kf_network = build_kinforest_network(
+        pose_stack, sfxn, ff, mm, verbose, kin_dtype=kin_dtype
+    )
+    return run_min(
+        kf_network,
+        optimizer_cls=optimizer_cls,
+        optimizer_kwargs=optimizer_kwargs,
+        verbose=verbose,
+    )
+
+
+class _ReusableLBFGSFactory:
+    """Construct once, then reset LBFGS when parameters and options match."""
+
+    supports_segments = True
+
+    def __init__(self):
+        self.optimizer: LBFGS_Armijo | None = None
+        self.parameter: torch.Tensor | None = None
+        self.options: dict[str, object] | None = None
+        self.last_reused = False
+
+    @staticmethod
+    def _same_options(left: dict[str, object], right: dict[str, object]) -> bool:
+        if left.keys() != right.keys():
+            return False
+        for name, left_value in left.items():
+            right_value = right[name]
+            if isinstance(left_value, torch.Tensor) or isinstance(
+                right_value, torch.Tensor
+            ):
+                if left_value is not right_value:
+                    return False
+            elif left_value != right_value:
+                return False
+        return True
+
+    def __call__(self, params, **options) -> LBFGS_Armijo:
+        parameters = list(params)
+        if len(parameters) != 1:
+            return LBFGS_Armijo(parameters, **options)
+        parameter = parameters[0]
+        reusable = (
+            self.optimizer is not None
+            and parameter is self.parameter
+            and self.options is not None
+            and self._same_options(self.options, options)
+        )
+        self.last_reused = reusable
+        if reusable:
+            assert self.optimizer is not None
+            self.optimizer.reset()
+            return self.optimizer
+
+        self.optimizer = LBFGS_Armijo(parameters, **options)
+        self.parameter = parameter
+        self.options = dict(options)
+        return self.optimizer
+
+
+class CartesianMinimizer:
+    """Reusable Cartesian minimizer for pose stacks with stable topology.
+
+    Rendering a score function builds topology-dependent tensors and, when
+    requested, captures a CUDA graph.  Those are setup costs rather than part
+    of the numerical minimization.  This class retains that rendered network
+    across calls and resets only its coordinates when the score function,
+    topology, shape, and coordinate mask remain compatible.
+
+    Create one instance per reusable workflow.  A topology or score-function
+    change is detected automatically and safely rebuilds the network.
+
+    Args:
+        cuda_graph: Capture and replay the fixed-shape CUDA forward/backward
+            score path.  This has a one-time setup and memory cost and requires
+            CUDA, so it is most useful when the instance will be reused.
+    """
+
+    def __init__(self, cuda_graph: bool = False):
+        self.cuda_graph = cuda_graph
+        self.network: CartesianSfxnNetwork | None = None
+        self.optimizer: LBFGS_Armijo | None = None
+        self.last_optimizer_reused = False
+        self._lbfgs_factory = _ReusableLBFGSFactory()
+
+    def release_retained_state(self) -> None:
+        """Release topology-specific scoring and optimizer state.
+
+        The returned pose from :meth:`__call__` owns its coordinates, so callers
+        may drop the rendered scorer, CUDA graph pools, gradients, and L-BFGS
+        history before entering another memory-intensive phase.
+        """
+        self.network = None
+        self.optimizer = None
+        self.last_optimizer_reused = False
+        self._lbfgs_factory.optimizer = None
+        self._lbfgs_factory.parameter = None
+        self._lbfgs_factory.options = None
+        self._lbfgs_factory.last_reused = False
+
+    def __call__(
+        self,
+        pose_stack: PoseStack,
+        sfxn: ScoreFunction,
+        coord_mask: Tensor[torch.bool][:, :] | None = None,
+        optimizer_cls: type[torch.optim.Optimizer] = LBFGS_Armijo,
+        optimizer_kwargs: dict[str, object] | None = None,
+        verbose: bool = False,
+    ) -> PoseStack:
+        """Minimize one pose stack, reusing compatible rendered state."""
+        from tmol.optimization import CartesianSfxnNetwork
+
+        if self.network is None or not self.network._reset(
+            sfxn, pose_stack, coord_mask
+        ):
+            self.network = CartesianSfxnNetwork(
+                sfxn,
+                pose_stack,
+                coord_mask,
+                cuda_graph="forward_backward" if self.cuda_graph else False,
+            )
+        selected_optimizer = (
+            self._lbfgs_factory if optimizer_cls is LBFGS_Armijo else optimizer_cls
+        )
+        result = run_min(
+            self.network,
+            optimizer_cls=selected_optimizer,
+            optimizer_kwargs=optimizer_kwargs,
+            verbose=verbose,
+        )
+        self.optimizer = self._lbfgs_factory.optimizer
+        self.last_optimizer_reused = self._lbfgs_factory.last_reused
+        return result
+
+
+def run_cart_min(
+    pose_stack: PoseStack,
+    sfxn: ScoreFunction,
+    coord_mask: Tensor[torch.bool][:, :] | None = None,
+    optimizer_cls: type[torch.optim.Optimizer] = LBFGS_Armijo,
+    optimizer_kwargs: dict[str, object] | None = None,
+    verbose: bool = False,
+    cuda_graph: bool = False,
+) -> PoseStack:
+    """Run minimization on a PoseStack in Cartesian coordinate space.
+
+    Builds a ``CartesianSfxnNetwork`` and delegates to :func:`run_min`.
+
+    Args:
+        pose_stack: Structures and coordinates to minimize.
+        sfxn: Score function defining the objective.
+        coord_mask: Movable atoms shaped ``[pose, atom]``; ``None`` moves all.
+        optimizer_cls: Closure-based PyTorch optimizer class.
+        optimizer_kwargs: Optional optimizer constructor arguments.
+        verbose: Print synchronized setup and minimization timings.
+        cuda_graph: Capture the fixed-shape CUDA scoring forward/backward path.
+
+    Returns:
+        A new pose stack containing the minimized coordinates.
+    """
+    return CartesianMinimizer(cuda_graph=cuda_graph)(
+        pose_stack,
+        sfxn,
+        coord_mask=coord_mask,
+        optimizer_cls=optimizer_cls,
+        optimizer_kwargs=optimizer_kwargs,
+        verbose=verbose,
+    )

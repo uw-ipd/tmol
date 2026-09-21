@@ -4,9 +4,9 @@ from pytest import approx
 import torch
 import numpy
 
-from tmol.tests.autograd import gradcheck
+from tmol.tests import gradcheck
 
-from tmol.score.ljlk.params import LJLKParamResolver
+from tmol.score.ljlk import LJLKParamResolver
 
 
 @pytest.fixture
@@ -27,7 +27,7 @@ parametrize_atom_pairs = pytest.mark.parametrize(
 @pytest.mark.parametrize("bonded_path_length", [2, 4, 5])
 @parametrize_atom_pairs
 def test_lk_isotropic_gradcheck(params, iname, jname, bonded_path_length):
-    import tmol.tests.score.ljlk.potentials.compiled as compiled
+    import tmol.tests.score.ljlk.potentials._compiled as compiled
 
     iidx = params.atom_type_index.get_loc(iname)
     jidx = params.atom_type_index.get_loc(jname)
@@ -51,7 +51,7 @@ def test_lk_isotropic_gradcheck(params, iname, jname, bonded_path_length):
 def test_lk_spotcheck(params, iname, jname):
     """Check boundary conditionas and invarients in lj potential."""
 
-    import tmol.tests.score.ljlk.potentials.compiled as compiled
+    import tmol.tests.score.ljlk.potentials._compiled as compiled
 
     iidx = params.atom_type_index.get_loc(iname)
     jidx = params.atom_type_index.get_loc(jname)

@@ -45,6 +45,14 @@ struct DisulfideGlobalParams {
   Real wt_ang;
   Real wt_len;
   Real shift;
+
+  Real dss_mixed_logA1;
+  Real dss_mixed_kappa1;
+  Real dss_mixed_mu1;
+  Real dss_mixed_logA2;
+  Real dss_mixed_kappa2;
+  Real dss_mixed_mu2;
+  Real chirality;
 };
 
 }  // namespace potentials

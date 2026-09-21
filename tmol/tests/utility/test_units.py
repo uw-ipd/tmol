@@ -1,7 +1,7 @@
 import pytest
 
 from math import pi
-import tmol.utility.units as units
+import tmol.utility._units as units
 import pint
 
 

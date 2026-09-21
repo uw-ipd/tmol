@@ -1,29 +1,52 @@
 import attrs
+import pytest
 import torch
 import math
+from types import SimpleNamespace
 
-from tmol.pose.constraint_set import ConstraintSet
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.score.score_function import ScoreFunction
-from tmol.score.score_types import ScoreType
-
-from tmol.pack.compiled.compiled import build_interaction_graph
-from tmol.pack.packer_task import PackerTask, PackerPalette, SetPackerTask
-from tmol.pack.rotamer.build_rotamers import build_rotamers
-from tmol.pack.rotamer.fixed_aa_chi_sampler import (
-    FixedAAChiSampler,
+from tmol.pose import (
+    ConstraintSet,
+    PoseStackBuilder,
 )
-from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
-from tmol.pack.rotamer.opth_sampler import OptHSampler
-from tmol.pack.datatypes import PackerEnergyTables
-from tmol.pack.simulated_annealing import run_simulated_annealing
-from tmol.pack.impose_rotamers import impose_top_rotamer_assignments
+from tmol.score import (
+    ScoreFunction,
+    ScoreType,
+)
+from tmol.pack.compiled import build_interaction_graph
+from tmol.pack import (
+    PackerTask,
+    PackerPalette,
+    SetPackerTask,
+    PackerEnergyTables,
+    run_simulated_annealing,
+    impose_top_rotamer_assignments,
+    pack_rotamers,
+)
+from tmol.pack.rotamer import (
+    build_rotamers,
+    FixedAAChiSampler,
+    IncludeCurrentSampler,
+    OptHSampler,
+)
+from tmol.io import atom_array_from_cif, pose_stack_from_biotite, pose_stack_from_pdb
+from tmol.database import ParameterDatabase
+from tmol.score import beta2016_score_function
+from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
+from tmol.tests.data import data_path
 
-from tmol.io import pose_stack_from_pdb
+from tmol.score.constraint import ConstraintEnergyTerm
+from tmol.pack._pack_rotamers import (
+    _PACKER_TASK_POSE_TENSORS,
+    _interaction_graph_chunk_size,
+    _max_poses_per_packing_chunk,
+    _slice_packer_task,
+    _slice_pose_stack_for_packing,
+)
 
-from tmol.pack.pack_rotamers import pack_rotamers
 
-from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
+def test_interaction_graph_chunk_size_is_backend_specific(torch_device):
+    expected = 32 if torch_device.type == "cuda" else 16
+    assert _interaction_graph_chunk_size(torch_device) == expected
 
 
 def setup_pose_stack_and_task(poses, torch_device, dun_sampler):
@@ -38,10 +61,21 @@ def setup_pose_stack_and_task(poses, torch_device, dun_sampler):
     return pose_stack, task
 
 
-def build_packer_energy_tables(pose_stack, rotamer_set, sfxn, chunk_size=16):
+def build_packer_energy_tables(
+    pose_stack, rotamer_set, sfxn, chunk_size=16, raw_entries=False, bump_check=True
+):
     pbt = pose_stack.packed_block_types
     rotamer_scoring_module = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
-    energies = rotamer_scoring_module(rotamer_set.coords).coalesce()
+    if raw_entries:
+        energy_indices, energy_values = rotamer_scoring_module.forward_sparse_entries(
+            rotamer_set.coords
+        )
+    else:
+        energies = rotamer_scoring_module(rotamer_set.coords).coalesce()
+        energy_indices, energy_values = (
+            energies.indices().to(torch.int32),
+            energies.values(),
+        )
 
     (
         max_n_bump_checked_rotamers_per_pose_tensor,
@@ -55,11 +89,13 @@ def build_packer_energy_tables(pose_stack, rotamer_set, sfxn, chunk_size=16):
         bc_rot_to_orig_rot,
         bg_bg_energies,
         energy1b,
-        chunk_pair_offset_for_block_pair,
+        neighbor_row_offsets,
+        neighbor_blocks,
+        neighbor_chunk_offset_offsets,
         chunk_pair_offset,
         energy2b,
     ) = build_interaction_graph(
-        True,
+        bump_check,
         chunk_size,
         pbt.n_types,
         rotamer_set.n_rots_for_pose,
@@ -69,8 +105,8 @@ def build_packer_energy_tables(pose_stack, rotamer_set, sfxn, chunk_size=16):
         rotamer_set.pose_for_rot,
         rotamer_set.block_type_ind_for_rot,
         rotamer_set.block_ind_for_rot,
-        energies.indices().to(torch.int32),
-        energies.values(),
+        energy_indices,
+        energy_values,
         False,
     )
 
@@ -90,7 +126,9 @@ def build_packer_energy_tables(pose_stack, rotamer_set, sfxn, chunk_size=16):
             oneb_offsets=bc_rot_offset_for_molten_block,
             res_for_rot=molten_block_ind_for_bc_rot,
             chunk_size=chunk_size,
-            chunk_offset_offsets=chunk_pair_offset_for_block_pair,
+            neighbor_row_offsets=neighbor_row_offsets,
+            neighbor_blocks=neighbor_blocks,
+            neighbor_chunk_offset_offsets=neighbor_chunk_offset_offsets,
             chunk_offsets=chunk_pair_offset,
             energy1b=energy1b,
             energy2b=energy2b,
@@ -194,7 +232,10 @@ def get_constraints_only_sfxn(default_database, torch_device):
     return sfxn
 
 
-def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
+@pytest.mark.parametrize("chunk_size", [8, 16])
+def test_pack_rotamers(
+    default_database, ubq_pdb, dun_sampler, torch_device, chunk_size
+):
     n_poses = 4
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
     pose_stack, task = setup_pose_stack_and_task(
@@ -213,7 +254,7 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
         bc_rot_to_orig_rot,
         bg_bg_energies,
         packer_energy_tables,
-    ) = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
+    ) = build_packer_energy_tables(pose_stack, rotamer_set, sfxn, chunk_size=chunk_size)
 
     _, _ = run_pack_and_assert_scores(
         pose_stack,
@@ -226,6 +267,504 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
         bc_rot_to_orig_rot,
         bg_bg_energies,
     )
+
+
+@pytest.mark.parametrize("bump_check", [False, True])
+def test_raw_rotamer_entries_match_coalesced_interaction_graph(
+    default_database, ubq_pdb, dun_sampler, torch_device, bump_check
+):
+    if torch_device.type != "cuda":
+        pytest.skip("raw duplicate accumulation requires CUDA atomics")
+
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=20)
+    pose_stack, task = setup_pose_stack_and_task([pose] * 2, torch_device, dun_sampler)
+    task = SetPackerTask.from_packer_task(task)
+    sfxn = get_packer_sfxn(default_database, torch_device)
+    pose_stack, rotamer_set = build_rotamers(
+        pose_stack, task, pose_stack.packed_block_types.chem_db
+    )
+    coalesced = build_packer_energy_tables(
+        pose_stack, rotamer_set, sfxn, bump_check=bump_check
+    )
+    raw = build_packer_energy_tables(
+        pose_stack, rotamer_set, sfxn, raw_entries=True, bump_check=bump_check
+    )
+
+    for coalesced_tensor, raw_tensor in zip(coalesced[:-1], raw[:-1]):
+        torch.testing.assert_close(coalesced_tensor, raw_tensor)
+    coalesced_tables, raw_tables = coalesced[-1], raw[-1]
+    assert (
+        coalesced_tables.max_n_rotamers_per_pose == raw_tables.max_n_rotamers_per_pose
+    )
+    assert coalesced_tables.chunk_size == raw_tables.chunk_size
+    for attribute in (
+        "pose_n_res",
+        "pose_n_rotamers",
+        "pose_rotamer_offset",
+        "nrotamers_for_res",
+        "oneb_offsets",
+        "res_for_rot",
+        "neighbor_row_offsets",
+        "neighbor_blocks",
+        "neighbor_chunk_offset_offsets",
+        "chunk_offsets",
+        "energy1b",
+        "energy2b",
+    ):
+        torch.testing.assert_close(
+            getattr(coalesced_tables, attribute),
+            getattr(raw_tables, attribute),
+            atol=1e-3,
+            rtol=1e-5,
+        )
+
+
+def test_pack_rotamers_pose_chunks_preserve_pose_order_and_task(
+    default_database, ubq_pdb, dun_sampler, torch_device, monkeypatch
+):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=20)
+    pose_stack, task = setup_pose_stack_and_task([pose] * 4, torch_device, dun_sampler)
+    sliced_pose_stack = _slice_pose_stack_for_packing(pose_stack, 1, 3)
+    assert sliced_pose_stack.n_poses == 2
+    assert torch.equal(sliced_pose_stack.coords, pose_stack.coords[1:3])
+    assert (
+        sliced_pose_stack.coords.untyped_storage().data_ptr()
+        == pose_stack.coords.untyped_storage().data_ptr()
+    )
+    sliced_task = _slice_packer_task(task, 1, 3)
+    for attribute in _PACKER_TASK_POSE_TENSORS:
+        assert torch.equal(
+            getattr(sliced_task, attribute), getattr(task, attribute)[1:3]
+        )
+    sfxn = get_packer_sfxn(default_database, torch_device)
+
+    torch.manual_seed(11723)
+    monkeypatch.setenv("TMOL_PACK_MAX_POSES_PER_CHUNK", "100")
+    unchunked = pack_rotamers(pose_stack, sfxn, task)
+
+    torch.manual_seed(11723)
+    monkeypatch.setenv("TMOL_PACK_MAX_POSES_PER_CHUNK", "2")
+    chunked = pack_rotamers(pose_stack, sfxn, task)
+
+    # Annealing intentionally consumes a different RNG stream when the batch
+    # shape changes, so exact rotamer coordinates need not match. Residue
+    # identities, pose order, shapes, and validity must be preserved.
+    assert torch.equal(unchunked.block_type_ind, chunked.block_type_ind)
+    assert unchunked.coords.shape == chunked.coords.shape
+    assert torch.isfinite(chunked.coords).all()
+
+
+@pytest.mark.parametrize("n_blocks,expected", [(256, 25), (257, 10), (1025, 10)])
+def test_default_packing_chunk_size_tiers(n_blocks, expected, monkeypatch):
+    monkeypatch.delenv("TMOL_PACK_MAX_POSES_PER_CHUNK", raising=False)
+    pose_stack = SimpleNamespace(max_n_blocks=n_blocks, device=torch.device("cpu"))
+    assert _max_poses_per_packing_chunk(pose_stack) == expected
+
+
+@pytest.mark.parametrize("configured", ["0", "-1", "not-an-int"])
+def test_packing_chunk_size_rejects_invalid_override(configured, monkeypatch):
+    monkeypatch.setenv("TMOL_PACK_MAX_POSES_PER_CHUNK", configured)
+    pose_stack = SimpleNamespace(max_n_blocks=20, device=torch.device("cpu"))
+    with pytest.raises(ValueError, match="must be a positive integer"):
+        _max_poses_per_packing_chunk(pose_stack)
+
+
+def test_shared_rotamer_dispatch_matches_independent_lk_ball_layout(
+    default_database, ubq_pdb, dun_sampler, torch_device
+):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
+    pose_stack, task = setup_pose_stack_and_task([pose], torch_device, dun_sampler)
+    task = SetPackerTask.from_packer_task(task)
+    sfxn = get_packer_sfxn(default_database, torch_device)
+    pose_stack, rotamer_set = build_rotamers(
+        pose_stack, task, pose_stack.packed_block_types.chem_db
+    )
+    scorer = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
+
+    shared_coords = rotamer_set.coords.detach().clone().requires_grad_(True)
+    shared = scorer(shared_coords).coalesce()
+    (shared_grad,) = torch.autograd.grad(shared.values().sum(), shared_coords)
+
+    lk_ball = next(term for term in scorer.term_modules if term.classname == "LKBall")
+    shared_cutoff = lk_ball.block_neighbor_cutoff
+    lk_ball.block_neighbor_cutoff += 0.5
+    fallback_coords = rotamer_set.coords.detach().clone().requires_grad_(True)
+    fallback = scorer(fallback_coords).coalesce()
+    (fallback_grad,) = torch.autograd.grad(fallback.values().sum(), fallback_coords)
+
+    torch.testing.assert_close(shared.to_dense(), fallback.to_dense())
+    if torch_device.type == "cuda":
+        # Atomic reductions vary within either layout. A single repeat can
+        # underestimate that variation, so measure each layout's range over
+        # four samples while retaining the same envelope and rounding floor.
+        repeat_errors = []
+        for cutoff, expected, initial_grad in (
+            (shared_cutoff, shared, shared_grad),
+            (shared_cutoff + 0.5, fallback, fallback_grad),
+        ):
+            lk_ball.block_neighbor_cutoff = cutoff
+            gradients = [initial_grad]
+            for _ in range(3):
+                coords = rotamer_set.coords.detach().clone().requires_grad_(True)
+                scores = scorer(coords).coalesce()
+                (grad,) = torch.autograd.grad(scores.values().sum(), coords)
+                torch.testing.assert_close(expected.to_dense(), scores.to_dense())
+                gradients.append(grad)
+            samples = torch.stack(gradients)
+            repeat_errors.append((samples.amax(0) - samples.amin(0)).amax())
+        repeat_error = torch.maximum(*repeat_errors)
+        shared_error = torch.max(torch.abs(shared_grad - fallback_grad))
+        gradient_scale = torch.maximum(
+            torch.max(torch.abs(shared_grad)), torch.max(torch.abs(fallback_grad))
+        )
+        roundoff_error = 8 * torch.finfo(shared_grad.dtype).eps * gradient_scale
+        assert shared_error <= torch.maximum(2 * repeat_error + 1e-6, roundoff_error)
+    else:
+        torch.testing.assert_close(shared_grad, fallback_grad)
+
+
+def test_shared_rotamer_dispatch_matches_independent_hbond_layout(
+    default_database, ubq_pdb, dun_sampler, torch_device
+):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
+    pose_stack, task = setup_pose_stack_and_task([pose], torch_device, dun_sampler)
+    sfxn = get_packer_sfxn(default_database, torch_device)
+    pose_stack, rotamer_set = build_rotamers(
+        pose_stack,
+        SetPackerTask.from_packer_task(task),
+        pose_stack.packed_block_types.chem_db,
+    )
+    scorer = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
+    ljlk = next(term for term in scorer.term_modules if term.classname == "LJLK")
+    hbond = next(term for term in scorer.term_modules if term.classname == "HBond")
+
+    def dense_hbond(coords, shared_indices=None):
+        if shared_indices is None:
+            scores, indices = hbond.forward(coords)
+        else:
+            scores, indices = hbond.forward(coords, shared_indices)
+            assert indices.is_set_to(shared_indices)
+        sparse = torch.sparse_coo_tensor(
+            indices.to(torch.int64),
+            scores[0],
+            (hbond.n_poses, hbond.n_rots, hbond.n_rots),
+            check_invariants=False,
+        )
+        return sparse.coalesce().to_dense()
+
+    coords = rotamer_set.coords.detach()
+    _, shared_indices = ljlk.forward(coords)
+    torch.testing.assert_close(dense_hbond(coords, shared_indices), dense_hbond(coords))
+
+    # Keep float32 scoring coverage above; compare derivatives in double so
+    # CUDA atomic summation order cannot masquerade as a dispatch discrepancy.
+    shared_coords = coords.double().clone().requires_grad_(True)
+    shared = dense_hbond(shared_coords, shared_indices)
+    (shared_grad,) = torch.autograd.grad(shared.sum(), shared_coords)
+
+    independent_coords = coords.double().clone().requires_grad_(True)
+    independent = dense_hbond(independent_coords)
+    (independent_grad,) = torch.autograd.grad(independent.sum(), independent_coords)
+
+    torch.testing.assert_close(shared, independent)
+    torch.testing.assert_close(shared_grad, independent_grad, atol=1e-6, rtol=0)
+
+    if torch_device.type == "cuda":
+        dispatch_key = hbond.rotamer_dispatch_key
+        with torch.no_grad():
+            hbond.rotamer_dispatch_key = None
+            independent_indices, *_ = scorer._weighted_entries_by_layout(
+                rotamer_set.coords
+            )
+            hbond.rotamer_dispatch_key = dispatch_key
+            shared_indices, *_ = scorer._weighted_entries_by_layout(rotamer_set.coords)
+        assert sum(layout.shape[1] for layout in shared_indices) < sum(
+            layout.shape[1] for layout in independent_indices
+        )
+
+
+def test_weighted_fused_ljlk_elec_rotamer_scores_match_fallback(
+    default_database, ubq_pdb, dun_sampler, torch_device, monkeypatch
+):
+    from tmol.score import _score_function
+
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
+    pose_stack, task = setup_pose_stack_and_task([pose], torch_device, dun_sampler)
+    task = SetPackerTask.from_packer_task(task)
+    sfxn = get_packer_sfxn(default_database, torch_device)
+    pose_stack, rotamer_set = build_rotamers(
+        pose_stack, task, pose_stack.packed_block_types.chem_db
+    )
+    scorer = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
+    assert scorer._fused_ljlk_elec is not None
+    if torch_device.type == "cpu":
+        scorer._cpu_term_workers = 1
+
+    with torch.no_grad():
+        fused = scorer(rotamer_set.coords).coalesce()
+        fused_group = scorer._fused_ljlk_elec
+        scorer._fused_ljlk_elec = None
+        separate = scorer(rotamer_set.coords).coalesce()
+        scorer._fused_ljlk_elec = fused_group
+
+    assert torch.equal(fused.indices(), separate.indices())
+    torch.testing.assert_close(fused.values(), separate.values(), atol=2e-3, rtol=2e-5)
+
+    fused_group = scorer._fused_ljlk_elec
+    weight_begin = scorer._fused_ljlk_elec_weight_offset
+    fused_weights = scorer.weights[weight_begin : weight_begin + 4, 0, 0, 0]
+    with torch.no_grad():
+        full_values, full_indices = fused_group(rotamer_set.coords, fused_weights)
+        monkeypatch.setattr(_score_function, "_PACK_ROTAMER_BLOCK_PAIR_WINDOW", 11)
+        packing_dispatch = torch.cat(
+            list(fused_group.iter_packing_dispatches(rotamer_set.coords)), dim=1
+        )
+        monkeypatch.setattr(_score_function, "_PACK_FUSED_ROTAMER_SCORE_WINDOW", 7)
+        windows = list(
+            fused_group.iter_packing_entries(
+                rotamer_set.coords,
+                fused_weights,
+                topology_only=False,
+            )
+        )
+        topology_windows = list(
+            fused_group.iter_packing_entries(
+                rotamer_set.coords,
+                fused_weights,
+                topology_only=True,
+            )
+        )
+    assert torch.equal(packing_dispatch, full_indices)
+    assert len(windows) > 1
+    assert torch.equal(
+        torch.cat([indices for indices, _ in windows], dim=1), full_indices
+    )
+    assert torch.equal(torch.cat([values for _, values in windows]), full_values[0])
+    assert torch.equal(
+        torch.cat([indices for indices, _ in topology_windows], dim=1), full_indices
+    )
+    assert all(values.numel() == 0 for _, values in topology_windows)
+    with torch.no_grad():
+        packing_entries = list(
+            scorer._iter_weighted_sparse_entries(
+                rotamer_set.coords, retain_shared_dispatch=False
+            )
+        )
+    packing_scores = torch.sparse_coo_tensor(
+        torch.cat([indices for _, indices, _ in packing_entries], dim=1).to(
+            torch.int64
+        ),
+        torch.cat([values for _, _, values in packing_entries]),
+        size=(fused_group.n_poses, fused_group.n_rots, fused_group.n_rots),
+    ).coalesce()
+    assert torch.equal(packing_scores.indices(), fused.indices())
+    torch.testing.assert_close(
+        packing_scores.values(), fused.values(), atol=2e-3, rtol=2e-5
+    )
+
+    # Weights are read at every call instead of being specialized into the
+    # rendered module.
+    original_fused_weights = scorer.weights[
+        weight_begin : weight_begin + 4, 0, 0, 0
+    ].clone()
+    with torch.no_grad():
+        scorer.weights[weight_begin : weight_begin + 4, 0, 0, 0] *= torch.tensor(
+            [0.5, 1.25, 0.75, 0.0], device=torch_device
+        )
+        reweighted_fused = scorer(rotamer_set.coords).coalesce()
+        scorer._fused_ljlk_elec = None
+        reweighted_separate = scorer(rotamer_set.coords).coalesce()
+        scorer._fused_ljlk_elec = fused_group
+    assert torch.equal(reweighted_fused.indices(), reweighted_separate.indices())
+    torch.testing.assert_close(
+        reweighted_fused.values(),
+        reweighted_separate.values(),
+        atol=2e-3,
+        rtol=2e-5,
+    )
+
+    # Fusion remains the measured fast path when the term pool has four CPU
+    # workers; each native operator can still use ATen's inner CPU parallelism.
+    original_forward = fused_group.forward
+    if torch_device.type == "cpu":
+        fused_calls = []
+
+        def record_fused_call(*args):
+            fused_calls.append(None)
+            return original_forward(*args)
+
+        fused_group.forward = record_fused_call
+        scorer._cpu_term_workers = 4
+        with torch.no_grad():
+            parallel_scores = scorer(rotamer_set.coords).coalesce()
+        assert len(fused_calls) == 1
+        assert torch.equal(parallel_scores.indices(), reweighted_fused.indices())
+        torch.testing.assert_close(
+            parallel_scores.values(), reweighted_fused.values(), atol=2e-3, rtol=2e-5
+        )
+        scorer._cpu_term_workers = 1
+        fused_group.forward = original_forward
+
+    with torch.no_grad():
+        scorer.weights[weight_begin : weight_begin + 4, 0, 0, 0].copy_(
+            original_fused_weights
+        )
+
+    # A caller that changes either dispatch cutoff must use the canonical
+    # operators, since the fused traversal assumes the default compatible pair.
+    original_cutoff = fused_group.ljlk_module.block_neighbor_cutoff
+    fused_group.ljlk_module.block_neighbor_cutoff = original_cutoff + 0.25
+    fused_group.forward = lambda *_: pytest.fail(
+        "fusion used after changing a live dispatch cutoff"
+    )
+    with torch.no_grad():
+        changed_cutoff = scorer(rotamer_set.coords).coalesce()
+    assert changed_cutoff._nnz() != 0
+    fused_group.ljlk_module.block_neighbor_cutoff = original_cutoff
+
+    # Coordinate derivatives use one fused recomputation with the live output
+    # gradient for every sparse entry.
+    fused_group.forward = original_forward
+    fused_coords = rotamer_set.coords.detach().clone().requires_grad_(True)
+    fused_differentiable = scorer(fused_coords).coalesce()
+    upstream = torch.linspace(
+        0.25,
+        1.25,
+        fused_differentiable.values().numel(),
+        device=torch_device,
+    )
+    (fused_gradient,) = torch.autograd.grad(
+        (fused_differentiable.values() * upstream).sum(), fused_coords
+    )
+    scorer._fused_ljlk_elec = None
+    separate_coords = rotamer_set.coords.detach().clone().requires_grad_(True)
+    separate_differentiable = scorer(separate_coords).coalesce()
+    (separate_gradient,) = torch.autograd.grad(
+        (separate_differentiable.values() * upstream).sum(), separate_coords
+    )
+    scorer._fused_ljlk_elec = fused_group
+    assert torch.equal(
+        fused_differentiable.indices(), separate_differentiable.indices()
+    )
+    torch.testing.assert_close(
+        fused_differentiable.values(),
+        separate_differentiable.values(),
+        atol=2e-3,
+        rtol=2e-5,
+    )
+    torch.testing.assert_close(fused_gradient, separate_gradient, atol=2e-3, rtol=5e-5)
+
+    # Trainable score weights retain the canonical operators so their four
+    # independent parameter gradients remain available.
+    fused_group.forward = lambda *_: pytest.fail(
+        "weighted fusion used with trainable score weights"
+    )
+    scorer.weights.requires_grad_(True)
+    weight_differentiable = scorer(rotamer_set.coords.detach()).coalesce()
+    weight_differentiable.values().sum().backward()
+    assert scorer.weights.grad is not None
+    assert torch.isfinite(scorer.weights.grad).all()
+    assert torch.count_nonzero(scorer.weights.grad[:4]) != 0
+
+
+def test_packing_pages_shared_lk_ball_dispatch(
+    default_database, ubq_pdb, dun_sampler, torch_device, monkeypatch
+):
+    from tmol.score import _score_function
+
+    if torch_device.type != "cuda":
+        pytest.skip("sharing the fused dispatch across terms is a CUDA-only path")
+
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
+    pose_stack, task = setup_pose_stack_and_task([pose], torch_device, dun_sampler)
+    pose_stack, rotamer_set = build_rotamers(
+        pose_stack,
+        SetPackerTask.from_packer_task(task),
+        pose_stack.packed_block_types.chem_db,
+    )
+    scorer = get_packer_sfxn(
+        default_database, torch_device
+    ).render_rotamer_scoring_module(pose_stack, rotamer_set)
+    lk_ball = next(term for term in scorer.term_modules if term.classname == "LKBall")
+    lk_ball_index = scorer.term_modules.index(lk_ball)
+    weight_offset = sum(
+        term.n_score_types for term in scorer.term_modules[:lk_ball_index]
+    )
+    weights = scorer.weights[
+        weight_offset : weight_offset + lk_ball.n_score_types, 0, 0, 0
+    ]
+
+    with torch.no_grad():
+        # The canonical dispatch is only ever produced in bounded pages; join
+        # them here to build the full-dispatch reference this test compares to.
+        dispatch = torch.cat(
+            list(scorer._fused_ljlk_elec.iter_packing_dispatches(rotamer_set.coords)),
+            dim=1,
+        )
+        full_scores, full_indices = lk_ball.forward(rotamer_set.coords, dispatch)
+        expected_values = torch.sum(weights[:, None] * full_scores, dim=0)
+
+        monkeypatch.setattr(_score_function, "_PACK_FUSED_ROTAMER_SCORE_WINDOW", 7)
+        pages = [
+            (indices, values)
+            for term, indices, values in scorer._iter_weighted_sparse_entries(
+                rotamer_set.coords, retain_shared_dispatch=False
+            )
+            if term is lk_ball
+        ]
+        topology_pages = [
+            (indices, values)
+            for term, indices, values in scorer._iter_weighted_sparse_entries(
+                rotamer_set.coords,
+                retain_shared_dispatch=False,
+                topology_only=True,
+            )
+            if term is lk_ball
+        ]
+
+    assert len(pages) > 1
+    assert torch.equal(
+        torch.cat([indices for indices, _ in pages], dim=1), full_indices
+    )
+    torch.testing.assert_close(
+        torch.cat([values for _, values in pages]), expected_values
+    )
+    assert torch.equal(
+        torch.cat([indices for indices, _ in topology_pages], dim=1), full_indices
+    )
+    assert all(values.numel() == 0 for _, values in topology_pages)
+
+
+def test_fused_ljlk_elec_empty_table_gradient(monkeypatch):
+    from tmol.score import _score_function
+    from tmol.score.ljlk import potentials
+
+    calls = []
+
+    def empty_scores(coords, _max_dis, _weights, output_gradients, dispatch):
+        calls.append((output_gradients.shape, dispatch.shape))
+        indices = torch.empty((3, 0), dtype=torch.int32, device=coords.device)
+        coord_gradients = (
+            torch.zeros_like(coords)
+            if dispatch.shape[0] == 3
+            else coords.new_empty((0, 3))
+        )
+        return coords.new_empty((1, 0)), indices, coord_gradients
+
+    monkeypatch.setattr(potentials, "ljlk_elec_weighted_rotamer_scores", empty_scores)
+    coords = torch.empty((0, 3), requires_grad=True)
+    weights = torch.ones(4)
+    empty_dispatch = torch.empty((0, 0), dtype=torch.int32)
+    scores, _ = _score_function._FusedLJLKAndElecRotamerFunction.apply(
+        coords, 6.0, weights, empty_dispatch
+    )
+    scores.sum().backward()
+
+    assert coords.grad.shape == coords.shape
+    assert calls == [
+        (torch.Size([0]), torch.Size([0, 0])),
+        (torch.Size([0]), torch.Size([3, 0])),
+    ]
 
 
 def test_pack_rotamers_optH(default_database, ubq_pdb, torch_device):
@@ -247,7 +786,7 @@ def test_pack_rotamers_optH(default_database, ubq_pdb, torch_device):
 
     # NHQ flip rotamers must have chi either matching the input (~0 deg)
     # or flipped by ~180 deg.
-    from tmol.numeric.dihedrals import coord_dihedrals as _cd
+    from tmol.numeric import coord_dihedrals as _cd
 
     for i in range(task.allowed_bt_block_type.shape[0]):
         pose_i = task.allowed_bt_pose[i].item()
@@ -305,7 +844,9 @@ def test_pack_rotamers_optH(default_database, ubq_pdb, torch_device):
     )
 
 
-def test_pack_rotamers_w_cst(default_database, ubq_pdb, dun_sampler, torch_device):
+def test_pack_rotamers_w_cst(
+    default_database, ubq_pdb, dun_sampler, torch_device, monkeypatch
+):
     n_poses = 4
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
     pose_stack, task = setup_pose_stack_and_task(
@@ -369,31 +910,26 @@ def test_pack_rotamers_w_cst(default_database, ubq_pdb, dun_sampler, torch_devic
     )
 
     pose_stack = attrs.evolve(pose_stack, constraint_set=constraints)
-    (
-        rotamer_for_nonmolten_block,
-        n_molten_blocks_per_pose,
-        bc_rot_offset_for_molten_block,
-        bc_rot_to_orig_rot,
-        bg_bg_energies,
-        packer_energy_tables,
-    ) = build_packer_energy_tables(pose_stack, rotamer_set, sfxn)
-    # bg_bg_energies, packer_energy_tables = build_packer_energy_tables(
-    #     pose_stack, rotamer_set, sfxn
-    # )
-    # run_pack_and_assert_scores(
-    #     pose_stack, rotamer_set, packer_energy_tables, sfxn, bg_bg_energies
-    # )
-    _, _ = run_pack_and_assert_scores(
-        pose_stack,
-        rotamer_set,
-        packer_energy_tables,
-        sfxn,
-        rotamer_for_nonmolten_block,
-        n_molten_blocks_per_pose,
-        bc_rot_offset_for_molten_block,
-        bc_rot_to_orig_rot,
-        bg_bg_energies,
+    # Exercise constraint slicing and remapping: constraint pose indices must
+    # be remapped independently for every packing chunk.
+    monkeypatch.setenv("TMOL_PACK_MAX_POSES_PER_CHUNK", "2")
+    packed = pack_rotamers(pose_stack, sfxn, task)
+    assert packed.n_poses == n_poses
+    assert packed.constraint_set is not None
+    assert (
+        packed.constraint_set.constraint_functions == constraints.constraint_functions
     )
+    for attribute in (
+        "constraint_function_inds",
+        "constraint_atoms",
+        "constraint_params",
+        "constraint_num_unique_blocks",
+        "constraint_unique_blocks",
+    ):
+        torch.testing.assert_close(
+            getattr(packed.constraint_set, attribute), getattr(constraints, attribute)
+        )
+    assert torch.isfinite(packed.coords).all()
     if torch_device == torch.device("cuda"):
         torch.cuda.synchronize()
 
@@ -505,3 +1041,40 @@ def test_pack_rotamers_irregular_sized_poses(
     task.or_expand_chi(1)
     sfxn = get_packer_sfxn(default_database, torch_device)
     pack_rotamers(pose_stack, sfxn, task)
+
+
+CAP_FIXTURES = ("capped_peptide_ace_nme", "capped_peptide_ace_nh2")
+
+
+@pytest.mark.parametrize("stem", CAP_FIXTURES)
+def test_pack_a_capped_structure(stem, torch_device):
+    """A cap has no chi of its own but still has to survive a packing run.
+
+    Its block carries a single rotamer, so it is classified as background while
+    the residues between the caps are packed.
+    """
+    structure = atom_array_from_cif(data_path("ncaa_fixtures") / f"{stem}.cif")
+    pose_stack, context = pose_stack_from_biotite(
+        structure,
+        torch_device,
+        prepare_ligands=True,
+        param_db=ParameterDatabase.get_default(),
+        return_context=True,
+    )
+    prepared = context.parameter_database
+    sfxn = beta2016_score_function(torch_device, param_db=prepared)
+
+    task = PackerTask(pose_stack, PackerPalette())
+    task.add_conformer_sampler(
+        create_dunbrack_sampler_from_database(prepared, torch_device)
+    )
+    task.add_conformer_sampler(FixedAAChiSampler())
+    task.add_conformer_sampler(IncludeCurrentSampler())
+    task.restrict_to_repacking()
+
+    packed = pack_rotamers(pose_stack, sfxn, task)
+
+    before = pose_stack.block_type_ind64.cpu()
+    after = packed.block_type_ind64.cpu()
+    assert torch.equal(before, after), "repacking must not change the cap types"
+    assert torch.all(torch.isfinite(packed.coords))

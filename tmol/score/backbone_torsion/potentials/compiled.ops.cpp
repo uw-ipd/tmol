@@ -7,6 +7,7 @@
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/device_operations.hh>
+#include <tmol/score/common/whole_pose_scoring.hh>
 
 #include "params.hh"
 #include "backbone_torsion_pose_score.hh"
@@ -108,7 +109,8 @@ class BackboneTorsionPoseScoreOp
                       TCAST(rama_table_params),
                       TCAST(omega_tables),
                       TCAST(omega_table_params),
-                      output_block_pair_energies);
+                      output_block_pair_energies,
+                      rot_coords.requires_grad());
 
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
@@ -164,19 +166,11 @@ class BackboneTorsionPoseScoreOp
     //   block-pair scoring mode or single-score mode
     if (saved.size() == 2) {
       // single-score mode
-      auto saved_grads = ctx->get_saved_variables();
-      auto saved_grad = saved_grads[0];
-      auto pose_ind_for_atom = saved_grads[1];
+      auto saved_grad = saved[0];
 
       tensor_list result;
-
-      auto atom_ingrads = grad_outputs[0].index_select(1, pose_ind_for_atom);
-
-      while (atom_ingrads.dim() < saved_grad.dim()) {
-        atom_ingrads = atom_ingrads.unsqueeze(-1);
-      }
-
-      result.emplace_back(saved_grad * atom_ingrads);
+      result.emplace_back(
+          common::accumulate_whole_pose_gradients(saved_grad, grad_outputs[0]));
 
       int i = 0;
 
@@ -668,6 +662,8 @@ std::vector<Tensor> backbone_torsion_rotamer_score_op(
     Tensor rot_offset_for_pose,
     Tensor n_rots_for_block,
     Tensor rot_offset_for_block,
+    // only the pair terms enumerate rotamer pairs
+    Tensor /*lockstep_group_for_block*/,
     int64_t max_n_rots_per_pose,
 
     Tensor pose_stack_block_type,

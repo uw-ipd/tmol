@@ -1,15 +1,14 @@
 import torch
 
-from tmol.io.canonical_ordering import (
+from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
     canonical_form_from_pdb,
+    pose_stack_from_canonical_form,
 )
 
-from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
-
-from tmol.kinematics.fold_forest import EdgeType
-from tmol.kinematics.scan_ordering import (
+from tmol.kinematics import (
+    EdgeType,
     construct_kin_module_data_for_pose,
     _annotate_block_type_with_gen_scan_path_segs,
     _annotate_packed_block_type_with_gen_scan_path_segs,
@@ -25,7 +24,7 @@ def test_gen_seg_scan_paths_block_type_annotation_smoke(fresh_default_restype_se
 
 
 def test_calculate_ff_edge_delays_for_two_res_ubq(ubq_pdb, torch_device):
-    from tmol.kinematics.compiled.compiled_ops import calculate_ff_edge_delays
+    from tmol.kinematics.compiled import calculate_ff_edge_delays
 
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
@@ -61,12 +60,17 @@ def test_calculate_ff_edge_delays_for_two_res_ubq(ubq_pdb, torch_device):
         pbt_gssps.scan_path_seg_that_builds_output_conn,
         pbt_gssps.nodes_for_gen,
         pbt_gssps.scan_path_seg_starts,
+        pose_stack.block_type_ind.to("cpu"),
+        pose_stack.inter_residue_connections.to("cpu").to(torch.int32),
+        pbt_gssps.scan_path_seg_that_builds_output_conn.to("cpu"),
+        pbt.polymeric_conn_inds.to("cpu").to(torch.int32),
+        pbt.n_conn.to("cpu").to(torch.int32),
     )
     assert result is not None
 
 
 def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
-    from tmol.kinematics.compiled.compiled_ops import calculate_ff_edge_delays
+    from tmol.kinematics.compiled import calculate_ff_edge_delays
 
     torch_device = torch.device("cpu")
     # device = torch_device
@@ -125,6 +129,11 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
         pbt_gssps.scan_path_seg_that_builds_output_conn,
         pbt_gssps.nodes_for_gen,
         pbt_gssps.scan_path_seg_starts,
+        pose_stack.block_type_ind.to("cpu"),
+        pose_stack.inter_residue_connections.to("cpu").to(torch.int32),
+        pbt_gssps.scan_path_seg_that_builds_output_conn.to("cpu"),
+        pbt.polymeric_conn_inds.to("cpu").to(torch.int32),
+        pbt.n_conn.to("cpu").to(torch.int32),
     )
 
     (
@@ -153,7 +162,7 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
 def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_H(
     stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H
 ):
-    from tmol.kinematics.compiled.compiled_ops import calculate_ff_edge_delays
+    from tmol.kinematics.compiled import calculate_ff_edge_delays
 
     pose_stack = stack_of_two_six_res_ubqs_no_term
     pbt = pose_stack.packed_block_types
@@ -169,6 +178,11 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_H(
         pbt_gssps.scan_path_seg_that_builds_output_conn,
         pbt_gssps.nodes_for_gen,
         pbt_gssps.scan_path_seg_starts,
+        pose_stack.block_type_ind.to("cpu"),
+        pose_stack.inter_residue_connections.to("cpu").to(torch.int32),
+        pbt_gssps.scan_path_seg_that_builds_output_conn.to("cpu"),
+        pbt.polymeric_conn_inds.to("cpu").to(torch.int32),
+        pbt.n_conn.to("cpu").to(torch.int32),
     )
     (
         dfs_order_of_ff_edges,
@@ -224,7 +238,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_H(
 def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_U(
     stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_U
 ):
-    from tmol.kinematics.compiled.compiled_ops import calculate_ff_edge_delays
+    from tmol.kinematics.compiled import calculate_ff_edge_delays
 
     pose_stack = stack_of_two_six_res_ubqs_no_term
     pbt = pose_stack.packed_block_types
@@ -239,6 +253,11 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_U(
         pbt_gssps.scan_path_seg_that_builds_output_conn,
         pbt_gssps.nodes_for_gen,
         pbt_gssps.scan_path_seg_starts,
+        pose_stack.block_type_ind.to("cpu"),
+        pose_stack.inter_residue_connections.to("cpu").to(torch.int32),
+        pbt_gssps.scan_path_seg_that_builds_output_conn.to("cpu"),
+        pbt.polymeric_conn_inds.to("cpu").to(torch.int32),
+        pbt.n_conn.to("cpu").to(torch.int32),
     )
     (
         dfs_order_of_ff_edges,
@@ -292,7 +311,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_U(
 def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_K(
     stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_K
 ):
-    from tmol.kinematics.compiled.compiled_ops import calculate_ff_edge_delays
+    from tmol.kinematics.compiled import calculate_ff_edge_delays
 
     pose_stack = stack_of_two_six_res_ubqs_no_term
     pbt = pose_stack.packed_block_types
@@ -307,6 +326,11 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_K(
         pbt_gssps.scan_path_seg_that_builds_output_conn,
         pbt_gssps.nodes_for_gen,
         pbt_gssps.scan_path_seg_starts,
+        pose_stack.block_type_ind.to("cpu"),
+        pose_stack.inter_residue_connections.to("cpu").to(torch.int32),
+        pbt_gssps.scan_path_seg_that_builds_output_conn.to("cpu"),
+        pbt.polymeric_conn_inds.to("cpu").to(torch.int32),
+        pbt.n_conn.to("cpu").to(torch.int32),
     )
     ff_2ubq_6res_K = torch.tensor(ff_2ubq_6res_K)
 
@@ -364,7 +388,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_K(
 def test_calculate_parent_block_conn_in_and_out_for_two_copies_of_6_res_ubq(
     stack_of_two_six_res_ubqs_no_term, torch_device, ff_2ubq_6res_H
 ):
-    from tmol.kinematics.compiled.compiled_ops import (
+    from tmol.kinematics.compiled import (
         calculate_ff_edge_delays,
         get_block_parent_connectivity_from_toposort,
     )
@@ -382,6 +406,11 @@ def test_calculate_parent_block_conn_in_and_out_for_two_copies_of_6_res_ubq(
         pbt_gssps.scan_path_seg_that_builds_output_conn,
         pbt_gssps.nodes_for_gen,
         pbt_gssps.scan_path_seg_starts,
+        pose_stack.block_type_ind.to("cpu"),
+        pose_stack.inter_residue_connections.to("cpu").to(torch.int32),
+        pbt_gssps.scan_path_seg_that_builds_output_conn.to("cpu"),
+        pbt.polymeric_conn_inds.to("cpu").to(torch.int32),
+        pbt.n_conn.to("cpu").to(torch.int32),
     )
     (
         dfs_order_of_ff_edges,
@@ -421,7 +450,7 @@ def test_calculate_parent_block_conn_in_and_out_for_two_copies_of_6_res_ubq(
 
 
 def test_get_kfo_indices_for_atoms(ubq_pdb):
-    from tmol.kinematics.compiled.compiled_ops import (
+    from tmol.kinematics.compiled import (
         get_kfo_indices_for_atoms,
         get_kfo_atom_parents,
         get_children,

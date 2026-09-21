@@ -1,0 +1,275 @@
+data_310D_A
+#
+loop_
+_atom_site.group_PDB 
+_atom_site.id 
+_atom_site.type_symbol 
+_atom_site.label_atom_id 
+_atom_site.label_alt_id 
+_atom_site.label_comp_id 
+_atom_site.label_asym_id 
+_atom_site.label_entity_id 
+_atom_site.label_seq_id 
+_atom_site.pdbx_PDB_ins_code 
+_atom_site.Cartn_x 
+_atom_site.Cartn_y 
+_atom_site.Cartn_z 
+_atom_site.occupancy 
+_atom_site.B_iso_or_equiv 
+_atom_site.pdbx_formal_charge 
+_atom_site.auth_seq_id 
+_atom_site.auth_comp_id 
+_atom_site.auth_asym_id 
+_atom_site.auth_atom_id 
+_atom_site.pdbx_PDB_model_num 
+HETATM 1   N N1     . OMC A 1 1 ? -2.392  28.301 68.998 1.00 25.19 ? 1 OMC A N1     1
+HETATM 2   C C2     . OMC A 1 1 ? -2.173  29.023 67.815 1.00 24.11 ? 1 OMC A C2     1
+HETATM 3   N N3     . OMC A 1 1 ? -1.064  28.817 67.088 1.00 21.83 ? 1 OMC A N3     1
+HETATM 4   C C4     . OMC A 1 1 ? -0.129  27.890 67.524 1.00 24.07 ? 1 OMC A C4     1
+HETATM 5   C C5     . OMC A 1 1 ? -0.352  27.156 68.730 1.00 24.63 ? 1 OMC A C5     1
+HETATM 6   C C6     . OMC A 1 1 ? -1.481  27.394 69.429 1.00 26.13 ? 1 OMC A C6     1
+HETATM 7   O O2     . OMC A 1 1 ? -3.034  29.860 67.442 1.00 24.55 ? 1 OMC A O2     1
+HETATM 8   N N4     . OMC A 1 1 ? 0.934   27.773 66.707 1.00 24.04 ? 1 OMC A N4     1
+HETATM 9   C "C1'"  . OMC A 1 1 ? -3.552  28.401 69.867 1.00 27.17 ? 1 OMC A "C1'"  1
+HETATM 10  C "C2'"  . OMC A 1 1 ? -4.784  27.821 69.148 1.00 27.27 ? 1 OMC A "C2'"  1
+HETATM 11  O "O2'"  . OMC A 1 1 ? -5.870  28.444 69.890 1.00 30.15 ? 1 OMC A "O2'"  1
+HETATM 12  C CM2    . OMC A 1 1 ? -6.393  29.488 69.120 1.00 30.75 ? 1 OMC A CM2    1
+HETATM 13  C "C3'"  . OMC A 1 1 ? -4.767  26.521 69.938 1.00 28.53 ? 1 OMC A "C3'"  1
+HETATM 14  C "C4'"  . OMC A 1 1 ? -4.566  27.086 71.380 1.00 32.36 ? 1 OMC A "C4'"  1
+HETATM 15  O "O4'"  . OMC A 1 1 ? -3.362  27.929 71.274 1.00 30.30 ? 1 OMC A "O4'"  1
+HETATM 16  O "O3'"  . OMC A 1 1 ? -6.010  25.753 69.894 1.00 32.93 ? 1 OMC A "O3'"  1
+HETATM 17  C "C5'"  . OMC A 1 1 ? -3.746  26.001 71.951 1.00 34.67 ? 1 OMC A "C5'"  1
+HETATM 18  O "O5'"  . OMC A 1 1 ? -2.690  25.028 71.849 1.00 39.40 ? 1 OMC A "O5'"  1
+HETATM 19  H H5     . OMC A 1 1 ? 0.267   26.527 69.025 1.00 29.56 ? 1 OMC A H5     1
+HETATM 20  H H6     . OMC A 1 1 ? -1.637  26.930 70.220 1.00 31.36 ? 1 OMC A H6     1
+HETATM 21  H HN41   . OMC A 1 1 ? 0.982   28.251 65.994 1.00 28.85 ? 1 OMC A HN41   1
+HETATM 22  H HN42   . OMC A 1 1 ? 1.565   27.221 66.899 1.00 28.85 ? 1 OMC A HN42   1
+HETATM 23  H "H1'"  . OMC A 1 1 ? -3.731  29.361 69.943 1.00 32.61 ? 1 OMC A "H1'"  1
+HETATM 24  H "H2'"  . OMC A 1 1 ? -4.812  27.798 68.169 1.00 32.72 ? 1 OMC A "H2'"  1
+HETATM 25  H HM21   . OMC A 1 1 ? -7.110  29.911 69.599 1.00 46.13 ? 1 OMC A HM21   1
+HETATM 26  H HM22   . OMC A 1 1 ? -6.725  29.138 68.290 1.00 46.13 ? 1 OMC A HM22   1
+HETATM 27  H HM23   . OMC A 1 1 ? -5.703  30.132 68.943 1.00 46.13 ? 1 OMC A HM23   1
+HETATM 28  H "H3'"  . OMC A 1 1 ? -4.005  25.964 69.674 1.00 34.24 ? 1 OMC A "H3'"  1
+HETATM 29  H "H4'"  . OMC A 1 1 ? -5.342  27.416 71.879 1.00 38.83 ? 1 OMC A "H4'"  1
+HETATM 30  P P      . OMG A 1 2 ? -6.354  24.607 68.803 1.00 34.52 ? 2 OMG A P      1
+HETATM 31  O OP1    . OMG A 1 2 ? -7.550  23.853 69.290 1.00 41.00 ? 2 OMG A OP1    1
+HETATM 32  O OP2    . OMG A 1 2 ? -5.119  23.752 68.583 1.00 34.14 ? 2 OMG A OP2    1
+HETATM 33  O "O5'"  . OMG A 1 2 ? -6.639  25.312 67.416 1.00 32.84 ? 2 OMG A "O5'"  1
+HETATM 34  C "C5'"  . OMG A 1 2 ? -7.733  26.177 67.326 1.00 33.69 ? 2 OMG A "C5'"  1
+HETATM 35  C "C4'"  . OMG A 1 2 ? -7.763  26.818 65.937 1.00 30.55 ? 2 OMG A "C4'"  1
+HETATM 36  O "O4'"  . OMG A 1 2 ? -6.780  27.871 65.616 1.00 31.70 ? 2 OMG A "O4'"  1
+HETATM 37  C "C3'"  . OMG A 1 2 ? -7.569  25.999 64.646 1.00 27.88 ? 2 OMG A "C3'"  1
+HETATM 38  O "O3'"  . OMG A 1 2 ? -8.800  25.385 64.269 1.00 32.12 ? 2 OMG A "O3'"  1
+HETATM 39  C "C2'"  . OMG A 1 2 ? -7.079  27.023 63.595 1.00 28.07 ? 2 OMG A "C2'"  1
+HETATM 40  O "O2'"  . OMG A 1 2 ? -8.265  27.716 63.191 1.00 32.78 ? 2 OMG A "O2'"  1
+HETATM 41  C CM2    . OMG A 1 2 ? -8.105  28.537 62.002 1.00 34.35 ? 2 OMG A CM2    1
+HETATM 42  C "C1'"  . OMG A 1 2 ? -6.166  27.988 64.313 1.00 28.18 ? 2 OMG A "C1'"  1
+HETATM 43  N N9     . OMG A 1 2 ? -4.781  27.340 64.424 1.00 25.45 ? 2 OMG A N9     1
+HETATM 44  C C8     . OMG A 1 2 ? -4.130  26.690 65.483 1.00 26.17 ? 2 OMG A C8     1
+HETATM 45  N N7     . OMG A 1 2 ? -2.856  26.435 65.231 1.00 25.32 ? 2 OMG A N7     1
+HETATM 46  C C5     . OMG A 1 2 ? -2.646  26.953 63.931 1.00 22.61 ? 2 OMG A C5     1
+HETATM 47  C C6     . OMG A 1 2 ? -1.466  26.980 63.156 1.00 20.85 ? 2 OMG A C6     1
+HETATM 48  O O6     . OMG A 1 2 ? -0.309  26.570 63.367 1.00 21.73 ? 2 OMG A O6     1
+HETATM 49  N N1     . OMG A 1 2 ? -1.699  27.587 61.890 1.00 19.70 ? 2 OMG A N1     1
+HETATM 50  C C2     . OMG A 1 2 ? -2.922  28.097 61.514 1.00 21.77 ? 2 OMG A C2     1
+HETATM 51  N N2     . OMG A 1 2 ? -3.086  28.653 60.314 1.00 23.06 ? 2 OMG A N2     1
+HETATM 52  N N3     . OMG A 1 2 ? -4.022  28.076 62.242 1.00 22.11 ? 2 OMG A N3     1
+HETATM 53  C C4     . OMG A 1 2 ? -3.809  27.496 63.447 1.00 23.57 ? 2 OMG A C4     1
+HETATM 54  H "H5'"  . OMG A 1 2 ? -7.664  26.866 68.005 1.00 40.42 ? 2 OMG A "H5'"  1
+HETATM 55  H "H5''" . OMG A 1 2 ? -8.554  25.683 67.478 1.00 40.42 ? 2 OMG A "H5''" 1
+HETATM 56  H "H4'"  . OMG A 1 2 ? -8.644  27.241 65.856 1.00 36.66 ? 2 OMG A "H4'"  1
+HETATM 57  H "H3'"  . OMG A 1 2 ? -6.884  25.313 64.787 1.00 33.45 ? 2 OMG A "H3'"  1
+HETATM 58  H "H2'"  . OMG A 1 2 ? -6.632  26.589 62.839 1.00 33.68 ? 2 OMG A "H2'"  1
+HETATM 59  H HM21   . OMG A 1 2 ? -8.936  28.973 61.801 1.00 51.53 ? 2 OMG A HM21   1
+HETATM 60  H HM22   . OMG A 1 2 ? -7.848  27.982 61.262 1.00 51.53 ? 2 OMG A HM22   1
+HETATM 61  H HM23   . OMG A 1 2 ? -7.426  29.197 62.158 1.00 51.53 ? 2 OMG A HM23   1
+HETATM 62  H "H1'"  . OMG A 1 2 ? -6.163  28.897 63.944 1.00 33.82 ? 2 OMG A "H1'"  1
+HETATM 63  H H8     . OMG A 1 2 ? -4.551  26.460 66.280 1.00 31.41 ? 2 OMG A H8     1
+HETATM 64  H HN1    . OMG A 1 2 ? -1.046  27.637 61.334 1.00 23.64 ? 2 OMG A HN1    1
+HETATM 65  H HN21   . OMG A 1 2 ? -3.857  28.955 60.081 1.00 27.67 ? 2 OMG A HN21   1
+HETATM 66  H HN22   . OMG A 1 2 ? -2.421  28.709 59.771 1.00 27.67 ? 2 OMG A HN22   1
+HETATM 67  N N1     . OMC A 1 3 ? -4.923  24.755 60.162 1.00 21.37 ? 3 OMC A N1     1
+HETATM 68  C C2     . OMC A 1 3 ? -3.646  24.726 59.623 1.00 20.77 ? 3 OMC A C2     1
+HETATM 69  N N3     . OMC A 1 3 ? -2.569  24.398 60.352 1.00 20.16 ? 3 OMC A N3     1
+HETATM 70  C C4     . OMC A 1 3 ? -2.831  24.060 61.672 1.00 21.11 ? 3 OMC A C4     1
+HETATM 71  C C5     . OMC A 1 3 ? -4.071  24.000 62.340 1.00 21.85 ? 3 OMC A C5     1
+HETATM 72  C C6     . OMC A 1 3 ? -5.056  24.376 61.508 1.00 22.29 ? 3 OMC A C6     1
+HETATM 73  O O2     . OMC A 1 3 ? -3.534  25.059 58.415 1.00 20.77 ? 3 OMC A O2     1
+HETATM 74  N N4     . OMC A 1 3 ? -1.697  23.719 62.344 1.00 20.58 ? 3 OMC A N4     1
+HETATM 75  C "C1'"  . OMC A 1 3 ? -6.053  25.131 59.246 1.00 22.24 ? 3 OMC A "C1'"  1
+HETATM 76  C "C2'"  . OMC A 1 3 ? -6.402  23.836 58.475 1.00 22.62 ? 3 OMC A "C2'"  1
+HETATM 77  O "O2'"  . OMC A 1 3 ? -7.146  24.337 57.345 1.00 24.65 ? 3 OMC A "O2'"  1
+HETATM 78  C CM2    . OMC A 1 3 ? -6.451  24.710 56.167 1.00 30.53 ? 3 OMC A CM2    1
+HETATM 79  C "C3'"  . OMC A 1 3 ? -7.615  23.333 59.309 1.00 22.16 ? 3 OMC A "C3'"  1
+HETATM 80  C "C4'"  . OMC A 1 3 ? -8.339  24.529 59.928 1.00 24.80 ? 3 OMC A "C4'"  1
+HETATM 81  O "O4'"  . OMC A 1 3 ? -7.169  25.471 60.115 1.00 24.99 ? 3 OMC A "O4'"  1
+HETATM 82  O "O3'"  . OMC A 1 3 ? -8.549  22.400 58.702 1.00 24.16 ? 3 OMC A "O3'"  1
+HETATM 83  C "C5'"  . OMC A 1 3 ? -9.230  24.434 61.137 1.00 28.35 ? 3 OMC A "C5'"  1
+HETATM 84  O "O5'"  . OMC A 1 3 ? -8.352  23.959 62.120 1.00 28.67 ? 3 OMC A "O5'"  1
+HETATM 85  P P      . OMC A 1 3 ? -8.933  23.944 63.584 1.00 33.23 ? 3 OMC A P      1
+HETATM 86  O OP1    . OMC A 1 3 ? -10.383 23.513 63.584 1.00 37.67 ? 3 OMC A OP1    1
+HETATM 87  O OP2    . OMC A 1 3 ? -8.053  23.010 64.366 1.00 32.09 ? 3 OMC A OP2    1
+HETATM 88  H H5     . OMC A 1 3 ? -4.189  23.738 63.225 1.00 26.22 ? 3 OMC A H5     1
+HETATM 89  H H6     . OMC A 1 3 ? -5.916  24.388 61.860 1.00 26.75 ? 3 OMC A H6     1
+HETATM 90  H HN41   . OMC A 1 3 ? -0.938  23.732 61.940 1.00 24.70 ? 3 OMC A HN41   1
+HETATM 91  H HN42   . OMC A 1 3 ? -1.740  23.491 63.172 1.00 24.70 ? 3 OMC A HN42   1
+HETATM 92  H "H1'"  . OMC A 1 3 ? -5.814  25.868 58.645 1.00 26.68 ? 3 OMC A "H1'"  1
+HETATM 93  H "H2'"  . OMC A 1 3 ? -5.676  23.202 58.298 1.00 27.14 ? 3 OMC A "H2'"  1
+HETATM 94  H HM21   . OMC A 1 3 ? -7.077  25.025 55.511 1.00 45.80 ? 3 OMC A HM21   1
+HETATM 95  H HM22   . OMC A 1 3 ? -5.979  23.949 55.819 1.00 45.80 ? 3 OMC A HM22   1
+HETATM 96  H HM23   . OMC A 1 3 ? -5.825  25.408 56.372 1.00 45.80 ? 3 OMC A HM23   1
+HETATM 97  H "H3'"  . OMC A 1 3 ? -7.224  22.850 60.066 1.00 26.59 ? 3 OMC A "H3'"  1
+HETATM 98  H "H4'"  . OMC A 1 3 ? -8.889  24.915 59.214 1.00 29.75 ? 3 OMC A "H4'"  1
+HETATM 99  H "H5'"  . OMC A 1 3 ? -9.592  25.302 61.378 1.00 34.02 ? 3 OMC A "H5'"  1
+HETATM 100 H "H5''" . OMC A 1 3 ? -9.961  23.814 60.989 1.00 34.02 ? 3 OMC A "H5''" 1
+HETATM 101 P P      . OMG A 1 4 ? -8.323  20.786 58.810 1.00 21.95 ? 4 OMG A P      1
+HETATM 102 O OP1    . OMG A 1 4 ? -9.539  20.119 58.274 1.00 28.55 ? 4 OMG A OP1    1
+HETATM 103 O OP2    . OMG A 1 4 ? -7.967  20.460 60.179 1.00 25.84 ? 4 OMG A OP2    1
+HETATM 104 O "O5'"  . OMG A 1 4 ? -7.049  20.515 57.875 1.00 19.70 ? 4 OMG A "O5'"  1
+HETATM 105 C "C5'"  . OMG A 1 4 ? -7.213  20.615 56.398 1.00 18.74 ? 4 OMG A "C5'"  1
+HETATM 106 C "C4'"  . OMG A 1 4 ? -5.829  20.380 55.758 1.00 16.57 ? 4 OMG A "C4'"  1
+HETATM 107 O "O4'"  . OMG A 1 4 ? -4.900  21.462 56.065 1.00 17.72 ? 4 OMG A "O4'"  1
+HETATM 108 C "C3'"  . OMG A 1 4 ? -5.068  19.053 56.125 1.00 16.74 ? 4 OMG A "C3'"  1
+HETATM 109 O "O3'"  . OMG A 1 4 ? -5.720  17.921 55.380 1.00 18.84 ? 4 OMG A "O3'"  1
+HETATM 110 C "C2'"  . OMG A 1 4 ? -3.651  19.468 55.635 1.00 17.64 ? 4 OMG A "C2'"  1
+HETATM 111 O "O2'"  . OMG A 1 4 ? -3.572  19.353 54.162 1.00 20.11 ? 4 OMG A "O2'"  1
+HETATM 112 C CM2    . OMG A 1 4 ? -2.282  19.459 53.541 1.00 20.33 ? 4 OMG A CM2    1
+HETATM 113 C "C1'"  . OMG A 1 4 ? -3.582  20.903 56.209 1.00 16.56 ? 4 OMG A "C1'"  1
+HETATM 114 N N9     . OMG A 1 4 ? -3.010  20.932 57.596 1.00 16.90 ? 4 OMG A N9     1
+HETATM 115 C C8     . OMG A 1 4 ? -3.652  21.053 58.774 1.00 17.72 ? 4 OMG A C8     1
+HETATM 116 N N7     . OMG A 1 4 ? -2.885  21.024 59.870 1.00 17.12 ? 4 OMG A N7     1
+HETATM 117 C C5     . OMG A 1 4 ? -1.570  20.873 59.305 1.00 15.51 ? 4 OMG A C5     1
+HETATM 118 C C6     . OMG A 1 4 ? -0.314  20.765 59.955 1.00 16.37 ? 4 OMG A C6     1
+HETATM 119 O O6     . OMG A 1 4 ? -0.067  20.805 61.209 1.00 18.69 ? 4 OMG A O6     1
+HETATM 120 N N1     . OMG A 1 4 ? 0.723   20.616 59.021 1.00 17.31 ? 4 OMG A N1     1
+HETATM 121 C C2     . OMG A 1 4 ? 0.581   20.555 57.610 1.00 17.11 ? 4 OMG A C2     1
+HETATM 122 N N2     . OMG A 1 4 ? 1.715   20.386 56.914 1.00 18.79 ? 4 OMG A N2     1
+HETATM 123 N N3     . OMG A 1 4 ? -0.628  20.649 57.011 1.00 15.80 ? 4 OMG A N3     1
+HETATM 124 C C4     . OMG A 1 4 ? -1.618  20.809 57.961 1.00 15.58 ? 4 OMG A C4     1
+HETATM 125 H "H5'"  . OMG A 1 4 ? -7.549  21.493 56.156 1.00 22.49 ? 4 OMG A "H5'"  1
+HETATM 126 H "H5''" . OMG A 1 4 ? -7.844  19.948 56.085 1.00 22.49 ? 4 OMG A "H5''" 1
+HETATM 127 H "H4'"  . OMG A 1 4 ? -5.957  20.379 54.787 1.00 19.88 ? 4 OMG A "H4'"  1
+HETATM 128 H "H3'"  . OMG A 1 4 ? -5.077  18.894 57.092 1.00 20.09 ? 4 OMG A "H3'"  1
+HETATM 129 H "H2'"  . OMG A 1 4 ? -2.969  18.903 56.054 1.00 21.17 ? 4 OMG A "H2'"  1
+HETATM 130 H HM21   . OMG A 1 4 ? -2.376  19.361 52.591 1.00 30.50 ? 4 OMG A HM21   1
+HETATM 131 H HM22   . OMG A 1 4 ? -1.707  18.768 53.879 1.00 30.50 ? 4 OMG A HM22   1
+HETATM 132 H HM23   . OMG A 1 4 ? -1.901  20.317 53.739 1.00 30.50 ? 4 OMG A HM23   1
+HETATM 133 H "H1'"  . OMG A 1 4 ? -2.981  21.420 55.634 1.00 19.87 ? 4 OMG A "H1'"  1
+HETATM 134 H H8     . OMG A 1 4 ? -4.575  21.151 58.823 1.00 21.26 ? 4 OMG A H8     1
+HETATM 135 H HN1    . OMG A 1 4 ? 1.522   20.555 59.334 1.00 20.78 ? 4 OMG A HN1    1
+HETATM 136 H HN21   . OMG A 1 4 ? 1.689   20.334 56.056 1.00 22.54 ? 4 OMG A HN21   1
+HETATM 137 H HN22   . OMG A 1 4 ? 2.467   20.330 57.327 1.00 22.54 ? 4 OMG A HN22   1
+HETATM 138 N N1     . OMC A 1 5 ? -0.636  16.718 57.757 1.00 15.56 ? 5 OMC A N1     1
+HETATM 139 C C2     . OMC A 1 5 ? 0.449   16.794 58.677 1.00 15.74 ? 5 OMC A C2     1
+HETATM 140 N N3     . OMC A 1 5 ? 0.262   17.144 59.961 1.00 15.79 ? 5 OMC A N3     1
+HETATM 141 C C4     . OMC A 1 5 ? -1.015  17.385 60.359 1.00 16.02 ? 5 OMC A C4     1
+HETATM 142 C C5     . OMC A 1 5 ? -2.176  17.339 59.498 1.00 15.99 ? 5 OMC A C5     1
+HETATM 143 C C6     . OMC A 1 5 ? -1.912  16.996 58.240 1.00 15.78 ? 5 OMC A C6     1
+HETATM 144 O O2     . OMC A 1 5 ? 1.585   16.525 58.201 1.00 17.52 ? 5 OMC A O2     1
+HETATM 145 N N4     . OMC A 1 5 ? -1.116  17.728 61.664 1.00 19.12 ? 5 OMC A N4     1
+HETATM 146 C "C1'"  . OMC A 1 5 ? -0.373  16.239 56.349 1.00 16.09 ? 5 OMC A "C1'"  1
+HETATM 147 C "C2'"  . OMC A 1 5 ? -0.246  14.717 56.292 1.00 16.28 ? 5 OMC A "C2'"  1
+HETATM 148 O "O2'"  . OMC A 1 5 ? 0.523   14.162 55.181 1.00 15.58 ? 5 OMC A "O2'"  1
+HETATM 149 C CM2    . OMC A 1 5 ? 1.911   14.388 55.321 1.00 17.66 ? 5 OMC A CM2    1
+HETATM 150 C "C3'"  . OMC A 1 5 ? -1.695  14.254 56.123 1.00 16.99 ? 5 OMC A "C3'"  1
+HETATM 151 C "C4'"  . OMC A 1 5 ? -2.112  15.295 55.055 1.00 16.79 ? 5 OMC A "C4'"  1
+HETATM 152 O "O4'"  . OMC A 1 5 ? -1.476  16.562 55.457 1.00 16.50 ? 5 OMC A "O4'"  1
+HETATM 153 O "O3'"  . OMC A 1 5 ? -1.948  12.882 55.689 1.00 18.08 ? 5 OMC A "O3'"  1
+HETATM 154 C "C5'"  . OMC A 1 5 ? -3.573  15.585 54.760 1.00 16.95 ? 5 OMC A "C5'"  1
+HETATM 155 O "O5'"  . OMC A 1 5 ? -4.257  15.930 55.978 1.00 18.39 ? 5 OMC A "O5'"  1
+HETATM 156 P P      . OMC A 1 5 ? -5.806  16.468 56.098 1.00 19.12 ? 5 OMC A P      1
+HETATM 157 O OP1    . OMC A 1 5 ? -6.689  15.623 55.258 1.00 23.28 ? 5 OMC A OP1    1
+HETATM 158 O OP2    . OMC A 1 5 ? -6.114  16.628 57.520 1.00 21.67 ? 5 OMC A OP2    1
+HETATM 159 H H5     . OMC A 1 5 ? -3.034  17.533 59.798 1.00 19.19 ? 5 OMC A H5     1
+HETATM 160 H H6     . OMC A 1 5 ? -2.625  16.937 57.645 1.00 18.94 ? 5 OMC A H6     1
+HETATM 161 H HN41   . OMC A 1 5 ? -0.409  17.775 62.152 1.00 22.95 ? 5 OMC A HN41   1
+HETATM 162 H HN42   . OMC A 1 5 ? -1.887  17.899 62.005 1.00 22.95 ? 5 OMC A HN42   1
+HETATM 163 H "H1'"  . OMC A 1 5 ? 0.452   16.649 56.013 1.00 19.30 ? 5 OMC A "H1'"  1
+HETATM 164 H "H2'"  . OMC A 1 5 ? 0.111   14.383 57.142 1.00 19.53 ? 5 OMC A "H2'"  1
+HETATM 165 H HM21   . OMC A 1 5 ? 2.373   14.020 54.563 1.00 26.49 ? 5 OMC A HM21   1
+HETATM 166 H HM22   . OMC A 1 5 ? 2.225   13.965 56.123 1.00 26.49 ? 5 OMC A HM22   1
+HETATM 167 H HM23   . OMC A 1 5 ? 2.079   15.332 55.370 1.00 26.49 ? 5 OMC A HM23   1
+HETATM 168 H "H3'"  . OMC A 1 5 ? -2.188  14.427 56.952 1.00 20.39 ? 5 OMC A "H3'"  1
+HETATM 169 H "H4'"  . OMC A 1 5 ? -1.697  15.021 54.210 1.00 20.15 ? 5 OMC A "H4'"  1
+HETATM 170 H "H5'"  . OMC A 1 5 ? -3.641  16.318 54.128 1.00 20.34 ? 5 OMC A "H5'"  1
+HETATM 171 H "H5''" . OMC A 1 5 ? -3.988  14.803 54.362 1.00 20.34 ? 5 OMC A "H5''" 1
+HETATM 172 P P      . OMG A 1 6 ? -2.217  11.723 56.731 1.00 18.99 ? 6 OMG A P      1
+HETATM 173 O OP1    . OMG A 1 6 ? -2.428  10.438 55.937 1.00 24.50 ? 6 OMG A OP1    1
+HETATM 174 O OP2    . OMG A 1 6 ? -3.273  12.096 57.677 1.00 23.17 ? 6 OMG A OP2    1
+HETATM 175 O "O5'"  . OMG A 1 6 ? -0.810  11.609 57.556 1.00 19.33 ? 6 OMG A "O5'"  1
+HETATM 176 C "C5'"  . OMG A 1 6 ? 0.392   11.095 56.902 1.00 19.31 ? 6 OMG A "C5'"  1
+HETATM 177 C "C4'"  . OMG A 1 6 ? 1.444   11.125 57.998 1.00 19.86 ? 6 OMG A "C4'"  1
+HETATM 178 O "O4'"  . OMG A 1 6 ? 1.795   12.461 58.505 1.00 18.69 ? 6 OMG A "O4'"  1
+HETATM 179 C "C3'"  . OMG A 1 6 ? 1.305   10.248 59.298 1.00 21.30 ? 6 OMG A "C3'"  1
+HETATM 180 O "O3'"  . OMG A 1 6 ? 1.589   8.831  59.027 1.00 30.23 ? 6 OMG A "O3'"  1
+HETATM 181 C "C2'"  . OMG A 1 6 ? 2.350   10.874 60.240 1.00 22.33 ? 6 OMG A "C2'"  1
+HETATM 182 O "O2'"  . OMG A 1 6 ? 3.608   10.295 59.839 1.00 26.77 ? 6 OMG A "O2'"  1
+HETATM 183 C CM2    . OMG A 1 6 ? 4.511   9.995  60.948 1.00 35.49 ? 6 OMG A CM2    1
+HETATM 184 C "C1'"  . OMG A 1 6 ? 2.280   12.334 59.874 1.00 19.30 ? 6 OMG A "C1'"  1
+HETATM 185 N N9     . OMG A 1 6 ? 1.340   13.111 60.661 1.00 17.79 ? 6 OMG A N9     1
+HETATM 186 C C8     . OMG A 1 6 ? 0.035   13.411 60.462 1.00 17.79 ? 6 OMG A C8     1
+HETATM 187 N N7     . OMG A 1 6 ? -0.548  14.083 61.490 1.00 18.11 ? 6 OMG A N7     1
+HETATM 188 C C5     . OMG A 1 6 ? 0.496   14.212 62.410 1.00 17.94 ? 6 OMG A C5     1
+HETATM 189 C C6     . OMG A 1 6 ? 0.535   14.822 63.675 1.00 18.90 ? 6 OMG A C6     1
+HETATM 190 O O6     . OMG A 1 6 ? -0.346  15.410 64.343 1.00 19.96 ? 6 OMG A O6     1
+HETATM 191 N N1     . OMG A 1 6 ? 1.806   14.708 64.286 1.00 19.90 ? 6 OMG A N1     1
+HETATM 192 C C2     . OMG A 1 6 ? 2.915   14.091 63.726 1.00 20.65 ? 6 OMG A C2     1
+HETATM 193 N N2     . OMG A 1 6 ? 4.051   14.118 64.541 1.00 23.49 ? 6 OMG A N2     1
+HETATM 194 N N3     . OMG A 1 6 ? 2.860   13.528 62.530 1.00 19.60 ? 6 OMG A N3     1
+HETATM 195 C C4     . OMG A 1 6 ? 1.649   13.618 61.929 1.00 17.81 ? 6 OMG A C4     1
+HETATM 196 H "H5'"  . OMG A 1 6 ? 0.650   11.659 56.157 1.00 23.17 ? 6 OMG A "H5'"  1
+HETATM 197 H "H5''" . OMG A 1 6 ? 0.251   10.191 56.580 1.00 23.17 ? 6 OMG A "H5''" 1
+HETATM 198 H "H4'"  . OMG A 1 6 ? 2.261   10.801 57.566 1.00 23.83 ? 6 OMG A "H4'"  1
+HETATM 199 H "H3'"  . OMG A 1 6 ? 0.407   10.346 59.677 1.00 25.56 ? 6 OMG A "H3'"  1
+HETATM 200 H "H2'"  . OMG A 1 6 ? 2.148   10.714 61.185 1.00 26.80 ? 6 OMG A "H2'"  1
+HETATM 201 H HM21   . OMG A 1 6 ? 5.319   9.605  60.606 1.00 53.23 ? 6 OMG A HM21   1
+HETATM 202 H HM22   . OMG A 1 6 ? 4.086   9.378  61.548 1.00 53.23 ? 6 OMG A HM22   1
+HETATM 203 H HM23   . OMG A 1 6 ? 4.721   10.805 61.418 1.00 53.23 ? 6 OMG A HM23   1
+HETATM 204 H "H1'"  . OMG A 1 6 ? 3.173   12.733 59.943 1.00 23.16 ? 6 OMG A "H1'"  1
+HETATM 205 H H8     . OMG A 1 6 ? -0.425  13.176 59.688 1.00 21.35 ? 6 OMG A H8     1
+HETATM 206 H HN1    . OMG A 1 6 ? 1.899   15.049 65.070 1.00 23.88 ? 6 OMG A HN1    1
+HETATM 207 H HN21   . OMG A 1 6 ? 4.782   13.752 64.272 1.00 28.19 ? 6 OMG A HN21   1
+HETATM 208 H HN22   . OMG A 1 6 ? 4.020   14.502 65.310 1.00 28.19 ? 6 OMG A HN22   1
+#
+loop_
+_struct_conn.id 
+_struct_conn.conn_type_id 
+_struct_conn.pdbx_leaving_atom_flag 
+_struct_conn.pdbx_PDB_id 
+_struct_conn.ptnr1_label_asym_id 
+_struct_conn.ptnr1_label_comp_id 
+_struct_conn.ptnr1_label_seq_id 
+_struct_conn.ptnr1_label_atom_id 
+_struct_conn.pdbx_ptnr1_label_alt_id 
+_struct_conn.pdbx_ptnr1_PDB_ins_code 
+_struct_conn.pdbx_ptnr1_standard_comp_id 
+_struct_conn.ptnr1_symmetry 
+_struct_conn.ptnr2_label_asym_id 
+_struct_conn.ptnr2_label_comp_id 
+_struct_conn.ptnr2_label_seq_id 
+_struct_conn.ptnr2_label_atom_id 
+_struct_conn.pdbx_ptnr2_label_alt_id 
+_struct_conn.pdbx_ptnr2_PDB_ins_code 
+_struct_conn.ptnr1_auth_asym_id 
+_struct_conn.ptnr1_auth_comp_id 
+_struct_conn.ptnr1_auth_seq_id 
+_struct_conn.ptnr2_auth_asym_id 
+_struct_conn.ptnr2_auth_comp_id 
+_struct_conn.ptnr2_auth_seq_id 
+_struct_conn.ptnr2_symmetry 
+_struct_conn.pdbx_ptnr3_label_atom_id 
+_struct_conn.pdbx_ptnr3_label_seq_id 
+_struct_conn.pdbx_ptnr3_label_comp_id 
+_struct_conn.pdbx_ptnr3_label_asym_id 
+_struct_conn.pdbx_ptnr3_label_alt_id 
+_struct_conn.pdbx_ptnr3_PDB_ins_code 
+_struct_conn.details 
+_struct_conn.pdbx_dist_value 
+_struct_conn.pdbx_value_order 
+_struct_conn.pdbx_role 
+covale1 covale both ? A OMC 1 "O3'" ? ? ? 1_555 A OMG 2 P ? ? A OMC 1 A OMG 2 1_555 ? ? ? ? ? ? ? 1.619 ? ?
+covale2 covale both ? A OMG 2 "O3'" ? ? ? 1_555 A OMC 3 P ? ? A OMG 2 A OMC 3 1_555 ? ? ? ? ? ? ? 1.601 ? ?
+covale3 covale both ? A OMC 3 "O3'" ? ? ? 1_555 A OMG 4 P ? ? A OMC 3 A OMG 4 1_555 ? ? ? ? ? ? ? 1.633 ? ?
+covale4 covale both ? A OMG 4 "O3'" ? ? ? 1_555 A OMC 5 P ? ? A OMG 4 A OMC 5 1_555 ? ? ? ? ? ? ? 1.623 ? ?
+covale5 covale both ? A OMC 5 "O3'" ? ? ? 1_555 A OMG 6 P ? ? A OMC 5 A OMG 6 1_555 ? ? ? ? ? ? ? 1.582 ? ?
+#

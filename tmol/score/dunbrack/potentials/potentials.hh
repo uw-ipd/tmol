@@ -31,6 +31,14 @@ constexpr float operator"" _2rad(long double deg) {
   return float(M_PI * deg / 180.);
 }
 
+template <typename Real>
+def periodic_chi_difference(Real chi, Real mean) -> Real {
+  Real difference = chi - mean;
+  while (difference > Real(M_PI)) difference -= Real(2 * M_PI);
+  while (difference < Real(-M_PI)) difference += Real(2 * M_PI);
+  return difference;
+}
+
 template <typename Real, typename Int, tmol::Device D>
 def measure_dihedral_V_dV(
     TensorAccessor<Eigen::Matrix<Real, 3, 1>, 1, D> coordinates,
@@ -53,6 +61,27 @@ def measure_dihedral_V_dV(
     ddihe_dxyz.row(3) = dihe.dV_dL;
   } else if (at1 == -1) {
     // -1 is sentinel value for undefined dihedral
+    dihedral = dih_default;
+    // Default angles are constant. Downstream derivative helpers consume
+    // this scratch even though unresolved atom indices prevent accumulation.
+    ddihe_dxyz.setZero();
+  }
+}
+
+template <typename Real, typename Int, tmol::Device D>
+def measure_dihedral_V(
+    TensorAccessor<Eigen::Matrix<Real, 3, 1>, 1, D> coordinates,
+    const Vec<Int, 4>& dihedral_atom_inds,
+    Real dih_default,
+    Real& dihedral) -> void {
+  Int at1 = dihedral_atom_inds[0];
+  if (at1 >= 0) {
+    dihedral = dihedral_angle<Real>::V(
+        coordinates[at1],
+        coordinates[dihedral_atom_inds[1]],
+        coordinates[dihedral_atom_inds[2]],
+        coordinates[dihedral_atom_inds[3]]);
+  } else if (at1 == -1) {
     dihedral = dih_default;
   }
 }
@@ -253,7 +282,7 @@ def block_interpolate_rotameric_tables(
       wrap_iidihe += 2 * M_PI;
     }
     Real ii_period = rotameric_bb_periodicity[table_set][ii];
-    while (wrap_iidihe > ii_period) {
+    while (wrap_iidihe >= ii_period) {
       wrap_iidihe -= ii_period;
     }
 
@@ -267,20 +296,16 @@ def block_interpolate_rotameric_tables(
   // Perform the interpolation
   TensorAccessor<Real, NbbP1 - 1, D> mean_slice(
       rotameric_mean_tables.data() + tableind * rotameric_mean_tables.stride(0),
-      rotmean_table_sizes.data()->data()
-          + tableind * rotmean_table_sizes.stride(0),
-      rotmean_table_strides.data()->data()
-          + tableind * rotmean_table_strides.stride(0));
+      rotmean_table_sizes[tableind].data(),
+      rotmean_table_strides[tableind].data());
   tie(mean, dmean_dbb) =
       tmol::numeric::bspline::ndspline<NbbP1 - 1, 3, D, Real, Int>::interpolate(
           mean_slice, bbdihe);
 
   TensorAccessor<Real, NbbP1 - 1, D> sdev_slice(
       rotameric_sdev_tables.data() + tableind * rotameric_sdev_tables.stride(0),
-      rotmean_table_sizes.data()->data()
-          + tableind * rotmean_table_sizes.stride(0),
-      rotmean_table_strides.data()->data()
-          + tableind * rotmean_table_strides.stride(0));
+      rotmean_table_sizes[tableind].data(),
+      rotmean_table_strides[tableind].data());
   tie(sdev, dsdev_dbb) =
       tmol::numeric::bspline::ndspline<NbbP1 - 1, 3, D, Real, Int>::interpolate(
           sdev_slice, bbdihe);
@@ -333,7 +358,7 @@ def interpolate_rotameric_tables(
       wrap_iidihe += 2 * M_PI;
     }
     Real ii_period = rotameric_bb_periodicity[table_set][ii];
-    while (wrap_iidihe > ii_period) {
+    while (wrap_iidihe >= ii_period) {
       wrap_iidihe -= ii_period;
     }
 
@@ -347,20 +372,16 @@ def interpolate_rotameric_tables(
   // Perform the interpolation
   TensorAccessor<Real, NbbP1 - 1, D> mean_slice(
       rotameric_mean_tables.data() + tableind * rotameric_mean_tables.stride(0),
-      rotmean_table_sizes.data()->data()
-          + tableind * rotmean_table_sizes.stride(0),
-      rotmean_table_strides.data()->data()
-          + tableind * rotmean_table_strides.stride(0));
+      rotmean_table_sizes[tableind].data(),
+      rotmean_table_strides[tableind].data());
   tie(mean, dmean_dbb) =
       tmol::numeric::bspline::ndspline<NbbP1 - 1, 3, D, Real, Int>::interpolate(
           mean_slice, bbdihe);
 
   TensorAccessor<Real, NbbP1 - 1, D> sdev_slice(
       rotameric_sdev_tables.data() + tableind * rotameric_sdev_tables.stride(0),
-      rotmean_table_sizes.data()->data()
-          + tableind * rotmean_table_sizes.stride(0),
-      rotmean_table_strides.data()->data()
-          + tableind * rotmean_table_strides.stride(0));
+      rotmean_table_sizes[tableind].data(),
+      rotmean_table_strides[tableind].data());
   tie(sdev, dsdev_dbb) =
       tmol::numeric::bspline::ndspline<NbbP1 - 1, 3, D, Real, Int>::interpolate(
           sdev_slice, bbdihe);
@@ -411,8 +432,7 @@ def block_chi_deviation_penalty(
 
   Int chi_index = chi_ind + NbbP1 - 1;  // Where does this -1 come from?
   Real const chi = dihedrals[chi_index];
-  Real const chi_dev =
-      (chi < -120.0_2rad ? chi + Real(2 * M_PI) - mean : chi - mean);
+  Real const chi_dev = periodic_chi_difference(chi, mean);
 
   // Now calculate d penalty / dbb
 
@@ -483,8 +503,7 @@ def chi_deviation_penalty(
   Int chi_index =
       dihedral_offset_for_res[residue_ind] + chi_dihe_for_residue + NbbP1 - 1;
   Real const chi = dihedrals[chi_index];
-  Real const chi_dev =
-      (chi < -120.0_2rad ? chi + Real(2 * M_PI) - mean : chi - mean);
+  Real const chi_dev = periodic_chi_difference(chi, mean);
 
   // Now calculate d penalty / dbb
 
@@ -535,7 +554,8 @@ def block_deviation_penalty_for_chi(
     Int rotameric_rottable_assignment,
     // Out
     TensorAccessor<CoordQuad, 1, D> drotchi_devpen_dtor_xyz,
-    TensorAccessor<CoordQuad, 1, D> ddihe_dxyz) -> Real {
+    TensorAccessor<CoordQuad, 1, D> ddihe_dxyz,
+    bool compute_derivs = true) -> Real {
   Real devpen, dpen_dchi;
   Eigen::Matrix<Real, 2, 1> dpen_dbb;
 
@@ -556,13 +576,15 @@ def block_deviation_penalty_for_chi(
       chi_ind,
       rotameric_rottable_assignment);
 
-  for (int ii = 0; ii < NbbP1 - 1 + 1; ++ii) {
-    int tor_ind = (ii == NbbP1 - 1 ? (NbbP1 - 1 + chi_ind) : ii);
-    Real dpen_dtor = ii == NbbP1 - 1 ? dpen_dchi : dpen_dbb(ii);
-    for (int jj = 0; jj < 4; ++jj) {
-      for (int kk = 0; kk < 3; ++kk) {
-        drotchi_devpen_dtor_xyz[ii](jj, kk) =
-            dpen_dtor * ddihe_dxyz[tor_ind](jj, kk);
+  if (compute_derivs) {
+    for (int ii = 0; ii < NbbP1 - 1 + 1; ++ii) {
+      int tor_ind = (ii == NbbP1 - 1 ? (NbbP1 - 1 + chi_ind) : ii);
+      Real dpen_dtor = ii == NbbP1 - 1 ? dpen_dchi : dpen_dbb(ii);
+      for (int jj = 0; jj < 4; ++jj) {
+        for (int kk = 0; kk < 3; ++kk) {
+          drotchi_devpen_dtor_xyz[ii](jj, kk) =
+              dpen_dtor * ddihe_dxyz[tor_ind](jj, kk);
+        }
       }
     }
   }
@@ -653,7 +675,7 @@ def block_rotameric_chi_probability(
       wrap_iidihe += 2 * M_PI;
     }
     Real ii_period = rotameric_bb_periodicity[table_set][ii];
-    while (wrap_iidihe > ii_period) {
+    while (wrap_iidihe >= ii_period) {
       wrap_iidihe -= ii_period;
     }
 
@@ -665,10 +687,8 @@ def block_rotameric_chi_probability(
   TensorAccessor<Real, NbbP1 - 1, D> rotprob_slice(
       rotameric_neglnprob_tables.data()
           + res_rottable * rotameric_neglnprob_tables.stride(0),
-      rotprob_table_sizes.data()->data()
-          + res_rottable * rotprob_table_sizes.stride(0),
-      rotprob_table_strides.data()->data()
-          + res_rottable * rotprob_table_strides.stride(0));
+      rotprob_table_sizes[res_rottable].data(),
+      rotprob_table_strides[res_rottable].data());
 
   tie(V, dVdbb) =
       tmol::numeric::bspline::ndspline<NbbP1 - 1, 3, D, Real, Int>::interpolate(
@@ -709,7 +729,7 @@ def rotameric_chi_probability(
       wrap_iidihe += 2 * M_PI;
     }
     Real ii_period = rotameric_bb_periodicity[table_set][ii];
-    while (wrap_iidihe > ii_period) {
+    while (wrap_iidihe >= ii_period) {
       wrap_iidihe -= ii_period;
     }
 
@@ -721,10 +741,8 @@ def rotameric_chi_probability(
   TensorAccessor<Real, NbbP1 - 1, D> rotprob_slice(
       rotameric_neglnprob_tables.data()
           + res_rottable * rotameric_neglnprob_tables.stride(0),
-      rotprob_table_sizes.data()->data()
-          + res_rottable * rotprob_table_sizes.stride(0),
-      rotprob_table_strides.data()->data()
-          + res_rottable * rotprob_table_strides.stride(0));
+      rotprob_table_sizes[res_rottable].data(),
+      rotprob_table_strides[res_rottable].data());
 
   tie(V, dVdbb) =
       tmol::numeric::bspline::ndspline<NbbP1 - 1, 3, D, Real, Int>::interpolate(
@@ -748,7 +766,8 @@ def rotameric_chi_probability_for_block(
     TensorAccessor<Real, 1, D> dihedrals,
     Int rotameric_rottable_assignment,
     TensorAccessor<CoordQuad, 1, D> dneglnprob_rot_dbb_xyz,
-    TensorAccessor<CoordQuad, 1, D> ddihe_dxyz) -> Real {
+    TensorAccessor<CoordQuad, 1, D> ddihe_dxyz,
+    bool compute_derivs = true) -> Real {
   Real neglnprobE = 0.0;
   Eigen::Matrix<Real, NbbP1 - 1, 1> dneglnprob_ddihe;
   tie(neglnprobE, dneglnprob_ddihe) = block_rotameric_chi_probability(
@@ -763,11 +782,13 @@ def rotameric_chi_probability_for_block(
       block_rotamer_table_set,
       rotameric_rottable_assignment);
 
-  for (int ii = 0; ii < 2; ++ii) {
-    for (int jj = 0; jj < 4; ++jj) {
-      for (int kk = 0; kk < 3; ++kk) {
-        dneglnprob_rot_dbb_xyz[ii](jj, kk) =
-            dneglnprob_ddihe(ii) * ddihe_dxyz[ii](jj, kk);
+  if (compute_derivs) {
+    for (int ii = 0; ii < 2; ++ii) {
+      for (int jj = 0; jj < 4; ++jj) {
+        for (int kk = 0; kk < 3; ++kk) {
+          dneglnprob_rot_dbb_xyz[ii](jj, kk) =
+              dneglnprob_ddihe(ii) * ddihe_dxyz[ii](jj, kk);
+        }
       }
     }
   }
@@ -839,7 +860,8 @@ def block_semirotameric_energy(
     TensorAccessor<Real, 1, D> dihedrals,
     Int semirotameric_rottable_assignment,
     TensorAccessor<CoordQuad, 1, D> dneglnprob_nonrot_dtor_xyz,
-    TensorAccessor<CoordQuad, 1, D> ddihe_dxyz) -> Real {
+    TensorAccessor<CoordQuad, 1, D> ddihe_dxyz,
+    bool compute_derivs = true) -> Real {
   Eigen::Matrix<Real, NbbP2 - 1, 1> dihe;
   Eigen::Matrix<Real, NbbP2 - 1, 1> temp_dihe_deg;
   Eigen::Matrix<Real, NbbP2 - 1, 1> temp_orig_dihe_deg;
@@ -864,7 +886,7 @@ def block_semirotameric_energy(
       wrap_iidihe += 2 * M_PI;
     }
     Real ii_period = semirot_periodicity[semirot_table_set][ii];
-    while (wrap_iidihe > ii_period) {
+    while (wrap_iidihe >= ii_period) {
       wrap_iidihe -= ii_period;
     }
     temp_dihe_deg(ii) = wrap_iidihe * 180 / M_PI;
@@ -877,10 +899,8 @@ def block_semirotameric_energy(
   Eigen::Matrix<Real, NbbP2 - 1, 1> dnlp_ddihe;
   TensorAccessor<Real, NbbP2 - 1, D> semirot_slice(
       semirotameric_tables.data() + table_ind * semirotameric_tables.stride(0),
-      semirot_table_sizes.data()->data()
-          + table_ind * semirot_table_sizes.stride(0),
-      semirot_table_strides.data()->data()
-          + table_ind * semirot_table_strides.stride(0));
+      semirot_table_sizes[table_ind].data(),
+      semirot_table_strides[table_ind].data());
 
   tie(neglnprob, dnlp_ddihe) =
       tmol::numeric::bspline::ndspline<NbbP2 - 1, 3, D, Real, Int>::interpolate(
@@ -889,11 +909,13 @@ def block_semirotameric_energy(
     dnlp_ddihe[ii] /= dihe_step[ii];
   }
 
-  for (int ii = 0; ii < 3; ++ii) {
-    int tor_ind = ii == 2 ? block_semirot_dihedral_index : ii;
-    for (int jj = 0; jj < 4; ++jj) {
-      dneglnprob_nonrot_dtor_xyz[ii].row(jj) =
-          dnlp_ddihe(ii) * ddihe_dxyz[tor_ind].row(jj);
+  if (compute_derivs) {
+    for (int ii = 0; ii < 3; ++ii) {
+      int tor_ind = ii == 2 ? block_semirot_dihedral_index : ii;
+      for (int jj = 0; jj < 4; ++jj) {
+        dneglnprob_nonrot_dtor_xyz[ii].row(jj) =
+            dnlp_ddihe(ii) * ddihe_dxyz[tor_ind].row(jj);
+      }
     }
   }
 
@@ -943,7 +965,7 @@ def semirotameric_energy(
       wrap_iidihe += 2 * M_PI;
     }
     Real ii_period = semirot_periodicity[semirot_table_set][ii];
-    while (wrap_iidihe > ii_period) {
+    while (wrap_iidihe >= ii_period) {
       wrap_iidihe -= ii_period;
     }
     temp_dihe_deg(ii) = wrap_iidihe * 180 / M_PI;
@@ -956,10 +978,8 @@ def semirotameric_energy(
   Eigen::Matrix<Real, NbbP2 - 1, 1> dnlp_ddihe;
   TensorAccessor<Real, NbbP2 - 1, D> semirot_slice(
       semirotameric_tables.data() + table_ind * semirotameric_tables.stride(0),
-      semirot_table_sizes.data()->data()
-          + table_ind * semirot_table_sizes.stride(0),
-      semirot_table_strides.data()->data()
-          + table_ind * semirot_table_strides.stride(0));
+      semirot_table_sizes[table_ind].data(),
+      semirot_table_strides[table_ind].data());
 
   tie(neglnprob, dnlp_ddihe) =
       tmol::numeric::bspline::ndspline<NbbP2 - 1, 3, D, Real, Int>::interpolate(

@@ -2,7 +2,7 @@ import numpy
 import pytest
 import torch
 
-from tmol.tests.torch import requires_cuda
+from tmol.tests import requires_cuda
 
 
 @pytest.fixture

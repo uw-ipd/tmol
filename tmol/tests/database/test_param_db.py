@@ -1,10 +1,25 @@
+from pathlib import Path
+
+import tmol.database
+
 from tmol.database import ParameterDatabase
+from tmol.database.scoring import ScoringDatabase
 
 
 def test_get_default():
     param_db1 = ParameterDatabase.get_default()
     param_db2 = ParameterDatabase.get_default()
     assert param_db1 is param_db2
+
+
+def test_scoring_database_ignores_forced_unsafe_torch_load(monkeypatch):
+    """RF-style process settings must not disable legacy pickle aliases."""
+    monkeypatch.setenv("TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD", "1")
+    scoring_path = Path(tmol.database.__file__).parent / "default" / "scoring"
+    scoring = ScoringDatabase.from_file(str(scoring_path))
+    assert scoring.dun.rotameric_libraries
+    assert scoring.rama.rama_tables
+    assert scoring.omega_bbdep.bbdep_omega_lookup
 
 
 def test_create_stable_subset(default_database):

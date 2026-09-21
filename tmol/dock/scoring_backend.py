@@ -29,8 +29,7 @@ from tmol.kinematics.compiled import (
 )
 from tmol.kinematics.move_map import MinimizerMap
 from tmol.kinematics.script_modules import PoseStackKinematicsModule
-from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
-from tmol.optimization.minimizers import build_kinforest_network, run_min
+from tmol.optimization import LBFGS_Armijo, build_kinforest_network, run_min
 from tmol.pose.pose_stack import PoseStack
 from tmol.score import beta2016_score_function
 from tmol.score.gridscore import (

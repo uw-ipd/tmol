@@ -49,7 +49,7 @@ atom_type_parameters:
   - &OH
     { name: OH  , *ljr: 1.542743, *ljw: 0.161947, *lkd:  -5.46060, *lkl: 3.500000, *lkv: 10.722000 }
   - { <<: *OH, name: OHphenol } # Phenol hydrogen in TYR
-  - { name: Owat, *ljr: 1.550000, *ljw: 0.159100, *lkd:  -5.46060, *lkl: 3.500000, *lkv: 10.800000 }
+  - { name: Owat, *ljr: 1.542743, *ljw: 0.161947, *lkd:  -4.54800, *lkl: 3.500000, *lkv: 10.800000 }
   - { name: ONH2, *ljr: 1.548662, *ljw: 0.182924, *lkd:  -5.03501, *lkl: 3.500000, *lkv: 10.102000 }
   - { name: OOC , *ljr: 1.492871, *ljw: 0.099873, *lkd: -10.20822, *lkl: 3.500000, *lkv:  9.995600 }
   - { name: S   , *ljr: 1.975967, *ljw: 0.455970, *lkd:  -4.89802, *lkl: 3.500000, *lkv: 17.640000 }
@@ -63,7 +63,7 @@ atom_type_parameters:
   - { name: Hapo, *ljr: 1.421272, *ljw: 0.021808, *lkd:   0.00000, *lkl: 3.500000, *lkv:  0.000000 }
   - { name: Haro, *ljr: 1.374914, *ljw: 0.015909, *lkd:   0.00000, *lkl: 3.500000, *lkv:  0.000000 }
   - { name: HNbb, *ljr: 0.901681, *ljw: 0.005000, *lkd:   0.00000, *lkl: 3.500000, *lkv:  0.000000 }
-  - { name: Hwat, *ljr: 1.000000, *ljw: 0.050000, *lkd:   0.00000, *lkl: 3.500000, *lkv:  0.000000 }
+  - { name: Hwat, *ljr: 0.901681, *ljw: 0.010000, *lkd:   0.00000, *lkl: 3.500000, *lkv:  0.000000 }
   - { name: Vrt,  *ljr: 1.000000, *ljw: 0.000000, *lkd:   0.00000, *lkl: 3.500000, *lkv:  0.000000 }
 
   # DNA atom types, from flags_opt46A.523. The DNA-specific splits of Ntrp/Nhis/

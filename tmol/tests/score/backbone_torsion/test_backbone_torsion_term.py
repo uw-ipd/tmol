@@ -2,8 +2,8 @@ import numpy
 import torch
 
 from tmol.io import pose_stack_from_pdb
-from tmol.score.backbone_torsion.bb_torsion_energy_term import BackboneTorsionEnergyTerm
-from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
+from tmol.score.backbone_torsion import BackboneTorsionEnergyTerm
+from tmol.tests.score.common import EnergyTermTestBase
 
 
 def test_smoke(default_database, torch_device):

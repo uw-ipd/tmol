@@ -86,7 +86,8 @@ class BackboneTorsionPoseScoreDispatch {
       // Omega (backbone-dependent) potential parameters
       TView<Real, 4, Dev> omega_tables,
       TView<RamaTableParams<Real>, 1, Dev> omega_table_params,
-      bool output_block_pair_energies)
+      bool output_block_pair_energies,
+      bool compute_derivs)
       -> std::tuple<TPack<Real, 4, Dev>, TPack<Vec<Real, 3>, 2, Dev>>;
 
   static auto backward(

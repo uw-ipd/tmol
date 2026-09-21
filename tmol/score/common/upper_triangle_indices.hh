@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/tuple.hh>
 
@@ -13,8 +15,11 @@ inline tuple<int, int> TMOL_DEVICE_FUNC upper_triangle_inds_from_linear_index(
 ) {
   // from
   // https://stackoverflow.com/questions/27086195/linear-index-upper-triangular-matrix
-  int i = n - 2 - floor(sqrt(-8 * k + 4 * n * (n - 1) - 7) / 2.0 - 0.5);
-  int j = k + i + 1 - n * (n - 1) / 2 + (n - i) * ((n - i) - 1) / 2;
+  int64_t const discriminant =
+      -8 * int64_t(k) + 4 * int64_t(n) * int64_t(n - 1) - 7;
+  int const i = n - 2 - int(floor(sqrt(double(discriminant)) / 2.0 - 0.5));
+  int64_t const row_start = int64_t(i) * (2 * int64_t(n) - int64_t(i) - 1) / 2;
+  int const j = int(int64_t(k) - row_start + int64_t(i) + 1);
   return make_tuple(i, j);
 }
 

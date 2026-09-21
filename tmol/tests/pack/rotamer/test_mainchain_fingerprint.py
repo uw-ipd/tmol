@@ -1,24 +1,22 @@
 import numpy
 import torch
 
-from tmol.chemical.restypes import ResidueTypeSet
+from tmol.chemical import ResidueTypeSet
 
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pack.rotamer.single_residue_kinforest import (
+from tmol.pose import PackedBlockTypes
+from tmol.pack.rotamer import (
     construct_single_residue_kinforest,
-)
-from tmol.pack.rotamer.mainchain_fingerprint import (
     create_non_sidechain_fingerprint,
     create_mainchain_fingerprint,
     AtomFingerprint,
     annotate_residue_type_with_sampler_fingerprints,
     find_unique_fingerprints,
+    bfs_sidechain_atoms,
+    FixedAAChiSampler,
 )
-from tmol.pack.rotamer.bfs_sidechain import bfs_sidechain_atoms
-from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
+from tmol.pack.rotamer.dunbrack import (
     create_dunbrack_sampler_from_database,
 )
-from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 
 
 def test_create_non_sidechain_fingerprint(default_database):
@@ -136,7 +134,7 @@ def test_annotate_rt_w_mainchain_fingerprint(default_database):
     assert mc_fingerprint.fingerprint == fingerprint_gold
 
 
-def test_merge_fingerprints(default_database):
+def test_merge_fingerprints(default_database):  # noqa: C901
     torch_device = torch.device("cpu")
     rts = ResidueTypeSet.from_database(default_database.chemical)
 
@@ -181,34 +179,31 @@ def test_merge_fingerprints(default_database):
         default_database.chemical, rts, rt_list, device=torch_device
     )
     find_unique_fingerprints(pbt)
+    cached_fingerprints = pbt.mc_fingerprints
+    find_unique_fingerprints(pbt)
+    assert pbt.mc_fingerprints is cached_fingerprints
 
     # we should find that the pbt has been annotated
     # we should find that it has discovered two backbone types
     # we should see that, when mapping proline onto a leucine,
     # that proline has a -1 for the HA atom of leucine's mainchain.
     # we should see that otherwise the standard set of atoms
-    # map to each other, except for glycine which uses 2HA to map
-    # to HA.
+    # map to each other. Glycine rebuilds both alpha hydrogens, so neither
+    # can supply or receive a copied alpha-hydrogen DOF during design.
 
     assert hasattr(pbt, "mc_fingerprints")
 
     standard_mc_atoms = ["N", "H", "CA", "HA", "C", "O"]
-    glycine_mc_atoms = ["N", "H", "CA", "HA2", "C", "O"]
+    glycine_mc_atoms = ["N", "H", "CA", "C", "O"]
 
     standard_mc_atoms_w_pro = ["N", "CA", "HA", "C", "O"]
-    glycine_mc_atoms_w_pro = ["N", "CA", "HA2", "C", "O"]
 
     def which_atoms(orig_rt, target_rt):
         if orig_rt.name == "PRO":
-            if target_rt.name == "GLY":
-                return glycine_mc_atoms_w_pro
-            else:
-                return standard_mc_atoms_w_pro
-        else:
-            if target_rt.name == "GLY":
-                return glycine_mc_atoms
-            else:
-                return standard_mc_atoms
+            return standard_mc_atoms_w_pro
+        if orig_rt.name == "GLY":
+            return glycine_mc_atoms
+        return standard_mc_atoms
 
     assert dun_sampler.sampler_name() in pbt.mc_fingerprints.sampler_mapping
     dun_sampler_ind = pbt.mc_fingerprints.sampler_mapping[dun_sampler.sampler_name()]
@@ -222,14 +217,13 @@ def test_merge_fingerprints(default_database):
     # fd seems like (n_samplers, n_mcs, pbt.n_types, max_n_mc_atoms)
     assert pbt.mc_fingerprints.atom_mapping.shape == (
         2,
-        2,
+        3,
         21,
         6,
     )
 
     for i, rt_orig in enumerate(pbt.active_block_types):
-        orig_rt_sampler = pbt.mc_fingerprints.max_sampler[i]
-        orig_max_fp = pbt.mc_fingerprints.max_fingerprint[i]
+        orig_max_fp = pbt.mc_fingerprints.source_fingerprint[i]
         orig_mc_ats = which_atoms(rt_orig, rt_orig)
 
         for j, rt_new in enumerate(pbt.active_block_types):
@@ -242,9 +236,7 @@ def test_merge_fingerprints(default_database):
             # now the atom mapping:
             # print(rt_new.atom_to_idx)
             for k in range(6):
-                k_orig = pbt.mc_fingerprints.atom_mapping[
-                    orig_rt_sampler, orig_max_fp, i, k
-                ]
+                k_orig = pbt.mc_fingerprints.source_atom_mapping[i, k]
                 k_new = pbt.mc_fingerprints.atom_mapping[
                     new_rt_sampler, orig_max_fp, j, k
                 ]

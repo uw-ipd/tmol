@@ -1,8 +1,8 @@
 import torch
 import pytest
 
-from tmol.pose.compiled.apsp_ops import stacked_apsp
-from tmol.tests.torch import requires_cuda, zero_padded_counts
+from tmol.pose.compiled import stacked_apsp
+from tmol.tests import requires_cuda, zero_padded_counts
 
 
 def test_all_pairs_shortest_paths_simple_path_graph1(torch_device):

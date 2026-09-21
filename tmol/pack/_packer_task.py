@@ -1,0 +1,635 @@
+from __future__ import annotations
+
+import torch
+import attr
+
+from tmol.types import Tensor
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+)
+from typing import Collection, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from tmol.pack.rotamer._conformer_sampler import ConformerSampler
+
+# Architecture is borrowed from Rosetta3:
+# PackerTask: a class holding data describing how the
+#   packer should behave. Each position in the
+#   PackerTask corresponds to a residue in the input
+#   PackedResidueSystem. For each residue, it holds
+#   a list of the indices of the considered
+#   block types that can be built at that position,
+#   and a mask representing which considered block
+#   types should be allowed. The PackerTask can be
+#   modified only by turning entries in these masks
+#   from True to False and not the other direction.
+#   Once the user has finalized all their instructions
+#   to the packer, it constructs a "SetPackerTask" which
+#   holds a set of mappings and indices relevant for the
+#   job.
+#
+# PackerPallete: a class that decides how to construct
+#   a PackerTask, deciding which residue types to allow
+#   based on the residue type of the input structure.
+#   Different PackerPalletes will construct different
+#   starting points which can be refined towards the
+#   set of design choices that make sense for your
+#   application. The default packer palette is primarily
+#   designed for L-AA redesign / repacking tasks.
+
+
+def set_compare(x, y):
+    """Treat the collections x and y as if they are sets. Return true if they
+    contain the same elements and false otherwise
+    """
+    if len(x) != len(y):
+        return False
+    for val in x:
+        if val not in y:
+            return False
+    return True
+
+
+@attr.define(slots=True, frozen=True)
+class PackerPalleteAnnotation:
+    """Cached residue-type compatibility tensors for a packer palette."""
+
+    max_n_allowed: int
+    n_allowed_block_types_for_block_type: Tensor[torch.int64][:]
+    allowed_block_types_for_block_type: Tensor[torch.bool][:, :]
+    allowed_block_type_is_orig: Tensor[torch.bool][:, :]
+    restrict_to_repacking_masks: Tensor[torch.bool][:, :]
+
+
+class PackerPalette:
+    """Define which residue types may replace each original residue type."""
+
+    def __init__(self):
+        pass
+
+    def block_types_from_original(
+        self, pbt: PackedBlockTypes, orig: Tensor[torch.int64][:, :]
+    ) -> tuple[
+        Tensor[torch.int64][:, :],
+        Tensor[torch.int64][:, :, :],
+        Tensor[torch.bool][:, :, :],
+    ]:
+        """Return residue-type choices allowed by the default palette.
+
+        Args:
+            pbt: Packed residue-type collection shared by the poses.
+            orig: Original residue-type index for each pose and block.
+
+        Returns:
+            The number of choices, padded choice indices, and a mask marking
+            each original residue type.
+        """
+        # initialize the list of allowed block types for a PoseStack based on the
+        # original block types; the logic of which block types are allowed given
+        # the original block type is pre-computed and cached in the PackedBlockTypes
+        # object, so all we will do is take the subset of real block types (ind >= 0)
+        # and read from the cached logic
+        _annotate_packed_block_types_for_default_packer_palette(pbt)
+        assert orig.device == pbt.device
+
+        dppann = pbt.default_packer_palette_annotations
+        allowed_block_types_for_block_type = torch.full(
+            (orig.shape[0], orig.shape[1], dppann.max_n_allowed),
+            -1,
+            dtype=torch.int64,
+            device=pbt.device,
+        )
+        allowed_block_type_is_orig = torch.zeros_like(
+            allowed_block_types_for_block_type, dtype=torch.bool
+        )
+        n_allowed_block_types_for_block_type = torch.zeros_like(orig, dtype=torch.int64)
+        is_real_bt = orig >= 0
+
+        n_allowed_bt_from_orig = dppann.n_allowed_block_types_for_block_type
+        allowed_bt_from_orig = dppann.allowed_block_types_for_block_type
+        allowed_bt_is_orig_from_orig = dppann.allowed_block_type_is_orig
+        n_allowed_block_types_for_block_type[is_real_bt] = n_allowed_bt_from_orig[
+            orig[is_real_bt]
+        ]
+        allowed_block_types_for_block_type[is_real_bt] = allowed_bt_from_orig[
+            orig[is_real_bt]
+        ]
+        allowed_block_type_is_orig[is_real_bt] = allowed_bt_is_orig_from_orig[
+            orig[is_real_bt]
+        ]
+
+        return (
+            n_allowed_block_types_for_block_type,
+            allowed_block_types_for_block_type,
+            allowed_block_type_is_orig,
+        )
+
+    def create_restrict_to_repacking_mask(
+        self, pbt: PackedBlockTypes, orig: Tensor[torch.int64][:, :]
+    ) -> Tensor[torch.bool][:, :, :]:
+        """Return choices that preserve each block's original residue name."""
+        # initialize the restrict-to-repacking mask for a PoseStack based on the
+        # original block types; the logic of which block types are allowed for each
+        # starting block type can be pre-computed and cached in the PackedBlockTypes
+        # object and then looked up here. For the default PackerPalette, the logic is
+        # simply to allow only those residue types with the same name3 as the original
+        # residue type
+        _annotate_packed_block_types_for_default_packer_palette(pbt)
+        dppann = pbt.default_packer_palette_annotations
+        rtr_mask_for_orig = torch.zeros(
+            (orig.shape[0], orig.shape[1], dppann.max_n_allowed),
+            dtype=torch.bool,
+            device=pbt.device,
+        )
+        is_real_bt = orig >= 0
+        rtr_mask = dppann.restrict_to_repacking_masks
+        rtr_mask_for_orig[is_real_bt] = rtr_mask[orig[is_real_bt]]
+        return rtr_mask_for_orig
+
+    def default_conformer_samplers(self):
+        """All positions must build one rotamer, even if they are not being optimized.
+
+        Each block must have coordinates represented in the tensor with the other
+        rotamers, and the easiest way to do that is to create a rotamer with the
+        DOFs of the input conformation. The FallbackSampler copies these DOFs
+        from the inverse-folded coordinates of the starting Pose's blocks, but
+        only for positions where no other sampler provides rotamers (e.g. residue
+        types not covered by DunbrackChiSampler). Positions with at least one
+        other sampler are left to that sampler exclusively.
+        Future versions of PackerPalette have the option to override this method.
+        """
+        from tmol.pack.rotamer import FallbackSampler
+
+        return [FallbackSampler()]
+
+
+def _mainchain_elements(block_type, element_for_atom_type):
+    """The element of each mainchain atom, in mainchain order.
+
+    A mainchain fingerprint identifies an atom by its position along the
+    mainchain, so two block types can only exchange dofs when their mainchains
+    agree position by position. Comparing elements rather than atom names lets
+    two backbones of the same shape exchange dofs whatever they call their
+    atoms, and comparing elements rather than atom types keeps a difference
+    that does not move an atom from blocking the exchange.
+    """
+    types = {atom.name: atom.atom_type for atom in block_type.atoms}
+    return tuple(
+        element_for_atom_type[types[name]]
+        for name in (block_type.properties.polymer.mainchain_atoms or ())
+    )
+
+
+def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockTypes):
+    # Annotate the PackedBlockTypes object with the block-type to block-type comparisons
+    if hasattr(pbt, "default_packer_palette_annotations"):
+        return
+    element_for_atom_type = {at.name: at.element for at in pbt.chem_db.atom_types}
+    mc_elements = [
+        _mainchain_elements(bt, element_for_atom_type) for bt in pbt.active_block_types
+    ]
+    allowed_block_types_for_block_type = [list() for _ in range(pbt.n_types)]
+    allowed_block_is_orig = [list() for _ in range(pbt.n_types)]
+    restrict_to_repacking_masks = [list() for _ in range(pbt.n_types)]
+    for i, orig_bt in enumerate(pbt.active_block_types):
+        for j, alt_bt in enumerate(pbt.active_block_types):
+            j_allowed_for_restrict_to_repack = alt_bt.name3 == orig_bt.name3
+            if (
+                alt_bt.properties.polymer.is_polymer
+                == orig_bt.properties.polymer.is_polymer
+                and alt_bt.properties.polymer.polymer_type
+                == orig_bt.properties.polymer.polymer_type
+                and alt_bt.properties.polymer.backbone_type
+                == orig_bt.properties.polymer.backbone_type
+                and alt_bt.connections
+                == orig_bt.connections  # fd  use this instead of terminal variant check
+                and alt_bt.conjugation_context == orig_bt.conjugation_context
+                and mc_elements[i] == mc_elements[j]
+                and set_compare(
+                    alt_bt.properties.chemical_modifications,
+                    orig_bt.properties.chemical_modifications,
+                )
+                and set_compare(
+                    alt_bt.properties.connectivity, orig_bt.properties.connectivity
+                )
+                and alt_bt.properties.protonation.protonation_state
+                == orig_bt.properties.protonation.protonation_state
+            ):
+                if (
+                    alt_bt.properties.polymer.sidechain_chirality
+                    == orig_bt.properties.polymer.sidechain_chirality
+                ):
+                    allowed_block_types_for_block_type[i].append(j)
+                    allowed_block_is_orig[i].append(j == i)
+                    restrict_to_repacking_masks[i].append(
+                        j_allowed_for_restrict_to_repack
+                    )
+                elif orig_bt.properties.polymer.polymer_type == "amino_acid" and (
+                    (
+                        orig_bt.properties.polymer.sidechain_chirality == "l"
+                        and alt_bt.properties.polymer.sidechain_chirality == "achiral"
+                    )
+                    or (
+                        orig_bt.properties.polymer.sidechain_chirality == "achiral"
+                        and alt_bt.properties.polymer.sidechain_chirality == "l"
+                    )
+                ):
+                    # allow glycine <--> l-caa mutations
+                    allowed_block_types_for_block_type[i].append(j)
+                    allowed_block_is_orig[i].append(j == i)
+                    restrict_to_repacking_masks[i].append(
+                        j_allowed_for_restrict_to_repack
+                    )
+                elif (
+                    orig_bt.properties.polymer.polymer_type == "amino_acid"
+                    and orig_bt.properties.polymer.sidechain_chirality == "d"
+                    and alt_bt.properties.polymer.sidechain_chirality == "achiral"
+                ):
+                    # allow d-caa --> glycine mutations;
+                    # dangerous because this packer pallete will allow
+                    # your d-caa to become glycine, and then later
+                    # to an l-caa, but not the other way around
+                    allowed_block_types_for_block_type[i].append(j)
+                    allowed_block_is_orig[i].append(j == i)
+                    restrict_to_repacking_masks[i].append(
+                        j_allowed_for_restrict_to_repack
+                    )
+            elif i == j:
+                allowed_block_types_for_block_type[i].append(j)
+                allowed_block_is_orig[i].append(j == i)
+                restrict_to_repacking_masks[i].append(j_allowed_for_restrict_to_repack)
+
+    max_n_allowed = max(len(lst) for lst in allowed_block_types_for_block_type)
+    n_allowed_block_types_for_block_type = torch.tensor(
+        [len(lst) for lst in allowed_block_types_for_block_type],
+        dtype=torch.int64,
+        device=pbt.device,
+    )
+    allowed_block_types_for_block_type = torch.tensor(
+        [
+            lst + [-1] * (max_n_allowed - len(lst))
+            for lst in allowed_block_types_for_block_type
+        ],
+        dtype=torch.int64,
+        device=pbt.device,
+    )
+    allowed_block_type_is_orig = torch.tensor(
+        [lst + [False] * (max_n_allowed - len(lst)) for lst in allowed_block_is_orig],
+        dtype=torch.bool,
+        device=pbt.device,
+    )
+    restrict_to_repacking_masks = torch.tensor(
+        [
+            lst + [False] * (max_n_allowed - len(lst))
+            for lst in restrict_to_repacking_masks
+        ],
+        dtype=torch.bool,
+        device=pbt.device,
+    )
+
+    annotation = PackerPalleteAnnotation(
+        max_n_allowed=max_n_allowed,
+        n_allowed_block_types_for_block_type=n_allowed_block_types_for_block_type,
+        allowed_block_types_for_block_type=allowed_block_types_for_block_type,
+        allowed_block_type_is_orig=allowed_block_type_is_orig,
+        restrict_to_repacking_masks=restrict_to_repacking_masks,
+    )
+    setattr(pbt, "default_packer_palette_annotations", annotation)
+
+
+# Defaults carried over from ligand preparation, where this budget used to be
+# applied; exposed here because the count a group enumerates is not knowable
+# until the pose says which blocks are conjugated to which.
+DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT = 100
+DEFAULT_CHI_SAMPLE_LIMIT = 1000
+
+
+class PackerTask:
+    """Configure residue identities, conformers, and movable sites for packing."""
+
+    def __init__(self, systems: PoseStack, palette: PackerPalette):
+        # Retained so a sampler bundle can inspect connectivity when it
+        # registers itself; the task already derives its tensors from here.
+        self.pose_stack = systems
+        self.pbt = systems.packed_block_types
+        self.device = systems.device
+        self.is_real_block = systems.block_type_ind64 != -1
+        self.real_block_pose, self.real_block_block = torch.nonzero(
+            self.is_real_block, as_tuple=True
+        )
+        self.per_block_orig_block_type = systems.block_type_ind64.detach().clone()
+        (
+            self.per_block_n_considered_block_types,
+            self.per_block_considered_block_types,
+            self.per_block_considered_block_types_is_orig,
+        ) = palette.block_types_from_original(
+            systems.packed_block_types, systems.block_type_ind64
+        )
+        self.restrict_to_repacking_masks = palette.create_restrict_to_repacking_mask(
+            systems.packed_block_types, systems.block_type_ind64
+        )
+        self.per_block_is_block_type_allowed = torch.ones_like(
+            self.per_block_considered_block_types, dtype=torch.bool
+        )
+        # Each sampler object owns one mask column; equal but distinct sampler
+        # instances remain independent. Own the list even if a palette reuses it.
+        self.conformer_samplers = list(
+            {id(s): s for s in palette.default_conformer_samplers()}.values()
+        )
+        self.conformer_sampler_index = {
+            id(sampler): i for i, sampler in enumerate(self.conformer_samplers)
+        }
+        self.per_block_conformer_sampler_allowed = torch.ones(
+            (systems.n_poses, systems.max_n_blocks, len(self.conformer_samplers)),
+            dtype=torch.bool,
+            device=systems.device,
+        )
+        self.per_block_chi_expansion = torch.zeros(
+            (
+                systems.n_poses,
+                systems.max_n_blocks,
+                self.per_block_considered_block_types.shape[2],
+                4,
+            ),
+            dtype=torch.int32,
+            device=systems.device,
+        )
+        self._bump_check = False
+        # how many conformers a block's (or a conjugated group's) sampled chi
+        #    may enumerate; expansions are dropped at the first and chi freeze
+        #    from the tip inward at the second
+        self.chi_sample_expanded_limit = DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT
+        self.chi_sample_limit = DEFAULT_CHI_SAMPLE_LIMIT
+        self.chi_sample_budget = None
+
+    def set_chi_sample_budget(self, expanded_limit: int, limit: int):
+        """Set expansion/fallback budgets without mutating reusable samplers.
+
+        Groups count one rotamer per member per conformer, including current.
+        A required library that cannot fit is rejected before the group product
+        is allocated. Sampler-specific defaults apply until this setter is used.
+        The combined count across samplers and allowed types at each physical
+        residue must also fit the larger limit before rows/coordinates merge.
+        """
+        import operator
+
+        try:
+            if isinstance(expanded_limit, bool) or isinstance(limit, bool):
+                raise TypeError
+            expanded_limit, limit = operator.index(expanded_limit), operator.index(
+                limit
+            )
+        except TypeError:
+            raise ValueError(
+                "chi sample budget limits must be positive integers"
+            ) from None
+        if expanded_limit < 1 or limit < 1:
+            raise ValueError("chi sample budget limits must be positive integers")
+        self.chi_sample_expanded_limit = expanded_limit
+        self.chi_sample_limit = limit
+        self.chi_sample_budget = (expanded_limit, limit)
+
+    def restrict_to_repacking(self, block_mask: Tensor[torch.bool][:, :] | None = None):
+        """Restrict selected blocks to the original residue name.
+
+        If ``block_mask`` is omitted, restrict every block for backward
+        compatibility. Otherwise, only ``True`` pose/block entries are changed.
+        """
+        if block_mask is not None:
+            assert block_mask.device == self.per_block_is_block_type_allowed.device
+            assert block_mask.shape == self.per_block_is_block_type_allowed.shape[:2]
+            restriction = torch.logical_or(
+                self.restrict_to_repacking_masks, ~block_mask.unsqueeze(-1)
+            )
+        else:
+            restriction = self.restrict_to_repacking_masks
+
+        self.per_block_is_block_type_allowed = torch.logical_and(
+            self.per_block_is_block_type_allowed, restriction
+        )
+
+    def restrict_absent_name3s(
+        self,
+        name3s: Collection[str],
+        block_mask: Tensor[torch.bool][:, :] | None = None,
+    ):
+        """Restrict selected blocks to block types with the given name3s.
+
+        If ``block_mask`` is omitted, restrict every block for backward compatibility.
+        This operation only disables choices and may therefore be composed safely with
+        other task restrictions.
+        """
+        if block_mask is not None:
+            assert block_mask.device == self.per_block_is_block_type_allowed.device
+            assert block_mask.shape == self.per_block_is_block_type_allowed.shape[:2]
+
+        bt_name3_matches = torch.tensor(
+            [bt.name3 in name3s for bt in self.pbt.active_block_types],
+            dtype=torch.bool,
+            device=self.device,
+        )
+        considered = self.per_block_considered_block_types
+        restriction = torch.logical_and(
+            considered >= 0, bt_name3_matches[considered.clamp_min(0)]
+        )
+        if block_mask is not None:
+            restriction = torch.logical_or(restriction, ~block_mask.unsqueeze(-1))
+        self.per_block_is_block_type_allowed = torch.logical_and(
+            self.per_block_is_block_type_allowed, restriction
+        )
+
+    def add_conformer_sampler(self, sampler) -> None:
+        """Enable this sampler everywhere, registering its identity once.
+
+        A sampler bundle -- anything exposing ``expand_into_task`` -- registers
+        the samplers it is composed of instead, so callers can declare what
+        they want sampled without composing it themselves.
+        """
+        expand_into_task = getattr(sampler, "expand_into_task", None)
+        if expand_into_task is not None:
+            expand_into_task(self)
+            return
+        index = self.conformer_sampler_index.get(id(sampler))
+        if index is not None:
+            self.per_block_conformer_sampler_allowed[:, :, index].fill_(True)
+            return
+        self.add_conformer_sampler_by_block_mask(
+            sampler, torch.ones_like(self.is_real_block)
+        )
+
+    def add_conformer_sampler_by_block_mask(
+        self, sampler: ConformerSampler, block_type_mask: Tensor[torch.bool][:, :]
+    ) -> None:
+        """Enable this sampler in the mask, extending any existing selection."""
+        assert (
+            block_type_mask.shape == self.per_block_n_considered_block_types.shape[:2]
+        )
+        assert block_type_mask.device == self.per_block_conformer_sampler_allowed.device
+
+        index = self.conformer_sampler_index.get(id(sampler))
+        if index is not None:
+            self.per_block_conformer_sampler_allowed[:, :, index].logical_or_(
+                block_type_mask
+            )
+            return
+        self.conformer_samplers.append(sampler)
+        self.conformer_sampler_index[id(sampler)] = len(self.conformer_samplers) - 1
+        self.per_block_conformer_sampler_allowed = torch.cat(
+            [
+                self.per_block_conformer_sampler_allowed,
+                block_type_mask.unsqueeze(-1),
+            ],
+            dim=-1,
+        )
+
+    def or_expand_chi(self, chi_ind: int) -> None:
+        """Request one extra standard-deviation sample for a chi torsion."""
+        self.per_block_chi_expansion[:, :, :, chi_ind] = 1
+
+    def or_expand_chi_to(self, chi_ind: int, sample_level: int) -> None:
+        """Raise a chi torsion's expansion level without lowering it."""
+        # max over the current sample level and the new sample level.
+        self.per_block_chi_expansion[:, :, :, chi_ind] = torch.max(
+            self.per_block_chi_expansion[:, :, :, chi_ind], sample_level
+        )
+
+    def disable_sampler_by_block_mask(
+        self, sampler, block_mask: Tensor[torch.bool][:, :]
+    ):
+        """Stop one sampler building rotamers for the masked blocks."""
+        index = self.conformer_sampler_index[id(sampler)]
+        self.per_block_conformer_sampler_allowed[:, :, index] = torch.logical_and(
+            self.per_block_conformer_sampler_allowed[:, :, index],
+            torch.logical_not(block_mask),
+        )
+
+    def disable_packing_by_block_mask(
+        self, block_type_mask: Tensor[torch.bool][:, :]
+    ) -> None:
+        """Disable packing at selected pose/block entries."""
+        assert block_type_mask.device == self.device
+        assert block_type_mask.shape == self.per_block_is_block_type_allowed.shape[:2]
+        self.per_block_is_block_type_allowed = torch.logical_and(
+            self.per_block_is_block_type_allowed, ~block_type_mask.unsqueeze(-1)
+        )
+
+    def or_bump_check(self, setting: bool = True) -> None:
+        """Enable bump checking without allowing later calls to disable it."""
+        self._bump_check |= setting
+
+    @property
+    def bump_check(self):
+        """bump_check eliminates rotamers from consideration if
+        they have a high interaction energy with "the background,"
+        which is computed by taking the best energy a rotamer has
+        with each neighbor across all the neighbor's rotamers.
+
+        bump_check removes ~40% of all rotamers and can significantly
+        improve running time, but, this comes at the expense of
+        eliminating rotamers that are sometimes the best option
+        when all others are bad in ways that bump-check's rosie
+        estimation cannot predict. In ~10% of tested crystal
+        structures packed with only the base rotamers (no ex flags),
+        bump_check increased the energy of the final rotamer
+        rotamer assignment by >20 kcal/mol.
+
+        bump_check's logic: eliminate a rotamer if it has a
+        best possible energy with its neighbors and itself
+        >5 kcal/mol and at least one other rotamer of the same
+        block type at that residue has an energy less than
+        5 kcal/mol.
+        """
+        return self._bump_check
+
+
+class SetPackerTask:
+    """Set as in concrete. Once everything wrt the desired packing
+    task has been determined, pack_rotamers will construct this
+    object to create and hold the many mappings that the various
+    members of the packer need.
+    """
+
+    @classmethod
+    def from_packer_task(cls, task: PackerTask):
+        set_task = cls()
+        set_task.pbt = task.pbt
+        set_task.device = task.device
+        set_task.chi_sample_budget = task.chi_sample_budget
+        set_task.is_real_block = task.is_real_block
+        set_task.real_block_pose, set_task.real_block_block = torch.nonzero(
+            set_task.is_real_block, as_tuple=True
+        )
+
+        set_task.per_block_orig_block_type = task.per_block_orig_block_type
+        set_task.per_block_considered_block_types = (
+            task.per_block_considered_block_types
+        )
+        set_task.per_block_n_considered_block_types = (
+            task.per_block_n_considered_block_types
+        )
+        set_task.per_block_considered_block_types_is_orig = (
+            task.per_block_considered_block_types_is_orig
+        )
+        set_task.restrict_to_repacking_masks = task.restrict_to_repacking_masks
+        set_task.per_block_is_block_type_allowed = task.per_block_is_block_type_allowed
+        set_task.conformer_samplers = task.conformer_samplers
+        set_task.conformer_sampler_index = task.conformer_sampler_index
+        set_task.per_block_conformer_sampler_allowed = (
+            task.per_block_conformer_sampler_allowed
+        )
+        set_task.per_block_chi_expansion = task.per_block_chi_expansion
+
+        max_n_blocks = task.per_block_considered_block_types.shape[1]
+        is_real_cbt = set_task.per_block_considered_block_types != -1
+        cbt_pose, cbt_block, cbt_which_block_type = torch.nonzero(
+            is_real_cbt, as_tuple=True
+        )
+        cbt_block_type = set_task.per_block_considered_block_types[
+            cbt_pose, cbt_block, cbt_which_block_type
+        ]
+
+        # these are the "global block types" that the conformer samplers
+        # will be asked to build rotamers for; note that sometimes
+        # a conformer sampler must build a rotamer for a block type that
+        # is not "allowed." This happens when the user disables all allowed block
+        # types for a particular block. The way tmol's packer works, residues
+        # that are part of the "background" must still have one rotamer for energy
+        # evaluation purposes. The upshot is that if we index on the set of allowed
+        # block types, we would miss the disallowed block types that we must still
+        # build rotamers for. Thus we index on all the _considered_ block types,
+        # and then refine that set by the allowed subset for most conformer samplers.
+        set_task.cons_bt_pose = cbt_pose
+        set_task.cons_bt_block = cbt_block
+        set_task.cons_bt_block_type = cbt_block_type
+        set_task.cons_bt_which_block_type = cbt_which_block_type
+
+        set_task.global_block_ind_for_considered_block_types = (
+            max_n_blocks * cbt_pose + cbt_block
+        )
+
+        # these non-zeros are indices in the n-poses x n-blocks x max-n-considered
+        # tensor.
+        allowed_pose, allowed_block, allowed_which_bt = torch.nonzero(
+            task.per_block_is_block_type_allowed, as_tuple=True
+        )
+        allowed_bt = task.per_block_considered_block_types[
+            allowed_pose, allowed_block, allowed_which_bt
+        ]
+        set_task.allowed_bt_pose = allowed_pose
+        set_task.allowed_bt_block = allowed_block
+        set_task.allowed_bt_which_block_type = allowed_which_bt
+        set_task.allowed_bt_block_type = allowed_bt
+
+        # these non-zeros are indices in a one-dimensional tensor of
+        # all (real) considered block types.
+        set_task.is_cons_bt_allowed = task.per_block_is_block_type_allowed[
+            cbt_pose, cbt_block, cbt_which_block_type
+        ]
+        set_task.allowed_cons_bt = torch.nonzero(
+            set_task.is_cons_bt_allowed,
+            as_tuple=True,
+        )[0]
+        set_task.bump_check = task.bump_check
+
+        return set_task

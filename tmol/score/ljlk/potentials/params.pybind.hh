@@ -27,7 +27,13 @@ struct type_caster<tmol::score::ljlk::potentials::LJTypeParams<Real>> {
     nvtx_range_function();
 
     CAST_ATTR(src, value, lj_radius);
-    CAST_ATTR(src, value, lj_wdepth);
+    try {
+      value.lj_sqrt_wdepth = std::sqrt(
+          src.attr("lj_wdepth").cast<decltype(value.lj_sqrt_wdepth)>());
+    } catch (pybind11::cast_error) {
+      pybind11::print("Error casting: lj_wdepth");
+      return false;
+    }
     CAST_ATTR(src, value, is_donor);
     CAST_ATTR(src, value, is_acceptor);
     CAST_ATTR(src, value, is_hydroxyl);
@@ -77,6 +83,9 @@ struct type_caster<tmol::score::ljlk::potentials::LKTypeParams<Real>> {
     CAST_ATTR(src, value, is_hydroxyl);
     CAST_ATTR(src, value, is_polarh);
     CAST_ATTR(src, value, is_carbon_lk);
+    value.lk_coeff =
+        -value.lk_dgfree / (Real(2) * Real(5.56832799683) * value.lk_lambda);
+    value.lk_inv_lambda2 = Real(1) / (value.lk_lambda * value.lk_lambda);
 
     return true;
   }

@@ -11,8 +11,8 @@ namespace potentials {
 template <typename Real>
 struct LKBallTypeParams {
   Real lj_radius;
-  Real lk_dgfree;
-  Real lk_lambda;
+  Real lk_coeff;
+  Real lk_inv_lambda2;
   Real lk_volume;
   Real is_donor;
   Real is_hydroxyl;

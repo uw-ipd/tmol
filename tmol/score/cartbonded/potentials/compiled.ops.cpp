@@ -7,6 +7,7 @@
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/device_operations.hh>
+#include <tmol/score/common/whole_pose_scoring.hh>
 
 #include <pybind11/pybind11.h>
 
@@ -52,8 +53,12 @@ class CartBondedPoseScoreOp
       Tensor atom_paths_from_conn,
       Tensor atom_unique_ids,
       Tensor atom_wildcard_ids,
+      Tensor atom_is_rosetta,
       Tensor block_type_is_fragment,
       Tensor atom_cross_ids,
+      Tensor connection_hash_keys,
+      Tensor connection_spans,
+      Tensor connection_paths,
       Tensor hash_keys,
 
       Tensor hash_values,
@@ -61,6 +66,7 @@ class CartBondedPoseScoreOp
       Tensor cart_subgraph_offsets,
       Tensor cart_subgraph_type_counts,
       Tensor cart_subgraph_type_offsets,
+      Tensor cart_subgraph_param_indices,
 
       bool output_block_pair_energies) {
     at::Tensor score;
@@ -96,14 +102,19 @@ class CartBondedPoseScoreOp
                       TCAST(atom_paths_from_conn),
                       TCAST(atom_unique_ids),
                       TCAST(atom_wildcard_ids),
+                      TCAST(atom_is_rosetta),
                       TCAST(block_type_is_fragment),
                       TCAST(atom_cross_ids),
+                      TCAST(connection_hash_keys),
+                      TCAST(connection_spans),
+                      TCAST(connection_paths),
                       TCAST(hash_keys),
                       TCAST(hash_values),
                       TCAST(cart_subgraphs),
                       TCAST(cart_subgraph_offsets),
                       TCAST(cart_subgraph_type_counts),
                       TCAST(cart_subgraph_type_offsets),
+                      TCAST(cart_subgraph_param_indices),
 
                       output_block_pair_energies,
                       rot_coords.requires_grad());
@@ -134,14 +145,19 @@ class CartBondedPoseScoreOp
            atom_paths_from_conn,
            atom_unique_ids,
            atom_wildcard_ids,
+           atom_is_rosetta,
            block_type_is_fragment,
            atom_cross_ids,
+           connection_hash_keys,
+           connection_spans,
+           connection_paths,
            hash_keys,
            hash_values,
            cart_subgraphs,
            cart_subgraph_offsets,
            cart_subgraph_type_counts,
-           cart_subgraph_type_offsets});
+           cart_subgraph_type_offsets,
+           cart_subgraph_param_indices});
     } else {
       // Return a 2D tensor with shape [5 x n_poses]
       score = score.squeeze(-1).squeeze(-1);
@@ -160,21 +176,12 @@ class CartBondedPoseScoreOp
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
     if (saved.size() == 2) {
-      // TO DO: make this a function so it's not duplicated everywhere
       // single-score mode
-      auto saved_grads = ctx->get_saved_variables();
-      auto saved_grad = saved_grads[0];
-      auto pose_ind_for_atom = saved_grads[1];
+      auto saved_grad = saved[0];
 
       tensor_list result;
-
-      auto atom_ingrads = grad_outputs[0].index_select(1, pose_ind_for_atom);
-
-      while (atom_ingrads.dim() < saved_grad.dim()) {
-        atom_ingrads = atom_ingrads.unsqueeze(-1);
-      }
-
-      result.emplace_back(saved_grad * atom_ingrads);
+      result.emplace_back(
+          common::accumulate_whole_pose_gradients(saved_grad, grad_outputs[0]));
 
       int i = 0;
       dV_d_pose_coords = result[i++];
@@ -203,14 +210,19 @@ class CartBondedPoseScoreOp
       auto atom_paths_from_conn = saved[i++];
       auto atom_unique_ids = saved[i++];
       auto atom_wildcard_ids = saved[i++];
+      auto atom_is_rosetta = saved[i++];
       auto block_type_is_fragment = saved[i++];
       auto atom_cross_ids = saved[i++];
+      auto connection_hash_keys = saved[i++];
+      auto connection_spans = saved[i++];
+      auto connection_paths = saved[i++];
       auto hash_keys = saved[i++];
       auto hash_values = saved[i++];
       auto cart_subgraphs = saved[i++];
       auto cart_subgraph_offsets = saved[i++];
       auto cart_subgraph_type_counts = saved[i++];
       auto cart_subgraph_type_offsets = saved[i++];
+      auto cart_subgraph_param_indices = saved[i++];
 
       using Int = int32_t;
 
@@ -244,14 +256,19 @@ class CartBondedPoseScoreOp
                         TCAST(atom_paths_from_conn),
                         TCAST(atom_unique_ids),
                         TCAST(atom_wildcard_ids),
+                        TCAST(atom_is_rosetta),
                         TCAST(block_type_is_fragment),
                         TCAST(atom_cross_ids),
+                        TCAST(connection_hash_keys),
+                        TCAST(connection_spans),
+                        TCAST(connection_paths),
                         TCAST(hash_keys),
                         TCAST(hash_values),
                         TCAST(cart_subgraphs),
                         TCAST(cart_subgraph_offsets),
                         TCAST(cart_subgraph_type_counts),
                         TCAST(cart_subgraph_type_offsets),
+                        TCAST(cart_subgraph_param_indices),
 
                         TCAST(dTdV));
 
@@ -259,40 +276,9 @@ class CartBondedPoseScoreOp
           }));
     }
 
-    return {
-        // Common params
-        dV_d_pose_coords,
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-
-        // Cart-bonded specific parameters
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-
-        torch::Tensor()};
+    tensor_list gradients(31);
+    gradients[0] = dV_d_pose_coords;
+    return gradients;
   }
 };
 
@@ -315,14 +301,19 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
       Tensor rot_offset_for_pose,
       Tensor n_rots_for_block,
       Tensor rot_offset_for_block,
+      Tensor lockstep_group_for_block,
       int64_t max_n_rots_per_pose,
 
       Tensor pose_stack_inter_block_connections,
       Tensor atom_paths_from_conn,
       Tensor atom_unique_ids,
       Tensor atom_wildcard_ids,
+      Tensor atom_is_rosetta,
       Tensor block_type_is_fragment,
       Tensor atom_cross_ids,
+      Tensor connection_hash_keys,
+      Tensor connection_spans,
+      Tensor connection_paths,
       Tensor hash_keys,
 
       Tensor hash_values,
@@ -330,6 +321,7 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
       Tensor cart_subgraph_offsets,
       Tensor cart_subgraph_type_counts,
       Tensor cart_subgraph_type_offsets,
+      Tensor cart_subgraph_param_indices,
 
       bool output_block_pair_energies) {
     at::Tensor score;
@@ -362,20 +354,26 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
                       TCAST(rot_offset_for_pose),
                       TCAST(n_rots_for_block),
                       TCAST(rot_offset_for_block),
+                      TCAST(lockstep_group_for_block),
                       max_n_rots_per_pose,
 
                       TCAST(pose_stack_inter_block_connections),
                       TCAST(atom_paths_from_conn),
                       TCAST(atom_unique_ids),
                       TCAST(atom_wildcard_ids),
+                      TCAST(atom_is_rosetta),
                       TCAST(block_type_is_fragment),
                       TCAST(atom_cross_ids),
+                      TCAST(connection_hash_keys),
+                      TCAST(connection_spans),
+                      TCAST(connection_paths),
                       TCAST(hash_keys),
                       TCAST(hash_values),
                       TCAST(cart_subgraphs),
                       TCAST(cart_subgraph_offsets),
                       TCAST(cart_subgraph_type_counts),
                       TCAST(cart_subgraph_type_offsets),
+                      TCAST(cart_subgraph_param_indices),
 
                       output_block_pair_energies,
                       rot_coords.requires_grad());
@@ -409,14 +407,19 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
            atom_paths_from_conn,
            atom_unique_ids,
            atom_wildcard_ids,
+           atom_is_rosetta,
            block_type_is_fragment,
            atom_cross_ids,
+           connection_hash_keys,
+           connection_spans,
+           connection_paths,
            hash_keys,
            hash_values,
            cart_subgraphs,
            cart_subgraph_offsets,
            cart_subgraph_type_counts,
            cart_subgraph_type_offsets,
+           cart_subgraph_param_indices,
 
            dispatch_indices,
            n_output_intxns_for_rot_conn_offset,
@@ -478,14 +481,19 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
       auto atom_paths_from_conn = saved[i++];
       auto atom_unique_ids = saved[i++];
       auto atom_wildcard_ids = saved[i++];
+      auto atom_is_rosetta = saved[i++];
       auto block_type_is_fragment = saved[i++];
       auto atom_cross_ids = saved[i++];
+      auto connection_hash_keys = saved[i++];
+      auto connection_spans = saved[i++];
+      auto connection_paths = saved[i++];
       auto hash_keys = saved[i++];
       auto hash_values = saved[i++];
       auto cart_subgraphs = saved[i++];
       auto cart_subgraph_offsets = saved[i++];
       auto cart_subgraph_type_counts = saved[i++];
       auto cart_subgraph_type_offsets = saved[i++];
+      auto cart_subgraph_param_indices = saved[i++];
 
       // Tensors generated during the forward pass
       auto dispatch_indices = saved[i++];
@@ -524,14 +532,19 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
                         TCAST(atom_paths_from_conn),
                         TCAST(atom_unique_ids),
                         TCAST(atom_wildcard_ids),
+                        TCAST(atom_is_rosetta),
                         TCAST(block_type_is_fragment),
                         TCAST(atom_cross_ids),
+                        TCAST(connection_hash_keys),
+                        TCAST(connection_spans),
+                        TCAST(connection_paths),
                         TCAST(hash_keys),
                         TCAST(hash_values),
                         TCAST(cart_subgraphs),
                         TCAST(cart_subgraph_offsets),
                         TCAST(cart_subgraph_type_counts),
                         TCAST(cart_subgraph_type_offsets),
+                        TCAST(cart_subgraph_param_indices),
 
                         TCAST(dispatch_indices),
                         TCAST(n_output_intxns_for_rot_conn_offset),
@@ -543,40 +556,9 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
           }));
     }
 
-    return {
-        // Common params
-        dV_d_pose_coords,
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-
-        // Cart-bonded specific parameters
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-
-        torch::Tensor()};
+    tensor_list gradients(32);
+    gradients[0] = dV_d_pose_coords;
+    return gradients;
   }
 };
 
@@ -601,8 +583,12 @@ std::vector<Tensor> cartbonded_pose_scores_op(
     Tensor atom_paths_from_conn,
     Tensor atom_unique_ids,
     Tensor atom_wildcard_ids,
+    Tensor atom_is_rosetta,
     Tensor block_type_is_fragment,
     Tensor atom_cross_ids,
+    Tensor connection_hash_keys,
+    Tensor connection_spans,
+    Tensor connection_paths,
     Tensor hash_keys,
 
     Tensor hash_values,
@@ -610,6 +596,7 @@ std::vector<Tensor> cartbonded_pose_scores_op(
     Tensor cart_subgraph_offsets,
     Tensor cart_subgraph_type_counts,
     Tensor cart_subgraph_type_offsets,
+    Tensor cart_subgraph_param_indices,
 
     bool output_block_pair_energies) {
   return CartBondedPoseScoreOp<DispatchMethod>::apply(
@@ -632,14 +619,19 @@ std::vector<Tensor> cartbonded_pose_scores_op(
       atom_paths_from_conn,
       atom_unique_ids,
       atom_wildcard_ids,
+      atom_is_rosetta,
       block_type_is_fragment,
       atom_cross_ids,
+      connection_hash_keys,
+      connection_spans,
+      connection_paths,
       hash_keys,
       hash_values,
       cart_subgraphs,
       cart_subgraph_offsets,
       cart_subgraph_type_counts,
       cart_subgraph_type_offsets,
+      cart_subgraph_param_indices,
       output_block_pair_energies);
 }
 
@@ -658,14 +650,19 @@ std::vector<Tensor> cartbonded_rotamer_scores_op(
     Tensor rot_offset_for_pose,
     Tensor n_rots_for_block,
     Tensor rot_offset_for_block,
+    Tensor lockstep_group_for_block,
     int64_t max_n_rots_per_pose,
 
     Tensor pose_stack_inter_block_connections,
     Tensor atom_paths_from_conn,
     Tensor atom_unique_ids,
     Tensor atom_wildcard_ids,
+    Tensor atom_is_rosetta,
     Tensor block_type_is_fragment,
     Tensor atom_cross_ids,
+    Tensor connection_hash_keys,
+    Tensor connection_spans,
+    Tensor connection_paths,
     Tensor hash_keys,
 
     Tensor hash_values,
@@ -673,6 +670,7 @@ std::vector<Tensor> cartbonded_rotamer_scores_op(
     Tensor cart_subgraph_offsets,
     Tensor cart_subgraph_type_counts,
     Tensor cart_subgraph_type_offsets,
+    Tensor cart_subgraph_param_indices,
 
     bool output_block_pair_energies) {
   return CartBondedRotamerScoreOp<DispatchMethod>::apply(
@@ -689,20 +687,26 @@ std::vector<Tensor> cartbonded_rotamer_scores_op(
       rot_offset_for_pose,
       n_rots_for_block,
       rot_offset_for_block,
+      lockstep_group_for_block,
       max_n_rots_per_pose,
 
       pose_stack_inter_block_connections,
       atom_paths_from_conn,
       atom_unique_ids,
       atom_wildcard_ids,
+      atom_is_rosetta,
       block_type_is_fragment,
       atom_cross_ids,
+      connection_hash_keys,
+      connection_spans,
+      connection_paths,
       hash_keys,
       hash_values,
       cart_subgraphs,
       cart_subgraph_offsets,
       cart_subgraph_type_counts,
       cart_subgraph_type_offsets,
+      cart_subgraph_param_indices,
       output_block_pair_energies);
 }
 

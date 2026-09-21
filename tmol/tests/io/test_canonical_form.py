@@ -1,15 +1,15 @@
 import numpy
 import pandas
 import torch
-from tmol.io.canonical_ordering import (
+from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
     CanonicalOrdering,
     canonical_form_from_pdb,
     canonical_form_from_atom_records,
     select_atom_records_res_subset,
+    parse_pdb,
 )
-from tmol.io.pdb_parsing import parse_pdb
 
 
 def test_create_canonical_ordering_smoke(default_database):
@@ -25,8 +25,8 @@ def test_create_canonical_ordering_smoke(default_database):
     assert "nterm" in co.down_termini_patches
     assert "cterm" in co.up_termini_patches
     for x in ["H1", "H2", "H3"]:
-        assert x in co.termini_patch_added_atoms["nterm"]
-    assert "OXT" in co.termini_patch_added_atoms["cterm"]
+        assert x in co.termini_patch_added_atoms["ALA", "nterm"]
+    assert "OXT" in co.termini_patch_added_atoms["ALA", "cterm"]
     assert co.max_n_canonical_atoms >= 28
 
 

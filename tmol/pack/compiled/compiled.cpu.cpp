@@ -6,6 +6,7 @@
 
 #include "simulated_annealing.hh"
 #include "compiled.impl.hh"
+#include "streaming_interaction_graph.impl.hh"
 
 #include <ctime>
 #include <vector>
@@ -45,8 +46,9 @@ auto AnnealerDispatch<D>::forward(
     TView<int, 2, D> oneb_offsets,             // n-poses x max-n-res
     TView<int, 1, D> res_for_rot,              // n-rots
     int32_t chunk_size,
-    TView<int64_t, 3, D>
-        chunk_offset_offsets,            // n-poses x max-n-res x max-n-res
+    TView<int64_t, 1, D> neighbor_row_offsets,
+    TView<int32_t, 1, D> neighbor_blocks,
+    TView<int64_t, 1, D> neighbor_chunk_offset_offsets,
     TView<int64_t, 1, D> chunk_offsets,  // n-chunks-on-interacting-res
     TView<float, 1, D> energy1b,
     TView<float, 1, D> energy2b)
@@ -75,18 +77,37 @@ auto AnnealerDispatch<D>::forward(
   float const high_temp = 100;
   float const low_temp = 0.3;  // matches Rosetta SimAnnealerBase::lowtemp
 
+  struct Neighbor {
+    int residue;
+    int64_t chunk_offset_offset;
+  };
+
   for (int pose = 0; pose < n_poses; ++pose) {
     int const n_res = pose_n_res[pose];
     int const pose_n_rotamers = n_rotamers_for_pose[pose];
     int const pose_rotamer_offset = rotamer_offset_for_pose[pose];
 
-    // Build per-residue neighbor list for this pose
-    std::vector<std::vector<int>> neighbors(max_n_res);
+    // Materialize the CSR rows as host vectors without changing neighbor order.
+    std::vector<std::vector<Neighbor>> neighbors(n_res);
     for (int b = 0; b < n_res; ++b) {
-      for (int b2 = 0; b2 < n_res; ++b2) {
-        if (b2 != b && chunk_offset_offsets[pose][b][b2] != -1) {
-          neighbors[b].push_back(b2);
+      int const row = pose * max_n_res + b;
+      for (int64_t edge = neighbor_row_offsets[row];
+           edge < neighbor_row_offsets[row + 1];
+           ++edge) {
+        int const neighbor = neighbor_blocks[edge];
+        int const reverse_row = pose * max_n_res + neighbor;
+        int64_t lower = neighbor_row_offsets[reverse_row];
+        int64_t upper = neighbor_row_offsets[reverse_row + 1];
+        while (lower < upper) {
+          int64_t const middle = lower + (upper - lower) / 2;
+          if (neighbor_blocks[middle] < b) {
+            lower = middle + 1;
+          } else {
+            upper = middle;
+          }
         }
+        neighbors[b].push_back(
+            {neighbor, neighbor_chunk_offset_offsets[lower]});
       }
     }
     int const n_inner_iterations = n_inner_iterations_factor * pose_n_rotamers;
@@ -110,7 +131,11 @@ auto AnnealerDispatch<D>::forward(
           n_rotamers_for_res[pose],
           oneb_offsets[pose],
           chunk_size,
-          chunk_offset_offsets[pose],
+          pose,
+          max_n_res,
+          neighbor_row_offsets,
+          neighbor_blocks,
+          neighbor_chunk_offset_offsets,
           chunk_offsets,
           energy1b,
           energy2b,
@@ -130,7 +155,11 @@ auto AnnealerDispatch<D>::forward(
               n_rotamers_for_res[pose],
               oneb_offsets[pose],
               chunk_size,
-              chunk_offset_offsets[pose],
+              pose,
+              max_n_res,
+              neighbor_row_offsets,
+              neighbor_blocks,
+              neighbor_chunk_offset_offsets,
               chunk_offsets,
               energy1b,
               energy2b,
@@ -172,17 +201,14 @@ auto AnnealerDispatch<D>::forward(
               chunk_size, ran_res_n_rots - chunk_size * prev_rot_chunk);
           int const global_prev_rot = local_prev_rot + ran_res_offset;
 
-          double new_e = energy1b[global_ran_rot];
           double prev_e = energy1b[global_prev_rot];
-          double deltaE = new_e - prev_e;
+          double deltaE = energy1b[global_ran_rot] - prev_e;
 
-          for (int k : neighbors[ran_res]) {
+          for (Neighbor const& neighbor : neighbors[ran_res]) {
+            int const k = neighbor.residue;
             int const local_k_rot = current_rotamer_assignments[pose][traj][k];
-            int const k_n_rots = n_rotamers_for_res[pose][k];
             int const krot_chunk = local_k_rot / chunk_size;
             int const krot_in_chunk = local_k_rot - krot_chunk * chunk_size;
-            int const krot_chunk_size =
-                std::min(chunk_size, k_n_rots - chunk_size * krot_chunk);
 
             double k_new_e = 0;
             double k_prev_e = 0;
@@ -191,8 +217,7 @@ auto AnnealerDispatch<D>::forward(
             // (ran_res,k), so always index as [k][ran_res] with k as the
             // outer/row dimension.
             int64_t const k_ran_chunk_offset_offset =
-                chunk_offset_offsets[pose][k][ran_res];
-            if (k_ran_chunk_offset_offset == -1) continue;
+                neighbor.chunk_offset_offset;
             int64_t const krot_ranrot_chunk_offset = chunk_offsets
                 [k_ran_chunk_offset_offset + krot_chunk * ran_res_n_chunks
                  + ran_rot_chunk];
@@ -211,7 +236,6 @@ auto AnnealerDispatch<D>::forward(
             }
 
             deltaE += k_new_e - k_prev_e;
-            new_e += k_new_e;
             prev_e += k_prev_e;
           }
 
@@ -228,7 +252,11 @@ auto AnnealerDispatch<D>::forward(
                   n_rotamers_for_res[pose],
                   oneb_offsets[pose],
                   chunk_size,
-                  chunk_offset_offsets[pose],
+                  pose,
+                  max_n_res,
+                  neighbor_row_offsets,
+                  neighbor_blocks,
+                  neighbor_chunk_offset_offsets,
                   chunk_offsets,
                   energy1b,
                   energy2b,
@@ -258,7 +286,11 @@ auto AnnealerDispatch<D>::forward(
           n_rotamers_for_res[pose],
           oneb_offsets[pose],
           chunk_size,
-          chunk_offset_offsets[pose],
+          pose,
+          max_n_res,
+          neighbor_row_offsets,
+          neighbor_blocks,
+          neighbor_chunk_offset_offsets,
           chunk_offsets,
           energy1b,
           energy2b,
@@ -277,6 +309,16 @@ template struct InteractionGraphBuilder<
     float,
     int64_t>;
 template struct InteractionGraphBuilder<
+    score::common::DeviceOperations,
+    tmol::Device::CPU,
+    double,
+    int64_t>;
+template struct StreamingInteractionGraph<
+    score::common::DeviceOperations,
+    tmol::Device::CPU,
+    float,
+    int64_t>;
+template struct StreamingInteractionGraph<
     score::common::DeviceOperations,
     tmol::Device::CPU,
     double,

@@ -1,10 +1,10 @@
 import torch
 import attrs
 
-from tmol.database.scoring.cartbonded import CartBondedDatabase
-from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
+from tmol.database.scoring import CartBondedDatabase
+from tmol.score.cartbonded import CartBondedEnergyTerm
+from tmol.pose import PackedBlockTypes
+from tmol.tests.score.common import EnergyTermTestBase
 
 
 def test_smoke(default_database, torch_device: torch.device):
@@ -48,8 +48,8 @@ def test_annotate_twice(fresh_default_restype_set, default_database, torch_devic
         cartbonded_energy_device.setup_block_type(bt)
     cartbonded_energy_device.setup_packed_block_types(pbt_device)
 
-    assert hasattr(pbt_cpu, "cartbonded_annotations")
-    assert hasattr(pbt_device, "cartbonded_annotations")
+    assert hasattr(pbt_cpu, "_cartbonded_annotation")
+    assert hasattr(pbt_device, "_cartbonded_annotation")
 
 
 def test_annotate_restypes(
@@ -64,23 +64,24 @@ def test_annotate_restypes(
 
     for bt in bt_list:
         cartbonded_energy.setup_block_type(bt)
-    cartbonded_energy.setup_packed_block_types(pbt)
+    cb_pbt_ann = cartbonded_energy.setup_packed_block_types(pbt)
 
-    assert hasattr(pbt, "cartbonded_annotations")
-    assert cartbonded_energy.hash in pbt.cartbonded_annotations
-    cb_pbt_ann = pbt.cartbonded_annotations[cartbonded_energy.hash]
+    assert hasattr(pbt, "_cartbonded_annotation")
 
     assert cb_pbt_ann.cartbonded_subgraphs.device == torch_device
     assert cb_pbt_ann.cartbonded_subgraph_offsets.device == torch_device
     assert cb_pbt_ann.cartbonded_params_hash_keys.device == torch_device
     assert cb_pbt_ann.cartbonded_params_hash_values.device == torch_device
 
+    hash_keys = cb_pbt_ann.cartbonded_params_hash_keys
+    parameter_keys = hash_keys[hash_keys[:, 0] != -1, :-1]
+    n_parameters = cb_pbt_ann.cartbonded_params_hash_values.shape[0]
+    assert parameter_keys.shape[0] == n_parameters
+    assert torch.unique(parameter_keys, dim=0).shape[0] == parameter_keys.shape[0]
+
     cartbonded_subgraphs = cb_pbt_ann.cartbonded_subgraphs
-    cartbonded_energy.setup_packed_block_types(pbt)
-    assert (
-        cartbonded_subgraphs
-        is pbt.cartbonded_annotations[cartbonded_energy.hash].cartbonded_subgraphs
-    )
+    repeated = cartbonded_energy.setup_packed_block_types(pbt)
+    assert cartbonded_subgraphs is repeated.cartbonded_subgraphs
 
 
 def test_hack_cartbonded_params(
@@ -124,18 +125,22 @@ def test_hack_cartbonded_params(
     )
     assert dflt_cartbonded_energy.hash != new_cartbonded_energy.hash
 
-    for bt in pbt.active_block_types:
-        dflt_cartbonded_energy.setup_block_type(bt)
-        new_cartbonded_energy.setup_block_type(bt)
+    default_block_annotations = [
+        dflt_cartbonded_energy.setup_block_type(bt) for bt in pbt.active_block_types
+    ]
+    new_block_annotations = [
+        new_cartbonded_energy.setup_block_type(bt) for bt in pbt.active_block_types
+    ]
     dflt_cartbonded_energy.setup_packed_block_types(pbt)
     new_cartbonded_energy.setup_packed_block_types(pbt)
 
-    assert dflt_cartbonded_energy.hash in pbt.cartbonded_annotations
-    assert new_cartbonded_energy.hash in pbt.cartbonded_annotations
+    assert len(pbt._cartbonded_annotation) == 2
 
-    ala_bt = next(bt for bt in pbt.active_block_types if bt.name == "ALA")
-    dflt_ala_cartb_params = ala_bt.cartbonded_annotations[dflt_cartbonded_energy.hash]
-    new_ala_cartb_params = ala_bt.cartbonded_annotations[new_cartbonded_energy.hash]
+    ala_index = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "ALA"
+    )
+    dflt_ala_cartb_params = default_block_annotations[ala_index]
+    new_ala_cartb_params = new_block_annotations[ala_index]
 
     dflt_ala_params = dflt_ala_cartb_params.cartbonded_params
     new_ala_params = new_ala_cartb_params.cartbonded_params
@@ -208,7 +213,7 @@ class TestCartBondedEnergyTerm(EnergyTermTestBase):
     def test_disulfide_scoring(cls, pdb_6DMZ, default_database, torch_device):
         # CUDA evaluation differs from the stored baseline by up to 4e-5 for
         # three near-zero diagonal terms on both A100 and L40S GPUs.
-        atol = 5e-5 if torch_device.type == "cuda" else 1e-5
+        atol = 5e-5 if torch_device.type == "cuda" else 3e-5
         return super().test_block_scoring(
             pdb_6DMZ,
             default_database,

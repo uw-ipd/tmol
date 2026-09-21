@@ -1,0 +1,131 @@
+data_5ema
+#
+loop_
+_atom_site.group_PDB 
+_atom_site.type_symbol 
+_atom_site.label_atom_id 
+_atom_site.label_alt_id 
+_atom_site.label_comp_id 
+_atom_site.label_asym_id 
+_atom_site.label_entity_id 
+_atom_site.label_seq_id 
+_atom_site.pdbx_PDB_ins_code 
+_atom_site.auth_seq_id 
+_atom_site.auth_comp_id 
+_atom_site.auth_asym_id 
+_atom_site.auth_atom_id 
+_atom_site.Cartn_x 
+_atom_site.Cartn_y 
+_atom_site.Cartn_z 
+_atom_site.pdbx_PDB_model_num 
+_atom_site.id 
+ATOM   N N    . ASP B 1 1 . 1 ASP B N    -19.314 2.99   9.677  1 1
+ATOM   C CA   . ASP B 1 1 . 1 ASP B CA   -17.923 3.538  9.678  1 2
+ATOM   C C    . ASP B 1 1 . 1 ASP B C    -16.881 2.451  9.909  1 3
+ATOM   O O    . ASP B 1 1 . 1 ASP B O    -17.121 1.458  10.589 1 4
+ATOM   C CB   . ASP B 1 1 . 1 ASP B CB   -17.758 4.613  10.758 1 5
+ATOM   C CG   . ASP B 1 1 . 1 ASP B CG   -18.516 5.89   10.44  1 6
+ATOM   O OD1  . ASP B 1 1 . 1 ASP B OD1  -19.082 5.999  9.33   1 7
+ATOM   O OD2  . ASP B 1 1 . 1 ASP B OD2  -18.533 6.79   11.304 1 8
+ATOM   H HA   . ASP B 1 1 . 1 ASP B HA   -17.745 3.947  8.817  1 9
+ATOM   H HB2  . ASP B 1 1 . 1 ASP B HB2  -18.092 4.268  11.601 1 10
+ATOM   H HB3  . ASP B 1 1 . 1 ASP B HB3  -16.817 4.836  10.84  1 11
+ATOM   N N    . ASP B 1 2 . 2 ASP B N    -15.71  2.648  9.331  1 12
+ATOM   C CA   . ASP B 1 2 . 2 ASP B CA   -14.601 1.747  9.586  1 13
+ATOM   C C    . ASP B 1 2 . 2 ASP B C    -14.184 1.851  11.051 1 14
+ATOM   O O    . ASP B 1 2 . 2 ASP B O    -14.517 2.837  11.727 1 15
+ATOM   C CB   . ASP B 1 2 . 2 ASP B CB   -13.436 2.1    8.684  1 16
+ATOM   C CG   . ASP B 1 2 . 2 ASP B CG   -13.642 1.656  7.251  1 17
+ATOM   O OD1  . ASP B 1 2 . 2 ASP B OD1  -14.641 0.968  6.966  1 18
+ATOM   O OD2  . ASP B 1 2 . 2 ASP B OD2  -12.784 2.0    6.421  1 19
+ATOM   H H    . ASP B 1 2 . 2 ASP B H    -15.53  3.291  8.789  1 20
+ATOM   H HA   . ASP B 1 2 . 2 ASP B HA   -14.872 0.834  9.402  1 21
+ATOM   H HB2  . ASP B 1 2 . 2 ASP B HB2  -13.317 3.063  8.685  1 22
+ATOM   H HB3  . ASP B 1 2 . 2 ASP B HB3  -12.635 1.667  9.02   1 23
+ATOM   N N    . ILE B 1 3 . 3 ILE B N    -13.494 0.827  11.549 1 24
+ATOM   C CA   . ILE B 1 3 . 3 ILE B CA   -12.932 0.84   12.9   1 25
+ATOM   C C    . ILE B 1 3 . 3 ILE B C    -11.439 0.524  12.851 1 26
+ATOM   O O    . ILE B 1 3 . 3 ILE B O    -10.939 0.004  11.852 1 27
+ATOM   C CB   . ILE B 1 3 . 3 ILE B CB   -13.644 -0.144 13.829 1 28
+ATOM   C CG1  . ILE B 1 3 . 3 ILE B CG1  -13.55  -1.574 13.294 1 29
+ATOM   C CG2  . ILE B 1 3 . 3 ILE B CG2  -15.116 0.287  14.058 1 30
+ATOM   C CD1  . ILE B 1 3 . 3 ILE B CD1  -14.039 -2.606 14.298 1 31
+ATOM   H H    . ILE B 1 3 . 3 ILE B H    -13.334 0.101  11.117 1 32
+ATOM   H HA   . ILE B 1 3 . 3 ILE B HA   -13.036 1.729  13.274 1 33
+ATOM   H HB   . ILE B 1 3 . 3 ILE B HB   -13.193 -0.12  14.688 1 34
+ATOM   H HG12 . ILE B 1 3 . 3 ILE B HG12 -14.096 -1.649 12.496 1 35
+ATOM   H HG13 . ILE B 1 3 . 3 ILE B HG13 -12.625 -1.773 13.084 1 36
+ATOM   H HG21 . ILE B 1 3 . 3 ILE B HG21 -15.544 -0.352 14.649 1 37
+ATOM   H HG22 . ILE B 1 3 . 3 ILE B HG22 -15.128 1.17   14.46  1 38
+ATOM   H HG23 . ILE B 1 3 . 3 ILE B HG23 -15.575 0.307  13.203 1 39
+ATOM   H HD11 . ILE B 1 3 . 3 ILE B HD11 -13.957 -3.49  13.907 1 40
+ATOM   H HD12 . ILE B 1 3 . 3 ILE B HD12 -13.496 -2.547 15.1   1 41
+ATOM   H HD13 . ILE B 1 3 . 3 ILE B HD13 -14.967 -2.423 14.512 1 42
+HETATM N N    . SEP B 1 4 . 4 SEP B N    -10.75  0.827  13.937 1 43
+HETATM C CA   . SEP B 1 4 . 4 SEP B CA   -9.309  0.765  14.044 1 44
+HETATM C CB   . SEP B 1 4 . 4 SEP B CB   -8.809  2.17   14.36  1 45
+HETATM O OG   . SEP B 1 4 . 4 SEP B OG   -8.175  2.686  13.289 1 46
+HETATM C C    . SEP B 1 4 . 4 SEP B C    -8.89   -0.049 15.22  1 47
+HETATM O O    . SEP B 1 4 . 4 SEP B O    -9.546  0.018  16.248 1 48
+HETATM P P    . SEP B 1 4 . 4 SEP B P    -7.567  4.119  13.606 1 49
+HETATM O O1P  . SEP B 1 4 . 4 SEP B O1P  -8.237  4.905  12.465 1 50
+HETATM O O2P  . SEP B 1 4 . 4 SEP B O2P  -7.85   4.81   15.029 1 51
+HETATM O O3P  . SEP B 1 4 . 4 SEP B O3P  -6.056  3.916  13.418 1 52
+HETATM H HA   . SEP B 1 4 . 4 SEP B HA   -8.897  0.427  13.222 1 53
+HETATM H HB2  . SEP B 1 4 . 4 SEP B HB2  -8.191  2.127  15.107 1 54
+HETATM H HB3  . SEP B 1 4 . 4 SEP B HB3  -9.565  2.734  14.585 1 55
+ATOM   N N    . THR B 1 5 . 5 THR B N    -7.779  -0.761 15.101 1 56
+ATOM   C CA   . THR B 1 5 . 5 THR B CA   -7.163  -1.445 16.236 1 57
+ATOM   C C    . THR B 1 5 . 5 THR B C    -5.671  -1.214 16.229 1 58
+ATOM   O O    . THR B 1 5 . 5 THR B O    -5.018  -1.353 15.208 1 59
+ATOM   C CB   . THR B 1 5 . 5 THR B CB   -7.427  -2.946 16.153 1 60
+ATOM   O OG1  . THR B 1 5 . 5 THR B OG1  -8.83   -3.168 16.027 1 61
+ATOM   C CG2  . THR B 1 5 . 5 THR B CG2  -6.919  -3.668 17.399 1 62
+ATOM   H H    . THR B 1 5 . 5 THR B H    -7.354  -0.868 14.361 1 63
+ATOM   H HA   . THR B 1 5 . 5 THR B HA   -7.531  -1.105 17.067 1 64
+ATOM   H HB   . THR B 1 5 . 5 THR B HB   -6.971  -3.312 15.379 1 65
+ATOM   H HG1  . THR B 1 5 . 5 THR B HG1  -9.232  -2.85  16.693 1 66
+ATOM   H HG21 . THR B 1 5 . 5 THR B HG21 -7.096  -4.619 17.326 1 67
+ATOM   H HG22 . THR B 1 5 . 5 THR B HG22 -5.964  -3.532 17.494 1 68
+ATOM   H HG23 . THR B 1 5 . 5 THR B HG23 -7.367  -3.323 18.187 1 69
+ATOM   N N    . VAL B 1 6 . 6 VAL B N    -5.109  -0.906 17.396 1 70
+ATOM   C CA   . VAL B 1 6 . 6 VAL B CA   -3.668  -0.836 17.581 1 71
+ATOM   C C    . VAL B 1 6 . 6 VAL B C    -3.124  -2.222 17.817 1 72
+ATOM   O O    . VAL B 1 6 . 6 VAL B O    -3.602  -2.914 18.71  1 73
+ATOM   C CB   . VAL B 1 6 . 6 VAL B CB   -3.321  0.001  18.836 1 74
+ATOM   C CG1  . VAL B 1 6 . 6 VAL B CG1  -1.814  0.148  18.967 1 75
+ATOM   C CG2  . VAL B 1 6 . 6 VAL B CG2  -3.954  1.356  18.74  1 76
+ATOM   H H    . VAL B 1 6 . 6 VAL B H    -5.555  -0.73  18.11  1 77
+ATOM   H HA   . VAL B 1 6 . 6 VAL B HA   -3.241  -0.447 16.802 1 78
+ATOM   H HB   . VAL B 1 6 . 6 VAL B HB   -3.659  -0.444 19.629 1 79
+ATOM   H HG11 . VAL B 1 6 . 6 VAL B HG11 -1.616  0.675  19.758 1 80
+ATOM   H HG12 . VAL B 1 6 . 6 VAL B HG12 -1.417  -0.733 19.048 1 81
+ATOM   H HG13 . VAL B 1 6 . 6 VAL B HG13 -1.471  0.595  18.178 1 82
+ATOM   H HG21 . VAL B 1 6 . 6 VAL B HG21 -3.727  1.867  19.533 1 83
+ATOM   H HG22 . VAL B 1 6 . 6 VAL B HG22 -3.617  1.806  17.949 1 84
+ATOM   H HG23 . VAL B 1 6 . 6 VAL B HG23 -4.916  1.251  18.678 1 85
+ATOM   N N    . VAL B 1 7 . 7 VAL B N    -2.123  -2.632 17.042 1 86
+ATOM   C CA   . VAL B 1 7 . 7 VAL B CA   -1.539  -3.976 17.181 1 87
+ATOM   C C    . VAL B 1 7 . 7 VAL B C    -0.022  -3.931 17.299 1 88
+ATOM   O O    . VAL B 1 7 . 7 VAL B O    0.592   -4.959 17.635 1 89
+ATOM   C CB   . VAL B 1 7 . 7 VAL B CB   -1.965  -4.911 16.048 1 90
+ATOM   C CG1  . VAL B 1 7 . 7 VAL B CG1  -3.478  -5.134 16.077 1 91
+ATOM   C CG2  . VAL B 1 7 . 7 VAL B CG2  -1.536  -4.363 14.699 1 92
+ATOM   O OXT  . VAL B 1 7 . 7 VAL B OXT  0.601   -2.876 17.1   1 93
+ATOM   H H    . VAL B 1 7 . 7 VAL B H    -1.761  -2.155 16.425 1 94
+ATOM   H HA   . VAL B 1 7 . 7 VAL B HA   -1.874  -4.362 18.005 1 95
+ATOM   H HB   . VAL B 1 7 . 7 VAL B HB   -1.534  -5.771 16.171 1 96
+ATOM   H HG11 . VAL B 1 7 . 7 VAL B HG11 -3.723  -5.728 15.351 1 97
+ATOM   H HG12 . VAL B 1 7 . 7 VAL B HG12 -3.721  -5.532 16.928 1 98
+ATOM   H HG13 . VAL B 1 7 . 7 VAL B HG13 -3.925  -4.279 15.971 1 99
+ATOM   H HG21 . VAL B 1 7 . 7 VAL B HG21 -1.821  -4.977 14.004 1 100
+ATOM   H HG22 . VAL B 1 7 . 7 VAL B HG22 -1.95   -3.496 14.565 1 101
+ATOM   H HG23 . VAL B 1 7 . 7 VAL B HG23 -0.57   -4.274 14.688 1 102
+#
+_cell.length_a      37.171
+_cell.length_b      48.49
+_cell.length_c      56.229
+_cell.angle_alpha   90.0
+_cell.angle_beta    90.0
+_cell.angle_gamma   90.0
+#

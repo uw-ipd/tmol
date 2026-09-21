@@ -785,6 +785,11 @@ atom_charge_parameters:
   - { *r: VRT, *a: A2, *e: 0.00000 }
   - { *r: VRT, *a: A3, *e: 0.00000 }
 
+  # beta_nov16 water partial charges.
+  - { *r: HOH, *a: O,  *e: -0.28960 }
+  - { *r: HOH, *a: H1, *e:  0.14480 }
+  - { *r: HOH, *a: H2, *e:  0.14480 }
+
   # DNA partial charges, from the Rosetta nucleic/dna .params files
   - { *r: DA   ,*a: P    , *e:  1.50000 }
   - { *r: DA   ,*a: OP2  , *e: -0.78000 }

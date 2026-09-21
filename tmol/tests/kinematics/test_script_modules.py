@@ -10,18 +10,20 @@ from tmol import (
     canonical_form_from_pdb,
     pose_stack_from_canonical_form,
 )
-from tmol.io.canonical_ordering import (
+from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
 )
-from tmol.types.torch import Tensor
+from tmol.types import Tensor
 
-from tmol.kinematics.fold_forest import FoldForest, EdgeType
+from tmol.kinematics import (
+    FoldForest,
+    EdgeType,
+    PoseStackKinematicsModule,
+    inverseKin,
+)
 
-from tmol.kinematics.script_modules import PoseStackKinematicsModule
-from tmol.kinematics.operations import inverseKin
-
-from tmol.tests.torch import requires_cuda
+from tmol.tests import requires_cuda
 
 
 def kop_gradcheck_report(kop, start_dofs, eps=2e-3, atol=1e-5, rtol=1e-3):

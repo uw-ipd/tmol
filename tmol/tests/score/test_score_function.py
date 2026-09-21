@@ -1,12 +1,30 @@
 import torch
 import numpy
 import os
+import threading
+import attr
+import pytest
 
-from tmol.score import _non_memoized_beta2016
-from tmol.score.score_function import ScoreFunction
-from tmol.score.score_types import ScoreType
-from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
-from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.score import _score_function as score_function_module
+from tmol.score import (
+    _non_memoized_beta2016,
+    ScoreFunction,
+    ScoreType,
+)
+from tmol.score._score_function import (
+    BlockPairScoringModule,
+    RotamerScoringModule,
+    WholePoseScoringModule,
+)
+from tmol.score.common import ZeroTermPoseScoringModule
+from tmol.score.common._scoring_module import _coordinate_independent_score
+from tmol.score.ljlk.potentials import build_compact_block_neighbors
+from tmol.pose import (
+    DEFAULT_ATOM_B_FACTOR,
+    DEFAULT_ATOM_OCCUPANCY,
+    PackedBlockTypes,
+    PoseStackBuilder,
+)
 from tmol import (
     pose_stack_from_pdb,
     beta2016_score_function,
@@ -15,6 +33,11 @@ from tmol import (
     default_packed_block_types,
     pose_stack_from_canonical_form,
 )
+
+
+def _separate_unweighted_scores(scorer, coords):
+    """Evaluate the original term modules without shared/fused execution."""
+    return torch.cat([term(coords) for term in scorer.term_modules], dim=0)
 
 
 def test_pose_score_smoke(ubq_pdb, default_database, torch_device):
@@ -31,6 +54,1317 @@ def test_pose_score_smoke(ubq_pdb, default_database, torch_device):
     scores = scorer(pose_stack100.coords)
 
     assert scores is not None
+
+
+def test_shared_block_neighbors_preserve_scores_and_gradients(ubq_pdb, torch_device):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device)
+    sfxn = beta2016_score_function(torch_device)
+    scorer = sfxn.render_whole_pose_scoring_module(pose)
+
+    legacy_coords = pose.coords.detach().clone().requires_grad_(True)
+    legacy_scores = _separate_unweighted_scores(scorer, legacy_coords)
+    (legacy_grad,) = torch.autograd.grad(legacy_scores.sum(), legacy_coords)
+
+    shared_coords = pose.coords.detach().clone().requires_grad_(True)
+    shared_neighbors = scorer._build_shared_block_neighbors(shared_coords)
+    assert shared_neighbors is not None
+    assert shared_neighbors.dtype == torch.int32
+    assert shared_neighbors.ndim == 1
+    assert 0 <= int(shared_neighbors[0]) < shared_neighbors.numel()
+    shared_scores = scorer.unweighted_scores(shared_coords)
+    (shared_grad,) = torch.autograd.grad(shared_scores.sum(), shared_coords)
+
+    torch.testing.assert_close(shared_scores, legacy_scores, atol=1e-5, rtol=1e-5)
+    torch.testing.assert_close(shared_grad, legacy_grad, atol=1e-5, rtol=1e-5)
+
+
+@pytest.mark.parametrize(
+    "dtype,weighted",
+    [(torch.float32, False), (torch.float32, True), (torch.float64, True)],
+)
+def test_fused_compact_specialization_preserves_subsets(
+    ubq_pdb, torch_device, dtype, weighted
+):
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA compact interaction specialization")
+    single = pose_stack_from_pdb(ubq_pdb, torch_device)
+    short = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    pose = PoseStackBuilder.from_poses([single, short] * 32, torch_device)
+    scorer = _non_memoized_beta2016(torch_device).render_whole_pose_scoring_module(pose)
+    term = scorer._execution_modules[scorer._fused_ljlk_elec_module_index]
+    assert term.n_valid_rots == 32 * (single.max_n_blocks + short.max_n_blocks)
+    assert term.n_valid_rots < pose.block_type_ind.numel()
+    coords = pose.coords.to(dtype).detach().requires_grad_(True)
+    neighbors = scorer._build_shared_block_neighbors(coords)
+    assert neighbors.numel() - 1 >= 32768
+    subset = neighbors[1 : int(neighbors[0]) + 1 : 4].clone().flip(0)
+    neighbors[0] = subset.numel()
+    neighbors[1 : subset.numel() + 1] = subset
+    compact = neighbors[: subset.numel() + 1].clone()
+    assert compact.numel() - 1 < 32768
+    score_weights = torch.tensor(
+        [0.7, -0.2, 0.0, 1.3], device=torch_device, dtype=dtype
+    )
+
+    def evaluate(neighbor_list, gradient):
+        coords.requires_grad_(gradient)
+        with torch.set_grad_enabled(gradient):
+            scores = (
+                term.forward_weighted(coords, neighbor_list, score_weights)
+                if weighted
+                else term(coords, neighbor_list)
+            )
+            if not gradient:
+                return scores, None
+            upstream = torch.linspace(
+                -1, 2, scores.numel(), device=torch_device, dtype=dtype
+            ).reshape_as(scores)
+            (grad,) = torch.autograd.grad(scores, coords, upstream)
+            return scores, grad
+
+    tolerance = 1e-10 if dtype == torch.float64 else 1e-5
+    for gradient in (False, True):
+        expected, expected_grad = evaluate(compact, gradient)
+        actual, actual_grad = evaluate(neighbors, gradient)
+        torch.testing.assert_close(actual, expected, atol=tolerance, rtol=tolerance)
+        if gradient:
+            torch.testing.assert_close(
+                actual_grad, expected_grad, atol=tolerance, rtol=tolerance
+            )
+
+
+@pytest.mark.parametrize(
+    "dtype,reverse_neighbors,strided_neighbors",
+    [
+        (torch.float32, False, False),
+        (torch.float32, True, False),
+        (torch.float32, False, True),
+        (torch.float64, True, True),
+    ],
+)
+def test_cpu_compact_neighbors_preserve_pose_accumulation_order(
+    ubq_pdb, request, dtype, reverse_neighbors, strided_neighbors
+):
+    device = torch.device("cpu")
+    short = pose_stack_from_pdb(ubq_pdb, device, residue_end=3)
+    longer = pose_stack_from_pdb(ubq_pdb, device, residue_end=5)
+    pose = PoseStackBuilder.from_poses([short, longer, longer, short], device)
+    scorer = _non_memoized_beta2016(device).render_whole_pose_scoring_module(pose)
+    original_threads = torch.get_num_threads()
+    request.addfinalizer(lambda: torch.set_num_threads(original_threads))
+
+    def evaluate(threads):
+        torch.set_num_threads(threads)
+        coords = pose.coords.to(dtype=dtype).detach().requires_grad_(True)
+        neighbors = scorer._build_shared_block_neighbors(coords)
+        if reverse_neighbors:
+            count = int(neighbors[0])
+            neighbors[1 : count + 1] = neighbors[1 : count + 1].flip(0)
+        if strided_neighbors:
+            storage = neighbors.new_empty(neighbors.numel() * 2)
+            storage[::2] = neighbors
+            neighbors = storage[::2]
+        scores = torch.cat(
+            [
+                term(coords, neighbors)
+                for term in scorer.term_modules
+                if getattr(term, "block_neighbor_cutoff", None) is not None
+            ]
+        )
+        # Distinct signs and zero upstream weights expose writes to another
+        # pose's gradient, including the padded poses at either end.
+        upstream = torch.tensor([0.5, -2.0, 0.0, 3.0], dtype=dtype).expand_as(scores)
+        (gradient,) = torch.autograd.grad(scores, coords, upstream)
+        return scores, gradient
+
+    serial = evaluate(1)
+    parallel = evaluate(4)
+    torch.testing.assert_close(parallel, serial, rtol=0, atol=0)
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_lk_ball_compact_specialization_preserves_subsets(ubq_pdb, torch_device, dtype):
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA compact interaction specialization")
+    single_pose = pose_stack_from_pdb(ubq_pdb, torch_device)
+    short_pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    pose = PoseStackBuilder.from_poses([single_pose, short_pose] * 8, torch_device)
+    scorer = _non_memoized_beta2016(torch_device).render_whole_pose_scoring_module(pose)
+    term = next(t for t in scorer.term_modules if t.classname == "LKBall")
+    coords = pose.coords.to(dtype).detach().requires_grad_(True)
+    neighbors = scorer._build_shared_block_neighbors(coords)
+    assert neighbors.numel() - 1 >= 32768
+    assert pose._lk_ball_allow_split_backward
+
+    # Identical custom subsets with different spare capacity exercise both
+    # dispatch paths, without permitting either path to rebuild the list.
+    subset = neighbors[1 : int(neighbors[0]) + 1 : 4].flip(0).clone()
+    neighbors[0] = subset.numel()
+    neighbors[1 : subset.numel() + 1] = subset
+    compact = neighbors[: subset.numel() + 1].clone()
+    assert compact.numel() - 1 < 32768
+    weights = torch.linspace(-1, 2, 64, device=torch_device, dtype=dtype).reshape(4, 16)
+
+    expected = term(coords, compact)
+    (expected_grad,) = torch.autograd.grad(expected, coords, weights)
+    actual = term(coords, neighbors)
+    (actual_grad,) = torch.autograd.grad(actual, coords, weights)
+    tolerance = 1e-10 if dtype == torch.float64 else 1e-5
+    torch.testing.assert_close(actual, expected, atol=tolerance, rtol=tolerance)
+    torch.testing.assert_close(
+        actual_grad, expected_grad, atol=tolerance, rtol=tolerance
+    )
+
+
+def test_shared_block_neighbors_follow_active_terms(
+    ubq_pdb, default_database, torch_device
+):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    sfxn = ScoreFunction(default_database, torch_device)
+    sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
+
+    one_pair_term = sfxn.render_whole_pose_scoring_module(pose)
+    assert len(one_pair_term._shared_neighbor_term_indices) == 1
+    assert one_pair_term._build_shared_block_neighbors(pose.coords) is None
+    assert all(
+        term.classname != "LJLK+Elec" for term in one_pair_term._execution_modules
+    )
+
+    sfxn.set_weight(ScoreType.fa_elec, 1.0)
+    two_pair_terms = sfxn.render_whole_pose_scoring_module(pose)
+    assert len(two_pair_terms._shared_neighbor_term_indices) == 2
+    assert two_pair_terms._build_shared_block_neighbors(pose.coords) is not None
+    assert two_pair_terms._execution_modules[0].classname == "LJLK+Elec"
+
+    sfxn.set_weight(ScoreType.fa_elec, 0.0)
+    one_pair_term_again = sfxn.render_whole_pose_scoring_module(pose)
+    assert len(one_pair_term_again._shared_neighbor_term_indices) == 1
+    assert one_pair_term_again._build_shared_block_neighbors(pose.coords) is None
+    assert all(
+        term.classname != "LJLK+Elec" for term in one_pair_term_again._execution_modules
+    )
+
+
+def test_fused_ljlk_elec_preserves_term_lanes_weights_and_gradients(
+    ubq_pdb, torch_device
+):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+
+    # This test edits the rendered weight buffer, which shares storage with
+    # its score function. Keep those edits out of the memoized beta2016 object.
+    fused = _non_memoized_beta2016(torch_device).render_whole_pose_scoring_module(pose)
+
+    assert [term.classname for term in fused.term_modules][:2] == ["LJLK", "Elec"]
+    assert fused._execution_modules[0].classname == "LJLK+Elec"
+
+    separate_coords = pose.coords.detach().clone().requires_grad_(True)
+    fused_coords = pose.coords.detach().clone().requires_grad_(True)
+    separate_lanes = _separate_unweighted_scores(fused, separate_coords)
+    fused_lanes = fused(fused_coords, sum_terms=False, apply_weights=False)
+    torch.testing.assert_close(fused_lanes, separate_lanes, atol=2e-5, rtol=2e-5)
+
+    (separate_gradient,) = torch.autograd.grad(separate_lanes.sum(), separate_coords)
+    (fused_gradient,) = torch.autograd.grad(fused_lanes.sum(), fused_coords)
+    torch.testing.assert_close(fused_gradient, separate_gradient, atol=3e-5, rtol=3e-5)
+
+    # Runtime weight edits remain independent because fusion emits the same
+    # canonical score lanes. In particular, electrostatics can be disabled
+    # without changing the execution object's public representation.
+    with torch.no_grad():
+        fused.weights[ScoreType.fa_ljatr.value] = 0.25
+        fused.weights[ScoreType.fa_ljrep.value] = -0.5
+        fused.weights[ScoreType.fa_lk.value] = 1.25
+        fused.weights[ScoreType.fa_elec.value] = 0.0
+    weighted_lanes = fused(pose.coords, sum_terms=False, apply_weights=True)
+    torch.testing.assert_close(weighted_lanes, fused_lanes.detach() * fused.weights)
+    torch.testing.assert_close(fused(pose.coords), weighted_lanes.sum(dim=0))
+
+    # Compact weighted fusion intentionally has no weight backward. If callers
+    # make the score-function weights trainable, retain the canonical lanes so
+    # PyTorch can differentiate the ordinary elementwise weighting operation.
+    fused.weights.requires_grad_(True)
+    fused(pose.coords.detach()).sum().backward()
+    assert fused.weights.grad is not None
+    assert torch.isfinite(fused.weights.grad).all()
+    assert torch.count_nonzero(fused.weights.grad[:4]) != 0
+
+
+def test_fused_ljlk_elec_weighted_gradient_finite_difference(
+    ubq_pdb, default_database, torch_device
+):
+    if torch_device.type != "cpu":
+        pytest.skip("CPU double-precision finite-difference check")
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=2)
+    sfxn = ScoreFunction(default_database, torch_device)
+    for score_type, weight in (
+        (ScoreType.fa_ljatr, 0.7),
+        (ScoreType.fa_ljrep, -0.3),
+        (ScoreType.fa_lk, 1.1),
+        (ScoreType.fa_elec, 0.4),
+    ):
+        sfxn.set_weight(score_type, weight)
+    scorer = sfxn.render_whole_pose_scoring_module(pose)
+    assert scorer._execution_modules[0].classname == "LJLK+Elec"
+
+    coords = pose.coords.double().requires_grad_(True)
+    torch.autograd.gradcheck(
+        lambda x: scorer(x).sum(),
+        (coords,),
+        eps=1e-6,
+        atol=2e-5,
+        rtol=2e-3,
+        fast_mode=True,
+    )
+
+
+def test_fused_ljlk_elec_backward_respects_lane_and_pose_weights(
+    ubq_pdb, default_database, torch_device, monkeypatch
+):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    pose_batch = PoseStackBuilder.from_poses([pose, pose], torch_device)
+
+    if torch_device.type == "cpu":
+        monkeypatch.setattr(torch, "get_num_threads", lambda: 1)
+    fused = beta2016_score_function(
+        torch_device, param_db=default_database
+    ).render_whole_pose_scoring_module(pose_batch)
+    assert fused._execution_modules[0].classname == "LJLK+Elec"
+
+    separate_coords = pose_batch.coords.detach().clone().requires_grad_(True)
+    fused_coords = pose_batch.coords.detach().clone().requires_grad_(True)
+    separate_lanes = _separate_unweighted_scores(fused, separate_coords)
+    fused_lanes = fused(fused_coords, sum_terms=False, apply_weights=False)
+    upstream = torch.linspace(
+        -1.25,
+        1.75,
+        separate_lanes.numel(),
+        device=torch_device,
+        dtype=separate_lanes.dtype,
+    ).reshape_as(separate_lanes)
+    (separate_gradient,) = torch.autograd.grad(
+        (separate_lanes * upstream).sum(), separate_coords
+    )
+    (fused_gradient,) = torch.autograd.grad(
+        (fused_lanes * upstream).sum(), fused_coords
+    )
+
+    torch.testing.assert_close(fused_lanes, separate_lanes, atol=2e-4, rtol=3e-5)
+    torch.testing.assert_close(fused_gradient, separate_gradient, atol=5e-5, rtol=5e-5)
+
+
+def test_cpu_fused_shard_planner_preserves_fallbacks(
+    ubq_pdb, default_database, torch_device, monkeypatch
+):
+    if torch_device.type != "cpu":
+        pytest.skip("CPU execution-planner check")
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    monkeypatch.setattr(torch, "get_num_threads", lambda: 4)
+    fused = beta2016_score_function(
+        torch_device, param_db=default_database
+    ).render_whole_pose_scoring_module(pose)
+    assert fused._execution_modules[0].classname == "LJLK+Elec"
+    assert fused._cpu_fused_shards == 2
+    assert fused._can_use_weighted_fused_default(pose.coords.detach())
+    assert fused._can_use_weighted_fused_default(
+        pose.coords.detach().requires_grad_(True)
+    ) == (score_function_module.sys.platform != "darwin")
+
+    monkeypatch.setattr(torch, "get_num_threads", lambda: 16)
+    wide = beta2016_score_function(
+        torch_device, param_db=default_database
+    ).render_whole_pose_scoring_module(pose)
+    assert wide._cpu_fused_shards == 8
+    assert not wide._can_use_weighted_fused_default(pose.coords.detach())
+    assert wide._can_use_weighted_fused_default(
+        pose.coords.detach().requires_grad_(True)
+    ) == (score_function_module.sys.platform != "darwin")
+    monkeypatch.setattr(torch, "get_num_threads", lambda: 4)
+
+    separate_coords = pose.coords.detach().clone().requires_grad_(True)
+    fused_coords = pose.coords.detach().clone().requires_grad_(True)
+    separate_lanes = _separate_unweighted_scores(fused, separate_coords)
+    separate_score = (separate_lanes * fused.weights).sum(dim=0)
+    fused_score = fused(fused_coords)
+    (separate_grad,) = torch.autograd.grad(separate_score.sum(), separate_coords)
+    (fused_grad,) = torch.autograd.grad(fused_score.sum(), fused_coords)
+    torch.testing.assert_close(fused_score, separate_score, atol=2e-3, rtol=3e-5)
+    torch.testing.assert_close(fused_grad, separate_grad, atol=5e-5, rtol=5e-5)
+    repeated = fused(fused_coords)
+    (repeated_grad,) = torch.autograd.grad(repeated.sum(), fused_coords)
+    torch.testing.assert_close(repeated, fused_score, atol=0, rtol=0)
+    torch.testing.assert_close(repeated_grad, fused_grad, atol=0, rtol=0)
+
+    monkeypatch.setattr(torch, "get_num_threads", lambda: 2)
+    two_threads = beta2016_score_function(
+        torch_device, param_db=default_database
+    ).render_whole_pose_scoring_module(pose)
+    assert two_threads._execution_modules[0].classname == "LJLK+Elec"
+    assert two_threads._cpu_fused_shards == 2
+
+    monkeypatch.setattr(torch, "get_num_threads", lambda: 4)
+    pose_batch = PoseStackBuilder.from_poses([pose, pose], torch_device)
+    batched = beta2016_score_function(
+        torch_device, param_db=default_database
+    ).render_whole_pose_scoring_module(pose_batch)
+    assert all(term.classname != "LJLK+Elec" for term in batched._execution_modules)
+
+
+def test_weighted_fused_score_adaptive_dispatch():
+    cpu = torch.zeros((1, 10, 3))
+    assert score_function_module._use_weighted_fused_score(cpu)
+
+
+def test_weighted_fused_score_cuda_adaptive_dispatch():
+    if not torch.cuda.is_available():
+        pytest.skip("CUDA is not available")
+    device = torch.device("cuda")
+
+    assert not score_function_module._use_weighted_fused_score(
+        torch.zeros((1, 14_999, 3), device=device)
+    )
+    assert score_function_module._use_weighted_fused_score(
+        torch.zeros((1, 15_000, 3), device=device)
+    )
+    assert not score_function_module._use_weighted_fused_score(
+        torch.zeros((32, 1_999, 3), device=device)
+    )
+    assert score_function_module._use_weighted_fused_score(
+        torch.zeros((32, 2_000, 3), device=device)
+    )
+    assert not score_function_module._use_weighted_fused_score(
+        torch.zeros((29, 730, 3), device=device), needs_gradient=True
+    )
+    assert score_function_module._use_weighted_fused_score(
+        torch.zeros((30, 730, 3), device=device), needs_gradient=True
+    )
+
+
+@pytest.mark.parametrize(
+    "shape, message",
+    [
+        ((1, 65_536), "at most 65,535 blocks"),
+        ((2, 46_341), "exceeds int32 capacity"),
+    ],
+)
+def test_compact_block_neighbor_capacity_checks(shape, message):
+    empty_float = torch.empty((0, 3), dtype=torch.float32)
+    empty_int = torch.empty((0,), dtype=torch.int32)
+    first_rot_block_type = torch.empty(shape, dtype=torch.int32)
+
+    with pytest.raises(RuntimeError, match=message):
+        build_compact_block_neighbors(
+            empty_float,
+            empty_int,
+            first_rot_block_type,
+            empty_int,
+            empty_int,
+            empty_int,
+            empty_int,
+            6.0,
+        )
+
+
+def test_large_cpu_spatial_neighbor_build_is_deterministic(
+    systems_bysize, default_database, torch_device
+):
+    if torch_device.type != "cpu":
+        pytest.skip("CPU compact-list determinism check")
+    pose = pose_stack_from_pdb(systems_bysize[300], torch_device)
+    scorer = beta2016_score_function(
+        torch_device, param_db=default_database
+    ).render_whole_pose_scoring_module(pose)
+    original_threads = torch.get_num_threads()
+    try:
+        torch.set_num_threads(1)
+        serial = scorer._build_shared_block_neighbors(pose.coords)
+        torch.set_num_threads(4)
+        parallel_first = scorer._build_shared_block_neighbors(pose.coords)
+        parallel_second = scorer._build_shared_block_neighbors(pose.coords)
+    finally:
+        torch.set_num_threads(original_threads)
+
+    assert serial is not None
+    n_neighbors = int(serial[0])
+    assert serial.numel() == n_neighbors + 1
+    assert torch.equal(parallel_first, serial)
+    assert torch.equal(parallel_second, serial)
+
+    legacy_scores = _separate_unweighted_scores(scorer, pose.coords)
+    compact_scores = scorer.unweighted_scores(pose.coords)
+    torch.testing.assert_close(compact_scores, legacy_scores, atol=1e-5, rtol=1e-5)
+
+
+def test_score_function_resolves_unindexed_cuda(default_database, torch_device):
+    if torch_device.type != "cuda":
+        pytest.skip("Requires CUDA")
+
+    sfxn = ScoreFunction(default_database, torch.device("cuda"))
+
+    assert sfxn._device == torch_device
+    assert sfxn._weights.device == torch_device
+
+
+def test_whole_pose_gradients_respect_per_pose_upstream_weights(
+    ubq_pdb, default_database, torch_device
+):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    stack = PoseStackBuilder.from_poses([pose] * 3, torch_device)
+    sfxn = ScoreFunction(default_database, torch_device)
+    sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
+    sfxn.set_weight(ScoreType.fa_ljrep, 0.55)
+    sfxn.set_weight(ScoreType.fa_lk, 0.8)
+
+    single_scorer = sfxn.render_whole_pose_scoring_module(pose)
+    single_coords = pose.coords.detach().clone().requires_grad_(True)
+    single_grad = torch.autograd.grad(
+        single_scorer(single_coords).sum(), single_coords
+    )[0]
+
+    stack_scorer = sfxn.render_whole_pose_scoring_module(stack)
+    stack_coords = stack.coords.detach().clone().requires_grad_(True)
+    upstream = torch.tensor([0.25, -1.5, 2.0], device=torch_device)
+    stack_grad = torch.autograd.grad(
+        (stack_scorer(stack_coords) * upstream).sum(), stack_coords
+    )[0]
+
+    torch.testing.assert_close(
+        stack_grad,
+        single_grad.expand_as(stack_grad) * upstream[:, None, None],
+        atol=1e-5,
+        rtol=1e-5,
+    )
+
+
+@pytest.mark.parametrize("device_index", [0, 1])
+def test_cuda_term_gradients_accept_strided_lane_weights(ubq_pdb, device_index):
+    if torch.cuda.device_count() <= device_index:
+        pytest.skip("Requested CUDA device is unavailable")
+    original_device = torch.cuda.current_device()
+    torch_device = torch.device("cuda", device_index)
+    with torch.cuda.device(torch_device):
+        one = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+        pose = PoseStackBuilder.from_poses([one, one], torch_device)
+        scorer = _non_memoized_beta2016(torch_device).render_whole_pose_scoring_module(
+            pose
+        )
+        default_stream = torch.cuda.default_stream(torch_device)
+        other_stream = torch.cuda.Stream(device=torch_device)
+        other_stream.wait_stream(default_stream)
+        layouts = ((1, default_stream), (2, other_stream), (3, other_stream))
+        tested_widths = set()
+
+        for term in scorer.term_modules:
+            reference_coords = pose.coords.detach().clone().requires_grad_(True)
+            reference_scores = term(reference_coords)
+            if not reference_scores.requires_grad:
+                continue
+            values = torch.linspace(
+                -1,
+                1,
+                reference_scores.numel(),
+                device=torch_device,
+                dtype=reference_scores.dtype,
+            ).view_as(reference_scores)
+            (expected,) = torch.autograd.grad(
+                reference_scores, reference_coords, values, allow_unused=True
+            )
+            if expected is None:
+                continue
+
+            for stride, stream in layouts:
+                with torch.cuda.stream(stream):
+                    coords = pose.coords.detach().clone().requires_grad_(True)
+                    scores = term(coords)
+                    backing = values.new_empty(values.numel() * stride)
+                    backing[::stride] = values.flatten()
+                    upstream = backing[::stride].view_as(scores)
+                    (actual,) = torch.autograd.grad(
+                        scores, coords, upstream, allow_unused=True
+                    )
+                stream.synchronize()
+                assert actual is not None
+                torch.testing.assert_close(actual, expected, rtol=5e-5, atol=5e-5)
+
+            tested_widths.add(reference_scores.shape[0])
+
+        assert tested_widths == {1, 2, 3, 4, 5}
+    assert torch.cuda.current_device() == original_device
+
+
+def test_zero_weight_does_not_construct_energy_term(default_database, torch_device):
+    sfxn = ScoreFunction(default_database, torch_device)
+
+    sfxn.set_weight(ScoreType.constraint, 0.0)
+
+    assert sfxn.all_terms() == []
+    assert sfxn.get_weight(ScoreType.constraint) == 0
+
+    sfxn.set_weight(ScoreType.constraint, 1.0)
+    assert len(sfxn.all_terms()) == 1
+
+    sfxn.set_weight(ScoreType.constraint, 0.0)
+    assert sfxn.all_terms() == []
+
+
+def test_zero_weight_removes_term_only_after_last_subterm(
+    default_database, torch_device
+):
+    sfxn = ScoreFunction(default_database, torch_device)
+    sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
+    sfxn.set_weight(ScoreType.fa_ljrep, 1.0)
+
+    sfxn.set_weight(ScoreType.fa_ljrep, 0.0)
+    assert len(sfxn.all_terms()) == 1
+
+    sfxn.set_weight(ScoreType.fa_ljatr, 0.0)
+    assert sfxn.all_terms() == []
+
+
+def test_weight_tensor_refresh_preserves_score_type_order(
+    default_database, torch_device
+):
+    sfxn = ScoreFunction(default_database, torch_device)
+    sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
+    sfxn.set_weight(ScoreType.fa_ljrep, 2.0)
+    sfxn.set_weight(ScoreType.fa_lk, 3.0)
+
+    torch.testing.assert_close(
+        sfxn.weights_tensor(),
+        torch.tensor([1.0, 2.0, 3.0], device=torch_device),
+    )
+
+    indices = sfxn._weight_indices_tensor
+    sfxn.set_weight(ScoreType.fa_ljrep, 4.0)
+    torch.testing.assert_close(
+        sfxn.weights_tensor(),
+        torch.tensor([1.0, 4.0, 3.0], device=torch_device),
+    )
+    assert sfxn._weight_indices_tensor is indices
+
+
+def test_packed_block_setup_is_reused_and_cross_score_function_safe(
+    ubq_pdb, default_database, torch_device, monkeypatch
+):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    sfxn = ScoreFunction(default_database, torch_device)
+    sfxn.set_weight(ScoreType.ref, 1.0)
+    term = sfxn.all_terms()[0]
+    original = term.setup_block_type
+    calls = 0
+
+    def counted(block_type):
+        nonlocal calls
+        calls += 1
+        return original(block_type)
+
+    monkeypatch.setattr(term, "setup_block_type", counted)
+    sfxn.pre_work_initialization(pose)
+    first_calls = calls
+    assert first_calls == len(pose.packed_block_types.active_block_types)
+
+    sfxn.pre_work_initialization(pose)
+    assert calls == first_calls
+
+    # Packed block types are shared. Another score function may replace
+    # option-dependent annotations, so its setup must invalidate this cache.
+    other = ScoreFunction(default_database, torch_device)
+    other.set_weight(ScoreType.ref, 1.0)
+    other.pre_work_initialization(pose)
+    sfxn.pre_work_initialization(pose)
+    assert calls == 2 * first_calls
+
+
+def test_packed_block_setup_reuses_annotations_for_identical_types(
+    ubq_pdb, default_database, torch_device
+):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    original_pbt = pose.packed_block_types
+    packed_block_types = [
+        PackedBlockTypes.from_restype_list(
+            original_pbt.chem_db,
+            original_pbt.restype_set,
+            list(original_pbt.active_block_types),
+            torch_device,
+        )
+        for _ in range(2)
+    ]
+    packed_block_types[0].unrelated_annotation = object()
+    poses = [attr.evolve(pose, packed_block_types=pbt) for pbt in packed_block_types]
+    score_function = ScoreFunction(default_database, torch_device)
+    score_function.set_weight(ScoreType.ref, 1.0)
+
+    score_function.pre_work_initialization(poses[0])
+    first_weights = packed_block_types[0].ref_weights
+    score_function.pre_work_initialization(poses[1])
+
+    assert packed_block_types[1].ref_weights is first_weights
+    assert (
+        packed_block_types[1]._ref_annotation is packed_block_types[0]._ref_annotation
+    )
+    assert not hasattr(packed_block_types[1], "unrelated_annotation")
+
+    reversed_pbt = PackedBlockTypes.from_restype_list(
+        original_pbt.chem_db,
+        original_pbt.restype_set,
+        list(reversed(original_pbt.active_block_types)),
+        torch_device,
+    )
+    reversed_pose = attr.evolve(pose, packed_block_types=reversed_pbt)
+    score_function.pre_work_initialization(reversed_pose)
+    assert reversed_pbt.ref_weights is not first_weights
+
+
+def test_packed_block_annotation_reuse_survives_option_changes(
+    ubq_pdb, default_database, torch_device
+):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    original_pbt = pose.packed_block_types
+
+    def equivalent_pose():
+        pbt = PackedBlockTypes.from_restype_list(
+            original_pbt.chem_db,
+            original_pbt.restype_set,
+            list(original_pbt.active_block_types),
+            torch_device,
+        )
+        return attr.evolve(pose, packed_block_types=pbt)
+
+    score_function = ScoreFunction(default_database, torch_device)
+    score_function.set_weight(ScoreType.ref, 1.0)
+    first_pose = equivalent_pose()
+    score_function.pre_work_initialization(first_pose)
+
+    override = dict(default_database.scoring.ref.weights)
+    override[original_pbt.active_block_types[0].base_name] = 123.0
+    score_function.set_option("ref_weights", override)
+    score_function.pre_work_initialization(first_pose)
+    overridden_weights = first_pose.packed_block_types.ref_weights
+
+    second_pose = equivalent_pose()
+    score_function.pre_work_initialization(second_pose)
+    assert second_pose.packed_block_types.ref_weights is overridden_weights
+
+
+@pytest.mark.parametrize("score_type", [ScoreType.ref, ScoreType.fa_ljrep])
+def test_replacing_options_restores_default_scores(
+    ubq_pdb, default_database, torch_device, score_type
+):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    score_function = ScoreFunction(default_database, torch_device)
+    score_function.set_weight(score_type, 1.0)
+
+    def score():
+        scorer = score_function.render_whole_pose_scoring_module(pose)
+        return scorer(pose.coords).detach().clone()
+
+    original = score()
+    override = {
+        name: weight + 123.0
+        for name, weight in default_database.scoring.ref.weights.items()
+    }
+    score_function.set_options({"ref_weights": override, "soft_rep": True})
+    assert not torch.allclose(score(), original)
+
+    # set_options replaces the entire dictionary, including options already
+    # applied to constructed terms and cached packed-block annotations.
+    score_function.set_options({})
+    torch.testing.assert_close(score(), original)
+
+
+def test_no_grad_scoring_detaches_coordinates():
+    class RecordingTerm(torch.nn.Module):
+        def forward(self, coords):
+            self.input_requires_grad = coords.requires_grad
+            return coords.sum().reshape(1, 1)
+
+    term = RecordingTerm()
+    scorer = WholePoseScoringModule(torch.ones(1), [term])
+    coords = torch.ones(1, requires_grad=True)
+
+    scorer(coords)
+    assert term.input_requires_grad
+
+    with torch.no_grad():
+        scorer(coords)
+    assert not term.input_requires_grad
+
+
+def test_coordinate_independent_score_preserves_its_own_gradient():
+    coords = torch.ones(3, requires_grad=True)
+    score = torch.ones(2, requires_grad=True)
+
+    coords_grad, score_grad = torch.autograd.grad(
+        _coordinate_independent_score(coords, score).sum(),
+        (coords, score),
+        allow_unused=True,
+    )
+
+    assert coords_grad is None
+    torch.testing.assert_close(score_grad, torch.ones_like(score))
+
+
+def test_cpu_whole_pose_terms_run_concurrently_and_preserve_modes(monkeypatch):
+    monkeypatch.setattr(
+        score_function_module,
+        "_CPU_PARALLEL_SCORE_BACKWARD_MIN_COORD_ELEMENTS",
+        0,
+    )
+
+    class RecordingTerm(torch.nn.Module):
+        def __init__(self, scale):
+            super().__init__()
+            self.scale = scale
+            self.calls = []
+
+        def forward(self, coords):
+            self.calls.append(
+                (
+                    threading.get_ident(),
+                    torch.is_grad_enabled(),
+                    torch.is_inference_mode_enabled(),
+                )
+            )
+            return (self.scale * coords.square().sum()).reshape(1, 1)
+
+    class ConstantTerm(RecordingTerm):
+        def forward(self, coords):
+            self.calls.append(
+                (
+                    threading.get_ident(),
+                    torch.is_grad_enabled(),
+                    torch.is_inference_mode_enabled(),
+                )
+            )
+            return torch.ones((1, 1), dtype=coords.dtype, device=coords.device)
+
+    monkeypatch.setattr(torch, "get_num_threads", lambda: 4)
+    terms = [RecordingTerm(scale) for scale in (1.0, 2.0, 3.0, 4.0)] + [
+        ConstantTerm(0.0)
+    ]
+    scorer = WholePoseScoringModule(torch.ones(5), terms)
+    coords = torch.arange(3.0, requires_grad=True)
+
+    score = scorer(coords)
+    score.backward(retain_graph=True)
+
+    torch.testing.assert_close(score, torch.tensor([51.0]))
+    torch.testing.assert_close(coords.grad, 20 * coords.detach())
+    coords.grad = None
+    score.backward()
+    torch.testing.assert_close(coords.grad, 20 * coords.detach())
+    assert all(
+        call[0] != threading.get_ident() for term in terms for call in term.calls
+    )
+    assert all(call[1:] == (True, False) for term in terms for call in term.calls)
+
+    for term in terms:
+        term.calls.clear()
+    with torch.inference_mode():
+        scorer(coords)
+    assert all(call[1:] == (False, True) for term in terms for call in term.calls)
+
+    for term in terms:
+        term.calls.clear()
+    scorer._cpu_term_workers = 0
+    scorer(coords)
+    assert all(
+        call[0] == threading.get_ident() for term in terms for call in term.calls
+    )
+
+
+def test_cpu_whole_pose_preserves_trainable_term_gradients(monkeypatch):
+    class TrainableTerm(torch.nn.Module):
+        def __init__(self, scale):
+            super().__init__()
+            self.scale = torch.nn.Parameter(torch.tensor(scale))
+
+        def forward(self, coords):
+            return (self.scale * coords.square().sum()).reshape(1, 1)
+
+    monkeypatch.setattr(torch, "get_num_threads", lambda: 2)
+    terms = [TrainableTerm(2.0), TrainableTerm(3.0)]
+    scorer = WholePoseScoringModule(torch.ones(2), terms)
+    coords = torch.arange(3.0, requires_grad=True)
+
+    scorer(coords).backward()
+
+    torch.testing.assert_close(coords.grad, 10 * coords.detach())
+    for term in terms:
+        torch.testing.assert_close(term.scale.grad, coords.detach().square().sum())
+
+
+def test_cpu_parallel_whole_pose_gradient_matches_serial_order(
+    ubq_pdb, default_database, torch_device, monkeypatch
+):
+    if torch_device.type != "cpu":
+        pytest.skip("CPU term-parallel scoring test")
+
+    monkeypatch.setattr(
+        score_function_module,
+        "_CPU_PARALLEL_SCORE_BACKWARD_MIN_COORD_ELEMENTS",
+        0,
+    )
+
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    scorer = beta2016_score_function(
+        torch_device, default_database
+    ).render_whole_pose_scoring_module(pose)
+
+    def score_and_gradient():
+        coords = pose.coords.detach().clone().requires_grad_(True)
+        score = scorer(coords)
+        (gradient,) = torch.autograd.grad(score.sum(), coords)
+        return score, gradient
+
+    parallel_score, parallel_gradient = score_and_gradient()
+    scorer._cpu_term_workers = 0
+    serial_score, serial_gradient = score_and_gradient()
+
+    assert torch.equal(parallel_score, serial_score)
+    # Independent shard graphs may reach the leaf accumulator in a different
+    # order; the resulting difference is limited to float32 roundoff.
+    torch.testing.assert_close(parallel_gradient, serial_gradient, atol=5e-6, rtol=1e-6)
+
+
+@pytest.mark.parametrize(
+    "backward_threshold", [0, 10_000], ids=["parallel", "single-call"]
+)
+def test_cpu_parallel_whole_pose_supports_second_coordinate_derivatives(
+    monkeypatch: pytest.MonkeyPatch, backward_threshold: int
+) -> None:
+    class QuadraticTerm(torch.nn.Module):
+        def __init__(self, scale: float) -> None:
+            super().__init__()
+            self.scale = scale
+
+        def forward(self, coords: torch.Tensor) -> torch.Tensor:
+            return (self.scale * coords.square().sum()).reshape(1, 1)
+
+    monkeypatch.setattr(torch, "get_num_threads", lambda: 4)
+    monkeypatch.setattr(
+        score_function_module,
+        "_CPU_PARALLEL_SCORE_BACKWARD_MIN_COORD_ELEMENTS",
+        backward_threshold,
+    )
+    scorer = WholePoseScoringModule(
+        torch.ones(4), [QuadraticTerm(scale) for scale in (1.0, 2.0, 3.0, 4.0)]
+    )
+    coords = torch.arange(3.0, requires_grad=True)
+
+    score = scorer(coords).sum()
+    (gradient,) = torch.autograd.grad(score, coords, create_graph=True)
+    (second_derivative,) = torch.autograd.grad(gradient.sum(), coords)
+
+    torch.testing.assert_close(gradient, 20 * coords.detach())
+    torch.testing.assert_close(second_derivative, torch.full_like(coords, 20))
+
+
+def test_rotamer_scorer_combines_identical_sparse_layouts(
+    torch_device: torch.device,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        score_function_module, "_CUDA_ROTAMER_LAYOUT_DEDUP_MIN_BYTES", 0
+    )
+
+    class SparseTerm(torch.nn.Module):
+        def __init__(self, scores: torch.Tensor, indices: torch.Tensor) -> None:
+            super().__init__()
+            self.scores = scores
+            self.indices = indices
+            self.n_poses = 1
+            self.n_rots = 3
+
+        def forward(self, coords: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+            return self.scores * coords, self.indices
+
+    shared = torch.tensor(
+        [[0, 0], [0, 1], [1, 0]], dtype=torch.int32, device=torch_device
+    )
+    distinct = torch.tensor(
+        [[0, 0], [0, 2], [2, 1]], dtype=torch.int32, device=torch_device
+    )
+    terms = [
+        SparseTerm(torch.tensor([[1.0, 2.0]], device=torch_device), shared),
+        SparseTerm(torch.tensor([[3.0, 4.0]], device=torch_device), shared.clone()),
+        SparseTerm(torch.tensor([[5.0, 6.0]], device=torch_device), distinct),
+    ]
+    scorer = RotamerScoringModule(
+        torch.tensor([1.0, 2.0, 4.0], device=torch_device), terms
+    )
+    coords = torch.ones((), device=torch_device, requires_grad=True)
+
+    scores = scorer(coords)
+    dense_scores = scores.to_dense()
+
+    assert scores._nnz() == 4
+    torch.testing.assert_close(
+        dense_scores,
+        torch.tensor(
+            [[[0.0, 7.0, 20.0], [10.0, 0.0, 0.0], [0.0, 24.0, 0.0]]],
+            device=torch_device,
+        ),
+    )
+    dense_scores.sum().backward()
+    torch.testing.assert_close(coords.grad, torch.tensor(61.0, device=torch_device))
+
+
+def test_rotamer_weighted_reduction_preserves_layout_values_and_gradients(
+    torch_device: torch.device,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        score_function_module, "_CUDA_ROTAMER_LAYOUT_DEDUP_MIN_BYTES", 0
+    )
+
+    class SparseTerm(torch.nn.Module):
+        def __init__(self, scores: torch.Tensor, indices: torch.Tensor) -> None:
+            super().__init__()
+            self.scores = scores
+            self.indices = indices
+            self.n_score_types = scores.shape[0]
+            self.n_poses = 1
+            self.n_rots = 3
+
+        def forward(self, coords: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+            return self.scores * coords, self.indices
+
+    shared = torch.tensor(
+        [[0, 0, 0], [0, 0, 1], [0, 1, 2]],
+        dtype=torch.int32,
+        device=torch_device,
+    )
+    distinct = torch.tensor(
+        [[0, 0], [1, 2], [0, 1]], dtype=torch.int32, device=torch_device
+    )
+    score_lanes = [
+        torch.tensor(
+            [[1.0, 2.0, 3.0], [4.0, -1.0, 2.0], [0.5, 1.5, -2.0]],
+            device=torch_device,
+        ),
+        torch.tensor([[7.0, 8.0, 9.0], [-3.0, 2.0, 1.0]], device=torch_device),
+        torch.tensor([[2.0, 5.0], [4.0, -6.0]], device=torch_device),
+    ]
+    weights = torch.tensor([0.0, 2.0, -1.0, 0.0, 4.0, -3.0, 0.5], device=torch_device)
+    scorer = RotamerScoringModule(
+        weights,
+        [
+            SparseTerm(score_lanes[0], shared),
+            SparseTerm(score_lanes[1], shared.clone()),
+            SparseTerm(score_lanes[2], distinct),
+        ],
+    )
+    scorer.weights.requires_grad_(True)
+    coords = torch.tensor(1.25, device=torch_device, requires_grad=True)
+
+    indices, values = scorer.forward_sparse_entries(coords)
+
+    reference_weights = weights.detach().clone().requires_grad_(True)
+    reference_coords = coords.detach().clone().requires_grad_(True)
+    first = (reference_weights[:3, None] * score_lanes[0] * reference_coords).sum(dim=0)
+    second = (reference_weights[3:5, None] * score_lanes[1] * reference_coords).sum(
+        dim=0
+    )
+    third = (reference_weights[5:, None] * score_lanes[2] * reference_coords).sum(dim=0)
+    reference_values = torch.cat((first + second, third))
+    upstream = torch.linspace(0.25, 1.25, values.numel(), device=torch_device)
+    actual_grads = torch.autograd.grad(
+        (values * upstream).sum(), (coords, scorer.weights)
+    )
+    reference_grads = torch.autograd.grad(
+        (reference_values * upstream).sum(),
+        (reference_coords, reference_weights),
+    )
+
+    assert torch.equal(indices, torch.cat((shared, distinct), dim=1))
+    torch.testing.assert_close(values, reference_values)
+    torch.testing.assert_close(actual_grads[0], reference_grads[0])
+    torch.testing.assert_close(actual_grads[1].reshape(-1), reference_grads[1])
+
+
+def test_weighted_score_sum_has_output_sized_cuda_peak(
+    torch_device: torch.device,
+) -> None:
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA allocation accounting test")
+
+    scores = torch.ones((4, 4 * 1024 * 1024), device=torch_device)
+    weights = torch.tensor([0.0, 2.0, -1.0, 0.5], device=torch_device)
+    torch.cuda.synchronize()
+    torch.cuda.reset_peak_memory_stats()
+    baseline = torch.cuda.memory_allocated()
+
+    result = score_function_module._weighted_score_sum(weights, scores)
+    torch.cuda.synchronize()
+    peak_delta = torch.cuda.max_memory_allocated() - baseline
+
+    torch.testing.assert_close(result, torch.full_like(result, 1.5))
+    assert peak_delta <= result.nbytes + 8 * 1024 * 1024
+
+
+def test_rotamer_scorer_raw_entries_keep_int32_and_uncoalesced_duplicates() -> None:
+    class SparseTerm(torch.nn.Module):
+        n_poses = 1
+        n_rots = 2
+
+        def __init__(self, indices: list[tuple[int, int]], values: list[float]) -> None:
+            super().__init__()
+            self.indices = torch.tensor(
+                [[0] * len(indices), *zip(*indices)], dtype=torch.int32
+            )
+            self.values = torch.tensor([values])
+
+        def forward(self, coords: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+            return self.values * coords, self.indices
+
+    scorer = RotamerScoringModule(
+        torch.tensor([2.0, 3.0]),
+        [SparseTerm([(0, 0), (0, 1)], [4.0, 5.0]), SparseTerm([(0, 1)], [7.0])],
+    )
+
+    indices, values = scorer.forward_sparse_entries(torch.ones(()))
+
+    assert indices.dtype == torch.int32
+    assert indices.shape == (3, 3)
+    assert torch.equal(indices[:, 1], indices[:, 2])
+    torch.testing.assert_close(values, torch.tensor([8.0, 10.0, 21.0]))
+
+
+def test_cpu_rotamer_scorer_coalesces_subset_layouts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(score_function_module, "_CPU_ROTAMER_SORTED_LAYOUT_MIN_NNZ", 0)
+
+    class SparseTerm(torch.nn.Module):
+        def __init__(self, scores: torch.Tensor, indices: torch.Tensor) -> None:
+            super().__init__()
+            self.scores = scores
+            self.indices = indices
+            self.n_poses = 1
+            self.n_rots = 3
+
+        def forward(self, coords: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+            return self.scores * coords, self.indices
+
+    complete = torch.tensor([[0, 0, 0], [2, 0, 1], [2, 0, 1]], dtype=torch.int32)
+    subset = complete[:, [0, 2]]
+    scorer = RotamerScoringModule(
+        torch.tensor([1.0, 2.0]),
+        [
+            SparseTerm(torch.tensor([[1.0, 2.0, 3.0]]), complete),
+            SparseTerm(torch.tensor([[4.0, 5.0]]), subset),
+        ],
+    )
+    coords = torch.ones((), requires_grad=True)
+
+    scores = scorer(coords)
+
+    assert scores.is_coalesced()
+    torch.testing.assert_close(
+        scores.to_dense(),
+        torch.tensor([[[2.0, 0.0, 0.0], [0.0, 13.0, 0.0], [0.0, 0.0, 9.0]]]),
+    )
+    scores.values().sum().backward()
+    torch.testing.assert_close(coords.grad, torch.tensor(24.0))
+
+
+def test_rotamer_scorer_reuses_only_exact_cutoff_dispatch_on_cpu(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        score_function_module, "_cpu_score_term_worker_count", lambda *_: 1
+    )
+    indices = torch.tensor([[0], [0], [0]], dtype=torch.int32)
+
+    class Producer(torch.nn.Module):
+        n_poses = 1
+        n_rots = 1
+        block_neighbor_cutoff = 6.0
+        rotamer_dispatch_key = "sphere_overlap"
+
+        def forward(self, coords):
+            return coords.reshape(1, 1), indices
+
+    class Consumer(torch.nn.Module):
+        n_poses = 1
+        n_rots = 1
+        accepts_shared_dispatch = True
+        rotamer_dispatch_key = "sphere_overlap"
+
+        def __init__(self, cutoff):
+            super().__init__()
+            self.block_neighbor_cutoff = cutoff
+            self.received = None
+
+        def forward(self, coords, shared_dispatch=None):
+            self.received = shared_dispatch
+            return coords.reshape(1, 1), (
+                indices.clone() if shared_dispatch is None else shared_dispatch
+            )
+
+    matching = Consumer(6.0)
+    changed = Consumer(6.5)
+    scorer = RotamerScoringModule(torch.ones(3), [Producer(), matching, changed])
+
+    scores = scorer(torch.ones(()))
+
+    assert matching.received is indices
+    assert changed.received is None
+    torch.testing.assert_close(scores.to_dense(), torch.tensor([[[3.0]]]))
+
+
+def test_rotamer_superset_dispatch_policy() -> None:
+    compatible = score_function_module._rotamer_dispatch_cutoff_compatible
+
+    assert compatible("cpu", 6.0, 6.0)
+    assert not compatible("cpu", 6.0, 5.5)
+    assert compatible("cuda", 6.0, 5.5)
+    assert not compatible("cuda", 5.5, 6.0)
+
+
+def test_cpu_rotamer_terms_run_concurrently(monkeypatch: pytest.MonkeyPatch) -> None:
+    barrier = threading.Barrier(2, timeout=2)
+
+    class SparseTerm(torch.nn.Module):
+        n_poses = 1
+        n_rots = 1
+
+        def forward(self, coords: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+            barrier.wait()
+            scores = coords.reshape(1, 1)
+            indices = torch.zeros((3, 1), dtype=torch.int32)
+            return scores, indices
+
+    monkeypatch.setattr(torch, "get_num_threads", lambda: 2)
+    scorer = RotamerScoringModule(torch.ones(2), [SparseTerm(), SparseTerm()])
+
+    scores = scorer(torch.ones(()))
+
+    torch.testing.assert_close(scores.to_dense(), torch.tensor([[[2.0]]]))
+
+
+def test_cuda_graphed_protein_score_matches_eager(ubq_pdb, torch_device):
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA graph test")
+
+    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    # Reweighting the graph below must not alter later tests' beta2016 scores.
+    sfxn = _non_memoized_beta2016(torch_device)
+    eager = sfxn.render_whole_pose_scoring_module(pose_stack)
+
+    eager_coords = pose_stack.coords.detach().clone().requires_grad_(True)
+    expected_score = eager(eager_coords)
+    (expected_grad,) = torch.autograd.grad(expected_score.sum(), eager_coords)
+    expected_terms = eager(pose_stack.coords, sum_terms=False, apply_weights=False)
+
+    graphed = sfxn.render_whole_pose_scoring_module(pose_stack, cuda_graph=True)
+    assert graphed._cuda_forward_graph_uses_fused_execution
+    assert graphed._cuda_forward_graph_uses_weighted_fusion
+    graph_coords = pose_stack.coords.detach().clone().requires_grad_(True)
+    graph_score = graphed(graph_coords)
+    (graph_grad,) = torch.autograd.grad(graph_score.sum(), graph_coords)
+
+    torch.testing.assert_close(graph_score, expected_score, rtol=1e-5, atol=1e-3)
+    torch.testing.assert_close(graph_grad, expected_grad, rtol=1e-4, atol=1e-3)
+
+    # A later replay must not mutate a score retained by an optimizer.
+    retained_graph_score = graph_score.detach().clone()
+    replay_coords = pose_stack.coords.detach().clone().requires_grad_(True)
+    graphed(replay_coords)
+    torch.testing.assert_close(graph_score, retained_graph_score)
+    # Non-default reductions intentionally retain their normal eager semantics.
+    torch.testing.assert_close(
+        graphed(pose_stack.coords, sum_terms=False, apply_weights=False),
+        expected_terms,
+    )
+
+    # Captured graphs read the scorer's weight buffer at replay time.  Keep
+    # every canonical lane independently editable even when the internal
+    # execution planner groups compatible terms into one traversal.
+    with torch.no_grad():
+        eager.weights.copy_(
+            torch.linspace(
+                0.0,
+                1.0,
+                eager.weights.numel(),
+                device=eager.weights.device,
+                dtype=eager.weights.dtype,
+            ).reshape_as(eager.weights)
+        )
+        graphed.weights.copy_(eager.weights)
+    reweighted_coords = pose_stack.coords.detach().clone().requires_grad_(True)
+    expected_reweighted = eager(reweighted_coords)
+    (expected_reweighted_grad,) = torch.autograd.grad(
+        expected_reweighted.sum(), reweighted_coords
+    )
+    graph_reweighted_coords = pose_stack.coords.detach().clone().requires_grad_(True)
+    graph_reweighted = graphed(graph_reweighted_coords)
+    (graph_reweighted_grad,) = torch.autograd.grad(
+        graph_reweighted.sum(), graph_reweighted_coords
+    )
+    torch.testing.assert_close(
+        graph_reweighted, expected_reweighted, rtol=1e-5, atol=1e-3
+    )
+    torch.testing.assert_close(
+        graph_reweighted_grad,
+        expected_reweighted_grad,
+        rtol=1e-4,
+        atol=1e-3,
+    )
+
+    changed_coords = pose_stack.coords.detach().clone()
+    changed_coords[0, 0, 0] += 0.1
+    torch.testing.assert_close(
+        graphed(changed_coords), eager(changed_coords), rtol=1e-5, atol=1e-3
+    )
+
+    with pytest.raises(ValueError, match="must have shape"):
+        graphed(changed_coords[0])
+    with pytest.raises(TypeError, match="must have dtype"):
+        graphed(changed_coords.to(torch.float64))
+    with pytest.raises(ValueError, match="must be on"):
+        graphed(changed_coords.cpu())
+
+
+def test_large_cuda_pose_score_matches_serial_terms_on_caller_stream(
+    systems_bysize, torch_device
+):
+    if torch_device.type != "cuda":
+        pytest.skip("Requires CUDA")
+
+    pose = pose_stack_from_pdb(systems_bysize[600], torch_device)
+    scorer = beta2016_score_function(torch_device).render_whole_pose_scoring_module(
+        pose
+    )
+    coords = pose.coords.detach().clone()
+    caller_stream = torch.cuda.Stream()
+
+    with torch.inference_mode(), torch.cuda.stream(caller_stream):
+        # Queue an input change on the caller stream. The term streams must
+        # observe it, and the returned score must be safe to consume there.
+        coords[0, 0, 0] += 0.125
+        serial_terms = torch.cat([term(coords) for term in scorer.term_modules], dim=0)
+        expected = (serial_terms * scorer.weights).sum(dim=0)
+        actual = scorer(coords)
+
+    caller_stream.synchronize()
+    assert scorer._cuda_term_streams is not None
+    # Independent term reductions use atomics, so their final addition order
+    # differs across streams and launches.
+    torch.testing.assert_close(actual, expected, rtol=5e-5, atol=1e-2)
+
+    scorer.enable_cuda_graphs(coords, mode="forward")
+    assert scorer._cuda_term_streams is not None
+    torch.testing.assert_close(scorer(coords), expected, rtol=5e-5, atol=1e-2)
+
+    with torch.inference_mode(), torch.cuda.stream(caller_stream):
+        coords[0, 0, 1] -= 0.25
+        serial_terms = torch.cat([term(coords) for term in scorer.term_modules], dim=0)
+        stream_expected = (serial_terms * scorer.weights).sum(dim=0)
+        stream_actual = scorer(coords).clone()
+
+    caller_stream.synchronize()
+    torch.testing.assert_close(stream_actual, stream_expected, rtol=5e-5, atol=1e-2)
 
 
 def test_block_pair_scoring_matches_whole_pose(ubq_pdb, default_database, torch_device):
@@ -55,6 +1389,7 @@ def test_block_pair_scoring_matches_whole_pose(ubq_pdb, default_database, torch_
     # check individual terms
     full_score = full_scorer(pose_stack.coords, sum_terms=False)
     block_score = block_scorer(pose_stack.coords, sum_terms=False)
+    assert not block_score.requires_grad
     torch.testing.assert_close(
         full_score, torch.sum(block_score, dim=(2, 3)), atol=1e-3, rtol=1e-3
     )
@@ -65,6 +1400,204 @@ def test_block_pair_scoring_matches_whole_pose(ubq_pdb, default_database, torch_
     torch.testing.assert_close(
         full_score, torch.sum(block_score, dim=(1, 2)), atol=1e-3, rtol=1e-3
     )
+    if torch_device.type == "cpu":
+        with torch.no_grad():
+            parallel_score = block_scorer(pose_stack.coords)
+
+        block_scorer._cpu_term_workers = 0
+        with torch.no_grad():
+            serial_score = block_scorer(pose_stack.coords)
+
+        assert torch.equal(parallel_score, serial_score)
+
+
+def test_large_cuda_compact_scores_match_block_pair_reference(
+    systems_bysize, default_database, torch_device
+):
+    if torch_device.type != "cuda":
+        pytest.skip("Requires CUDA")
+
+    single_pose = pose_stack_from_pdb(systems_bysize[300], torch_device)
+    # Eight 300-residue poses cross both compact-dispatch thresholds and the
+    # higher threshold for differentiable cross-term stream overlap.
+    pose = PoseStackBuilder.from_poses([single_pose] * 8, torch_device)
+    sfxn = beta2016_score_function(torch_device, default_database)
+    whole_scorer = sfxn.render_whole_pose_scoring_module(pose)
+    block_scorer = sfxn.render_block_pair_scoring_module(pose)
+
+    with torch.inference_mode():
+        compact = whole_scorer(pose.coords, sum_terms=False, apply_weights=False)
+        block_pairs = block_scorer(pose.coords, sum_terms=False, apply_weights=False)
+
+    torch.testing.assert_close(
+        compact, block_pairs.sum(dim=(2, 3)), rtol=1e-5, atol=3e-3
+    )
+
+    caller_stream = torch.cuda.Stream()
+    with torch.cuda.stream(caller_stream):
+        whole_coords = pose.coords.detach().clone().requires_grad_(True)
+        whole_score = whole_scorer(whole_coords).sum()
+        whole_grad = torch.autograd.grad(whole_score, whole_coords)[0]
+    caller_stream.synchronize()
+    block_coords = pose.coords.detach().clone().requires_grad_(True)
+    block_score = block_scorer(block_coords).sum()
+    block_grad = torch.autograd.grad(block_score, block_coords)[0]
+
+    torch.testing.assert_close(whole_score, block_score, rtol=1e-5, atol=1e-2)
+    torch.testing.assert_close(whole_grad, block_grad, rtol=2e-3, atol=2e-3)
+
+    # Compact weighted fusion is profitable inside capture even above the
+    # eager forward threshold. Both graph paths must preserve the
+    # device-resident compact neighbor count.
+    whole_scorer.enable_cuda_graphs(whole_coords, mode="both")
+    assert whole_scorer._cuda_forward_graph_uses_fused_execution
+    assert whole_scorer._cuda_forward_graph_uses_weighted_fusion
+    graph_coords = pose.coords.detach().clone().requires_grad_(True)
+    graph_score = whole_scorer(graph_coords).sum()
+    graph_grad = torch.autograd.grad(graph_score, graph_coords)[0]
+    torch.testing.assert_close(graph_score, whole_score, rtol=1e-5, atol=1e-2)
+    torch.testing.assert_close(graph_grad, whole_grad, rtol=2e-3, atol=2e-3)
+
+
+def test_interaction_only_block_pair_scoring_skips_diagonal_terms(
+    ubq_pdb, default_database, torch_device
+):
+    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    sfxn = beta2016_score_function(torch_device, default_database)
+    full_scorer = sfxn.render_block_pair_scoring_module(pose_stack)
+    interaction_scorer = sfxn.render_block_pair_scoring_module(
+        pose_stack, interaction_only=True
+    )
+
+    full = full_scorer(pose_stack.coords, sum_terms=False)
+    interaction = interaction_scorer(pose_stack.coords, sum_terms=False)
+    off_diagonal = ~torch.eye(
+        pose_stack.max_n_blocks, dtype=torch.bool, device=torch_device
+    )
+    torch.testing.assert_close(interaction[..., off_diagonal], full[..., off_diagonal])
+    block_pairs = torch.nonzero(off_diagonal, as_tuple=False)
+    torch.testing.assert_close(
+        interaction_scorer.score_interactions(
+            pose_stack.coords, block_pairs, sum_terms=False
+        ),
+        full[..., off_diagonal].sum(dim=2),
+    )
+    assert len(interaction_scorer._active_term_modules) < len(
+        full_scorer._active_term_modules
+    )
+
+
+def test_score_interactions_validates_block_pairs(ubq_pdb, torch_device):
+    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=2)
+    scorer = beta2016_score_function(torch_device).render_block_pair_scoring_module(
+        pose_stack, interaction_only=True
+    )
+
+    with pytest.raises(ValueError, match="shape"):
+        scorer.score_interactions(
+            pose_stack.coords,
+            torch.zeros((2,), dtype=torch.int64, device=torch_device),
+        )
+    with pytest.raises(TypeError, match="integer"):
+        scorer.score_interactions(
+            pose_stack.coords,
+            torch.zeros((1, 2), dtype=torch.float32, device=torch_device),
+        )
+
+
+def test_block_pair_gradients_respect_sparse_upstream_weights(
+    ubq_pdb, default_database, torch_device
+):
+    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    scorer = beta2016_score_function(
+        torch_device, default_database
+    ).render_block_pair_scoring_module(pose_stack)
+
+    n_blocks = pose_stack.max_n_blocks
+    split = n_blocks // 2
+    cross_mask = torch.zeros(
+        (1, n_blocks, n_blocks), device=torch_device, dtype=pose_stack.coords.dtype
+    )
+    cross_mask[:, :split, split:] = 1
+    cross_mask[:, split:, :split] = 1
+    all_pairs = torch.ones_like(cross_mask)
+
+    def gradient(upstream: torch.Tensor) -> torch.Tensor:
+        coords = pose_stack.coords.detach().clone().requires_grad_(True)
+        score = (scorer(coords) * upstream).sum()
+        return torch.autograd.grad(score, coords)[0]
+
+    sparse_gradient = gradient(cross_mask)
+    reference_gradient = gradient(all_pairs) - gradient(all_pairs - cross_mask)
+
+    torch.testing.assert_close(
+        sparse_gradient, reference_gradient, atol=2e-3, rtol=2e-3
+    )
+
+
+def test_block_pair_scoring_supports_only_invariant_zero_terms(torch_device):
+    scorer = BlockPairScoringModule(
+        torch.ones(2, device=torch_device),
+        [ZeroTermPoseScoringModule("zero", 2, 3, torch_device, 4)],
+    )
+    coords = torch.zeros((3, 1, 3), device=torch_device, requires_grad=True)
+
+    scores = scorer(coords)
+
+    assert scores.shape == (3, 4, 4)
+    assert torch.count_nonzero(scores) == 0
+    scores.sum().backward()
+
+
+def test_cpu_block_pair_terms_parallelize_only_forward(monkeypatch):
+    barrier = threading.Barrier(2, timeout=2)
+
+    class RecordingTerm(torch.nn.Module):
+        def __init__(self, scale):
+            super().__init__()
+            self.scale = scale
+            self.parallel = True
+            self.thread_ids = []
+
+        def forward(self, coords):
+            self.thread_ids.append(threading.get_ident())
+            if self.parallel:
+                barrier.wait()
+            return (self.scale * coords.sum()).expand(1, 1, 2, 2)
+
+    monkeypatch.setattr(torch, "get_num_threads", lambda: 2)
+    terms = [RecordingTerm(1.0), RecordingTerm(2.0)]
+    scorer = BlockPairScoringModule(
+        torch.tensor([1.0, 7.0, 1.0]),
+        [
+            terms[0],
+            ZeroTermPoseScoringModule("zero", 1, 1, torch.device("cpu"), 2),
+            terms[1],
+        ],
+    )
+
+    with torch.no_grad():
+        scores = scorer(torch.ones((1, 1, 3)))
+
+    torch.testing.assert_close(scores, torch.full((1, 2, 2), 9.0))
+    assert all(term.thread_ids[0] != threading.get_ident() for term in terms)
+
+    for term in terms:
+        term.thread_ids.clear()
+    with torch.no_grad():
+        unweighted = scorer(torch.ones((1, 1, 3)), sum_terms=False, apply_weights=False)
+
+    torch.testing.assert_close(unweighted[:, 0, 0, 0], torch.tensor([3.0, 0.0, 6.0]))
+    assert all(term.thread_ids[0] != threading.get_ident() for term in terms)
+
+    coords = torch.ones((1, 1, 3), requires_grad=True)
+    for term in terms:
+        term.parallel = False
+        term.thread_ids.clear()
+    scorer(coords).sum().backward()
+
+    torch.testing.assert_close(coords.grad, torch.full_like(coords, 12.0))
+    assert all(term.thread_ids == [threading.get_ident()] for term in terms)
 
 
 def test_virtual_residue_scoring(ubq_pdb, torch_device):
@@ -227,8 +1760,8 @@ def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_de
     gold_score_map = {
         ScoreType.cart_lengths: n([38.056973]),
         ScoreType.cart_angles: n([183.9738]),
-        ScoreType.cart_torsions: n([46.02357]),
-        ScoreType.cart_impropers: n([9.430529]),
+        ScoreType.cart_torsions: n([27.477385]),
+        ScoreType.cart_impropers: n([20.951893]),
         ScoreType.cart_hxltorsions: n([47.41971]),
         ScoreType.disulfide: n([0.0]),
         ScoreType.fa_ljatr: n([-417.02362]),
@@ -277,8 +1810,8 @@ def test_score_function_all_score_types(ubq_pdb):
     gold_score_map = {
         ScoreType.cart_lengths: n([38.056973]),
         ScoreType.cart_angles: n([183.9738]),
-        ScoreType.cart_torsions: n([46.02357]),
-        ScoreType.cart_impropers: n([9.430529]),
+        ScoreType.cart_torsions: n([27.477385]),
+        ScoreType.cart_impropers: n([20.951893]),
         ScoreType.cart_hxltorsions: n([47.41971]),
         ScoreType.disulfide: n([0.0]),
         ScoreType.fa_ljatr: n([-417.02362]),
@@ -330,8 +1863,8 @@ def test_score_function_all_score_types_protein_dna(protein_dna_pdb):
         ScoreType.hbond: n([-173.997391]),
         ScoreType.cart_lengths: n([157.134415]),
         ScoreType.cart_angles: n([963.831909]),
-        ScoreType.cart_torsions: n([134.518875]),
-        ScoreType.cart_impropers: n([11.086108]),
+        ScoreType.cart_torsions: n([24.962362]),
+        ScoreType.cart_impropers: n([23.998163]),
         ScoreType.cart_hxltorsions: n([26.123291]),
         ScoreType.disulfide: n([0.0]),
         ScoreType.rama: n([91.406868]),
@@ -354,8 +1887,8 @@ def test_score_function_all_score_types_protein_dna(protein_dna_pdb):
 
 
 def test_score_function_one_body_terms_getter():
-    from tmol.score.dunbrack.dunbrack_energy_term import DunbrackEnergyTerm
-    from tmol.score.ref.ref_energy_term import RefEnergyTerm
+    from tmol.score.dunbrack import DunbrackEnergyTerm
+    from tmol.score.ref import RefEnergyTerm
 
     device = torch.device("cpu")
     sfxn = _non_memoized_beta2016(device)
@@ -375,19 +1908,19 @@ def test_score_function_one_body_terms_getter():
 
 
 def test_score_function_two_body_terms_getter():
-    from tmol.score.backbone_torsion.bb_torsion_energy_term import (
+    from tmol.score.backbone_torsion import (
         BackboneTorsionEnergyTerm,
     )
-    from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
-    from tmol.score.disulfide.disulfide_energy_term import DisulfideEnergyTerm
-    from tmol.score.na_torsion.na_torsion_energy_term import (
+    from tmol.score.cartbonded import CartBondedEnergyTerm
+    from tmol.score.disulfide import DisulfideEnergyTerm
+    from tmol.score.na_torsion import (
         NaTorsionEnergyTerm,
     )
-    from tmol.score.elec.elec_energy_term import ElecEnergyTerm
-    from tmol.score.genbonded.genbonded_energy_term import GenBondedEnergyTerm
-    from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
-    from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
-    from tmol.score.lk_ball.lk_ball_energy_term import LKBallEnergyTerm
+    from tmol.score.elec import ElecEnergyTerm
+    from tmol.score.genbonded import GenBondedEnergyTerm
+    from tmol.score.hbond import HBondEnergyTerm
+    from tmol.score.ljlk import LJLKEnergyTerm
+    from tmol.score.lk_ball import LKBallEnergyTerm
 
     device = torch.device("cpu")
     sfxn = _non_memoized_beta2016(device)
@@ -417,21 +1950,21 @@ def test_score_function_two_body_terms_getter():
 
 
 def test_score_function_all_terms_getter():
-    from tmol.score.backbone_torsion.bb_torsion_energy_term import (
+    from tmol.score.backbone_torsion import (
         BackboneTorsionEnergyTerm,
     )
-    from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
-    from tmol.score.disulfide.disulfide_energy_term import DisulfideEnergyTerm
-    from tmol.score.na_torsion.na_torsion_energy_term import (
+    from tmol.score.cartbonded import CartBondedEnergyTerm
+    from tmol.score.disulfide import DisulfideEnergyTerm
+    from tmol.score.na_torsion import (
         NaTorsionEnergyTerm,
     )
-    from tmol.score.dunbrack.dunbrack_energy_term import DunbrackEnergyTerm
-    from tmol.score.elec.elec_energy_term import ElecEnergyTerm
-    from tmol.score.genbonded.genbonded_energy_term import GenBondedEnergyTerm
-    from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
-    from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
-    from tmol.score.lk_ball.lk_ball_energy_term import LKBallEnergyTerm
-    from tmol.score.ref.ref_energy_term import RefEnergyTerm
+    from tmol.score.dunbrack import DunbrackEnergyTerm
+    from tmol.score.elec import ElecEnergyTerm
+    from tmol.score.genbonded import GenBondedEnergyTerm
+    from tmol.score.hbond import HBondEnergyTerm
+    from tmol.score.ljlk import LJLKEnergyTerm
+    from tmol.score.lk_ball import LKBallEnergyTerm
+    from tmol.score.ref import RefEnergyTerm
 
     device = torch.device("cpu")
     sfxn = _non_memoized_beta2016(device)

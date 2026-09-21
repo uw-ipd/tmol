@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "skill": "tmol-score",
+  "cases": [
+    {
+      "id": "cpu-score-gradient-and-terms",
+      "prompt": "Score a canonical PDB on CPU using four threads. Report the weighted total, all unweighted score-term lanes, and the Cartesian gradient norm without changing the pose topology.",
+      "setup": {
+        "cwd": "TMol repository root",
+        "requires": ["working TMol installation", "one canonical test PDB"]
+      },
+      "expected_behavior": [
+        "Calls torch.set_num_threads(4) before rendering the scorer",
+        "Builds the pose and beta2016 score function on CPU",
+        "Uses sum_terms=False and apply_weights=False for canonical unweighted lanes",
+        "Computes a coordinate gradient through the rendered scorer",
+        "Labels scores as TMol score units rather than kcal/mol"
+      ],
+      "success_criteria": {
+        "finite_total": true,
+        "finite_gradient": true,
+        "reports_thread_count": 4,
+        "reports_term_lanes": true
+      }
+    }
+  ]
+}

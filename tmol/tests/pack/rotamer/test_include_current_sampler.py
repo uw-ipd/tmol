@@ -2,11 +2,13 @@ import torch
 import numpy
 import cattr
 
-from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.pack.packer_task import PackerTask, PackerPalette, SetPackerTask
-from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
+from tmol.chemical import RefinedResidueType, ResidueTypeSet
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStackBuilder,
+)
+from tmol.pack import PackerTask, PackerPalette, SetPackerTask
+from tmol.pack.rotamer import IncludeCurrentSampler
 
 from tmol.tests.data import no_termini_pose_stack_from_pdb
 
@@ -87,7 +89,7 @@ def test_include_current_sampler_smoke(ubq_pdb, torch_device):
 
     assert results[0].device == torch_device
     assert results[1].device == torch_device
-    assert results[2] == {}
+    assert results[2] == {"copy_input_coordinates": True}
 
     n_rots_for_rt_gold = numpy.zeros((21 * 13,), dtype=numpy.int32)
     rt_for_rot_gold = numpy.full((len(enabled_residues),), -1, dtype=numpy.int32)

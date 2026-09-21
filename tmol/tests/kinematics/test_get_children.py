@@ -39,7 +39,7 @@ def _reference_get_children(parents):
     ],
 )
 def test_get_children_matches_legacy_sorted_order(torch_device, parents):
-    from tmol.kinematics.compiled.compiled_ops import get_children
+    from tmol.kinematics.compiled import get_children
 
     parents = torch.tensor(parents, dtype=torch.int32, device=torch_device)
     n_atoms = parents.shape[0]
@@ -72,7 +72,7 @@ def test_get_children_matches_legacy_sorted_order(torch_device, parents):
 
 
 def test_get_children_sorts_across_jump_and_non_jump_children(torch_device):
-    from tmol.kinematics.compiled.compiled_ops import get_children
+    from tmol.kinematics.compiled import get_children
 
     # Atom 1 has non-jump children 2 and 4 in block 0, plus jump child 3 in
     # block 1. The legacy second bubble-sort loop sorted the complete span, so

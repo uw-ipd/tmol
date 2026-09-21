@@ -83,12 +83,13 @@ struct type_caster<HBondGlobalParams<Real>> {
   PYBIND11_TYPE_CASTER(T, _<T>());
 
   bool load(handle src, bool) {
-    Vec<Real, 5> vals = src.cast<Vec<Real, 5>>();
+    Vec<Real, 6> vals = src.cast<Vec<Real, 6>>();
     value.hb_sp2_range_span = vals[0];
     value.hb_sp2_BAH180_rise = vals[1];
     value.hb_sp2_outer_width = vals[2];
     value.hb_sp3_softmax_fade = vals[3];
     value.threshold_distance = vals[4];
+    value.max_ha_dis = vals[5];
     return true;
   }
 };

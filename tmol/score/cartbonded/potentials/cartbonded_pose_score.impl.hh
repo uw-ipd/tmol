@@ -12,6 +12,7 @@
 
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/connection.hh>
+#include <tmol/score/common/counting.hh>
 #include <tmol/score/common/count_pair.hh>
 #include <tmol/score/common/data_loading.hh>
 #include <tmol/score/common/diamond_macros.hh>
@@ -128,6 +129,235 @@ TMOL_DEVICE_FUNC void accumulate_result(
   }
 }
 
+// A connection-centred improper is not a bonded path. Share the ordered
+// enumeration and parameter lookup across pose/rotamer forward/backward paths;
+// only score accumulation differs between the callers.
+template <typename Int, tmol::Device D, int nt, typename ScoreSubgraph>
+TMOL_DEVICE_FUNC void evaluate_connection_impropers(
+    int tid,
+    int block_type1,
+    int block_type2,
+    int rot_coord_offset1,
+    int rot_coord_offset2,
+    int conn_ind1,
+    int conn_ind2,
+    TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
+    TView<Int, 2, D> atom_is_rosetta,
+    TView<Int, 2, D> atom_unique_ids,
+    TView<Int, 2, D> atom_wildcard_ids,
+    TView<Int, 2, D> atom_cross_ids,
+    TView<Vec<Int, 5>, 1, D> hash_keys,
+    ScoreSubgraph const& score_subgraph) {
+  // the three substituents in every order, centre fixed at position 2,
+  // matching the atm3-is-the-centre convention the database rows use
+  int const ORDER[6][3] = {
+      {0, 1, 2}, {0, 2, 1}, {1, 0, 2}, {1, 2, 0}, {2, 0, 1}, {2, 1, 0}};
+  for (int i = tid; i < 2 * 6; i += nt) {
+    bool const reverse = i % 2 == 1;
+    int const ordering = i / 2;
+    int const block_typeA = reverse ? block_type2 : block_type1;
+    int const block_typeB = reverse ? block_type1 : block_type2;
+    int const rot_coord_offsetA =
+        reverse ? rot_coord_offset2 : rot_coord_offset1;
+    int const rot_coord_offsetB =
+        reverse ? rot_coord_offset1 : rot_coord_offset2;
+    int const conn_indA = reverse ? conn_ind2 : conn_ind1;
+    int const conn_indB = reverse ? conn_ind1 : conn_ind2;
+
+    Int const centre = atom_paths_from_conn[block_typeA][conn_indA][0][0];
+    Int const partner = atom_paths_from_conn[block_typeB][conn_indB][0][0];
+    if (centre == -1 || partner == -1) continue;
+
+    // paths 1..3 are the connection atom plus one neighbour each
+    Int nbr[2] = {-1, -1};
+    int n_nbr = 0;
+    for (int p = 1; p <= 3; ++p) {
+      Int const cand = atom_paths_from_conn[block_typeA][conn_indA][p][1];
+      if (cand == -1) continue;
+      if (n_nbr < 2) nbr[n_nbr] = cand;
+      ++n_nbr;
+    }
+    // a planarity centre has exactly three substituents, one across
+    if (n_nbr != 2) continue;
+    // a centre the Rosetta terms do not type belongs to the generic
+    // term, which carries its own improper for it
+    if (!atom_is_rosetta[block_typeA][centre]) continue;
+
+    Int const item[3] = {nbr[0], nbr[1], partner};
+    bool const across[3] = {false, false, true};
+    int const* order = ORDER[ordering];
+
+    Vec<Int, 4> local, atom_indices;
+    bool is_b[4] = {false, false, false, false};
+    for (int slot = 0; slot < 4; ++slot) {
+      int const which = (slot == 2) ? -1 : order[slot < 2 ? slot : 2];
+      local[slot] = (which == -1) ? centre : item[which];
+      is_b[slot] = (which == -1) ? false : across[which];
+      atom_indices[slot] =
+          local[slot] + (is_b[slot] ? rot_coord_offsetB : rot_coord_offsetA);
+    }
+
+    int param_index = -1;
+    for (int lookup_mode = 1; lookup_mode < 3; ++lookup_mode) {
+      Vec<Int, 4> ids;
+      for (int slot = 0; slot < 4; ++slot) {
+        ids[slot] = is_b[slot]
+                        ? atom_cross_ids[block_typeB][local[slot]]
+                        : (lookup_mode == 2
+                               ? atom_wildcard_ids[block_typeA][local[slot]]
+                               : atom_unique_ids[block_typeA][local[slot]]);
+      }
+      param_index = hash_lookup<Int, 4, D>(ids, hash_keys);
+      if (param_index != -1) break;
+    }
+    if (param_index != -1) {
+      score_subgraph(atom_indices, param_index);
+    }
+  }
+}
+
+// Complete explicit connection records override only lengths and angles.
+// Share dispatch/ownership and the legacy fallback across all four kernels.
+template <typename Int, tmol::Device D, int nt, typename ScoreSubgraph>
+TMOL_DEVICE_FUNC void evaluate_connection_paths(
+    int tid,
+    int block_type1,
+    int block_type2,
+    int rot_coord_offset1,
+    int rot_coord_offset2,
+    int conn_ind1,
+    int conn_ind2,
+    TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
+    TView<Int, 1, D> block_type_is_fragment,
+    TView<Int, 2, D> atom_unique_ids,
+    TView<Int, 2, D> atom_wildcard_ids,
+    TView<Int, 2, D> atom_cross_ids,
+    TView<Vec<Int, 5>, 1, D> hash_keys,
+    TView<Vec<Int, 5>, 1, D> connection_hash_keys,
+    TView<Vec<Int, 2>, 1, D> connection_spans,
+    TView<Vec<Int, 5>, 1, D> connection_paths,
+    ScoreSubgraph const& score_subgraph) {
+  if (connection_spans.size(0) != 0) {
+    Vec<Int, 4> key = {block_type1, conn_ind1, block_type2, conn_ind2};
+    int const found = hash_lookup<Int, 4, D>(key, connection_hash_keys);
+    if (found != -1) {
+      int const start = connection_spans[found][0];
+      int const signed_count = connection_spans[found][1];
+      int const sign = signed_count < 0 ? -1 : 1;
+      int const count = sign * signed_count;
+      for (int i = tid; i < count; i += nt) {
+        auto const path = connection_paths[start + i];
+        Vec<Int, 4> atoms = {-1, -1, -1, -1};
+        for (int j = 0; j < 4; ++j) {
+          int const encoded = sign * path[j];
+          if (encoded != 0) {
+            atoms[j] = encoded > 0 ? rot_coord_offset1 + encoded - 1
+                                   : rot_coord_offset2 - encoded - 1;
+          }
+        }
+        score_subgraph(atoms, path[4]);
+      }
+      return;
+    }
+  }
+  // no cross-residue torsion parameter exists; the two amide impropers
+  // are enumerated separately because they are not bonded paths
+  int n_connection_spanning_subgraphs = common::NUM_INTER_RES_PATHS_THRU_ANGLE;
+  for (int i = tid; i < 2 * n_connection_spanning_subgraphs; i += nt) {
+    bool reverse = i % 2 == 1;
+    // interleave the subgraphs from the two directions so we can have
+    // better warp coherence.
+    int const subgraph_index = i / 2;
+    int const block_typeA = reverse ? block_type2 : block_type1;
+    int const block_typeB = reverse ? block_type1 : block_type2;
+    int const rot_coord_offsetA =
+        reverse ? rot_coord_offset2 : rot_coord_offset1;
+    int const rot_coord_offsetB =
+        reverse ? rot_coord_offset1 : rot_coord_offset2;
+    int const conn_indA = reverse ? conn_ind2 : conn_ind1;
+    int const conn_indB = reverse ? conn_ind1 : conn_ind2;
+
+    int param_index = -1;
+    Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
+
+    tuple<int, int, int> spanning_subgraphs =
+        get_connection_spanning_subgraph_indices(subgraph_index);
+    int resA_path_ind = common::get<1>(spanning_subgraphs);
+    int resB_path_ind = common::get<2>(spanning_subgraphs);
+    // Grab the paths from each block
+    Vec<Int, 3> resA_path =
+        atom_paths_from_conn[block_typeA][conn_indA][resA_path_ind];
+    Vec<Int, 3> resB_path =
+        atom_paths_from_conn[block_typeB][conn_indB][resB_path_ind];
+
+    // Make sure these are valid paths
+    if (resA_path[0] == -1 || resB_path[0] == -1) continue;
+    // Reverse the first path so that we can join them head-to-head
+    resA_path.reverseInPlace();
+    // Get a new Vec containing the global indices of the atoms
+    Vec<Int, 3> resA_atom_indices =
+        atom_local_to_global_indices(resA_path, rot_coord_offsetA);
+    Vec<Int, 3> resB_atom_indices =
+        atom_local_to_global_indices(resB_path, rot_coord_offsetB);
+    // Calculate the size of each path
+    Int resA_size = (resA_atom_indices.array() != -1).count();
+    Int resB_size = (resB_atom_indices.array() != -1).count();
+
+    // Prefer exact parameters when both blocks share a residue base name,
+    // then fall back to the historical unique/wildcard and
+    // wildcard/wildcard lookups used by polymer connections.
+    int const first_lookup_mode = block_type_is_fragment[block_typeA]
+                                          && block_type_is_fragment[block_typeB]
+                                      ? 0
+                                      : 1;
+    for (int lookup_mode = first_lookup_mode; lookup_mode < 3; ++lookup_mode) {
+      const auto& resA_atom_id_table = (lookup_mode == 2)
+                                           ? atom_wildcard_ids[block_typeA]
+                                           : atom_unique_ids[block_typeA];
+      const auto& resB_atom_id_table = (lookup_mode == 0)
+                                           ? atom_unique_ids[block_typeB]
+                                           : atom_cross_ids[block_typeB];
+
+      // Get the atom IDs
+      Vec<Int, 3> resA_subgraph_atom_ids =
+          get_atom_ids(resA_atom_id_table, resA_path);
+      Vec<Int, 3> resB_subgraph_atom_ids =
+          get_atom_ids(resB_atom_id_table, resB_path);
+
+      // Make the joined data structures
+      Vec<Int, 4> path;
+      Vec<Int, 4> atom_indices;
+      Vec<Int, 4> subgraph_atom_ids;
+
+      // Init with -1s
+      path << -1, -1, -1, -1;
+      atom_indices << -1, -1, -1, -1;
+      subgraph_atom_ids << -1, -1, -1, -1;
+
+      // Join the paths into 1
+      path.head(resA_size + resB_size) << resA_path.tail(resA_size),
+          resB_path.head(resB_size);
+      atom_indices.head(resA_size + resB_size)
+          << resA_atom_indices.tail(resA_size),
+          resB_atom_indices.head(resB_size);
+      subgraph_atom_ids.head(resA_size + resB_size)
+          << resA_subgraph_atom_ids.tail(resA_size),
+          resB_subgraph_atom_ids.head(resB_size);
+
+      // Do the lookup
+      param_index = hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
+      if (param_index != -1) {
+        // we found it!
+        subgraph_atom_indices = atom_indices;
+        break;
+      }
+    }
+    if (param_index != -1) {
+      score_subgraph(subgraph_atom_indices, param_index);
+    }
+  }
+}
+
 template <
     template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
@@ -154,8 +384,12 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
     TView<Int, 2, D> atom_unique_ids,
     TView<Int, 2, D> atom_wildcard_ids,
+    TView<Int, 2, D> atom_is_rosetta,
     TView<Int, 1, D> block_type_is_fragment,
     TView<Int, 2, D> atom_cross_ids,
+    TView<Vec<Int, 5>, 1, D> connection_hash_keys,
+    TView<Vec<Int, 2>, 1, D> connection_spans,
+    TView<Vec<Int, 5>, 1, D> connection_paths,
     TView<Vec<Int, 5>, 1, D> hash_keys,
     TView<Vec<Real, 7>, 1, D> hash_values,
     TView<Vec<Int, 4>, 1, D> cart_subgraphs,
@@ -171,6 +405,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     // relative to the offset listed in cart_subgraph_offsets, where
     // do the subgraphs for each of the three types begin?
     TView<Vec<Int, 3>, 1, D> cart_subgraph_type_offsets,
+    TView<Int, 1, D> cart_subgraph_param_indices,
 
     // int max_subgraphs_per_block,
     bool output_block_pair_energies,
@@ -192,6 +427,10 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   int const max_n_blocks = first_rot_for_block.size(1);
 
   int const max_n_conns = pose_stack_inter_block_connections.size(2);
+  int const workgroups_per_pose = score::common::checked_dispatch_product(
+      max_n_blocks,
+      int64_t(max_n_conns) + 1,
+      "Cartesian bonded per-pose dispatch");
   int const n_block_types = cart_subgraph_offsets.size(0);
   int const n_subgraphs = cart_subgraphs.size(0);
   int const n_max_atoms_per_block = atom_unique_ids.size(1);
@@ -230,6 +469,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   assert(cart_subgraph_offsets.size(0) == n_block_types);
   assert(cart_subgraph_type_counts.size(0) == n_block_types);
   assert(cart_subgraph_type_offsets.size(0) == n_block_types);
+  assert(cart_subgraph_param_indices.size(0) == n_subgraphs);
 
   // Algorithm: launch n_rots * (max_n_conns + 1) CTAs, each looking
   // at a single residue's (rotamer's) connection (+ one "connection" to self),
@@ -238,8 +478,9 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // then performs a reduction so that thread-0 can write the results to global
   // memory.
 
-  // Optimal launch box on v100 and a100 is nt=32, vt=1
-  LAUNCH_BOX_32;
+  // This interaction kernel benefits from a 64-register budget on modern GPUs,
+  // which leaves enough resident warps to hide its dependency latency.
+  LAUNCH_BOX_32_OCC(32);
   // Define nt and reduce_t
   CTA_REAL_REDUCE_T_TYPEDEF;
 
@@ -248,7 +489,11 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // Allocate the tensors to which we will write our outputs
   int const n_V = output_block_pair_energies ? max_n_blocks : 1;
   auto V_t = TPack<Real, 4, D>::zeros({5, n_poses, n_V, n_V});
-  auto dV_dx_t = TPack<Vec<Real, 3>, 2, D>::zeros({5, n_atoms});
+  // Block-pair autograd recomputes coordinate derivatives in backward.
+  bool const accumulate_derivs = compute_derivs && !output_block_pair_energies;
+  auto dV_dx_t = accumulate_derivs
+                     ? TPack<Vec<Real, 3>, 2, D>::zeros({5, n_atoms})
+                     : TPack<Vec<Real, 3>, 2, D>::empty({5, 0});
 
   auto V = V_t.view;
   auto dV_dx = dV_dx_t.view;
@@ -264,8 +509,8 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       CTA_REAL_REDUCE_T_VARIABLE;
     } shared;
 
-    int const pose_ind = cta / (max_n_blocks * (max_n_conns + 1));
-    int const block_conn = cta % (max_n_blocks * (max_n_conns + 1));
+    int const pose_ind = cta / workgroups_per_pose;
+    int const block_conn = cta % workgroups_per_pose;
     int const block_ind1 = block_conn / (max_n_conns + 1);
     int const conn_ind1 = block_conn % (max_n_conns + 1);
     int const block_type1 = first_rot_block_type[pose_ind][block_ind1];
@@ -283,74 +528,85 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     Real improper_torsion_score = 0.0;
     Real hxyl_torsion_score = 0.0;
 
-    auto score_subgraph =
-        ([&] TMOL_DEVICE_FUNC(Vec<Int, 4> atoms, Int param_index) {
-          Vec<Real, 7> params = hash_values[param_index];
+    auto score_subgraph = ([&] TMOL_DEVICE_FUNC(
+                               Vec<Int, 4> atoms, Int param_index) {
+      Vec<Real, 7> params = hash_values[param_index];
 
-          Vec<Real, 3> atom1 = rot_coords[atoms[0]];
-          Vec<Real, 3> atom2 = rot_coords[atoms[1]];
+      Vec<Real, 3> atom1 = rot_coords[atoms[0]];
+      Vec<Real, 3> atom2 = rot_coords[atoms[1]];
 
-          subgraph_type type = get_subgraph_type(atoms);
+      subgraph_type type = get_subgraph_type(atoms);
 
-          int score_type = params[0];
+      int score_type = params[0];
 
-          // Real score;
-          switch (type) {
-            case subgraph_type::length: {
-              auto eval = cblength_V_dV(atom1, atom2, params[2], params[1]);
-              accumulate_result<Real, Int, 2, D>(
-                  length_score,
-                  eval,
-                  atoms.head(2),
-                  compute_derivs,
-                  dV_dx[score_type],
-                  1.0);
-
-              break;
-            }
-            case subgraph_type::angle: {
-              Vec<Real, 3> atom3 = rot_coords[atoms[2]];
-              auto eval =
-                  cbangle_V_dV(atom1, atom2, atom3, params[2], params[1]);
-              accumulate_result<Real, Int, 3, D>(
-                  angle_score,
-                  eval,
-                  atoms.head(3),
-                  compute_derivs,
-                  dV_dx[score_type],
-                  1.0);
-
-              break;
-            }
-            case subgraph_type::torsion: {
-              Vec<Real, 3> atom3 = rot_coords[atoms[2]];
-              Vec<Real, 3> atom4 = rot_coords[atoms[3]];
-              auto eval = cbtorsion_V_dV(
-                  atom1,
-                  atom2,
-                  atom3,
-                  atom4,
-                  params[1],
-                  params[2],
-                  params[3],
-                  params[4],
-                  params[5],
-                  params[6]);
-              Real& tor_score = (score_type == 3)   ? improper_torsion_score
-                                : (score_type == 4) ? hxyl_torsion_score
-                                                    : torsion_score;
-              accumulate_result<Real, Int, 4, D>(
-                  tor_score,
-                  eval,
-                  atoms.head(4),
-                  compute_derivs,
-                  dV_dx[score_type],
-                  1.0);
-
-              break;
-            }
+      // Real score;
+      switch (type) {
+        case subgraph_type::length: {
+          if (accumulate_derivs) {
+            auto eval = cblength_V_dV(atom1, atom2, params[2], params[1]);
+            accumulate_result<Real, Int, 2, D>(
+                length_score,
+                eval,
+                atoms.head(2),
+                true,
+                dV_dx[score_type],
+                1.0);
+          } else {
+            length_score += cblength_V(atom1, atom2, params[2], params[1]);
           }
-        });
+
+          break;
+        }
+        case subgraph_type::angle: {
+          Vec<Real, 3> atom3 = rot_coords[atoms[2]];
+          if (accumulate_derivs) {
+            auto eval = cbangle_V_dV(atom1, atom2, atom3, params[2], params[1]);
+            accumulate_result<Real, Int, 3, D>(
+                angle_score, eval, atoms.head(3), true, dV_dx[score_type], 1.0);
+          } else {
+            angle_score += cbangle_V(atom1, atom2, atom3, params[2], params[1]);
+          }
+
+          break;
+        }
+        case subgraph_type::torsion: {
+          Vec<Real, 3> atom3 = rot_coords[atoms[2]];
+          Vec<Real, 3> atom4 = rot_coords[atoms[3]];
+          Real& tor_score = (score_type == 3)   ? improper_torsion_score
+                            : (score_type == 4) ? hxyl_torsion_score
+                                                : torsion_score;
+          if (accumulate_derivs) {
+            auto eval = cbtorsion_V_dV(
+                atom1,
+                atom2,
+                atom3,
+                atom4,
+                params[1],
+                params[2],
+                params[3],
+                params[4],
+                params[5],
+                params[6]);
+            accumulate_result<Real, Int, 4, D>(
+                tor_score, eval, atoms.head(4), true, dV_dx[score_type], 1.0);
+          } else {
+            tor_score += cbtorsion_V(
+                atom1,
+                atom2,
+                atom3,
+                atom4,
+                params[1],
+                params[2],
+                params[3],
+                params[4],
+                params[5],
+                params[6]);
+          }
+
+          break;
+        }
+      }
+    });
 
     int block_ind2 = -1;
     if (conn_ind1 == max_n_conns) {
@@ -367,33 +623,11 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         // rot_ind1, block_type1, cta, tid);
 
         for (int i = tid; i < n_subgraphs; i += nt) {
-          int param_index = -1;
-          Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
-          for (bool wildcard : {false, true}) {
-            for (bool reverse : {false, true}) {
-              Vec<Int, 4> subgraph = cart_subgraphs[subgraph_offset + i];
-              if (reverse) reverse_subgraph(subgraph);
-
-              const auto& atom_id_table = (wildcard)
-                                              ? atom_wildcard_ids[block_type1]
-                                              : atom_unique_ids[block_type1];
-              Vec<Int, 4> subgraph_atom_ids =
-                  get_atom_ids(atom_id_table, subgraph);
-              param_index =
-                  hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
-
-              subgraph_atom_indices =
-                  atom_local_to_global_indices(subgraph, rot_coord_offset1);
-
-              if (param_index != -1) {
-                break;
-              }
-            }
-            if (param_index != -1) {
-              break;
-            }
-          }
+          int const subgraph_index = subgraph_offset + i;
+          int const param_index = cart_subgraph_param_indices[subgraph_index];
           if (param_index != -1) {
+            Vec<Int, 4> subgraph_atom_indices = atom_local_to_global_indices(
+                cart_subgraphs[subgraph_index], rot_coord_offset1);
             score_subgraph(subgraph_atom_indices, param_index);
           }
         }
@@ -422,105 +656,47 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       // Use capture-by-reference here so that we can write to the length_score,
       // angle_score, and torsion_score variables
       auto eval_inter_res_subgraphs = ([&] TMOL_DEVICE_FUNC(int tid) {
-        int n_connection_spanning_subgraphs = common::NUM_INTER_RES_PATHS;
-        for (int i = tid; i < 2 * n_connection_spanning_subgraphs; i += nt) {
-          bool reverse = i % 2 == 1;
-          // interleave the subgraphs from the two directions so we can have
-          // better warp coherence.
-          int const subgraph_index = i / 2;
-          int const block_typeA = reverse ? block_type2 : block_type1;
-          int const block_typeB = reverse ? block_type1 : block_type2;
-          int const rot_coord_offsetA =
-              reverse ? rot_coord_offset2 : rot_coord_offset1;
-          int const rot_coord_offsetB =
-              reverse ? rot_coord_offset1 : rot_coord_offset2;
-          int const conn_indA = reverse ? conn_ind2 : conn_ind1;
-          int const conn_indB = reverse ? conn_ind1 : conn_ind2;
-
-          int param_index = -1;
-          Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
-
-          tuple<int, int, int> spanning_subgraphs =
-              get_connection_spanning_subgraph_indices(subgraph_index);
-          int resA_path_ind = common::get<1>(spanning_subgraphs);
-          int resB_path_ind = common::get<2>(spanning_subgraphs);
-          // Grab the paths from each block
-          Vec<Int, 3> resA_path =
-              atom_paths_from_conn[block_typeA][conn_indA][resA_path_ind];
-          Vec<Int, 3> resB_path =
-              atom_paths_from_conn[block_typeB][conn_indB][resB_path_ind];
-
-          // Make sure these are valid paths
-          if (resA_path[0] == -1 || resB_path[0] == -1) continue;
-          // Reverse the first path so that we can join them head-to-head
-          resA_path.reverseInPlace();
-          // Get a new Vec containing the global indices of the atoms
-          Vec<Int, 3> resA_atom_indices =
-              atom_local_to_global_indices(resA_path, rot_coord_offsetA);
-          Vec<Int, 3> resB_atom_indices =
-              atom_local_to_global_indices(resB_path, rot_coord_offsetB);
-          // Calculate the size of each path
-          Int resA_size = (resA_atom_indices.array() != -1).count();
-          Int resB_size = (resB_atom_indices.array() != -1).count();
-
-          // Prefer exact parameters when both blocks share a residue base name,
-          // then fall back to the historical unique/wildcard and
-          // wildcard/wildcard lookups used by polymer connections.
-          int const first_lookup_mode =
-              block_type_is_fragment[block_typeA]
-                      && block_type_is_fragment[block_typeB]
-                  ? 0
-                  : 1;
-          for (int lookup_mode = first_lookup_mode; lookup_mode < 3;
-               ++lookup_mode) {
-            const auto& resA_atom_id_table =
-                (lookup_mode == 2) ? atom_wildcard_ids[block_typeA]
-                                   : atom_unique_ids[block_typeA];
-            const auto& resB_atom_id_table = (lookup_mode == 0)
-                                                 ? atom_unique_ids[block_typeB]
-                                                 : atom_cross_ids[block_typeB];
-
-            // Get the atom IDs
-            Vec<Int, 3> resA_subgraph_atom_ids =
-                get_atom_ids(resA_atom_id_table, resA_path);
-            Vec<Int, 3> resB_subgraph_atom_ids =
-                get_atom_ids(resB_atom_id_table, resB_path);
-
-            // Make the joined data structures
-            Vec<Int, 4> path;
-            Vec<Int, 4> atom_indices;
-            Vec<Int, 4> subgraph_atom_ids;
-
-            // Init with -1s
-            path << -1, -1, -1, -1;
-            atom_indices << -1, -1, -1, -1;
-            subgraph_atom_ids << -1, -1, -1, -1;
-
-            // Join the paths into 1
-            path.head(resA_size + resB_size) << resA_path.tail(resA_size),
-                resB_path.head(resB_size);
-            atom_indices.head(resA_size + resB_size)
-                << resA_atom_indices.tail(resA_size),
-                resB_atom_indices.head(resB_size);
-            subgraph_atom_ids.head(resA_size + resB_size)
-                << resA_subgraph_atom_ids.tail(resA_size),
-                resB_subgraph_atom_ids.head(resB_size);
-
-            // Do the lookup
-            param_index = hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
-            if (param_index != -1) {
-              // we found it!
-              subgraph_atom_indices = atom_indices;
-              break;
-            }
-          }
-          if (param_index != -1) {
-            score_subgraph(subgraph_atom_indices, param_index);
-          }
-        }
+        evaluate_connection_paths<Int, D, nt>(
+            tid,
+            block_type1,
+            block_type2,
+            rot_coord_offset1,
+            rot_coord_offset2,
+            conn_ind1,
+            conn_ind2,
+            atom_paths_from_conn,
+            block_type_is_fragment,
+            atom_unique_ids,
+            atom_wildcard_ids,
+            atom_cross_ids,
+            hash_keys,
+            connection_hash_keys,
+            connection_spans,
+            connection_paths,
+            score_subgraph);
       });
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
           eval_inter_res_subgraphs);
+
+      auto eval_inter_res_impropers = ([&] TMOL_DEVICE_FUNC(int tid) {
+        evaluate_connection_impropers<Int, D, nt>(
+            tid,
+            block_type1,
+            block_type2,
+            rot_coord_offset1,
+            rot_coord_offset2,
+            conn_ind1,
+            conn_ind2,
+            atom_paths_from_conn,
+            atom_is_rosetta,
+            atom_unique_ids,
+            atom_wildcard_ids,
+            atom_cross_ids,
+            hash_keys,
+            score_subgraph);
+      });
+      DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+          eval_inter_res_impropers);
     }
 
     // Now let's accumulate the scores into main memory
@@ -592,10 +768,8 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     });
     DeviceDispatch<D>::template for_each_in_workgroup<nt>(reduce_energies);
   });
-  DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-      mgr,
-      n_poses * max_n_blocks * (max_n_conns + 1),
-      eval_subgraphs_for_interaction);
+  DeviceDispatch<D>::template foreach_pose_workgroup<launch_t>(
+      mgr, n_poses, workgroups_per_pose, eval_subgraphs_for_interaction);
 
   return {V_t, dV_dx_t};
 }
@@ -626,8 +800,12 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
     TView<Int, 2, D> atom_unique_ids,
     TView<Int, 2, D> atom_wildcard_ids,
+    TView<Int, 2, D> atom_is_rosetta,
     TView<Int, 1, D> block_type_is_fragment,
     TView<Int, 2, D> atom_cross_ids,
+    TView<Vec<Int, 5>, 1, D> connection_hash_keys,
+    TView<Vec<Int, 2>, 1, D> connection_spans,
+    TView<Vec<Int, 5>, 1, D> connection_paths,
     TView<Vec<Int, 5>, 1, D> hash_keys,
     TView<Vec<Real, 7>, 1, D> hash_values,
     TView<Vec<Int, 4>, 1, D> cart_subgraphs,
@@ -643,6 +821,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     // relative to the offset listed in cart_subgraph_offsets, where
     // do the subgraphs for each of the three types begin?
     TView<Vec<Int, 3>, 1, D> cart_subgraph_type_offsets,
+    TView<Int, 1, D> cart_subgraph_param_indices,
 
     TView<Real, 4, D> dTdV  // nterms x n-poses x max_n_blocks x max_n_blocks
     ) -> TPack<Vec<Real, 3>, 2, D> {
@@ -652,6 +831,10 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   int const max_n_blocks = first_rot_for_block.size(1);
 
   int const max_n_conns = pose_stack_inter_block_connections.size(2);
+  int const workgroups_per_pose = score::common::checked_dispatch_product(
+      max_n_blocks,
+      int64_t(max_n_conns) + 1,
+      "Cartesian bonded derivative per-pose dispatch");
   int const n_block_types = cart_subgraph_offsets.size(0);
   int const n_subgraphs = cart_subgraphs.size(0);
   int const n_max_atoms_per_block = atom_unique_ids.size(1);
@@ -700,8 +883,8 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   auto dV_dx = dV_dx_t.view;
 
   auto eval_subgraphs_for_interaction = ([=] TMOL_DEVICE_FUNC(int cta) {
-    int const pose_ind = cta / (max_n_blocks * (max_n_conns + 1));
-    int const block_conn = cta % (max_n_blocks * (max_n_conns + 1));
+    int const pose_ind = cta / workgroups_per_pose;
+    int const block_conn = cta % workgroups_per_pose;
     int const block_ind1 = block_conn / (max_n_conns + 1);
     int const conn_ind1 = block_conn % (max_n_conns + 1);
     int const block_type1 = first_rot_block_type[pose_ind][block_ind1];
@@ -726,13 +909,16 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       Real hxyl_torsion_score = 0.0;
       Vec<Real, 7> params = hash_values[param_index];
 
-      Vec<Real, 3> atom1 = rot_coords[atoms[0]];
-      Vec<Real, 3> atom2 = rot_coords[atoms[1]];
-
       subgraph_type type = get_subgraph_type(atoms);
 
       int score_type = params[0];
       Real block_weight = dTdV[score_type][pose_ind][block_ind1][block_ind2];
+      if (block_weight == 0) {
+        return;
+      }
+
+      Vec<Real, 3> atom1 = rot_coords[atoms[0]];
+      Vec<Real, 3> atom2 = rot_coords[atoms[1]];
 
       // Real score;
       switch (type) {
@@ -800,33 +986,11 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       int n_subgraphs = subgraph_offset_next - subgraph_offset;
       auto eval_intra_res_subgraphs = ([&] TMOL_DEVICE_FUNC(int tid) {
         for (int i = tid; i < n_subgraphs; i += nt) {
-          int param_index = -1;
-          Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
-          for (bool wildcard : {false, true}) {
-            for (bool reverse : {false, true}) {
-              Vec<Int, 4> subgraph = cart_subgraphs[subgraph_offset + i];
-              if (reverse) reverse_subgraph(subgraph);
-
-              const auto& atom_id_table = (wildcard)
-                                              ? atom_wildcard_ids[block_type1]
-                                              : atom_unique_ids[block_type1];
-              Vec<Int, 4> subgraph_atom_ids =
-                  get_atom_ids(atom_id_table, subgraph);
-              param_index =
-                  hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
-
-              subgraph_atom_indices =
-                  atom_local_to_global_indices(subgraph, rot_coord_offset1);
-
-              if (param_index != -1) {
-                break;
-              }
-            }
-            if (param_index != -1) {
-              break;
-            }
-          }
+          int const subgraph_index = subgraph_offset + i;
+          int const param_index = cart_subgraph_param_indices[subgraph_index];
           if (param_index != -1) {
+            Vec<Int, 4> subgraph_atom_indices = atom_local_to_global_indices(
+                cart_subgraphs[subgraph_index], rot_coord_offset1);
             score_subgraph(
                 subgraph_atom_indices,
                 param_index,
@@ -860,119 +1024,60 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
 
       // Use by-reference capture here so that we can write to the length,
       // angle, and torsion_score variables
+      auto score_connection = ([&] TMOL_DEVICE_FUNC(
+                                   Vec<Int, 4> atoms, int param_index) {
+        score_subgraph(atoms, param_index, pose_ind, block_ind1, block_ind2);
+      });
       auto eval_inter_res_subgraphs = ([&] TMOL_DEVICE_FUNC(int tid) {
-        int n_connection_spanning_subgraphs = common::NUM_INTER_RES_PATHS;
-        for (int i = tid; i < 2 * n_connection_spanning_subgraphs; i += nt) {
-          bool reverse = i % 2 == 1;
-          // interleave the subgraphs from the two directions so we can have
-          // better warp coherence.
-          int const subgraph_index = i / 2;
-          int const block_typeA = reverse ? block_type2 : block_type1;
-          int const block_typeB = reverse ? block_type1 : block_type2;
-          int const rot_coord_offsetA =
-              reverse ? rot_coord_offset2 : rot_coord_offset1;
-          int const rot_coord_offsetB =
-              reverse ? rot_coord_offset1 : rot_coord_offset2;
-          int const conn_indA = reverse ? conn_ind2 : conn_ind1;
-          int const conn_indB = reverse ? conn_ind1 : conn_ind2;
-
-          int param_index = -1;
-          Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
-
-          tuple<int, int, int> spanning_subgraphs =
-              get_connection_spanning_subgraph_indices(subgraph_index);
-          int resA_path_ind = common::get<1>(spanning_subgraphs);
-          int resB_path_ind = common::get<2>(spanning_subgraphs);
-          // Grab the paths from each block
-          Vec<Int, 3> resA_path =
-              atom_paths_from_conn[block_typeA][conn_indA][resA_path_ind];
-          Vec<Int, 3> resB_path =
-              atom_paths_from_conn[block_typeB][conn_indB][resB_path_ind];
-
-          // Make sure these are valid paths
-          if (resA_path[0] == -1 || resB_path[0] == -1) continue;
-          // Reverse the first path so that we can join them head-to-head
-          resA_path.reverseInPlace();
-          // Get a new Vec containing the global indices of the atoms
-          Vec<Int, 3> resA_atom_indices =
-              atom_local_to_global_indices(resA_path, rot_coord_offsetA);
-          Vec<Int, 3> resB_atom_indices =
-              atom_local_to_global_indices(resB_path, rot_coord_offsetB);
-          // Calculate the size of each path
-          Int resA_size = (resA_atom_indices.array() != -1).count();
-          Int resB_size = (resB_atom_indices.array() != -1).count();
-
-          // Prefer exact unique/unique parameters across generic connections.
-          int const first_lookup_mode =
-              block_type_is_fragment[block_typeA]
-                      && block_type_is_fragment[block_typeB]
-                  ? 0
-                  : 1;
-          for (int lookup_mode = first_lookup_mode; lookup_mode < 3;
-               ++lookup_mode) {
-            const auto& resA_atom_id_table =
-                (lookup_mode == 2) ? atom_wildcard_ids[block_typeA]
-                                   : atom_unique_ids[block_typeA];
-            const auto& resB_atom_id_table = (lookup_mode == 0)
-                                                 ? atom_unique_ids[block_typeB]
-                                                 : atom_cross_ids[block_typeB];
-
-            // Get the atom IDs
-            Vec<Int, 3> resA_subgraph_atom_ids =
-                get_atom_ids(resA_atom_id_table, resA_path);
-            Vec<Int, 3> resB_subgraph_atom_ids =
-                get_atom_ids(resB_atom_id_table, resB_path);
-
-            // Make the joined data structures
-            Vec<Int, 4> path;
-            Vec<Int, 4> atom_indices;
-            Vec<Int, 4> subgraph_atom_ids;
-
-            // Init with -1s
-            path << -1, -1, -1, -1;
-            atom_indices << -1, -1, -1, -1;
-            subgraph_atom_ids << -1, -1, -1, -1;
-
-            // Join the paths into 1
-            path.head(resA_size + resB_size) << resA_path.tail(resA_size),
-                resB_path.head(resB_size);
-            atom_indices.head(resA_size + resB_size)
-                << resA_atom_indices.tail(resA_size),
-                resB_atom_indices.head(resB_size);
-            subgraph_atom_ids.head(resA_size + resB_size)
-                << resA_subgraph_atom_ids.tail(resA_size),
-                resB_subgraph_atom_ids.head(resB_size);
-
-            // Do the lookup
-            param_index = hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
-            if (param_index != -1) {
-              // we found it!
-              subgraph_atom_indices = atom_indices;
-              break;
-            }
-          }
-          if (param_index != -1) {
-            score_subgraph(
-                subgraph_atom_indices,
-                param_index,
-                pose_ind,
-                block_ind1,
-                block_ind2);
-          }
-        }
+        evaluate_connection_paths<Int, D, nt>(
+            tid,
+            block_type1,
+            block_type2,
+            rot_coord_offset1,
+            rot_coord_offset2,
+            conn_ind1,
+            conn_ind2,
+            atom_paths_from_conn,
+            block_type_is_fragment,
+            atom_unique_ids,
+            atom_wildcard_ids,
+            atom_cross_ids,
+            hash_keys,
+            connection_hash_keys,
+            connection_spans,
+            connection_paths,
+            score_connection);
       });
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
           eval_inter_res_subgraphs);
+
+      auto eval_inter_res_impropers = ([&] TMOL_DEVICE_FUNC(int tid) {
+        evaluate_connection_impropers<Int, D, nt>(
+            tid,
+            block_type1,
+            block_type2,
+            rot_coord_offset1,
+            rot_coord_offset2,
+            conn_ind1,
+            conn_ind2,
+            atom_paths_from_conn,
+            atom_is_rosetta,
+            atom_unique_ids,
+            atom_wildcard_ids,
+            atom_cross_ids,
+            hash_keys,
+            score_connection);
+      });
+      DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+          eval_inter_res_impropers);
     }
 
     // We can skip the step where we accumulate into global memory because
     // we are only computing derivatives in this pass and don't need the score
     // a second time
   });
-  DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-      mgr,
-      n_poses * max_n_blocks * (max_n_conns + 1),
-      eval_subgraphs_for_interaction);
+  DeviceDispatch<D>::template foreach_pose_workgroup<launch_t>(
+      mgr, n_poses, workgroups_per_pose, eval_subgraphs_for_interaction);
 
   return dV_dx_t;
 
@@ -998,14 +1103,21 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     TView<Int, 1, D> rot_offset_for_pose,
     TView<Int, 2, D> n_rots_for_block,
     TView<Int, 2, D> rot_offset_for_block,
+    // [n_poses, max_n_blocks]; blocks sharing an id >= 0 move in
+    // lockstep, so only matching rotamer indices ever coexist
+    TView<Int, 2, D> lockstep_group_for_block,
     Int max_n_rots_per_pose,
 
     TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
     TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
     TView<Int, 2, D> atom_unique_ids,
     TView<Int, 2, D> atom_wildcard_ids,
+    TView<Int, 2, D> atom_is_rosetta,
     TView<Int, 1, D> block_type_is_fragment,
     TView<Int, 2, D> atom_cross_ids,
+    TView<Vec<Int, 5>, 1, D> connection_hash_keys,
+    TView<Vec<Int, 2>, 1, D> connection_spans,
+    TView<Vec<Int, 5>, 1, D> connection_paths,
     TView<Vec<Int, 5>, 1, D> hash_keys,
     TView<Vec<Real, 7>, 1, D> hash_values,
     TView<Vec<Int, 4>, 1, D> cart_subgraphs,
@@ -1021,6 +1133,7 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     // relative to the offset listed in cart_subgraph_offsets, where
     // do the subgraphs for each of the three types begin?
     TView<Vec<Int, 3>, 1, D> cart_subgraph_type_offsets,
+    TView<Int, 1, D> cart_subgraph_param_indices,
 
     // int max_subgraphs_per_block,
     bool output_block_pair_energies,
@@ -1030,7 +1143,7 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         TPack<Real, 2, D>,          // V_t,
         TPack<Vec<Real, 3>, 2, D>,  // dV_dx_t,
         TPack<Int, 2, D>,           // dispatch_indices_t,
-        TPack<Int, 1, D>,           // n_output_intxns_for_rot_conn_offset,
+        TPack<int64_t, 1, D>,       // n_output_intxns_for_rot_conn_offset,
         TPack<Int, 1, D>            // rotconn_for_output_intxn,
         > {
   using tmol::score::common::get_connection_spanning_subgraphs_offset;
@@ -1097,14 +1210,15 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   CTA_REAL_REDUCE_T_TYPEDEF;
 
   // Convention: conn == max_n_conns ==> the intra-rotamer set of cart energies
-  int const max_n_interactions = n_rots * (max_n_conns + 1);
+  int const max_n_interactions = score::common::checked_dispatch_product(
+      n_rots, max_n_conns + 1, "Cartesian-bonded count dispatch");
 
   // Here we only count the rotconns to "upper" neighbors
   auto n_output_intxns_for_rot_conn_t =
-      TPack<Int, 1, D>::zeros({max_n_interactions});
+      TPack<int64_t, 1, D>::zeros({max_n_interactions});
   auto n_output_intxns_for_rot_conn = n_output_intxns_for_rot_conn_t.view;
   auto n_output_intxns_for_rot_conn_offset_t =
-      TPack<Int, 1, D>::zeros({max_n_interactions});
+      TPack<int64_t, 1, D>::zeros({max_n_interactions});
   auto n_output_intxns_for_rot_conn_offset =
       n_output_intxns_for_rot_conn_offset_t.view;
 
@@ -1136,7 +1250,12 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       int const other_block_n_rots =
           n_rots_for_block[pose_ind][other_block_ind];
       if (block_ind < other_block_ind) {
-        n_output_intxns_for_rot_conn[index] = other_block_n_rots;
+        // blocks that sample in lockstep only ever coexist at matching
+        // rotamer indices, so this rotamer pairs with exactly one of theirs
+        int const g1 = lockstep_group_for_block[pose_ind][block_ind];
+        int const g2 = lockstep_group_for_block[pose_ind][other_block_ind];
+        n_output_intxns_for_rot_conn[index] =
+            (g1 >= 0 && g1 == g2) ? 1 : other_block_n_rots;
       }
     }
   });
@@ -1146,13 +1265,15 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
   // Scan and LBS on n output intxns: figure out how many rotamer pair
   // interactions there are and which pair each work unit should be assigned to.
-  int n_output_intxns_total =
+  int64_t const n_output_intxns_total_64 =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
           mgr,
           n_output_intxns_for_rot_conn.data(),
           n_output_intxns_for_rot_conn_offset.data(),
           max_n_interactions,
-          mgpu::plus_t<Int>());
+          mgpu::plus_t<int64_t>());
+  int const n_output_intxns_total = score::common::checked_dispatch_size(
+      n_output_intxns_total_64, "Cartesian-bonded output dispatch");
   TPack<Int, 1, D> rotconn_for_output_intxn_t =
       DeviceDispatch<D>::template load_balancing_search<launch_t>(
           mgr,
@@ -1164,7 +1285,10 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // Allocate the tensors to which we will write our outputs
   int const n_V = output_block_pair_energies ? n_output_intxns_total : n_poses;
   auto V_t = TPack<Real, 2, D>::zeros({5, n_V});
-  auto dV_dx_t = TPack<Vec<Real, 3>, 2, D>::zeros({5, n_atoms});
+  bool const accumulate_derivs = compute_derivs && !output_block_pair_energies;
+  auto dV_dx_t = accumulate_derivs
+                     ? TPack<Vec<Real, 3>, 2, D>::zeros({5, n_atoms})
+                     : TPack<Vec<Real, 3>, 2, D>::empty({5, 0});
   auto dispatch_indices_t = TPack<Int, 2, D>::zeros({3, n_output_intxns_total});
 
   auto V = V_t.view;
@@ -1194,7 +1318,13 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
               pose_stack_inter_block_connections[pose_ind][block_ind1]
                                                 [conn_ind1][0];
 
-          rot_ind2 = first_rot_for_block[pose_ind][block_ind2] + local_rot_ind2;
+          int const g1 = lockstep_group_for_block[pose_ind][block_ind1];
+          int const g2 = lockstep_group_for_block[pose_ind][block_ind2];
+          int const offset2 =
+              (g1 >= 0 && g1 == g2)
+                  ? rot_ind1 - first_rot_for_block[pose_ind][block_ind1]
+                  : local_rot_ind2;
+          rot_ind2 = first_rot_for_block[pose_ind][block_ind2] + offset2;
         }
         dispatch_indices[2][index] = rot_ind2;
       });
@@ -1228,74 +1358,95 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     Real improper_torsion_score = 0.0;
     Real hxyl_torsion_score = 0.0;
 
-    auto score_subgraph =
-        ([&] TMOL_DEVICE_FUNC(Vec<Int, 4> atoms, Int param_index) {
-          Vec<Real, 7> params = hash_values[param_index];
+    auto score_subgraph = ([&] TMOL_DEVICE_FUNC(
+                               Vec<Int, 4> atoms, Int param_index) {
+      Vec<Real, 7> params = hash_values[param_index];
 
-          Vec<Real, 3> atom1 = rot_coords[atoms[0]];
-          Vec<Real, 3> atom2 = rot_coords[atoms[1]];
+      Vec<Real, 3> atom1 = rot_coords[atoms[0]];
+      Vec<Real, 3> atom2 = rot_coords[atoms[1]];
 
-          subgraph_type type = get_subgraph_type(atoms);
+      subgraph_type type = get_subgraph_type(atoms);
 
-          int score_type = params[0];
+      int score_type = params[0];
 
-          // Real score;
-          switch (type) {
-            case subgraph_type::length: {
-              auto eval = cblength_V_dV(atom1, atom2, params[2], params[1]);
-              accumulate_result<Real, Int, 2, D>(
-                  length_score,
-                  eval,
-                  atoms.head(2),
-                  compute_derivs,
-                  dV_dx[score_type],
-                  1.0);
-
-              break;
-            }
-            case subgraph_type::angle: {
-              Vec<Real, 3> atom3 = rot_coords[atoms[2]];
-              auto eval =
-                  cbangle_V_dV(atom1, atom2, atom3, params[2], params[1]);
-              accumulate_result<Real, Int, 3, D>(
-                  angle_score,
-                  eval,
-                  atoms.head(3),
-                  compute_derivs,
-                  dV_dx[score_type],
-                  1.0);
-
-              break;
-            }
-            case subgraph_type::torsion: {
-              Vec<Real, 3> atom3 = rot_coords[atoms[2]];
-              Vec<Real, 3> atom4 = rot_coords[atoms[3]];
-              auto eval = cbtorsion_V_dV(
-                  atom1,
-                  atom2,
-                  atom3,
-                  atom4,
-                  params[1],
-                  params[2],
-                  params[3],
-                  params[4],
-                  params[5],
-                  params[6]);
-              Real& tor_score = (score_type == 3)   ? improper_torsion_score
-                                : (score_type == 4) ? hxyl_torsion_score
-                                                    : torsion_score;
-              accumulate_result<Real, Int, 4, D>(
-                  tor_score,
-                  eval,
-                  atoms.head(4),
-                  compute_derivs,
-                  dV_dx[score_type],
-                  1.0);
-
-              break;
-            }
+      // Real score;
+      switch (type) {
+        case subgraph_type::length: {
+          if (compute_derivs) {
+            auto eval = cblength_V_dV(atom1, atom2, params[2], params[1]);
+            accumulate_result<Real, Int, 2, D>(
+                length_score,
+                eval,
+                atoms.head(2),
+                accumulate_derivs,
+                dV_dx[score_type],
+                1.0);
+          } else {
+            length_score += cblength_V(atom1, atom2, params[2], params[1]);
           }
-        });
+
+          break;
+        }
+        case subgraph_type::angle: {
+          Vec<Real, 3> atom3 = rot_coords[atoms[2]];
+          if (compute_derivs) {
+            auto eval = cbangle_V_dV(atom1, atom2, atom3, params[2], params[1]);
+            accumulate_result<Real, Int, 3, D>(
+                angle_score,
+                eval,
+                atoms.head(3),
+                accumulate_derivs,
+                dV_dx[score_type],
+                1.0);
+          } else {
+            angle_score += cbangle_V(atom1, atom2, atom3, params[2], params[1]);
+          }
+
+          break;
+        }
+        case subgraph_type::torsion: {
+          Vec<Real, 3> atom3 = rot_coords[atoms[2]];
+          Vec<Real, 3> atom4 = rot_coords[atoms[3]];
+          Real& tor_score = (score_type == 3)   ? improper_torsion_score
+                            : (score_type == 4) ? hxyl_torsion_score
+                                                : torsion_score;
+          if (compute_derivs) {
+            auto eval = cbtorsion_V_dV(
+                atom1,
+                atom2,
+                atom3,
+                atom4,
+                params[1],
+                params[2],
+                params[3],
+                params[4],
+                params[5],
+                params[6]);
+            accumulate_result<Real, Int, 4, D>(
+                tor_score,
+                eval,
+                atoms.head(4),
+                accumulate_derivs,
+                dV_dx[score_type],
+                1.0);
+          } else {
+            tor_score += cbtorsion_V(
+                atom1,
+                atom2,
+                atom3,
+                atom4,
+                params[1],
+                params[2],
+                params[3],
+                params[4],
+                params[5],
+                params[6]);
+          }
+
+          break;
+        }
+      }
+    });
 
     if (conn_ind1 == max_n_conns) {
       // intra-residue!
@@ -1306,33 +1457,11 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       int n_subgraphs = subgraph_offset_next - subgraph_offset;
       auto eval_intra_res_subgraphs = ([&] TMOL_DEVICE_FUNC(int tid) {
         for (int i = tid; i < n_subgraphs; i += nt) {
-          int param_index = -1;
-          Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
-          for (bool wildcard : {false, true}) {
-            for (bool reverse : {false, true}) {
-              Vec<Int, 4> subgraph = cart_subgraphs[subgraph_offset + i];
-              if (reverse) reverse_subgraph(subgraph);
-
-              const auto& atom_id_table = (wildcard)
-                                              ? atom_wildcard_ids[block_type1]
-                                              : atom_unique_ids[block_type1];
-              Vec<Int, 4> subgraph_atom_ids =
-                  get_atom_ids(atom_id_table, subgraph);
-              param_index =
-                  hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
-
-              subgraph_atom_indices =
-                  atom_local_to_global_indices(subgraph, rot_coord_offset1);
-
-              if (param_index != -1) {
-                break;
-              }
-            }
-            if (param_index != -1) {
-              break;
-            }
-          }
+          int const subgraph_index = subgraph_offset + i;
+          int const param_index = cart_subgraph_param_indices[subgraph_index];
           if (param_index != -1) {
+            Vec<Int, 4> subgraph_atom_indices = atom_local_to_global_indices(
+                cart_subgraphs[subgraph_index], rot_coord_offset1);
             score_subgraph(subgraph_atom_indices, param_index);
           }
         }
@@ -1348,115 +1477,57 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       int const conn_ind2 =
           pose_stack_inter_block_connections[pose_ind][block_ind1][conn_ind1]
                                             [1];
-      int const local_rot_ind1 =
-          rot_ind1 - rot_offset_for_block[pose_ind][block_ind1];
-      int const local_rot_ind2 =
-          cta - n_output_intxns_for_rot_conn_offset[rotconn_ind];
-      int const rot_ind2 =
-          rot_offset_for_block[pose_ind][block_ind2] + local_rot_ind2;
+      // which rotamer of block 2 this work unit pairs with was decided when
+      // the interactions were enumerated; lockstep pairs are not a simple
+      // walk over that block's rotamers, so read it rather than recompute it
+      int const rot_ind2 = dispatch_indices[2][cta];
       int const block_type2 = block_type_ind_for_rot[rot_ind2];
       int const rot_coord_offset2 = rot_coord_offset[rot_ind2];
 
       // Use by-reference capture here so that we can write to the length,
       // angle, and torsion_score variables
       auto eval_inter_res_subgraphs = ([&] TMOL_DEVICE_FUNC(int tid) {
-        int n_connection_spanning_subgraphs = common::NUM_INTER_RES_PATHS;
-        for (int i = tid; i < 2 * n_connection_spanning_subgraphs; i += nt) {
-          bool reverse = i % 2 == 1;
-          // interleave the subgraphs from the two directions so we can have
-          // better warp coherence.
-          int const subgraph_index = i / 2;
-          int const block_typeA = reverse ? block_type2 : block_type1;
-          int const block_typeB = reverse ? block_type1 : block_type2;
-          int const rot_coord_offsetA =
-              reverse ? rot_coord_offset2 : rot_coord_offset1;
-          int const rot_coord_offsetB =
-              reverse ? rot_coord_offset1 : rot_coord_offset2;
-          int const conn_indA = reverse ? conn_ind2 : conn_ind1;
-          int const conn_indB = reverse ? conn_ind1 : conn_ind2;
-
-          int param_index = -1;
-          Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
-
-          tuple<int, int, int> spanning_subgraphs =
-              get_connection_spanning_subgraph_indices(subgraph_index);
-          int resA_path_ind = common::get<1>(spanning_subgraphs);
-          int resB_path_ind = common::get<2>(spanning_subgraphs);
-          // Grab the paths from each block
-          Vec<Int, 3> resA_path =
-              atom_paths_from_conn[block_typeA][conn_indA][resA_path_ind];
-          Vec<Int, 3> resB_path =
-              atom_paths_from_conn[block_typeB][conn_indB][resB_path_ind];
-
-          // Make sure these are valid paths
-          if (resA_path[0] == -1 || resB_path[0] == -1) continue;
-          // Reverse the first path so that we can join them head-to-head
-          resA_path.reverseInPlace();
-          // Get a new Vec containing the global indices of the atoms
-          Vec<Int, 3> resA_atom_indices =
-              atom_local_to_global_indices(resA_path, rot_coord_offsetA);
-          Vec<Int, 3> resB_atom_indices =
-              atom_local_to_global_indices(resB_path, rot_coord_offsetB);
-          // Calculate the size of each path
-          Int resA_size = (resA_atom_indices.array() != -1).count();
-          Int resB_size = (resB_atom_indices.array() != -1).count();
-
-          // Prefer exact unique/unique parameters across generic connections.
-          int const first_lookup_mode =
-              block_type_is_fragment[block_typeA]
-                      && block_type_is_fragment[block_typeB]
-                  ? 0
-                  : 1;
-          for (int lookup_mode = first_lookup_mode; lookup_mode < 3;
-               ++lookup_mode) {
-            const auto& resA_atom_id_table =
-                (lookup_mode == 2) ? atom_wildcard_ids[block_typeA]
-                                   : atom_unique_ids[block_typeA];
-            const auto& resB_atom_id_table = (lookup_mode == 0)
-                                                 ? atom_unique_ids[block_typeB]
-                                                 : atom_cross_ids[block_typeB];
-
-            // Get the atom IDs
-            Vec<Int, 3> resA_subgraph_atom_ids =
-                get_atom_ids(resA_atom_id_table, resA_path);
-            Vec<Int, 3> resB_subgraph_atom_ids =
-                get_atom_ids(resB_atom_id_table, resB_path);
-
-            // Make the joined data structures
-            Vec<Int, 4> path;
-            Vec<Int, 4> atom_indices;
-            Vec<Int, 4> subgraph_atom_ids;
-
-            // Init with -1s
-            path << -1, -1, -1, -1;
-            atom_indices << -1, -1, -1, -1;
-            subgraph_atom_ids << -1, -1, -1, -1;
-
-            // Join the paths into 1
-            path.head(resA_size + resB_size) << resA_path.tail(resA_size),
-                resB_path.head(resB_size);
-            atom_indices.head(resA_size + resB_size)
-                << resA_atom_indices.tail(resA_size),
-                resB_atom_indices.head(resB_size);
-            subgraph_atom_ids.head(resA_size + resB_size)
-                << resA_subgraph_atom_ids.tail(resA_size),
-                resB_subgraph_atom_ids.head(resB_size);
-
-            // Do the lookup
-            param_index = hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
-            if (param_index != -1) {
-              // we found it!
-              subgraph_atom_indices = atom_indices;
-              break;
-            }
-          }
-          if (param_index != -1) {
-            score_subgraph(subgraph_atom_indices, param_index);
-          }
-        }
+        evaluate_connection_paths<Int, D, nt>(
+            tid,
+            block_type1,
+            block_type2,
+            rot_coord_offset1,
+            rot_coord_offset2,
+            conn_ind1,
+            conn_ind2,
+            atom_paths_from_conn,
+            block_type_is_fragment,
+            atom_unique_ids,
+            atom_wildcard_ids,
+            atom_cross_ids,
+            hash_keys,
+            connection_hash_keys,
+            connection_spans,
+            connection_paths,
+            score_subgraph);
       });
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
           eval_inter_res_subgraphs);
+
+      auto eval_inter_res_impropers = ([&] TMOL_DEVICE_FUNC(int tid) {
+        evaluate_connection_impropers<Int, D, nt>(
+            tid,
+            block_type1,
+            block_type2,
+            rot_coord_offset1,
+            rot_coord_offset2,
+            conn_ind1,
+            conn_ind2,
+            atom_paths_from_conn,
+            atom_is_rosetta,
+            atom_unique_ids,
+            atom_wildcard_ids,
+            atom_cross_ids,
+            hash_keys,
+            score_subgraph);
+      });
+      DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+          eval_inter_res_impropers);
     }
 
     // Now let's accumulate the scores into main memory
@@ -1499,8 +1570,13 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     });
     DeviceDispatch<D>::template for_each_in_workgroup<nt>(reduce_energies);
   });
-  DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-      mgr, dispatch_indices.size(1), eval_subgraphs_for_interaction);
+  if (!output_block_pair_energies) {
+    DeviceDispatch<D>::template foreach_workgroup<launch_t>(
+        mgr, dispatch_indices.size(1), eval_subgraphs_for_interaction);
+  } else {
+    DeviceDispatch<D>::template foreach_independent_workgroup<launch_t>(
+        mgr, dispatch_indices.size(1), eval_subgraphs_for_interaction);
+  }
 
   return {
       V_t,
@@ -1537,8 +1613,12 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
     TView<Int, 2, D> atom_unique_ids,
     TView<Int, 2, D> atom_wildcard_ids,
+    TView<Int, 2, D> atom_is_rosetta,
     TView<Int, 1, D> block_type_is_fragment,
     TView<Int, 2, D> atom_cross_ids,
+    TView<Vec<Int, 5>, 1, D> connection_hash_keys,
+    TView<Vec<Int, 2>, 1, D> connection_spans,
+    TView<Vec<Int, 5>, 1, D> connection_paths,
     TView<Vec<Int, 5>, 1, D> hash_keys,
     TView<Vec<Real, 7>, 1, D> hash_values,
     TView<Vec<Int, 4>, 1, D> cart_subgraphs,
@@ -1554,9 +1634,10 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     // relative to the offset listed in cart_subgraph_offsets, where
     // do the subgraphs for each of the three types begin?
     TView<Vec<Int, 3>, 1, D> cart_subgraph_type_offsets,
+    TView<Int, 1, D> cart_subgraph_param_indices,
 
     TView<Int, 2, D> dispatch_indices,
-    TView<Int, 1, D> n_output_intxns_for_rot_conn_offset,
+    TView<int64_t, 1, D> n_output_intxns_for_rot_conn_offset,
     TView<Int, 1, D> rotconn_for_output_intxn,
 
     TView<Real, 2, D> dTdV  // nterms x n-dispatch
@@ -1713,33 +1794,11 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       int n_subgraphs = subgraph_offset_next - subgraph_offset;
       auto eval_intra_res_subgraphs = ([&] TMOL_DEVICE_FUNC(int tid) {
         for (int i = tid; i < n_subgraphs; i += nt) {
-          int param_index = -1;
-          Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
-          for (bool wildcard : {false, true}) {
-            for (bool reverse : {false, true}) {
-              Vec<Int, 4> subgraph = cart_subgraphs[subgraph_offset + i];
-              if (reverse) reverse_subgraph(subgraph);
-
-              const auto& atom_id_table = (wildcard)
-                                              ? atom_wildcard_ids[block_type1]
-                                              : atom_unique_ids[block_type1];
-              Vec<Int, 4> subgraph_atom_ids =
-                  get_atom_ids(atom_id_table, subgraph);
-              param_index =
-                  hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
-
-              subgraph_atom_indices =
-                  atom_local_to_global_indices(subgraph, rot_coord_offset1);
-
-              if (param_index != -1) {
-                break;
-              }
-            }
-            if (param_index != -1) {
-              break;
-            }
-          }
+          int const subgraph_index = subgraph_offset + i;
+          int const param_index = cart_subgraph_param_indices[subgraph_index];
           if (param_index != -1) {
+            Vec<Int, 4> subgraph_atom_indices = atom_local_to_global_indices(
+                cart_subgraphs[subgraph_index], rot_coord_offset1);
             score_subgraph(subgraph_atom_indices, param_index);
           }
         }
@@ -1755,115 +1814,57 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       int const conn_ind2 =
           pose_stack_inter_block_connections[pose_ind][block_ind1][conn_ind1]
                                             [1];
-      int const local_rot_ind1 =
-          rot_ind1 - rot_offset_for_block[pose_ind][block_ind1];
-      int const local_rot_ind2 =
-          cta - n_output_intxns_for_rot_conn_offset[rotconn_ind];
-      int const rot_ind2 =
-          rot_offset_for_block[pose_ind][block_ind2] + local_rot_ind2;
+      // which rotamer of block 2 this work unit pairs with was decided when
+      // the interactions were enumerated; lockstep pairs are not a simple
+      // walk over that block's rotamers, so read it rather than recompute it
+      int const rot_ind2 = dispatch_indices[2][cta];
       int const block_type2 = block_type_ind_for_rot[rot_ind2];
       int const rot_coord_offset2 = rot_coord_offset[rot_ind2];
 
       // Use by-reference capture here so that we can write to the length,
       // angle, and torsion_score variables
       auto eval_inter_res_subgraphs = ([&] TMOL_DEVICE_FUNC(int tid) {
-        int n_connection_spanning_subgraphs = common::NUM_INTER_RES_PATHS;
-        for (int i = tid; i < 2 * n_connection_spanning_subgraphs; i += nt) {
-          bool reverse = i % 2 == 1;
-          // interleave the subgraphs from the two directions so we can have
-          // better warp coherence.
-          int const subgraph_index = i / 2;
-          int const block_typeA = reverse ? block_type2 : block_type1;
-          int const block_typeB = reverse ? block_type1 : block_type2;
-          int const rot_coord_offsetA =
-              reverse ? rot_coord_offset2 : rot_coord_offset1;
-          int const rot_coord_offsetB =
-              reverse ? rot_coord_offset1 : rot_coord_offset2;
-          int const conn_indA = reverse ? conn_ind2 : conn_ind1;
-          int const conn_indB = reverse ? conn_ind1 : conn_ind2;
-
-          int param_index = -1;
-          Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
-
-          tuple<int, int, int> spanning_subgraphs =
-              get_connection_spanning_subgraph_indices(subgraph_index);
-          int resA_path_ind = common::get<1>(spanning_subgraphs);
-          int resB_path_ind = common::get<2>(spanning_subgraphs);
-          // Grab the paths from each block
-          Vec<Int, 3> resA_path =
-              atom_paths_from_conn[block_typeA][conn_indA][resA_path_ind];
-          Vec<Int, 3> resB_path =
-              atom_paths_from_conn[block_typeB][conn_indB][resB_path_ind];
-
-          // Make sure these are valid paths
-          if (resA_path[0] == -1 || resB_path[0] == -1) continue;
-          // Reverse the first path so that we can join them head-to-head
-          resA_path.reverseInPlace();
-          // Get a new Vec containing the global indices of the atoms
-          Vec<Int, 3> resA_atom_indices =
-              atom_local_to_global_indices(resA_path, rot_coord_offsetA);
-          Vec<Int, 3> resB_atom_indices =
-              atom_local_to_global_indices(resB_path, rot_coord_offsetB);
-          // Calculate the size of each path
-          Int resA_size = (resA_atom_indices.array() != -1).count();
-          Int resB_size = (resB_atom_indices.array() != -1).count();
-
-          // Prefer exact unique/unique parameters across generic connections.
-          int const first_lookup_mode =
-              block_type_is_fragment[block_typeA]
-                      && block_type_is_fragment[block_typeB]
-                  ? 0
-                  : 1;
-          for (int lookup_mode = first_lookup_mode; lookup_mode < 3;
-               ++lookup_mode) {
-            const auto& resA_atom_id_table =
-                (lookup_mode == 2) ? atom_wildcard_ids[block_typeA]
-                                   : atom_unique_ids[block_typeA];
-            const auto& resB_atom_id_table = (lookup_mode == 0)
-                                                 ? atom_unique_ids[block_typeB]
-                                                 : atom_cross_ids[block_typeB];
-
-            // Get the atom IDs
-            Vec<Int, 3> resA_subgraph_atom_ids =
-                get_atom_ids(resA_atom_id_table, resA_path);
-            Vec<Int, 3> resB_subgraph_atom_ids =
-                get_atom_ids(resB_atom_id_table, resB_path);
-
-            // Make the joined data structures
-            Vec<Int, 4> path;
-            Vec<Int, 4> atom_indices;
-            Vec<Int, 4> subgraph_atom_ids;
-
-            // Init with -1s
-            path << -1, -1, -1, -1;
-            atom_indices << -1, -1, -1, -1;
-            subgraph_atom_ids << -1, -1, -1, -1;
-
-            // Join the paths into 1
-            path.head(resA_size + resB_size) << resA_path.tail(resA_size),
-                resB_path.head(resB_size);
-            atom_indices.head(resA_size + resB_size)
-                << resA_atom_indices.tail(resA_size),
-                resB_atom_indices.head(resB_size);
-            subgraph_atom_ids.head(resA_size + resB_size)
-                << resA_subgraph_atom_ids.tail(resA_size),
-                resB_subgraph_atom_ids.head(resB_size);
-
-            // Do the lookup
-            param_index = hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
-            if (param_index != -1) {
-              // we found it!
-              subgraph_atom_indices = atom_indices;
-              break;
-            }
-          }
-          if (param_index != -1) {
-            score_subgraph(subgraph_atom_indices, param_index);
-          }
-        }
+        evaluate_connection_paths<Int, D, nt>(
+            tid,
+            block_type1,
+            block_type2,
+            rot_coord_offset1,
+            rot_coord_offset2,
+            conn_ind1,
+            conn_ind2,
+            atom_paths_from_conn,
+            block_type_is_fragment,
+            atom_unique_ids,
+            atom_wildcard_ids,
+            atom_cross_ids,
+            hash_keys,
+            connection_hash_keys,
+            connection_spans,
+            connection_paths,
+            score_subgraph);
       });
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
           eval_inter_res_subgraphs);
+
+      auto eval_inter_res_impropers = ([&] TMOL_DEVICE_FUNC(int tid) {
+        evaluate_connection_impropers<Int, D, nt>(
+            tid,
+            block_type1,
+            block_type2,
+            rot_coord_offset1,
+            rot_coord_offset2,
+            conn_ind1,
+            conn_ind2,
+            atom_paths_from_conn,
+            atom_is_rosetta,
+            atom_unique_ids,
+            atom_wildcard_ids,
+            atom_cross_ids,
+            hash_keys,
+            score_subgraph);
+      });
+      DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+          eval_inter_res_impropers);
     }
   });
 

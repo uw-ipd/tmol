@@ -26,6 +26,7 @@ import torch
 
 PLI_DATA_DIR = data_path("protein_ligand_test")
 LIGAND_RES_NAME = "LG1"
+ROSETTA_DDG_ATOL = 0.11
 
 # Weighted block-pair ddG (beta2016, minimize=False, pack=False, no_optH=True)
 # captured on CPU from fixture CIF + fixture .tmol params.
@@ -60,6 +61,20 @@ _GOLDEN_DDG: dict[str, float] = {
 }
 
 
+def _rosetta_ddg(target: str) -> float:
+    """Read Rosetta's weighted interface score from the checked-in scorefile."""
+    suffix = (
+        "_complex_nometals.sc" if target in {"ace", "ada", "pde5"} else "_complex.sc"
+    )
+    score_lines = [
+        line.split()
+        for line in (PLI_DATA_DIR / f"{target}{suffix}").read_text().splitlines()
+        if line.startswith("SCORE:")
+    ]
+    score_fields = dict(zip(score_lines[0][1:], score_lines[1][1:]))
+    return float(score_fields["dG_total"])
+
+
 def _load_complex_cif(target: str):
     import biotite.structure as struc
     import biotite.structure.io
@@ -70,6 +85,19 @@ def _load_complex_cif(target: str):
     )
     if isinstance(structure, struc.AtomArrayStack):
         structure = structure[0]
+    # These exported fixtures reuse blank chain labels when residue numbering
+    # restarts. Biotite's inferred peptide bonds must respect those chain breaks.
+    starts = struc.get_chain_starts(structure, add_exclusive_stop=True)
+    chain = numpy.repeat(numpy.arange(len(starts) - 1), numpy.diff(starts))
+    # Make this legacy export's inferred segments explicit for the AtomArray
+    # input contract; residue-number decreases alone no longer define a chain.
+    structure.chain_id = chain.astype(str)
+    for first, second, _ in structure.bonds.as_array():
+        if chain[first] != chain[second] and {
+            structure.atom_name[first],
+            structure.atom_name[second],
+        } == {"C", "N"}:
+            structure.bonds.remove_bond(int(first), int(second))
     return structure
 
 
@@ -92,9 +120,9 @@ def _ligand_block_mask(pose_stack, torch_device: torch.device) -> torch.Tensor:
 
 def _weighted_ddg_from_fixtures(target: str, torch_device: torch.device) -> float:
     from tmol.database import ParameterDatabase
-    from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_biotite
     from tmol.score import beta2016_score_function
-    from tmol.score.score_utils import calculate_block_pair_ddg
+    from tmol.ops import calculate_block_pair_ddg
 
     tmol_path = PLI_DATA_DIR / f"{target}.xtal-lig.mmff94.tmol"
     structure = _load_complex_cif(target)
@@ -105,7 +133,6 @@ def _weighted_ddg_from_fixtures(target: str, torch_device: torch.device) -> floa
         prepare_ligands=True,
         ligand_params_files=[str(tmol_path)],
         no_optH=True,
-        sample_proton_chi=False,
         param_db=ParameterDatabase.get_default(),
         return_context=True,
     )
@@ -126,7 +153,10 @@ def _weighted_ddg_from_fixtures(target: str, torch_device: torch.device) -> floa
 
 @pytest.mark.parametrize("target", sorted(_GOLDEN_DDG))
 def test_protein_ligand_cif_to_ddg_golden(target: str, torch_device) -> None:
-    """CIF complex + golden .tmol params reproduces pinned weighted ddG."""
+    """CIF complex reproduces pinned tmol and checked-in Rosetta ddG."""
     actual = _weighted_ddg_from_fixtures(target, torch_device)
     expected = _GOLDEN_DDG[target]
     numpy.testing.assert_allclose(actual, expected, rtol=1e-3, atol=1e-3)
+    numpy.testing.assert_allclose(
+        actual, _rosetta_ddg(target), rtol=0, atol=ROSETTA_DDG_ATOL
+    )

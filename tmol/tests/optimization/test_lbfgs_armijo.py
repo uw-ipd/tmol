@@ -1,7 +1,30 @@
+import weakref
+
 import torch
 import pytest
 
-from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
+from tmol.optimization import LBFGS_Armijo
+
+
+def test_lbfgs_releases_closure_after_step(torch_device):
+    x = torch.nn.Parameter(torch.tensor([2.0, -3.0], device=torch_device))
+    optimizer = LBFGS_Armijo([x], max_iter=3)
+    optimizer_ref = weakref.ref(optimizer)
+
+    class Closure:
+        def __call__(self):
+            optimizer_ref().zero_grad()
+            loss = x.square().sum()
+            loss.backward()
+            return loss
+
+    closure = Closure()
+    closure_ref = weakref.ref(closure)
+    optimizer.step(closure)
+    del closure
+    assert closure_ref() is None
+    del optimizer
+    assert optimizer_ref() is None
 
 
 class SimpleLJScore:
@@ -166,6 +189,36 @@ def test_value_only_line_search_requires_bool(value):
         LBFGS_Armijo([x], value_only_line_search=value)
 
 
+def test_lbfgs_requires_one_parameter_tensor():
+    x = torch.nn.Parameter(torch.zeros(1))
+    y = torch.nn.Parameter(torch.zeros(1))
+
+    with pytest.raises(ValueError, match="exactly one parameter tensor"):
+        LBFGS_Armijo([x, y])
+
+
+def test_lbfgs_accepts_one_named_parameter():
+    x = torch.nn.Parameter(torch.zeros(1))
+
+    optimizer = LBFGS_Armijo([("x", x)])
+
+    assert optimizer.param_groups[0]["params"][0] is x
+    assert optimizer.param_groups[0]["param_names"] == ["x"]
+
+
+def test_lbfgs_zero_grad_supports_both_reset_modes():
+    x = torch.nn.Parameter(torch.ones(2))
+    optimizer = LBFGS_Armijo([x])
+
+    x.sum().backward()
+    optimizer.zero_grad(set_to_none=False)
+    torch.testing.assert_close(x.grad, torch.zeros_like(x))
+
+    x.sum().backward()
+    optimizer.zero_grad()
+    assert x.grad is None
+
+
 def test_lbfgs_armijo():
     dtype = torch.float
     device = torch.device("cpu")
@@ -203,6 +256,62 @@ def test_large_negative_gradient_does_not_converge():
 
     assert optimizer.state[x]["n_iter"] == 2
     torch.testing.assert_close(x.grad, torch.tensor([-10.0], dtype=x.dtype))
+
+
+def test_short_run_allocates_only_reachable_history():
+    x = torch.nn.Parameter(torch.tensor([3.0, -2.0]))
+    optimizer = LBFGS_Armijo(
+        [x], max_iter=3, history_size=128, rtol=0.0, atol=0.0, gradtol=0.0
+    )
+
+    def closure():
+        optimizer.zero_grad()
+        loss = (x * x).sum()
+        loss.backward()
+        return loss
+
+    optimizer.step(closure)
+
+    assert optimizer.state[x]["old_dirs_mat"].shape[0] == 2
+    assert optimizer.state[x]["old_stps_mat"].shape[0] == 2
+
+
+def test_reset_reuses_scratch_and_restarts_trajectory():
+    initial = torch.tensor([3.0, -2.0])
+    x = torch.nn.Parameter(initial.clone())
+    optimizer = LBFGS_Armijo([x], max_iter=3, rtol=0.0, atol=0.0, gradtol=0.0)
+
+    def closure():
+        optimizer.zero_grad()
+        loss = (x * x).sum()
+        loss.backward()
+        return loss
+
+    optimizer.step(closure)
+    first = x.detach().clone()
+    history_ptr = optimizer.state[x]["old_dirs_mat"].data_ptr()
+    with torch.no_grad():
+        x.copy_(initial)
+    optimizer.reset()
+    optimizer.step(closure)
+
+    torch.testing.assert_close(x, first)
+    assert optimizer.state[x]["old_dirs_mat"].data_ptr() == history_ptr
+
+
+def test_fixed_iterations_skips_early_convergence():
+    x = torch.nn.Parameter(torch.zeros(2))
+    optimizer = LBFGS_Armijo([x], max_iter=4, fixed_iterations=True)
+
+    def closure():
+        optimizer.zero_grad()
+        loss = (x * x).sum()
+        loss.backward()
+        return loss
+
+    optimizer.step(closure)
+
+    assert optimizer.state[x]["n_iter"] == 4
 
 
 @pytest.mark.xfail(reason="sparse tensor _copy failure in torch 1.6")
@@ -248,3 +357,40 @@ def test_lbfgs_armijo_short_history():
     score_stop = closure()
 
     assert score_start > score_stop
+
+
+@pytest.mark.parametrize("first_segment_size", [6, 7])
+def test_lbfgs_armijo_wrapped_segment_histories(torch_device, first_segment_size):
+    x = torch.nn.Parameter(
+        torch.linspace(-2, 2, 12, dtype=torch.float64, device=torch_device)
+    )
+    segment_ids = torch.tensor(
+        [0] * first_segment_size + [1] * (12 - first_segment_size), device=torch_device
+    )
+    curvature = torch.tensor(
+        [1, 2, 4, 8, 1, 2, 4, 8, 4, 2, 1, 8],
+        dtype=x.dtype,
+        device=torch_device,
+    )
+    optimizer = LBFGS_Armijo(
+        [x],
+        segment_ids=segment_ids,
+        history_size=2,
+        max_iter=80,
+        rtol=0,
+        atol=0,
+        gradtol=1e-8,
+    )
+
+    def closure():
+        optimizer.zero_grad()
+        terms = curvature * (x - 1).square()
+        energies = torch.stack(
+            (terms[:first_segment_size].sum(), terms[first_segment_size:].sum())
+        )
+        energies.sum().backward()
+        return energies
+
+    optimizer.step(closure)
+    assert optimizer.state[x]["n_iter"] > 4
+    torch.testing.assert_close(x, torch.ones_like(x), atol=1e-6, rtol=0)

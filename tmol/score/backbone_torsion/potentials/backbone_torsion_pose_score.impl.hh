@@ -13,6 +13,7 @@
 #include <tmol/score/unresolved_atom.hh>
 
 #include <tmol/score/common/accumulate.hh>
+#include <tmol/score/common/counting.hh>
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/launch_box_macros.hh>
 #include <tmol/score/common/tuple.hh>
@@ -76,7 +77,8 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     TView<RamaTableParams<Real>, 1, Dev> rama_table_params,
     TView<Real, 4, Dev> omega_tables,
     TView<RamaTableParams<Real>, 1, Dev> omega_table_params,
-    bool output_block_pair_energies)
+    bool output_block_pair_energies,
+    bool compute_derivs)
     -> std::tuple<TPack<Real, 4, Dev>, TPack<Vec<Real, 3>, 2, Dev>> {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
@@ -139,7 +141,11 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   } else {
     V_t = TPack<Real, 4, Dev>::zeros({2, n_poses, 1, 1});
   }
-  auto dV_dxyz_t = TPack<Vec<Real, 3>, 2, Dev>::zeros({2, n_atoms});
+  // Block-pair autograd recomputes coordinate derivatives in backward.
+  bool const accumulate_derivs = compute_derivs && !output_block_pair_energies;
+  auto dV_dxyz_t = accumulate_derivs
+                       ? TPack<Vec<Real, 3>, 2, Dev>::zeros({2, n_atoms})
+                       : TPack<Vec<Real, 3>, 2, Dev>::empty({2, 0});
 
   auto V = V_t.view;
   auto dV_dxyz = dV_dxyz_t.view;
@@ -177,8 +183,11 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
     int const rot_offset1 = rot_coord_offset[rot_ind1];
 
-    int const V_ind1 = output_block_pair_energies ? block_ind1 : 0;
-    int const V_ind2 = output_block_pair_energies ? block_ind2 : 0;
+    // correction for cyclic peptides
+    int const V_ind1 =
+        output_block_pair_energies ? min(block_ind1, block_ind2) : 0;
+    int const V_ind2 =
+        output_block_pair_energies ? max(block_ind1, block_ind2) : 0;
 
     bool valid_phipsi = true;
     Vec<Int, 4> phi_ats;
@@ -233,19 +242,34 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
     // accumulate rama
     if (valid_phipsi && rama_table_ind >= 0) {
-      auto rama = rama_V_dV<Dev, Real, Int>(
-          phi_coords,
-          psi_coords,
-          rama_tables[rama_table_ind],
-          Eigen::Map<Vec<Real, 2>>(rama_table_params[rama_table_ind].bbstarts),
-          Eigen::Map<Vec<Real, 2>>(rama_table_params[rama_table_ind].bbsteps));
-      accumulate<Dev, Real>::add(
-          V[0][pose_ind][V_ind1][V_ind2], common::get<0>(rama));
-      for (int j = 0; j < 4; ++j) {
-        accumulate<Dev, Vec<Real, 3>>::add(
-            dV_dxyz[0][phi_ats[j]], common::get<1>(rama).row(j));
-        accumulate<Dev, Vec<Real, 3>>::add(
-            dV_dxyz[0][psi_ats[j]], common::get<2>(rama).row(j));
+      if (accumulate_derivs) {
+        auto rama = rama_V_dV<Dev, Real, Int>(
+            phi_coords,
+            psi_coords,
+            rama_tables[rama_table_ind],
+            Eigen::Map<Vec<Real, 2>>(
+                rama_table_params[rama_table_ind].bbstarts),
+            Eigen::Map<Vec<Real, 2>>(
+                rama_table_params[rama_table_ind].bbsteps));
+        accumulate<Dev, Real>::add(
+            V[0][pose_ind][V_ind1][V_ind2], common::get<0>(rama));
+        for (int j = 0; j < 4; ++j) {
+          accumulate<Dev, Vec<Real, 3>>::add(
+              dV_dxyz[0][phi_ats[j]], common::get<1>(rama).row(j));
+          accumulate<Dev, Vec<Real, 3>>::add(
+              dV_dxyz[0][psi_ats[j]], common::get<2>(rama).row(j));
+        }
+      } else {
+        accumulate<Dev, Real>::add(
+            V[0][pose_ind][V_ind1][V_ind2],
+            rama_V<Dev, Real, Int>(
+                phi_coords,
+                psi_coords,
+                rama_tables[rama_table_ind],
+                Eigen::Map<Vec<Real, 2>>(
+                    rama_table_params[rama_table_ind].bbstarts),
+                Eigen::Map<Vec<Real, 2>>(
+                    rama_table_params[rama_table_ind].bbsteps)));
       }
     }
 
@@ -289,42 +313,65 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     }
 
     if (valid_phipsi && omega_table_ind >= 0) {
-      auto omega = omega_bbdep_V_dV<Dev, Real, Int>(
-          phi_coords,
-          psi_coords,
-          omega_coords,
-          omega_tables[omega_table_ind][0],
-          omega_tables[omega_table_ind][1],
-          Eigen::Map<Vec<Real, 2>>(
-              omega_table_params[omega_table_ind].bbstarts),
-          Eigen::Map<Vec<Real, 2>>(omega_table_params[omega_table_ind].bbsteps),
-          32.8);
-      accumulate<Dev, Real>::add(
-          V[1][pose_ind][V_ind1][V_ind2], common::get<0>(omega));
-      for (int j = 0; j < 4; ++j) {
-        // omega : [V, dVdphi, dVdpsi, dVdomega]
-        accumulate<Dev, Vec<Real, 3>>::add(
-            dV_dxyz[1][phi_ats[j]], common::get<1>(omega).row(j));
-        accumulate<Dev, Vec<Real, 3>>::add(
-            dV_dxyz[1][psi_ats[j]], common::get<2>(omega).row(j));
-        accumulate<Dev, Vec<Real, 3>>::add(
-            dV_dxyz[1][omega_ats[j]], common::get<3>(omega).row(j));
+      if (accumulate_derivs) {
+        auto omega = omega_bbdep_V_dV<Dev, Real, Int>(
+            phi_coords,
+            psi_coords,
+            omega_coords,
+            omega_tables[omega_table_ind][0],
+            omega_tables[omega_table_ind][1],
+            Eigen::Map<Vec<Real, 2>>(
+                omega_table_params[omega_table_ind].bbstarts),
+            Eigen::Map<Vec<Real, 2>>(
+                omega_table_params[omega_table_ind].bbsteps),
+            32.8);
+        accumulate<Dev, Real>::add(
+            V[1][pose_ind][V_ind1][V_ind2], common::get<0>(omega));
+        for (int j = 0; j < 4; ++j) {
+          // omega : [V, dVdphi, dVdpsi, dVdomega]
+          accumulate<Dev, Vec<Real, 3>>::add(
+              dV_dxyz[1][phi_ats[j]], common::get<1>(omega).row(j));
+          accumulate<Dev, Vec<Real, 3>>::add(
+              dV_dxyz[1][psi_ats[j]], common::get<2>(omega).row(j));
+          accumulate<Dev, Vec<Real, 3>>::add(
+              dV_dxyz[1][omega_ats[j]], common::get<3>(omega).row(j));
+        }
+      } else {
+        accumulate<Dev, Real>::add(
+            V[1][pose_ind][V_ind1][V_ind2],
+            omega_bbdep_V<Dev, Real, Int>(
+                phi_coords,
+                psi_coords,
+                omega_coords,
+                omega_tables[omega_table_ind][0],
+                omega_tables[omega_table_ind][1],
+                Eigen::Map<Vec<Real, 2>>(
+                    omega_table_params[omega_table_ind].bbstarts),
+                Eigen::Map<Vec<Real, 2>>(
+                    omega_table_params[omega_table_ind].bbsteps),
+                32.8));
       }
     } else {
       // if rama is undefined, fall back to old version
-      auto omega = omega_V_dV<Dev, Real, Int>(omega_coords, 32.8);
-      accumulate<Dev, Real>::add(
-          V[1][pose_ind][V_ind1][V_ind2], common::get<0>(omega));
-      for (int j = 0; j < 4; ++j) {
-        // omega : [V, dVdomega]
-        accumulate<Dev, Vec<Real, 3>>::add(
-            dV_dxyz[1][omega_ats[j]], common::get<1>(omega).row(j));
+      if (accumulate_derivs) {
+        auto omega = omega_V_dV<Dev, Real, Int>(omega_coords, 32.8);
+        accumulate<Dev, Real>::add(
+            V[1][pose_ind][V_ind1][V_ind2], common::get<0>(omega));
+        for (int j = 0; j < 4; ++j) {
+          // omega : [V, dVdomega]
+          accumulate<Dev, Vec<Real, 3>>::add(
+              dV_dxyz[1][omega_ats[j]], common::get<1>(omega).row(j));
+        }
+      } else {
+        accumulate<Dev, Real>::add(
+            V[1][pose_ind][V_ind1][V_ind2],
+            omega_V<Real>(omega_coords, Real(32.8)));
       }
     }
   });
 
-  DeviceDispatch<Dev>::template forall<launch_t>(
-      mgr, n_poses * max_n_blocks, rama_omega_func);
+  DeviceDispatch<Dev>::template forall_grouped<launch_t>(
+      mgr, n_poses, max_n_blocks, rama_omega_func);
 
   return {V_t, dV_dxyz_t};
 };
@@ -449,6 +496,18 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
       // the upper neighbor is not a real residue: skip
       return;
     }
+
+    // The forward pass writes a block pair at its canonical (min, max) slot so
+    // a cycle's closing bond does not collide with the bond that opens it;
+    // read the same slot here or that bond's gradient is silently zero.
+    int const dTdV_ind1 = min(block_ind1, block_ind2);
+    int const dTdV_ind2 = max(block_ind1, block_ind2);
+
+    if (dTdV[0][pose_ind][dTdV_ind1][dTdV_ind2] == 0
+        && dTdV[1][pose_ind][dTdV_ind1][dTdV_ind2] == 0) {
+      return;
+    }
+
     int const block_type2 = first_rot_block_type[pose_ind][block_ind2];
     int const rot_ind2 = first_rot_for_block[pose_ind][block_ind2];
 
@@ -512,7 +571,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
     }
 
     // accumulate rama
-    Real rama_block_weight = dTdV[0][pose_ind][block_ind1][block_ind2];
+    Real rama_block_weight = dTdV[0][pose_ind][dTdV_ind1][dTdV_ind2];
     if (valid_phipsi && rama_table_ind >= 0) {
       auto rama = rama_V_dV<Dev, Real, Int>(
           phi_coords,
@@ -568,7 +627,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
       omega_coords.row(i) = rot_coords[omega_ats[i]];
     }
 
-    Real omega_block_weight = dTdV[1][pose_ind][block_ind1][block_ind2];
+    Real omega_block_weight = dTdV[1][pose_ind][dTdV_ind1][dTdV_ind2];
     if (valid_phipsi && omega_table_ind >= 0) {
       auto omega = omega_bbdep_V_dV<Dev, Real, Int>(
           phi_coords,
@@ -604,8 +663,8 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
     }
   });
 
-  DeviceDispatch<Dev>::template forall<launch_t>(
-      mgr, n_poses * max_n_blocks, rama_omega_func);
+  DeviceDispatch<Dev>::template forall_grouped<launch_t>(
+      mgr, n_poses, max_n_blocks, rama_omega_func);
 
   return dV_dxyz_t;
 };
@@ -715,7 +774,7 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
   // them in the second step.
 
   auto n_energies_for_block_t =
-      TPack<Int, 2, Dev>::zeros({n_poses, max_n_blocks});
+      TPack<int64_t, 2, Dev>::zeros({n_poses, max_n_blocks});
   auto n_energies_for_block = n_energies_for_block_t.view;
   auto count_n_rotamer_energies = ([=] TMOL_DEVICE_FUNC(int index) {
     // Look at each residue and make sure that it has both upper and lower
@@ -756,21 +815,25 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
     // too.
     int const upper_n_rots = n_rots_for_block[pose_ind][upper_nbr_block_ind];
 
-    n_energies_for_block[pose_ind][block_ind] = n_rots * upper_n_rots;
+    n_energies_for_block[pose_ind][block_ind] = int64_t(n_rots) * upper_n_rots;
   });
+  int const n_pose_block_cells = score::common::checked_dispatch_product(
+      n_poses, max_n_blocks, "backbone-torsion count dispatch");
   DeviceDispatch<Dev>::template forall<launch_t>(
-      mgr, n_poses * max_n_blocks, count_n_rotamer_energies);
+      mgr, n_pose_block_cells, count_n_rotamer_energies);
 
   auto n_energies_for_block_offset_t =
-      TPack<Int, 2, Dev>::zeros({n_poses, max_n_blocks});
+      TPack<int64_t, 2, Dev>::zeros({n_poses, max_n_blocks});
   auto n_energies_for_block_offset = n_energies_for_block_offset_t.view;
-  int n_dispatch_total =
+  int64_t const n_dispatch_total_64 =
       DeviceDispatch<Dev>::template scan_and_return_total<mgpu::scan_type_exc>(
           mgr,
           n_energies_for_block.data(),
           n_energies_for_block_offset.data(),
-          n_poses * max_n_blocks,
-          mgpu::plus_t<Int>());
+          n_pose_block_cells,
+          mgpu::plus_t<int64_t>());
+  int const n_dispatch_total = score::common::checked_dispatch_size(
+      n_dispatch_total_64, "backbone-torsion output dispatch");
 
   TPack<Real, 2, Dev> V_t;
   auto dispatch_indices_t = TPack<Int, 2, Dev>::zeros({3, n_dispatch_total});
@@ -781,90 +844,86 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
   }
   auto dV_dxyz_t = TPack<Vec<Real, 3>, 2, Dev>::zeros({2, n_atoms});
 
-  int const max_n_rots_per_block = DeviceDispatch<Dev>::reduce(
-      mgr,
-      n_rots_for_block.data(),
-      n_poses * max_n_blocks,
-      mgpu::maximum_t<Int>());
+  // Which block each dispatch index belongs to. Walking the sparse list is
+  // what keeps this bounded: a dense (block x rot1 x rot2) grid would be
+  // quadratic in the largest block's rotamer count and overflow an int
+  // once a block carries a few thousand rotamers.
+  TPack<Int, 1, Dev> block_for_dispatch_t =
+      DeviceDispatch<Dev>::template load_balancing_search<launch_t>(
+          mgr,
+          n_dispatch_total,
+          n_energies_for_block_offset.data(),
+          n_poses * max_n_blocks);
+  auto block_for_dispatch = block_for_dispatch_t.view;
 
   auto V = V_t.view;
   auto dV_dxyz = dV_dxyz_t.view;
   auto dispatch_indices = dispatch_indices_t.view;
 
-  auto mark_dispatch_indices = ([=] TMOL_DEVICE_FUNC(int ind) {
-    int const pose_ind =
-        ind / (max_n_blocks * max_n_rots_per_block * max_n_rots_per_block);
-    ind =
-        ind
-        - pose_ind * max_n_blocks * max_n_rots_per_block * max_n_rots_per_block;
-    int const block1_ind = ind / (max_n_rots_per_block * max_n_rots_per_block);
-    ind = ind - block1_ind * max_n_rots_per_block * max_n_rots_per_block;
-    int const local_rot1_ind = ind / max_n_rots_per_block;
-    int const local_rot2_ind = ind % max_n_rots_per_block;
+  auto mark_dispatch_indices = ([=] TMOL_DEVICE_FUNC(int index) {
+    int const pose_and_block = block_for_dispatch[index];
+    int const pose_ind = pose_and_block / max_n_blocks;
+    int const block1_ind = pose_and_block % max_n_blocks;
 
     int const pose_block_type = pose_stack_block_type[pose_ind][block1_ind];
-    if (pose_block_type == -1) {
-      // Filter out blocks that are not real
-      return;
-    }
-    int const n_rots1 = n_rots_for_block[pose_ind][block1_ind];
-    if (local_rot1_ind >= n_rots1) {
-      return;
-    }
-
-    int const block1_sparse_dispatch_offset =
-        n_energies_for_block_offset[pose_ind][block1_ind];
-    int const block1_rot_offset = first_rot_for_block[pose_ind][block1_ind];
-
-    bool block1_has_upper_neighbor = true;
     int const upper_conn = block_type_upper_conn_ind[pose_block_type];
-    if (upper_conn < 0) {
-      block1_has_upper_neighbor = false;
-    } else {
-      int const upper_nbr_block_ind =
-          pose_stack_inter_block_connections[pose_ind][block1_ind][upper_conn]
-                                            [0];
-      if (upper_nbr_block_ind != -1) {
-        // the upper neighbor is a real residue: we will score
-        // the n_rots_i x n_rots_j rotamers for this pair
-        // This will properly include upper neighbors for circular peptides,
-        // too, unless we have a two residue circular peptide which feels
-        // chemically impossible.
-        int const upper_n_rots =
-            n_rots_for_block[pose_ind][upper_nbr_block_ind];
+    int const upper_nbr_block_ind =
+        pose_stack_inter_block_connections[pose_ind][block1_ind][upper_conn][0];
+    int const upper_n_rots = n_rots_for_block[pose_ind][upper_nbr_block_ind];
 
-        if (local_rot2_ind >= upper_n_rots) {
-          return;
-        }
-        int const sparse_index = block1_sparse_dispatch_offset
-                                 + local_rot1_ind * upper_n_rots
-                                 + local_rot2_ind;
-        int const rot1_ind = block1_rot_offset + local_rot1_ind;
-        int const rot2_ind =
-            first_rot_for_block[pose_ind][upper_nbr_block_ind] + local_rot2_ind;
+    // invert the sparse index this block's pairs were counted into
+    int const within =
+        index - n_energies_for_block_offset[pose_ind][block1_ind];
+    int const local_rot1_ind = within / upper_n_rots;
+    int const local_rot2_ind = within - local_rot1_ind * upper_n_rots;
 
-        dispatch_indices[0][sparse_index] = pose_ind;
-        dispatch_indices[1][sparse_index] = rot1_ind;
-        dispatch_indices[2][sparse_index] = rot2_ind;
-      }
-    }
+    int const rot1_ind =
+        first_rot_for_block[pose_ind][block1_ind] + local_rot1_ind;
+    int const rot2_ind =
+        first_rot_for_block[pose_ind][upper_nbr_block_ind] + local_rot2_ind;
+
+    dispatch_indices[0][index] = pose_ind;
+    // The sparse rotamer-pair output is upper triangular, which
+    // test_closure_rotamer_pairs_reach_the_packer pins, so the pair is ordered
+    // here. Note that a two-block cycle is bonded both ways and its two
+    // directed entries therefore canonicalise to the same pair; the direction
+    // re-derived below then picks one of its two peptide bonds twice. Scoring
+    // both while keeping the output triangular needs the output to accumulate,
+    // not the dispatch to stop ordering.
+    dispatch_indices[1][index] = min(rot1_ind, rot2_ind);
+    dispatch_indices[2][index] = max(rot1_ind, rot2_ind);
   });
   DeviceDispatch<Dev>::template forall<launch_t>(
-      mgr,
-      n_poses * max_n_blocks * max_n_rots_per_block * max_n_rots_per_block,
-      mark_dispatch_indices);
+      mgr, n_dispatch_total, mark_dispatch_indices);
 
   auto rama_omega_func = ([=] TMOL_DEVICE_FUNC(int ind) {
     int const pose_ind = dispatch_indices[0][ind];
 
-    int const rot_ind1 = dispatch_indices[1][ind];
-    int const rot_ind2 = dispatch_indices[2][ind];
+    int rot_ind1 = dispatch_indices[1][ind];
+    int rot_ind2 = dispatch_indices[2][ind];
 
-    int const block_ind1 = block_ind_for_rot[rot_ind1];
-    int const block_ind2 = block_ind_for_rot[rot_ind2];
+    int block_ind1 = block_ind_for_rot[rot_ind1];
+    int block_ind2 = block_ind_for_rot[rot_ind2];
 
-    int const block_type1 = block_type_ind_for_rot[rot_ind1];
-    int const block_type2 = block_type_ind_for_rot[rot_ind2];
+    int block_type1 = block_type_ind_for_rot[rot_ind1];
+    int block_type2 = block_type_ind_for_rot[rot_ind2];
+
+    // correction for cyclic peptides
+    int const stored_upper_conn = block_type_upper_conn_ind[block_type1];
+    if (stored_upper_conn < 0
+        || pose_stack_inter_block_connections[pose_ind][block_ind1]
+                                             [stored_upper_conn][0]
+               != block_ind2) {
+      int const swap_rot = rot_ind1;
+      int const swap_block = block_ind1;
+      int const swap_block_type = block_type1;
+      rot_ind1 = rot_ind2;
+      block_ind1 = block_ind2;
+      block_type1 = block_type2;
+      rot_ind2 = swap_rot;
+      block_ind2 = swap_block;
+      block_type2 = swap_block_type;
+    }
 
     // Where will we write the output?
     // In block-pair-scoring mode, we store one energy per rotamer;
@@ -1129,14 +1188,31 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
   auto rama_omega_func = ([=] TMOL_DEVICE_FUNC(int ind) {
     int const pose_ind = dispatch_indices[0][ind];
 
-    int const rot_ind1 = dispatch_indices[1][ind];
-    int const rot_ind2 = dispatch_indices[2][ind];
+    int rot_ind1 = dispatch_indices[1][ind];
+    int rot_ind2 = dispatch_indices[2][ind];
 
-    int const block_ind1 = block_ind_for_rot[rot_ind1];
-    int const block_ind2 = block_ind_for_rot[rot_ind2];
+    int block_ind1 = block_ind_for_rot[rot_ind1];
+    int block_ind2 = block_ind_for_rot[rot_ind2];
 
-    int const block_type1 = block_type_ind_for_rot[rot_ind1];
-    int const block_type2 = block_type_ind_for_rot[rot_ind2];
+    int block_type1 = block_type_ind_for_rot[rot_ind1];
+    int block_type2 = block_type_ind_for_rot[rot_ind2];
+
+    // correction for cyclic peptides
+    int const stored_upper_conn = block_type_upper_conn_ind[block_type1];
+    if (stored_upper_conn < 0
+        || pose_stack_inter_block_connections[pose_ind][block_ind1]
+                                             [stored_upper_conn][0]
+               != block_ind2) {
+      int const swap_rot = rot_ind1;
+      int const swap_block = block_ind1;
+      int const swap_block_type = block_type1;
+      rot_ind1 = rot_ind2;
+      block_ind1 = block_ind2;
+      block_type1 = block_type2;
+      rot_ind2 = swap_rot;
+      block_ind2 = swap_block;
+      block_type2 = swap_block_type;
+    }
 
     // Where did we write the output?
     // In block-pair-scoring mode, we store one energy per rotamer;

@@ -14,10 +14,12 @@ import pytest
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.io.pose_stack_from_biotite import (
+from tmol.io import (
     build_context_from_biotite,
     pose_stack_from_biotite,
 )
+from tmol.pack import build_missing_sidechains
+from tmol.score import ScoreType
 
 PLI_DATA_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
 TARGET = "ace"
@@ -90,6 +92,35 @@ def test_repeated_calls_with_same_context_stable(torch_device):
             structure, torch_device, context=context, no_optH=True
         )
         _assert_pose_stacks_equal(first, pose_stack)
+
+
+def test_context_opth_score_function_omits_invariant_terms(biotite_1ubq, torch_device):
+    """The lighter OptH scorer preserves its rotamer assignment exactly."""
+    context = build_context_from_biotite(biotite_1ubq, torch_device)
+    score_function = context._opth_score_function
+    for score_type in (
+        ScoreType.disulfide,
+        ScoreType.omega,
+        ScoreType.rama,
+        ScoreType.ref,
+        ScoreType.na_torsion,
+        ScoreType.na_torsion_well,
+    ):
+        assert score_function.get_weight(score_type) == 0
+    assert score_function.get_weight(ScoreType.hbond) != 0
+
+    pose = pose_stack_from_biotite(
+        biotite_1ubq, torch_device, context=context, no_optH=True
+    )
+    missing = torch.zeros_like(pose.block_type_ind, dtype=torch.bool)
+    expected = build_missing_sidechains(
+        pose, context._packing_score_function, context._dunbrack_sampler, missing
+    )
+    actual = build_missing_sidechains(
+        pose, score_function, context._dunbrack_sampler, missing
+    )
+    torch.testing.assert_close(actual.block_type_ind, expected.block_type_ind)
+    torch.testing.assert_close(actual.coords, expected.coords)
 
 
 def test_context_and_param_db_mutually_exclusive(torch_device):

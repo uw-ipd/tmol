@@ -2,6 +2,8 @@
 
 #include <moderngpu/context.hxx>
 #include <c10/cuda/CUDAStream.h>
+#include <c10/cuda/CUDAGuard.h>
+#include <c10/cuda/CUDACachingAllocator.h>
 #include <tmol/utility/tensor/context_manager.hh>
 
 #include <memory>
@@ -9,12 +11,33 @@
 
 namespace tmol {
 
-struct ContextDeleter {
-  inline void operator()(void* ctxt) {
-    mgpu::standard_context_t* std_ctxt =
-        static_cast<mgpu::standard_context_t*>(ctxt);
-    delete std_ctxt;
+// Route temporary device storage through Torch's stream-aware allocator.
+// Host-pinned allocations retain ModernGPU's allocator.
+class TorchCudaContext : public mgpu::standard_context_t {
+ public:
+  TorchCudaContext(cudaStream_t stream, c10::DeviceIndex device)
+      : mgpu::standard_context_t(false, stream), device_(device) {}
+
+  void* alloc(size_t size, mgpu::memory_space_t space) override {
+    if (space != mgpu::memory_space_device) {
+      return mgpu::standard_context_t::alloc(size, space);
+    }
+    if (size == 0) return nullptr;
+    c10::cuda::CUDAGuard guard(device_);
+    return c10::cuda::CUDACachingAllocator::raw_alloc_with_stream(
+        size, stream());
   }
+
+  void free(void* pointer, mgpu::memory_space_t space) override {
+    if (space != mgpu::memory_space_device) {
+      mgpu::standard_context_t::free(pointer, space);
+    } else if (pointer != nullptr) {
+      c10::cuda::CUDACachingAllocator::raw_delete(pointer);
+    }
+  }
+
+ private:
+  c10::DeviceIndex device_;
 };
 
 // Get a pointer to an mgpu::standard_context_t that uses the
@@ -29,16 +52,11 @@ inline std::shared_ptr<mgpu::standard_context_t> current_context(
   std::pair<int, void*> device_index_and_stream_address(
       std::make_pair(device_index, cuda_stream_address));
 
-  // We lock the mutex because writing to a std::map changes it.
-  // This code is overly safe; a more complex strategy of obtaining
-  // read locks for the general case and write locks for the specific
-  // instances when new context objects must be allocated and stored
-  // in the manager could be created, but such cases can lead to
-  // deadlock if not done carefully, and our use case is basically
-  // that a single python thread is calling the C++
-  std::lock_guard(mgr.get_mutex());
+  // Hold the mutex through lookup and insertion: calls on different Python
+  // threads may create contexts for different streams concurrently.
+  std::lock_guard lock(mgr.get_mutex());
 
-  // We are will accumulate new standard_context_t objects over the lifetime
+  // We accumulate new standard_context_t objects over the lifetime
   // of execution and none of these objects will be deallocated until
   // the program ends. That means that repeated allocation of cuda stream
   // objects would be problematic. Torch does not do that: it allocates
@@ -61,9 +79,9 @@ inline std::shared_ptr<mgpu::standard_context_t> current_context(
   // Args to standar_context_t ctor:
   // 1. false: do not print the device properties to std::cout
   // 2. the cuda stream we're sending this to
-  ContextDeleter dstor_functor_instance;
-  std::shared_ptr<mgpu::standard_context_t> new_context(
-      new mgpu::standard_context_t(false, cuda_stream), dstor_functor_instance);
+  // The base destructor is nonvirtual; retain the concrete shared deleter.
+  std::shared_ptr<mgpu::standard_context_t> new_context =
+      std::make_shared<TorchCudaContext>(cuda_stream, device_index);
   mgr.set(
       device_index_and_stream_address,
       std::static_pointer_cast<void>(new_context));

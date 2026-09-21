@@ -20,7 +20,7 @@ git clone https://github.com/uw-ipd/tmol.git && cd tmol
 pip install -e ".[dev]"   # builds C++/CUDA extensions via CMake
 ```
 
-Requirements: Python 3.11+, PyTorch 2.8+, C++17 compiler, CMake 3.18+. CUDA toolkit (`nvcc`) is optional — without it, only CPU extensions are built. Pre-built wheels are published for Python `cp311`-`cp314`.
+Requirements: Python 3.11+, PyTorch 2.5+, a C++20-capable compiler (tmol uses C++17 with PyTorch 2.5–2.12 and C++20 with PyTorch 2.13+), and CMake 3.24+. CUDA toolkit (`nvcc`) is optional — without it, only CPU extensions are built. Pre-built wheels are published for Python `cp311`-`cp314`.
 
 ## Building Extensions
 
@@ -33,8 +33,11 @@ pip install -e .
 # Build with test extensions
 pip install -e . -Ccmake.define.TMOL_BUILD_TESTS=ON
 
-# Target specific GPU architectures (default: "80;86;89;90")
+# Target specific GPU architectures (default: "native")
 pip install -e . -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="80;90"
+
+# Build every sm_75+ target supported by nvcc (used for CUDA 13 release wheels)
+pip install -e . -Ccmake.define.CMAKE_CUDA_ARCHITECTURES=all
 
 # Control parallelism
 MAX_JOBS=4 pip install -e . -Ccmake.define.TMOL_NVCC_THREADS=2
@@ -44,7 +47,7 @@ CMake build options:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CMAKE_CUDA_ARCHITECTURES` | `80;86;89;90` | GPU compute capabilities to compile for |
+| `CMAKE_CUDA_ARCHITECTURES` | `native` | `native` compiles for GPUs visible at build time. `all` emits SASS for every sm_75+ target reported by `nvcc --list-gpu-code`, plus PTX for the newest target. |
 | `TMOL_BUILD_TESTS` | `OFF` | Build test-only C++/CUDA extensions |
 | `TMOL_NVCC_THREADS` | `4` | Threads per nvcc invocation |
 | `TMOL_ENABLE_CUDA` | `ON` | Set to `OFF` for CPU-only build (no `nvcc` needed) |
@@ -56,7 +59,7 @@ tmol's C++/CUDA kernels can be loaded in two ways:
 
 - **AOT (Ahead-Of-Time)**: Pre-compiled `.so` libraries are bundled inside the installed package (e.g., from a wheel). Operations are registered in `torch.ops.tmol_*` namespaces. This is the default and requires no compiler at runtime.
 
-- **JIT (Just-In-Time)**: Source files (`.cpp`, `.cu`) are compiled on first use via `torch.utils.cpp_extension.load()`. This requires `nvcc` and a C++ compiler to be available. Useful for kernel development where you want to edit and reload C++/CUDA code without rebuilding the whole package.
+- **JIT (Just-In-Time)**: Source files (`.cpp`, `.cu`) are compiled on first use via `torch.utils.cpp_extension.load()`. This requires a C++ compiler and `ninja`; `nvcc` is needed only for CUDA kernels. On CPU-only platforms, including Apple Silicon, CUDA sources are omitted automatically. Useful for kernel development where you want to edit and reload C++/CUDA code without rebuilding the whole package.
 
 Two environment variables control which path is taken:
 
@@ -93,10 +96,12 @@ flowchart TD
 | End user                      | `pip install tmol` (sdist) | None   | AOT (compiled at install time) |
 | Kernel developer              | `pip install -e .` | `TMOL_USE_JIT=1` | JIT |
 | CI without GPU                | Pre-built wheel    | None            | AOT  |
+| macOS / CPU-only from source  | `pip install -e .` (optionally force `TMOL_ENABLE_CUDA=OFF`) | None (or `TMOL_USE_JIT=1`) | AOT (or JIT) |
 
 ### CUDA toolkit for JIT mode
 
-JIT mode requires `nvcc` and CUDA headers. You can either:
+Building CUDA kernels in JIT mode requires `nvcc` and CUDA headers. CPU-only
+JIT needs only a C++ compiler and `ninja`. To build CUDA kernels, you can either:
 
 1. **Use a CUDA-enabled container** (NGC, conda) or set `CUDA_HOME` to point to your system CUDA toolkit.
 2. **Install the pip CUDA extra**, which downloads `nvcc` and runtime libraries:
@@ -124,6 +129,10 @@ pytest tmol/tests/ --cov=./tmol --junitxml=results.xml
 pytest --benchmark-enable --benchmark-only --benchmark-max-time=.1
 ```
 
+AOT CUDA builds use approximate math for four pairwise nonbonded score kernels,
+so compare their scores and gradients within the tested tolerances rather than
+bitwise. All other AOT kernels and explicit JIT builds retain precise CUDA math.
+
 ### Ligand charges
 
 Partial charges come exclusively from the SMILES -> OpenBabel MMFF94 mol2 step and
@@ -150,11 +159,11 @@ pip install git+https://github.com/uw-ipd/tmol.git@vX.Y.Z
 pytest --pyargs tmol.tests -v
 ```
 
-On Google Colab (Python 3.12, torch 2.8, Turing T4) use the `+cu128torch2.8`
-wheel — it is the only variant built with `sm_75`:
+On Google Colab (Python 3.12 or 3.13, PyTorch 2.11, Turing T4), use the
+matching `+cu128torch2.11` wheel. This lane explicitly includes `sm_75`:
 
 ```bash
-pip install "https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.8-cp312-cp312-manylinux_2_28_x86_64.whl"
+pip install "https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"
 ```
 
 ## Containers
@@ -182,9 +191,13 @@ tmol uses GitHub Actions for all CI:
 
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
-| `ci.yml` | Push to `master`/`kdidi/**`, PRs | Lint, test (CPU + CUDA), benchmark. Runs on a **self-hosted GPU runner** (fela) inside an Apptainer NGC container. |
-| `wheel-smoke.yml` | Push to wheel feature branches, manual | Builds and installs the complete 32-wheel manylinux matrix, checks auditwheel metadata and glibc-2.28 portability, and loads a representative wheel on the self-hosted GPU runner. |
-| `publish.yml` | Push `v*` tag, manual | Builds manylinux wheels (GPU + CPU) + sdist, uploads sdist to PyPI, uploads wheels to a GitHub Release. |
+| `ci.yml` | Push to `master`/`kdidi/**`, PRs | Lint and test on CPU and CUDA. CUDA runs on a **self-hosted GPU runner** (fela) inside an Apptainer NGC container. |
+| `wheel-smoke.yml` | Relevant PRs, maintenance branches, manual | Builds representative PR wheels or the complete matrix, then checks installation, platform metadata, portability, and GPU loading. |
+| `publish.yml` | Push `v*` tag, manual | Builds Linux GPU/CPU and Apple Silicon CPU wheels plus an sdist, uploads the sdist to PyPI, and uploads wheels to a GitHub Release. |
+
+The full Linux build, smoke-test, and release-manifest matrix is defined once in
+`scripts/release_matrix.py`. Update that file when adding a Python, PyTorch,
+CUDA, or architecture lane; pull-request smoke jobs stay intentionally focused.
 
 ### CI architecture
 
@@ -198,7 +211,7 @@ Push/PR -> GitHub Actions -> self-hosted runner (fela, bare metal)
                           NGC PyTorch container (GPU access)
                                   |
                                   v
-                          Setup -> Lint -> Test CPU -> Test CUDA -> Benchmark
+                           Setup -> Lint -> Test CPU -> Test CUDA
 ```
 
 ### Self-hosted runner
@@ -218,24 +231,26 @@ tail -f /net/scratch/kdidi/actions-runner/runner.log
 ## Releasing
 
 The version in a development checkout is not proof that a release has been
-published. As of 2026-07-17, GitHub Releases and PyPI contain v0.1.40; v0.1.42
-is the next validated release candidate. Check the GitHub Releases page before
-using a versioned wheel URL.
+published. Check both GitHub Releases and PyPI before choosing the next version
+or using a versioned wheel URL; published versions and artifacts are immutable.
 
 1. Bump `project.version` in `pyproject.toml`.
 2. Commit the version bump and ensure both `CI` and `Wheel smoke test` pass.
-3. Create and push the matching version tag (for example `v0.1.42`):
+3. Create and push the matching version tag (for example `vX.Y.Z`):
    - `publish.yml` triggers only from a pushed `v*` tag.
    - The workflow rejects tags that do not match `project.version`.
 4. Wait for workflow completion:
    - `build_wheels` (GPU matrix)
-   - `build_cpu_wheel`
+   - `build_cpu_wheel` (Linux CPU matrix)
+   - `build_macos_cpu_wheel` (Apple Silicon CPU matrix)
    - `build_sdist`
    - release manifest validation
    - `upload`
 5. Verify release artifacts:
    - PyPI sdist upload succeeds.
-   - GitHub prerelease `vX.Y.Z` exists and contains exactly 32 manylinux wheel files: 24 GPU and 8 CPU.
+   - GitHub release `vX.Y.Z` contains exactly the wheel set generated by
+     `scripts/release_matrix.py` (currently 34 GPU, 34 Linux CPU, and 17 macOS
+     CPU wheels: the CPU lanes cover every torch the GPU lanes do).
 6. Install using explicit wheel files (recommended):
    - Install matching PyTorch/CUDA first.
    - Install from GitHub release wheel URL (or pinned `tmol==X.Y.Z+...` with `--find-links`).
@@ -244,17 +259,14 @@ using a versioned wheel URL.
 
 ## Code Style
 
-tmol uses [black](https://black.readthedocs.io/) for Python formatting, [flake8](https://flake8.pycqa.org/) for linting, and [clang-format](https://clang.llvm.org/docs/ClangFormat.html) for C++.
+tmol uses [black](https://black.readthedocs.io/) for Python formatting,
+[flake8](https://flake8.pycqa.org/) for linting, and
+[clang-format](https://clang.llvm.org/docs/ClangFormat.html) for C++. Run the
+same configured hooks and exclusions as CI:
 
 ```bash
-# Check formatting
-black --check .
-
-# Auto-format
-black .
-
-# Lint
-flake8
+python -m pip install pre-commit
+pre-commit run --all-files --show-diff-on-failure
 ```
 
 ### Pre-commit hooks
@@ -269,4 +281,3 @@ Pre-commit runs `clang-format` (C++) and `black` (Python) on staged files. If fo
 ### Pull requests
 
 All changes to master go through pull requests. PRs are merged via squash or rebase to keep a linear history. Each PR should be an atomic unit of work.
-

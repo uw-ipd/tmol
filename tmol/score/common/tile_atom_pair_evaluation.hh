@@ -7,6 +7,8 @@ namespace tmol {
 namespace score {
 namespace common {
 
+enum class TilePairMode { InterAndIntra, Inter, Intra };
+
 // Returns the count of items to iterate over within a single tile of block 1
 // or block 2. The selector knows the meaning of `n_atoms` / `n_heavy` in the
 // surrounding data structure and how those map to a per-tile count.
@@ -362,6 +364,7 @@ template <
     typename IntraResScoringData,
     typename Real,
     int TILE,
+    TilePairMode Mode = TilePairMode::InterAndIntra,
     typename SharedMemData,
     typename LoadInvarInterFunc,
     typename LoadInvarIntraFunc,
@@ -400,7 +403,8 @@ TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
   assert(
       !(block_ind1 == block_ind2
         && rot_ind1 != rot_ind2));  // working under this assumption
-  if (block_ind1 != block_ind2) {
+  if (Mode == TilePairMode::Inter
+      || (Mode == TilePairMode::InterAndIntra && block_ind1 != block_ind2)) {
     // Step 1: load any data that is consistent across all tile pairs
     InterResScoringData interres_data;
     load_tile_invariant_interres_data(

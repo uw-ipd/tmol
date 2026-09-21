@@ -31,6 +31,17 @@ template <
     typename Real,
     typename Int>
 struct LJLKPoseScoreDispatch {
+  static auto build_compact_block_neighbors(
+      ContextManager& mgr,
+      TView<Vec<Real, 3>, 1, D> rot_coords,
+      TView<Int, 1, D> rot_coord_offset,
+      TView<Int, 2, D> first_rot_for_block,
+      TView<Int, 1, D> block_ind_for_rot,
+      TView<Int, 1, D> pose_ind_for_rot,
+      TView<Int, 1, D> block_type_ind_for_rot,
+      TView<Int, 1, D> block_type_n_atoms,
+      Real reach) -> TPack<Int, 1, D>;
+
   static auto forward(
       ContextManager& mgr,
       // common params
@@ -85,7 +96,7 @@ struct LJLKPoseScoreDispatch {
       // what is the path distance between pairs of atoms in the block
       // Dimsize: n_block_types x max_n_atoms x max_n_atoms
       TView<Int, 3, D> block_type_path_distance,
-      TView<Int, 1, D> block_type_is_ligand_fragment,
+      TView<Int, 1, D> block_type_all_atoms_ligand_typed,
       //////////////////////
 
       // LJ parameters
@@ -94,6 +105,10 @@ struct LJLKPoseScoreDispatch {
 
       // host-side copy of LJGlobalParams::max_dis
       Real max_dis,
+
+      // Optional shared compact superset. An empty tensor requests local
+      // construction, preserving standalone and block-pair scoring APIs.
+      TView<Int, 1, D> shared_compact_block_neighbors,
 
       // should the output be per-pose (npose x nterms x 1 x 1)
       //   or per block-pair (npose x nterms x len x len)
@@ -157,7 +172,7 @@ struct LJLKPoseScoreDispatch {
       // what is the path distance between pairs of atoms in the block
       // Dimsize: n_block_types x max_n_atoms x max_n_atoms
       TView<Int, 3, D> block_type_path_distance,
-      TView<Int, 1, D> block_type_is_ligand_fragment,
+      TView<Int, 1, D> block_type_all_atoms_ligand_typed,
       //////////////////////
 
       // LJ parameters
@@ -190,6 +205,9 @@ struct LJLKRotamerScoreDispatch {
       TView<Int, 1, D> rot_offset_for_pose,
       TView<Int, 2, D> n_rots_for_block,
       TView<Int, 2, D> rot_offset_for_block,
+      // [n_poses, max_n_blocks]; blocks sharing an id >= 0 move in
+      // lockstep, so only matching rotamer indices ever coexist
+      TView<Int, 2, D> lockstep_group_for_block,
       Int max_n_rots_per_pose,
 
       // dims: n-systems x max-n-blocks x max-n-blocks
@@ -229,7 +247,7 @@ struct LJLKRotamerScoreDispatch {
       // what is the path distance between pairs of atoms in the block
       // Dimsize: n_block_types x max_n_atoms x max_n_atoms
       TView<Int, 3, D> block_type_path_distance,
-      TView<Int, 1, D> block_type_is_ligand_fragment,
+      TView<Int, 1, D> block_type_all_atoms_ligand_typed,
       //////////////////////
 
       // LJ parameters
@@ -301,7 +319,7 @@ struct LJLKRotamerScoreDispatch {
       // what is the path distance between pairs of atoms in the block
       // Dimsize: n_block_types x max_n_atoms x max_n_atoms
       TView<Int, 3, D> block_type_path_distance,
-      TView<Int, 1, D> block_type_is_ligand_fragment,
+      TView<Int, 1, D> block_type_all_atoms_ligand_typed,
       //////////////////////
 
       // LJ parameters

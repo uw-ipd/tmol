@@ -433,8 +433,18 @@ struct KinForestFromStencil {
                                                 // start, 2: stop, 3: jump ind
       TView<Int, 5, D> block_type_kts_conn_info,  // y - T x I x O x C x 2 -- 2
                                                   // is for gen (0) and scan (1)
-      TView<Int, 5, D> block_type_nodes_for_gens,       // y - T x I x O x G x N
-      TView<Int, 5, D> block_type_scan_path_seg_starts  // y - T x I x O x G x S
+      TView<Int, 5, D> block_type_nodes_for_gens,  // y - T x I x O x G x N
+      TView<Int, 5, D>
+          block_type_scan_path_seg_starts,  // y - T x I x O x G x S
+      // CPU copies: the scheduling below runs on the host and must read the
+      // generation each child departs its parent block in
+      TView<Int, 2, Device::CPU> pose_stack_block_type_cpu,  // P x L
+      TView<Int, 4, Device::CPU>
+          pose_stack_inter_res_conn_cpu,  // P x L x C x 2
+      TView<Int, 5, Device::CPU>
+          block_type_kts_conn_info_cpu,  // T x I x O x C x 2
+      TView<Int, 2, Device::CPU> block_type_polymeric_conn_index_cpu,  // T x 2
+      TView<Int, 1, Device::CPU> block_type_n_conn_cpu                 // T
       )
       -> std::tuple<
           TPack<Int, 2, Device::CPU>,  // dfs_order_of_ff_edges_t

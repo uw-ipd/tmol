@@ -2,14 +2,15 @@
 
 import pytest
 
-from tmol.io.canonical_ordering import (
+from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
     canonical_form_from_pdb,
+    pose_stack_from_canonical_form,
+    parse_pdb,
+    to_pdb,
+    atom_records_from_pose_stack,
 )
-from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
-from tmol.io.pdb_parsing import parse_pdb, to_pdb
-from tmol.io.write_pose_stack_pdb import atom_records_from_pose_stack
 
 DNA_NAME3S = ("DA", "DC", "DG", "DT")
 # RNA is the one case where the name3 and the block type name differ

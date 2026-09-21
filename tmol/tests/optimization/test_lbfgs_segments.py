@@ -1,8 +1,10 @@
 """Per-segment L-BFGS: minimizing blocks together must match minimizing them alone."""
 
+from types import SimpleNamespace
+
 import torch
 
-from tmol.optimization.lbfgs_armijo import LBFGS_Armijo, lbfgs_two_loop
+from tmol.optimization import LBFGS_Armijo, lbfgs_two_loop
 
 
 def _history(m, n_segments, size, dtype, device, seed=0):
@@ -14,6 +16,74 @@ def _history(m, n_segments, size, dtype, device, seed=0):
     dirs = torch.where((dots >= 0).unsqueeze(-1), dirs, -dirs) + 0.5 * stps
     grad = torch.randn(n_segments, size, generator=gen, dtype=dtype)
     return grad.to(device), dirs.to(device), stps.to(device)
+
+
+def test_dense_segment_layout_helpers(torch_device):
+    """Contiguous equal segments need no indexed padding or gathering."""
+    x = torch.nn.Parameter(torch.zeros(12, device=torch_device))
+    segment_ids = torch.arange(3, device=torch_device).repeat_interleave(4)
+    optimizer = LBFGS_Armijo([x], segment_ids=segment_ids)
+    values = torch.arange(12, dtype=x.dtype, device=torch_device)
+    expected = values.view(3, 4)
+
+    assert optimizer._segments_are_dense
+    torch.testing.assert_close(optimizer._pad(values), expected)
+    torch.testing.assert_close(optimizer._unpad(expected), values)
+    torch.testing.assert_close(optimizer._seg_sum(values), expected.sum(-1))
+    torch.testing.assert_close(optimizer._seg_amax(values), expected.amax(-1))
+
+    out = torch.empty_like(expected)
+    assert optimizer._pad(values, out=out).data_ptr() == out.data_ptr()
+    torch.testing.assert_close(out, expected)
+
+
+def test_contiguous_unequal_segments_use_padding(torch_device):
+    """Contiguous segments are dense only when they also have equal lengths."""
+    x = torch.nn.Parameter(torch.zeros(7, device=torch_device))
+    segment_ids = torch.tensor([0, 0, 0, 0, 1, 1, 1], device=torch_device)
+    optimizer = LBFGS_Armijo([x], segment_ids=segment_ids)
+    values = torch.arange(7, dtype=x.dtype, device=torch_device)
+
+    assert not optimizer._segments_are_dense
+    torch.testing.assert_close(
+        optimizer._seg_sum(values), torch.tensor([6.0, 15.0], device=torch_device)
+    )
+
+
+def test_equal_interleaved_segments_use_indexed_padding(torch_device):
+    x = torch.nn.Parameter(torch.zeros(6, device=torch_device))
+    segment_ids = torch.tensor([0, 1, 0, 1, 0, 1], device=torch_device)
+    optimizer = LBFGS_Armijo([x], segment_ids=segment_ids)
+    values = torch.arange(6, dtype=x.dtype, device=torch_device)
+
+    assert not optimizer._segments_are_dense
+    torch.testing.assert_close(
+        optimizer._seg_sum(values), torch.tensor([6.0, 9.0], device=torch_device)
+    )
+
+
+def test_idle_reset_mask_retains_storage(torch_device):
+    """The ordinary no-failure path does not allocate replacement masks."""
+    x = torch.nn.Parameter(torch.zeros(4, device=torch_device))
+    optimizer = LBFGS_Armijo([x])
+    was_reset = torch.zeros(1, dtype=torch.bool, device=torch_device)
+    ctx = SimpleNamespace(
+        any_needs_reset=False,
+        any_was_reset=False,
+        needs_reset=torch.zeros_like(was_reset),
+        was_reset=was_reset,
+    )
+    storage = was_reset.data_ptr()
+
+    optimizer._restart_failed_segments(ctx)
+    assert ctx.was_reset.data_ptr() == storage
+
+    ctx.was_reset.fill_(True)
+    ctx.any_was_reset = True
+    optimizer._restart_failed_segments(ctx)
+    assert ctx.was_reset.data_ptr() == storage
+    assert not ctx.was_reset.any()
+    assert not ctx.any_was_reset
 
 
 def test_batched_two_loop_matches_one_problem_at_a_time(torch_device):
@@ -193,6 +263,26 @@ def test_constant_energy_offset_does_not_change_where_a_block_stops(torch_device
     assert _rosenbrock(offset[1]) < 1e-4, _rosenbrock(offset[1])
 
 
+def test_energy_converged_block_stops_where_it_would_alone(torch_device):
+    """A block must not keep moving while a slower stack-mate finishes."""
+    problem = BlockProblem(
+        blocks=[_quadratic(0.0, offset=1.0e8), _rosenbrock],
+        starts=[
+            torch.ones(8, dtype=torch.float64),
+            torch.full((10,), -1.2, dtype=torch.float64),
+        ],
+        device=torch_device,
+    )
+    kwargs = dict(lr=1.0, max_iter=50, gradtol=0.0)
+    together = problem.minimize_together(**kwargs)[2]
+    alone = problem.minimize_alone(**kwargs)
+
+    for i, (in_stack, by_itself) in enumerate(zip(together, alone)):
+        torch.testing.assert_close(
+            in_stack, by_itself, rtol=1e-8, atol=1e-9, msg=f"block {i}"
+        )
+
+
 def test_noise_floor_stops_before_grinding_on_noise(torch_device):
     """The floor scales with |f|, so a huge objective stops at a coarser dE."""
     coarse = BlockProblem(
@@ -216,8 +306,8 @@ def test_noise_floor_stops_before_grinding_on_noise(torch_device):
     assert coarse_opt.state[coarse_x]["n_iter"] <= fine_opt.state[fine_x]["n_iter"]
 
 
-def test_only_stationary_segments_are_frozen(torch_device):
-    """A segment with a large gradient stays active however flat its energy."""
+def test_gradtol_does_not_freeze_nonstationary_segment(torch_device):
+    """The gradient criterion alone must not freeze a large-gradient segment."""
     problem = BlockProblem(
         blocks=[_quadratic(0.0), _rosenbrock],
         starts=[
@@ -226,7 +316,15 @@ def test_only_stationary_segments_are_frozen(torch_device):
         ],
         device=torch_device,
     )
-    optimizer, x, _ = problem.minimize_together(lr=1.0, max_iter=20, gradtol=1e-8)
+    optimizer, x, _ = problem.minimize_together(
+        lr=1.0,
+        max_iter=20,
+        gradtol=1e-8,
+        # Isolate the gradient criterion tested here. Energy convergence is
+        # independently covered by test_energy_converged_block_stops_where_it_would_alone.
+        rtol=0.0,
+        atol=0.0,
+    )
 
     # the quadratic block reaches its minimum; the rosenbrock valley does not
     grads = torch.split(x.grad.detach(), problem.sizes)

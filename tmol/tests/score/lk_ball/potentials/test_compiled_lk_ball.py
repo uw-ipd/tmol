@@ -2,11 +2,11 @@ import pytest
 import math
 import torch
 import torch.autograd
-from tmol.utility.units import parse_angle
+from tmol.utility import parse_angle
 import numpy
-from tmol.tests.autograd import gradcheck
-from tmol.score.ljlk.params import LJLKParamResolver
-from tmol.score.chemical_database import AtomTypeParamResolver
+from tmol.tests import gradcheck
+from tmol.score.ljlk import LJLKParamResolver
+from tmol.score import AtomTypeParamResolver
 
 
 @pytest.fixture
@@ -24,7 +24,7 @@ def atype_params(default_database):
 
 
 def test_build_acc_waters():
-    from .compiled import BuildAcceptorWater
+    from ._compiled import BuildAcceptorWater
 
     tensor = torch.DoubleTensor
 
@@ -52,7 +52,7 @@ def test_build_acc_waters():
 
 
 def test_build_don_water():
-    from .compiled import BuildDonorWater
+    from ._compiled import BuildDonorWater
 
     tensor = torch.DoubleTensor
 
@@ -75,7 +75,7 @@ def test_build_don_water():
 
 
 def test_lk_fraction():
-    from .compiled import LKFraction, BuildAcceptorWater
+    from ._compiled import LKFraction, BuildAcceptorWater
 
     tensor = torch.DoubleTensor
     coords_I = dict(  # noqa
@@ -109,7 +109,7 @@ def test_lk_fraction():
 
 
 def test_lk_bridge_fraction():
-    from .compiled import LKBridgeFraction, BuildAcceptorWater
+    from ._compiled import LKBridgeFraction, BuildAcceptorWater
 
     tensor = torch.DoubleTensor
 
@@ -169,7 +169,7 @@ def test_lk_bridge_fraction_overlapping_waters():
     # clamped to 1. The forward V() must apply the same clamp that the
     # analytic dV() assumes; otherwise the water-frame derivative is dropped
     # for strongly-bridged acceptors/donors (up to ~0.16 kcal/mol/A on 1ubq).
-    from .compiled import LKBridgeFraction
+    from ._compiled import LKBridgeFraction
 
     tensor = torch.DoubleTensor
 
@@ -200,6 +200,55 @@ def test_lk_bridge_fraction_overlapping_waters():
     )
 
 
+def test_lk_ball_skips_sparse_nan_waters(ljlk_params, atype_params):
+    from ._compiled import LKBallScore
+
+    tensor = torch.DoubleTensor
+    nan_water = tensor([math.nan, math.nan, math.nan])
+    water_i = tensor([0.0, 0.0, 0.0])
+    water_j = tensor([0.1, 0.1, 0.0])
+
+    sparse_waters_i = torch.stack([nan_water, water_i])
+    sparse_waters_j = torch.stack([nan_water, water_j])
+    packed_waters_i = torch.stack([water_i, nan_water])
+    packed_waters_j = torch.stack([water_j, nan_water])
+
+    score = LKBallScore(ljlk_params, atype_params)
+    bonded_path_length = tensor([5.0])[()]
+
+    def score_and_coord_grads(waters_i, waters_j):
+        coord_i = tensor([0.0, 0.0, 0.0]).requires_grad_(True)
+        coord_j = tensor([4.32664, 0.0, 0.0]).requires_grad_(True)
+        energies = score.apply(
+            coord_i,
+            coord_j,
+            waters_i,
+            waters_j,
+            bonded_path_length,
+            "OOC",
+            "OOC",
+        )
+        grads = torch.autograd.grad(energies.sum(), (coord_i, coord_j))
+        return energies, grads
+
+    sparse_energies, sparse_grads = score_and_coord_grads(
+        sparse_waters_i, sparse_waters_j
+    )
+    packed_energies, packed_grads = score_and_coord_grads(
+        packed_waters_i, packed_waters_j
+    )
+
+    assert torch.any(sparse_energies != 0)
+    torch.testing.assert_close(sparse_energies, packed_energies)
+    torch.testing.assert_close(sparse_grads, packed_grads)
+
+    no_waters = torch.stack([nan_water, nan_water])
+    no_water_energies, no_water_grads = score_and_coord_grads(no_waters, no_waters)
+    torch.testing.assert_close(no_water_energies, torch.zeros_like(no_water_energies))
+    for grad in no_water_grads:
+        torch.testing.assert_close(grad, torch.zeros_like(grad))
+
+
 def lkball_score_and_gradcheck(
     ljlk_params,
     atype_params,
@@ -211,7 +260,7 @@ def lkball_score_and_gradcheck(
     at_i,
     at_j,
 ):
-    from .compiled import LKBallScore, LKFraction, LKBridgeFraction
+    from ._compiled import LKBallScore, LKFraction, LKBridgeFraction
 
     aidx_j = ljlk_params.atom_type_index.get_loc(at_j)
 
@@ -257,7 +306,7 @@ def lkball_score_and_gradcheck(
 
 
 def test_lk_ball_donor_donor_spotcheck(ljlk_params, atype_params):
-    from .compiled import BuildDonorWater
+    from ._compiled import BuildDonorWater
 
     dist = ljlk_params.global_params.lkb_water_dist
 
@@ -321,7 +370,7 @@ def test_lk_ball_donor_donor_spotcheck(ljlk_params, atype_params):
 
 
 def test_lk_ball_sp2_nonpolar_spotcheck(ljlk_params, atype_params):
-    from .compiled import BuildAcceptorWater
+    from ._compiled import BuildAcceptorWater
 
     tensor = torch.DoubleTensor
     coords = tensor(
@@ -374,7 +423,7 @@ def test_lk_ball_sp2_nonpolar_spotcheck(ljlk_params, atype_params):
 
 
 def test_lk_ball_sp3_ring_spotcheck(ljlk_params, atype_params):
-    from .compiled import BuildAcceptorWater, BuildDonorWater
+    from ._compiled import BuildAcceptorWater, BuildDonorWater
 
     tensor = torch.DoubleTensor
 

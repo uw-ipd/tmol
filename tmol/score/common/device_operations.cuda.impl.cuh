@@ -13,6 +13,7 @@ error_this_should_not_be_compiled();  // gcc should not include this file
 #include <moderngpu/cta_reduce.hxx>
 
 #include "device_operations.hh"
+#include "counting.hh"
 
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/kinematics/compiled/kernel_segscan.cuh>
@@ -41,18 +42,39 @@ struct DeviceOperations<tmol::Device::CUDA> {
     mgpu::transform<launch_t>(f, N, *context);
   }
 
-  template <typename Int, typename Func>
-  static void forall_stacks(ContextManager& mgr, Int Nstacks, Int N, Func f) {
-    std::shared_ptr<mgpu::standard_context_t> context = _get_context(mgr);
-    // mgpu::standard_context_t context;
-    mgpu::transform(
-        [=] MGPU_DEVICE(int index) {
-          int stack = index / N;
-          int i = index % N;
-          f(stack, i);
-        },
-        N * Nstacks,
-        *context);
+  template <typename launch_t, typename Func>
+  static void forall_independent(ContextManager& mgr, int N, Func f) {
+    forall<launch_t>(mgr, N, f);
+  }
+
+  template <typename launch_t, typename Func>
+  static void forall_grouped(
+      ContextManager& mgr, int n_groups, int items_per_group, Func f) {
+    int const n_items = checked_dispatch_product(
+        n_groups, items_per_group, "grouped CUDA dispatch");
+    forall<launch_t>(mgr, n_items, f);
+  }
+
+  static EIGEN_DEVICE_FUNC void store_idempotent(
+      int32_t& target, int32_t value) {
+#ifdef __CUDA_ARCH__
+    atomicExch(&target, value);
+#endif
+  }
+
+  static EIGEN_DEVICE_FUNC void store_idempotent(
+      int64_t& target, int64_t value) {
+#ifdef __CUDA_ARCH__
+    atomicExch(
+        reinterpret_cast<unsigned long long*>(&target),
+        static_cast<unsigned long long>(value));
+#endif
+  }
+
+  static EIGEN_DEVICE_FUNC void bitwise_or(int32_t& target, int32_t value) {
+#ifdef __CUDA_ARCH__
+    atomicOr(reinterpret_cast<unsigned int*>(&target), unsigned(value));
+#endif
   }
 
   template <typename Int, typename Func>
@@ -60,15 +82,19 @@ struct DeviceOperations<tmol::Device::CUDA> {
       ContextManager& mgr, Int dim1, Int dim2, Int dim3, Func f) {
     // mgpu::standard_context_t context;
     std::shared_ptr<mgpu::standard_context_t> context = _get_context(mgr);
+    int const dim23 =
+        checked_dispatch_product(dim2, dim3, "CUDA combination dispatch");
+    int const n_items =
+        checked_dispatch_product(dim1, dim23, "CUDA combination dispatch");
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {
-          int i = index / (dim2 * dim3);
-          index = index % (dim2 * dim3);
+          int i = index / dim23;
+          index = index % dim23;
           int j = index / dim3;
           int k = index % dim3;
           f(i, j, k);
         },
-        dim1 * dim2 * dim3,
+        n_items,
         *context);
   }
 
@@ -78,6 +104,26 @@ struct DeviceOperations<tmol::Device::CUDA> {
     // mgpu::standard_context_t context;
     std::shared_ptr<mgpu::standard_context_t> context = _get_context(mgr);
     mgpu::cta_launch<launch_t>(wrapper, n_workgroups, *context);
+  }
+
+  template <typename launch_t, typename Func>
+  static void foreach_independent_workgroup(
+      ContextManager& mgr, int n_workgroups, Func f) {
+    foreach_workgroup<launch_t>(mgr, n_workgroups, f);
+  }
+
+  template <typename launch_t, typename Func>
+  static void foreach_grouped_workgroup(
+      ContextManager& mgr, int n_groups, int workgroups_per_group, Func f) {
+    int const n_workgroups = checked_dispatch_product(
+        n_groups, workgroups_per_group, "grouped CUDA workgroup dispatch");
+    foreach_workgroup<launch_t>(mgr, n_workgroups, f);
+  }
+
+  template <typename launch_t, typename Func>
+  static void foreach_pose_workgroup(
+      ContextManager& mgr, int n_poses, int workgroups_per_pose, Func f) {
+    foreach_grouped_workgroup<launch_t>(mgr, n_poses, workgroups_per_pose, f);
   }
 
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
@@ -107,11 +153,11 @@ struct DeviceOperations<tmol::Device::CUDA> {
   //   - exc_scan_offsets: the result of running exclusive scan on the
   //     the number of work units that each generator produces
   //.  - n_generators: the number of generators / length of exc_scan_offset
-  template <typename launch_t, typename Int>
+  template <typename launch_t, typename Offset, typename Int = int32_t>
   static TPack<Int, 1, tmol::Device::CUDA> load_balancing_search(
       ContextManager& mgr,
       int n_work_units_total,  // The count of the total number of work units
-      Int* exc_scan_offsets,
+      Offset* exc_scan_offsets,
       int n_generators) {
     std::shared_ptr<mgpu::standard_context_t> context = _get_context(mgr);
     // mgpu::standard_context_t context;

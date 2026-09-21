@@ -64,7 +64,7 @@ def load_ops(module_name: str, file: str, sources, ops_name: str):
         ops_name: The ``torch.ops`` namespace (e.g. ``"tmol_ljlk"``).
     """
     if ensure_compiled_or_jit():
-        from tmol.utility.cpp_extension import (
+        from tmol.utility import (
             load,
             relpaths,
             modulename,
@@ -98,7 +98,7 @@ def load_module(module_name: str, file: str, sources, precompiled_path: str):
             (e.g. ``"tmol.tests.score.common.geom._ext"``).
     """
     if ensure_compiled_or_jit():
-        from tmol.utility.cpp_extension import (
+        from tmol.utility import (
             load,
             relpaths,
             modulename,
@@ -106,7 +106,6 @@ def load_module(module_name: str, file: str, sources, precompiled_path: str):
         )
 
         return load(modulename(module_name), cuda_if_available(relpaths(file, sources)))
-    else:
-        import importlib
+    import importlib
 
-        return importlib.import_module(precompiled_path)
+    return importlib.import_module(precompiled_path)

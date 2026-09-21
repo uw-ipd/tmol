@@ -1,8 +1,8 @@
 import numpy
 
-# from tmol.pose.pdb_info import PDBInfo
+# from tmol.pose import PDBInfo
 from tmol.io import pose_stack_from_pdb
-from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.pose import PoseStackBuilder
 
 
 def test_pdb_info_split(ubq_pdb, torch_device):

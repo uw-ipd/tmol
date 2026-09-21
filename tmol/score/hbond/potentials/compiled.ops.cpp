@@ -1,12 +1,15 @@
 #include <torch/torch.h>
 #include <torch/script.h>
 
+#include <limits>
+
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/tensor/context_manager.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 
 #include <tmol/score/common/device_operations.hh>
 #include <tmol/score/common/tuple.hh>
+#include <tmol/score/common/whole_pose_scoring.hh>
 
 #include <tmol/score/hbond/potentials/gen_hbond_bases.hh>
 #include <tmol/score/hbond/potentials/hbond_pose_score.hh>
@@ -79,7 +82,9 @@ class HBondPoseScoresOp
       Tensor derived_coords,
       Tensor derived_atom_inds,
 
-      bool output_block_pair_energies
+      bool output_block_pair_energies,
+      Tensor shared_compact_block_neighbors,
+      bool allow_split_pairs
 
   ) {
     at::Tensor score;
@@ -144,12 +149,16 @@ class HBondPoseScoresOp
                   TCAST(derived_coords),
                   TCAST(derived_atom_inds),
 
+                  TCAST(shared_compact_block_neighbors),
                   output_block_pair_energies,
-                  rot_coords.requires_grad());
+                  rot_coords.requires_grad(),
+                  allow_split_pairs);
 
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
-          block_neighbors = std::get<2>(result).tensor;
+          block_neighbors = shared_compact_block_neighbors.numel() != 0
+                                ? shared_compact_block_neighbors
+                                : std::get<2>(result).tensor;
         }));
 
     if (output_block_pair_energies) {
@@ -213,10 +222,17 @@ class HBondPoseScoresOp
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
 
+    // The integer neighbor output has no derivative. Do not allocate an
+    // unused zero gradient for it when differentiating the score.
+    ctx->set_materialize_grads(false);
     return {score, block_neighbors};
   }
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    tensor_list gradients(39);
+    if (!grad_outputs[0].defined()) {
+      return gradients;
+    }
     auto saved = ctx->get_saved_variables();
 
     at::Tensor dV_d_pose_coords;
@@ -225,16 +241,9 @@ class HBondPoseScoresOp
     //   block-pair scoring mode or single-score mode
     if (saved.size() == 2) {
       // single-score mode
-      auto saved_grads = ctx->get_saved_variables();
-      auto saved_grad = saved_grads[0];
-      auto pose_ind_for_atom = saved_grads[1];
-
-      auto atom_ingrads = grad_outputs[0].index_select(1, pose_ind_for_atom);
-
-      while (atom_ingrads.dim() < saved_grad.dim()) {
-        atom_ingrads = atom_ingrads.unsqueeze(-1);
-      }
-      dV_d_pose_coords = saved_grad * atom_ingrads;
+      auto saved_grad = saved[0];
+      dV_d_pose_coords =
+          common::accumulate_whole_pose_gradients(saved_grad, grad_outputs[0]);
     } else {
       // block-pair mode
       int i = 0;
@@ -361,16 +370,8 @@ class HBondPoseScoresOp
           }));
     }
 
-    return {dV_d_pose_coords, torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor()};
+    gradients[0] = dV_d_pose_coords;
+    return gradients;
   }
 };
 
@@ -393,6 +394,7 @@ class HBondRotamerScoresOp
       Tensor rot_offset_for_pose,
       Tensor n_rots_for_block,
       Tensor rot_offset_for_block,
+      Tensor lockstep_group_for_block,
       int64_t max_n_rots_per_pose,
 
       // term specific params
@@ -428,7 +430,8 @@ class HBondRotamerScoresOp
       Tensor derived_coords,
       Tensor derived_atom_inds,
 
-      bool output_block_pair_energies
+      bool output_block_pair_energies,
+      Tensor shared_dispatch_indices
 
   ) {
     at::Tensor score;
@@ -459,6 +462,7 @@ class HBondRotamerScoresOp
                       TCAST(rot_offset_for_pose),
                       TCAST(n_rots_for_block),
                       TCAST(rot_offset_for_block),
+                      TCAST(lockstep_group_for_block),
                       max_n_rots_per_pose,
 
                       // term specific params
@@ -495,7 +499,8 @@ class HBondRotamerScoresOp
                       TCAST(derived_atom_inds),
 
                       output_block_pair_energies,
-                      rot_coords.requires_grad());
+                      rot_coords.requires_grad(),
+                      TCAST(shared_dispatch_indices));
 
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
@@ -707,16 +712,9 @@ class HBondRotamerScoresOp
           }));
     }
 
-    return {dV_d_pose_coords, torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor()};
+    tensor_list gradients(39);
+    gradients[0] = dV_d_pose_coords;
+    return gradients;
   }
 };
 
@@ -770,7 +768,9 @@ std::vector<Tensor> hbond_pose_scores_op(
     Tensor derived_coords,
     Tensor derived_atom_inds,
 
-    bool output_block_pair_energies) {
+    bool output_block_pair_energies,
+    Tensor shared_compact_block_neighbors,
+    bool allow_split_pairs = false) {
   return HBondPoseScoresOp<DispatchMethod>::apply(
       // common params
       rot_coords,
@@ -820,7 +820,9 @@ std::vector<Tensor> hbond_pose_scores_op(
       derived_coords,
       derived_atom_inds,
 
-      output_block_pair_energies);
+      output_block_pair_energies,
+      shared_compact_block_neighbors,
+      allow_split_pairs);
 }
 
 template <template <tmol::Device> class DispatchMethod>
@@ -838,6 +840,7 @@ std::vector<Tensor> hbond_rotamer_scores_op(
     Tensor rot_offset_for_pose,
     Tensor n_rots_for_block,
     Tensor rot_offset_for_block,
+    Tensor lockstep_group_for_block,
     int64_t max_n_rots_per_pose,
 
     // term specific params
@@ -874,6 +877,8 @@ std::vector<Tensor> hbond_rotamer_scores_op(
     Tensor derived_atom_inds,
 
     bool output_block_pair_energies) {
+  Tensor empty_dispatch_indices = torch::empty(
+      {0, 0}, rot_coords.options().dtype(torch::kInt32).requires_grad(false));
   return HBondRotamerScoresOp<DispatchMethod>::apply(
       // common params
       rot_coords,
@@ -888,6 +893,7 @@ std::vector<Tensor> hbond_rotamer_scores_op(
       rot_offset_for_pose,
       n_rots_for_block,
       rot_offset_for_block,
+      lockstep_group_for_block,
       max_n_rots_per_pose,
 
       // term specific params
@@ -923,7 +929,101 @@ std::vector<Tensor> hbond_rotamer_scores_op(
       derived_coords,
       derived_atom_inds,
 
-      output_block_pair_energies);
+      output_block_pair_energies,
+      empty_dispatch_indices);
+}
+
+template <template <tmol::Device> class DispatchMethod>
+std::vector<Tensor> hbond_rotamer_scores_shared_op(
+    Tensor rot_coords,
+    Tensor rot_coord_offset,
+    Tensor pose_ind_for_atom,
+    Tensor first_rot_for_block,
+    Tensor first_rot_block_type,
+    Tensor block_ind_for_rot,
+    Tensor pose_ind_for_rot,
+    Tensor block_type_ind_for_rot,
+    Tensor n_rots_for_pose,
+    Tensor rot_offset_for_pose,
+    Tensor n_rots_for_block,
+    Tensor rot_offset_for_block,
+    Tensor lockstep_group_for_block,
+    int64_t max_n_rots_per_pose,
+    Tensor pose_stack_inter_residue_connections,
+    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_inter_block_bondsep,
+    Tensor block_type_n_atoms,
+    Tensor block_type_n_interblock_bonds,
+    Tensor block_type_atoms_forming_chemical_bonds,
+    Tensor block_type_n_all_bonds,
+    Tensor block_type_all_bonds,
+    Tensor block_type_atom_all_bond_ranges,
+    Tensor block_type_path_distance,
+    Tensor block_type_tile_n_donH,
+    Tensor block_type_tile_n_acc,
+    Tensor block_type_tile_donH_inds,
+    Tensor block_type_tile_acc_inds,
+    Tensor block_type_tile_donor_type,
+    Tensor block_type_tile_acceptor_type,
+    Tensor block_type_tile_hybridization,
+    Tensor block_type_atom_is_hydrogen,
+    Tensor pair_params,
+    Tensor pair_polynomials,
+    Tensor global_params,
+    Tensor derived_coords,
+    Tensor derived_atom_inds,
+    bool output_block_pair_energies,
+    Tensor shared_dispatch_indices) {
+  TORCH_CHECK(
+      shared_dispatch_indices.dim() == 2
+          && shared_dispatch_indices.size(0) == 3,
+      "shared hydrogen-bond rotamer dispatch must have shape [3, nnz]");
+  TORCH_CHECK(
+      shared_dispatch_indices.scalar_type() == torch::kInt32,
+      "shared hydrogen-bond rotamer dispatch must have dtype int32");
+  TORCH_CHECK(
+      shared_dispatch_indices.device() == rot_coords.device(),
+      "shared hydrogen-bond rotamer dispatch must be on the coordinate device");
+  return HBondRotamerScoresOp<DispatchMethod>::apply(
+      rot_coords,
+      rot_coord_offset,
+      pose_ind_for_atom,
+      first_rot_for_block,
+      first_rot_block_type,
+      block_ind_for_rot,
+      pose_ind_for_rot,
+      block_type_ind_for_rot,
+      n_rots_for_pose,
+      rot_offset_for_pose,
+      n_rots_for_block,
+      rot_offset_for_block,
+      lockstep_group_for_block,
+      max_n_rots_per_pose,
+      pose_stack_inter_residue_connections,
+      pose_stack_min_bond_separation,
+      pose_stack_inter_block_bondsep,
+      block_type_n_atoms,
+      block_type_n_interblock_bonds,
+      block_type_atoms_forming_chemical_bonds,
+      block_type_n_all_bonds,
+      block_type_all_bonds,
+      block_type_atom_all_bond_ranges,
+      block_type_path_distance,
+      block_type_tile_n_donH,
+      block_type_tile_n_acc,
+      block_type_tile_donH_inds,
+      block_type_tile_acc_inds,
+      block_type_tile_donor_type,
+      block_type_tile_acceptor_type,
+      block_type_tile_hybridization,
+      block_type_atom_is_hydrogen,
+      pair_params,
+      pair_polynomials,
+      global_params,
+      derived_coords,
+      derived_atom_inds,
+      output_block_pair_energies,
+      shared_dispatch_indices);
 }
 
 // Plain (non-autograd) op that runs the hbond derived-atom (D / B / B0)
@@ -994,12 +1094,103 @@ std::vector<Tensor> gen_hbond_bases_op(
   return {derived_coords, derived_atom_inds};
 }
 
+template <template <tmol::Device> class DispatchMethod>
+std::vector<Tensor> hbond_rotamer_spheres_op(
+    Tensor rot_coords,
+    Tensor rot_coord_offset,
+    Tensor first_rot_block_type,
+    Tensor block_type_ind_for_rot,
+    Tensor n_rots_for_block,
+    Tensor rot_offset_for_block,
+    Tensor block_type_n_atoms) {
+  Tensor rot_spheres;
+  Tensor block_spheres;
+  using Int = int32_t;
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      rot_coords.options(), "hbond_rotamer_spheres", ([&] {
+        using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+        auto result =
+            HBondRotamerScoreDispatch<DispatchMethod, Dev, Real, Int>::
+                rotamer_spheres(
+                    mgr,
+                    TCAST(rot_coords),
+                    TCAST(rot_coord_offset),
+                    TCAST(first_rot_block_type),
+                    TCAST(block_type_ind_for_rot),
+                    TCAST(n_rots_for_block),
+                    TCAST(rot_offset_for_block),
+                    TCAST(block_type_n_atoms));
+        rot_spheres = std::get<0>(result).tensor;
+        block_spheres = std::get<1>(result).tensor;
+      }));
+  return {rot_spheres, block_spheres};
+}
+
+template <template <tmol::Device> class DispatchMethod>
+Tensor hbond_rotamer_dispatch_page_op(
+    Tensor first_rot_block_type,
+    Tensor block_spheres,
+    Tensor n_rots_for_block,
+    Tensor rot_offset_for_block,
+    Tensor rot_spheres,
+    Tensor lockstep_group_for_block,
+    double reach,
+    int64_t candidate_begin,
+    int64_t candidate_end) {
+  Tensor dispatch_indices;
+  using Int = int32_t;
+  TORCH_CHECK(
+      candidate_begin >= 0 && candidate_end >= candidate_begin
+          && candidate_end <= std::numeric_limits<Int>::max(),
+      "invalid hydrogen-bond rotamer dispatch candidate range");
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      block_spheres.options(), "hbond_rotamer_dispatch_page", ([&] {
+        using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+        dispatch_indices =
+            HBondRotamerScoreDispatch<DispatchMethod, Dev, Real, Int>::
+                rotamer_dispatch_page(
+                    mgr,
+                    TCAST(first_rot_block_type),
+                    TCAST(block_spheres),
+                    TCAST(n_rots_for_block),
+                    TCAST(rot_offset_for_block),
+                    TCAST(rot_spheres),
+                    TCAST(lockstep_group_for_block),
+                    Real(reach),
+                    static_cast<Int>(candidate_begin),
+                    static_cast<Int>(candidate_end))
+                    .tensor;
+      }));
+  return dispatch_indices;
+}
+
 // See https://stackoverflow.com/a/3221914
 TORCH_LIBRARY(tmol_hbond, m) {
-  m.def("hbond_pose_scores", &hbond_pose_scores_op<common::DeviceOperations>);
+  // Preserve the inferred positional argument names for existing callers.
+  m.def(
+      "hbond_pose_scores(Tensor _0, Tensor _1, Tensor _2, Tensor _3, Tensor "
+      "_4, Tensor _5, Tensor _6, Tensor _7, Tensor _8, Tensor _9, Tensor _10, "
+      "Tensor _11, int _12, Tensor _13, Tensor _14, Tensor _15, Tensor _16, "
+      "Tensor _17, Tensor _18, Tensor _19, Tensor _20, Tensor _21, Tensor _22, "
+      "Tensor _23, Tensor _24, Tensor _25, Tensor _26, Tensor _27, Tensor _28, "
+      "Tensor _29, Tensor _30, Tensor _31, Tensor _32, Tensor _33, Tensor _34, "
+      "Tensor _35, bool _36, Tensor _37, bool allow_split_pairs=False) -> "
+      "Tensor[] _0",
+      &hbond_pose_scores_op<common::DeviceOperations>);
   m.def(
       "hbond_rotamer_scores",
       &hbond_rotamer_scores_op<common::DeviceOperations>);
+  m.def(
+      "hbond_rotamer_scores_shared",
+      &hbond_rotamer_scores_shared_op<common::DeviceOperations>);
+  m.def(
+      "hbond_rotamer_spheres",
+      &hbond_rotamer_spheres_op<common::DeviceOperations>);
+  m.def(
+      "hbond_rotamer_dispatch_page",
+      &hbond_rotamer_dispatch_page_op<common::DeviceOperations>);
   m.def("gen_hbond_bases", &gen_hbond_bases_op);
 }
 

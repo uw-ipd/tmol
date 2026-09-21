@@ -1,0 +1,226 @@
+import torch
+
+from .._energy_term import EnergyTerm
+from .._annotation_cache import AnnotationKey, cached_annotation, store_annotation
+
+from tmol.database import ParameterDatabase
+from tmol.score.common._scoring_module import _coordinate_independent_score
+
+from tmol.chemical import RefinedResidueType, l_base_name
+from tmol.pose import (
+    PackedBlockTypes,
+    PoseStack,
+)
+
+
+class _RefAnnotationSource:
+    pass
+
+
+class RefEnergyTerm(EnergyTerm):
+    device: torch.device  # = attr.ib()
+
+    def __init__(self, param_db: ParameterDatabase, device: torch.device):
+        super(RefEnergyTerm, self).__init__(param_db=param_db, device=device)
+
+        self.ref_weights = param_db.scoring.ref.weights
+        self.weights_override = None
+        self.soft_rep = False
+        self.device = device
+        self._default_annotation_source = param_db.scoring.ref
+        self._override_annotation_source = None
+
+    @classmethod
+    def class_name(cls):
+        return "Ref"
+
+    @classmethod
+    def score_types(cls):
+        import tmol.score.terms._ref_creator
+
+        return tmol.score.terms._ref_creator.RefTermCreator.score_types()
+
+    def n_bodies(self):
+        return 1
+
+    def set_options(self, options: dict):
+        weights_override = options.get("ref_weights")
+        if weights_override is not self.weights_override:
+            self._override_annotation_source = (
+                _RefAnnotationSource() if weights_override else None
+            )
+        self.weights_override = weights_override
+
+    def _annotation_key(self, *, packed=False):
+        source = self._override_annotation_source or self._default_annotation_source
+        signature = tuple(sorted(self._resolved_weights().items()))
+        settings = (signature, self.device) if packed else (signature,)
+        return AnnotationKey.from_sources(source, settings=settings)
+
+    def _resolved_weights(self) -> dict:
+        """The ref-weight map this term scores with (override beats the db default)."""
+        return self.weights_override if self.weights_override else self.ref_weights
+
+    def setup_block_type(self, block_type: RefinedResidueType):
+        super(RefEnergyTerm, self).setup_block_type(block_type)
+
+        # ``ref_weight`` is score-function-specific: ``set_options`` can override
+        # the database defaults per score function. Block types are shared/cached
+        # across score functions, so the cache must be keyed by the resolved
+        # weight map -- otherwise a second score function (e.g. beta_soft after
+        # beta2016) silently reuses the first's ref weights. (See the matching
+        # guard in ``setup_packed_block_types``.)
+        src = self._resolved_weights()
+        key = self._annotation_key()
+        cached = cached_annotation(block_type, "_ref_annotation", key)
+        if cached is not None:
+            return cached
+
+        # read the map actually in use: a score function may override the
+        #    database weights with one covering fewer residues, so a d-amino
+        #    acid falls back to the l form it mirrors rather than to zero
+        ref_weight = src.get(block_type.base_name)
+        if ref_weight is None:
+            ref_weight = src.get(l_base_name(block_type), 0.0)
+
+        setattr(block_type, "ref_weight", ref_weight)
+        return store_annotation(
+            block_type,
+            "_ref_annotation",
+            key,
+            ref_weight,
+            fields=("ref_weight",),
+        )
+
+    def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
+        super(RefEnergyTerm, self).setup_packed_block_types(packed_block_types)
+
+        # Keyed by the resolved weight map for the same reason as
+        # ``setup_block_type``: the PackedBlockTypes is cached and shared across
+        # score functions, so reusing a stale ``ref_weights`` tensor would leak
+        # one score function's reference energies into another.
+        key = self._annotation_key(packed=True)
+        cached = cached_annotation(packed_block_types, "_ref_annotation", key)
+        if cached is not None:
+            return cached
+
+        ref_weights = [
+            self.setup_block_type(bt) for bt in packed_block_types.active_block_types
+        ]
+
+        ref_weights = torch.as_tensor(
+            ref_weights, dtype=torch.float32, device=self.device
+        )
+
+        setattr(packed_block_types, "ref_weights", ref_weights)
+        return store_annotation(
+            packed_block_types,
+            "_ref_annotation",
+            key,
+            ref_weights,
+            fields=("ref_weights",),
+            bindings=tuple(
+                (block_type, "ref_weight")
+                for block_type in packed_block_types.active_block_types
+            ),
+        )
+
+    def setup_poses(self, poses: PoseStack):
+        super(RefEnergyTerm, self).setup_poses(poses)
+
+    def get_pose_score_term_function(self):
+        return eval_ref_energy_for_pose
+
+    def get_rotamer_score_term_function(self):
+        return eval_ref_energy_for_rotamers
+
+    def get_score_term_attributes(self, pose_stack):
+        # ref depends only on block type, so per-block energies are constant for
+        # this pose stack; the rotamer path indexes by block type and needs the
+        # raw weights instead.
+        ref_weights = pose_stack.packed_block_types.ref_weights
+        bt = pose_stack.block_type_ind64
+        weights = ref_weights[bt.clamp_min(0)]
+        block_ref = torch.where(bt >= 0, weights, torch.zeros_like(weights))
+        pose_ref = torch.sum(block_ref, dim=1).unsqueeze(0)
+        return [block_ref, pose_ref, ref_weights]
+
+
+def eval_ref_energy_for_pose(
+    # common args
+    _rot_coords,
+    _rot_coord_offset,
+    _pose_ind_for_atom,
+    _first_rot_for_block,
+    _first_rot_block_type,
+    _block_ind_for_rot,
+    _pose_ind_for_rot,
+    _block_type_ind_for_rot,
+    _n_rots_for_pose,
+    _rot_offset_for_pose,
+    _n_rots_for_block,
+    _rot_offset_for_block,
+    _max_n_rots_per_pose,
+    block_ref,
+    pose_ref,
+    _ref_weights,
+    output_block_pair_energies: bool,
+):
+    if output_block_pair_energies:
+        score = torch.diag_embed(block_ref)
+        score = torch.unsqueeze(score, 0)
+    else:
+        # Reference energies are coordinate-independent. Their per-pose sum is
+        # computed once while rendering the scoring module, not on every call.
+        score = pose_ref
+
+    return _coordinate_independent_score(_rot_coords, score), None
+
+
+def eval_ref_energy_for_rotamers(
+    # common args
+    rot_coords,
+    _rot_coord_offset,
+    _pose_ind_for_atom,
+    _first_rot_for_block,
+    _first_rot_block_type,
+    _block_ind_for_rot,
+    pose_ind_for_rot,
+    block_type_ind_for_rot,
+    n_rots_for_pose,
+    _rot_offset_for_pose,
+    _n_rots_for_block,
+    _rot_offset_for_block,
+    _lockstep_group_for_block,
+    _max_n_rots_per_pose,
+    _block_ref,
+    _pose_ref,
+    ref_weights,
+    output_block_pair_energies: bool,
+):
+    block_type_ind_for_rot64 = block_type_ind_for_rot.to(torch.int64)
+
+    # fill out the scores for the real blocks by dereferencing the block types into the ref weights
+    dtype = ref_weights.dtype
+    assert rot_coords.dtype == dtype
+    is_real_rot = block_type_ind_for_rot64 >= 0
+    rot_ref = ref_weights[block_type_ind_for_rot64.clamp_min(0)]
+    rotamer_scores = torch.where(is_real_rot, rot_ref, torch.zeros_like(rot_ref))
+    device = rot_coords.device
+
+    if output_block_pair_energies:
+        n_rotamers = pose_ind_for_rot.shape[0]
+        indices = torch.zeros((3, n_rotamers), dtype=torch.int32, device=device)
+        indices[0, :] = pose_ind_for_rot
+        rot_ind = torch.arange(n_rotamers, dtype=torch.int32, device=device)
+        indices[1, :] = rot_ind
+        indices[2, :] = rot_ind
+        output_scores = rotamer_scores
+    else:
+        # for each pose, sum up the block scores
+        pose_ind_for_rot64 = pose_ind_for_rot.to(torch.int64)
+        output_scores = torch.zeros_like((n_rots_for_pose), dtype=dtype)
+        output_scores.index_add_(0, pose_ind_for_rot64, rotamer_scores)
+        indices = torch.zeros((0,), dtype=torch.int32, device=device)
+    output_scores = output_scores.unsqueeze(0)
+    return _coordinate_independent_score(rot_coords, output_scores), indices

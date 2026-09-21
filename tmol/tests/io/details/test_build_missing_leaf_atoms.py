@@ -1,25 +1,39 @@
 import numpy
 import torch
-from tmol.io.canonical_ordering import (
+from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
     canonical_form_from_pdb,
 )
-from tmol.io.details.disulfide_search import find_disulfides
-from tmol.io.details.his_taut_resolution import resolve_his_tautomerization
-from tmol.io.details.select_from_canonical import (
+from tmol.io.details import (
+    find_disulfides,
+    resolve_his_tautomerization,
     assign_block_types,
     take_block_type_atoms_from_canonical,
-)
-from tmol.io.details.build_missing_leaf_atoms import (
     _annotate_packed_block_types_atom_is_leaf_atom,
     build_missing_leaf_atoms,
 )
 
-
-from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
-from tmol.tests.autograd import gradcheck
+from tmol.optimization import LBFGS_Armijo
+from tmol.tests import gradcheck
 from tmol.tests.kinematics.test_script_modules import coord_weights_for_device
+
+
+def test_leaf_icoor_can_reference_any_declared_connection():
+    from types import SimpleNamespace
+    import pytest
+    from tmol.io.details._build_missing_leaf_atoms import _uaid_for_at
+
+    block = SimpleNamespace(
+        atom_to_idx={"NZ": 7},
+        connection_to_cidx={"down": 0, "conj_NZ": 1, "custom_link": 2},
+    )
+    assert _uaid_for_at(block, "conj_NZ") == (-1, 1, 0)
+    assert _uaid_for_at(block, "custom_link") == (-1, 2, 0)
+    assert _uaid_for_at(block, "NZ") == (7, -1, -1)
+    assert _uaid_for_at(block, "up") == (-1, -1, 0)
+    with pytest.raises(KeyError):
+        _uaid_for_at(block, "undeclared_link")
 
 
 def not_any_nancoord(coords):

@@ -11,6 +11,7 @@
 
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/count_pair.hh>
+#include <tmol/score/common/counting.hh>
 #include <tmol/score/common/data_loading.hh>
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/geom.hh>
@@ -123,7 +124,9 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     n_V = 1;
   }
   TPack<Real, 4, D> V_t = TPack<Real, 4, D>::zeros({1, n_poses, n_V, n_V});
-  auto dV_dx_t = TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms});
+  auto dV_dx_t = compute_derivs
+                     ? TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms})
+                     : TPack<Vec<Real, 3>, 2, D>::empty({1, n_atoms});
 
   auto V = V_t.view;
   auto dV_dx = dV_dx_t.view;
@@ -159,7 +162,10 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           continue;
         }
 
-        const auto& params = global_params[0];
+        // one parameter row per block type; a d-amino acid's row carries
+        //    negated dihedral means
+        const auto& params1 = global_params[block_type1];
+        const auto& params2 = global_params[block_type2];
 
         int atom_offset1 = rot_coord_offset[rot_ind1];
         int atom_offset2 = rot_coord_offset[rot_ind2];
@@ -194,29 +200,25 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         int const Vind1 = output_block_pair_energies ? block_ind1 : 0;
         int const Vind2 = output_block_pair_energies ? block_ind2 : 0;
         // Calculate score and derivatives and put them in the out tensors
-        accumulate_disulfide_potential<Real, D>(
+        accumulate_disulfide<Real, D>(
             rot_coords,
-            pose_ind,
-            block_ind1,
             block1_CA_ind,
             block1_CB_ind,
             block1_S_ind,
-            block_ind2,
             block2_S_ind,
             block2_CB_ind,
             block2_CA_ind,
-
-            params,
-
-            output_block_pair_energies,
-            V[0][pose_ind][Vind1][Vind2],
-            dV_dx);
+            params1,
+            params2,
+            dV_dx,
+            Real(1),
+            &V[0][pose_ind][Vind1][Vind2]);
       }
     }
   });
 
-  DeviceDispatch<D>::template forall<launch_t>(
-      mgr, n_poses * max_n_blocks, eval_energies);
+  DeviceDispatch<D>::template forall_grouped<launch_t>(
+      mgr, n_poses, max_n_blocks, eval_energies);
 
   return {V_t, dV_dx_t};
 }
@@ -315,13 +317,19 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
           // coincidentally handles the case when block_ind2 == -1
           continue;
         }
+        if (dTdV[0][pose_ind][block_ind1][block_ind2] == 0) {
+          continue;
+        }
         int const block_type2 = first_rot_block_type[pose_ind][block_ind2];
         int const rot_ind2 = first_rot_for_block[pose_ind][block_ind2];
         if (rot_ind2 < 0) {
           continue;
         }
 
-        const auto& params = global_params[0];
+        // one parameter row per block type; a d-amino acid's row carries
+        //    negated dihedral means
+        const auto& params1 = global_params[block_type1];
+        const auto& params2 = global_params[block_type2];
 
         int atom_offset1 = rot_coord_offset[rot_ind1];
         int atom_offset2 = rot_coord_offset[rot_ind2];
@@ -350,27 +358,25 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
             + block_type_atom_downstream_of_conn[block_type2][conn_ind2][2];
 
         // Calculate score and derivatives and put them in the out tensors
-        accumulate_disulfide_derivs<Real, D>(
+        accumulate_disulfide<Real, D>(
             rot_coords,
-            block_ind1,
             block1_CA_ind,
             block1_CB_ind,
             block1_S_ind,
-            block_ind2,
             block2_S_ind,
             block2_CB_ind,
             block2_CA_ind,
-
-            params,
-
+            params1,
+            params2,
             dV_dx,
-            dTdV[0][pose_ind][block_ind1][block_ind2]);
+            dTdV[0][pose_ind][block_ind1][block_ind2],
+            nullptr);
       }
     }
   });
 
-  DeviceDispatch<D>::template forall<launch_t>(
-      mgr, n_poses * max_n_blocks, eval_derivs);
+  DeviceDispatch<D>::template forall_grouped<launch_t>(
+      mgr, n_poses, max_n_blocks, eval_derivs);
 
   return dV_dcoords_t;
 }
@@ -438,7 +444,7 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   assert(pose_stack_inter_block_connections.size(1) == max_n_blocks);
   assert(pose_stack_inter_block_connections.size(2) == max_n_conns);
 
-  auto n_energies_for_rot_t = TPack<Int, 1, D>::zeros({n_rots});
+  auto n_energies_for_rot_t = TPack<int64_t, 1, D>::zeros({n_rots});
   auto n_energies_for_rot = n_energies_for_rot_t.view;
 
   // Optimal launch box on v100 and a100 is nt=32, vt=1
@@ -455,7 +461,7 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     if (rot_block_type == -1) {
       return;
     }
-    int n_energies = 0;
+    int64_t n_energies = 0;
     for (int conn_index = 0; conn_index < max_n_conns; conn_index++) {
       if (disulfide_conns[rot_block_type][conn_index]) {
         int const other_block_index =
@@ -479,15 +485,25 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   });
   DeviceDispatch<D>::template forall<launch_t>(
       mgr, n_rots, count_dispatch_indices);
-  auto n_energies_for_rot_offset_t = TPack<Int, 1, D>::zeros({n_rots});
+
+  int64_t const max_n_energies_for_rot_64 = DeviceDispatch<D>::reduce(
+      mgr, n_energies_for_rot.data(), n_rots, mgpu::maximum_t<int64_t>());
+  int const max_n_energies_for_rot = score::common::checked_dispatch_size(
+      max_n_energies_for_rot_64, "disulfide per-rotamer dispatch");
+  int const candidate_dispatch = score::common::checked_dispatch_product(
+      n_rots, max_n_energies_for_rot, "disulfide candidate dispatch");
+
+  auto n_energies_for_rot_offset_t = TPack<int64_t, 1, D>::zeros({n_rots});
   auto n_energies_for_rot_offset = n_energies_for_rot_offset_t.view;
-  int n_dispatch_total =
+  int64_t const n_dispatch_total_64 =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
           mgr,
           n_energies_for_rot.data(),
           n_energies_for_rot_offset.data(),
           n_rots,
-          mgpu::plus_t<Int>());
+          mgpu::plus_t<int64_t>());
+  int const n_dispatch_total = score::common::checked_dispatch_size(
+      n_dispatch_total_64, "disulfide output dispatch");
 
   TPack<Real, 2, D> V_t;
   auto dispatch_indices_t = TPack<Int, 2, D>::zeros({3, n_dispatch_total});
@@ -508,9 +524,6 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // to imagine a disulfide-like chemical bond forming twice
   // between two residues
   auto conns_for_dispatch_indices = conns_for_dispatch_indices_t.view;
-
-  int const max_n_energies_for_rot = DeviceDispatch<D>::reduce(
-      mgr, n_energies_for_rot.data(), n_rots, mgpu::maximum_t<Int>());
 
   auto mark_dispatch_indices = ([=] TMOL_DEVICE_FUNC(int ind) {
     int const rot_ind1 = ind / max_n_energies_for_rot;
@@ -579,7 +592,7 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      mgr, n_rots * max_n_energies_for_rot, mark_dispatch_indices);
+      mgr, candidate_dispatch, mark_dispatch_indices);
 
   auto eval_energies = ([=] TMOL_DEVICE_FUNC(int dispatch_ind) {
     int const pose_ind = dispatch_indices[0][dispatch_ind];
@@ -591,7 +604,10 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     int const block_type1 = block_type_ind_for_rot[rot_ind1];
     int const block_type2 = block_type_ind_for_rot[rot_ind2];
 
-    const auto& params = global_params[0];
+    // one parameter row per block type; a d-amino acid's row carries
+    //    negated dihedral means
+    const auto& params1 = global_params[block_type1];
+    const auto& params2 = global_params[block_type2];
 
     int atom_offset1 = rot_coord_offset[rot_ind1];
     int atom_offset2 = rot_coord_offset[rot_ind2];
@@ -628,23 +644,19 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         + block_type_atom_downstream_of_conn[block_type2][conn_ind2][2];
 
     // Calculate score and derivatives and put them in the out tensors
-    accumulate_disulfide_potential<Real, D>(
+    accumulate_disulfide<Real, D>(
         rot_coords,
-        pose_ind,
-        block_ind1,
         block1_CA_ind,
         block1_CB_ind,
         block1_S_ind,
-        block_ind2,
         block2_S_ind,
         block2_CB_ind,
         block2_CA_ind,
-
-        params,
-
-        output_block_pair_energies,
-        V[0][dispatch_ind],
-        dV_dx);
+        params1,
+        params2,
+        dV_dx,
+        Real(1),
+        &V[0][dispatch_ind]);
   });
   DeviceDispatch<D>::template forall<launch_t>(
       mgr, n_dispatch_total, eval_energies);
@@ -736,7 +748,10 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     int const block_type1 = block_type_ind_for_rot[rot_ind1];
     int const block_type2 = block_type_ind_for_rot[rot_ind2];
 
-    const auto& params = global_params[0];
+    // one parameter row per block type; a d-amino acid's row carries
+    //    negated dihedral means
+    const auto& params1 = global_params[block_type1];
+    const auto& params2 = global_params[block_type2];
 
     int atom_offset1 = rot_coord_offset[rot_ind1];
     int atom_offset2 = rot_coord_offset[rot_ind2];
@@ -767,21 +782,19 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
         + block_type_atom_downstream_of_conn[block_type2][conn_ind2][2];
 
     // Calculate score and derivatives and put them in the out tensors
-    accumulate_disulfide_derivs<Real, D>(
+    accumulate_disulfide<Real, D>(
         rot_coords,
-        block_ind1,
         block1_CA_ind,
         block1_CB_ind,
         block1_S_ind,
-        block_ind2,
         block2_S_ind,
         block2_CB_ind,
         block2_CA_ind,
-
-        params,
-
+        params1,
+        params2,
         dV_dx,
-        dTdV[0][dispatch_ind]);
+        dTdV[0][dispatch_ind],
+        nullptr);
   });
 
   DeviceDispatch<D>::template forall<launch_t>(

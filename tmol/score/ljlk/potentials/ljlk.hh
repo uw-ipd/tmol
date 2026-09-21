@@ -20,10 +20,8 @@ class LJLKSingleResData {
   int rot_coord_offset;
   int n_atoms;
   int n_conn;
-  int n_heavy;
   Real* coords;
   LJLKTypeParams<Real>* params;
-  unsigned char* heavy_inds;
   unsigned char* path_dist;
 };
 
@@ -53,10 +51,6 @@ struct LJLKBlockPairSharedData {
   Real coords2[TILE_SIZE * 3];
   LJLKTypeParams<Real> params1[TILE_SIZE];  // 1536 bytes for params
   LJLKTypeParams<Real> params2[TILE_SIZE];
-  unsigned char n_heavy1;
-  unsigned char n_heavy2;
-  unsigned char heavy_inds1[TILE_SIZE];
-  unsigned char heavy_inds2[TILE_SIZE];
   unsigned char conn_ats1[MAX_N_CONN];  // 8 bytes
   unsigned char conn_ats2[MAX_N_CONN];
   unsigned char path_dist1[MAX_N_CONN * TILE_SIZE];  // 256 bytes
@@ -74,7 +68,6 @@ void TMOL_DEVICE_FUNC ljlk_load_block_coords_and_params_into_shared(
     TView<Vec<Real, 3>, 1, D> coords,
     TView<Int, 2, D> block_type_atom_types,
     TView<LJLKTypeParams<Real>, 1, D> type_params,
-    TView<Int, 2, D> block_type_heavy_atoms_in_tile,
     int pose_ind,
     LJLKSingleResData<Real>& r_dat,
     int n_atoms_to_load,
@@ -94,11 +87,6 @@ void TMOL_DEVICE_FUNC ljlk_load_block_coords_and_params_into_shared(
         if (attype >= 0) {
           r_dat.params[count] = type_params[attype];
         }
-        // Note that we do NOT read from shared_m.n_heavy{1,2} here
-        // we instead read the full tile's worth of data
-        // this allows us to avoid a synchronize_workgroup call
-        r_dat.heavy_inds[count] =
-            block_type_heavy_atoms_in_tile[r_dat.block_type][atid];
       }
     }
   });
@@ -116,7 +104,6 @@ void TMOL_DEVICE_FUNC ljlk_load_block_into_shared(
     TView<Vec<Real, 3>, 1, D> coords,
     TView<Int, 2, D> block_type_atom_types,
     TView<LJLKTypeParams<Real>, 1, D> type_params,
-    TView<Int, 2, D> block_type_heavy_atoms_in_tile,
     TView<Int, 3, D> block_type_path_distance,
     int pose_ind,
     LJLKSingleResData<Real>& r_dat,
@@ -128,7 +115,6 @@ void TMOL_DEVICE_FUNC ljlk_load_block_into_shared(
       coords,
       block_type_atom_types,
       type_params,
-      block_type_heavy_atoms_in_tile,
       pose_ind,
       r_dat,
       n_atoms_to_load,
@@ -201,8 +187,6 @@ void TMOL_DEVICE_FUNC ljlk_load_tile_invariant_interres_data(
   inter_dat.r2.coords = shared_m.coords2;
   inter_dat.r1.params = shared_m.params1;
   inter_dat.r2.params = shared_m.params2;
-  inter_dat.r1.heavy_inds = shared_m.heavy_inds1;
-  inter_dat.r2.heavy_inds = shared_m.heavy_inds2;
   inter_dat.r1.path_dist = shared_m.path_dist1;
   inter_dat.r2.path_dist = shared_m.path_dist2;
   inter_dat.conn_seps = shared_m.conn_seps;
@@ -260,27 +244,16 @@ void TMOL_DEVICE_FUNC ljlk_load_interres1_tile_data_to_shared(
     TView<Vec<Real, 3>, 1, D> coords,
     TView<Int, 2, D> block_type_atom_types,
     TView<LJLKTypeParams<Real>, 1, D> type_params,
-    TView<Int, 2, D> block_type_heavy_atoms_in_tile,
     TView<Int, 3, D> block_type_path_distance,
-    TView<Int, 2, D> block_type_n_heavy_atoms_in_tile,
-    int tile_ind,
+    int,
     int start_atom1,
     int n_atoms_to_load1,
     LJLKScoringData<Real>& inter_dat,
     LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
-  auto store_n_heavy1 = ([&](int tid) {
-    if (tid == 0) {
-      shared_m.n_heavy1 =
-          block_type_n_heavy_atoms_in_tile[inter_dat.r1.block_type][tile_ind];
-    }
-  });
-  DeviceDispatch<D>::template for_each_in_workgroup<nt>(store_n_heavy1);
-
   ljlk_load_block_into_shared<DeviceDispatch, D, nt, TILE_SIZE>(
       coords,
       block_type_atom_types,
       type_params,
-      block_type_heavy_atoms_in_tile,
       block_type_path_distance,
       inter_dat.pose_ind,
       inter_dat.r1,
@@ -302,27 +275,16 @@ void TMOL_DEVICE_FUNC ljlk_load_interres2_tile_data_to_shared(
     TView<Vec<Real, 3>, 1, D> coords,
     TView<Int, 2, D> block_type_atom_types,
     TView<LJLKTypeParams<Real>, 1, D> type_params,
-    TView<Int, 2, D> block_type_heavy_atoms_in_tile,
     TView<Int, 3, D> block_type_path_distance,
-    TView<Int, 2, D> block_type_n_heavy_atoms_in_tile,
-    int tile_ind,
+    int,
     int start_atom2,
     int n_atoms_to_load2,
     LJLKScoringData<Real>& inter_dat,
     LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
-  auto store_n_heavy2 = ([&](int tid) {
-    if (tid == 0) {
-      shared_m.n_heavy2 =
-          block_type_n_heavy_atoms_in_tile[inter_dat.r2.block_type][tile_ind];
-    }
-  });
-  DeviceDispatch<D>::template for_each_in_workgroup<nt>(store_n_heavy2);
-
   ljlk_load_block_into_shared<DeviceDispatch, D, nt, TILE_SIZE>(
       coords,
       block_type_atom_types,
       type_params,
-      block_type_heavy_atoms_in_tile,
       block_type_path_distance,
       inter_dat.pose_ind,
       inter_dat.r2,
@@ -330,14 +292,6 @@ void TMOL_DEVICE_FUNC ljlk_load_interres2_tile_data_to_shared(
       start_atom2,
       inter_dat.in_count_pair_striking_dist,
       shared_m.conn_ats2);
-}
-
-template <int TILE_SIZE, int MAX_N_CONN, typename Real>
-void TMOL_DEVICE_FUNC ljlk_load_interres_data_from_shared(
-    LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m,
-    LJLKScoringData<Real>& inter_dat) {
-  inter_dat.r1.n_heavy = shared_m.n_heavy1;
-  inter_dat.r2.n_heavy = shared_m.n_heavy2;
 }
 
 template <
@@ -385,12 +339,10 @@ void TMOL_DEVICE_FUNC ljlk_load_tile_invariant_intrares_data(
   // shared-memory arrays. Note that these arrays will be reset
   // later because which shared memory arrays we will use depends on
   // which tile pair we are evaluating!
-  intra_dat.r1.coords = shared_m.coords1;          // depends on tile pair!
-  intra_dat.r2.coords = shared_m.coords2;          // depends on tile pair!
-  intra_dat.r1.params = shared_m.params1;          // depends on tile pair!
-  intra_dat.r2.params = shared_m.params2;          // depends on tile pair!
-  intra_dat.r1.heavy_inds = shared_m.heavy_inds1;  // depends on tile pair!
-  intra_dat.r2.heavy_inds = shared_m.heavy_inds2;
+  intra_dat.r1.coords = shared_m.coords1;  // depends on tile pair!
+  intra_dat.r2.coords = shared_m.coords2;  // depends on tile pair!
+  intra_dat.r1.params = shared_m.params1;  // depends on tile pair!
+  intra_dat.r2.params = shared_m.params2;  // depends on tile pair!
 
   // these count pair arrays are not going to be used
   intra_dat.r1.path_dist = 0;
@@ -416,26 +368,15 @@ void TMOL_DEVICE_FUNC ljlk_load_intrares1_tile_data_to_shared(
     TView<Vec<Real, 3>, 1, D> coords,
     TView<Int, 2, D> block_type_atom_types,
     TView<LJLKTypeParams<Real>, 1, D> type_params,
-    TView<Int, 2, D> block_type_n_heavy_atoms_in_tile,
-    TView<Int, 2, D> block_type_heavy_atoms_in_tile,
-    int tile_ind,
+    int,
     int start_atom1,
     int n_atoms_to_load1,
     LJLKScoringData<Real>& intra_dat,
     LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
-  auto store_n_heavy1 = ([&](int tid) {
-    if (tid == 0) {
-      shared_m.n_heavy1 =
-          block_type_n_heavy_atoms_in_tile[intra_dat.r1.block_type][tile_ind];
-    }
-  });
-  DeviceDispatch<D>::template for_each_in_workgroup<nt>(store_n_heavy1);
-
   ljlk_load_block_coords_and_params_into_shared<DeviceDispatch, D, nt>(
       coords,
       block_type_atom_types,
       type_params,
-      block_type_heavy_atoms_in_tile,
       intra_dat.pose_ind,
       intra_dat.r1,
       n_atoms_to_load1,
@@ -454,9 +395,7 @@ void TMOL_DEVICE_FUNC ljlk_load_intrares2_tile_data_to_shared(
     TView<Vec<Real, 3>, 1, D> coords,
     TView<Int, 2, D> block_type_atom_types,
     TView<LJLKTypeParams<Real>, 1, D> type_params,
-    TView<Int, 2, D> block_type_n_heavy_atoms_in_tile,
-    TView<Int, 2, D> block_type_heavy_atoms_in_tile,
-    int tile_ind,
+    int,
     int start_atom2,
     int n_atoms_to_load2,
     LJLKScoringData<Real>& intra_dat,
@@ -466,19 +405,10 @@ void TMOL_DEVICE_FUNC ljlk_load_intrares2_tile_data_to_shared(
   // the "2" arrays so the load below writes to the correct destination.
   intra_dat.r2.coords = shared_m.coords2;
   intra_dat.r2.params = shared_m.params2;
-  intra_dat.r2.heavy_inds = shared_m.heavy_inds2;
-  auto store_n_heavy2 = ([&](int tid) {
-    if (tid == 0) {
-      shared_m.n_heavy2 =
-          block_type_n_heavy_atoms_in_tile[intra_dat.r2.block_type][tile_ind];
-    }
-  });
-  DeviceDispatch<D>::template for_each_in_workgroup<nt>(store_n_heavy2);
   ljlk_load_block_coords_and_params_into_shared<DeviceDispatch, D, nt>(
       coords,
       block_type_atom_types,
       type_params,
-      block_type_heavy_atoms_in_tile,
       intra_dat.pose_ind,
       intra_dat.r2,
       n_atoms_to_load2,
@@ -496,41 +426,59 @@ void TMOL_DEVICE_FUNC ljlk_load_intrares_data_from_shared(
   // then only the "1" shared-memory arrays will be loaded with data;
   // we will point the "2" memory pointers at the "1" arrays
   bool same_tile = tile_ind1 == tile_ind2;
-  intra_dat.r1.n_heavy = shared_m.n_heavy1;
-  intra_dat.r2.n_heavy = same_tile ? intra_dat.r1.n_heavy : shared_m.n_heavy2;
   intra_dat.r1.coords = shared_m.coords1;
   intra_dat.r2.coords = (same_tile ? shared_m.coords1 : shared_m.coords2);
   intra_dat.r1.params = shared_m.params1;
   intra_dat.r2.params = (same_tile ? shared_m.params1 : shared_m.params2);
-  intra_dat.r1.heavy_inds = shared_m.heavy_inds1;
-  intra_dat.r2.heavy_inds =
-      (same_tile ? shared_m.heavy_inds1 : shared_m.heavy_inds2);
 }
 
-// LJ energy only
-template <typename Real>
-TMOL_DEVICE_FUNC std::array<Real, 2> lj_atom_energy(
+// Fused LJ/LK energy for pose scoring. Heavy-atom pairs reuse the coordinate
+// loads, distance, and count-pair separation for both potentials.
+template <typename Real, tmol::Device D>
+TMOL_DEVICE_FUNC std::array<Real, 3> ljlk_atom_energy(
     int atom_tile_ind1,
     int atom_tile_ind2,
     LJLKScoringData<Real> const& score_dat,
     int cp_separation) {
+  if constexpr (D == Device::CUDA) {
+    if (cp_separation < 4) return {0.0, 0.0, 0.0};
+  }
+
   using Real3 = Eigen::Matrix<Real, 3, 1>;
 
   Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
   Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
+  Real3 const delta = coord1 - coord2;
+  Real const dist2 = delta.squaredNorm();
+  Real const max_dis = score_dat.global_params.max_dis;
+  if (dist2 > max_dis * max_dis) {
+    return {0.0, 0.0, 0.0};
+  }
+  Real const dist = std::sqrt(dist2);
+  auto const& p1 = score_dat.r1.params[atom_tile_ind1];
+  auto const& p2 = score_dat.r2.params[atom_tile_ind2];
 
-  Real const dist = distance<Real>::V(coord1, coord2);
-  return lj_score<Real>::V(
+  auto const lj = lj_score<Real>::V(
       dist,
       cp_separation,
-      score_dat.r1.params[atom_tile_ind1].lj_params(),
-      score_dat.r2.params[atom_tile_ind2].lj_params(),
+      p1.lj_params(),
+      p2.lj_params(),
       score_dat.global_params);
+  Real const lk = (!p1.is_hydrogen && !p2.is_hydrogen)
+                      ? lk_isotropic_score<Real>::V(
+                            dist,
+                            cp_separation,
+                            p1.lk_params(),
+                            p2.lk_params(),
+                            score_dat.global_params)
+                      : Real(0);
+  return {lj[0], lj[1], lk};
 }
 
-// LJ deriv only
+// Weighted LJ/LK derivatives. Heavy-atom pairs reuse the LJ traversal,
+// coordinate loads, distance, and count-pair separation for LK.
 template <typename Real, tmol::Device D>
-TMOL_DEVICE_FUNC void lj_atom_derivs(
+TMOL_DEVICE_FUNC void ljlk_atom_derivs(
     int atom_tile_ind1,
     int atom_tile_ind2,
     int start_atom1,
@@ -539,67 +487,62 @@ TMOL_DEVICE_FUNC void lj_atom_derivs(
     int cp_separation,
     Real dTdV_atr,
     Real dTdV_rep,
+    Real dTdV_lk,
     TView<Eigen::Matrix<Real, 3, 1>, 1, D> dV_dcoords) {
-  using Real3 = Eigen::Matrix<Real, 3, 1>;
-
-  Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
-  Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
-
-  auto dist_r = distance<Real>::V_dV(coord1, coord2);
-  auto& dist = dist_r.V;
-  auto& ddist_dat1 = dist_r.dV_dA;
-  auto& ddist_dat2 = dist_r.dV_dB;
-
-  auto lj = lj_score<Real>::V_dV(
-      dist,
-      cp_separation,
-      score_dat.r1.params[atom_tile_ind1].lj_params(),
-      score_dat.r2.params[atom_tile_ind2].lj_params(),
-      score_dat.global_params);
-
-  // all threads accumulate derivatives for atom 1 to global memory
-  Real dTdVatr_block = (dTdV_atr);
-  Real dTdVrep_block = (dTdV_rep);
-  Vec<Real, 3> ljatr_dxyz_at1 = dTdVatr_block * lj.dVatr_ddist * ddist_dat1;
-  Vec<Real, 3> ljrep_dxyz_at1 = dTdVrep_block * lj.dVrep_ddist * ddist_dat1;
-
-  for (int j = 0; j < 3; ++j) {
-    if (ljatr_dxyz_at1[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords
-              [score_dat.r1.rot_coord_offset + atom_tile_ind1 + start_atom1][j],
-          ljatr_dxyz_at1[j]);
-    }
-    if (ljrep_dxyz_at1[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords
-              [score_dat.r1.rot_coord_offset + atom_tile_ind1 + start_atom1][j],
-          ljrep_dxyz_at1[j]);
-    }
+  if constexpr (D == Device::CUDA) {
+    if (cp_separation < 4) return;
   }
 
-  // all threads accumulate derivatives for atom 2 to global memory
-  Vec<Real, 3> ljatr_dxyz_at2 = dTdVatr_block * lj.dVatr_ddist * ddist_dat2;
-  Vec<Real, 3> ljrep_dxyz_at2 = dTdVrep_block * lj.dVrep_ddist * ddist_dat2;
+  using Real3 = Eigen::Matrix<Real, 3, 1>;
+
+  Real3 const coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
+  Real3 const coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
+  Real3 const delta = coord1 - coord2;
+  Real const dist2 = delta.squaredNorm();
+  Real const max_dis = score_dat.global_params.max_dis;
+  if (dist2 >= max_dis * max_dis) return;
+  Real const dist = std::sqrt(dist2);
+  Real3 unit_delta({0.0, 0.0, 0.0});
+  if (dist != 0) unit_delta = delta / dist;
+
+  auto const& p1 = score_dat.r1.params[atom_tile_ind1];
+  auto const& p2 = score_dat.r2.params[atom_tile_ind2];
+  auto const lj = lj_score<Real>::V_dV(
+      dist,
+      cp_separation,
+      p1.lj_params(),
+      p2.lj_params(),
+      score_dat.global_params);
+
+  Real weighted_dV_ddist =
+      dTdV_atr * lj.dVatr_ddist + dTdV_rep * lj.dVrep_ddist;
+  if (!p1.is_hydrogen && !p2.is_hydrogen) {
+    auto const lk = lk_isotropic_score<Real>::V_dV(
+        dist,
+        cp_separation,
+        p1.lk_params(),
+        p2.lk_params(),
+        score_dat.global_params);
+    weighted_dV_ddist += dTdV_lk * lk.dV_ddist;
+  }
+
+  Real3 const dxyz_at1 = weighted_dV_ddist * unit_delta;
+#pragma unroll
   for (int j = 0; j < 3; ++j) {
-    if (ljatr_dxyz_at2[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords
-              [score_dat.r2.rot_coord_offset + atom_tile_ind2 + start_atom2][j],
-          ljatr_dxyz_at2[j]);
-    }
-    if (ljrep_dxyz_at2[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords
-              [score_dat.r2.rot_coord_offset + atom_tile_ind2 + start_atom2][j],
-          ljrep_dxyz_at2[j]);
-    }
+    if (dxyz_at1[j] == 0) continue;
+    accumulate<D, Real>::add(
+        dV_dcoords[score_dat.r1.rot_coord_offset + atom_tile_ind1 + start_atom1]
+                  [j],
+        dxyz_at1[j]);
+    accumulate<D, Real>::add(
+        dV_dcoords[score_dat.r2.rot_coord_offset + atom_tile_ind2 + start_atom2]
+                  [j],
+        -dxyz_at1[j]);
   }
 }
 
-// LJ energy+deriv
 template <typename Real, tmol::Device D>
-TMOL_DEVICE_FUNC std::array<Real, 2> lj_atom_energy_and_derivs_full(
+TMOL_DEVICE_FUNC std::array<Real, 3> ljlk_atom_energy_and_derivs_full(
     int atom_tile_ind1,
     int atom_tile_ind2,
     int start_atom1,
@@ -607,181 +550,68 @@ TMOL_DEVICE_FUNC std::array<Real, 2> lj_atom_energy_and_derivs_full(
     LJLKScoringData<Real> const& score_dat,
     int cp_separation,
     TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords) {
+  if constexpr (D == Device::CUDA) {
+    if (cp_separation < 4) return {0.0, 0.0, 0.0};
+  }
+
   using Real3 = Eigen::Matrix<Real, 3, 1>;
 
   Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
   Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
+  Real3 const delta = coord1 - coord2;
+  Real const dist2 = delta.squaredNorm();
+  Real const max_dis = score_dat.global_params.max_dis;
+  if (dist2 >= max_dis * max_dis) {
+    return {0.0, 0.0, 0.0};
+  }
+  Real const dist = std::sqrt(dist2);
+  Real3 ddist_dat1({0.0, 0.0, 0.0});
+  if (dist != 0) {
+    ddist_dat1 = delta / dist;
+  }
+  auto const& p1 = score_dat.r1.params[atom_tile_ind1];
+  auto const& p2 = score_dat.r2.params[atom_tile_ind2];
 
-  auto dist_r = distance<Real>::V_dV(coord1, coord2);
-  auto& dist = dist_r.V;
-  auto& ddist_dat1 = dist_r.dV_dA;
-  auto& ddist_dat2 = dist_r.dV_dB;
-  auto lj = lj_score<Real>::V_dV(
+  auto const lj = lj_score<Real>::V_dV(
       dist,
       cp_separation,
-      score_dat.r1.params[atom_tile_ind1].lj_params(),
-      score_dat.r2.params[atom_tile_ind2].lj_params(),
+      p1.lj_params(),
+      p2.lj_params(),
       score_dat.global_params);
+  typename lk_isotropic_score<Real>::V_dV_t lk{0.0, 0.0};
+  if (!p1.is_hydrogen && !p2.is_hydrogen) {
+    lk = lk_isotropic_score<Real>::V_dV(
+        dist,
+        cp_separation,
+        p1.lk_params(),
+        p2.lk_params(),
+        score_dat.global_params);
+  }
 
-  // all threads accumulate derivatives for atom 1 to global memory
-  Vec<Real, 3> ljatr_dxyz_at1 = lj.dVatr_ddist * ddist_dat1;
-  Vec<Real, 3> ljrep_dxyz_at1 = lj.dVrep_ddist * ddist_dat1;
-  for (int j = 0; j < 3; ++j) {
-    if (ljatr_dxyz_at1[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords[0]
-                    [score_dat.r1.rot_coord_offset + atom_tile_ind1
-                     + start_atom1][j],
-          ljatr_dxyz_at1[j]);
-    }
-    if (ljrep_dxyz_at1[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords[1]
-                    [score_dat.r1.rot_coord_offset + atom_tile_ind1
-                     + start_atom1][j],
-          ljrep_dxyz_at1[j]);
+  Real const radial_derivs[3] = {lj.dVatr_ddist, lj.dVrep_ddist, lk.dV_ddist};
+#pragma unroll
+  for (int score_type = 0; score_type < 3; ++score_type) {
+    Real3 const dxyz_at1 = radial_derivs[score_type] * ddist_dat1;
+#pragma unroll
+    for (int j = 0; j < 3; ++j) {
+      if (dxyz_at1[j] != 0) {
+        accumulate<D, Real>::add(
+            dV_dcoords[score_type]
+                      [score_dat.r1.rot_coord_offset + atom_tile_ind1
+                       + start_atom1][j],
+            dxyz_at1[j]);
+      }
+      if (dxyz_at1[j] != 0) {
+        accumulate<D, Real>::add(
+            dV_dcoords[score_type]
+                      [score_dat.r2.rot_coord_offset + atom_tile_ind2
+                       + start_atom2][j],
+            -dxyz_at1[j]);
+      }
     }
   }
 
-  // all threads accumulate derivatives for atom 2 to global memory
-  Vec<Real, 3> ljatr_dxyz_at2 = lj.dVatr_ddist * ddist_dat2;
-  Vec<Real, 3> ljrep_dxyz_at2 = lj.dVrep_ddist * ddist_dat2;
-  for (int j = 0; j < 3; ++j) {
-    if (ljatr_dxyz_at2[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords[0]
-                    [score_dat.r2.rot_coord_offset + atom_tile_ind2
-                     + start_atom2][j],
-          ljatr_dxyz_at2[j]);
-    }
-    if (ljrep_dxyz_at2[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords[1]
-                    [score_dat.r2.rot_coord_offset + atom_tile_ind2
-                     + start_atom2][j],
-          ljrep_dxyz_at2[j]);
-    }
-  }
-  return {lj.Vatr, lj.Vrep};
-}
-
-template <typename Real>
-TMOL_DEVICE_FUNC Real lk_atom_energy(
-    int atom_tile_ind1,
-    int atom_tile_ind2,
-    LJLKScoringData<Real> const& score_dat,
-    int cp_separation) {
-  using Real3 = Eigen::Matrix<Real, 3, 1>;
-  Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
-  Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
-
-  Real const dist = distance<Real>::V(coord1, coord2);
-  return lk_isotropic_score<Real>::V(
-      dist,
-      cp_separation,
-      score_dat.r1.params[atom_tile_ind1].lk_params(),
-      score_dat.r2.params[atom_tile_ind2].lk_params(),
-      score_dat.global_params);
-}
-
-template <typename Real, tmol::Device D>
-TMOL_DEVICE_FUNC void lk_atom_derivs(
-    int atom_tile_ind1,
-    int atom_tile_ind2,
-    int start_atom1,
-    int start_atom2,
-    LJLKScoringData<Real> const& score_dat,
-    int cp_separation,
-    Real dTdV,
-    TView<Eigen::Matrix<Real, 3, 1>, 1, D> dV_dcoords) {
-  using Real3 = Eigen::Matrix<Real, 3, 1>;
-
-  Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
-  Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
-
-  auto dist_r = distance<Real>::V_dV(coord1, coord2);
-  auto& dist = dist_r.V;
-  auto& ddist_dat1 = dist_r.dV_dA;
-  auto& ddist_dat2 = dist_r.dV_dB;
-
-  auto lk = lk_isotropic_score<Real>::V_dV(
-      dist,
-      cp_separation,
-      score_dat.r1.params[atom_tile_ind1].lk_params(),
-      score_dat.r2.params[atom_tile_ind2].lk_params(),
-      score_dat.global_params);
-
-  // all threads accumulate derivatives for atom 1 to global memory
-  Real dTdV_block = (dTdV);
-  Vec<Real, 3> lj_dxyz_at1 = dTdV_block * lk.dV_ddist * ddist_dat1;
-
-  for (int j = 0; j < 3; ++j) {
-    if (lj_dxyz_at1[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords
-              [score_dat.r1.rot_coord_offset + atom_tile_ind1 + start_atom1][j],
-          lj_dxyz_at1[j]);
-    }
-  }
-
-  // all threads accumulate derivatives for atom 2 to global memory
-  Vec<Real, 3> lj_dxyz_at2 = dTdV_block * lk.dV_ddist * ddist_dat2;
-  for (int j = 0; j < 3; ++j) {
-    if (lj_dxyz_at2[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords
-              [score_dat.r2.rot_coord_offset + atom_tile_ind2 + start_atom2][j],
-          lj_dxyz_at2[j]);
-    }
-  }
-}
-
-template <typename Real, tmol::Device D>
-TMOL_DEVICE_FUNC Real lk_atom_energy_and_derivs_full(
-    int atom_tile_ind1,
-    int atom_tile_ind2,
-    int start_atom1,
-    int start_atom2,
-    LJLKScoringData<Real> const& score_dat,
-    int cp_separation,
-    TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords) {
-  using Real3 = Eigen::Matrix<Real, 3, 1>;
-  Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
-  Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
-
-  auto dist_r = distance<Real>::V_dV(coord1, coord2);
-  auto& dist = dist_r.V;
-  auto& ddist_dat1 = dist_r.dV_dA;
-  auto& ddist_dat2 = dist_r.dV_dB;
-  auto lk = lk_isotropic_score<Real>::V_dV(
-      dist,
-      cp_separation,
-      score_dat.r1.params[atom_tile_ind1].lk_params(),
-      score_dat.r2.params[atom_tile_ind2].lk_params(),
-      score_dat.global_params);
-
-  Vec<Real, 3> lk_dxyz_at1 = lk.dV_ddist * ddist_dat1;
-  for (int j = 0; j < 3; ++j) {
-    if (lk_dxyz_at1[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords[2]
-                    [score_dat.r1.rot_coord_offset + atom_tile_ind1
-                     + start_atom1][j],
-          lk_dxyz_at1[j]);
-    }
-  }
-
-  Vec<Real, 3> lk_dxyz_at2 = lk.dV_ddist * ddist_dat2;
-  for (int j = 0; j < 3; ++j) {
-    if (lk_dxyz_at2[j] != 0) {
-      accumulate<D, Real>::add(
-          dV_dcoords[2]
-                    [score_dat.r2.rot_coord_offset + atom_tile_ind2
-                     + start_atom2][j],
-          lk_dxyz_at2[j]);
-    }
-  }
-  return lk.V;
+  return {lj.Vatr, lj.Vrep, lk.V};
 }
 
 }  // namespace potentials

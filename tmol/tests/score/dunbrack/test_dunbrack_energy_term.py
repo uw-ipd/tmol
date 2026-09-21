@@ -1,8 +1,8 @@
 import torch
 
-from tmol.score.dunbrack.dunbrack_energy_term import DunbrackEnergyTerm
+from tmol.score.dunbrack import DunbrackEnergyTerm
 
-from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
+from tmol.tests.score.common import EnergyTermTestBase
 
 
 def test_smoke(default_database, torch_device: torch.device):

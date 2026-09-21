@@ -1,0 +1,342 @@
+import torch
+
+# from tmol.score.hbond.potentials import hbond_pose_scores
+from tmol.score.common import convert_float64
+
+
+class _CoordinateIndependentScore(torch.autograd.Function):
+    """Attach a no-op coordinate edge without launching a device kernel."""
+
+    @staticmethod
+    def forward(ctx, coords, score):
+        return score
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        return None, grad_output
+
+
+def _coordinate_independent_score(
+    coords: torch.Tensor, score: torch.Tensor
+) -> torch.Tensor:
+    """Preserve backward compatibility for a coordinate-independent score.
+
+    Args:
+        coords: Coordinates accepted by the score term.
+        score: A score with no mathematical dependence on ``coords``.
+
+    Returns:
+        ``score`` with a no-op autograd edge only when ``coords`` requires one.
+    """
+    if torch.is_grad_enabled() and coords.requires_grad:
+        return _CoordinateIndependentScore.apply(coords, score)
+    return score
+
+
+class ZeroTermPoseScoringModule(torch.nn.Module):
+    """A zero-cost placeholder for a score term absent from a pose topology.
+
+    The scalar buffers expand to the requested output shape without allocating
+    or launching a device kernel. Keeping the module in the score-function
+    output preserves score-type ordering for callers requesting per-term
+    energies.
+    """
+
+    def __init__(self, classname, n_score_types, n_poses, device, max_n_blocks=None):
+        super().__init__()
+        self.classname = classname
+        shape = [n_score_types, n_poses]
+        if max_n_blocks is not None:
+            shape.extend([max_n_blocks, max_n_blocks])
+        self.shape = tuple(shape)
+        self.register_buffer(
+            "_zero_f32", torch.zeros((), dtype=torch.float32, device=device)
+        )
+        self.register_buffer(
+            "_zero_f64", torch.zeros((), dtype=torch.float64, device=device)
+        )
+
+    def forward(self, coords):
+        zero = self._zero_f64 if coords.dtype == torch.float64 else self._zero_f32
+        # Some callers benchmark or inspect a single energy term by calling
+        # backward() even when that term has no coordinate dependence. Attach
+        # a custom no-op edge so that convention remains valid without a
+        # reduction kernel or a persistent leaf gradient.
+        return _coordinate_independent_score(coords, zero.expand(self.shape))
+
+
+class TermScoringModule(torch.nn.Module):
+    def __init__(
+        self,
+        classname,
+        term_parameters,
+        term_score_poses,
+    ):
+        super(TermScoringModule, self).__init__()
+        self.classname = classname
+        self.term_parameters = []
+
+        self.add_parameters(self.term_parameters, term_parameters)
+
+        self.term_score_poses = term_score_poses
+
+    def _build_static_tails(self, block_pair_scoring: bool) -> None:
+        # Pre-build the non-coordinate argument list used by every forward.
+        # Float64 scoring is mainly used by gradcheck, so defer those copies
+        # until a float64 input actually arrives.
+        tail = list(self.common_parameters) + list(self.term_parameters)
+        self._static_tail_f32 = tuple(tail) + (block_pair_scoring,)
+        self._static_tail_f64 = None
+
+    def _static_tail_for_coords(self, coords: torch.Tensor) -> tuple[object, ...]:
+        if coords.dtype != torch.float64:
+            return self._static_tail_f32
+        if self._static_tail_f64 is None:
+            tail_f64 = list(self._static_tail_f32[:-1])
+            convert_float64(tail_f64)
+            self._static_tail_f64 = tuple(tail_f64) + (self._static_tail_f32[-1],)
+        return self._static_tail_f64
+
+    def add_parameters(self, table, params):
+        def _p(t):
+            return torch.nn.Parameter(t, requires_grad=False)
+
+        for param in params:
+            table += [_p(param) if type(param) is torch.Tensor else param]
+
+
+class TermPoseScoringModule(TermScoringModule):
+    def __init__(
+        self,
+        classname,
+        pose_stack,
+        term_parameters,
+        term_score_poses,
+    ):
+        super(TermPoseScoringModule, self).__init__(
+            classname, term_parameters, term_score_poses
+        )
+
+        self.common_parameters = []
+
+        self.add_parameters(
+            self.common_parameters,
+            [
+                pose_stack.rot_coord_offset,
+                pose_stack.pose_ind_for_atom,
+                pose_stack.first_rot_for_block,
+                pose_stack.block_type_ind,  # block_type for first rot for block
+                pose_stack.block_ind_for_rot,
+                pose_stack.pose_ind_for_rot,
+                pose_stack.block_type_ind_for_rot,
+                pose_stack.n_rots_for_pose,
+                pose_stack.rot_offset_for_pose,
+                pose_stack.n_rots_for_block,
+                pose_stack.rot_offset_for_block,
+                pose_stack.max_n_rots_per_pose,
+            ],
+        )
+        self.n_poses = pose_stack.first_rot_for_block.shape[0]
+        self.max_n_blocks = pose_stack.first_rot_for_block.shape[1]
+
+
+class TermWholePoseScoringModule(TermPoseScoringModule):
+    def __init__(
+        self,
+        classname,
+        pose_stack,
+        term_parameters,
+        term_score_poses,
+        block_neighbor_cutoff=None,
+        score_only_in_no_grad=False,
+    ):
+        super(TermWholePoseScoringModule, self).__init__(
+            classname, pose_stack, term_parameters, term_score_poses
+        )
+        self.block_neighbor_cutoff = block_neighbor_cutoff
+        self.score_only_in_no_grad = score_only_in_no_grad
+        self._neighbor_block_type_n_atoms = pose_stack.packed_block_types.n_atoms
+        self.register_buffer(
+            "_empty_block_neighbors",
+            torch.empty((0,), dtype=torch.int32, device=pose_stack.device),
+        )
+        self._build_static_tails(False)
+
+    def forward(
+        self,
+        coords,
+        shared_block_neighbors=None,
+    ):
+        flat = coords.flatten(start_dim=0, end_dim=-2)
+        if (
+            self.score_only_in_no_grad
+            and not torch.is_grad_enabled()
+            and flat.requires_grad
+        ):
+            flat = flat.detach()
+        tail = self._static_tail_for_coords(coords)
+        if self.block_neighbor_cutoff is not None:
+            if shared_block_neighbors is None:
+                shared_block_neighbors = self._empty_block_neighbors
+            scores, _ = self.term_score_poses(
+                flat,
+                *tail,
+                shared_block_neighbors,
+            )
+            return scores
+        # ignore the dispatch_indices return tensor
+        scores, _ = self.term_score_poses(flat, *tail)
+        return scores
+
+    def build_compact_block_neighbors(self, coords, reach):
+        """Build a common compact list of conservative block-neighbor pairs."""
+        from tmol.score.ljlk.potentials import build_compact_block_neighbors
+
+        flat = coords.detach().flatten(start_dim=0, end_dim=-2)
+        return build_compact_block_neighbors(
+            flat,
+            self.common_parameters[0],
+            self.common_parameters[3],
+            self.common_parameters[4],
+            self.common_parameters[5],
+            self.common_parameters[6],
+            self._neighbor_block_type_n_atoms,
+            reach,
+        )[0]
+
+
+class TermBlockPairScoringModule(TermPoseScoringModule):
+    def __init__(
+        self,
+        classname,
+        pose_stack,
+        term_parameters,
+        term_score_poses,
+        block_neighbor_cutoff=None,
+    ):
+        super(TermBlockPairScoringModule, self).__init__(
+            classname, pose_stack, term_parameters, term_score_poses
+        )
+        self.block_neighbor_cutoff = block_neighbor_cutoff
+        self.register_buffer(
+            "_empty_block_neighbors",
+            torch.empty((0,), dtype=torch.int32, device=pose_stack.device),
+        )
+        self._build_static_tails(True)
+
+    def forward(
+        self,
+        coords,
+    ):
+        flat = coords.flatten(start_dim=0, end_dim=-2)
+        tail = self._static_tail_for_coords(coords)
+        if self.block_neighbor_cutoff is not None:
+            scores, _ = self.term_score_poses(
+                flat,
+                *tail,
+                self._empty_block_neighbors,
+            )
+            return scores
+        scores, _ = self.term_score_poses(flat, *tail)
+        return scores
+
+
+class TermRotamerScoringModule(TermScoringModule):
+    def __init__(
+        self,
+        classname,
+        rotamer_set,
+        term_parameters,
+        term_score_poses,
+        lockstep_group_for_block,
+        block_neighbor_cutoff=None,
+        accepts_shared_dispatch=False,
+        rotamer_dispatch_key=None,
+        packing_score_iterator=None,
+    ):
+        super(TermRotamerScoringModule, self).__init__(
+            classname, term_parameters, term_score_poses
+        )
+
+        self.common_parameters = []
+
+        def _i32(x):
+            return x if isinstance(x, int) else x.to(torch.int32)
+
+        self.add_parameters(
+            self.common_parameters,
+            [
+                _i32(t)
+                for t in [
+                    rotamer_set.coord_offset_for_rot,  # rot coord offset
+                    rotamer_set.pose_ind_for_atom,
+                    # In a RotamerSet, each block's first rotamer is also its
+                    # offset into the global rotamer table.
+                    rotamer_set.rot_offset_for_block,  # first_rot_for_block
+                    rotamer_set.first_rot_block_type,  # first rot block type
+                    rotamer_set.block_ind_for_rot,
+                    rotamer_set.pose_for_rot,
+                    rotamer_set.block_type_ind_for_rot,
+                    rotamer_set.n_rots_for_pose,
+                    rotamer_set.rot_offset_for_pose,
+                    rotamer_set.n_rots_for_block,
+                    rotamer_set.rot_offset_for_block,
+                    lockstep_group_for_block,
+                    rotamer_set.max_n_rots_per_pose,
+                ]
+            ],
+        )
+        self.n_poses = rotamer_set.n_rots_for_pose.shape[0]
+        self.n_rots = rotamer_set.coord_offset_for_rot.shape[0]
+        self.block_neighbor_cutoff = block_neighbor_cutoff
+        self.accepts_shared_dispatch = accepts_shared_dispatch
+        self.rotamer_dispatch_key = rotamer_dispatch_key
+        self.packing_score_iterator = packing_score_iterator
+        self.register_buffer(
+            "_empty_dispatch_indices",
+            torch.empty((0, 0), dtype=torch.int32, device=rotamer_set.coords.device),
+        )
+        self._build_static_tails(True)
+
+    def forward(self, coords, shared_dispatch_indices=None):
+        """Return (scores, indices) without creating any sparse tensor.
+
+        scores:  [n_subterms, nnz] float32
+        indices: [3, nnz]          int32  (pose, rot_i, rot_j in global rot numbering)
+        """
+        flat = coords.flatten(start_dim=0, end_dim=-2)
+        tail = self._static_tail_for_coords(coords)
+        if self.accepts_shared_dispatch:
+            if shared_dispatch_indices is None:
+                shared_dispatch_indices = self._empty_dispatch_indices
+            scores, indices = self.term_score_poses(
+                flat, *tail, shared_dispatch_indices
+            )
+        else:
+            scores, indices = self.term_score_poses(flat, *tail)
+        return scores, indices
+
+    def iter_packing_entries(self, coords, *, topology_only):
+        """Yield bounded raw score/index pages for packing."""
+        if self.packing_score_iterator is None:
+            raise NotImplementedError
+        flat = coords.flatten(start_dim=0, end_dim=-2)
+        tail = self._static_tail_for_coords(coords)
+        yield from self.packing_score_iterator(flat, *tail, topology_only)
+
+    def forward_split(self, coords):
+        scores, indices = self.forward(coords)
+        # Legacy path: kept for any callers outside RotamerScoringModule.
+        # Prefer forward + caller-side weighting to avoid the torch.stack
+        # memory cost (stacking creates a [n_subterms, n_poses, n_rots, n_rots]
+        # 4D sparse tensor whose index storage is n_subterms x nnz x 4 int32).
+        return torch.stack(
+            [
+                torch.sparse_coo_tensor(
+                    indices,
+                    scores[subterm, :],
+                    size=(self.n_poses, self.n_rots, self.n_rots),
+                )
+                for subterm in range(scores.size(0))
+            ]
+        )

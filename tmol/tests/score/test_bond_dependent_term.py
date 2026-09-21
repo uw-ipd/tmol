@@ -1,4 +1,4 @@
-from tmol.score.bond_dependent_term import BondDependentTerm
+from tmol.score import BondDependentTerm
 
 
 def test_create_pose_bond_separation_two_ubq(

@@ -15,8 +15,12 @@ struct DevOpsTests {
   // dst[i] = src[i] + i
   static auto test_forall(TView<int32_t, 1, D> src) -> TPack<int32_t, 1, D>;
 
-  // dst[stack][i] = src[stack][i] * 2
-  static auto test_forall_stacks(TView<int32_t, 2, D> src)
+  // dst[i] = src[i] + i, with disjoint parallel work on CPU
+  static auto test_forall_independent(TView<int32_t, 1, D> src)
+      -> TPack<int32_t, 1, D>;
+
+  // dst[group][i] = src[group][i] + flattened element index
+  static auto test_forall_grouped(TView<int32_t, 2, D> src)
       -> TPack<int32_t, 2, D>;
 
   // dst[i][j][k] = src[i][j][k] + 1
@@ -26,6 +30,14 @@ struct DevOpsTests {
   // dst[wg] = src[wg] + wg
   static auto test_foreach_workgroup(TView<int32_t, 1, D> src)
       -> TPack<int32_t, 1, D>;
+
+  // dst[wg] = src[wg] + wg, with disjoint parallel work on CPU
+  static auto test_foreach_independent_workgroup(TView<int32_t, 1, D> src)
+      -> TPack<int32_t, 1, D>;
+
+  // dst[pose][wg] = src[pose][wg] + flattened workgroup index
+  static auto test_foreach_pose_workgroup(TView<int32_t, 2, D> src)
+      -> TPack<int32_t, 2, D>;
 
   static auto test_scan_inclusive(TView<int32_t, 1, D> src)
       -> TPack<int32_t, 1, D>;
@@ -54,6 +66,15 @@ struct DevOpsTests {
   static auto test_segmented_scan_exclusive(
       TView<int32_t, 1, D> src, TView<int32_t, 1, D> seg_starts)
       -> TPack<int32_t, 1, D>;
+
+  static auto test_rot_neighbor_indices_from_block_spheres(
+      TView<int32_t, 2, D> pose_stack_block_type,
+      TView<float, 3, D> block_spheres,
+      TView<int32_t, 2, D> n_rots_for_block,
+      TView<int32_t, 2, D> rot_offset_for_block,
+      TView<float, 2, D> rot_spheres,
+      TView<int32_t, 2, D> lockstep_group_for_block,
+      float reach) -> TPack<int32_t, 2, D>;
 };
 
 }  // namespace device_operations

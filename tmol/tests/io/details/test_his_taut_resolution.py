@@ -2,18 +2,18 @@ import numpy
 import torch
 import attr
 
-from tmol.io.canonical_ordering import (
+from tmol.io import (
     default_canonical_ordering,
     CanonicalOrdering,
     canonical_form_from_pdb,
 )
-from tmol.io.details.his_taut_resolution import (
+from tmol.io.details import (
     HisTautomerResolution,
     resolve_his_tautomerization,
     his_taut_variant_NE2_protonated,
     his_taut_variant_ND1_protonated,
 )
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
+from tmol.database import PatchedChemicalDatabase
 
 
 def test_resolve_his_HD1_provided():
@@ -41,7 +41,7 @@ def test_resolve_his_HD1_provided():
     max_n_canonical_atoms = co.max_n_canonical_atoms
     coords = torch.zeros((1, 1, max_n_canonical_atoms, 3), dtype=torch.float32)
     atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.bool)
-    res_types = torch.full((1, 1), co.his_inds.his_co_aa_ind, dtype=torch.int32)
+    res_types = torch.full((1, 1), co.his_inds.his_co_aa_inds[0], dtype=torch.int32)
     res_type_variants = torch.zeros_like(res_types)
 
     def atind(atname):
@@ -142,7 +142,7 @@ def test_resolve_his_HE2_provided():
     max_n_canonical_atoms = co.max_n_canonical_atoms
     coords = torch.zeros((1, 1, max_n_canonical_atoms, 3), dtype=torch.float32)
     atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.bool)
-    res_types = torch.full((1, 1), co.his_inds.his_co_aa_ind, dtype=torch.int32)
+    res_types = torch.full((1, 1), co.his_inds.his_co_aa_inds[0], dtype=torch.int32)
     res_type_variants = torch.zeros_like(res_types)
 
     def atind(atname):
@@ -223,7 +223,7 @@ def test_resolve_his_HD1_provided_as_HN():
     max_n_canonical_atoms = co.max_n_canonical_atoms
     coords = torch.zeros((1, 1, max_n_canonical_atoms, 3), dtype=torch.float32)
     atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.bool)
-    res_types = torch.full((1, 1), co.his_inds.his_co_aa_ind, dtype=torch.int32)
+    res_types = torch.full((1, 1), co.his_inds.his_co_aa_inds[0], dtype=torch.int32)
     res_type_variants = torch.zeros_like(res_types)
 
     def atind(atname):
@@ -306,7 +306,7 @@ def test_resolve_his_HE2_provided_as_HN():
     max_n_canonical_atoms = co.max_n_canonical_atoms
     coords = torch.zeros((1, 1, max_n_canonical_atoms, 3), dtype=torch.float32)
     atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.bool)
-    res_types = torch.full((1, 1), co.his_inds.his_co_aa_ind, dtype=torch.int32)
+    res_types = torch.full((1, 1), co.his_inds.his_co_aa_inds[0], dtype=torch.int32)
     res_type_variants = torch.zeros_like(res_types)
 
     def atind(atname):
@@ -389,7 +389,7 @@ def test_resolve_his_ND1_provided_as_NH():
     max_n_canonical_atoms = co.max_n_canonical_atoms
     coords = torch.zeros((1, 1, max_n_canonical_atoms, 3), dtype=torch.float32)
     atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.bool)
-    res_types = torch.full((1, 1), co.his_inds.his_co_aa_ind, dtype=torch.int32)
+    res_types = torch.full((1, 1), co.his_inds.his_co_aa_inds[0], dtype=torch.int32)
     res_type_variants = torch.zeros_like(res_types)
 
     def atind(atname):
@@ -476,7 +476,7 @@ def test_resolve_his_NE2_provided_as_NH():
     max_n_canonical_atoms = co.max_n_canonical_atoms
     coords = torch.zeros((1, 1, max_n_canonical_atoms, 3), dtype=torch.float32)
     atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.bool)
-    res_types = torch.full((1, 1), co.his_inds.his_co_aa_ind, dtype=torch.int32)
+    res_types = torch.full((1, 1), co.his_inds.his_co_aa_inds[0], dtype=torch.int32)
     res_type_variants = torch.zeros_like(res_types)
 
     def atind(atname):

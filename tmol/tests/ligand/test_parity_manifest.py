@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from tmol.tests.data import data_path
-from tmol.tests.ligand.parity_manifest import (
+from tmol.tests.ligand import (
     LigandParityEntry,
     default_dataset_manifest,
     load_parity_manifest,
@@ -43,8 +43,6 @@ def test_seed_entries_are_smiles_only() -> None:
         assert entry.expected_prot_smiles
         assert entry.params.exists()
         assert entry.charge_mode == "auto"
-        # Seed references carry PROTON_CHI, so seed entries request sampling.
-        assert entry.sample_proton_chi is True
 
 
 def test_manifest_load_resolves_relative_paths(tmp_path) -> None:
@@ -59,7 +57,6 @@ def test_manifest_load_resolves_relative_paths(tmp_path) -> None:
                 "expected_prot_smiles": "C",
                 "mol2": "lig.mol2",
                 "charge_mode": "auto",
-                "sample_proton_chi": False,
                 "expected_unsupported_fields": ["CUT_BOND"],
             }
         ],

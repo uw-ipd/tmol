@@ -2,6 +2,7 @@
 
 #include <tmol/score/common/device_operations.hh>
 #include <tmol/score/common/launch_box_macros.hh>
+#include <tmol/score/common/sphere_overlap.impl.hh>
 #include <tmol/extern/moderngpu/operators.hxx>
 #include <tmol/tests/score/common/device_operations/test.hh>
 #include <tmol/utility/tensor/context_manager.hh>
@@ -35,16 +36,30 @@ auto DevOpsTests<D>::test_forall(TView<int32_t, 1, D> src)
 }
 
 template <tmol::Device D>
-auto DevOpsTests<D>::test_forall_stacks(TView<int32_t, 2, D> src)
+auto DevOpsTests<D>::test_forall_independent(TView<int32_t, 1, D> src)
+    -> TPack<int32_t, 1, D> {
+  ContextManager mgr;
+  int n = src.size(0);
+  auto dst_t = TPack<int32_t, 1, D>::empty({n});
+  auto dst = dst_t.view;
+  DO<D>::template forall_independent<launch_t>(
+      mgr, n, [=] EIGEN_DEVICE_FUNC(int i) { dst[i] = src[i] + i; });
+  return dst_t;
+}
+
+template <tmol::Device D>
+auto DevOpsTests<D>::test_forall_grouped(TView<int32_t, 2, D> src)
     -> TPack<int32_t, 2, D> {
   ContextManager mgr;
-  int nstacks = src.size(0);
-  int n = src.size(1);
-  auto dst_t = TPack<int32_t, 2, D>::empty({nstacks, n});
+  int const n_groups = src.size(0);
+  int const items_per_group = src.size(1);
+  auto dst_t = TPack<int32_t, 2, D>::empty({n_groups, items_per_group});
   auto dst = dst_t.view;
-  DO<D>::template forall_stacks<int>(
-      mgr, nstacks, n, [=] EIGEN_DEVICE_FUNC(int stack, int i) {
-        dst[stack][i] = src[stack][i] * 2;
+  DO<D>::template forall_grouped<launch_t>(
+      mgr, n_groups, items_per_group, [=] EIGEN_DEVICE_FUNC(int index) {
+        int const group = index / items_per_group;
+        int const item = index % items_per_group;
+        dst[group][item] = src[group][item] + index;
       });
   return dst_t;
 }
@@ -74,6 +89,35 @@ auto DevOpsTests<D>::test_foreach_workgroup(TView<int32_t, 1, D> src)
   auto dst = dst_t.view;
   DO<D>::template foreach_workgroup<launch_t>(
       mgr, n, [=] EIGEN_DEVICE_FUNC(int wg) { dst[wg] = src[wg] + wg; });
+  return dst_t;
+}
+
+template <tmol::Device D>
+auto DevOpsTests<D>::test_foreach_independent_workgroup(
+    TView<int32_t, 1, D> src) -> TPack<int32_t, 1, D> {
+  ContextManager mgr;
+  int n = src.size(0);
+  auto dst_t = TPack<int32_t, 1, D>::empty({n});
+  auto dst = dst_t.view;
+  DO<D>::template foreach_independent_workgroup<launch_t>(
+      mgr, n, [=] EIGEN_DEVICE_FUNC(int wg) { dst[wg] = src[wg] + wg; });
+  return dst_t;
+}
+
+template <tmol::Device D>
+auto DevOpsTests<D>::test_foreach_pose_workgroup(TView<int32_t, 2, D> src)
+    -> TPack<int32_t, 2, D> {
+  ContextManager mgr;
+  int const n_poses = src.size(0);
+  int const workgroups_per_pose = src.size(1);
+  auto dst_t = TPack<int32_t, 2, D>::empty({n_poses, workgroups_per_pose});
+  auto dst = dst_t.view;
+  DO<D>::template foreach_pose_workgroup<launch_t>(
+      mgr, n_poses, workgroups_per_pose, [=] EIGEN_DEVICE_FUNC(int wg) {
+        int const pose = wg / workgroups_per_pose;
+        int const pose_wg = wg % workgroups_per_pose;
+        dst[pose][pose_wg] = src[pose][pose_wg] + wg;
+      });
   return dst_t;
 }
 
@@ -172,6 +216,32 @@ auto DevOpsTests<D>::test_segmented_scan_exclusive(
       seg_starts.size(0),
       mgpu::plus_t<int32_t>(),
       0);
+}
+
+template <tmol::Device D>
+auto DevOpsTests<D>::test_rot_neighbor_indices_from_block_spheres(
+    TView<int32_t, 2, D> pose_stack_block_type,
+    TView<float, 3, D> block_spheres,
+    TView<int32_t, 2, D> n_rots_for_block,
+    TView<int32_t, 2, D> rot_offset_for_block,
+    TView<float, 2, D> rot_spheres,
+    TView<int32_t, 2, D> lockstep_group_for_block,
+    float reach) -> TPack<int32_t, 2, D> {
+  ContextManager mgr;
+  return tmol::score::common::sphere_overlap::
+      rot_neighbor_indices_from_block_neighbors<
+          tmol::score::common::DeviceOperations,
+          D,
+          float,
+          int32_t>::
+          f(mgr,
+            pose_stack_block_type,
+            block_spheres,
+            n_rots_for_block,
+            rot_offset_for_block,
+            rot_spheres,
+            lockstep_group_for_block,
+            reach);
 }
 
 }  // namespace device_operations

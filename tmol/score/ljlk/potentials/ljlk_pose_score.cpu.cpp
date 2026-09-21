@@ -11,6 +11,7 @@ template struct LJLKPoseScoreDispatch<
     tmol::Device::CPU,
     float,
     int>;
+
 template struct LJLKPoseScoreDispatch<
     DeviceOperations,
     tmol::Device::CPU,

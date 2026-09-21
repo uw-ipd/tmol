@@ -7,6 +7,7 @@
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/device_operations.hh>
+#include <tmol/score/common/whole_pose_scoring.hh>
 
 #include <pybind11/pybind11.h>
 
@@ -59,7 +60,9 @@ class GenBondedPoseScoreOp
       Tensor gen_intra_params,
       // Inter-block torsions (hash table + bond types)
       Tensor gen_atom_type_hierarchy,
-      Tensor gen_connection_bond_types,
+      Tensor gen_atom_is_rosetta,
+      Tensor gen_connection_bond_bins,
+      Tensor gen_conn_scored_elsewhere,
       Tensor gen_source_atom_index,
       Tensor gen_source_block_type_index,
       Tensor gen_inter_torsion_hash_keys,
@@ -101,7 +104,9 @@ class GenBondedPoseScoreOp
                       TCAST(gen_intra_subgraph_offsets),
                       TCAST(gen_intra_params),
                       TCAST(gen_atom_type_hierarchy),
-                      TCAST(gen_connection_bond_types),
+                      TCAST(gen_atom_is_rosetta),
+                      TCAST(gen_connection_bond_bins),
+                      TCAST(gen_conn_scored_elsewhere),
                       TCAST(gen_source_atom_index),
                       TCAST(gen_source_block_type_index),
                       TCAST(gen_inter_torsion_hash_keys),
@@ -140,7 +145,9 @@ class GenBondedPoseScoreOp
            gen_intra_subgraph_offsets,
            gen_intra_params,
            gen_atom_type_hierarchy,
-           gen_connection_bond_types,
+           gen_atom_is_rosetta,
+           gen_connection_bond_bins,
+           gen_conn_scored_elsewhere,
            gen_source_atom_index,
            gen_source_block_type_index,
            gen_inter_torsion_hash_keys,
@@ -161,12 +168,8 @@ class GenBondedPoseScoreOp
     if (saved.size() == 2) {
       // Single-score mode: reuse the pre-computed gradient
       auto saved_grad = saved[0];
-      auto pose_ind_for_atom = saved[1];
-      auto atom_ingrads = grad_outputs[0].index_select(1, pose_ind_for_atom);
-      while (atom_ingrads.dim() < saved_grad.dim()) {
-        atom_ingrads = atom_ingrads.unsqueeze(-1);
-      }
-      dV_d_pose_coords = saved_grad * atom_ingrads;
+      dV_d_pose_coords =
+          common::accumulate_whole_pose_gradients(saved_grad, grad_outputs[0]);
     } else {
       // Block-pair mode: re-run backward dispatch
       using Int = int32_t;
@@ -192,7 +195,9 @@ class GenBondedPoseScoreOp
       auto gen_intra_subgraph_offsets = saved[i++];
       auto gen_intra_params = saved[i++];
       auto gen_atom_type_hierarchy = saved[i++];
-      auto gen_connection_bond_types = saved[i++];
+      auto gen_atom_is_rosetta = saved[i++];
+      auto gen_connection_bond_bins = saved[i++];
+      auto gen_conn_scored_elsewhere = saved[i++];
       auto gen_source_atom_index = saved[i++];
       auto gen_source_block_type_index = saved[i++];
       auto gen_inter_torsion_hash_keys = saved[i++];
@@ -229,7 +234,9 @@ class GenBondedPoseScoreOp
                         TCAST(gen_intra_subgraph_offsets),
                         TCAST(gen_intra_params),
                         TCAST(gen_atom_type_hierarchy),
-                        TCAST(gen_connection_bond_types),
+                        TCAST(gen_atom_is_rosetta),
+                        TCAST(gen_connection_bond_bins),
+                        TCAST(gen_conn_scored_elsewhere),
                         TCAST(gen_source_atom_index),
                         TCAST(gen_source_block_type_index),
                         TCAST(gen_inter_torsion_hash_keys),
@@ -250,7 +257,7 @@ class GenBondedPoseScoreOp
     //   max_n_rots_per_pose (int64),
     //   pose_stack_inter_block_connections, atom_paths_from_conn,
     //   gen_intra_subgraphs, gen_intra_subgraph_offsets, gen_intra_params,
-    //   gen_atom_type_hierarchy, gen_connection_bond_types,
+    //   gen_atom_type_hierarchy, gen_connection_bond_bins,
     //   gen_inter_torsion_hash_keys, gen_inter_torsion_hash_values,
     //   output_block_pair_energies (bool)
     return {
@@ -273,7 +280,9 @@ class GenBondedPoseScoreOp
         torch::Tensor(),  // gen_intra_subgraph_offsets
         torch::Tensor(),  // gen_intra_params
         torch::Tensor(),  // gen_atom_type_hierarchy
-        torch::Tensor(),  // gen_connection_bond_types
+        torch::Tensor(),  // gen_atom_is_rosetta
+        torch::Tensor(),  // gen_connection_bond_bins
+        torch::Tensor(),  // gen_conn_scored_elsewhere
         torch::Tensor(),  // gen_source_atom_index
         torch::Tensor(),  // gen_source_block_type_index
         torch::Tensor(),  // gen_inter_torsion_hash_keys
@@ -306,6 +315,7 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
       Tensor rot_offset_for_pose,
       Tensor n_rots_for_block,
       Tensor rot_offset_for_block,
+      Tensor lockstep_group_for_block,
       int64_t max_n_rots_per_pose,
 
       Tensor pose_stack_inter_block_connections,
@@ -314,7 +324,9 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
       Tensor gen_intra_subgraph_offsets,
       Tensor gen_intra_params,
       Tensor gen_atom_type_hierarchy,
-      Tensor gen_connection_bond_types,
+      Tensor gen_atom_is_rosetta,
+      Tensor gen_connection_bond_bins,
+      Tensor gen_conn_scored_elsewhere,
       Tensor gen_source_atom_index,
       Tensor gen_source_block_type_index,
       Tensor gen_inter_torsion_hash_keys,
@@ -352,6 +364,7 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
                       TCAST(rot_offset_for_pose),
                       TCAST(n_rots_for_block),
                       TCAST(rot_offset_for_block),
+                      TCAST(lockstep_group_for_block),
                       max_n_rots_per_pose,
 
                       TCAST(pose_stack_inter_block_connections),
@@ -360,7 +373,9 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
                       TCAST(gen_intra_subgraph_offsets),
                       TCAST(gen_intra_params),
                       TCAST(gen_atom_type_hierarchy),
-                      TCAST(gen_connection_bond_types),
+                      TCAST(gen_atom_is_rosetta),
+                      TCAST(gen_connection_bond_bins),
+                      TCAST(gen_conn_scored_elsewhere),
                       TCAST(gen_source_atom_index),
                       TCAST(gen_source_block_type_index),
                       TCAST(gen_inter_torsion_hash_keys),
@@ -401,7 +416,9 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
          gen_intra_subgraph_offsets,
          gen_intra_params,
          gen_atom_type_hierarchy,
-         gen_connection_bond_types,
+         gen_atom_is_rosetta,
+         gen_connection_bond_bins,
+         gen_conn_scored_elsewhere,
          gen_source_atom_index,
          gen_source_block_type_index,
          gen_inter_torsion_hash_keys,
@@ -443,7 +460,9 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
     auto gen_intra_subgraph_offsets = saved[i++];
     auto gen_intra_params = saved[i++];
     auto gen_atom_type_hierarchy = saved[i++];
-    auto gen_connection_bond_types = saved[i++];
+    auto gen_atom_is_rosetta = saved[i++];
+    auto gen_connection_bond_bins = saved[i++];
+    auto gen_conn_scored_elsewhere = saved[i++];
     auto gen_source_atom_index = saved[i++];
     auto gen_source_block_type_index = saved[i++];
     auto gen_inter_torsion_hash_keys = saved[i++];
@@ -483,7 +502,9 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
                       TCAST(gen_intra_subgraph_offsets),
                       TCAST(gen_intra_params),
                       TCAST(gen_atom_type_hierarchy),
-                      TCAST(gen_connection_bond_types),
+                      TCAST(gen_atom_is_rosetta),
+                      TCAST(gen_connection_bond_bins),
+                      TCAST(gen_conn_scored_elsewhere),
                       TCAST(gen_source_atom_index),
                       TCAST(gen_source_block_type_index),
                       TCAST(gen_inter_torsion_hash_keys),
@@ -512,6 +533,7 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
         torch::Tensor(),  // rot_offset_for_pose
         torch::Tensor(),  // n_rots_for_block
         torch::Tensor(),  // rot_offset_for_block
+        torch::Tensor(),  // lockstep_group_for_block
         torch::Tensor(),  // max_n_rots_per_pose (int)
         torch::Tensor(),  // pose_stack_inter_block_connections
         torch::Tensor(),  // atom_paths_from_conn
@@ -519,7 +541,9 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
         torch::Tensor(),  // gen_intra_subgraph_offsets
         torch::Tensor(),  // gen_intra_params
         torch::Tensor(),  // gen_atom_type_hierarchy
-        torch::Tensor(),  // gen_connection_bond_types
+        torch::Tensor(),  // gen_atom_is_rosetta
+        torch::Tensor(),  // gen_connection_bond_bins
+        torch::Tensor(),  // gen_conn_scored_elsewhere
         torch::Tensor(),  // gen_source_atom_index
         torch::Tensor(),  // gen_source_block_type_index
         torch::Tensor(),  // gen_inter_torsion_hash_keys
@@ -556,7 +580,9 @@ std::vector<Tensor> genbonded_pose_scores_op(
     Tensor gen_intra_subgraph_offsets,
     Tensor gen_intra_params,
     Tensor gen_atom_type_hierarchy,
-    Tensor gen_connection_bond_types,
+    Tensor gen_atom_is_rosetta,
+    Tensor gen_connection_bond_bins,
+    Tensor gen_conn_scored_elsewhere,
     Tensor gen_source_atom_index,
     Tensor gen_source_block_type_index,
     Tensor gen_inter_torsion_hash_keys,
@@ -586,7 +612,9 @@ std::vector<Tensor> genbonded_pose_scores_op(
       gen_intra_subgraph_offsets,
       gen_intra_params,
       gen_atom_type_hierarchy,
-      gen_connection_bond_types,
+      gen_atom_is_rosetta,
+      gen_connection_bond_bins,
+      gen_conn_scored_elsewhere,
       gen_source_atom_index,
       gen_source_block_type_index,
       gen_inter_torsion_hash_keys,
@@ -611,6 +639,7 @@ std::vector<Tensor> genbonded_rotamer_scores_op(
     Tensor rot_offset_for_pose,
     Tensor n_rots_for_block,
     Tensor rot_offset_for_block,
+    Tensor lockstep_group_for_block,
     int64_t max_n_rots_per_pose,
 
     Tensor pose_stack_inter_block_connections,
@@ -619,7 +648,9 @@ std::vector<Tensor> genbonded_rotamer_scores_op(
     Tensor gen_intra_subgraph_offsets,
     Tensor gen_intra_params,
     Tensor gen_atom_type_hierarchy,
-    Tensor gen_connection_bond_types,
+    Tensor gen_atom_is_rosetta,
+    Tensor gen_connection_bond_bins,
+    Tensor gen_conn_scored_elsewhere,
     Tensor gen_source_atom_index,
     Tensor gen_source_block_type_index,
     Tensor gen_inter_torsion_hash_keys,
@@ -641,6 +672,7 @@ std::vector<Tensor> genbonded_rotamer_scores_op(
       rot_offset_for_pose,
       n_rots_for_block,
       rot_offset_for_block,
+      lockstep_group_for_block,
       max_n_rots_per_pose,
 
       pose_stack_inter_block_connections,
@@ -649,7 +681,9 @@ std::vector<Tensor> genbonded_rotamer_scores_op(
       gen_intra_subgraph_offsets,
       gen_intra_params,
       gen_atom_type_hierarchy,
-      gen_connection_bond_types,
+      gen_atom_is_rosetta,
+      gen_connection_bond_bins,
+      gen_conn_scored_elsewhere,
       gen_source_atom_index,
       gen_source_block_type_index,
       gen_inter_torsion_hash_keys,

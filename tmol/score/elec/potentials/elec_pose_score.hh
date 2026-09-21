@@ -88,12 +88,13 @@ struct ElecPoseScoreDispatch {
       // Entry i, j stores path_dist[rep(i), rep(j)]
       // Dimsize: n_block_types x max_n_atoms x max_n_atoms
       TView<Int, 3, D> block_type_intra_repr_path_distance,
-      TView<Int, 1, D> block_type_is_ligand_fragment,
+      TView<Int, 1, D> block_type_all_atoms_ligand_typed,
       //////////////////////
 
       // LJ parameters
       TView<ElecGlobalParams<Real>, 1, D> global_params,
       Real max_dis,
+      TView<Int, 1, D> shared_compact_block_neighbors,
       bool output_block_pair_energies,
       bool compute_derivs) -> std::
       tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 2, D>, TPack<Int, 3, D> >;
@@ -157,7 +158,7 @@ struct ElecPoseScoreDispatch {
       // Entry i, j stores path_dist[rep(i), rep(j)]
       // Dimsize: n_block_types x max_n_atoms x max_n_atoms
       TView<Int, 3, D> block_type_intra_repr_path_distance,
-      TView<Int, 1, D> block_type_is_ligand_fragment,
+      TView<Int, 1, D> block_type_all_atoms_ligand_typed,
       //////////////////////
 
       // LJ parameters
@@ -187,6 +188,9 @@ struct ElecRotamerScoreDispatch {
       TView<Int, 1, D> rot_offset_for_pose,
       TView<Int, 2, D> n_rots_for_block,
       TView<Int, 2, D> rot_offset_for_block,
+      // [n_poses, max_n_blocks]; blocks sharing an id >= 0 move in
+      // lockstep, so only matching rotamer indices ever coexist
+      TView<Int, 2, D> lockstep_group_for_block,
       Int max_n_rots_per_pose,
 
       // dims: n-poses x max-n-blocks x max-n-blocks
@@ -231,14 +235,15 @@ struct ElecRotamerScoreDispatch {
       // Entry i, j stores path_dist[rep(i), rep(j)]
       // Dimsize: n_block_types x max_n_atoms x max_n_atoms
       TView<Int, 3, D> block_type_intra_repr_path_distance,
-      TView<Int, 1, D> block_type_is_ligand_fragment,
+      TView<Int, 1, D> block_type_all_atoms_ligand_typed,
       //////////////////////
 
       // LJ parameters
       TView<ElecGlobalParams<Real>, 1, D> global_params,
       Real max_dis,
       bool output_block_pair_energies,
-      bool compute_derivs) -> std::
+      bool compute_derivs,
+      TPack<Int, 2, D> shared_dispatch_indices) -> std::
       tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 2, D>, TPack<Int, 2, D> >;
 
   static auto backward(
@@ -300,7 +305,7 @@ struct ElecRotamerScoreDispatch {
       // Entry i, j stores path_dist[rep(i), rep(j)]
       // Dimsize: n_block_types x max_n_atoms x max_n_atoms
       TView<Int, 3, D> block_type_intra_repr_path_distance,
-      TView<Int, 1, D> block_type_is_ligand_fragment,
+      TView<Int, 1, D> block_type_all_atoms_ligand_typed,
       //////////////////////
 
       // LJ parameters

@@ -1,21 +1,34 @@
-import torch
+import time
+import weakref
+
 import numpy
 import pytest
+import torch
 
-from tmol.relax.fast_relax import _default_cart_min_fn, fast_relax
-import time
+from tmol.relax import fast_relax
+import tmol.relax._fast_relax as fast_relax_module
+from tmol.relax._fast_relax import _resolve_cuda_graph_mode
+from tmol.optimization import CartesianMinimizer
 
-from tmol.pose.pose_stack import PoseStack
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.score.score_function import ScoreFunction
-from tmol.score.score_types import ScoreType
-
-from tmol.pack.packer_task import PackerPalette
-from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
-from tmol.pack.rotamer.include_current_sampler import IncludeCurrentSampler
-from tmol.kinematics.move_map import CartesianMoveMap, MoveMap
-from tmol.kinematics.fold_forest import EdgeType, FoldForest
-
+from tmol.pose import (
+    PoseStack,
+    PoseStackBuilder,
+)
+from tmol.score import (
+    ScoreFunction,
+    ScoreType,
+)
+from tmol.pack import PackerPalette
+from tmol.pack.rotamer import (
+    FixedAAChiSampler,
+    IncludeCurrentSampler,
+)
+from tmol.kinematics import (
+    CartesianMoveMap,
+    MoveMap,
+    EdgeType,
+    FoldForest,
+)
 from tmol.io import pose_stack_from_pdb
 
 
@@ -45,6 +58,25 @@ def get_relax_sfxn(default_database, torch_device):
     sfxn.set_weight(ScoreType.disulfide, 1.0)
 
     return sfxn
+
+
+@pytest.mark.parametrize(
+    "pdb_fixture, expected",
+    [
+        ("ubq_pdb", False),
+        ("dna_pdb", True),
+        ("rna_pdb", True),
+        ("protein_dna_pdb", True),
+    ],
+)
+def test_fast_relax_automatic_graph_mode(request, pdb_fixture, expected, torch_device):
+    pose_stack = pose_stack_from_pdb(request.getfixturevalue(pdb_fixture), torch_device)
+
+    assert _resolve_cuda_graph_mode(pose_stack, None) == (
+        expected and torch_device.type == "cuda"
+    )
+    assert _resolve_cuda_graph_mode(pose_stack, True)
+    assert not _resolve_cuda_graph_mode(pose_stack, False)
 
 
 @pytest.mark.parametrize("n_poses", [1])
@@ -103,8 +135,7 @@ def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
 def test_cart_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_poses):
     """Cartesian fast-relax on ubiquitin using CartesianSfxnNetwork.
 
-    Mirrors test_fast_relax_ubq but swaps the kinematic min_fn for the
-    Cartesian one via _default_cart_min_fn + CartesianMoveMap.
+    Exercise the default Cartesian minimizer with CUDA graph capture.
     """
     if torch_device == torch.device("cpu"):
         pytest.skip("CUDA only test")
@@ -138,7 +169,7 @@ def test_cart_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
         cart_mm,
         fold_forest,
         task_operations=[task_op],
-        min_fn=_default_cart_min_fn,
+        cuda_graph=True,
         num_repeats=1,
         verbose=verbose,
     )
@@ -154,11 +185,161 @@ def test_cart_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
     print(f"1ubq {n_poses} CartRelax Execution time: {elapsed_time:.6f} seconds")
 
 
+def test_fast_relax_releases_minimizer_state_between_packing_stages(
+    default_database, ubq_pdb, dun_sampler, torch_device, monkeypatch
+):
+    """Keep repeated pack/min results exact without retaining prior minimization."""
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=8)
+    palette = PackerPalette()
+    move_map = CartesianMoveMap()
+    fold_forest = FoldForest.reasonable_fold_forest(pose)
+    schedule = [0.2, 1.0]
+    optimizer_kwargs = {
+        "max_iter": 1,
+        "fixed_iterations": True,
+        "gradtol": 0.0,
+        "atol": 0.0,
+        "rtol": 0.0,
+    }
+
+    def task_op(task):
+        task.restrict_to_repacking()
+        task.add_conformer_sampler(dun_sampler)
+        task.add_conformer_sampler(FixedAAChiSampler())
+        task.add_conformer_sampler(IncludeCurrentSampler())
+
+    class RecordingMinimizer:
+        def __init__(self, release_between_stages):
+            self.minimizer = CartesianMinimizer(cuda_graph=torch_device.type == "cuda")
+            self.release_between_stages = release_between_stages
+            self.energies = []
+            self.gradients = []
+            self.released_allocations = []
+            self.network_refs = []
+            self.optimizer_refs = []
+
+        def __call__(
+            self,
+            current,
+            score_function,
+            *,
+            fold_forest,
+            move_map,
+            verbose,
+        ):
+            result = self.minimizer(
+                current,
+                score_function,
+                optimizer_kwargs=optimizer_kwargs,
+            )
+            network = self.minimizer.network
+            self.network_refs.append(weakref.ref(network))
+            self.optimizer_refs.append(weakref.ref(self.minimizer.optimizer))
+            network.zero_grad()
+            energy = network()
+            energy.sum().backward()
+            self.energies.append(energy.detach().clone())
+            self.gradients.append(network.masked_coords.grad.detach().clone())
+            return result
+
+        def release_retained_state(self):
+            if not self.release_between_stages:
+                return
+            self.minimizer.release_retained_state()
+            if torch_device.type == "cuda":
+                torch.cuda.synchronize(torch_device)
+                self.released_allocations.append(
+                    torch.cuda.memory_allocated(torch_device)
+                )
+
+    original_pack_rotamers = fast_relax_module.pack_rotamers
+
+    def run(release_between_stages):
+        assignments = []
+        pack_entry_allocations = []
+
+        def record_pack(current, score_function, task, verbose=False):
+            if torch_device.type == "cuda":
+                torch.cuda.synchronize(torch_device)
+                pack_entry_allocations.append(torch.cuda.memory_allocated(torch_device))
+            packed = original_pack_rotamers(
+                current, score_function, task, verbose=verbose
+            )
+            assignments.append(
+                (packed.block_type_ind.detach().clone(), packed.coords.detach().clone())
+            )
+            return packed
+
+        monkeypatch.setattr(fast_relax_module, "pack_rotamers", record_pack)
+        score_function = get_relax_sfxn(default_database, torch_device)
+        minimizer = RecordingMinimizer(release_between_stages)
+        torch.manual_seed(742)
+        result = fast_relax(
+            pose,
+            score_function,
+            palette,
+            move_map,
+            fold_forest,
+            task_operations=[task_op],
+            num_repeats=1,
+            schedule=schedule,
+            min_fn=minimizer,
+        )
+        return result, assignments, minimizer, pack_entry_allocations
+
+    original_threads = torch.get_num_threads()
+    torch.set_num_threads(1)
+    try:
+        retained_result, retained_assignments, retained, _ = run(False)
+        retained.minimizer.release_retained_state()
+        released_result, released_assignments, released, pack_allocations = run(True)
+    finally:
+        torch.set_num_threads(original_threads)
+
+    torch.testing.assert_close(
+        released_result.coords, retained_result.coords, rtol=0, atol=0
+    )
+    assert len(released_assignments) == len(retained_assignments) == len(schedule)
+    for released_assignment, retained_assignment in zip(
+        released_assignments, retained_assignments
+    ):
+        torch.testing.assert_close(
+            released_assignment[0], retained_assignment[0], rtol=0, atol=0
+        )
+        torch.testing.assert_close(
+            released_assignment[1], retained_assignment[1], rtol=0, atol=0
+        )
+    for released_energy, retained_energy in zip(released.energies, retained.energies):
+        torch.testing.assert_close(
+            released_energy, retained_energy, rtol=1e-6, atol=1e-6
+        )
+    for released_gradient, retained_gradient in zip(
+        released.gradients, retained.gradients
+    ):
+        torch.testing.assert_close(
+            released_gradient, retained_gradient, rtol=1e-5, atol=1e-5
+        )
+
+    assert released.minimizer.network is None
+    assert released.minimizer.optimizer is None
+    assert all(reference() is None for reference in released.network_refs)
+    assert all(reference() is None for reference in released.optimizer_refs)
+    if torch_device.type == "cuda":
+        assert len(pack_allocations) == len(schedule)
+        assert len(released.released_allocations) == len(schedule)
+        assert (
+            max(pack_allocations) - min(pack_allocations) < 2 * 1024**2
+        ), pack_allocations
+        assert (
+            max(released.released_allocations) - min(released.released_allocations)
+            < 2 * 1024**2
+        ), released.released_allocations
+
+
 @pytest.mark.parametrize("n_poses", [1])
 def test_fast_relax_pertuz(
     default_database, erbb2_and_pertuzumab_pdb, dun_sampler, torch_device, n_poses
 ):
-
     if torch_device == torch.device("cpu"):
         pytest.skip("CUDA only test")
 
@@ -241,8 +422,8 @@ def test_fast_relax_pertuz(
 def test_fast_relax_for_different_shapes(
     ubq_pdb, erbb2_and_pertuzumab_pdb, default_database, dun_sampler, torch_device
 ):
-    # if torch_device == torch.device("cpu"):
-    #    pytest.skip("CUDA only test")
+    if torch_device == torch.device("cpu"):
+        pytest.skip("CUDA only test")
 
     res_not_connected = torch.zeros((1, 40, 2), dtype=torch.bool, device=torch_device)
     res_not_connected[0, 0, 0] = True
