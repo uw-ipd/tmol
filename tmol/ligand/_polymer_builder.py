@@ -12,6 +12,9 @@ from collections import deque
 
 import numpy
 
+from atomworks.protonation import signed_dihedral_angle as _dihedral
+from atomworks.protonation import vertex_angle as _angle
+
 from tmol.database.chemical import (
     ChemicalProperties,
     Connection,
@@ -23,7 +26,6 @@ from tmol.database.chemical import (
     UnresolvedAtom,
 )
 from tmol.ligand._polymer_profile import PolymerProfile
-from tmol.ligand._residue_builder import _angle, _dihedral, _distance
 
 # non-canonicals with no acceptible sidechain mapping fall back to this AA
 #   for backbone potential mapping
@@ -595,13 +597,17 @@ def _computed_icoors(order, frames, coords):
         if i == 0:
             d, theta, phi = 0.0, 0.0, 0.0
         elif i == 1:
-            d, theta, phi = _distance(coords[name], coords[par]), 180.0, 0.0
+            d, theta, phi = (
+                float(numpy.linalg.norm(coords[name] - coords[par])),
+                180.0,
+                0.0,
+            )
         elif i == 2:
-            d = _distance(coords[name], coords[par])
+            d = float(numpy.linalg.norm(coords[name] - coords[par]))
             theta = 180.0 - _angle(coords[name], coords[par], coords[gp])
             phi = 0.0
         else:
-            d = _distance(coords[name], coords[par])
+            d = float(numpy.linalg.norm(coords[name] - coords[par]))
             theta = 180.0 - _angle(coords[name], coords[par], coords[gp])
             phi = -_dihedral(coords[name], coords[par], coords[gp], coords[ggp])
         icoors.append(
@@ -935,7 +941,9 @@ def add_capped_junction_parameters(
             neighbor = (
                 bond.atm2
                 if bond.atm1 == stub
-                else bond.atm1 if bond.atm2 == stub else None
+                else bond.atm1
+                if bond.atm2 == stub
+                else None
             )
             if elements.get(neighbor) == "H":
                 cross[neighbor] = "+H"
