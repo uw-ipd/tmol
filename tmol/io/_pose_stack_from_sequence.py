@@ -1,7 +1,10 @@
 from typing import Dict, List, Optional
 
 import attr
+import math
+
 import numpy
+from atomworks.protonation import vertex_angle
 import torch
 
 from tmol.chemical import ResidueTypeSet
@@ -321,10 +324,8 @@ def _junction_torsion_value(prev_bt, prev_conn):
 
 
 def _angle(a, b, c):
-    ba = a - b
-    bc = c - b
-    cos = numpy.dot(ba, bc) / (numpy.linalg.norm(ba) * numpy.linalg.norm(bc))
-    return numpy.arccos(numpy.clip(cos, -1.0, 1.0))
+    """Angle at vertex b, in radians."""
+    return math.radians(vertex_angle(a, b, c))
 
 
 def _place_atom(a, b, c, dist, angle, torsion):
