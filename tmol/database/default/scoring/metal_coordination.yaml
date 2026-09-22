@@ -1,0 +1,37 @@
+# Parameters for the metal_coordination term.
+#
+# Every value here is provisional. They are only meaningful jointly with the
+# lk_ball site strength (lk_dgfree in ljlk.yaml) and, later, the deprotonation
+# penalty, so they are fit together against the fixture corpus rather than
+# separately.
+#
+# Site geometry is restrained by distances alone -- metal-ligand, and
+# ligand-ligand between occupied sites -- because a ligand-metal-ligand angle
+# is singular at the 180 degree targets an octahedron has three of. A pair
+# whose separation is already fixed by covalent geometry is skipped: two
+# satisfiers inside one block, or the two oxygens of a chelating carboxylate.
+
+global_parameters:
+  # harmonic sd on the metal-ligand distance; matches the stiffness Rosetta
+  #    uses for the same restraint
+  metal_ligand_sd: 0.10
+  # ligand-ligand is the polyhedron's shape rather than a bond, and real sites
+  #    deviate further, so it is held more loosely
+  ligand_ligand_sd: 0.20
+  # circular harmonic sd, radians, on the metal-ligand-parent angle. This is
+  #    what stops a carboxylate presenting its oxygen from any direction while
+  #    the polyhedron stays perfect; it is not optional
+  ligand_direction_sd: 0.20
+  # a ligand beyond this fraction of its ideal distance is not a candidate
+  detection_distance_tolerance: 1.25
+
+# Well depth per donor element, kcal/mol. A coordinating donor occludes the
+#    site water it replaces, which costs 1.8-4.6 kcal/mol depending on the ion
+#    and donor, so these are bounded below by that: the net must stay
+#    favourable. Sulfur runs deeper because its larger lk_volume displaces more
+#    site water than nitrogen or oxygen does at the same site.
+well_depth:
+  - { donor: O   , depth: -9.0 }
+  - { donor: N   , depth: -9.0 }
+  - { donor: S   , depth: -10.0 }
+  - { donor: Owat, depth: -9.0 }

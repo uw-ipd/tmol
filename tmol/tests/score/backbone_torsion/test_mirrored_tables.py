@@ -164,7 +164,16 @@ def test_every_amino_acid_block_type_has_backbone_tables(term, param_db) -> None
 
 
 @pytest.mark.parametrize(
-    "borrower,parent", [("CYD", "CYS"), ("HIS_POS", "HIS"), ("HIS_D", "HIS")]
+    "borrower,parent",
+    [
+        ("CYD", "CYS"),
+        ("HIS_POS", "HIS"),
+        ("HIS_D", "HIS"),
+        ("CYS_D", "CYS"),
+        ("TYR_D", "TYR"),
+        ("DCYS_D", "DCYS"),
+        ("DTYR_D", "DTYR"),
+    ],
 )
 def test_tautomers_share_their_class_tables(term, param_db, borrower, parent) -> None:
     borrowed = block_type_params(term, param_db, borrower)

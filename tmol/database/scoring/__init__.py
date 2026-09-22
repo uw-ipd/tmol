@@ -69,7 +69,7 @@ import attr
 from ._ref import RefDatabase  # noqa: F401
 
 # residue sets written by a support script, merged into the databases at load
-GENERATED_ELEC_FILES = ("elec_d_amino_acids.yaml",)
+GENERATED_ELEC_FILES = ("elec_d_amino_acids.yaml", "elec_metal_ions.yaml")
 GENERATED_CARTBONDED_FILES = ("cartbonded_d_amino_acids.yaml",)
 GENERATED_REF_FILES = ("ref_d_amino_acids.yaml",)
 
@@ -106,7 +106,10 @@ class ScoringDatabase:
             na_torsion=NaTorsionDatabase.from_file(
                 os.path.join(path, "na_torsion.yaml")
             ),
-            dun=DunbrackRotamerLibrary.from_file(os.path.join(path, "dunbrack.bin")),
+            dun=DunbrackRotamerLibrary.from_file(
+                os.path.join(path, "dunbrack.bin"),
+                lookup=os.path.join(path, "dunbrack.yaml"),
+            ),
             elec=ElecDatabase.from_file(
                 os.path.join(path, "elec.yaml"),
                 generated=[os.path.join(path, f) for f in GENERATED_ELEC_FILES],

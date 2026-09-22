@@ -228,3 +228,28 @@ def test_set_packer_task_ctor(ubq_pdb, torch_device):
     assert set_task.allowed_bt_block_type.shape == (n_allowed,)
     assert set_task.is_cons_bt_allowed.shape == (12 * 21,)
     assert set_task.allowed_cons_bt.shape == (n_allowed,)
+
+
+def test_types_only_metal_detection_selects_keep_their_own_palette(
+    fresh_default_packed_block_types, torch_device
+):
+    # metals are never packed, and a deprotonated form belongs to the residue
+    # detection assigned it to; neither trades places with anything else
+    pp = PackerPalette()
+    pbt = fresh_default_packed_block_types
+    names = [bt.name for bt in pbt.active_block_types]
+    for name in ("ZN_tetrahedral", "CYS_D", "TYR_D"):
+        i = names.index(name)
+        n_allowed, allowed_bts, _ = pp.block_types_from_original(
+            pbt, torch.tensor([[i]], dtype=torch.int64, device=torch_device)
+        )
+        assert n_allowed[0, 0] == 1
+        assert allowed_bts[0, 0, 0] == i
+
+    # and no other type's palette offers them
+    hoh = names.index("HOH")
+    n_allowed, allowed_bts, _ = pp.block_types_from_original(
+        pbt, torch.tensor([[hoh]], dtype=torch.int64, device=torch_device)
+    )
+    offered = {names[j] for j in allowed_bts[0, 0, : n_allowed[0, 0]].tolist()}
+    assert not any(pbt.active_block_types[names.index(n)].metal_sites for n in offered)

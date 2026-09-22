@@ -1,0 +1,1533 @@
+residues:
+- name: MG_octahedral
+  base_name: MG_octahedral
+  name3: MG
+  io_equiv_class: MG
+  atoms:
+  - {name: MG, atom_type: Mg2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  - {name: V6, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [MG, V1, SINGLE, false]
+  - [MG, V2, SINGLE, false]
+  - [MG, V3, SINGLE, false]
+  - [MG, V4, SINGLE, false]
+  - [MG, V5, SINGLE, false]
+  - [MG, V6, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: MG, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: MG, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.086, parent: MG, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 90.000000 deg, d: 2.086, parent: MG, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -90.000000 deg, theta: 90.000000 deg, d: 2.086, parent: MG, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: -0.000000 deg, theta: 0.000000 deg, d: 2.086, parent: MG, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V5, phi: -180.000000 deg, theta: 90.000000 deg, d: 2.086, parent: MG, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V6, phi: 90.000000 deg, theta: 90.000000 deg, d: 2.086, parent: MG, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id001 [V1, V2, V3, V4, V5, V6]
+  chi_samples: []
+  default_jump_connection_atom: MG
+  metal_sites:
+  - metal_atom: MG
+    geometry: octahedral
+    internal_satisfiers: []
+    site_virts: *id001
+- name: CA_irregular
+  base_name: CA_irregular
+  name3: CA
+  io_equiv_class: CA
+  atoms:
+  - {name: CA, atom_type: Ca2p}
+  atom_aliases: []
+  bonds: []
+  connections: []
+  torsions: []
+  icoors:
+  - {name: CA, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: CA, grand_parent: CA,
+    great_grand_parent: CA}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id002 []
+  chi_samples: []
+  default_jump_connection_atom: CA
+  metal_sites:
+  - metal_atom: CA
+    geometry: irregular
+    internal_satisfiers: []
+    site_virts: *id002
+- name: NA_irregular
+  base_name: NA_irregular
+  name3: NA
+  io_equiv_class: NA
+  atoms:
+  - {name: NA, atom_type: Na1p}
+  atom_aliases: []
+  bonds: []
+  connections: []
+  torsions: []
+  icoors:
+  - {name: NA, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: NA, grand_parent: NA,
+    great_grand_parent: NA}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id003 []
+  chi_samples: []
+  default_jump_connection_atom: NA
+  metal_sites:
+  - metal_atom: NA
+    geometry: irregular
+    internal_satisfiers: []
+    site_virts: *id003
+- name: K_irregular
+  base_name: K_irregular
+  name3: K
+  io_equiv_class: K
+  atoms:
+  - {name: K, atom_type: K1p}
+  atom_aliases: []
+  bonds: []
+  connections: []
+  torsions: []
+  icoors:
+  - {name: K, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: K, grand_parent: K,
+    great_grand_parent: K}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id004 []
+  chi_samples: []
+  default_jump_connection_atom: K
+  metal_sites:
+  - metal_atom: K
+    geometry: irregular
+    internal_satisfiers: []
+    site_virts: *id004
+- name: MN_octahedral
+  base_name: MN_octahedral
+  name3: MN
+  io_equiv_class: MN
+  atoms:
+  - {name: MN, atom_type: Mn2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  - {name: V6, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [MN, V1, SINGLE, false]
+  - [MN, V2, SINGLE, false]
+  - [MN, V3, SINGLE, false]
+  - [MN, V4, SINGLE, false]
+  - [MN, V5, SINGLE, false]
+  - [MN, V6, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: MN, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: MN, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.195, parent: MN, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 90.000000 deg, d: 2.195, parent: MN, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -90.000000 deg, theta: 90.000000 deg, d: 2.195, parent: MN, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: -0.000000 deg, theta: 0.000000 deg, d: 2.195, parent: MN, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V5, phi: -180.000000 deg, theta: 90.000000 deg, d: 2.195, parent: MN, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V6, phi: 90.000000 deg, theta: 90.000000 deg, d: 2.195, parent: MN, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id005 [V1, V2, V3, V4, V5, V6]
+  chi_samples: []
+  default_jump_connection_atom: MN
+  metal_sites:
+  - metal_atom: MN
+    geometry: octahedral
+    internal_satisfiers: []
+    site_virts: *id005
+- name: FE2_octahedral
+  base_name: FE2_octahedral
+  name3: FE2
+  io_equiv_class: FE2
+  atoms:
+  - {name: FE, atom_type: Fe2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  - {name: V6, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [FE, V1, SINGLE, false]
+  - [FE, V2, SINGLE, false]
+  - [FE, V3, SINGLE, false]
+  - [FE, V4, SINGLE, false]
+  - [FE, V5, SINGLE, false]
+  - [FE, V6, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: FE, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.137, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 90.000000 deg, d: 2.137, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -90.000000 deg, theta: 90.000000 deg, d: 2.137, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: -0.000000 deg, theta: 0.000000 deg, d: 2.137, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V5, phi: -180.000000 deg, theta: 90.000000 deg, d: 2.137, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V6, phi: 90.000000 deg, theta: 90.000000 deg, d: 2.137, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id006 [V1, V2, V3, V4, V5, V6]
+  chi_samples: []
+  default_jump_connection_atom: FE
+  metal_sites:
+  - metal_atom: FE
+    geometry: octahedral
+    internal_satisfiers: []
+    site_virts: *id006
+- name: FE2_tetrahedral
+  base_name: FE2_tetrahedral
+  name3: FE2
+  io_equiv_class: FE2
+  atoms:
+  - {name: FE, atom_type: Fe2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [FE, V1, SINGLE, false]
+  - [FE, V2, SINGLE, false]
+  - [FE, V3, SINGLE, false]
+  - [FE, V4, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: FE, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.137, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 70.528779 deg, d: 2.137, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -120.000000 deg, theta: 70.528779 deg, d: 2.137, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: 120.000000 deg, theta: 70.528779 deg, d: 2.137, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id007 [V1, V2, V3, V4]
+  chi_samples: []
+  default_jump_connection_atom: FE
+  metal_sites:
+  - metal_atom: FE
+    geometry: tetrahedral
+    internal_satisfiers: []
+    site_virts: *id007
+- name: FE_octahedral
+  base_name: FE_octahedral
+  name3: FE
+  io_equiv_class: FE
+  atoms:
+  - {name: FE, atom_type: Fe3p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  - {name: V6, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [FE, V1, SINGLE, false]
+  - [FE, V2, SINGLE, false]
+  - [FE, V3, SINGLE, false]
+  - [FE, V4, SINGLE, false]
+  - [FE, V5, SINGLE, false]
+  - [FE, V6, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: FE, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.186, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 90.000000 deg, d: 2.186, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -90.000000 deg, theta: 90.000000 deg, d: 2.186, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: -0.000000 deg, theta: 0.000000 deg, d: 2.186, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V5, phi: -180.000000 deg, theta: 90.000000 deg, d: 2.186, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V6, phi: 90.000000 deg, theta: 90.000000 deg, d: 2.186, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id008 [V1, V2, V3, V4, V5, V6]
+  chi_samples: []
+  default_jump_connection_atom: FE
+  metal_sites:
+  - metal_atom: FE
+    geometry: octahedral
+    internal_satisfiers: []
+    site_virts: *id008
+- name: FE_tetrahedral
+  base_name: FE_tetrahedral
+  name3: FE
+  io_equiv_class: FE
+  atoms:
+  - {name: FE, atom_type: Fe3p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [FE, V1, SINGLE, false]
+  - [FE, V2, SINGLE, false]
+  - [FE, V3, SINGLE, false]
+  - [FE, V4, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: FE, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.186, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 70.528779 deg, d: 2.186, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -120.000000 deg, theta: 70.528779 deg, d: 2.186, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: 120.000000 deg, theta: 70.528779 deg, d: 2.186, parent: FE, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id009 [V1, V2, V3, V4]
+  chi_samples: []
+  default_jump_connection_atom: FE
+  metal_sites:
+  - metal_atom: FE
+    geometry: tetrahedral
+    internal_satisfiers: []
+    site_virts: *id009
+- name: CO_octahedral
+  base_name: CO_octahedral
+  name3: CO
+  io_equiv_class: CO
+  atoms:
+  - {name: CO, atom_type: Co2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  - {name: V6, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [CO, V1, SINGLE, false]
+  - [CO, V2, SINGLE, false]
+  - [CO, V3, SINGLE, false]
+  - [CO, V4, SINGLE, false]
+  - [CO, V5, SINGLE, false]
+  - [CO, V6, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: CO, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: CO, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.128, parent: CO, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 90.000000 deg, d: 2.128, parent: CO, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -90.000000 deg, theta: 90.000000 deg, d: 2.128, parent: CO, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: -0.000000 deg, theta: 0.000000 deg, d: 2.128, parent: CO, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V5, phi: -180.000000 deg, theta: 90.000000 deg, d: 2.128, parent: CO, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V6, phi: 90.000000 deg, theta: 90.000000 deg, d: 2.128, parent: CO, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id010 [V1, V2, V3, V4, V5, V6]
+  chi_samples: []
+  default_jump_connection_atom: CO
+  metal_sites:
+  - metal_atom: CO
+    geometry: octahedral
+    internal_satisfiers: []
+    site_virts: *id010
+- name: CO_tetrahedral
+  base_name: CO_tetrahedral
+  name3: CO
+  io_equiv_class: CO
+  atoms:
+  - {name: CO, atom_type: Co2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [CO, V1, SINGLE, false]
+  - [CO, V2, SINGLE, false]
+  - [CO, V3, SINGLE, false]
+  - [CO, V4, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: CO, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: CO, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.128, parent: CO, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 70.528779 deg, d: 2.128, parent: CO, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -120.000000 deg, theta: 70.528779 deg, d: 2.128, parent: CO, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: 120.000000 deg, theta: 70.528779 deg, d: 2.128, parent: CO, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id011 [V1, V2, V3, V4]
+  chi_samples: []
+  default_jump_connection_atom: CO
+  metal_sites:
+  - metal_atom: CO
+    geometry: tetrahedral
+    internal_satisfiers: []
+    site_virts: *id011
+- name: 3CO_octahedral
+  base_name: 3CO_octahedral
+  name3: 3CO
+  io_equiv_class: 3CO
+  atoms:
+  - {name: CO, atom_type: Co3p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  - {name: V6, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [CO, V1, SINGLE, false]
+  - [CO, V2, SINGLE, false]
+  - [CO, V3, SINGLE, false]
+  - [CO, V4, SINGLE, false]
+  - [CO, V5, SINGLE, false]
+  - [CO, V6, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: CO, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: CO, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.014, parent: CO, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 90.000000 deg, d: 2.014, parent: CO, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -90.000000 deg, theta: 90.000000 deg, d: 2.014, parent: CO, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: -0.000000 deg, theta: 0.000000 deg, d: 2.014, parent: CO, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V5, phi: -180.000000 deg, theta: 90.000000 deg, d: 2.014, parent: CO, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V6, phi: 90.000000 deg, theta: 90.000000 deg, d: 2.014, parent: CO, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id012 [V1, V2, V3, V4, V5, V6]
+  chi_samples: []
+  default_jump_connection_atom: CO
+  metal_sites:
+  - metal_atom: CO
+    geometry: octahedral
+    internal_satisfiers: []
+    site_virts: *id012
+- name: NI_octahedral
+  base_name: NI_octahedral
+  name3: NI
+  io_equiv_class: NI
+  atoms:
+  - {name: NI, atom_type: Ni2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  - {name: V6, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [NI, V1, SINGLE, false]
+  - [NI, V2, SINGLE, false]
+  - [NI, V3, SINGLE, false]
+  - [NI, V4, SINGLE, false]
+  - [NI, V5, SINGLE, false]
+  - [NI, V6, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: NI, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: NI, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.101, parent: NI, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 90.000000 deg, d: 2.101, parent: NI, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -90.000000 deg, theta: 90.000000 deg, d: 2.101, parent: NI, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: -0.000000 deg, theta: 0.000000 deg, d: 2.101, parent: NI, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V5, phi: -180.000000 deg, theta: 90.000000 deg, d: 2.101, parent: NI, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V6, phi: 90.000000 deg, theta: 90.000000 deg, d: 2.101, parent: NI, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id013 [V1, V2, V3, V4, V5, V6]
+  chi_samples: []
+  default_jump_connection_atom: NI
+  metal_sites:
+  - metal_atom: NI
+    geometry: octahedral
+    internal_satisfiers: []
+    site_virts: *id013
+- name: NI_square_planar
+  base_name: NI_square_planar
+  name3: NI
+  io_equiv_class: NI
+  atoms:
+  - {name: NI, atom_type: Ni2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [NI, V1, SINGLE, false]
+  - [NI, V2, SINGLE, false]
+  - [NI, V3, SINGLE, false]
+  - [NI, V4, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: NI, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: NI, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.101, parent: NI, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 90.000000 deg, d: 2.101, parent: NI, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -0.000000 deg, theta: 0.000000 deg, d: 2.101, parent: NI, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: -180.000000 deg, theta: 90.000000 deg, d: 2.101, parent: NI, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id014 [V1, V2, V3, V4]
+  chi_samples: []
+  default_jump_connection_atom: NI
+  metal_sites:
+  - metal_atom: NI
+    geometry: square_planar
+    internal_satisfiers: []
+    site_virts: *id014
+- name: NI_tetrahedral
+  base_name: NI_tetrahedral
+  name3: NI
+  io_equiv_class: NI
+  atoms:
+  - {name: NI, atom_type: Ni2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [NI, V1, SINGLE, false]
+  - [NI, V2, SINGLE, false]
+  - [NI, V3, SINGLE, false]
+  - [NI, V4, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: NI, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: NI, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.101, parent: NI, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 70.528779 deg, d: 2.101, parent: NI, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -120.000000 deg, theta: 70.528779 deg, d: 2.101, parent: NI, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: 120.000000 deg, theta: 70.528779 deg, d: 2.101, parent: NI, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id015 [V1, V2, V3, V4]
+  chi_samples: []
+  default_jump_connection_atom: NI
+  metal_sites:
+  - metal_atom: NI
+    geometry: tetrahedral
+    internal_satisfiers: []
+    site_virts: *id015
+- name: CU1_trigonal
+  base_name: CU1_trigonal
+  name3: CU1
+  io_equiv_class: CU1
+  atoms:
+  - {name: CU, atom_type: Cu1p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [CU, V1, SINGLE, false]
+  - [CU, V2, SINGLE, false]
+  - [CU, V3, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: CU, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.174, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 59.999988 deg, d: 2.174, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -180.000000 deg, theta: 59.999988 deg, d: 2.174, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id016 [V1, V2, V3]
+  chi_samples: []
+  default_jump_connection_atom: CU
+  metal_sites:
+  - metal_atom: CU
+    geometry: trigonal
+    internal_satisfiers: []
+    site_virts: *id016
+- name: CU1_tetrahedral
+  base_name: CU1_tetrahedral
+  name3: CU1
+  io_equiv_class: CU1
+  atoms:
+  - {name: CU, atom_type: Cu1p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [CU, V1, SINGLE, false]
+  - [CU, V2, SINGLE, false]
+  - [CU, V3, SINGLE, false]
+  - [CU, V4, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: CU, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.174, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 70.528779 deg, d: 2.174, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -120.000000 deg, theta: 70.528779 deg, d: 2.174, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: 120.000000 deg, theta: 70.528779 deg, d: 2.174, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id017 [V1, V2, V3, V4]
+  chi_samples: []
+  default_jump_connection_atom: CU
+  metal_sites:
+  - metal_atom: CU
+    geometry: tetrahedral
+    internal_satisfiers: []
+    site_virts: *id017
+- name: CU1_linear
+  base_name: CU1_linear
+  name3: CU1
+  io_equiv_class: CU1
+  atoms:
+  - {name: CU, atom_type: Cu1p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [CU, V1, SINGLE, false]
+  - [CU, V2, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: CU, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.174, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 0.000000 deg, d: 2.174, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id018 [V1, V2]
+  chi_samples: []
+  default_jump_connection_atom: CU
+  metal_sites:
+  - metal_atom: CU
+    geometry: linear
+    internal_satisfiers: []
+    site_virts: *id018
+- name: CU_square_planar
+  base_name: CU_square_planar
+  name3: CU
+  io_equiv_class: CU
+  atoms:
+  - {name: CU, atom_type: Cu2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [CU, V1, SINGLE, false]
+  - [CU, V2, SINGLE, false]
+  - [CU, V3, SINGLE, false]
+  - [CU, V4, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: CU, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.127, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 90.000000 deg, d: 2.127, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -0.000000 deg, theta: 0.000000 deg, d: 2.127, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: -180.000000 deg, theta: 90.000000 deg, d: 2.127, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id019 [V1, V2, V3, V4]
+  chi_samples: []
+  default_jump_connection_atom: CU
+  metal_sites:
+  - metal_atom: CU
+    geometry: square_planar
+    internal_satisfiers: []
+    site_virts: *id019
+- name: CU_square_pyramidal
+  base_name: CU_square_pyramidal
+  name3: CU
+  io_equiv_class: CU
+  atoms:
+  - {name: CU, atom_type: Cu2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [CU, V1, SINGLE, false]
+  - [CU, V2, SINGLE, false]
+  - [CU, V3, SINGLE, false]
+  - [CU, V4, SINGLE, false]
+  - [CU, V5, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: CU, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.127, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 90.000000 deg, d: 2.127, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -90.000000 deg, theta: 90.000000 deg, d: 2.127, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: -180.000000 deg, theta: 90.000000 deg, d: 2.127, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V5, phi: 90.000000 deg, theta: 90.000000 deg, d: 2.127, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id020 [V1, V2, V3, V4, V5]
+  chi_samples: []
+  default_jump_connection_atom: CU
+  metal_sites:
+  - metal_atom: CU
+    geometry: square_pyramidal
+    internal_satisfiers: []
+    site_virts: *id020
+- name: CU_octahedral
+  base_name: CU_octahedral
+  name3: CU
+  io_equiv_class: CU
+  atoms:
+  - {name: CU, atom_type: Cu2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  - {name: V6, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [CU, V1, SINGLE, false]
+  - [CU, V2, SINGLE, false]
+  - [CU, V3, SINGLE, false]
+  - [CU, V4, SINGLE, false]
+  - [CU, V5, SINGLE, false]
+  - [CU, V6, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: CU, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.127, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 90.000000 deg, d: 2.127, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -90.000000 deg, theta: 90.000000 deg, d: 2.127, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: -0.000000 deg, theta: 0.000000 deg, d: 2.127, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V5, phi: -180.000000 deg, theta: 90.000000 deg, d: 2.127, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V6, phi: 90.000000 deg, theta: 90.000000 deg, d: 2.127, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id021 [V1, V2, V3, V4, V5, V6]
+  chi_samples: []
+  default_jump_connection_atom: CU
+  metal_sites:
+  - metal_atom: CU
+    geometry: octahedral
+    internal_satisfiers: []
+    site_virts: *id021
+- name: CU_trigonal_bipyramidal
+  base_name: CU_trigonal_bipyramidal
+  name3: CU
+  io_equiv_class: CU
+  atoms:
+  - {name: CU, atom_type: Cu2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [CU, V1, SINGLE, false]
+  - [CU, V2, SINGLE, false]
+  - [CU, V3, SINGLE, false]
+  - [CU, V4, SINGLE, false]
+  - [CU, V5, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: CU, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.127, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 90.000000 deg, d: 2.127, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -120.000012 deg, theta: 90.000000 deg, d: 2.127, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: 120.000012 deg, theta: 90.000000 deg, d: 2.127, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V5, phi: -0.000000 deg, theta: 0.000000 deg, d: 2.127, parent: CU, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id022 [V1, V2, V3, V4, V5]
+  chi_samples: []
+  default_jump_connection_atom: CU
+  metal_sites:
+  - metal_atom: CU
+    geometry: trigonal_bipyramidal
+    internal_satisfiers: []
+    site_virts: *id022
+- name: ZN_tetrahedral
+  base_name: ZN_tetrahedral
+  name3: ZN
+  io_equiv_class: ZN
+  atoms:
+  - {name: ZN, atom_type: Zn2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [ZN, V1, SINGLE, false]
+  - [ZN, V2, SINGLE, false]
+  - [ZN, V3, SINGLE, false]
+  - [ZN, V4, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: ZN, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: ZN, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.144, parent: ZN, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 70.528779 deg, d: 2.144, parent: ZN, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -120.000000 deg, theta: 70.528779 deg, d: 2.144, parent: ZN, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: 120.000000 deg, theta: 70.528779 deg, d: 2.144, parent: ZN, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id023 [V1, V2, V3, V4]
+  chi_samples: []
+  default_jump_connection_atom: ZN
+  metal_sites:
+  - metal_atom: ZN
+    geometry: tetrahedral
+    internal_satisfiers: []
+    site_virts: *id023
+- name: ZN_trigonal_bipyramidal
+  base_name: ZN_trigonal_bipyramidal
+  name3: ZN
+  io_equiv_class: ZN
+  atoms:
+  - {name: ZN, atom_type: Zn2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [ZN, V1, SINGLE, false]
+  - [ZN, V2, SINGLE, false]
+  - [ZN, V3, SINGLE, false]
+  - [ZN, V4, SINGLE, false]
+  - [ZN, V5, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: ZN, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: ZN, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.144, parent: ZN, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 90.000000 deg, d: 2.144, parent: ZN, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -120.000012 deg, theta: 90.000000 deg, d: 2.144, parent: ZN, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: 120.000012 deg, theta: 90.000000 deg, d: 2.144, parent: ZN, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V5, phi: -0.000000 deg, theta: 0.000000 deg, d: 2.144, parent: ZN, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id024 [V1, V2, V3, V4, V5]
+  chi_samples: []
+  default_jump_connection_atom: ZN
+  metal_sites:
+  - metal_atom: ZN
+    geometry: trigonal_bipyramidal
+    internal_satisfiers: []
+    site_virts: *id024
+- name: ZN_octahedral
+  base_name: ZN_octahedral
+  name3: ZN
+  io_equiv_class: ZN
+  atoms:
+  - {name: ZN, atom_type: Zn2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  - {name: V6, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [ZN, V1, SINGLE, false]
+  - [ZN, V2, SINGLE, false]
+  - [ZN, V3, SINGLE, false]
+  - [ZN, V4, SINGLE, false]
+  - [ZN, V5, SINGLE, false]
+  - [ZN, V6, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: ZN, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: ZN, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.144, parent: ZN, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 90.000000 deg, d: 2.144, parent: ZN, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -90.000000 deg, theta: 90.000000 deg, d: 2.144, parent: ZN, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: -0.000000 deg, theta: 0.000000 deg, d: 2.144, parent: ZN, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V5, phi: -180.000000 deg, theta: 90.000000 deg, d: 2.144, parent: ZN, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V6, phi: 90.000000 deg, theta: 90.000000 deg, d: 2.144, parent: ZN, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id025 [V1, V2, V3, V4, V5, V6]
+  chi_samples: []
+  default_jump_connection_atom: ZN
+  metal_sites:
+  - metal_atom: ZN
+    geometry: octahedral
+    internal_satisfiers: []
+    site_virts: *id025
+- name: CD_octahedral
+  base_name: CD_octahedral
+  name3: CD
+  io_equiv_class: CD
+  atoms:
+  - {name: CD, atom_type: Cd2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  - {name: V6, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [CD, V1, SINGLE, false]
+  - [CD, V2, SINGLE, false]
+  - [CD, V3, SINGLE, false]
+  - [CD, V4, SINGLE, false]
+  - [CD, V5, SINGLE, false]
+  - [CD, V6, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: CD, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: CD, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.391, parent: CD, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 90.000000 deg, d: 2.391, parent: CD, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -90.000000 deg, theta: 90.000000 deg, d: 2.391, parent: CD, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: -0.000000 deg, theta: 0.000000 deg, d: 2.391, parent: CD, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V5, phi: -180.000000 deg, theta: 90.000000 deg, d: 2.391, parent: CD, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V6, phi: 90.000000 deg, theta: 90.000000 deg, d: 2.391, parent: CD, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id026 [V1, V2, V3, V4, V5, V6]
+  chi_samples: []
+  default_jump_connection_atom: CD
+  metal_sites:
+  - metal_atom: CD
+    geometry: octahedral
+    internal_satisfiers: []
+    site_virts: *id026
+- name: CD_tetrahedral
+  base_name: CD_tetrahedral
+  name3: CD
+  io_equiv_class: CD
+  atoms:
+  - {name: CD, atom_type: Cd2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [CD, V1, SINGLE, false]
+  - [CD, V2, SINGLE, false]
+  - [CD, V3, SINGLE, false]
+  - [CD, V4, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: CD, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: CD, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.391, parent: CD, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 70.528779 deg, d: 2.391, parent: CD, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -120.000000 deg, theta: 70.528779 deg, d: 2.391, parent: CD, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: 120.000000 deg, theta: 70.528779 deg, d: 2.391, parent: CD, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id027 [V1, V2, V3, V4]
+  chi_samples: []
+  default_jump_connection_atom: CD
+  metal_sites:
+  - metal_atom: CD
+    geometry: tetrahedral
+    internal_satisfiers: []
+    site_virts: *id027
+- name: HG_linear
+  base_name: HG_linear
+  name3: HG
+  io_equiv_class: HG
+  atoms:
+  - {name: HG, atom_type: Hg2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [HG, V1, SINGLE, false]
+  - [HG, V2, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: HG, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: HG, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.5, parent: HG, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 0.000000 deg, d: 2.5, parent: HG, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id028 [V1, V2]
+  chi_samples: []
+  default_jump_connection_atom: HG
+  metal_sites:
+  - metal_atom: HG
+    geometry: linear
+    internal_satisfiers: []
+    site_virts: *id028
+- name: HG_tetrahedral
+  base_name: HG_tetrahedral
+  name3: HG
+  io_equiv_class: HG
+  atoms:
+  - {name: HG, atom_type: Hg2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [HG, V1, SINGLE, false]
+  - [HG, V2, SINGLE, false]
+  - [HG, V3, SINGLE, false]
+  - [HG, V4, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: HG, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: HG, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.5, parent: HG, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V2, phi: 0.000000 deg, theta: 70.528779 deg, d: 2.5, parent: HG, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V3, phi: -120.000000 deg, theta: 70.528779 deg, d: 2.5, parent: HG, grand_parent: V1,
+    great_grand_parent: V2}
+  - {name: V4, phi: 120.000000 deg, theta: 70.528779 deg, d: 2.5, parent: HG, grand_parent: V1,
+    great_grand_parent: V2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: &id029 [V1, V2, V3, V4]
+  chi_samples: []
+  default_jump_connection_atom: HG
+  metal_sites:
+  - metal_atom: HG
+    geometry: tetrahedral
+    internal_satisfiers: []
+    site_virts: *id029

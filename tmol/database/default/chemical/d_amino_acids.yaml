@@ -7,6 +7,7 @@ residues:
   name3: DAL
   io_equiv_class: DAL
   one_letter_code: null
+  rama_reference: ALA
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}
@@ -94,7 +95,6 @@ residues:
     virtual: []
   chi_samples: []
   default_jump_connection_atom: CA
-  rama_reference: ALA
   dunbrack_reference: ALA
   reference_mirrored: true
 - name: DARG
@@ -102,6 +102,8 @@ residues:
   name3: DAR
   io_equiv_class: DAR
   one_letter_code: null
+  rama_reference: ARG
+  dunbrack_reference: ARG
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}
@@ -272,14 +274,14 @@ residues:
     virtual: []
   chi_samples: []
   default_jump_connection_atom: CA
-  rama_reference: ARG
-  dunbrack_reference: ARG
   reference_mirrored: true
 - name: DASN
   base_name: DASN
   name3: DSG
   io_equiv_class: DSG
   one_letter_code: null
+  rama_reference: ASN
+  dunbrack_reference: ASN
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}
@@ -394,14 +396,14 @@ residues:
     virtual: []
   chi_samples: []
   default_jump_connection_atom: CA
-  rama_reference: ASN
-  dunbrack_reference: ASN
   reference_mirrored: true
 - name: DASP
   base_name: DASP
   name3: DAS
   io_equiv_class: DAS
   one_letter_code: null
+  rama_reference: ASP
+  dunbrack_reference: ASP
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}
@@ -506,14 +508,14 @@ residues:
     virtual: []
   chi_samples: []
   default_jump_connection_atom: CA
-  rama_reference: ASP
-  dunbrack_reference: ASP
   reference_mirrored: true
 - name: DCYS
   base_name: DCYS
   name3: DCY
   io_equiv_class: DCY
   one_letter_code: null
+  rama_reference: CYS
+  dunbrack_reference: CYS
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}
@@ -617,13 +619,112 @@ residues:
     samples: [60, 180, 300]
     expansions: []
   default_jump_connection_atom: CA
+  reference_mirrored: true
+- name: DCYS_D
+  base_name: DCYS_D
+  name3: DCY
+  io_equiv_class: DCY
   rama_reference: CYS
-  dunbrack_reference: CYS
+  dunbrack_reference: CYS_D
+  atoms:
+  - {name: N, atom_type: Nbb}
+  - {name: CA, atom_type: CAbb}
+  - {name: C, atom_type: CObb}
+  - {name: O, atom_type: OCbb}
+  - {name: CB, atom_type: CH2}
+  - {name: SG, atom_type: Sthio}
+  - {name: H, atom_type: HNbb}
+  - {name: HA, atom_type: Hapo}
+  - {name: HB2, atom_type: Hapo}
+  - {name: HB3, atom_type: Hapo}
+  atom_aliases:
+  - {name: HB2, alt_name: 1HB}
+  - {name: HB3, alt_name: 2HB}
+  bonds:
+  - [N, CA, SINGLE, false]
+  - [N, H, SINGLE, false]
+  - [CA, C, SINGLE, false]
+  - [C, O, DOUBLE, false]
+  - [CA, HA, SINGLE, false]
+  - [CA, CB, SINGLE, false]
+  - [CB, SG, SINGLE, false]
+  - [CB, HB2, SINGLE, false]
+  - [CB, HB3, SINGLE, false]
+  connections:
+  - {name: down, atom: N, type: AROMATIC}
+  - {name: up, atom: C, type: AROMATIC}
+  torsions:
+  - name: phi
+    a: {connection: down, bond_sep_from_conn: 0}
+    b: {atom: N}
+    c: {atom: CA}
+    d: {atom: C}
+  - name: psi
+    a: {atom: N}
+    b: {atom: CA}
+    c: {atom: C}
+    d: {connection: up, bond_sep_from_conn: 0}
+  - name: omega
+    a: {atom: CA}
+    b: {atom: C}
+    c: {connection: up, bond_sep_from_conn: 0}
+    d: {connection: up, bond_sep_from_conn: 1}
+  - name: chi1
+    a: {atom: N}
+    b: {atom: CA}
+    c: {atom: CB}
+    d: {atom: SG}
+  icoors:
+  - {name: N, phi: -0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: N, grand_parent: CA,
+    great_grand_parent: C}
+  - {name: CA, phi: -0.000000 deg, theta: 180.000000 deg, d: 1.458001, parent: N,
+    grand_parent: CA, great_grand_parent: C}
+  - {name: C, phi: -0.000000 deg, theta: 68.800003 deg, d: 1.523258, parent: CA, grand_parent: N,
+    great_grand_parent: C}
+  - {name: up, phi: -150.000000 deg, theta: 63.800018 deg, d: 1.328685, parent: C,
+    grand_parent: CA, great_grand_parent: N}
+  - {name: O, phi: -180.000000 deg, theta: 59.200008 deg, d: 1.231015, parent: C,
+    grand_parent: CA, great_grand_parent: up}
+  - {name: CB, phi: 121.600000 deg, theta: 69.400000 deg, d: 1.528861, parent: CA,
+    grand_parent: N, great_grand_parent: C}
+  - {name: SG, phi: -0.000000 deg, theta: 65.900000 deg, d: 1.808803, parent: CB,
+    grand_parent: CA, great_grand_parent: N}
+  - {name: HB2, phi: -121.200000 deg, theta: 70.500000 deg, d: 1.090249, parent: CB,
+    grand_parent: CA, great_grand_parent: SG}
+  - {name: HB3, phi: -117.600000 deg, theta: 70.500000 deg, d: 1.089821, parent: CB,
+    grand_parent: CA, great_grand_parent: HB2}
+  - {name: HA, phi: 119.000000 deg, theta: 71.500000 deg, d: 1.090059, parent: CA,
+    grand_parent: N, great_grand_parent: CB}
+  - {name: down, phi: 150.000000 deg, theta: 58.299995 deg, d: 1.328685, parent: N,
+    grand_parent: CA, great_grand_parent: C}
+  - {name: H, phi: -180.000000 deg, theta: 60.849998 deg, d: 1.01, parent: N, grand_parent: CA,
+    great_grand_parent: down}
+  properties:
+    is_canonical: true
+    polymer:
+      is_polymer: true
+      polymer_type: amino_acid
+      backbone_type: alpha_aa
+      mainchain_atoms: [N, CA, C]
+      sidechain_chirality: d
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: negatively_charged
+      pH: 7
+    virtual: []
+  chi_samples: []
+  default_jump_connection_atom: CA
+  one_letter_code: null
   reference_mirrored: true
 - name: DCYD
   base_name: DCYD
   name3: DCY
   io_equiv_class: DCY
+  rama_reference: CYD
+  dunbrack_reference: CYD
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}
@@ -717,14 +818,14 @@ residues:
   chi_samples: []
   default_jump_connection_atom: CA
   one_letter_code: null
-  rama_reference: CYD
-  dunbrack_reference: CYD
   reference_mirrored: true
 - name: DGLN
   base_name: DGLN
   name3: DGN
   io_equiv_class: DGN
   one_letter_code: null
+  rama_reference: GLN
+  dunbrack_reference: GLN
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}
@@ -858,14 +959,14 @@ residues:
     virtual: []
   chi_samples: []
   default_jump_connection_atom: CA
-  rama_reference: GLN
-  dunbrack_reference: GLN
   reference_mirrored: true
 - name: DGLU
   base_name: DGLU
   name3: DGL
   io_equiv_class: DGL
   one_letter_code: null
+  rama_reference: GLU
+  dunbrack_reference: GLU
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}
@@ -989,14 +1090,14 @@ residues:
     virtual: []
   chi_samples: []
   default_jump_connection_atom: CA
-  rama_reference: GLU
-  dunbrack_reference: GLU
   reference_mirrored: true
 - name: DHIS
   base_name: DHIS
   name3: DHI
   io_equiv_class: DHI
   one_letter_code: null
+  rama_reference: HIS
+  dunbrack_reference: HIS
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}
@@ -1122,13 +1223,13 @@ residues:
     virtual: []
   chi_samples: []
   default_jump_connection_atom: CA
-  rama_reference: HIS
-  dunbrack_reference: HIS
   reference_mirrored: true
 - name: DHIS_D
   base_name: DHIS_D
   name3: DHI
   io_equiv_class: DHI
+  rama_reference: HIS_D
+  dunbrack_reference: HIS_D
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}
@@ -1255,13 +1356,13 @@ residues:
   chi_samples: []
   default_jump_connection_atom: CA
   one_letter_code: null
-  rama_reference: HIS_D
-  dunbrack_reference: HIS_D
   reference_mirrored: true
 - name: DHIS_POS
   base_name: DHIS_POS
   name3: DHI
   io_equiv_class: DHI
+  rama_reference: HIS_POS
+  dunbrack_reference: DHIS
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}
@@ -1392,14 +1493,14 @@ residues:
   chi_samples: []
   default_jump_connection_atom: CA
   one_letter_code: null
-  rama_reference: HIS_POS
-  dunbrack_reference: DHIS
   reference_mirrored: true
 - name: DILE
   base_name: DILE
   name3: DIL
   io_equiv_class: DIL
   one_letter_code: null
+  rama_reference: ILE
+  dunbrack_reference: ILE
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}
@@ -1538,14 +1639,14 @@ residues:
     virtual: []
   chi_samples: []
   default_jump_connection_atom: CA
-  rama_reference: ILE
-  dunbrack_reference: ILE
   reference_mirrored: true
 - name: DLEU
   base_name: DLEU
   name3: DLE
   io_equiv_class: DLE
   one_letter_code: null
+  rama_reference: LEU
+  dunbrack_reference: LEU
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}
@@ -1684,14 +1785,14 @@ residues:
     virtual: []
   chi_samples: []
   default_jump_connection_atom: CA
-  rama_reference: LEU
-  dunbrack_reference: LEU
   reference_mirrored: true
 - name: DLYS
   base_name: DLYS
   name3: DLY
   io_equiv_class: DLY
   one_letter_code: null
+  rama_reference: LYS
+  dunbrack_reference: LYS
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}
@@ -1855,14 +1956,14 @@ residues:
     virtual: []
   chi_samples: []
   default_jump_connection_atom: CA
-  rama_reference: LYS
-  dunbrack_reference: LYS
   reference_mirrored: true
 - name: DMET
   base_name: DMET
   name3: MED
   io_equiv_class: MED
   one_letter_code: null
+  rama_reference: MET
+  dunbrack_reference: MET
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}
@@ -1882,6 +1983,7 @@ residues:
   - {name: HE2, atom_type: Hapo}
   - {name: HE3, atom_type: Hapo}
   atom_aliases:
+  - {name: SD, alt_name: SE}
   - {name: HB2, alt_name: 1HB}
   - {name: HB3, alt_name: 2HB}
   - {name: HG2, alt_name: 1HG}
@@ -1997,14 +2099,14 @@ residues:
     virtual: []
   chi_samples: []
   default_jump_connection_atom: CA
-  rama_reference: MET
-  dunbrack_reference: MET
   reference_mirrored: true
 - name: DPHE
   base_name: DPHE
   name3: DPN
   io_equiv_class: DPN
   one_letter_code: null
+  rama_reference: PHE
+  dunbrack_reference: PHE
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}
@@ -2142,14 +2244,14 @@ residues:
     virtual: []
   chi_samples: []
   default_jump_connection_atom: CA
-  rama_reference: PHE
-  dunbrack_reference: PHE
   reference_mirrored: true
 - name: DPRO
   base_name: DPRO
   name3: DPR
   io_equiv_class: DPR
   one_letter_code: null
+  rama_reference: PRO
+  dunbrack_reference: PRO
   atoms:
   - {name: N, atom_type: Npro}
   - {name: CA, atom_type: CAbb}
@@ -2272,14 +2374,14 @@ residues:
     virtual: []
   chi_samples: []
   default_jump_connection_atom: CA
-  rama_reference: PRO
-  dunbrack_reference: PRO
   reference_mirrored: true
 - name: DSER
   base_name: DSER
   name3: DSN
   io_equiv_class: DSN
   one_letter_code: null
+  rama_reference: SER
+  dunbrack_reference: SER
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}
@@ -2384,14 +2486,14 @@ residues:
       300, 320, 340]
     expansions: []
   default_jump_connection_atom: CA
-  rama_reference: SER
-  dunbrack_reference: SER
   reference_mirrored: true
 - name: DTHR
   base_name: DTHR
   name3: DTH
   io_equiv_class: DTH
   one_letter_code: null
+  rama_reference: THR
+  dunbrack_reference: THR
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}
@@ -2509,14 +2611,14 @@ residues:
       300, 320, 340]
     expansions: []
   default_jump_connection_atom: CA
-  rama_reference: THR
-  dunbrack_reference: THR
   reference_mirrored: true
 - name: DTRP
   base_name: DTRP
   name3: DTR
   io_equiv_class: DTR
   one_letter_code: null
+  rama_reference: TRP
+  dunbrack_reference: TRP
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}
@@ -2671,14 +2773,14 @@ residues:
     virtual: []
   chi_samples: []
   default_jump_connection_atom: CA
-  rama_reference: TRP
-  dunbrack_reference: TRP
   reference_mirrored: true
 - name: DTYR
   base_name: DTYR
   name3: DTY
   io_equiv_class: DTY
   one_letter_code: null
+  rama_reference: TYR
+  dunbrack_reference: TYR
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}
@@ -2829,14 +2931,160 @@ residues:
     samples: [0, 180]
     expansions: [20]
   default_jump_connection_atom: CA
+  reference_mirrored: true
+- name: DTYR_D
+  base_name: DTYR_D
+  name3: DTY
+  io_equiv_class: DTY
   rama_reference: TYR
-  dunbrack_reference: TYR
+  dunbrack_reference: TYR_D
+  atoms:
+  - {name: N, atom_type: Nbb}
+  - {name: CA, atom_type: CAbb}
+  - {name: C, atom_type: CObb}
+  - {name: O, atom_type: OCbb}
+  - {name: CB, atom_type: CH2}
+  - {name: CG, atom_type: CH0}
+  - {name: CD1, atom_type: Caro}
+  - {name: CD2, atom_type: Caro}
+  - {name: CE1, atom_type: Caro}
+  - {name: CE2, atom_type: Caro}
+  - {name: CZ, atom_type: CH0}
+  - {name: OH, atom_type: OOC}
+  - {name: H, atom_type: HNbb}
+  - {name: HA, atom_type: Hapo}
+  - {name: HB2, atom_type: Hapo}
+  - {name: HB3, atom_type: Hapo}
+  - {name: HD1, atom_type: Haro}
+  - {name: HD2, atom_type: Haro}
+  - {name: HE1, atom_type: Haro}
+  - {name: HE2, atom_type: Haro}
+  atom_aliases:
+  - {name: HB2, atom_type: Hapo, alt_name: 1HB}
+  - {name: HB3, atom_type: Hapo, alt_name: 2HB}
+  bonds:
+  - [N, CA, SINGLE, false]
+  - [N, H, SINGLE, false]
+  - [CA, C, SINGLE, false]
+  - [C, O, DOUBLE, false]
+  - [CA, CB, SINGLE, false]
+  - [CA, HA, SINGLE, false]
+  - [C, O, SINGLE, false]
+  - [CB, CG, SINGLE, false]
+  - [CB, HB2, SINGLE, false]
+  - [CB, HB3, SINGLE, false]
+  - [CG, CD1, AROMATIC, true]
+  - [CG, CD2, AROMATIC, true]
+  - [CD1, CE1, AROMATIC, true]
+  - [CD1, HD1, SINGLE, false]
+  - [CD2, CE2, AROMATIC, true]
+  - [CD2, HD2, SINGLE, false]
+  - [CE1, CZ, AROMATIC, true]
+  - [CE1, HE1, SINGLE, false]
+  - [CE2, CZ, AROMATIC, true]
+  - [CE2, HE2, SINGLE, false]
+  - [CZ, OH, SINGLE, false]
+  connections:
+  - {name: down, atom: N, type: AROMATIC}
+  - {name: up, atom: C, type: AROMATIC}
+  torsions:
+  - name: phi
+    a: {connection: down, bond_sep_from_conn: 0}
+    b: {atom: N}
+    c: {atom: CA}
+    d: {atom: C}
+  - name: psi
+    a: {atom: N}
+    b: {atom: CA}
+    c: {atom: C}
+    d: {connection: up, bond_sep_from_conn: 0}
+  - name: omega
+    a: {atom: CA}
+    b: {atom: C}
+    c: {connection: up, bond_sep_from_conn: 0}
+    d: {connection: up, bond_sep_from_conn: 1}
+  - name: chi1
+    a: {atom: N}
+    b: {atom: CA}
+    c: {atom: CB}
+    d: {atom: CG}
+  - name: chi2
+    a: {atom: CA}
+    b: {atom: CB}
+    c: {atom: CG}
+    d: {atom: CD1}
+  icoors:
+  - {name: N, phi: -0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: N, grand_parent: CA,
+    great_grand_parent: C}
+  - {name: CA, phi: -0.000000 deg, theta: 180.000000 deg, d: 1.458004, parent: N,
+    grand_parent: CA, great_grand_parent: C}
+  - {name: C, phi: -0.000000 deg, theta: 68.799995 deg, d: 1.523259, parent: CA, grand_parent: N,
+    great_grand_parent: C}
+  - {name: up, phi: -149.999924 deg, theta: 63.800079 deg, d: 1.328686, parent: C,
+    grand_parent: CA, great_grand_parent: N}
+  - {name: O, phi: 179.999817 deg, theta: 59.199955 deg, d: 1.231014, parent: C, grand_parent: CA,
+    great_grand_parent: up}
+  - {name: CB, phi: 122.800000 deg, theta: 69.525192 deg, d: 1.530351, parent: CA,
+    grand_parent: N, great_grand_parent: C}
+  - {name: CG, phi: 0.000069 deg, theta: 66.200000 deg, d: 1.512656, parent: CB, grand_parent: CA,
+    great_grand_parent: N}
+  - {name: CD1, phi: -0.000000 deg, theta: 60.000000 deg, d: 1.387195, parent: CG,
+    grand_parent: CB, great_grand_parent: CA}
+  - {name: CE1, phi: 180.000000 deg, theta: 60.000000 deg, d: 1.381552, parent: CD1,
+    grand_parent: CG, great_grand_parent: CB}
+  - {name: HE1, phi: -180.000000 deg, theta: 60.000000 deg, d: 1.08966, parent: CE1,
+    grand_parent: CD1, great_grand_parent: CG}
+  - {name: HD1, phi: -180.000000 deg, theta: 60.000000 deg, d: 1.090234, parent: CD1,
+    grand_parent: CG, great_grand_parent: CE1}
+  - {name: CD2, phi: -180.000000 deg, theta: 60.000000 deg, d: 1.386886, parent: CG,
+    grand_parent: CB, great_grand_parent: CD1}
+  - {name: CE2, phi: 180.000000 deg, theta: 60.000000 deg, d: 1.38136, parent: CD2,
+    grand_parent: CG, great_grand_parent: CB}
+  - {name: CZ, phi: -0.000000 deg, theta: 60.000000 deg, d: 1.379988, parent: CE2,
+    grand_parent: CD2, great_grand_parent: CG}
+  - {name: OH, phi: -180.000000 deg, theta: 60.000000 deg, d: 1.375964, parent: CZ,
+    grand_parent: CE2, great_grand_parent: CD2}
+  - {name: HE2, phi: 179.948822 deg, theta: 60.000000 deg, d: 1.090286, parent: CE2,
+    grand_parent: CD2, great_grand_parent: CZ}
+  - {name: HD2, phi: 179.936905 deg, theta: 60.000000 deg, d: 1.090021, parent: CD2,
+    grand_parent: CG, great_grand_parent: CE2}
+  - {name: HB2, phi: -121.200000 deg, theta: 70.500000 deg, d: 1.090973, parent: CB,
+    grand_parent: CA, great_grand_parent: CG}
+  - {name: HB3, phi: -117.600000 deg, theta: 70.500000 deg, d: 1.089572, parent: CB,
+    grand_parent: CA, great_grand_parent: HB2}
+  - {name: HA, phi: 119.000000 deg, theta: 71.500000 deg, d: 1.090319, parent: CA,
+    grand_parent: N, great_grand_parent: CB}
+  - {name: down, phi: 150.000107 deg, theta: 58.299919 deg, d: 1.328686, parent: N,
+    grand_parent: CA, great_grand_parent: C}
+  - {name: H, phi: 179.999924 deg, theta: 60.849972 deg, d: 1.010001, parent: N, grand_parent: CA,
+    great_grand_parent: down}
+  properties:
+    is_canonical: true
+    polymer:
+      is_polymer: true
+      polymer_type: amino_acid
+      backbone_type: alpha_aa
+      mainchain_atoms: [N, CA, C]
+      sidechain_chirality: d
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: negatively_charged
+      pH: 7
+    virtual: []
+  chi_samples: []
+  default_jump_connection_atom: CA
+  one_letter_code: null
   reference_mirrored: true
 - name: DVAL
   base_name: DVAL
   name3: DVA
   io_equiv_class: DVA
   one_letter_code: null
+  rama_reference: VAL
+  dunbrack_reference: VAL
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}
@@ -2957,6 +3205,4 @@ residues:
     virtual: []
   chi_samples: []
   default_jump_connection_atom: CA
-  rama_reference: VAL
-  dunbrack_reference: VAL
   reference_mirrored: true

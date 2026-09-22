@@ -86,6 +86,11 @@ def pose_stack_from_canonical_form(  # noqa: C901
 
     from tmol.io.details import left_justify_canonical_form
     from tmol.io.details import find_cyclic_closures, find_disulfides
+    from tmol.io.details._metal_detection import (
+        find_metal_geometries,
+        place_site_virtuals,
+        select_donor_variants,
+    )
     from tmol.io.details import resolve_his_tautomerization
     from tmol.io.details import (
         assign_block_types,
@@ -194,6 +199,21 @@ def pose_stack_from_canonical_form(  # noqa: C901
             find_additional_disulfides,
         )
 
+    # 3a: a metal's geometry cannot be read from the atoms it presents -- every
+    #     geometry of an ion shows the same single atom -- so it rides the same
+    #     variant axis a disulfide does. Metals and cysteines never collide.
+    #     A disulfide cysteine's state is already fixed, so it cannot donate.
+    metal_variants, metal_assignments = find_metal_geometries(
+        canonical_ordering,
+        pbt.chem_db,
+        res_types,
+        coords,
+        excluded_donor_residues=res_type_variants != 0,
+    )
+    res_type_variants = torch.where(
+        metal_variants != 0, metal_variants, res_type_variants
+    )
+
     # 3b
     cyclic_closures = find_cyclic_closures(
         canonical_ordering,
@@ -212,6 +232,13 @@ def pose_stack_from_canonical_form(  # noqa: C901
         resolved_atom_is_present,
     ) = resolve_his_tautomerization(
         canonical_ordering, res_types, res_type_variants, coords, atom_is_present
+    )
+
+    # 4a: a donor must be able to donate: coordination selects the deprotonated
+    #     form or the other histidine tautomer. After 4, which rewrites every
+    #     histidine's variant.
+    res_type_variants = select_donor_variants(
+        canonical_ordering, pbt.chem_db, res_types, res_type_variants, metal_assignments
     )
 
     # 5
@@ -248,6 +275,12 @@ def pose_stack_from_canonical_form(  # noqa: C901
         atom_occupancy,
         atom_b_factor,
         trust_hydrogen_names=trust_hydrogen_names,
+    )
+
+    # 6a: a free ion's site virtuals have no frame to build from; orient them
+    #     from the fitted geometry
+    block_coords, missing_atoms = place_site_virtuals(
+        pbt, block_types64, block_coords, missing_atoms, metal_assignments
     )
 
     # 7

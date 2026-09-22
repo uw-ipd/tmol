@@ -234,6 +234,50 @@ def validate_raw_residue(res):
     _validate_raw_residue_torsions(res, allatoms, allconns)
     _validate_raw_residue_connections(res, allatoms)
     _validate_raw_residue_icoors(res, allatoms, allconns)
+    _validate_raw_residue_metal_sites(res, allatoms)
+
+
+def _validate_raw_residue_metal_sites(res, allatoms):
+    """Every metal site names atoms this residue has, and no site is oversubscribed.
+
+    Patching carries metal_sites through untouched, so a variant that deletes a
+    referenced atom must fail here rather than leave a site pointing at nothing.
+    """
+    from tmol.database.chemical import GEOMETRY_SITE_COUNT
+
+    for site in res.metal_sites:
+        named = (site.metal_atom, *site.internal_satisfiers, *site.site_virts)
+        missing = [name for name in named if name not in allatoms]
+        if missing:
+            raise RuntimeError(
+                f"Bad raw residue: {res.name}\n"
+                f"Error: metal site on {site.metal_atom} names atoms the residue "
+                f"does not have: {', '.join(missing)}"
+            )
+
+        virtual = set(res.properties.virtual)
+        not_virtual = [name for name in site.site_virts if name not in virtual]
+        if not_virtual:
+            raise RuntimeError(
+                f"Bad raw residue: {res.name}\n"
+                f"Error: metal site on {site.metal_atom} marks free sites with "
+                f"atoms that are not virtual: {', '.join(not_virtual)}"
+            )
+
+        n_total = GEOMETRY_SITE_COUNT[site.geometry]
+        if n_total is None:
+            # untemplated: occupancy comes from the structure, so there is no
+            # vertex budget to exceed
+            continue
+        n_named = len(site.internal_satisfiers) + len(site.site_virts)
+        if n_named > n_total:
+            raise RuntimeError(
+                f"Bad raw residue: {res.name}\n"
+                f"Error: metal site on {site.metal_atom} is {site.geometry} with "
+                f"{n_total} sites, but names {len(site.internal_satisfiers)} "
+                f"internal satisfier(s) and {len(site.site_virts)} free-site "
+                f"virtual(s)"
+            )
 
 
 def _validate_raw_residue_atoms(res, allatoms):

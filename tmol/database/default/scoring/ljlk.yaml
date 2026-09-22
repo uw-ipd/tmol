@@ -54,6 +54,8 @@ atom_type_parameters:
   - { name: OOC , *ljr: 1.492871, *ljw: 0.099873, *lkd: -10.20822, *lkl: 3.500000, *lkv:  9.995600 }
   - { name: S   , *ljr: 1.975967, *ljw: 0.455970, *lkd:  -4.89802, *lkl: 3.500000, *lkv: 17.640000 }
   - { name: SH1 , *ljr: 1.975967, *ljw: 0.455970, *lkd:   2.07945, *lkl: 3.500000, *lkv: 23.240000 }
+  # thiolate: SH1's values, provisional until fit with the coordination well depth
+  - { name: Sthio, *ljr: 1.975967, *ljw: 0.455970, *lkd:   2.07945, *lkl: 3.500000, *lkv: 23.240000 }
   - { name: Nbb , *ljr: 1.802452, *ljw: 0.161725, *lkd: -12.84665, *lkl: 3.500000, *lkv: 15.992000 }
   - { name: CAbb, *ljr: 2.011760, *ljw: 0.062642, *lkd:   4.44945, *lkl: 3.500000, *lkv: 12.137000 }
   - { name: CObb, *ljr: 1.916661, *ljw: 0.141799, *lkd:   3.57899, *lkl: 3.500000, *lkv: 13.221000 }
@@ -148,3 +150,34 @@ atom_type_parameters:
   - { name: ClR , *ljr: 2.049600, *ljw: 0.107000, *lkd:   2.36680, *lkl: 3.500000, *lkv: 17.584900 }
   - { name: BrR , *ljr: 2.197100, *ljw: 0.109000, *lkd:   2.79510, *lkl: 3.500000, *lkv: 19.687600 }
   - { name: IR  , *ljr: 2.360000, *ljw: 0.111000, *lkd:   3.13610, *lkl: 3.500000, *lkv: 22.089100 }
+
+  # Metal ions. Radii are CHARMM (toppar_water_ions) where that set has the
+  #    ion, and Shannon ionic radii scaled onto CHARMM's zinc otherwise; the two
+  #    scales agree to 3% on cadmium, which CHARMM fits independently.
+  # Well depth is the 5e-3 floor used when the energy function was trained:
+  #    CHARMM's own depths balance a full formal charge, which fa_elec does not
+  #    see here because metal_coordination carries the attraction instead.
+  # lk_dgfree is the bulk-water term only: an open coordination site is taken to
+  #    hold a water at zero energy, and occluding it pays for displacing that
+  #    water. It is set from that penalty rather than from the ion's hydration
+  #    free energy, which a short-range Gaussian cannot carry. With lk_fraction
+  #    saturating, a three-carbon face occluding a site costs about
+  #    0.08 * |lk_dgfree|, so -30 puts a divalent site near 2.4 kcal/mol --
+  #    several times the carboxylate reference, matching the ratio of a
+  #    metal-water interaction to a hydrogen bond. Linear in formal charge.
+  #    Provisional: fit jointly with the coordination well depth.
+  - { name: Mg2p, *ljr: 1.185000, *ljw: 0.005000, *lkd: -30.00000, *lkl: 3.500000, *lkv:  6.970175 }
+  - { name: Ca2p, *ljr: 1.367000, *ljw: 0.005000, *lkd: -30.00000, *lkl: 3.500000, *lkv: 10.700256 }
+  - { name: Na1p, *ljr: 1.410750, *ljw: 0.005000, *lkd: -15.00000, *lkl: 3.500000, *lkv: 11.760852 }
+  - { name: K1p , *ljr: 1.763750, *ljw: 0.005000, *lkd: -15.00000, *lkl: 3.500000, *lkv: 22.982628 }
+  - { name: Mn2p, *ljr: 1.222568, *ljw: 0.005000, *lkd: -30.00000, *lkl: 3.500000, *lkv:  7.654331 }  # radius derived, no CHARMM ion type
+  - { name: Fe2p, *ljr: 1.148919, *ljw: 0.005000, *lkd: -30.00000, *lkl: 3.500000, *lkv:  6.352677 }  # radius derived, no CHARMM ion type
+  - { name: Fe3p, *ljr: 0.950068, *ljw: 0.005000, *lkd: -45.00000, *lkl: 3.500000, *lkv:  3.592130 }  # radius derived, no CHARMM ion type
+  - { name: Co2p, *ljr: 1.097365, *ljw: 0.005000, *lkd: -30.00000, *lkl: 3.500000, *lkv:  5.535308 }  # radius derived, no CHARMM ion type
+  - { name: Co3p, *ljr: 0.898514, *ljw: 0.005000, *lkd: -45.00000, *lkl: 3.500000, *lkv:  3.038522 }  # radius derived, no CHARMM ion type
+  - { name: Ni2p, *ljr: 1.016351, *ljw: 0.005000, *lkd: -30.00000, *lkl: 3.500000, *lkv:  4.397645 }  # radius derived, no CHARMM ion type
+  - { name: Cu1p, *ljr: 1.134189, *ljw: 0.005000, *lkd: -15.00000, *lkl: 3.500000, *lkv:  6.111462 }  # radius derived, no CHARMM ion type
+  - { name: Cu2p, *ljr: 1.075270, *ljw: 0.005000, *lkd: -30.00000, *lkl: 3.500000, *lkv:  5.207647 }  # radius derived, no CHARMM ion type
+  - { name: Zn2p, *ljr: 1.090000, *ljw: 0.005000, *lkd: -30.00000, *lkl: 3.500000, *lkv:  5.424605 }
+  - { name: Cd2p, *ljr: 1.357000, *ljw: 0.005000, *lkd: -30.00000, *lkl: 3.500000, *lkv: 10.467143 }
+  - { name: Hg2p, *ljr: 1.502432, *ljw: 0.005000, *lkd: -30.00000, *lkl: 3.500000, *lkv: 14.206054 }  # radius derived, no CHARMM ion type

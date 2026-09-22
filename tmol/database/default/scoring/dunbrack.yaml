@@ -5,10 +5,12 @@ dunbrack_lookup:
   - { *n: asp ,*r: ASP }
   - { *n: cys ,*r: CYS }
   - { *n: cys ,*r: CYD }
+  - { *n: cys ,*r: CYS_D }
   - { *n: gln ,*r: GLN }
   - { *n: glu ,*r: GLU }
   - { *n: his ,*r: HIS }
   - { *n: his ,*r: HIS_D }
+  - { *n: his ,*r: HIS_POS }
   - { *n: ile ,*r: ILE }
   - { *n: leu ,*r: LEU }
   - { *n: lys ,*r: LYS }
@@ -19,4 +21,5 @@ dunbrack_lookup:
   - { *n: thr ,*r: THR }
   - { *n: trp ,*r: TRP }
   - { *n: tyr ,*r: TYR }
+  - { *n: tyr ,*r: TYR_D }
   - { *n: val ,*r: VAL }

@@ -1,6 +1,7 @@
 weights: 
    ALA: 2.3386
    CYS: 3.2718
+   CYS_D: 3.2718
    CYD: 3.2718
    ASP: -2.2837
    GLU: -2.5358
@@ -21,3 +22,4 @@ weights:
    VAL: 2.085
    TRP: 3.035
    TYR: 0.964136
+   TYR_D: 0.964136

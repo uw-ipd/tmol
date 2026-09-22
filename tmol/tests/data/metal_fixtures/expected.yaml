@@ -1,0 +1,205 @@
+# Expected metal coordination for the fixtures in this directory.
+#
+# Residues are named by author chain, author residue number and component id.
+# Donors are what detection should find once crystallographic waters are
+# stripped, which is the normal structure-input path. Distances are from the
+# deposited coordinates.
+#
+# site_waters are the waters the deposited model coordinates to the metal.
+# They are reference data for placing open-site waters, not detection targets.
+#
+# geometry null means untemplated. xfail names why a fixture cannot load yet.
+
+fixtures:
+  zn_tetrahedral_3ks3:
+    pdb: 3KS3
+    resolution: 0.90
+    metals:
+      - {chain: A, res: 262, comp: ZN, geometry: tetrahedral, n_open_sites: 1}
+    donors:
+      A/ZN/262:
+        - {chain: A, res: 94, comp: HIS, atom: NE2, dist: 2.027}
+        - {chain: A, res: 96, comp: HIS, atom: NE2, dist: 2.038}
+        - {chain: A, res: 119, comp: HIS, atom: ND1, dist: 2.023}
+    site_waters:
+      A/ZN/262:
+        - {res: 402, dist: 1.900}
+        - {res: 707, dist: 2.569}
+
+  ca_irregular_2fvy:
+    pdb: 2FVY
+    resolution: 0.92
+    metals:
+      - {chain: A, res: 311, comp: CA, geometry: null}
+    donors:
+      A/CA/311:
+        - {chain: A, res: 134, comp: ASP, atom: OD1, dist: 2.284}
+        - {chain: A, res: 136, comp: ASN, atom: OD1, dist: 2.384}
+        - {chain: A, res: 138, comp: ASP, atom: OD2, dist: 2.397}
+        - {chain: A, res: 140, comp: GLN, atom: O, dist: 2.348}
+        - {chain: A, res: 142, comp: GLN, atom: OE1, dist: 2.309}
+        - {chain: A, res: 205, comp: GLU, atom: OE1, dist: 2.480}
+        - {chain: A, res: 205, comp: GLU, atom: OE2, dist: 2.485}
+    site_waters: {}
+
+  sf4_ferredoxin_2fdn:
+    pdb: 2FDN
+    resolution: 0.94
+    xfail: SF4 is a metal-containing cofactor; needs an authored block type
+    metals:
+      - {chain: A, res: 61, comp: SF4}
+      - {chain: A, res: 62, comp: SF4}
+    donors:
+      A/SF4/61:
+        - {chain: A, res: 8, comp: CYS, atom: SG, metal_atom: FE1, dist: 2.264}
+        - {chain: A, res: 11, comp: CYS, atom: SG, metal_atom: FE2, dist: 2.271}
+        - {chain: A, res: 14, comp: CYS, atom: SG, metal_atom: FE3, dist: 2.233}
+        - {chain: A, res: 47, comp: CYS, atom: SG, metal_atom: FE4, dist: 2.252}
+      A/SF4/62:
+        - {chain: A, res: 37, comp: CYS, atom: SG, metal_atom: FE1, dist: 2.275}
+        - {chain: A, res: 40, comp: CYS, atom: SG, metal_atom: FE2, dist: 2.279}
+        - {chain: A, res: 43, comp: CYS, atom: SG, metal_atom: FE3, dist: 2.258}
+        - {chain: A, res: 18, comp: CYS, atom: SG, metal_atom: FE4, dist: 2.277}
+    site_waters: {}
+
+  heme_myoglobin_5yce:
+    pdb: 5YCE
+    resolution: 0.77
+    xfail: HEM is a metal-containing cofactor; needs an authored block type
+    metals:
+      - {chain: A, res: 201, comp: HEM}
+    donors:
+      A/HEM/201:
+        - {chain: A, res: 93, comp: HIS, atom: NE2, metal_atom: FE, dist: 2.116}
+    site_waters:
+      A/HEM/201:
+        - {res: 365, dist: 2.110}
+
+  cu_blue_copper_2ov0:
+    pdb: 2OV0
+    resolution: 0.75
+    # type 1 copper: His2Cys trigonal plane, both axial sites open
+    metals:
+      - {chain: A, res: 307, comp: CU, geometry: trigonal_bipyramidal, n_open_sites: 2}
+    donors:
+      A/CU/307:
+        - {chain: A, res: 53, comp: HIS, atom: ND1, dist: 1.985}
+        - {chain: A, res: 92, comp: CYS, atom: SG, dist: 2.168}
+        - {chain: A, res: 95, comp: HIS, atom: ND1, dist: 2.045}
+    # MET 98 SD sits at 3.07 on an axial site, past the Cu-S cutoff
+    site_waters: {}
+
+  mg_one_donor_4e3y:
+    pdb: 4E3Y
+    resolution: 0.95
+    metals:
+      - {chain: A, res: 2601, comp: MG, geometry: octahedral, n_open_sites: 5}
+      - {chain: B, res: 2301, comp: MG, geometry: octahedral, n_open_sites: 5}
+    donors:
+      A/MG/2601:
+        - {chain: A, res: 1119, comp: ASN, atom: OD1, dist: 2.077}
+      B/MG/2301:
+        - {chain: B, res: 2119, comp: ASN, atom: OD1, dist: 2.042}
+    site_waters:
+      A/MG/2601:
+        - {res: 2701, dist: 2.070}
+        - {res: 2702, dist: 2.130}
+        - {res: 2703, dist: 2.084}
+        - {res: 2704, dist: 2.058}
+        - {res: 2705, dist: 2.100}
+      B/MG/2301:
+        - {res: 2401, dist: 2.103}
+        - {res: 2402, dist: 2.089}
+        - {res: 2403, dist: 2.055}
+        - {res: 2404, dist: 2.100}
+        - {res: 2405, dist: 2.053}
+
+  fe_rubredoxin_30oh:
+    pdb: 30OH
+    resolution: 0.43
+    # CCD FE is Fe(III)
+    metals:
+      - {chain: A, res: 101, comp: FE, geometry: tetrahedral, n_open_sites: 0}
+    donors:
+      A/FE/101:
+        - {chain: A, res: 6, comp: CYS, atom: SG, dist: 2.298}
+        - {chain: A, res: 9, comp: CYS, atom: SG, dist: 2.270}
+        - {chain: A, res: 39, comp: CYS, atom: SG, dist: 2.339}
+        - {chain: A, res: 42, comp: CYS, atom: SG, dist: 2.278}
+    site_waters: {}
+
+  cu_zn_sod_3f7l:
+    pdb: 3F7L
+    resolution: 0.99
+    # Edited input: the deposited copper has two alternates, CU1 201 (altloc A,
+    # 0.8) and CU 202 (altloc B, 0.2), each its own residue, and the reader
+    # keeps both. CU 202 was deleted and CU1 201 set to occupancy 1.00.
+    metals:
+      - {chain: A, res: 201, comp: CU1, geometry: trigonal, n_open_sites: 0}
+      - {chain: A, res: 203, comp: ZN, geometry: tetrahedral, n_open_sites: 0}
+    donors:
+      A/CU1/201:
+        - {chain: A, res: 44, comp: HIS, atom: ND1, dist: 1.991}
+        - {chain: A, res: 46, comp: HIS, atom: NE2, dist: 1.930}
+        - {chain: A, res: 118, comp: HIS, atom: NE2, dist: 1.970}
+      A/ZN/203:
+        - {chain: A, res: 61, comp: HIS, atom: ND1, dist: 1.987}
+        - {chain: A, res: 69, comp: HIS, atom: ND1, dist: 2.018}
+        - {chain: A, res: 78, comp: HIS, atom: ND1, dist: 2.009}
+        - {chain: A, res: 81, comp: ASP, atom: OD1, dist: 1.960}
+    site_waters: {}
+
+  mg_rna_aptamer_7eoh:
+    pdb: 7EOH
+    resolution: 1.64
+    # MG 106 is coordinated only by waters, so after stripping it has nothing
+    # to fit and takes the ion's default geometry. RCSB omits G 9 N7 at MG 105;
+    # it is at 2.07 in the coordinates.
+    metals:
+      - {chain: A, res: 102, comp: MG, geometry: octahedral, n_open_sites: 5}
+      - {chain: A, res: 103, comp: MG, geometry: octahedral, n_open_sites: 5}
+      - {chain: A, res: 104, comp: MG, geometry: octahedral, n_open_sites: 5}
+      - {chain: A, res: 105, comp: MG, geometry: octahedral, n_open_sites: 3}
+      - {chain: A, res: 106, comp: MG, geometry: octahedral, n_open_sites: 6}
+    donors:
+      A/MG/102:
+        - {chain: A, res: 32, comp: U, atom: OP2, dist: 2.052}
+      A/MG/103:
+        - {chain: A, res: 42, comp: U, atom: OP2, dist: 1.986}
+      A/MG/104:
+        - {chain: A, res: 30, comp: A, atom: OP2, dist: 2.004}
+      A/MG/105:
+        - {chain: A, res: 7, comp: C, atom: OP2, dist: 2.011}
+        - {chain: A, res: 8, comp: U, atom: OP2, dist: 1.972}
+        - {chain: A, res: 9, comp: G, atom: N7, dist: 2.07}
+      A/MG/106: []
+    site_waters:
+      A/MG/102:
+        - {res: 217, dist: 2.128}
+        - {res: 245, dist: 2.128}
+        - {res: 286, dist: 2.082}
+        - {res: 317, dist: 2.062}
+        - {res: 324, dist: 2.209}
+      A/MG/103:
+        - {res: 238, dist: 1.976}
+        - {res: 277, dist: 2.130}
+        - {res: 299, dist: 2.084}
+        - {res: 308, dist: 2.088}
+        - {res: 315, dist: 2.114}
+      A/MG/104:
+        - {res: 215, dist: 2.205}
+        - {res: 257, dist: 2.153}
+        - {res: 258, dist: 2.025}
+        - {res: 260, dist: 2.104}
+        - {res: 311, dist: 2.130}
+      A/MG/105:
+        - {res: 282, dist: 2.085}
+        - {res: 284, dist: 2.081}
+        - {res: 287, dist: 2.173}
+      A/MG/106:
+        - {res: 210, dist: 2.217}
+        - {res: 261, dist: 2.183}
+        - {res: 276, dist: 1.895}
+        - {res: 303, dist: 2.114}
+        - {res: 341, dist: 2.172}
+        - {res: 344, dist: 2.007}
