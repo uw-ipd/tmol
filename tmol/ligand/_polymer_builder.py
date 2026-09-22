@@ -929,9 +929,7 @@ def add_capped_junction_parameters(
             neighbor = (
                 bond.atm2
                 if bond.atm1 == stub
-                else bond.atm1
-                if bond.atm2 == stub
-                else None
+                else bond.atm1 if bond.atm2 == stub else None
             )
             if elements.get(neighbor) == "H":
                 cross[neighbor] = "+H"
