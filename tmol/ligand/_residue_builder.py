@@ -5,15 +5,18 @@ suitable for registration in tmol's ChemicalDatabase. Handles atom tree
 construction, internal coordinate computation, rotatable bond detection,
 and non-polymer property assignment.
 
-The internal coordinate and atom tree algorithms are ported from
-Rosetta's mol2genparams.py and molfile_to_params.py.
+The atom tree and internal coordinates come from :mod:`atomworks.geometry`,
+so a structure keeps the same geometry whichever library placed it.
 """
 
 import logging
-import math
-from collections import deque
 
 import numpy as np
+from atomworks.protonation import (
+    build_atom_tree,
+    find_root_atom,
+    icoor_geometry_from_coords,
+)
 from rdkit import Chem
 
 from tmol.database.chemical import (
@@ -34,276 +37,37 @@ def _mol_coords(mol: Chem.Mol) -> np.ndarray:
     """Return an (N, 3) float array of 3D coordinates from mol's first conformer.
 
     If the mol has no conformer (e.g. a SMILES-only unit-test input),
-    return zeros — the caller's icoor geometry will be degenerate but the
+    return zeros -- the caller's icoor geometry will be degenerate but the
     atom tree and topology outputs still build correctly.
     """
     n = mol.GetNumAtoms()
     if mol.GetNumConformers() == 0:
-        return np.zeros((n, 3))
-    conf = mol.GetConformer(0)
-    coords = np.zeros((n, 3))
-    for i in range(n):
-        p = conf.GetAtomPosition(i)
-        coords[i] = (p.x, p.y, p.z)
-    return coords
+        return np.zeros((n, 3), dtype=float)
+    return np.array(mol.GetConformer().GetPositions(), dtype=float)
 
 
-def _find_nbr_atom(  # noqa: C901
+def _connectivity(mol: Chem.Mol) -> tuple[list[tuple[int, int]], list[bool]]:
+    """The bonds and heavy-atom flags the shared geometry works from."""
+    bonds = [(b.GetBeginAtomIdx(), b.GetEndAtomIdx()) for b in mol.GetBonds()]
+    return bonds, [a.GetAtomicNum() != 1 for a in mol.GetAtoms()]
+
+
+def _find_nbr_atom(
     mol: Chem.Mol, coords: np.ndarray, skip_indices: set[int] | None = None
 ) -> int:
-    """Find the neighbor atom (root) for the atom tree.
-
-    Selects the heavy atom closest to the center of mass that has
-    at least 2 bonds, avoiding hydrogens, terminal atoms, and any
-    indices in ``skip_indices``.
-
-    Args:
-        mol: A Chem.Mol.
-        coords: Pre-computed (N, 3) coordinate array from ``_mol_coords``.
-        skip_indices: Optional set of 0-based atom indices to exclude.
-
-    Returns:
-        0-based atom index for the NBR atom.
-
-    Raises:
-        ValueError: If no valid root atom can be found.
-    """
-    if skip_indices is None:
-        skip_indices = set()
-
-    com = coords.mean(axis=0)
-    dists_sq = np.sum((coords - com) ** 2, axis=1)
-
-    best_idx = -1
-    best_dist = float("inf")
-
-    for atom in mol.GetAtoms():
-        idx = atom.GetIdx()
-        if idx in skip_indices:
-            continue
-        if atom.GetAtomicNum() == 1:
-            continue
-        # count heavyatoms only
-        if sum(1 for n in atom.GetNeighbors() if n.GetAtomicNum() != 1) < 2:
-            continue
-        if dists_sq[idx] < best_dist:
-            best_dist = dists_sq[idx]
-            best_idx = idx
-
-    if best_idx < 0:
-        # Fallback: pick the first heavy atom with any bonds
-        for atom in mol.GetAtoms():
-            idx = atom.GetIdx()
-            if idx in skip_indices:
-                continue
-            if atom.GetAtomicNum() == 1:
-                continue
-            best_idx = idx
-            break
-
-    if best_idx < 0:
-        raise ValueError("No valid root atom found (mol has no heavy atoms)")
-
-    return best_idx
+    """Find the neighbor atom (root) for the atom tree."""
+    bonds, is_heavy = _connectivity(mol)
+    return find_root_atom(coords, bonds, is_heavy, skip_indices)
 
 
-def _is_heavy(mol: Chem.Mol, i: int) -> bool:
-    """Return whether atom index ``i`` is a heavy (non-hydrogen) atom."""
-    return mol.GetAtomWithIdx(i).GetAtomicNum() != 1
-
-
-def _pick_neighbor(
-    mol: Chem.Mol,
-    adj: dict[int, list[int]],
-    bfs_position: dict[int, int],
-    n_order: int,
-    of: int,
-    exclude: set[int],
-    heavy_only: bool = False,
-    before: int | None = None,
-) -> int | None:
-    """Pick a preferred neighbor index for internal-coordinate parents.
-
-    Args:
-        of: Source atom index.
-        exclude: Neighbor indices to skip.
-        heavy_only: Prefer heavy-atom candidates (soft: yields when the only
-            already-placed candidates are hydrogens).
-        before: If given, a hard restriction to candidates placed before this
-            BFS position.
-
-    Returns:
-        Chosen neighbor index, or ``None`` if no candidate exists.
-    """
-    candidates = [n for n in adj[of] if n not in exclude]
-    if before is not None:
-        candidates = [n for n in candidates if bfs_position.get(n, n_order) < before]
-    if not candidates:
-        return None
-    if heavy_only:
-        heavy = [n for n in candidates if _is_heavy(mol, n)]
-        if heavy:
-            candidates = heavy
-    candidates.sort(key=lambda n: bfs_position.get(n, n_order))
-    return candidates[0]
-
-
-def _build_atom_tree(  # noqa: C901
+def _build_atom_tree(
     mol: Chem.Mol, root_idx: int, frame_excluded_indices=()
 ) -> tuple[list[int], dict[int, int], dict[int, tuple[int, int]]]:
-    """Build an atom tree via simple BFS from the root.
-
-    Returns:
-        A tuple of:
-        - order: BFS traversal order (parents always precede children).
-        - parent: Maps each atom index to its parent index (root maps to itself).
-        - grandparents: Maps each atom index to (grandparent, great-grandparent).
-    """
-    n_atoms = mol.GetNumAtoms()
-    visited = [False] * n_atoms
-    parent: dict[int, int] = {root_idx: root_idx}
-    order: list[int] = []
-    queue: deque[int] = deque([root_idx])
-    visited[root_idx] = True
-
-    adj: dict[int, list[int]] = {i: [] for i in range(n_atoms)}
-    for bond in mol.GetBonds():
-        a = bond.GetBeginAtomIdx()
-        b = bond.GetEndAtomIdx()
-        adj[a].append(b)
-        adj[b].append(a)
-
-    # Keep declared leaving groups behind retained neighbors so the first
-    # construction frame survives attachment. Hydrogens still follow heavy atoms.
-    priority = (
-        (lambda i: (i in frame_excluded_indices, i)) if frame_excluded_indices else None
+    """Build an atom tree via BFS from the root."""
+    bonds, is_heavy = _connectivity(mol)
+    return build_atom_tree(
+        mol.GetNumAtoms(), bonds, is_heavy, root_idx, frame_excluded_indices
     )
-    while queue:
-        current = queue.popleft()
-        order.append(current)
-        for nbr in sorted(adj[current], key=priority):
-            if visited[nbr] or not _is_heavy(mol, nbr):
-                continue
-            visited[nbr] = True
-            parent[nbr] = current
-            queue.append(nbr)
-
-    for heavy_idx in list(order):
-        for nbr in sorted(adj[heavy_idx]):
-            if visited[nbr]:
-                continue
-            visited[nbr] = True
-            parent[nbr] = heavy_idx
-            order.append(nbr)
-
-    bfs_position = {idx: i for i, idx in enumerate(order)}
-    n_order = len(order)
-
-    grandparents: dict[int, tuple[int, int]] = {}
-    for idx in order:
-        idx_heavy = _is_heavy(mol, idx)
-        par = parent[idx]
-        before = bfs_position[idx]
-        gp = parent.get(par, par)
-
-        # degenerate case 1: gp == par -> use a sibling as the angle reference
-        if gp == par and idx != root_idx:
-            sub = _pick_neighbor(
-                mol,
-                adj,
-                bfs_position,
-                n_order,
-                par,
-                exclude={idx, par},
-                heavy_only=idx_heavy,
-                before=before,
-            )
-            if sub is not None:
-                gp = sub
-        ggp = parent.get(gp, gp)
-
-        # H torsion ref: parent's other heavy neighbor (sibling), not down-chain
-        if not idx_heavy and idx != root_idx:
-            sib = _pick_neighbor(
-                mol,
-                adj,
-                bfs_position,
-                n_order,
-                par,
-                exclude={idx, gp},
-                heavy_only=True,
-                before=before,
-            )
-            if sib is not None:
-                ggp = sib
-
-        # degenerate case 2: ggp collides with par/gp/idx -> use a distinct atom
-        if ggp in (gp, par, idx) and idx != root_idx:
-            sub = _pick_neighbor(
-                mol,
-                adj,
-                bfs_position,
-                n_order,
-                par,
-                exclude={idx, par, gp},
-                heavy_only=idx_heavy,
-                before=before,
-            )
-            if sub is None:
-                sub = _pick_neighbor(
-                    mol,
-                    adj,
-                    bfs_position,
-                    n_order,
-                    gp,
-                    exclude={par, gp, idx},
-                    heavy_only=idx_heavy,
-                    before=before,
-                )
-            if sub is not None:
-                ggp = sub
-        grandparents[idx] = (gp, ggp)
-
-    return order, parent, grandparents
-
-
-def _distance(a: np.ndarray, b: np.ndarray) -> float:
-    """Compute Euclidean distance between two points.
-
-    Args:
-        a: First coordinate vector.
-        b: Second coordinate vector.
-
-    Returns:
-        Distance between ``a`` and ``b``.
-    """
-    return float(np.linalg.norm(a - b))
-
-
-def _angle(a: np.ndarray, b: np.ndarray, c: np.ndarray) -> float:
-    """Angle at vertex b in degrees."""
-    ba = a - b
-    bc = c - b
-    cos_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc) + 1e-12)
-    cos_angle = np.clip(cos_angle, -1.0, 1.0)
-    return float(np.degrees(np.arccos(cos_angle)))
-
-
-def _dihedral(a: np.ndarray, b: np.ndarray, c: np.ndarray, d: np.ndarray) -> float:
-    """Dihedral angle a-b-c-d in degrees."""
-    b1 = b - a
-    b2 = c - b
-    b3 = d - c
-    n1 = np.cross(b1, b2)
-    n2 = np.cross(b2, b3)
-    n1_norm = np.linalg.norm(n1) + 1e-12
-    n2_norm = np.linalg.norm(n2) + 1e-12
-    n1 = n1 / n1_norm
-    n2 = n2 / n2_norm
-    m1 = np.cross(n1, b2 / (np.linalg.norm(b2) + 1e-12))
-    x = float(np.dot(n1, n2))
-    y = float(np.dot(m1, n2))
-    return float(np.degrees(np.arctan2(y, x)))
 
 
 def _compute_icoors(
@@ -314,66 +78,22 @@ def _compute_icoors(
     atom_names: list[str],
     coords: np.ndarray | None = None,
 ) -> list[Icoor]:
-    """Compute internal coordinates for all atoms.
-
-    Uses the Rosetta ICOOR convention:
-    - d: distance from child to parent
-    - theta: 180 - angle(child, parent, grandparent)
-    - phi: dihedral(child, parent, grandparent, great-grandparent)
-
-    Args:
-        mol: The Chem.Mol with 3D coordinates.
-        order: BFS traversal order.
-        parent: Parent map from atom tree.
-        grandparents: (grandparent, great-grandparent) map.
-        atom_names: Atom names indexed by 0-based atom index.
-        coords: Pre-computed (N, 3) array. Computed from mol if None.
-
-    Returns:
-        A list of Icoor objects in BFS traversal order.
-    """
+    """Compute internal coordinates for all atoms, in BFS traversal order."""
     if coords is None:
         coords = _mol_coords(mol)
-
-    icoors: list[Icoor] = []
-
-    for i, idx in enumerate(order):
-        par_idx = parent[idx]
-        gp_idx, ggp_idx = grandparents[idx]
-
-        if i == 0:
-            d, theta, phi = 0.0, 0.0, 0.0
-        elif i == 1:
-            d = _distance(coords[idx], coords[par_idx])
-            theta = 180.0
-            phi = 0.0
-        elif i == 2:
-            d = _distance(coords[idx], coords[par_idx])
-            theta = 180.0 - _angle(coords[idx], coords[par_idx], coords[gp_idx])
-            phi = 0.0
-        else:
-            d = _distance(coords[idx], coords[par_idx])
-            angle_val = _angle(coords[idx], coords[par_idx], coords[gp_idx])
-            theta = 180.0 - angle_val
-            # Negated: build_coords_from_icoors' rot_z(phi) uses the opposite
-            # sign convention to the standard dihedral.
-            phi = -_dihedral(
-                coords[idx], coords[par_idx], coords[gp_idx], coords[ggp_idx]
-            )
-
-        icoors.append(
-            Icoor(
-                name=atom_names[idx],
-                phi=math.radians(phi),
-                theta=math.radians(theta),
-                d=d,
-                parent=atom_names[par_idx],
-                grand_parent=atom_names[gp_idx],
-                great_grand_parent=atom_names[ggp_idx],
-            )
+    geometry = icoor_geometry_from_coords(coords, order, parent, grandparents)
+    return [
+        Icoor(
+            name=atom_names[idx],
+            phi=geom.phi,
+            theta=geom.theta,
+            d=geom.d,
+            parent=atom_names[parent[idx]],
+            grand_parent=atom_names[grandparents[idx][0]],
+            great_grand_parent=atom_names[grandparents[idx][1]],
         )
-
-    return icoors
+        for idx, geom in zip(order, geometry)
+    ]
 
 
 _AMIDE_N_TYPES = {"Nad", "Nad3"}
