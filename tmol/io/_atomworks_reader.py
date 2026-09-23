@@ -41,7 +41,7 @@ def _read_declared(path, model, assembly_id):
         entries = {}
     else:
         array = get_structure(file, model=model, extra_fields=_FIELDS)
-        entries = build_ccd_entries_from_cif_block(block, supplement_from_ccd=False)
+        entries = build_ccd_entries_from_cif_block(block, use_ccd=False)
         bonds = {name: {} for name in np.unique(array.res_name)}
         bonds.update(bond_dict_from_cif_block(block))
         array.bonds = struc.connect_via_residue_names(

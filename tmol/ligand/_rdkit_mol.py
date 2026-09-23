@@ -368,14 +368,16 @@ def rdkit_mol_from_ligand_atom_array(
             atom_array,
             set_coord=True,
             hydrogen_policy="keep",
-            # Regeneration fills valence after covalent groups are separated;
-            # as-is preparation preserves the supplied hydrogen count exactly.
-            allow_implicit_hydrogens=not keep_hydrogens,
             annotations_to_keep=[],
             sanitize=False,
             attempt_fixing_corrupted_molecules=False,
             infer_bonds=False,
         )
+        if keep_hydrogens:
+            # Regeneration fills valence after covalent groups are separated;
+            # as-is preparation preserves the supplied hydrogen count exactly.
+            for atom in mol.GetAtoms():
+                atom.SetNoImplicit(True)
     except Exception as exc:
         raise ValueError(
             f"{res_name}: failed to read explicit ligand bond chemistry "

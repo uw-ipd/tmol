@@ -53,7 +53,7 @@ def component_chemistry_from_block(block, *, use_ccd=False) -> dict:
     """Read authored chemistry, optionally supplementing missing annotations."""
     from atomworks.io.utils.ccd import build_ccd_entries_from_cif_block
 
-    entries = build_ccd_entries_from_cif_block(block, supplement_from_ccd=use_ccd)
+    entries = build_ccd_entries_from_cif_block(block, use_ccd=use_ccd)
     return _completion_templates(entries)
 
 
