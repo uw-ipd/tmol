@@ -499,7 +499,7 @@
 <span class="w">    </span><span class="sd">"""Read authored chemistry, optionally supplementing missing annotations."""</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.ccd</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_ccd_entries_from_cif_block</span>
 
-    <span class="n">entries</span> <span class="o">=</span> <span class="n">build_ccd_entries_from_cif_block</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">use_ccd</span><span class="o">=</span><span class="n">use_ccd</span><span class="p">)</span>
+    <span class="n">entries</span> <span class="o">=</span> <span class="n">build_ccd_entries_from_cif_block</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">supplement_from_ccd</span><span class="o">=</span><span class="n">use_ccd</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">_completion_templates</span><span class="p">(</span><span class="n">entries</span><span class="p">)</span>
 
 
@@ -763,7 +763,7 @@
 <span class="sd">    Declared leaving groups and unobserved carbonyl/phosphoryl substitution branches are</span>
 <span class="sd">    absent at their connection sites. Other unresolved atoms retain identity.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.leaving_atoms</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_leaving_atom_groups</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._input_repair</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_leaving_atom_groups</span>
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._input_repair</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_absent_substitution_leaving_groups</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._polymer_profile</span><span class="w"> </span><span class="kn">import</span> <span class="n">completed_connection_atoms</span>
