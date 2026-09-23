@@ -10,12 +10,17 @@ so this module does not protonate or recompute chemistry.
 import logging
 
 import biotite.structure as struc
+import numpy as np
 from atomworks.io.tools.rdkit import (
     BIOTITE_BOND_TYPE_TO_RDKIT,
     atom_array_to_rdkit,
     fix_charge_based_on_valence,
 )
+from atomworks.io.utils.ccd import get_custom_ccd_entries
+from biotite.structure import AtomArray
+from rdkit.Chem.rdchem import Mol
 from collections.abc import Collection, Mapping
+from typing import Literal
 
 from rdkit import Chem
 
