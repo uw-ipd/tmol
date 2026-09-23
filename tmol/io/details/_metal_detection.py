@@ -11,13 +11,30 @@ then is a geometry fitted, and only then are sites assigned.
 """
 
 import logging
-from collections import defaultdict
+from collections import Counter, defaultdict
 from typing import Dict, Optional, Sequence, Tuple
 
 import attr
 import numpy
+import torch
 
-from tmol.io.details._metal_geometry import choose_geometry, fit_geometry
+from tmol.chemical import ResidueTypeSet
+from tmol.database.chemical import (
+    Connection,
+    VariantScope,
+    VariantType,
+    ideal_distances,
+    metal_geometry_variant_index,
+    metal_table,
+    special_case_variant_index,
+)
+from tmol.io.details._metal_geometry import (
+    best_rotation,
+    choose_geometry,
+    fit_geometry,
+    unit,
+)
+from tmol.pose import PackedBlockTypes
 
 logger = logging.getLogger(__name__)
 
@@ -43,18 +60,12 @@ class MetalSiteAssignment:
     donor_atoms: Tuple[Tuple[int, int], ...] = ()
     # carries the geometry's vertices onto the donors; None when nothing fixes it
     rotation: Optional[numpy.ndarray] = attr.ib(default=None, eq=False)
+    # given by the caller rather than inferred; its input virtuals are kept
+    declared: bool = False
 
     @property
     def n_donors(self) -> int:
         return len(self.donors)
-
-
-def ideal_distances(ion: dict, donor_radii: Dict[str, float]) -> Dict[str, float]:
-    """Measured metal-ligand distances, completed by ionic_radius + donor_radius."""
-    out = dict(ion["distances"])
-    for donor, radius in donor_radii.items():
-        out.setdefault(donor, round(ion["ionic_radius"] + radius, 3))
-    return out
 
 
 def gather_candidates(
@@ -180,35 +191,6 @@ class CanonicalMetalTables:
     donor_element: numpy.ndarray
 
 
-_METAL_TABLE = None
-
-
-def metal_table() -> dict:
-    """The geometry reference table, loaded once.
-
-    Reads chemical/metals.yaml directly rather than riding on ParameterDatabase.
-    It is reference data of the same kind and belongs there eventually; this
-    keeps the schema change out of the detection work.
-    """
-    global _METAL_TABLE
-    if _METAL_TABLE is None:
-        import os
-
-        from yaml import safe_load
-
-        import tmol.database
-
-        path = os.path.join(
-            os.path.dirname(tmol.database.__file__),
-            "default",
-            "chemical",
-            "metals.yaml",
-        )
-        with open(path) as infile:
-            _METAL_TABLE = safe_load(infile)
-    return _METAL_TABLE
-
-
 def build_canonical_metal_tables(
     canonical_ordering, chemical_db, table: dict
 ) -> CanonicalMetalTables:
@@ -255,6 +237,8 @@ def find_metal_geometries(
     geometries: Optional[Dict[Tuple[int, int], str]] = None,
     tolerance: float = 1.25,
     excluded_donor_residues=None,
+    declared_sites: Optional[Dict[Tuple[int, int], tuple]] = None,
+    find_additional: bool = True,
 ):
     """Choose a coordination geometry for every metal, as a res_type_variant.
 
@@ -263,11 +247,11 @@ def find_metal_geometries(
     for a (pose, residue) outright and suppresses inference for it.
     excluded_donor_residues masks residues whose state is already fixed, such
     as disulfide-bonded cysteines, out of the donor candidates.
+
+    ``declared_sites`` maps (pose, metal) to (geometry, ((site, donor, atom),
+    ...)) and is taken as given. Without ``find_additional``, every other metal
+    takes its default geometry with no donors.
     """
-    import torch
-
-    from tmol.database.chemical import metal_geometry_variant_index
-
     table = metal_table() if table is None else table
     table_vertices = {g["name"]: g["vertices"] for g in table["geometries"]}
     tables = build_canonical_metal_tables(canonical_ordering, chemical_db, table)
@@ -308,6 +292,17 @@ def find_metal_geometries(
                     donor_elements.append(element)
                     donor_atoms.append((other, j))
 
+        if (int(pose), int(res)) in (declared_sites or {}):
+            geometry, filled = declared_sites[(int(pose), int(res))]
+            got = _declared_assignment(
+                int(res), ion, geometry, filled, metal_xyz, xyz[pose], table_vertices
+            )
+            variants[pose, res] = metal_geometry_variant_index(geometry)
+            assignments.append(((int(pose), int(res)), got))
+            continue
+        if not find_additional:
+            donor_xyz, donor_elements, donor_atoms = [], [], []
+
         declared = (geometries or {}).get((int(pose), int(res)))
         got = assign_one(
             metal_xyz,
@@ -336,10 +331,32 @@ def find_metal_geometries(
     return variants, assignments
 
 
+def _declared_assignment(metal, ion, geometry, filled, metal_xyz, xyz, vertices_for):
+    """The caller's sites for one metal, with the fan fitted to its donors."""
+    sites = tuple(int(site) for site, _, _ in filled)
+    donor_atoms = tuple((int(res), int(atom)) for _, res, atom in filled)
+    verts = numpy.asarray(vertices_for[geometry], dtype=numpy.float64)
+    rotation = None
+    if len(verts) and donor_atoms:
+        directions = unit(numpy.array([xyz[r, a] for r, a in donor_atoms]) - metal_xyz)
+        rotation = best_rotation(directions, unit(verts[list(sites)]))
+    return MetalSiteAssignment(
+        metal=metal,
+        element=ion["element"],
+        oxidation_state=ion["oxidation_state"],
+        geometry=geometry,
+        how_chosen="declared",
+        donors=tuple(range(len(donor_atoms))),
+        vertex_for_donor=sites,
+        n_open_sites=len(verts) - len(sites) if len(verts) else None,
+        donor_atoms=donor_atoms,
+        rotation=rotation,
+        declared=True,
+    )
+
+
 def donor_atoms_by_variant(canonical_ordering, chemical_db):
     """For each class, the canonical atoms each res_type_variant lets donate."""
-    from tmol.database.chemical import special_case_variant_index
-
     atom_type = {at.name: at for at in chemical_db.atom_types}
     class_index = {
         c: i for i, c in enumerate(canonical_ordering.restype_io_equiv_classes)
@@ -393,6 +410,103 @@ def select_donor_variants(
     return out
 
 
+def metal_donor_patch(base_name: str, atom: str, n_metals: int = 1) -> VariantType:
+    """Give one atom of one residue type a connection per metal it coordinates.
+
+    Connections are metal_<atom>, metal2_<atom>, ...: a count before the
+    separator cannot be mistaken for part of an atom name. The patch is named
+    for its last connection, so the name a patched type carries is one of its
+    own connection names.
+    """
+    names = [f"metal_{atom}"] + [f"metal{k}_{atom}" for k in range(2, n_metals + 1)]
+    prefix = f"metal{n_metals}" if n_metals > 1 else "metal"
+    return VariantType(
+        name=f"{prefix}_{base_name}_{atom}",
+        display_name=names[-1],
+        pattern="",
+        remove_atoms=(),
+        add_atoms=(),
+        add_atom_aliases=(),
+        modify_atoms=(),
+        add_connections=tuple(
+            Connection(name=name, atom=f"<{atom}>", kinematic=False) for name in names
+        ),
+        add_bonds=(),
+        icoors=(),
+        applies_to=VariantScope(base_names=(base_name,)),
+    )
+
+
+def donor_patches(canonical_ordering, chemical_db, res_types, assignments):
+    """One patch per (base type, atom, metal count) an assigned donor needs.
+
+    Every base type of the donor's class where that atom donates gets one,
+    since which of them the residue becomes is decided after this. An atom
+    bridging two metals needs two connections on it.
+    """
+    atom_type = {at.name: at for at in chemical_db.atom_types}
+    bases = defaultdict(list)
+    for res in chemical_db.residues:
+        if res.name == res.base_name:
+            bases[res.io_equiv_class].append(res)
+    classes = canonical_ordering.restype_io_equiv_classes
+    n_metals = Counter(
+        (pose, res, atom)
+        for (pose, _), got in assignments
+        for res, atom in got.donor_atoms
+    )
+    patches = {}
+    for (pose, res, atom), n in n_metals.items():
+        equiv_class = classes[int(res_types[pose, res])]
+        name = canonical_ordering.restypes_ordered_atom_names[equiv_class][atom]
+        for base in bases[equiv_class]:
+            if any(
+                a.name == name and atom_type[a.atom_type].is_metal_donor
+                for a in base.atoms
+            ):
+                patches[(base.name, name, n)] = metal_donor_patch(base.name, name, n)
+    return tuple(patches.values())
+
+
+def with_donor_patches(pbt: PackedBlockTypes, patches) -> PackedBlockTypes:
+    """The newest packed block types grown from pbt that carry every patch.
+
+    Donor forms accumulate: each extension appends to the newest generation
+    grown from the same root, so every pose built from one context shares a
+    packed set until a donor it has not seen arrives, and each generation's
+    residues are a leading run of the next's.
+    """
+    if not patches:
+        return pbt
+    root = getattr(pbt, "_donor_patch_root", pbt)
+    newest = getattr(root, "_donor_patch_newest", root)
+    known = {v.name for v in newest.chem_db.variants}
+    extra = tuple(p for p in patches if p.name not in known)
+    if extra:
+        chem_db = newest.chem_db.with_variants_applied(extra)
+        rts = ResidueTypeSet.from_database(chem_db)
+        newest = PackedBlockTypes.from_restype_list(
+            chem_db, rts, rts.residue_types, pbt.device
+        )
+        setattr(newest, "_donor_patch_root", root)
+        setattr(root, "_donor_patch_newest", newest)
+    return newest
+
+
+def metal_connection_rows(assignments):
+    """(pose, metal, site, donor, donor canonical atom) for every filled site.
+
+    A templated ion's donor fills the site of the vertex it was fitted to; an
+    untemplated ion's donors fill its sites in order.
+    """
+    rows = []
+    for (pose, metal), got in assignments:
+        sites = got.vertex_for_donor or range(len(got.donor_atoms))
+        for site, (res, atom) in zip(sites, got.donor_atoms):
+            rows.append((pose, metal, int(site), int(res), int(atom)))
+    return rows
+
+
 def _assign_crowded(
     metal_index, element, ox, geometry, vertices, directions, keep, ratio
 ):
@@ -436,7 +550,8 @@ def place_site_virtuals(pbt, block_types64, block_coords, missing_atoms, assignm
     A lone metal gives the icoor builder no frame to orient them against. The
     fitted rotation carries vertex k onto the donor that took it, so the fan
     starts aligned with the site; with no donors the orientation is arbitrary.
-    Virtuals sit at the distance the block type's icoors give them.
+    Virtuals sit at the distance the block type's icoors give them. A declared
+    site whose virtuals all came with the input keeps them.
     """
     vertices_for = {g["name"]: g["vertices"] for g in metal_table()["geometries"]}
     for (pose, res), got in assignments:
@@ -449,6 +564,9 @@ def place_site_virtuals(pbt, block_types64, block_coords, missing_atoms, assignm
             continue
         if {a.name for a in bt.atoms} != {site.metal_atom, *site.site_virts}:
             continue  # a cofactor orients its virtuals from its own atoms
+        virts = [bt.atom_to_idx[name] for name in site.site_virts]
+        if got.declared and not bool(missing_atoms[pose, res, virts].any()):
+            continue
         rotation = got.rotation if got.geometry == site.geometry else None
         rotation = numpy.eye(3) if rotation is None else rotation
         dist = {ic.name: ic.d for ic in bt.icoors}

@@ -752,7 +752,7 @@ residues:
   connections:
   - {name: down, atom: N, type: AROMATIC}
   - {name: up, atom: C, type: AROMATIC}
-  - {name: dslf, atom: SG, type: SINGLE}
+  - {name: dslf, atom: SG, type: SINGLE, kinematic: false}
   torsions:
   - name: phi
     a: {connection: down, bond_sep_from_conn: 0}

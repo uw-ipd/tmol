@@ -1,6 +1,7 @@
 # Metal coordination fixtures
 
-PDB entries, gzipped and unmodified except as noted, each chosen for one coordination context.
+PDB entries, gzipped and edited only as noted below, each chosen for one
+coordination context.
 Expected coordination for every metal is in `expected.yaml`, seeded from the
 RCSB `struct_conn` metalc records and checked against the coordinates. Read
 them with `tmol.io.atom_array_from_cif`.
@@ -28,3 +29,7 @@ carry no expectations.
 modeled as separate residues (CU1 201, altloc A, 0.8; CU 202, altloc B, 0.2),
 and the reader keeps both. CU 202 was removed and CU1 201 set to occupancy
 1.00.
+
+Every entry is also reduced to one conformer with no hydrogens: each residue
+keeps only its highest-occupancy altloc, set to occupancy 1.00, and all H and
+D atoms are removed so they are rebuilt.

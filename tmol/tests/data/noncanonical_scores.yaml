@@ -70,8 +70,8 @@ nonstandard_aa:
   cart_torsions: 3.798
   disulfide: 0.0
   dunbrack_rot: 23.3038
-  dunbrack_rotdev: 24.3825
-  dunbrack_semirot: 19.4504
+  dunbrack_rotdev: 24.3836
+  dunbrack_semirot: 22.6102
   fa_elec: -115.4695
   fa_ljatr: -202.2302
   fa_ljrep: 288.5656

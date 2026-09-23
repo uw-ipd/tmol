@@ -484,7 +484,7 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
         co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
     )
 
-    inter_res_conn_gold = numpy.full((1, 12, 3, 2), -1, dtype=numpy.int64)
+    inter_res_conn_gold = numpy.full((1, 12, pbt.max_n_conn, 2), -1, dtype=numpy.int64)
 
     def p(x, y):
         return numpy.array([x, y], dtype=numpy.int64)

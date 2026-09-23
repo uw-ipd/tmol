@@ -50,6 +50,10 @@ class CanonicalForm:
     cyclic_bonds: Optional[Tensor[torch.int64][:, 3]] = None
     # n_covalent_bonds x 5: pose, res1, canonical atom1, res2, canonical atom2
     covalent_bonds: Optional[Tensor[torch.int64][:, 5]] = None
+    # n_metals x 3: pose, metal res, index into GEOMETRY_NAMES
+    metal_sites: Optional[Tensor[torch.int64][:, 3]] = None
+    # n_filled_sites x 5: pose, metal res, site, donor res, donor canonical atom
+    metal_coordination: Optional[Tensor[torch.int64][:, 5]] = None
 
     def __iter__(self):
         return iter(attr.astuple(self, recurse=False))

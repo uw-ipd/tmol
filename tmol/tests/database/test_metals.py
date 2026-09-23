@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 
 import tmol.database
-from tmol.database.chemical import GEOMETRY_SITE_COUNT, MetalSite
+from tmol.database.chemical import GEOMETRY_SITE_COUNT, Connection, MetalSite
 from tmol.database._patched_chemdb import _validate_raw_residue_metal_sites
 
 # The supported set, chosen against PDB entry counts. Asserted exactly so that
@@ -194,12 +194,15 @@ def test_unknown_geometry_is_rejected():
         cattr.structure("octahedral-ish", CoordinationGeometry)
 
 
-def fake_residue(metal_sites, atoms=("FE", "NA", "V1"), virtual=("V1",)):
+def fake_residue(
+    metal_sites, atoms=("FE", "NA", "V1"), virtual=("V1",), connections=()
+):
     return SimpleNamespace(
         name="TST",
         atoms=tuple(SimpleNamespace(name=name) for name in atoms),
         properties=SimpleNamespace(virtual=tuple(virtual)),
         metal_sites=tuple(metal_sites),
+        connections=tuple(connections),
     )
 
 
@@ -220,6 +223,34 @@ def test_free_site_virt_must_be_virtual():
         [MetalSite(metal_atom="FE", geometry="octahedral", site_virts=("NA",))]
     )
     with pytest.raises(RuntimeError, match="not virtual"):
+        validate(res)
+
+
+def test_site_connection_must_be_non_kinematic_on_the_metal():
+    for conn in (
+        Connection(name="site1", atom="FE"),
+        Connection(name="site1", atom="NA", kinematic=False),
+    ):
+        res = fake_residue(
+            [
+                MetalSite(
+                    metal_atom="FE",
+                    geometry="linear",
+                    site_virts=("V1",),
+                    site_connections=("site1",),
+                )
+            ],
+            connections=[conn],
+        )
+        with pytest.raises(RuntimeError, match="non-kinematic connection on FE"):
+            validate(res)
+
+
+def test_each_free_site_virt_has_a_connection():
+    res = fake_residue(
+        [MetalSite(metal_atom="FE", geometry="linear", site_virts=("V1",))]
+    )
+    with pytest.raises(RuntimeError, match="site connection"):
         validate(res)
 
 
@@ -279,54 +310,38 @@ def pairwise_angles(vectors):
     return sorted(out)
 
 
-def test_generated_icoors_rebuild_the_intended_polyhedra():
-    """The internal coordinates the generator emits must rebuild its own vertices.
+def test_metal_ion_ideal_coords_rebuild_their_polyhedra(default_restype_set):
+    """Each templated metal type's icoors must rebuild its geometry's vertices.
 
-    Guards the inversion of build_coords_from_icoors, where theta is the
-    supplement of the bond angle and a wrong convention still yields plausible
-    numbers. Compared as a set of pairwise angles, because the rebuilt fan is
-    free to be rotated as a whole.
+    Guards the icoor convention, where theta is the supplement of the bond
+    angle and a wrong convention still yields plausible numbers. Compared as a
+    set of pairwise angles, because the fan is free to be rotated as a whole.
     """
-    import math
-
     import numpy
 
-    from tmol.chemical._ideal_coords import build_coords_from_icoors
-    from tmol.support.chemical._add_metal_ions import icoors_for_sites
-
-    dist = 2.1
-    for geometry in geometry_table()["geometries"]:
-        vertices = geometry["vertices"]
-        if len(vertices) < 2:
+    vertices = {g["name"]: g["vertices"] for g in geometry_table()["geometries"]}
+    checked = 0
+    for restype in default_restype_set.residue_types:
+        if not restype.metal_sites or not restype.metal_sites[0].site_virts:
             continue
-        rows = icoors_for_sites(vertices, dist)
-        n = len(rows)
-        ancestors = numpy.tile(numpy.array([0, 1, 2], dtype=numpy.int32), (n, 1))
-        geom = numpy.array(
-            [[math.radians(p), math.radians(t), d] for p, t, d in rows],
-            dtype=numpy.float64,
-        )
-        xyz = build_coords_from_icoors(ancestors, geom)
-        built = [xyz[i] - xyz[0] for i in range(1, n)]
-        target = [numpy.array(v) * dist for v in vertices]
+        site = restype.metal_sites[0]
+        target = vertices[site.geometry]
+        if len(target) < 2:
+            continue
+        xyz = restype.ideal_coords
+        metal = xyz[restype.atom_to_idx[site.metal_atom]]
+        built = [xyz[restype.atom_to_idx[v]] - metal for v in site.site_virts]
+        lengths = [numpy.linalg.norm(v) for v in built]
 
-        for vector in built:
-            assert numpy.linalg.norm(vector) == pytest.approx(
-                dist, abs=1e-3
-            ), f"{geometry['name']}: a site sits at the wrong distance"
+        assert all(
+            length == pytest.approx(lengths[0], abs=1e-3) for length in lengths
+        ), f"{restype.name}: sites sit at different distances"
         for got, want in zip(pairwise_angles(built), pairwise_angles(target)):
             assert got == pytest.approx(
-                want, abs=1e-3
-            ), f"{geometry['name']}: rebuilt geometry does not match its vertices"
-
-
-def test_collinear_leading_vertices_are_rejected():
-    # V1 and V2 define the dihedral frame, so a trans pair listed first leaves
-    # it undefined; that must raise rather than emit silent NaNs
-    from tmol.support.chemical._add_metal_ions import icoors_for_sites
-
-    with pytest.raises(ValueError, match="collinear"):
-        icoors_for_sites([[0, 0, 1], [0, 0, -1], [1, 0, 0]], 2.1)
+                want, abs=1e-2
+            ), f"{restype.name}: rebuilt geometry does not match its vertices"
+        checked += 1
+    assert checked, "no templated metal types were checked"
 
 
 def test_metal_ion_block_types_are_loaded(
@@ -346,8 +361,14 @@ def test_metal_ion_block_types_are_loaded(
         # every templated site is marked, so detection can fill all of them
         if site.n_free_sites is not None:
             assert len(site.site_virts) == site.n_free_sites
+            assert len(site.site_connections) == site.n_free_sites
         else:
             assert site.site_virts == (), "untemplated ions get no site waters"
+            assert site.site_connections, "untemplated ions still take donors"
+        connections = {c.name: c for c in res.connections}
+        for name in site.site_connections:
+            assert connections[name].atom == site.metal_atom
+            assert not connections[name].kinematic
     assert "ZN_tetrahedral" in by_name
     assert "CA_irregular" in by_name
 

@@ -65,6 +65,8 @@ geometries:
     - [ 0.000000,  0.000000, -1.000000]
   - name: irregular
     vertices: []
+    # site connections for an untemplated ion; K+ reaches eight in channels
+    max_sites: 8
 
 ions:
   - element: Mg

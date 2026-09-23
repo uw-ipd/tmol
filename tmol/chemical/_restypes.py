@@ -1,4 +1,5 @@
 import copy
+from collections import defaultdict
 from enum import IntEnum
 
 from frozendict import frozendict
@@ -478,12 +479,13 @@ class RefinedResidueType(RawResidueType):
         # filled with -1s to ensure deterministic indexing of the paths.
         def get_paths_length_3(connection):
             paths = numpy.full((MAX_PATHS_FROM_CONNECTION, 3), -1, dtype=numpy.int32)
-            # create a convenient datastructure for following connections
-            bondmap = {-1: []}
+            # create a convenient datastructure for following connections;
+            #    virtual atoms have no bonded geometry to reach
+            virtual = {self.atom_to_idx[name] for name in self.properties.virtual}
+            bondmap = defaultdict(list)
             for bond in self.bond_indices:
-                if bond[0] not in bondmap:
-                    bondmap[bond[0]] = []
-                bondmap[bond[0]].append(bond[1])
+                if bond[0] not in virtual and bond[1] not in virtual:
+                    bondmap[bond[0]].append(bond[1])
 
             atom0 = self.atom_to_idx[connection.atom]
             # Add the immediate atom

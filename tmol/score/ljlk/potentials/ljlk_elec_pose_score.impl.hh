@@ -27,7 +27,7 @@ namespace potentials {
 namespace ljlk_elec_detail {
 
 constexpr int tile_size = 32;
-constexpr int max_n_conn = 4;
+constexpr int max_n_conn = 8;
 
 template <typename Real>
 struct SingleResData {

@@ -264,6 +264,16 @@ def _validate_raw_residue_metal_sites(res, allatoms):
                 f"atoms that are not virtual: {', '.join(not_virtual)}"
             )
 
+        connections = {c.name: c for c in res.connections}
+        for name in site.site_connections:
+            conn = connections.get(name)
+            if conn is None or conn.atom != site.metal_atom or conn.kinematic:
+                raise RuntimeError(
+                    f"Bad raw residue: {res.name}\n"
+                    f"Error: metal site connection {name} must be a non-kinematic "
+                    f"connection on {site.metal_atom}"
+                )
+
         n_total = GEOMETRY_SITE_COUNT[site.geometry]
         if n_total is None:
             # untemplated: occupancy comes from the structure, so there is no
@@ -277,6 +287,13 @@ def _validate_raw_residue_metal_sites(res, allatoms):
                 f"{n_total} sites, but names {len(site.internal_satisfiers)} "
                 f"internal satisfier(s) and {len(site.site_virts)} free-site "
                 f"virtual(s)"
+            )
+        if len(site.site_connections) != len(site.site_virts):
+            raise RuntimeError(
+                f"Bad raw residue: {res.name}\n"
+                f"Error: metal site on {site.metal_atom} has "
+                f"{len(site.site_virts)} free-site virtual(s) but "
+                f"{len(site.site_connections)} site connection(s)"
             )
 
 
@@ -687,6 +704,11 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
 
         # 0. check if we've already modified any of these atoms
         if set(modded) & set(newmark):
+            continue
+
+        # a patch cannot delete an atom a connection it keeps sits on
+        gone = set(deleted)
+        if any(c.atom in gone and c.name not in gone for c in res.connections):
             continue
 
         if not _patch_preserves_torsion_support(res, variant, namemap, deleted):

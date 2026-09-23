@@ -53,7 +53,8 @@ from tmol.database import PatchedChemicalDatabase
 
 def cf_as_tuple_from_pdb_lines(co, pdblines, device):
     cf = canonical_form_from_pdb(co, pdblines, device)
-    return tuple([*cf])
+    # the leading fields, through covalent_bonds, that the tests unpack
+    return tuple([*cf])[:12]
 
 
 def test_find_disulfide_pairs():

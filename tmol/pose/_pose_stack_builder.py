@@ -38,8 +38,44 @@ from tmol.utility.tensor import (
 from tmol.utility._device import resolve_device
 
 
+def _is_leading_run(block_types, pbt) -> bool:
+    """Whether block_types begin pbt's active block types, as the same objects."""
+    active = pbt.active_block_types
+    return len(block_types) <= len(active) and all(
+        a is b for a, b in zip(block_types, active)
+    )
+
+
 class PoseStackBuilder:
     """Build heterogeneous pose stacks while preserving chemical-database identity."""
+
+    @staticmethod
+    def _widest_packed_block_types(pose_stacks):
+        """The packed block types over the largest chemical database.
+
+        Databases only grow by appending residues, whether ligands or metal
+        donor forms, so a database whose residues are a leading run of
+        another's, as the same objects, names nothing the larger one does not
+        mean identically. Any other pair was built from unrelated sources.
+        """
+        widest = max(
+            (ps.packed_block_types for ps in pose_stacks),
+            key=lambda pbt: (len(pbt.chem_db.residues), pbt.n_types),
+        )
+        residues = widest.chem_db.residues
+        for ps in pose_stacks:
+            chem_db = ps.packed_block_types.chem_db
+            if chem_db is widest.chem_db:
+                continue
+            shared = residues[: len(chem_db.residues)]
+            if len(shared) != len(chem_db.residues) or any(
+                a is not b for a, b in zip(shared, chem_db.residues)
+            ):
+                raise ValueError(
+                    "pose stacks were built from chemical databases neither of "
+                    "which extends the other; build them from one context"
+                )
+        return widest
 
     @classmethod
     @validate_args
@@ -49,7 +85,8 @@ class PoseStackBuilder:
         """Combine one or more pose stacks on a common device.
 
         Args:
-            pose_stacks: Pose stacks built from the same chemical database.
+            pose_stacks: Pose stacks whose chemical databases are one database
+                or extensions of one another.
             device: Device for the combined tensors.
 
         Returns:
@@ -57,14 +94,11 @@ class PoseStackBuilder:
             block mappings are concatenated when present.
         """
         device = resolve_device(device)
-        pbt0 = pose_stacks[0].packed_block_types
-        for ps in pose_stacks:
-            # all PoseStacks must be built from the same chemical database
-            # even if some of the residue types were perhaps created
-            # programmatically instead of being read from an input file
-            assert pbt0.chem_db is ps.packed_block_types.chem_db
+        pbt0 = cls._widest_packed_block_types(pose_stacks)
+        # a grown generation keeps every earlier block type at its index
         reuse_pbt = all(
-            pose_stack.packed_block_types is pbt0 for pose_stack in pose_stacks
+            _is_leading_run(ps.packed_block_types.active_block_types, pbt0)
+            for ps in pose_stacks
         )
         if reuse_pbt:
             packed_block_types = pbt0

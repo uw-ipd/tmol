@@ -66,6 +66,29 @@ def geometry_for_metal_variant_index(index: int) -> str:
     return GEOMETRY_NAMES[index - METAL_GEOMETRY_VAR_BASE]
 
 
+_METAL_TABLE = None
+
+
+def metal_table() -> dict:
+    """The metal reference table in chemical/metals.yaml, loaded once."""
+    global _METAL_TABLE
+    if _METAL_TABLE is None:
+        path = os.path.join(
+            os.path.dirname(__file__), "..", "default", "chemical", "metals.yaml"
+        )
+        with open(path) as infile:
+            _METAL_TABLE = safe_load(infile)
+    return _METAL_TABLE
+
+
+def ideal_distances(ion: dict, donor_radii: dict) -> dict:
+    """Measured metal-ligand distances, completed by ionic_radius + donor_radius."""
+    out = dict(ion["distances"])
+    for donor, radius in donor_radii.items():
+        out.setdefault(donor, round(ion["ionic_radius"] + radius, 3))
+    return out
+
+
 def _parse_coordination_geometry(v, t):
     if v in GEOMETRY_SITE_COUNT:
         return v
@@ -219,6 +242,10 @@ class Connection:
     # written for a ring bond. Only a cut that splits a ring sets this: a
     # polymer up/down bond and an ordinary attachment do not close one.
     in_ring: bool = False
+    # False for a bond that neither builds the kinematic tree nor ties its
+    # blocks into one packing group: a disulfide, a metal-ligand bond. It is
+    # still a bond for count-pair.
+    kinematic: bool = True
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -310,12 +337,17 @@ class MetalSite:
     builds its waters. A cofactor authors their internal coordinates; a free
     ion has no internal geometry to orient against, so its fan is placed when
     the site is assigned.
+
+    ``site_connections`` are the metal atom's connections a donor fills, one
+    per free site and parallel to ``site_virts``; an untemplated ion has
+    connections but no virtuals. An unfilled connection is an open site.
     """
 
     metal_atom: str
     geometry: CoordinationGeometry
     internal_satisfiers: Tuple[str, ...] = ()
     site_virts: Tuple[str, ...] = ()
+    site_connections: Tuple[str, ...] = ()
 
     @property
     def n_free_sites(self) -> Optional[int]:
