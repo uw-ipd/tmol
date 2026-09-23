@@ -13,7 +13,6 @@ import biotite.structure as struc
 from atomworks.io.tools.rdkit import (
     BIOTITE_BOND_TYPE_TO_RDKIT,
     atom_array_to_rdkit,
-    assign_stereochemistry_from_3d,
     fix_charge_based_on_valence,
 )
 from collections.abc import Collection, Mapping
@@ -531,3 +530,134 @@ def transfer_tetrahedral_stereochemistry(
     return sum(
         atom.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED for atom, _, _ in pending
     )
+
+
+# ---------------------------------------------------------------------------
+# Template and stereochemistry helpers
+#
+# These read a component template into RDKit and infer stereo from geometry.
+# They exist only on an AtomWorks branch that was never merged, so TMol keeps
+# them here rather than pinning to that branch.
+# ---------------------------------------------------------------------------
+
+
+def assign_stereochemistry_from_3d(mol: Mol) -> None:
+    """Assign geometry-derived stereo while preserving unresolved coordinates.
+
+    Three resolved neighbors determine a tetrahedral center's orientation even
+    when its fourth neighbor is unresolved. Use a temporary conformer for that
+    inference; centers with insufficient geometry remain unspecified.
+    """
+    Chem.AssignStereochemistryFrom3D(mol)
+    # Record chiral H as a count without adding atoms or changing coordinates.
+    # An implicit H on a ring root can otherwise reverse SMILES stereochemistry.
+    for atom in mol.GetAtoms():
+        if atom.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED and (
+            hydrogens := atom.GetNumImplicitHs()
+        ):
+            atom.SetNumExplicitHs(atom.GetNumExplicitHs() + hydrogens)
+            atom.SetNoImplicit(True)
+    coords = mol.GetConformer().GetPositions()
+    finite = np.isfinite(coords).all(axis=1)
+    if finite.all():
+        return
+    probe = None
+    for atom in mol.GetAtoms():
+        center = atom.GetIdx()
+        neighbors = np.array([n.GetIdx() for n in atom.GetNeighbors()], dtype=int)
+        known = finite[neighbors]
+        if finite[center] and known.all():
+            continue
+        atom.SetChiralTag(Chem.ChiralType.CHI_UNSPECIFIED)
+        if finite[center] and len(neighbors) == 4 and known.sum() == 3:
+            if probe is None:
+                probe = Chem.Mol(mol)
+            conf = probe.GetConformer()
+            conf.SetPositions(coords)
+            missing = int(neighbors[~known][0])
+            conf.SetAtomPosition(
+                missing, 2 * coords[center] - coords[neighbors[known]].mean(axis=0)
+            )
+            Chem.AssignStereochemistryFrom3D(probe)
+            atom.SetChiralTag(probe.GetAtomWithIdx(center).GetChiralTag())
+    Chem.AssignStereochemistry(mol, cleanIt=True, force=True)
+
+
+def ccd_template_to_rdkit(
+    atom_array: AtomArray,
+    *,
+    hydrogen_policy: Literal["infer", "remove", "keep"] = "keep",
+    **atom_array_to_rdkit_kwargs,
+) -> Mol:
+    """Convert a complete component template, without consulting the dictionary.
+
+    Resolved geometry determines chirality first. Undefined tetrahedral centers
+    use the template's declared R/S labels, which are verified against its graph.
+    Coordinates, including NaNs, remain unchanged. The caller must supply the
+    complete component: isolated-component R/S labels cannot be applied directly
+    to a residue with covalent attachments or missing chemical atoms.
+
+    Raises:
+        ValueError: If the template is empty or an unresolved declared R/S center
+            is incompatible with its graph.
+    """
+    if len(atom_array) == 0:
+        raise ValueError("A CCD template must contain atoms")
+    ccd_code = str(atom_array.res_name[0])
+    mol = atom_array_to_rdkit(
+        atom_array,
+        set_coord=True,  # ... coordinate needed for stereochemistry assignment
+        hydrogen_policy=hydrogen_policy,  # ... hydrogens needed for stereochemistry assignment
+        **atom_array_to_rdkit_kwargs,
+    )
+
+    try:
+        assign_stereochemistry_from_3d(mol)
+    except (ValueError, RuntimeError):
+        logger.warning(
+            f"Failed to assign geometry-derived stereochemistry to {ccd_code}."
+        )
+    if "stereo" in atom_array.get_annotation_categories():
+        declared = dict(zip(atom_array.atom_name, atom_array.stereo, strict=True))
+        pending = [
+            (atom, declared[atom.GetProp("atom_name")])
+            for atom in mol.GetAtoms()
+            if atom.HasProp("atom_name")
+            and declared.get(atom.GetProp("atom_name")) in ("R", "S")
+            and atom.GetChiralTag() == Chem.ChiralType.CHI_UNSPECIFIED
+        ]
+        if pending:
+            for atom, _ in pending:
+                atom.SetChiralTag(Chem.ChiralType.CHI_TETRAHEDRAL_CW)
+            Chem.AssignStereochemistry(mol, cleanIt=True, force=True)
+            for atom, expected in pending:
+                if atom.HasProp("_CIPCode") and atom.GetProp("_CIPCode") != expected:
+                    atom.InvertChirality()
+            Chem.AssignStereochemistry(mol, cleanIt=True, force=True)
+            # A declared configuration that cannot be honoured is an error for
+            # caller-supplied chemistry, which is actionable. The bundled dictionary
+            # declares R/S on atoms RDKit can never label -- porphyrin and corrin ring
+            # nitrogens -- and refusing those would make chlorophyll and cobalamin
+            # unbuildable, so they are downgraded to a warning.
+            is_registered = ccd_code.upper() in get_custom_ccd_entries()
+            unperceived = []
+            for atom, expected in pending:
+                if atom.HasProp("_CIPCode") and atom.GetProp("_CIPCode") == expected:
+                    continue
+                if atom.HasProp("_CIPCode") or is_registered:
+                    raise ValueError(
+                        f"Cannot assign declared {expected} configuration to {ccd_code}.{atom.GetProp('atom_name')}"
+                    )
+                # Never leave the speculative tag behind as invented chirality.
+                atom.SetChiralTag(Chem.ChiralType.CHI_UNSPECIFIED)
+                unperceived.append(atom.GetProp("atom_name"))
+            if unperceived:
+                logger.warning(
+                    "%s declares stereochemistry on %s, which RDKit does not perceive as stereocenters; "
+                    "leaving them unspecified.",
+                    ccd_code,
+                    ", ".join(unperceived),
+                )
+                Chem.AssignStereochemistry(mol, cleanIt=True, force=True)
+
+    return mol
