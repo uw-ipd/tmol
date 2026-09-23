@@ -120,8 +120,13 @@ def test_tmol_rules_are_supplied_without_the_caller_asking(smiles):
     assert canonical_states(observed) == canonical_states(expected)
 
 
-def test_tmol_inventory_actually_differs_from_the_engine_default():
-    """A case Frank added: with the engine's own rules this stays neutral."""
+def test_the_shared_engine_carries_the_rule_tmol_needs():
+    """A case Frank added: the engine's own defaults once left this neutral.
+
+    AtomWorks now ships the full rule inventory, so the two agree. Asserting
+    that agreement is what keeps the shared engine honest -- a rule dropped
+    upstream would show up here.
+    """
     molecule = Chem.MolFromSmiles("COP(=O)(S)OC")
     kwargs = {"min_ph": 7.4, "max_ph": 7.4, "pka_precision": 0.1}
 
@@ -133,4 +138,4 @@ def test_tmol_inventory_actually_differs_from_the_engine_default():
     )
 
     assert with_tmol_rules == ["COP(=O)([S-])OC"]
-    assert with_tmol_rules != with_engine_rules
+    assert with_engine_rules == with_tmol_rules
