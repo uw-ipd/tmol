@@ -11,7 +11,7 @@ at a call site.
 
 import os
 
-from atomworks.external.dimorphite_dl.dimorphite_dl import (  # noqa: F401
+from atomworks.protonation.external.dimorphite_dl.dimorphite_dl import (  # noqa: F401
     ArgParseFuncs,
     LoadSMIFile,
     MyParser,
@@ -23,7 +23,7 @@ from atomworks.external.dimorphite_dl.dimorphite_dl import (  # noqa: F401
     main,
     print_header,
 )
-from atomworks.external.dimorphite_dl.dimorphite_dl import (
+from atomworks.protonation.external.dimorphite_dl.dimorphite_dl import (
     protonate_mol_variants as _protonate_mol_variants,
 )
 

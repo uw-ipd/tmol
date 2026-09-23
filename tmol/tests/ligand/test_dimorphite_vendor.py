@@ -5,10 +5,10 @@ from pathlib import Path
 import pytest
 from rdkit import Chem
 
-from atomworks.external.dimorphite_dl.dimorphite_dl import (
+from atomworks.protonation.external.dimorphite_dl.dimorphite_dl import (
     ProtSubstructFuncs as AtomWorksProtSubstructFuncs,
 )
-from atomworks.external.dimorphite_dl.dimorphite_dl import (
+from atomworks.protonation.external.dimorphite_dl.dimorphite_dl import (
     protonate_mol_variants as atomworks_protonate_mol_variants,
 )
 from tmol.ligand._dimorphite_dl import ProtSubstructFuncs, protonate_mol_variants
