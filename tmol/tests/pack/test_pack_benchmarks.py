@@ -11,7 +11,7 @@ from tmol.tests.score.common import pose_stack_from_pdb_and_resnums
 
 @pytest.mark.parametrize("n_poses", [1, 3, 10])
 @pytest.mark.parametrize("no_optH", [True, False], ids=["rotamers_only", "with_optH"])
-@pytest.mark.benchmark(group=["build_missing_sidechains"])
+@pytest.mark.benchmark(group="build_missing_sidechains")
 def test_build_missing_sidechains_benchmark(
     benchmark, ubq_pdb, torch_device, dun_sampler, n_poses, no_optH
 ):
