@@ -64,7 +64,7 @@ dependencies = [
     "astor>=0.8",
     # Structure I/O
     "biotite>=1.4.0",
-    "atomworks @ git+ssh://git@github.com/baker-laboratory/atomworks-dev.git@6b7fcacc1c023940e6d5a08eea1a418fb5c3d4a0",
+    "atomworks @ git+ssh://git@github.com/baker-laboratory/atomworks-dev.git@855dd950136ad31c75a29d68200e4142eff73ccb",
     # Ligand preparation
     "rdkit>=2024.3",
 ]
