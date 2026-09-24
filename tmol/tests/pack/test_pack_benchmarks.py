@@ -24,7 +24,7 @@ def test_build_missing_sidechains_benchmark(
     comparison anyone weighing ``no_optH`` needs.
     """
     if torch_device == torch.device("cpu"):
-        return
+        pytest.skip("the packer is benchmarked on the GPU it runs on")
 
     pose = pose_stack_from_pdb_and_resnums(ubq_pdb, torch_device)
     pose_stack = PoseStackBuilder.from_poses([pose] * n_poses, device=torch_device)
