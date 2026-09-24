@@ -12,9 +12,9 @@ import biotite.structure as struc
 import networkx as nx
 import numpy as np
 from rdkit import Chem
-from tmol.ligand._rdkit_mol import ccd_template_to_rdkit
+from atomworks.io.tools.rdkit import ccd_template_to_rdkit
 from atomworks.io.utils.atom_array_plus import concatenate_atom_array_plus
-from tmol.ligand._input_repair import get_leaving_atom_groups
+from atomworks.io.utils.leaving_atoms import get_leaving_atom_groups
 
 from tmol.ligand._polymer_profile import cap_residue, profile_for_atom_array
 from tmol.ligand._conjugation_patches import connection_name
