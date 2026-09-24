@@ -48,6 +48,7 @@ class CapturedScoringGraph(torch.nn.Module):
                 name or "the module"
                 for name, child in module.named_modules()
                 if child._backward_hooks
+                or child._backward_pre_hooks
                 or child._forward_hooks
                 or child._forward_pre_hooks
             ),

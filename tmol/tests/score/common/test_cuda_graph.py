@@ -179,7 +179,9 @@ def test_cuda_scoring_capture_rejects_autocast_cache(torch_device):
             CapturedScoringGraph(module, sample)
 
 
-@pytest.mark.parametrize("hook", ["forward", "forward_pre", "full_backward"])
+@pytest.mark.parametrize(
+    "hook", ["forward", "forward_pre", "full_backward", "full_backward_pre"]
+)
 def test_cuda_scoring_capture_rejects_existing_hooks(torch_device, hook):
     if torch_device.type != "cuda":
         pytest.skip("CUDA scoring capture")
