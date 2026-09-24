@@ -9,9 +9,13 @@ _ops = load_ops(
         "apsp_vestibule.ops.cpp",
         "apsp.cpu.cpp",
         "apsp.cuda.cu",
+        "bondsep.cpu.cpp",
+        "bondsep.cuda.cu",
     ],
     "tmol_apsp",
 )
+
+block_bondsep = _ops.block_bondsep_op
 
 
 def stacked_apsp(weights, threshold=-1):
