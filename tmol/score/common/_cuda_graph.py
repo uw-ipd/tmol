@@ -47,13 +47,17 @@ class CapturedScoringGraph(torch.nn.Module):
             (
                 name or "the module"
                 for name, child in module.named_modules()
-                if child._backward_hooks or child._forward_hooks or child._forward_pre_hooks
+                if child._backward_hooks
+                or child._forward_hooks
+                or child._forward_pre_hooks
             ),
             None,
         )
         if hooked is not None:
             # A hook on any submodule is as invisible to the replay as one on the root.
-            raise AssertionError(f"Scoring modules must not have hooks before capture: {hooked}")
+            raise AssertionError(
+                f"Scoring modules must not have hooks before capture: {hooked}"
+            )
         if any(buffer.requires_grad for buffer in module.buffers()):
             raise AssertionError(
                 "Captured scoring buffers must have requires_grad=False"
