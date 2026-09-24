@@ -51,11 +51,11 @@ struct LJLKBlockPairSharedData {
   Real coords2[TILE_SIZE * 3];
   LJLKTypeParams<Real> params1[TILE_SIZE];  // 1536 bytes for params
   LJLKTypeParams<Real> params2[TILE_SIZE];
-  unsigned char conn_ats1[MAX_N_CONN];  // 8 bytes
+  unsigned char conn_ats1[MAX_N_CONN];  // 12 bytes
   unsigned char conn_ats2[MAX_N_CONN];
-  unsigned char path_dist1[MAX_N_CONN * TILE_SIZE];  // 256 bytes
+  unsigned char path_dist1[MAX_N_CONN * TILE_SIZE];  // 384 bytes
   unsigned char path_dist2[MAX_N_CONN * TILE_SIZE];
-  unsigned char conn_seps[MAX_N_CONN * MAX_N_CONN];  // 64 bytes
+  unsigned char conn_seps[MAX_N_CONN * MAX_N_CONN];  // 144 bytes
 };
 
 template <

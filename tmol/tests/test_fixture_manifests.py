@@ -13,6 +13,7 @@ NCAA_FIXTURE_CLASS = {
     "chromophore_nrq_3svu.cif": "covalent_chromophore",
     "collagen_hyp_1bkv.cif": "alpha_amino_acid_modification",
     "gamma_peptide_1gac.cif": "nonstandard_backbone",
+    "lactam_cyclic_7ag5.cif": "sidechain_cyclization",
     "na_dna_5mc_1d17.cif": "modified_nucleic_acid",
     "na_dna_8og_183d.cif": "modified_nucleic_acid",
     "na_dna_ttd_1ttd.cif": "modified_nucleic_acid",
@@ -49,7 +50,7 @@ def test_atomworks_regression_manifest_matches_fixture_bytes() -> None:
 
 
 def test_ncaa_fixture_inventory_has_documented_classification() -> None:
-    """Keep all 15 README fixture roles explicit without claiming parity."""
+    """Keep all 16 README fixture roles explicit without claiming parity."""
     fixture_dir = DATA / "ncaa_fixtures"
     assert {path.name for path in fixture_dir.glob("*.cif")} == set(NCAA_FIXTURE_CLASS)
     assert Counter(NCAA_FIXTURE_CLASS.values()) == {
@@ -58,5 +59,6 @@ def test_ncaa_fixture_inventory_has_documented_classification() -> None:
         "mirror_image_control": 2,
         "modified_nucleic_acid": 5,
         "nonstandard_backbone": 3,
+        "sidechain_cyclization": 1,
         "terminal_caps": 2,
     }

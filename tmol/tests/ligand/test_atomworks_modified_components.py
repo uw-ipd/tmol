@@ -20,6 +20,13 @@ from tmol.tests.io.test_atomworks_corpus_regressions import _score_and_minimize
 DATA = Path(__file__).parents[1] / "data" / "atomworks_regressions"
 
 
+def assert_metal_bonds_are_coordination(array, metal):
+    """A metal is declared bonded only by coordination, never covalently."""
+    bonds = array.bonds.as_array()
+    touches = metal[bonds[:, :2]].any(axis=1)
+    assert (bonds[touches, 2] == struc.BondType.COORDINATION).all()
+
+
 def test_free_and_attached_solutes_keep_distinct_chemistry(torch_device):
     array = atom_array_from_cif(DATA / "free_and_attached_solutes_5xag.cif.gz")
     array = array[
@@ -238,10 +245,16 @@ def test_single_atom_plp_backbone_packs_and_preserves_chirality(
         plp, (), context.parameter_database.chemical
     )[1]
     assert len(set(original)) == plp.n_atoms
-    assert {original[plp.atom_to_idx[name]].chirality for name in ("HC4", "HC5")} == {
-        1,
-        2,
-    }
+    mainchain_hydrogens = [
+        other
+        for a, b, *_ in plp.bonds
+        for atom, other in ((a, b), (b, a))
+        if atom == "C4A" and other.startswith("H")
+    ]
+    assert len(mainchain_hydrogens) == 2
+    assert {
+        original[plp.atom_to_idx[name]].chirality for name in mainchain_hydrogens
+    } == {1, 2}
     with monkeypatch.context() as patch:
         patch.setattr(plp, "ideal_coords", plp.ideal_coords * [-1, 1, 1])
         mirrored = create_mainchain_fingerprint(
@@ -285,7 +298,7 @@ def test_chromophore_with_one_terminal_patch_constructs_and_minimizes(torch_devi
 def test_internal_representative_keeps_terminal_oxygen_names(torch_device):
     array = atom_array_from_cif(DATA / "modified_components_6q9t.cif")
     metal = np.isin(np.char.upper(array.element), ("ZN", "NA", "MG", "CA"))
-    assert not metal[array.bonds.as_array()[:, :2]].any()
+    assert_metal_bonds_are_coordination(array, metal)
     array = array[~metal & (array.res_name != "HOH")]
     supplied = array.coord.copy()
     boundaries = struc.get_residue_starts(array, add_exclusive_stop=True)
@@ -369,7 +382,7 @@ def test_modified_nucleotide_aliases_construct_score_and_minimize(torch_device):
 
     array = atom_array_from_cif(DATA / "modified_nucleotide_aliases_1d9d.cif.gz")
     metal = np.isin(np.char.upper(array.element), ("ZN", "MG"))
-    assert not metal[array.bonds.as_array()[:, :2]].any()
+    assert_metal_bonds_are_coordination(array, metal)
     array = array[~metal & (array.res_name != "HOH")]
     supplied, names = array.coord.copy(), array.atom_name.copy()
     context = build_context_from_biotite(

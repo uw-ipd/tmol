@@ -5,6 +5,8 @@ import numpy as np
 
 from atomworks.io.config import ParseConfig
 from atomworks.io.parser import parse
+from atomworks.io.transforms.categories import category_to_dict
+from atomworks.io.utils.bonds import get_struct_conn_bonds
 
 _AUTHOR_FIELDS = {
     "atom_name": "auth_atom_id",
@@ -76,6 +78,20 @@ def _read_declared(path, model, assembly_id):
     return array, block
 
 
+def _with_metal_coordination(array, block):
+    """The bond table plus the file's metalc bonds, typed COORDINATION."""
+    bonds = array.bonds if array.bonds is not None else struc.BondList(len(array))
+    return bonds.merge(
+        get_struct_conn_bonds(
+            array,
+            category_to_dict(block, "struct_conn"),
+            add_bond_types=("metalc",),
+            distance_policy="keep",
+            use_ccd=False,
+        )
+    )
+
+
 def read_structure(path, *, model=1, assembly_id=None, use_ccd=True):
     """Read PDB/CIF atoms and available bonds, optionally supplemented from CCD."""
     if model is None or model < 1:
@@ -134,6 +150,8 @@ def read_structure(path, *, model=1, assembly_id=None, use_ccd=True):
 
     else:
         array, block = _read_declared(path, model, assembly_id)
+    if assembly_id is None and block is not None and "struct_conn" in block:
+        array.bonds = _with_metal_coordination(array, block)
     if assembly_id is not None:
         array.set_annotation("chain_id", array.chain_iid.copy())
     for target, source in _AUTHOR_FIELDS.items():

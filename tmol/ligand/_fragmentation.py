@@ -582,6 +582,11 @@ def build_ligand_fragment_definition(  # noqa: C901
                 alias for alias in restype.atom_aliases if alias.name in name_set
             ),
             bonds=local_bonds,
+            io_bond_orders=tuple(
+                b
+                for b in restype.io_bond_orders
+                if b[0] in name_set and b[1] in name_set
+            ),
             connections=tuple(
                 Connection(
                     name=conn.connection_name,

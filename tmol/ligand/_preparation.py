@@ -214,6 +214,86 @@ def _assert_fragment_names_available(param_db, fragment_preparations) -> None:
             )
 
 
+def _kekule_bond_orders(mol: Chem.Mol) -> dict[frozenset, str]:
+    """Bond orders of one Lewis structure of ``mol``, by atom index pair."""
+    kekule = Chem.Mol(mol)
+    try:
+        Chem.Kekulize(kekule, clearAromaticFlags=True)
+    except Exception:
+        logger.debug("kekulization failed; keeping aromatic orders", exc_info=True)
+    names = {
+        Chem.BondType.SINGLE: "SINGLE",
+        Chem.BondType.DOUBLE: "DOUBLE",
+        Chem.BondType.TRIPLE: "TRIPLE",
+        Chem.BondType.AROMATIC: "AROMATIC",
+    }
+    return {
+        frozenset((b.GetBeginAtomIdx(), b.GetEndAtomIdx())): names.get(
+            b.GetBondType(), "SINGLE"
+        )
+        for b in kekule.GetBonds()
+    }
+
+
+def _name_hydrogens_by_parent(
+    mol: Chem.Mol, atom_types: list[AtomTypeAssignment]
+) -> list[AtomTypeAssignment]:
+    """Name each hydrogen after the heavy atom it is bonded to.
+
+    A lone hydrogen on X is HX and several are HX1, HX2, ..., so a hydroxyl
+    hydrogen carries its oxygen's name (HO2 on O2) whatever the atom order.
+    Names are kept to four characters: past that the parent's element is
+    dropped (H101 for a hydrogen of C10), and a name still too long or already
+    taken falls back to H<element><count>.
+    """
+    name_by_index = {at.index: at.atom_name for at in atom_types}
+    hydrogens_of: dict[int, list[int]] = {}
+    for at in atom_types:
+        if at.element != "H":
+            continue
+        heavy = [
+            n.GetIdx()
+            for n in mol.GetAtomWithIdx(at.index).GetNeighbors()
+            if n.GetAtomicNum() != 1
+        ]
+        if heavy:
+            hydrogens_of.setdefault(heavy[0], []).append(at.index)
+    taken = {at.atom_name for at in atom_types if at.element != "H"}
+
+    def fallback(element):
+        count = 1
+        while f"H{element}{count}" in taken:
+            count += 1
+        return f"H{element}{count}"
+
+    renamed = {}
+    for parent in sorted(hydrogens_of):
+        hydrogens = sorted(hydrogens_of[parent])
+        name = name_by_index[parent]
+        element = mol.GetAtomWithIdx(parent).GetSymbol().upper()
+        stems = [name]
+        if name.upper().startswith(element) and len(name) > len(element):
+            stems.append(name[len(element) :])
+        for stem in stems:
+            names = (
+                [f"H{stem}"]
+                if len(hydrogens) == 1
+                else [f"H{stem}{i}" for i in range(1, len(hydrogens) + 1)]
+            )
+            if all(len(n) <= 4 and n not in taken for n in names):
+                break
+        else:
+            names = []
+            for _ in hydrogens:
+                names.append(fallback(element))
+                taken.add(names[-1])
+        taken.update(names)
+        renamed.update(zip(hydrogens, names))
+    return [
+        at._replace(atom_name=renamed.get(at.index, at.atom_name)) for at in atom_types
+    ]
+
+
 def _rename_atoms_to_cif(
     pipeline_mol: Chem.Mol,
     atom_types: list[AtomTypeAssignment],
@@ -313,6 +393,8 @@ def prepare_single_ligand(
     for applied in correct_generated_geometry(protonated):
         logger.info("%s: %s", ligand_info.res_name, applied)
 
+    # typing promotes conjugated and amide single bonds; keep the Lewis orders
+    chemical_orders = _kekule_bond_orders(protonated)
     atom_types, typing_state = assign_tmol_atom_types(protonated, return_state=True)
 
     # Charges come straight from the SMILES -> OpenBabel MMFF94 step, carried on
@@ -332,6 +414,7 @@ def prepare_single_ligand(
         name_source if name_source is not None else ligand_info,
         ligand_info.source_atom_order,
     )
+    atom_types = _name_hydrogens_by_parent(protonated, atom_types)
 
     source = name_source if name_source is not None else ligand_info
     template = getattr(source.atom_array, "_custom_ccd_registry", {}).get(
@@ -352,6 +435,21 @@ def prepare_single_ligand(
         generate_heavy_chi_samples=generate_heavy_chi_samples,
         original_single_bonds=ligand_info.original_single_bonds,
         frame_excluded_atoms=frame_excluded,
+    )
+    index_by_name = {at.atom_name: at.index for at in atom_types}
+    restype = attr.evolve(
+        restype,
+        io_bond_orders=tuple(
+            (a, b, chemical)
+            for a, b, order, *_ in restype.bonds
+            if (
+                chemical := chemical_orders.get(
+                    frozenset((index_by_name[a], index_by_name[b]))
+                )
+            )
+            is not None
+            and chemical != str(order).upper()
+        ),
     )
 
     atom_type_elements: dict[str, str] = {}
@@ -905,10 +1003,17 @@ def _polymer_connection_atoms(res_name, lig, canonical_ordering, chemdb):
             for carbonyl in (_chain_end_candidates(lig.atom_array, nitrogen) or ())
             if carbonyl in lig.connection_atom_names
         }
-        # Sidechain crosslinks do not erase an unambiguous peptide backbone.
-        # Resolve every partner from its chemistry, independently of loop order.
-        if len(pairs) == 1:
-            profile = profile_for_atom_array(lig.atom_array, pairs.pop(), chemdb)
+        # Sidechain crosslinks do not erase a peptide backbone. Resolve every
+        # partner from its chemistry, independently of loop order; where two
+        # amines could each start one, the shortest mainchain (alpha) wins.
+        candidates = (
+            profile_for_atom_array(lig.atom_array, pair, chemdb) for pair in pairs
+        )
+        profiles = [p for p in candidates if p is not None]
+        shortest = min((len(p.mainchain_atoms) for p in profiles), default=None)
+        best = [p for p in profiles if len(p.mainchain_atoms) == shortest]
+        if len(best) == 1:
+            profile = best[0]
     if profile is None:
         return frozenset()
     return frozenset(atom for _, atom in profile.connections)
@@ -1086,7 +1191,10 @@ def canonical_conjugation_sites(atom_array, chemical_database):
             residue = definitions.get(name)
             if residue is None:
                 continue
-            connection = attachment_connection_name(atom_array, index, partner, residue)
+            partner_residue = definitions.get(str(atom_array.res_name[partner]))
+            connection = attachment_connection_name(
+                atom_array, index, partner, residue, partner_residue
+            )
             if connection in ("up", "down"):
                 continue
             if (name, atom) in prepared_sites:
@@ -1716,7 +1824,7 @@ def prepare_ligands(  # noqa: C901
 
     from tmol.ligand._conjugation_patches import declared_heavy_leaving_groups
 
-    heavy_leaving = declared_heavy_leaving_groups(atom_array)
+    heavy_leaving = declared_heavy_leaving_groups(atom_array, param_db.chemical)
     hydrogen_counts, bond_types, open_geometries = {}, {}, {}
     if preparations or canonical_sites:
         # Base definitions suffice for identifying polymer caps. Avoid a second
@@ -1735,6 +1843,14 @@ def prepare_ligands(  # noqa: C901
             atom_array, chemistry, strict_ligands
         )
         cut_partners |= cut
+        # a database residue bonded to a prepared residue's sidechain is only
+        # classified once that residue's definition exists
+        known = {
+            n for r in param_db.chemical.residues for n in (r.name, r.io_equiv_class)
+        }
+        for name, atoms in canonical_conjugation_sites(atom_array, chemistry).items():
+            if name in known:
+                canonical_sites.setdefault(name, set()).update(atoms)
         hydrogen_counts, bond_types, open_geometries = _conjugation_chemistry(
             atom_array, chemistry, ph
         )

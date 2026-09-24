@@ -103,6 +103,13 @@ atom_cp_reps_parameters:
   - { *r: HIS ,*ai: C, *ao: O }
   - { *r: HIS ,*ai: ND1, *ao: HD1 }
   - { *r: HIS ,*ai: NE2, *ao: HE2 }
+  - { *r: HIS_DEP:cterm ,*ai: C, *ao: O }
+  - { *r: HIS_DEP:cterm ,*ai: C, *ao: OXT }
+  - { *r: HIS_DEP:nterm ,*ai: N, *ao: H1 }
+  - { *r: HIS_DEP:nterm ,*ai: N, *ao: H2 }
+  - { *r: HIS_DEP:nterm ,*ai: N, *ao: H3 }
+  - { *r: HIS_DEP ,*ai: N, *ao: H }
+  - { *r: HIS_DEP ,*ai: C, *ao: O }
   - { *r: HIS_D:cterm ,*ai: C, *ao: O }
   - { *r: HIS_D:cterm ,*ai: C, *ao: OXT }
   - { *r: HIS_D:nterm ,*ai: N, *ao: H1 }
@@ -465,6 +472,31 @@ atom_charge_parameters:
   - { *r: HIS ,*a: ND1, *e: -0.65772 }
   - { *r: HIS ,*a: NE2, *e: -0.33825 }
   - { *r: HIS ,*a: O, *e: -0.76511 }
+  - { *r: HIS_DEP ,*a: HB2, *e: 0.04920 }
+  - { *r: HIS_DEP ,*a: HB3, *e: 0.04920 }
+  - { *r: HIS_DEP ,*a: C, *e: 0.76511 }
+  - { *r: HIS_DEP ,*a: CA, *e: 0.11475 }
+  - { *r: HIS_DEP ,*a: CB, *e: -0.02984 }
+  - { *r: HIS_DEP ,*a: CD2, *e: 0.17780 }
+  - { *r: HIS_DEP ,*a: CE1, *e: -0.01368 }
+  - { *r: HIS_DEP ,*a: CG, *e: -0.13402 }
+  - { *r: HIS_DEP ,*a: H, *e: 0.50819 }
+  - { *r: HIS_DEP ,*a: HA, *e: 0.14754 }
+  - { *r: HIS_DEP ,*a: HD2, *e: -0.14967 }
+  - { *r: HIS_DEP ,*a: HE1, *e: 0.05882 }
+  - { *r: HIS_DEP ,*a: N, *e: -0.77049 }
+  - { *r: HIS_DEP ,*a: ND1, *e: -0.47733 }
+  - { *r: HIS_DEP ,*a: NE2, *e: -0.53047 }
+  - { *r: HIS_DEP ,*a: O, *e: -0.76511 }
+  - { *r: HIS_DEP:cterm ,*a: OXT, *e: -0.67724 }
+  - { *r: HIS_DEP:cterm ,*a: O, *e: -0.67724 }
+  - { *r: HIS_DEP:cterm ,*a: C, *e: 0.35448 }
+  - { *r: HIS_DEP:nterm ,*a: N, *e: -0.10440 }
+  - { *r: HIS_DEP:nterm ,*a: CA, *e: 0.19184 }
+  - { *r: HIS_DEP:nterm ,*a: HA, *e: 0.12794 }
+  - { *r: HIS_DEP:nterm ,*a: H1, *e: 0.26154 }
+  - { *r: HIS_DEP:nterm ,*a: H2, *e: 0.26154 }
+  - { *r: HIS_DEP:nterm ,*a: H3, *e: 0.26154 }
   - { *r: HIS_POS, *a: N, *e: -0.47}
   - { *r: HIS_POS, *a: CA, *e: 0.07}
   - { *r: HIS_POS, *a: C, *e: 0.51}

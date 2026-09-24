@@ -1,3 +1,5 @@
+import warnings
+
 import numpy
 import biotite.structure
 from biotite.structure.io.pdbx import CIFFile, set_structure
@@ -12,7 +14,8 @@ from tmol.io import (
     pose_stack_from_cif,
     biotite_from_pose_stack,
 )
-from tmol.tests.data import load_cif
+from tmol.io._pose_stack_from_biotite import _renumbered_for_cif
+from tmol.tests.data import data_path, load_cif
 
 _CI_CIF_CODES = [
     "1UBQ",  # small, clean protein
@@ -602,3 +605,121 @@ def test_partly_absent_mainchain_triplets_are_still_missing():
     coords[0, 0, 0, 1] = torch.nan
     with pytest.raises(Atom37MappingError, match="pose=0 residue=A:1:N"):
         _validate_effective_mainchain_coords(coords, ((0, 0, "A:1:N"),))
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        ("metal_fixtures", "zn_tetrahedral_3ks3.cif.gz"),
+        ("atomworks_regressions", "plp_enzyme_7mkv.cif"),
+        ("atomworks_regressions", "isopeptide_2rm9.cif.gz"),
+        ("atomworks_regressions", "repeated_glycans_6mub.cif.gz"),
+    ],
+    ids=lambda p: p[1].split(".")[0],
+)
+def test_export_rebuilds_the_pose_exactly(path):
+    """An exported structure carries every bond its pose needs to be rebuilt."""
+    structure = atom_array_from_cif(data_path(*path))
+    structure = structure[structure.res_name != "HOH"]
+    device = torch.device("cpu")
+    pose_stack, context = pose_stack_from_biotite(
+        structure, device, prepare_ligands=True, no_optH=True, return_context=True
+    )
+    exported = biotite_from_pose_stack(pose_stack, context.canonical_ordering)
+    rebuilt = pose_stack_from_biotite(exported, device, context=context, no_optH=True)
+
+    torch.testing.assert_close(rebuilt.block_type_ind64, pose_stack.block_type_ind64)
+    torch.testing.assert_close(
+        rebuilt.inter_residue_connections64, pose_stack.inter_residue_connections64
+    )
+    torch.testing.assert_close(rebuilt.coords, pose_stack.coords, equal_nan=True)
+
+
+def _residues(ids, chains, ins=None):
+    array = biotite.structure.AtomArray(len(ids))
+    array.res_id = numpy.array(ids)
+    array.chain_id = numpy.array(chains)
+    array.res_name = numpy.array(["ALA"] * len(ids))
+    array.atom_name = numpy.array(["CA"] * len(ids))
+    if ins is not None:
+        array.ins_code = numpy.array(ins)
+    return array
+
+
+def test_cif_export_keeps_numbering_it_can_carry():
+    array = _residues(
+        [-3, -2, 0, 5, 5, 6, 101], ["A"] * 7, ["", "", "", "", "A", "", ""]
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert _renumbered_for_cif(array) is array
+
+
+def test_cif_export_shifts_a_chain_numbered_through_minus_one():
+    array = _residues([-3, -1, 0, 1, 7], ["A", "A", "A", "A", "B"])
+    with pytest.warns(UserWarning, match="chain A .* residue id of -1"):
+        out = _renumbered_for_cif(array)
+    assert out.res_id.tolist() == [1, 3, 4, 5, 7]
+
+
+def test_cif_export_renumbers_a_chain_whose_numbering_decreases():
+    array = _residues([10, 11, 11, 5, 3], ["A"] * 5, ["", "", "B", "", ""])
+    with pytest.warns(UserWarning, match="chain A .* decreases"):
+        out = _renumbered_for_cif(array)
+    assert out.res_id.tolist() == [1, 2, 3, 4, 5]
+    assert out.ins_code.tolist() == [""] * 5
+
+
+def _heavy_atom_mask(pose_stack):
+    pbt = pose_stack.packed_block_types
+    element = {at.name: at.element for at in pbt.chem_db.atom_types}
+    mask = torch.zeros(pose_stack.coords.shape[:2], dtype=torch.bool)
+    for pose, block in zip(*torch.nonzero(pose_stack.block_type_ind64 >= 0).T.tolist()):
+        bt = pbt.active_block_types[pose_stack.block_type_ind64[pose, block]]
+        offset = int(pose_stack.block_coord_offset64[pose, block])
+        for i, atom in enumerate(bt.atoms):
+            mask[pose, offset + i] = element[atom.atom_type] not in ("H", "Vr")
+    return mask
+
+
+@pytest.mark.parametrize("route", ["memory", "cif"])
+@pytest.mark.parametrize(
+    "path",
+    [
+        ("atomworks_regressions", "isopeptide_2rm9.cif.gz"),
+        ("atomworks_regressions", "repeated_glycans_6mub.cif.gz"),
+        ("atomworks_regressions", "plp_enzyme_7mkv.cif"),
+        ("atomworks_regressions", "retinyl_lysine_4xxj.cif"),
+        ("metal_fixtures", "mg_rna_aptamer_7eoh.cif.gz"),
+        ("metal_fixtures", "fe_rubredoxin_30oh.cif.gz"),
+        ("ncaa_fixtures", "lactam_cyclic_7ag5.cif"),
+    ],
+    ids=lambda p: p[1].split(".")[0],
+)
+@pytest.mark.filterwarnings("ignore:Renumbering chain")
+def test_export_rebuilds_without_its_context(path, route, tmp_path):
+    """An exported structure alone carries the chemistry to rebuild its pose."""
+    structure = atom_array_from_cif(data_path(*path))
+    structure = structure[structure.res_name != "HOH"]
+    device = torch.device("cpu")
+    pose_stack, context = pose_stack_from_biotite(
+        structure, device, prepare_ligands=True, return_context=True
+    )
+    exported = biotite_from_pose_stack(pose_stack, context.canonical_ordering)
+    if route == "cif":
+        cif = CIFFile()
+        set_structure(cif, exported, include_bonds=True)
+        cif.write(str(tmp_path / "out.cif"))
+        exported = atom_array_from_cif(str(tmp_path / "out.cif"))
+    rebuilt = pose_stack_from_biotite(exported, device, prepare_ligands=True)
+
+    names = [bt.name for bt in pose_stack.packed_block_types.active_block_types]
+    rebuilt_names = [bt.name for bt in rebuilt.packed_block_types.active_block_types]
+    assert [
+        rebuilt_names[i] if i >= 0 else None for i in rebuilt.block_type_ind64[0]
+    ] == [names[i] if i >= 0 else None for i in pose_stack.block_type_ind64[0]]
+    torch.testing.assert_close(
+        rebuilt.inter_residue_connections64, pose_stack.inter_residue_connections64
+    )
+    heavy = _heavy_atom_mask(pose_stack)
+    torch.testing.assert_close(rebuilt.coords[heavy], pose_stack.coords[heavy])

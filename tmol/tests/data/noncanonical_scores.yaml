@@ -32,6 +32,7 @@ alpha_aa:
   lk_ball_iso: 40.4749
   lk_bridge: 0.0198
   lk_bridge_uncpl: 0.4034
+  metal_coordination: 0.0
   na_torsion: 0.0
   na_torsion_well: 0.0
   omega: -2.3507
@@ -57,6 +58,7 @@ dna:
   lk_ball_iso: 11.1024
   lk_bridge: 0.0251
   lk_bridge_uncpl: 0.5631
+  metal_coordination: 0.0
   na_torsion: 233.1829
   na_torsion_well: 38.36
   omega: 0.0
@@ -82,6 +84,7 @@ nonstandard_aa:
   lk_ball_iso: 189.6132
   lk_bridge: 0.0705
   lk_bridge_uncpl: 0.945
+  metal_coordination: 0.0
   na_torsion: 0.0
   na_torsion_well: 0.0
   omega: 4.5022
@@ -107,6 +110,7 @@ nonstandard_na:
   lk_ball_iso: 55.4366
   lk_bridge: 0.0652
   lk_bridge_uncpl: 1.4338
+  metal_coordination: 0.0
   na_torsion: 31.4765
   na_torsion_well: 4.7035
   omega: 0.0

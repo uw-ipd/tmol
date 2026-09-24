@@ -13,6 +13,7 @@ weights:
   omega: 0.48
   rama: 0.50
   disulfide: 1.25
+  metal_coordination: 1.0
   cart_lengths: 0.5
   cart_angles: 0.5
   cart_torsions: 0.5
@@ -38,6 +39,7 @@ options:
       GLY: -0.6290
       HIS: 0.5347
       HIS_D: 0.5347
+      HIS_DEP: 0.5347
       ILE: 3.6828
       LYS: -1.1870
       LEU: 3.0591

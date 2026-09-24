@@ -153,7 +153,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
     # 1: look for NaNs in the input coordinates tensor
     atom_is_present = torch.all(torch.logical_not(torch.isnan(coords)), dim=3)
 
-    declared_metal_sites = _declared_metal_sites(
+    declared_metal_sites, required_metal_donors = _declared_metal_sites(
         res_types, metal_sites, metal_coordination
     )
 
@@ -230,6 +230,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
         excluded_donor_residues=res_type_variants != 0,
         declared_sites=declared_metal_sites,
         find_additional=find_additional_metal_coordination,
+        required_donors=required_metal_donors,
     )
     res_type_variants = torch.where(
         metal_variants != 0, metal_variants, res_type_variants
@@ -425,24 +426,39 @@ def pose_stack_from_canonical_form(  # noqa: C901
 
 
 def _declared_metal_sites(res_types, metal_sites, metal_coordination):
-    """{(pose, metal): (geometry, ((site, donor, atom), ...))}, left-justified."""
+    """Declared metal sites and declared metal bonds, left-justified.
+
+    Returns ({(pose, metal): (geometry, ((site, donor, atom), ...))},
+    {(pose, metal): {(donor, atom), ...}}). A bond is placed at its site only
+    when the metal's geometry is declared too; otherwise it is a required donor
+    and detection chooses the site.
+    """
     # tmol.io.details imports this module's package, as the builder above does
     from tmol.io.details import left_justify_residue_indices
 
-    if metal_sites is None:
-        return {}
     if res_types.shape[1] != 1:
-        metal_sites = left_justify_residue_indices(res_types, metal_sites, (1,))
+        if metal_sites is not None:
+            metal_sites = left_justify_residue_indices(res_types, metal_sites, (1,))
         if metal_coordination is not None:
             metal_coordination = left_justify_residue_indices(
                 res_types, metal_coordination, (1, 3)
             )
-    filled = {}
+    geometry_for = {
+        (pose, metal): GEOMETRY_NAMES[geometry]
+        for pose, metal, geometry in (
+            metal_sites.tolist() if metal_sites is not None else []
+        )
+    }
+    filled, required = {}, {}
     for pose, metal, site, donor, atom in (
         metal_coordination.tolist() if metal_coordination is not None else []
     ):
-        filled.setdefault((pose, metal), []).append((site, donor, atom))
-    return {
-        (pose, metal): (GEOMETRY_NAMES[geometry], tuple(filled.get((pose, metal), ())))
-        for pose, metal, geometry in metal_sites.tolist()
+        if (pose, metal) in geometry_for and site >= 0:
+            filled.setdefault((pose, metal), []).append((site, donor, atom))
+        else:
+            required.setdefault((pose, metal), set()).add((donor, atom))
+    declared = {
+        key: (geometry, tuple(filled.get(key, ())))
+        for key, geometry in geometry_for.items()
     }
+    return declared, required

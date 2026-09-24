@@ -2,9 +2,9 @@
 #
 # Distances are median metal-ligand separations measured from annotated
 #    coordination in high-resolution PDB entries; only cells with enough
-#    observations are listed. Anything absent is filled by the generator as
-#    ionic_radius + donor_radius, so this file states what was measured and
-#    nothing else.
+#    observations are listed. Some are shifted so that relaxed structures,
+#    under the full score function, center on the measured median. Anything
+#    absent is filled by the generator as ionic_radius + donor_radius.
 # Geometry vertices are unit vectors; a geometry with none is untemplated,
 #    meaning metal-ligand distances are restrained but site geometry is not.
 # Each ion's geometries are listed most-common first, from observed
@@ -82,14 +82,14 @@ ions:
     name3: CA
     ionic_radius: 1.0
     geometries: [irregular]
-    distances: { O: 2.335, Owat: 2.396 }
+    distances: { O: 2.305, Owat: 2.396 }
   - element: Na
     oxidation_state: 1
     atom_type: Na1p
     name3: NA
     ionic_radius: 1.02
     geometries: [irregular]
-    distances: { O: 2.416, Owat: 2.502 }
+    distances: { O: 2.381, Owat: 2.502 }
   - element: K
     oxidation_state: 1
     atom_type: K1p
@@ -103,7 +103,7 @@ ions:
     name3: MN
     ionic_radius: 0.83
     geometries: [octahedral]
-    distances: { O: 2.150, N: 2.175, Owat: 2.195 }
+    distances: { O: 2.150, N: 2.145, Owat: 2.195 }
   - element: Fe
     oxidation_state: 2
     atom_type: Fe2p
@@ -117,7 +117,7 @@ ions:
     name3: FE
     ionic_radius: 0.645
     geometries: [octahedral, tetrahedral]
-    distances: { O: 2.110, N: 2.151, S: 2.301, Owat: 2.186 }
+    distances: { O: 2.110, N: 2.151, S: 2.216, Owat: 2.186 }
   - element: Co
     oxidation_state: 2
     atom_type: Co2p
@@ -138,7 +138,7 @@ ions:
     name3: NI
     ionic_radius: 0.69
     geometries: [octahedral, square_planar, tetrahedral]
-    distances: { O: 2.099, N: 2.049, S: 2.239, Owat: 2.101 }
+    distances: { O: 2.099, N: 1.979, S: 2.239, Owat: 2.101 }
   - element: Cu
     oxidation_state: 1
     atom_type: Cu1p
@@ -159,18 +159,18 @@ ions:
     name3: ZN
     ionic_radius: 0.74
     geometries: [tetrahedral, trigonal_bipyramidal, octahedral]
-    distances: { O: 2.033, N: 2.030, S: 2.342 }
+    distances: { O: 2.033, N: 2.030, S: 2.377 }
   - element: Cd
     oxidation_state: 2
     atom_type: Cd2p
     name3: CD
     ionic_radius: 0.95
     geometries: [octahedral, tetrahedral]
-    distances: { O: 2.354, N: 2.299, S: 2.538, Owat: 2.391 }
+    distances: { O: 2.399, N: 2.299, S: 2.538, Owat: 2.391 }
   - element: Hg
     oxidation_state: 2
     atom_type: Hg2p
     name3: HG
     ionic_radius: 1.02
     geometries: [linear, tetrahedral]
-    distances: { O: 3.075, S: 2.351, Owat: 2.500 }
+    distances: { O: 3.130, N: 2.443, S: 2.401, Owat: 2.500 }

@@ -44,7 +44,7 @@ def place(directions, distance):
 def test_missing_donor_element_falls_back_rather_than_raising():
     dists = ideal_distances(ion_named("Zn", 2), table()["donor_radii"])
     keep, _ = gather_candidates(
-        numpy.zeros(3), place([[1, 0, 0]], 2.0), ["Se"], dists, 1.25
+        numpy.zeros(3), place([[1, 0, 0]], 2.0), ["Se"], dists, 0.55
     )
     assert len(keep) == 1
 
@@ -60,11 +60,11 @@ def test_derived_distances_fill_only_what_was_not_measured():
 def test_candidates_are_gathered_without_reference_to_geometry():
     # the cutoff scales with the donor element, not with any polyhedron
     dists = ideal_distances(ion_named("Zn", 2), table()["donor_radii"])
-    # zinc-oxygen is 2.033 measured, so 1.25x admits out to 2.54
+    # zinc-oxygen is 2.033 measured, so 0.55 A past it admits out to 2.58
     xyz = numpy.array([[2.03, 0, 0], [2.45, 0, 0], [2.70, 0, 0], [4.0, 0, 0]])
-    keep, ratio = gather_candidates(numpy.zeros(3), xyz, ["O"] * 4, dists, 1.25)
+    keep, excess = gather_candidates(numpy.zeros(3), xyz, ["O"] * 4, dists, 0.55)
     assert list(keep) == [0, 1], "2.70 and 4.0 A are both past tolerance"
-    assert ratio[0] < ratio[1]
+    assert excess[0] < excess[1]
 
 
 def test_a_clean_tetrahedral_zinc_is_recovered():

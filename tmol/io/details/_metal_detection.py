@@ -74,11 +74,14 @@ def gather_candidates(
     donor_elements: Sequence[str],
     distances: Dict[str, float],
     tolerance: float,
+    required: Sequence[int] = (),
 ) -> Tuple[numpy.ndarray, numpy.ndarray]:
     """Donors close enough to be coordinating, and how far each is past ideal.
 
-    Geometry-free by construction: a cutoff per donor element, nothing more.
+    Geometry-free by construction: a donor is kept within ``tolerance`` A past
+    its element's ideal distance, nothing more.
     Choosing a polyhedron needs this set, so this set must not depend on one.
+    Required donors are kept at any distance.
     """
     if len(donor_xyz) == 0:
         return numpy.zeros(0, dtype=int), numpy.zeros(0)
@@ -89,9 +92,11 @@ def gather_candidates(
     ideal = numpy.array(
         [distances.get(e, distances["O"]) for e in donor_elements], dtype=numpy.float64
     )
-    ratio = dist / ideal
-    keep = numpy.flatnonzero((ratio <= tolerance) & (dist > 1e-6))
-    return keep, ratio[keep]
+    excess = dist - ideal
+    is_required = numpy.zeros(len(dist), dtype=bool)
+    is_required[list(required)] = True
+    keep = numpy.flatnonzero(((excess <= tolerance) & (dist > 1e-6)) | is_required)
+    return keep, excess[keep]
 
 
 def assign_one(
@@ -102,15 +107,20 @@ def assign_one(
     table: dict,
     metal_index: int = 0,
     geometry: Optional[str] = None,
-    tolerance: float = 1.25,
+    tolerance: float = 0.55,
+    required: Sequence[int] = (),
 ) -> MetalSiteAssignment:
-    """Gather, choose a geometry, then fill sites -- in that order."""
+    """Gather, choose a geometry, then fill sites -- in that order.
+
+    Required donors (declared bonds) are always gathered, and are the last to
+    be dropped when there are more donors than sites.
+    """
     vertices_for = {g["name"]: g["vertices"] for g in table["geometries"]}
     distances = ideal_distances(ion, table["donor_radii"])
     element, ox = ion["element"], ion["oxidation_state"]
 
-    keep, ratio = gather_candidates(
-        metal_xyz, donor_xyz, donor_elements, distances, tolerance
+    keep, excess = gather_candidates(
+        metal_xyz, donor_xyz, donor_elements, distances, tolerance, required
     )
     directions = numpy.asarray(donor_xyz, dtype=numpy.float64)[keep] - numpy.asarray(
         metal_xyz, dtype=numpy.float64
@@ -142,7 +152,7 @@ def assign_one(
                 vertices_for[geometry],
                 directions,
                 keep,
-                ratio,
+                numpy.where(numpy.isin(keep, list(required)), -numpy.inf, excess),
             )
 
     if fit is None:
@@ -235,10 +245,11 @@ def find_metal_geometries(
     coords,
     table: Optional[dict] = None,
     geometries: Optional[Dict[Tuple[int, int], str]] = None,
-    tolerance: float = 1.25,
+    tolerance: float = 0.55,
     excluded_donor_residues=None,
     declared_sites: Optional[Dict[Tuple[int, int], tuple]] = None,
     find_additional: bool = True,
+    required_donors: Optional[Dict[Tuple[int, int], set]] = None,
 ):
     """Choose a coordination geometry for every metal, as a res_type_variant.
 
@@ -249,8 +260,10 @@ def find_metal_geometries(
     as disulfide-bonded cysteines, out of the donor candidates.
 
     ``declared_sites`` maps (pose, metal) to (geometry, ((site, donor, atom),
-    ...)) and is taken as given. Without ``find_additional``, every other metal
-    takes its default geometry with no donors.
+    ...)) and is taken as given. ``required_donors`` maps (pose, metal) to the
+    (donor, atom) pairs it is declared bonded to, without sites: these are
+    always kept, and the geometry and sites are chosen around them. Without
+    ``find_additional``, a metal takes only its required donors.
     """
     table = metal_table() if table is None else table
     table_vertices = {g["name"]: g["vertices"] for g in table["geometries"]}
@@ -300,8 +313,21 @@ def find_metal_geometries(
             variants[pose, res] = metal_geometry_variant_index(geometry)
             assignments.append(((int(pose), int(res)), got))
             continue
+        wanted = (required_donors or {}).get((int(pose), int(res)), set())
+        for missing in wanted - set(donor_atoms):
+            logger.warning(
+                "declared bond from residue %d to atom %d of residue %d is not "
+                "to a resolved metal donor; ignored",
+                res,
+                missing[1],
+                missing[0],
+            )
         if not find_additional:
-            donor_xyz, donor_elements, donor_atoms = [], [], []
+            kept = [i for i, atom in enumerate(donor_atoms) if atom in wanted]
+            donor_xyz = [donor_xyz[i] for i in kept]
+            donor_elements = [donor_elements[i] for i in kept]
+            donor_atoms = [donor_atoms[i] for i in kept]
+        required = [i for i, atom in enumerate(donor_atoms) if atom in wanted]
 
         declared = (geometries or {}).get((int(pose), int(res)))
         got = assign_one(
@@ -313,6 +339,7 @@ def find_metal_geometries(
             metal_index=int(res),
             geometry=declared,
             tolerance=tolerance,
+            required=required,
         )
         # an untemplated ion, or one with nothing in range, still needs a block
         # type: fall back on the ion's most common geometry
@@ -508,7 +535,7 @@ def metal_connection_rows(assignments):
 
 
 def _assign_crowded(
-    metal_index, element, ox, geometry, vertices, directions, keep, ratio
+    metal_index, element, ox, geometry, vertices, directions, keep, excess
 ):
     """More candidates than the geometry has sites: keep the closest that fit.
 
@@ -518,7 +545,7 @@ def _assign_crowded(
     enough in real structures to deserve an answer.
     """
     n_sites = len(vertices)
-    order = numpy.argsort(ratio)
+    order = numpy.argsort(excess)
     chosen = numpy.sort(order[:n_sites])
     dropped = numpy.sort(order[n_sites:])
     fit = fit_geometry(directions[chosen], numpy.asarray(vertices))

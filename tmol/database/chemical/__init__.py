@@ -397,6 +397,9 @@ class RawResidueType:
     conjugation_context: Tuple[Tuple[str, str, str], ...] = ()
     # One entry per metal atom this residue carries; empty for everything else.
     metal_sites: Tuple[MetalSite, ...] = ()
+    # Output only, never read by scoring: the chemical (Lewis) order of each
+    # bond whose `bonds` order is a topology order, as (atom, atom, order).
+    io_bond_orders: Tuple[Tuple[str, str, str], ...] = ()
 
     def atom_name(self, index: int) -> str:
         """Return the name of the atom at ``index``."""

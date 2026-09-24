@@ -47,6 +47,12 @@ from ._ljlk import (  # noqa: F401
     LJLKGlobalParameters,
     LJLKDatabase,
 )
+from ._metal_coordination import (  # noqa: F401
+    MetalCoordinationGlobalParameters,
+    MetalIonWidths,
+    MetalWellDepth,
+    MetalCoordinationDatabase,
+)
 from ._na_torsion import (  # noqa: F401
     NaTorsionGlobalParams,
     NaTorsionWells,
@@ -81,6 +87,7 @@ class ScoringDatabase:
     cartbonded: CartBondedDatabase
     genbonded: GenBondedDatabase
     disulfide: DisulfideDatabase
+    metal_coordination: MetalCoordinationDatabase
     na_torsion: NaTorsionDatabase
     dun: DunbrackRotamerLibrary
     elec: ElecDatabase
@@ -103,6 +110,9 @@ class ScoringDatabase:
             ),
             genbonded=GenBondedDatabase.from_file(os.path.join(path, "genbonded.yaml")),
             disulfide=DisulfideDatabase.from_file(os.path.join(path, "disulfide.yaml")),
+            metal_coordination=MetalCoordinationDatabase.from_file(
+                os.path.join(path, "metal_coordination.yaml")
+            ),
             na_torsion=NaTorsionDatabase.from_file(
                 os.path.join(path, "na_torsion.yaml")
             ),

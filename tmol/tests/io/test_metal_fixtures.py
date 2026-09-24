@@ -2,6 +2,8 @@
 
 import os
 
+import biotite.structure as struc
+from biotite.structure.io import pdbx
 import numpy
 import pytest
 import torch
@@ -11,10 +13,12 @@ import tmol.io.details._metal_detection as metal_detection
 from tmol.io import (
     add_metal_coordination,
     atom_array_from_cif,
+    biotite_from_pose_stack,
     canonical_form_from_pose_stack,
     pose_stack_from_biotite,
     pose_stack_from_canonical_form,
     remove_metal_coordination,
+    write_pose_stack_pdb,
 )
 from tmol.kinematics import EdgeType, FoldForest
 from tmol.pose import PoseStackBuilder
@@ -278,3 +282,118 @@ def test_donor_forms_accumulate_and_stack():
     stacked = PoseStackBuilder.from_poses([zinc, iron], torch.device("cpu"))
     assert stacked.packed_block_types is grown
     assert block_type_names(stacked)[: zinc.max_n_blocks] == block_type_names(zinc)
+
+
+def labeled_metal_bonds(pose_stack):
+    """Metal-donor bonds by author labels, independent of residue order."""
+    return {
+        (residue_key(pose_stack, 0, m), residue_key(pose_stack, 0, d), atom)
+        for (m, _), (d, atom) in metal_bonds(pose_stack).items()
+    }
+
+
+def test_written_pdb_has_no_virtual_atoms(built, tmp_path):
+    pose_stack, _ = built("zn_tetrahedral_3ks3")
+    path = tmp_path / "out.pdb"
+    write_pose_stack_pdb(pose_stack, str(path))
+    with open(path) as infile:
+        zinc = [line[12:16].strip() for line in infile if line[17:20].strip() == "ZN"]
+    assert zinc == ["ZN"]
+
+
+def test_exported_structure_rebuilds_the_same_coordination(built, tmp_path):
+    pose_stack, (co, _, _) = built("zn_tetrahedral_3ks3")
+    structure = biotite_from_pose_stack(pose_stack, co)
+    assert list(structure.atom_name[structure.res_name == "ZN"]) == ["ZN"]
+    cif = pdbx.CIFFile()
+    pdbx.set_structure(cif, structure)
+    cif.write(str(tmp_path / "out.cif"))
+    rebuilt = pose_stack_from_biotite(
+        atom_array_from_cif(str(tmp_path / "out.cif")),
+        torch.device("cpu"),
+        prepare_ligands=True,
+    )
+    assert labeled_metal_bonds(rebuilt) == labeled_metal_bonds(pose_stack)
+
+    with_virtuals = biotite_from_pose_stack(pose_stack, co, include_virtual_atoms=True)
+    zinc = with_virtuals.atom_name[with_virtuals.res_name == "ZN"]
+    assert list(zinc) == ["ZN", "V1", "V2", "V3", "V4"]
+
+
+def zinc_with_declared_bonds(donors, bond_type):
+    """3KS3, with the zinc declared bonded to (res_id, res_name, atom) donors."""
+    structure = atom_array_from_cif(
+        os.path.join(FIXTURE_DIR, "zn_tetrahedral_3ks3.cif.gz")
+    )
+    (zinc,) = numpy.flatnonzero(structure.res_name == "ZN")
+    # replace the file's own metalc declarations
+    kept = structure.bonds.as_array()
+    kept = kept[(kept[:, 0] != zinc) & (kept[:, 1] != zinc)]
+    bonds = struc.BondList(structure.array_length(), kept)
+    for res_id, res_name, atom_name in donors:
+        (atom,) = numpy.flatnonzero(
+            (structure.res_id == res_id)
+            & (structure.res_name == res_name)
+            & (structure.atom_name == atom_name)
+            & (structure.chain_id == structure.chain_id[0])
+        )
+        bonds.add_bond(zinc, atom, bond_type)
+    structure.bonds = bonds
+    return structure, zinc
+
+
+EXPECTED_ZINC_DONORS = [
+    (d["res"], d["comp"], d["atom"])
+    for d in EXPECTED["zn_tetrahedral_3ks3"]["donors"]["A/ZN/262"]
+]
+
+
+@pytest.mark.parametrize(
+    "bond_type",
+    [struc.BondType.ANY, struc.BondType.COORDINATION],
+    ids=["pdb_conect", "cif_metalc"],
+)
+def test_declared_metal_bonds_are_coordination(built, bond_type):
+    # a PDB lists coordination in CONECT; a CIF's metalc reads as COORDINATION
+    pose_stack, _ = built("zn_tetrahedral_3ks3")
+    structure, _ = zinc_with_declared_bonds(EXPECTED_ZINC_DONORS, bond_type)
+    rebuilt, context = pose_stack_from_biotite(
+        structure, torch.device("cpu"), prepare_ligands=True, return_context=True
+    )
+    assert labeled_metal_bonds(rebuilt) == labeled_metal_bonds(pose_stack)
+    cf = canonical_form_from_pose_stack(context.canonical_ordering, rebuilt)
+    assert cf.covalent_bonds is None
+
+
+def test_declared_bond_beyond_cutoff_is_kept(built):
+    pose_stack, _ = built("zn_tetrahedral_3ks3")
+    structure, zinc = zinc_with_declared_bonds([], struc.BondType.ANY)
+    # the nearest backbone carbonyl, well past the detection cutoff
+    carbonyl = numpy.flatnonzero(
+        (structure.atom_name == "O") & (structure.res_name != "HOH")
+    )
+    dist = numpy.linalg.norm(structure.coord[carbonyl] - structure.coord[zinc], axis=1)
+    far = carbonyl[dist > 3.0][numpy.argmin(dist[dist > 3.0])]
+    far_donor = (int(structure.res_id[far]), str(structure.res_name[far]), "O")
+    structure, _ = zinc_with_declared_bonds([far_donor], struc.BondType.ANY)
+
+    rebuilt = pose_stack_from_biotite(
+        structure, torch.device("cpu"), prepare_ligands=True
+    )
+    bonds = labeled_metal_bonds(rebuilt)
+    assert (("A", 262), ("A", far_donor[0]), "O") in bonds
+    assert labeled_metal_bonds(pose_stack) <= bonds
+
+
+def test_only_declared_bonds_without_detection(built):
+    structure, _ = zinc_with_declared_bonds(
+        EXPECTED_ZINC_DONORS[:2], struc.BondType.ANY
+    )
+    rebuilt = pose_stack_from_biotite(
+        structure,
+        torch.device("cpu"),
+        prepare_ligands=True,
+        find_additional_metal_coordination=False,
+    )
+    donors = {(donor[1], atom) for _, donor, atom in labeled_metal_bonds(rebuilt)}
+    assert donors == {(res, atom) for res, _, atom in EXPECTED_ZINC_DONORS[:2]}

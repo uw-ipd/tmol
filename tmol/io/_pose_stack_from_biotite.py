@@ -1,4 +1,5 @@
 import copy
+from collections import defaultdict
 from typing import TYPE_CHECKING
 
 import attr
@@ -8,10 +9,13 @@ import toolz
 import biotite
 import biotite.structure
 import logging
+import warnings
 
 from tmol.types import validate_args
 from tmol.chemical import ResidueTypeSet
+from tmol.chemical import BondType as ChemBondType
 from tmol.database import ParameterDatabase
+from tmol.database.chemical import metal_table
 from tmol.io import (
     CanonicalForm,
     CanonicalOrdering,
@@ -365,6 +369,7 @@ class PreparedAtom37PoseBuilder:
             res_not_connected=tensor_for_poses(template.res_not_connected),
             cyclic_bonds=bonds_for_poses(template.cyclic_bonds),
             covalent_bonds=bonds_for_poses(template.covalent_bonds),
+            metal_coordination=bonds_for_poses(template.metal_coordination),
         )
 
 
@@ -533,6 +538,7 @@ def build_context_from_biotite(
         biotite_structure,
         {alias.name3: alias.read_as for alias in chemdb.name3_aliases},
     )
+    biotite_structure = _without_metal_coordination_bonds(biotite_structure)
     if prepare_ligands:
         from tmol.ligand import prepare_ligands as _prepare_ligands
 
@@ -1066,6 +1072,7 @@ def biotite_from_pose_stack(
     pose_stack: PoseStack,
     co: CanonicalOrdering | None = None,
     merge_fragments: bool = True,
+    include_virtual_atoms: bool = False,
 ) -> biotite.structure.AtomArray | biotite.structure.AtomArrayStack:
     """Convert PoseStack back to Biotite structure.
 
@@ -1075,20 +1082,151 @@ def biotite_from_pose_stack(
             was used when ligands or custom residue types are present.
         merge_fragments: Restore fragmented ligands to their original residue
             identity. Set to False to keep fragment residues separate.
+        include_virtual_atoms: Also write virtual atoms, such as a metal's
+            site virtuals.
 
     Returns:
-        Biotite AtomArray for single-pose or AtomArrayStack for multi-pose.
+        Biotite AtomArray for single-pose or AtomArrayStack for multi-pose,
+        with every bond the poses' residue types and connections declare:
+        bond orders within residues, and chemical bonds between them, metal
+        coordination typed COORDINATION.
     """
     if co is None:
         co = canonical_ordering_for_biotite()
     cf = canonical_form_from_pose_stack(co, pose_stack)
-    structure = biotite_from_canonical_form(cf, co=co)
+    structure, block_for_atom = _biotite_from_canonical_form(
+        cf, co, include_virtual_atoms
+    )
+    structure.bonds = _bonds_from_pose_stack(pose_stack, structure, block_for_atom)
     sbm = getattr(pose_stack, "split_block_mapping", None)
     if merge_fragments and sbm is not None and sbm.entries:
         from tmol.ligand import recombine_fragmented_ligands
 
         structure = recombine_fragmented_ligands(structure, pose_stack)
-    return structure
+    return _renumbered_for_cif(structure)
+
+
+def _order_name(order):
+    return order.upper() if isinstance(order, str) else ChemBondType(int(order)).name
+
+
+def _chemical_bond_orders(bt, element_of):
+    """One Lewis structure for a block type's bonds, by atom-name pair.
+
+    io_bond_orders restore the orders a prepared ligand's typing promoted. What
+    remains of tmol's delocalized convention, AROMATIC outside a ring, is
+    resolved by rule: at an atom whose delocalized bonds reach terminal
+    heteroatoms (carboxylate, guanidinium, phosphate), the first by name is
+    double unless the atom already has one, and every other such bond is single.
+    """
+    order_of, in_ring = {}, {}
+    for a, b, order, *rest in bt.bonds:
+        key = frozenset((a, b))
+        order_of[key] = _order_name(order)
+        in_ring[key] = bool(rest[0]) if rest else False
+    for a, b, order in bt.io_bond_orders:
+        order_of[frozenset((a, b))] = order
+    neighbors = defaultdict(set)
+    for key in order_of:
+        a, b = tuple(key)
+        neighbors[a].add(b)
+        neighbors[b].add(a)
+
+    def terminal_heteroatom(name):
+        heavy = [n for n in neighbors[name] if element_of[n] != "H"]
+        return element_of[name] in ("O", "N", "S") and len(heavy) == 1
+
+    delocalized = [
+        k for k, order in order_of.items() if order == "AROMATIC" and not in_ring[k]
+    ]
+    ends_of = defaultdict(list)
+    for key in delocalized:
+        for center, end in (tuple(key), tuple(key)[::-1]):
+            if terminal_heteroatom(end):
+                ends_of[center].append(end)
+    for center in sorted(ends_of):
+        has_double = any(
+            order_of[frozenset((center, n))] == "DOUBLE"
+            and element_of[n] in ("O", "N", "S")
+            for n in neighbors[center]
+        )
+        for end in sorted(ends_of[center]):
+            key = frozenset((center, end))
+            if order_of[key] == "AROMATIC":
+                order_of[key] = "SINGLE" if has_double else "DOUBLE"
+                has_double = True
+    for key in delocalized:
+        if order_of[key] == "AROMATIC":
+            order_of[key] = "SINGLE"
+    return order_of
+
+
+def _bonds_from_pose_stack(pose_stack, structure, block_for_atom):
+    """The bond table of an exported structure, from the pose's residue types.
+
+    Bond orders are one Lewis structure: see _chemical_bond_orders. Every pose of
+    a stack shares one bond table, so their residue types and connections must
+    agree. Bonds to atoms the export left out are dropped.
+    """
+    block_types = pose_stack.block_type_ind64
+    connections = pose_stack.inter_residue_connections64
+    if not (
+        torch.equal(block_types, block_types[:1].expand_as(block_types))
+        and torch.equal(connections, connections[:1].expand_as(connections))
+    ):
+        raise ValueError(
+            "poses with different residue types or connections cannot share "
+            "one bond table"
+        )
+    pbt = pose_stack.packed_block_types
+    element_for_type = {at.name: at.element for at in pbt.chem_db.atom_types}
+    bt_for_block = block_types[0].tolist()
+    irc = connections[0].tolist()
+    index = {
+        (int(block), str(name)): i
+        for i, (block, name) in enumerate(zip(block_for_atom, structure.atom_name))
+    }
+
+    def metal_bond(bt, conn):
+        sites = bt.metal_sites[0].site_connections if bt.metal_sites else ()
+        return bt.connections[conn].name in sites
+
+    orders_for_type = {}
+    bonds = []
+    for block, bt_ind in enumerate(bt_for_block):
+        if bt_ind < 0:
+            continue
+        bt = pbt.active_block_types[bt_ind]
+        element_of = {a.name: element_for_type[a.atom_type] for a in bt.atoms}
+        if bt_ind not in orders_for_type:
+            orders_for_type[bt_ind] = _chemical_bond_orders(bt, element_of)
+        for key, order in orders_for_type[bt_ind].items():
+            a, b = tuple(key)
+            i, j = index.get((block, a)), index.get((block, b))
+            if i is not None and j is not None:
+                bonds.append((i, j, order))
+        for conn, (partner, partner_conn) in enumerate(irc[block]):
+            if partner < 0 or (partner, partner_conn) <= (block, conn):
+                continue
+            other = pbt.active_block_types[bt_for_block[partner]]
+            i = index.get((block, bt.connections[conn].atom))
+            j = index.get((partner, other.connections[partner_conn].atom))
+            if i is None or j is None:
+                continue
+            if metal_bond(bt, conn) or metal_bond(other, partner_conn):
+                bonds.append((i, j, "COORDINATION"))
+            else:
+                order = ChemBondType(bt.connection_bond_types[conn]).name
+                bonds.append((i, j, "SINGLE" if order == "AROMATIC" else order))
+
+    bond_array = numpy.array(
+        [
+            (i, j, int(getattr(biotite.structure.BondType, order)))
+            for i, j, order in bonds
+        ],
+        dtype=numpy.int64,
+    ).reshape(-1, 3)
+    return biotite.structure.BondList(structure.array_length(), bond_array)
 
 
 def _map_atoms_to_canonical(co, atom_res_inds, res_names, atom_names, elements):
@@ -1137,6 +1275,130 @@ def _map_atoms_to_canonical(co, atom_res_inds, res_names, atom_names, elements):
         atom_inds_arr[valid_atom_mask],
         atom_res_inds[valid_atom_mask],
     )
+
+
+def _renumbered_for_cif(structure):
+    """Renumber the chains a biotite CIF round trip cannot carry, with a warning.
+
+    biotite writes res_id as both label_seq_id and auth_seq_id, and reads a
+    label_seq_id of -1 as missing; label-based readers such as atomworks also
+    reject numbering that decreases within a chain. A chain containing -1 is
+    shifted to start at 1; a chain whose numbering decreases is renumbered 1..N.
+    """
+    template = _template_array(structure)
+    res_id = template.res_id.copy()
+    ins_code = template.ins_code.copy()
+    starts = biotite.structure.get_residue_starts(template, add_exclusive_stop=True)
+    changed = False
+    for chain in dict.fromkeys(template.chain_id.tolist()):
+        in_chain = template.chain_id == chain
+        ids = res_id[in_chain]
+        if (numpy.diff(ids) < 0).any():
+            reason = "numbering that decreases within a chain"
+            number = 0
+            for begin, end in zip(starts[:-1], starts[1:]):
+                if template.chain_id[begin] == chain:
+                    number += 1
+                    res_id[begin:end] = number
+            ins_code[in_chain] = ""
+        elif (ids == -1).any():
+            reason = "a residue id of -1"
+            res_id[in_chain] += 1 - ids.min()
+        else:
+            continue
+        warnings.warn(
+            f"Renumbering chain {chain} of the output AtomArray: biotite's CIF "
+            f"writer does not support {reason}"
+        )
+        changed = True
+    if not changed:
+        return structure
+    structure = structure.copy()
+    structure.res_id = res_id
+    structure.ins_code = ins_code
+    return structure
+
+
+def _metal_coordination_bond_mask(structure):
+    """Which rows of the bond table are metal coordination.
+
+    These are bonds typed COORDINATION (a CIF's metalc) and bonds from a metal
+    to another residue, as a PDB's CONECT lists them.
+    """
+    bonds = structure.bonds.as_array()
+    if not len(bonds):
+        return bonds, numpy.zeros(0, dtype=bool)
+    template = _template_array(structure)
+    metals = [ion["element"].upper() for ion in metal_table()["ions"]]
+    is_metal = numpy.isin(numpy.char.upper(template.element.astype(str)), metals)
+    residue = biotite.structure.get_residue_positions(
+        template, numpy.arange(template.array_length())
+    )
+    crosses = residue[bonds[:, 0]] != residue[bonds[:, 1]]
+    coordination = (bonds[:, 2] == biotite.structure.BondType.COORDINATION) | (
+        crosses & (is_metal[bonds[:, 0]] | is_metal[bonds[:, 1]])
+    )
+    return bonds, coordination
+
+
+def _without_metal_coordination_bonds(structure):
+    """Drop metal coordination bonds, which ligand preparation does not read."""
+    if structure.bonds is None:
+        return structure
+    bonds, coordination = _metal_coordination_bond_mask(structure)
+    if not coordination.any():
+        return structure
+    structure = structure.copy()
+    structure.bonds = biotite.structure.BondList(
+        _template_array(structure).array_length(), bonds[~coordination]
+    )
+    return structure
+
+
+def _with_metal_coordination_typed(structure):
+    """Type every metal coordination bond COORDINATION, however it was read."""
+    if structure.bonds is None:
+        return structure
+    bonds, coordination = _metal_coordination_bond_mask(structure)
+    untyped = coordination & (bonds[:, 2] != biotite.structure.BondType.COORDINATION)
+    if not untyped.any():
+        return structure
+    structure = structure.copy()
+    bonds = bonds.copy()
+    bonds[untyped, 2] = biotite.structure.BondType.COORDINATION
+    structure.bonds = biotite.structure.BondList(
+        _template_array(structure).array_length(), bonds
+    )
+    return structure
+
+
+def _metal_coordination_from_biotite(
+    array, atom_res_inds, restype_for_res, valid_atom_mask, valid_atom_inds, co
+):
+    """(metal, -1, donor, donor atom) for each declared metal bond.
+
+    The site is left for detection to choose.
+    """
+    if array.bonds is None:
+        return numpy.zeros((0, 4), dtype=numpy.int64)
+    atom_canonical_ind = numpy.full(array.array_length(), -1, dtype=numpy.int64)
+    atom_canonical_ind[valid_atom_mask] = valid_atom_inds
+    metals = [ion["element"].upper() for ion in metal_table()["ions"]]
+    is_metal = numpy.isin(numpy.char.upper(array.element.astype(str)), metals)
+    rows = []
+    for atom1, atom2, order in array.bonds.as_array():
+        if order != biotite.structure.BondType.COORDINATION:
+            continue
+        if is_metal[atom2] and not is_metal[atom1]:
+            atom1, atom2 = atom2, atom1
+        if not is_metal[atom1] or is_metal[atom2]:
+            continue
+        metal, donor = int(atom_res_inds[atom1]), int(atom_res_inds[atom2])
+        donor_atom = int(atom_canonical_ind[atom2])
+        if metal == donor or donor_atom < 0:
+            continue
+        rows.append((metal, -1, donor, donor_atom))
+    return numpy.array(sorted(set(rows)), dtype=numpy.int64).reshape(-1, 4)
 
 
 def _template_array(structure):
@@ -1938,6 +2200,7 @@ def canonical_form_from_biotite(
     biotite_structure = _normalize_input_identifiers(
         biotite_structure, co.name3_aliases
     )
+    biotite_structure = _with_metal_coordination_typed(biotite_structure)
     biotite_structure, not_connected = _filter_supported_atoms_and_connectivity(
         biotite_structure,
         co,
@@ -1973,6 +2236,14 @@ def canonical_form_from_biotite(
         tmol_restypes,
         valid_atom_mask,
         valid_atom_inds,
+    )
+    metal_coordination_np = _metal_coordination_from_biotite(
+        _template_array(biotite_structure),
+        atom_res_inds,
+        tmol_restypes,
+        valid_atom_mask,
+        valid_atom_inds,
+        co,
     )
     if atom37_coords is None:
         tmol_coords, n_poses = _populate_canonical_coords(
@@ -2073,6 +2344,9 @@ def canonical_form_from_biotite(
         disulfides=_bonds_for_poses(disulfides_np, n_poses, torch_device),
         res_not_connected=res_not_connected,
         covalent_bonds=_bonds_for_poses(covalent_bonds_np, n_poses, torch_device),
+        metal_coordination=_bonds_for_poses(
+            metal_coordination_np, n_poses, torch_device
+        ),
     )
 
 
@@ -2147,14 +2421,22 @@ def _derived_types_for_param_db(
 def biotite_from_canonical_form(
     cf: CanonicalForm,
     co: CanonicalOrdering | None = None,
+    include_virtual_atoms: bool = False,
 ) -> biotite.structure.AtomArray | biotite.structure.AtomArrayStack:
     """Export coordinates and chemical/author labels using a shared atom layout.
 
     Multi-model arrays require identical residue and atom annotations. Their atom
     layout is the union of resolved atoms; absent coordinates remain NaN. Missing
     author labels default to internal chain IDs and one-based residue positions.
-    This host-array export detaches coordinates from autograd.
+    Virtual atoms are left out unless ``include_virtual_atoms``. This host-array
+    export detaches coordinates from autograd. A canonical form carries no
+    residue types, so the result has no bonds; biotite_from_pose_stack adds them.
     """
+    return _biotite_from_canonical_form(cf, co, include_virtual_atoms)[0]
+
+
+def _biotite_from_canonical_form(cf, co, include_virtual_atoms):
+    """The exported structure, and the canonical residue of each of its atoms."""
     import biotite.structure as struc
 
     if co is None:
@@ -2175,7 +2457,16 @@ def biotite_from_canonical_form(
     for res_id in numpy.flatnonzero(res_types >= 0):
         res_name = co.restype_io_equiv_classes[res_types[res_id]]
         atom_names = co.restypes_ordered_atom_names[res_name][:max_atoms]
-        indices = numpy.flatnonzero(atom_mask[res_id, : len(atom_names)])
+        virtual = (
+            frozenset()
+            if include_virtual_atoms
+            else co.restypes_virtual_atoms.get(res_name, frozenset())
+        )
+        indices = [
+            i
+            for i in numpy.flatnonzero(atom_mask[res_id, : len(atom_names)])
+            if atom_names[i] not in virtual
+        ]
         names.extend(atom_names[i] for i in indices)
         elements.extend(
             co.restypes_atom_elements[res_name][atom_names[i]] for i in indices
@@ -2218,7 +2509,7 @@ def biotite_from_canonical_form(
     ):
         if values is not None:
             result.set_annotation(name, values[0, rows, columns].copy())
-    return result
+    return result, rows
 
 
 @validate_args

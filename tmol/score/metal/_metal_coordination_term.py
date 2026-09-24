@@ -1,4 +1,4 @@
-"""Metal coordination restraints, computed in plain torch."""
+"""Metal coordination restraints."""
 
 from itertools import combinations
 
@@ -8,40 +8,41 @@ import torch
 from tmol.chemical import RefinedResidueType
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import ideal_distances, metal_table
-from tmol.pose import PoseStack
-from tmol.score.common._scoring_module import _coordinate_independent_score
+from tmol.pose import PackedBlockTypes, PoseStack
 
+from .._annotation_cache import AnnotationKey, cached_annotation, store_annotation
 from .._energy_term import EnergyTerm
+
+# kernel sentinels for metal_conn_virt
+NOT_A_SITE = -2
+NO_VIRTUAL = -1
 
 
 class MetalCoordinationEnergyTerm(EnergyTerm):
     """Hold each donor on its site's vertex ray and each site fan rigid.
 
     Per occupied site: a harmonic on the metal-donor distance and on the
-    donor's displacement off the ray from the metal through the site virtual.
-    Untemplated ions keep only the distance. The fan term holds metal and
-    virtual separations at ideal; it is zero whenever the fan is built from
-    its icoors, and only acts in cartesian minimization.
+    donor's displacement off the ray from the metal through the site virtual,
+    plus a constant well depth. Untemplated ions keep only the distance. The
+    fan term holds metal and virtual separations at ideal; it is zero whenever
+    the fan is built from its icoors.
 
     A site is occupied when its connection on the metal is filled; the donor
     is the atom on the partner's side of that connection.
     """
 
-    # radial, lateral, fan widths in A
-    widths = (0.1, 0.25, 0.05)
-
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
         super().__init__(param_db=param_db, device=device)
         self.device = device
+        self.params = param_db.scoring.metal_coordination
         table = metal_table()
-        self.ion_for_name3 = {ion["name3"]: ion for ion in table["ions"]}
+        self.ion_for_atom_type = {ion["atom_type"]: ion for ion in table["ions"]}
         self.donor_radii = table["donor_radii"]
+        self.donor_keys = tuple(self.donor_radii)
         self.vertices_for = {g["name"]: g["vertices"] for g in table["geometries"]}
-        # water keeps its own distance key, as in detection
-        self.distance_key = {
-            at.name: ("Owat" if at.name == "Owat" else at.element)
-            for at in param_db.chemical.atom_types
-        }
+        self._packed_annotation_key = AnnotationKey.from_sources(
+            self.params, settings=(self.device,)
+        )
 
     @classmethod
     def class_name(cls):
@@ -61,62 +62,85 @@ class MetalCoordinationEnergyTerm(EnergyTerm):
     def setup_block_type(self, block_type: RefinedResidueType):
         super().setup_block_type(block_type)
 
-    def pose_score_term_is_invariant_zero(self, pose_stack: PoseStack):
-        bts = pose_stack.packed_block_types.active_block_types
-        used = torch.unique(pose_stack.block_type_ind64).tolist()
-        return not any(bts[i].metal_sites for i in used if i >= 0)
+    def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
+        super().setup_packed_block_types(packed_block_types)
+        cached = cached_annotation(
+            packed_block_types,
+            "_metal_coordination_annotation",
+            self._packed_annotation_key,
+        )
+        if cached is not None:
+            return cached
 
-    def get_pose_score_term_function(self):
-        return metal_coordination_pose_scores
+        pbt = packed_block_types
+        atom_types = {at.name: at for at in pbt.chem_db.atom_types}
+        n_keys = len(self.donor_keys)
+        metal_atom = numpy.full(pbt.n_types, -1, dtype=numpy.int32)
+        conn_virt = numpy.full((pbt.n_types, pbt.max_n_conn), NOT_A_SITE, numpy.int32)
+        conn_key = numpy.full((pbt.n_types, pbt.max_n_conn), -1, dtype=numpy.int32)
+        site_params = numpy.zeros((pbt.n_types, n_keys, 4), dtype=numpy.float32)
+        fans = [[] for _ in range(pbt.n_types)]
 
-    def get_score_term_attributes(self, pose_stack: PoseStack):
-        site_rows, site_d0, fan_rows, fan_l0 = self.restraints(pose_stack)
-        device = pose_stack.device
-        return [
-            torch.tensor(site_rows, dtype=torch.int64, device=device).view(-1, 6),
-            torch.tensor(site_d0, dtype=torch.float32, device=device),
-            torch.tensor(fan_rows, dtype=torch.int64, device=device).view(-1, 4),
-            torch.tensor(fan_l0, dtype=torch.float32, device=device),
-            torch.tensor(self.widths, dtype=torch.float32, device=device),
-        ]
-
-    def restraints(self, pose_stack: PoseStack):
-        """Site and fan restraint rows for every metal in the stack.
-
-        Site rows are (pose, metal block, metal atom, virtual atom or -1, donor
-        block, donor atom) with the ideal metal-donor distance; fan rows are
-        (pose, block, atom, atom) with the ideal separation.
-        """
-        pbt = pose_stack.packed_block_types
-        bt_inds = pose_stack.block_type_ind64.cpu().numpy()
-        irc = pose_stack.inter_residue_connections64.cpu().numpy()
-
-        site_rows, site_d0, fan_rows, fan_l0 = [], [], [], []
-        for pose, block in zip(*numpy.nonzero(bt_inds >= 0)):
-            bt = pbt.active_block_types[bt_inds[pose, block]]
+        for i, bt in enumerate(pbt.active_block_types):
+            for c, conn in enumerate(bt.connections):
+                atom = bt.atoms[bt.atom_to_idx[conn.atom]]
+                conn_key[i, c] = self.donor_key(atom_types[atom.atom_type])
             if not bt.metal_sites or bt.metal_sites[0].internal_satisfiers:
                 continue
             site = bt.metal_sites[0]
-            dist = ideal_distances(self.ion_for_name3[bt.name3], self.donor_radii)
             metal = bt.atom_to_idx[site.metal_atom]
+            metal_type = bt.atoms[metal].atom_type
+            metal_atom[i] = metal
             virts = [bt.atom_to_idx[v] for v in site.site_virts]
-
             for k, name in enumerate(site.site_connections):
-                partner, partner_conn = irc[pose, block, bt.connection_to_cidx[name]]
-                if partner < 0:
-                    continue
-                other = pbt.active_block_types[bt_inds[pose, partner]]
-                donor = other.atom_to_idx[other.connections[partner_conn].atom]
-                v = virts[k] if virts else -1
-                site_rows.append((pose, block, metal, v, partner, donor))
-                key = self.distance_key[other.atoms[donor].atom_type]
-                site_d0.append(dist.get(key, dist["O"]))
+                conn_virt[i, bt.connection_to_cidx[name]] = (
+                    virts[k] if virts else NO_VIRTUAL
+                )
+            dist = ideal_distances(self.ion_for_atom_type[metal_type], self.donor_radii)
+            radial_sd, lateral_sd = self.params.widths(metal_type)
+            for k, key in enumerate(self.donor_keys):
+                depth = self.params.well_depth(metal_type, key)
+                site_params[i, k] = (dist[key], depth, radial_sd, lateral_sd)
+            if virts:
+                ideal = self.ideal_fan(bt, site)
+                for a, b in combinations(list(ideal), 2):
+                    fans[i].append((a, b, numpy.linalg.norm(ideal[a] - ideal[b])))
 
-            ideal = self.ideal_fan(bt, site) if virts else {}
-            for a, b in combinations(list(ideal), 2):
-                fan_rows.append((pose, block, a, b))
-                fan_l0.append(numpy.linalg.norm(ideal[a] - ideal[b]))
-        return site_rows, site_d0, fan_rows, fan_l0
+        max_fan = max(1, max(len(f) for f in fans))
+        fan_atoms = numpy.full((pbt.n_types, max_fan, 2), -1, dtype=numpy.int32)
+        fan_params = numpy.zeros((pbt.n_types, max_fan, 2), dtype=numpy.float32)
+        for i, rows in enumerate(fans):
+            for j, (a, b, l0) in enumerate(rows):
+                fan_atoms[i, j] = (a, b)
+                fan_params[i, j] = (l0, self.params.global_parameters.fan_sd)
+
+        def t(x):
+            return torch.from_numpy(x).to(self.device)
+
+        fields = {
+            "metal_coordination_metal_atom": t(metal_atom),
+            "metal_coordination_conn_virt": t(conn_virt),
+            "metal_coordination_conn_key": t(conn_key),
+            "metal_coordination_site_params": t(site_params),
+            "metal_coordination_fan_atoms": t(fan_atoms),
+            "metal_coordination_fan_params": t(fan_params),
+        }
+        for name, value in fields.items():
+            setattr(pbt, name, value)
+        return store_annotation(
+            pbt,
+            "_metal_coordination_annotation",
+            self._packed_annotation_key,
+            tuple(fields.values()),
+            fields=tuple(fields),
+        )
+
+    def donor_key(self, atom_type):
+        """Index of an atom type's metal-donor distance key, or -1."""
+        for name in (atom_type.name, atom_type.element):
+            if name in self.donor_keys:
+                return self.donor_keys.index(name)
+        return -1
 
     def ideal_fan(self, bt, site):
         """Ideal positions of the metal and its site virtuals, by atom index."""
@@ -128,71 +152,49 @@ class MetalCoordinationEnergyTerm(EnergyTerm):
             out[bt.atom_to_idx[name]] = vertex * d[name]
         return out
 
+    def pose_score_term_is_invariant_zero(self, pose_stack: PoseStack):
+        pbt = pose_stack.packed_block_types
+        bt = pose_stack.block_type_ind64
+        is_metal = pbt.metal_coordination_metal_atom[bt.clamp_min(0)] >= 0
+        return not bool((is_metal & (bt >= 0)).any())
 
-def site_energies(metal, donor, virt, has_virt, d0, widths):
-    """Radial and lateral energy per site; lateral is zero without a virtual."""
-    delta = donor - metal
-    r = torch.linalg.norm(delta, dim=-1)
-    radial = ((r - d0) / widths[0]) ** 2
-    ray = torch.where(has_virt.unsqueeze(-1), virt - metal, delta)
-    u = ray / torch.linalg.norm(ray, dim=-1, keepdim=True)
-    off_ray = delta - (delta * u).sum(-1, keepdim=True) * u
-    lateral = (off_ray * off_ray).sum(-1) / widths[1] ** 2
-    return radial + torch.where(has_virt, lateral, torch.zeros_like(lateral))
+    def get_pose_score_term_function(self):
+        from tmol.score.metal.potentials import metal_coordination_pose_scores
 
+        return metal_coordination_pose_scores
 
-def fan_energies(a, b, l0, widths):
-    """Harmonic on each metal-virtual and virtual-virtual separation."""
-    return ((torch.linalg.norm(a - b, dim=-1) - l0) / widths[2]) ** 2
+    def get_rotamer_score_term_function(self):
+        from tmol.score.metal.potentials import metal_coordination_rotamer_scores
 
+        return metal_coordination_rotamer_scores
 
-def metal_coordination_pose_scores(
-    coords,
-    rot_coord_offset,
-    _pose_ind_for_atom,
-    first_rot_for_block,
-    _first_rot_block_type,
-    _block_ind_for_rot,
-    _pose_ind_for_rot,
-    _block_type_ind_for_rot,
-    _n_rots_for_pose,
-    _rot_offset_for_pose,
-    _n_rots_for_block,
-    _rot_offset_for_block,
-    _max_n_rots_per_pose,
-    site_rows,
-    site_d0,
-    fan_rows,
-    fan_l0,
-    widths,
-    output_block_pair_energies: bool,
-):
-    n_poses, max_n_blocks = first_rot_for_block.shape
-    block_pair = torch.zeros(
-        (n_poses, max_n_blocks, max_n_blocks), dtype=coords.dtype, device=coords.device
-    )
+    def get_score_term_attributes(self, pose_stack: PoseStack):
+        pbt = pose_stack.packed_block_types
+        self.check_donors(pose_stack)
+        return [
+            pose_stack.inter_residue_connections,
+            pbt.conn_atom,
+            pbt.metal_coordination_metal_atom,
+            pbt.metal_coordination_conn_virt,
+            pbt.metal_coordination_conn_key,
+            pbt.metal_coordination_site_params,
+            pbt.metal_coordination_fan_atoms,
+            pbt.metal_coordination_fan_params,
+        ]
 
-    def atom(pose, block, at):
-        rot = first_rot_for_block[pose, block].to(torch.int64)
-        return coords[rot_coord_offset[rot].to(torch.int64) + at]
-
-    if site_rows.shape[0] > 0:
-        pose, mblock, matom, vatom, dblock, datom = site_rows.unbind(1)
-        has_virt = vatom >= 0
-        metal = atom(pose, mblock, matom)
-        donor = atom(pose, dblock, datom)
-        virt = atom(pose, mblock, vatom.clamp_min(0))
-        e = site_energies(metal, donor, virt, has_virt, site_d0, widths)
-        block_pair = block_pair.index_put((pose, mblock, dblock), e, accumulate=True)
-
-    if fan_rows.shape[0] > 0:
-        pose, block, a, b = fan_rows.unbind(1)
-        e = fan_energies(atom(pose, block, a), atom(pose, block, b), fan_l0, widths)
-        block_pair = block_pair.index_put((pose, block, block), e, accumulate=True)
-
-    if site_rows.shape[0] == 0 and fan_rows.shape[0] == 0:
-        block_pair = _coordinate_independent_score(coords, block_pair)
-
-    if output_block_pair_energies:
-        return block_pair.unsqueeze(0), None
-    return block_pair.sum(dim=(1, 2)).unsqueeze(0), None
+    def check_donors(self, pose_stack: PoseStack):
+        """Every filled site's donor atom must have a metal-donor distance."""
+        pbt = pose_stack.packed_block_types
+        bt = pose_stack.block_type_ind64
+        irc = pose_stack.inter_residue_connections64
+        is_site = (pbt.metal_coordination_conn_virt[bt.clamp_min(0)] != NOT_A_SITE) & (
+            bt >= 0
+        ).unsqueeze(-1)
+        filled = is_site & (irc[..., 0] >= 0)
+        pose, block, conn = torch.nonzero(filled, as_tuple=True)
+        if pose.numel() == 0:
+            return
+        partner, partner_conn = irc[pose, block, conn].unbind(-1)
+        key = pbt.metal_coordination_conn_key[bt[pose, partner], partner_conn]
+        if bool((key < 0).any()):
+            raise ValueError("a metal site is bonded to an atom that is not a donor")

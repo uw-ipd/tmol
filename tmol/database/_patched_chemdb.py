@@ -42,6 +42,9 @@ class RestypeGraphBuilder:
 def remove_atom(res, atom):
     res.atoms = tuple(x for x in res.atoms if x.name != atom)
     res.bonds = tuple(b for b in res.bonds if b[0] != atom and b[1] != atom)
+    res.io_bond_orders = tuple(
+        b for b in res.io_bond_orders if b[0] != atom and b[1] != atom
+    )
     res.torsions = tuple(
         x for x in res.torsions if atom not in [x.a.atom, x.b.atom, x.c.atom, x.d.atom]
     )

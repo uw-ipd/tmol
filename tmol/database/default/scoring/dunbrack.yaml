@@ -11,6 +11,7 @@ dunbrack_lookup:
   - { *n: his ,*r: HIS }
   - { *n: his ,*r: HIS_D }
   - { *n: his ,*r: HIS_POS }
+  - { *n: his ,*r: HIS_DEP }
   - { *n: ile ,*r: ILE }
   - { *n: leu ,*r: LEU }
   - { *n: lys ,*r: LYS }
