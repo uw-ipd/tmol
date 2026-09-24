@@ -31,6 +31,9 @@ PY
 echo "=== tests (CUDA) ==="
 .github/ci/run_gpu_tests.sh
 
+echo "=== benchmarks (CUDA) ==="
+.github/ci/run_benchmarks.sh
+
 echo "=== execute GPU tutorial smokes ==="
 python .github/scripts/smoke_tutorial_notebooks.py \
   docs/tutorial/02_gpu_batching.ipynb \
