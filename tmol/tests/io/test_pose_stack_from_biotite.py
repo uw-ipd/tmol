@@ -692,7 +692,7 @@ def _heavy_atom_mask(pose_stack):
         ("atomworks_regressions", "retinyl_lysine_4xxj.cif"),
         ("metal_fixtures", "mg_rna_aptamer_7eoh.cif.gz"),
         ("metal_fixtures", "fe_rubredoxin_30oh.cif.gz"),
-        ("ncaa_fixtures", "lactam_cyclic_7ag5.cif"),
+        ("covalent_fixtures", "lactam_cyclic_7ag5.cif"),
     ],
     ids=lambda p: p[1].split(".")[0],
 )

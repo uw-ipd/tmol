@@ -17,7 +17,6 @@ single chain of model 1 with solvent and non-polymer heteroatoms removed.
 | `na_rna_2ome_310d.cif` | PDB 310D chain A | 6 | `OMC`, `OMG` (2'-O-methyl) |
 | `na_dna_8og_183d.cif` | PDB 183D chain A | 10 | `8OG` (8-oxoguanine) |
 | `na_dna_ttd_1ttd.cif` | PDB 1TTD chain A | 11 | `TTD` (thymine dimer) |
-| `lactam_cyclic_7ag5.cif` | PDB 7AG5 chain A | 11 | `DNP`, `CPI`, `2RA` (sidechain-closed ring) |
 
 `SEP` is an open-chain sidechain carrying a dianionic phosphate; `HYP` closes a
 ring back onto the backbone nitrogen, so the two together cover both sidechain
@@ -86,22 +85,6 @@ beta-lysine would come out ending in a methyl. `chem_comp_atom` declares the
 whole component whatever the density showed, which settles both cases -- it
 says which copy of `HMR` is the complete one, and it is the only account of
 what `B3K` and `B3Q` are, since no copy of either shows it.
-
-## Sidechain-closed ring
-
-`lactam_cyclic_7ag5.cif` is the peptide core of a calcium-dependent lipopeptide
-antibiotic, `ASP-DNP-CPI-ASP-ASP-GLY-ASP-GLY-2RA-ILE-PRO`, model 1 with the
-first alternate location. The N-terminal lipid, both calcium ions, the bound
-ligand and the solvent were dropped; the atom records, hydrogens included, are
-the deposited ones.
-
-`DNP` (2,3-diaminopropionic acid) bonds through three atoms: its alpha
-nitrogen and carbonyl continue the chain, and its beta nitrogen `NG` is
-acylated by the C-terminal proline's carbonyl, closing the ring. Either
-nitrogen with the carbonyl makes a valid peptide backbone, alpha or beta, so
-the chain is read through the alpha one. The proline's `up` carbonyl lands on
-a sidechain amine rather than a backbone nitrogen, so it is a conjugation, not
-a polymer connection.
 
 ## Nucleic acids
 
