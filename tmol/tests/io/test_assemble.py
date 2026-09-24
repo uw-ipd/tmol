@@ -79,10 +79,13 @@ def test_the_written_cif_parses_back_into_the_same_ligand(protein, ligand, tmp_p
     assert restored.array_length() == ligand.array_length()
     assert set(restored.atom_name) == set(ligand.atom_name)
 
-    def bond_name_pairs(array):
+    def bonds_by_name(array):
+        # The order travels with the pair: a round trip that kept the connectivity and
+        # took every order from a dictionary fallback is the failure this file exists
+        # to prevent, and comparing pairs alone cannot see it.
         return {
-            frozenset((str(array.atom_name[i]), str(array.atom_name[j])))
-            for i, j, _ in array.bonds.as_array()
+            (frozenset((str(array.atom_name[i]), str(array.atom_name[j]))), int(order))
+            for i, j, order in array.bonds.as_array()
         }
 
-    assert bond_name_pairs(restored) == bond_name_pairs(ligand)
+    assert bonds_by_name(restored) == bonds_by_name(ligand)
