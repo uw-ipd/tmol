@@ -6,9 +6,12 @@ Chemistry reaches AtomWorks already repaired, so nothing downstream has to guess
 what a file meant.
 """
 
+import functools
 import logging
+from collections import defaultdict, deque
 
 import biotite.structure as struc
+import networkx as nx
 import numpy as np
 from atomworks.constants import HYDROGEN_LIKE_SYMBOLS
 from rdkit import Chem
@@ -187,3 +190,115 @@ def get_absent_substitution_leaving_groups(
         if len(candidates) == 1:
             result[str(template.atom_name[index])] = candidates[0]
     return result
+
+
+# ---------------------------------------------------------------------------
+# Leaving groups
+#
+# A component's leaving atoms are the ones displaced when it forms a bond. The
+# grouping is a property of the template's bond graph and its leaving-atom
+# flags, so it lives here with the rest of the chemistry TMol resolves for
+# itself rather than asking AtomWorks for.
+# ---------------------------------------------------------------------------
+
+
+def _find_connected_components_after_removal(
+    graph: nx.Graph, node_to_remove: int
+) -> list[list[int]]:
+    """Identifies connected components that would form after removing a node from a graph.
+
+    Args:
+        graph: The input graph.
+        node_to_remove: The node to hypothetically remove.
+
+    Returns:
+        List of lists containing node indices in each new component.
+    """
+    # Only neighbors of the removed atom seed traversals; disconnected
+    # components remain excluded without constructing temporary graphs.
+    unvisited = set(graph.neighbors(node_to_remove))
+    components = []
+    while unvisited:
+        start = unvisited.pop()
+        seen = {node_to_remove, start}
+        queue = deque([start])
+        component = []
+        while queue:
+            node = queue.popleft()
+            component.append(node)
+            for neighbor in graph[node]:
+                if neighbor not in seen:
+                    seen.add(neighbor)
+                    queue.append(neighbor)
+        components.append(component)
+        unvisited.difference_update(component)
+    return components
+
+
+@functools.lru_cache(maxsize=128)
+def _leaving_atom_groups(
+    atom_name: tuple[str, ...],
+    element: tuple[str, ...],
+    leaving: tuple[bool, ...],
+    bonds: tuple[tuple[int, int], ...],
+) -> dict[str, tuple[tuple[str, ...], ...]]:
+    """Cache immutable chemical topology, without retaining arrays or coordinates."""
+    leaving_atom_names = defaultdict(list)
+    is_leaving_atom = np.asarray(leaving, dtype=bool)
+
+    # ... compute the leaving groups based on the bond graph and annotation
+    bond_graph = nx.Graph()
+    bond_graph.add_nodes_from(range(len(atom_name)))
+    bond_graph.add_edges_from(bonds)
+    for atom_idx in range(len(atom_name)):
+        # ... find the connected groups of atoms if the current atom were removed
+        connected_groups = _find_connected_components_after_removal(
+            bond_graph, atom_idx
+        )
+
+        # ... check if all atoms in the connected group are flagged as leaving atoms
+        #     by the CCD entry
+        for connected_group in connected_groups:
+            heavy_atoms: list[int] = list(
+                filter(lambda x: element[x] != "H", connected_group)
+            )
+            is_leaving_group = (
+                all(is_leaving_atom[heavy_atoms])
+                if len(heavy_atoms) > 0
+                else all(is_leaving_atom[connected_group])
+            )
+
+            if is_leaving_group:
+                leaving_atom_names[atom_name[atom_idx]].append(
+                    tuple(atom_name[idx] for idx in connected_group)
+                )
+
+    # ... turn leaving_atom_names into a dictionary of tuples
+    leaving_atom_names = {k: tuple(v) for k, v in leaving_atom_names.items()}
+
+    return leaving_atom_names
+
+
+def get_leaving_atom_groups(
+    chem_comp: struc.AtomArray,
+) -> dict[str, tuple[tuple[str, ...], ...]]:
+    """Find detachable groups using a template's bonds and leaving-atom flags.
+
+    Keys name the attachment atom; each value contains its separate leaving
+    groups. Unannotated templates declare no leaving groups. The input is not
+    modified, and its residue code is never used for dictionary lookup.
+    """
+    if "is_leaving_atom" not in chem_comp.get_annotation_categories() or not np.any(
+        chem_comp.is_leaving_atom
+    ):
+        return {}
+    if chem_comp.bonds is None:
+        raise ValueError("Leaving-group detection requires template bonds.")
+    return dict(
+        _leaving_atom_groups(
+            tuple(chem_comp.atom_name),
+            tuple(chem_comp.element),
+            tuple(chem_comp.is_leaving_atom),
+            tuple(map(tuple, chem_comp.bonds.as_array()[:, :2])),
+        )
+    )
