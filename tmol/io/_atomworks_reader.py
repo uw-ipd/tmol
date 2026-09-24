@@ -22,12 +22,12 @@ _FIELDS = [
 
 
 def _polymer_from_backbone_bonds(array):
-    """Mark which residues are polymer, and undo the split that moved them.
+    """Mark which residues of a PDB are polymer, reading its bonds rather than its records.
 
-    A PDB writes a modified residue inside a chain as HETATM, exactly as it writes
-    a free ligand, so the loader moves both onto a chain of their own. Which of the
-    two a residue is shows in its bonds: one joined to a neighbour through the atoms
-    its component polymerises with belongs to the chain the file wrote it on.
+    A PDB writes a modified residue inside a chain as HETATM, exactly as it writes a
+    free ligand, so the record cannot tell the two apart. The bonds can: a residue
+    joined to a neighbour through the atoms its component polymerises with is part of
+    that chain. Restoring the chain itself is the author-field mapping's job.
     """
     from atomworks.io.utils.ccd import get_polymerization_atoms
 
@@ -51,10 +51,7 @@ def _polymer_from_backbone_bonds(array):
             if joined in ((near[0], far[1]), (near[1], far[0])):
                 polymer[residue_of[[i, j]]] = True
 
-    is_polymer = polymer[residue_of]
-    array.set_annotation("is_polymer", is_polymer)
-    # A residue the file wrote into a chain belongs back on it.
-    array.chain_id[is_polymer] = array.auth_asym_id[is_polymer]
+    array.set_annotation("is_polymer", polymer[residue_of])
     return array
 
 
@@ -75,7 +72,6 @@ def _read_declared(path, model, assembly_id):
     if block is None:
         # The shared PDB loader retains CONECT and TER chain boundaries.
         array, _ = load_pdb(path, model=model, use_ccd=False)
-        array = _polymer_from_backbone_bonds(array)
         entries = {}
     else:
         array = get_structure(file, model=model, extra_fields=_FIELDS)
@@ -172,6 +168,9 @@ def read_structure(path, *, model=1, assembly_id=None, use_ccd=True):
 
     else:
         array, block = _read_declared(path, model, assembly_id)
+    if block is None:
+        # A PDB, where the loader has moved off whatever its records called non-polymer.
+        array = _polymer_from_backbone_bonds(array)
     if assembly_id is not None:
         array.set_annotation("chain_id", array.chain_iid.copy())
     for target, source in _AUTHOR_FIELDS.items():
