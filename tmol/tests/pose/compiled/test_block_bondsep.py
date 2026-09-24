@@ -44,12 +44,12 @@ def random_case(n_poses, max_n_blocks, max_n_conn, device, seed):
     block_n_conn = torch.randint(
         0, max_n_conn + 1, (n_poses, max_n_blocks), generator=generator
     ).to(torch.int32)
-    # Offsets run over the connections each block actually has, laid end to end.
-    counts = block_n_conn.to(torch.int64).flatten()
-    offsets = torch.cat(
-        [torch.zeros(1, dtype=torch.int64), counts.cumsum(0)[:-1]]
-    ).reshape(n_poses, max_n_blocks)
-    max_n_pconn = max(int(counts.sum()) // n_poses, 1)
+    # Each pose lays its own blocks' connections end to end, so the offsets that
+    # index its matrix restart at zero for every pose.
+    counts = block_n_conn.to(torch.int64)
+    offsets = torch.zeros_like(counts)
+    offsets[:, 1:] = counts.cumsum(1)[:, :-1]
+    max_n_pconn = max(int(counts.sum(1).max()), 1)
     pconn_matrix = torch.randint(
         0,
         MAX_SIG_BOND_SEPARATION + 1,
