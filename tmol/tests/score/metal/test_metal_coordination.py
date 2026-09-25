@@ -51,6 +51,46 @@ def global_index(pose_stack, pose, block, atom):
     return int(pose_stack.block_coord_offset64[pose, block]) + atom
 
 
+def residual_detail(param_db, pose_stack, coords):
+    """Where a non-zero ideal-geometry score sits: site restraints or the fan."""
+    site_rows, site_params, fan_rows, fan_params = metal_oracle.restraints(
+        param_db, pose_stack
+    )
+
+    def at(pose, block, atom):
+        return coords[pose, global_index(pose_stack, pose, block, atom)]
+
+    def tensor(values):
+        return torch.tensor(values, dtype=coords.dtype, device=coords.device)
+
+    rows, site_total, fan_total = [], 0.0, 0.0
+    for (pose, mblock, matom, vatom, dblock, datom), params in zip(
+        site_rows, site_params
+    ):
+        energy = float(
+            metal_oracle.site_energies(
+                at(pose, mblock, matom),
+                at(pose, dblock, datom),
+                at(pose, mblock, max(vatom, 0)),
+                torch.tensor(vatom >= 0, device=coords.device),
+                tensor(params),
+            )
+        )
+        site_total += energy
+        rows.append((energy, f"site {mblock}:{matom}-{dblock}:{datom}"))
+    for (pose, block, a, b), params in zip(fan_rows, fan_params):
+        energy = float(
+            metal_oracle.fan_energies(
+                at(pose, block, a), at(pose, block, b), tensor(params)
+            )
+        )
+        fan_total += energy
+        rows.append((energy, f"fan {block}:{a}-{b}"))
+    rows.sort(reverse=True)
+    worst = "; ".join(f"{label} {energy:.3f}" for energy, label in rows[:5])
+    return f"sites {site_total:.3f}, fan {fan_total:.3f}; worst {worst}"
+
+
 def idealized(param_db, pose_stack):
     """Coordinates with every paired donor moved onto its site at ideal distance.
 
@@ -75,6 +115,7 @@ def idealized(param_db, pose_stack):
         placed = (ideal - ca) @ (u @ vt) + cb
         coords[pose, start : start + bt.n_atoms] = placed.to(coords.device)
     site_rows, site_params, _, _ = metal_oracle.restraints(param_db, pose_stack)
+    targets = {}
     for (pose, mblock, matom, vatom, dblock, datom), params in zip(
         site_rows, site_params
     ):
@@ -84,7 +125,13 @@ def idealized(param_db, pose_stack):
             ray = coords[pose, global_index(pose_stack, pose, mblock, vatom)] - metal
         else:
             ray = coords[pose, donor] - metal
-        coords[pose, donor] = metal + params[0] * ray / ray.norm()
+        targets.setdefault((pose, donor), []).append(
+            metal + params[0] * ray / ray.norm()
+        )
+    # a donor bridging two metals carries one target per metal and cannot sit
+    #    on both; its restraints balance at their mean
+    for (pose, donor), points in targets.items():
+        coords[pose, donor] = torch.stack(points).mean(0)
     return coords, site_rows
 
 
@@ -154,7 +201,10 @@ def test_ideal_sites_score_zero(built, stem, default_database, torch_device):
     pose_stack = built(stem, torch_device)
     term = MetalCoordinationEnergyTerm(default_database, torch_device)
     coords, _ = idealized(default_database, pose_stack)
-    assert float(render(term, pose_stack)(coords).sum()) < 1e-6
+    score = float(render(term, pose_stack)(coords).sum())
+    assert (
+        score < 1e-6
+    ), f"{stem}: {residual_detail(default_database, pose_stack, coords)}"
 
 
 def test_known_distortions(built, default_database):
