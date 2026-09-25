@@ -546,10 +546,12 @@
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
             <span class="n">pack_frac</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">entry</span><span class="p">[</span><span class="s2">"fa_rep_pack_frac"</span><span class="p">])</span>
             <span class="n">min_frac</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">entry</span><span class="p">[</span><span class="s2">"fa_rep_min_frac"</span><span class="p">])</span>
+            <span class="c1"># A schedule's cst_frac column *is* the ramp, so a caller who asked</span>
+            <span class="c1"># not to ramp is asking for it to be ignored.</span>
             <span class="n">constraint</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">constraint_fraction</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-                <span class="k">if</span> <span class="s2">"cst_frac"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">entry</span>
-                <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">entry</span><span class="p">[</span><span class="s2">"cst_frac"</span><span class="p">])</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">entry</span><span class="p">[</span><span class="s2">"cst_frac"</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">constrain</span> <span class="ow">and</span> <span class="n">ramp_constraints</span> <span class="ow">and</span> <span class="s2">"cst_frac"</span> <span class="ow">in</span> <span class="n">entry</span>
+                <span class="k">else</span> <span class="n">constraint_fraction</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
             <span class="p">)</span>
             <span class="n">normalized</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">pack_frac</span><span class="p">,</span> <span class="n">min_frac</span><span class="p">,</span> <span class="n">constraint</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
@@ -718,12 +720,12 @@
 
     <span class="n">constraint_weight_start</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">get_weight</span><span class="p">(</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">constraint</span><span class="p">)</span>
     <span class="n">use_constraints</span> <span class="o">=</span> <span class="n">constraint_weight_start</span> <span class="o">!=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">ramp_constraints</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ramp_constraints</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">use_constraints</span> <span class="ow">and</span> <span class="n">ramp_constraints</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span>
             <span class="s2">"Warning: ramp_constraints is True but sfxn's 'constraint' weight is 0; no constraints will be used."</span>
         <span class="p">)</span>
-    <span class="k">if</span> <span class="n">ramp_constraints</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">ramp_constraints</span> <span class="o">=</span> <span class="kc">True</span>
 
     <span class="n">steps</span> <span class="o">=</span> <span class="n">_normalize_schedule</span><span class="p">(</span><span class="n">schedule</span><span class="p">,</span> <span class="n">use_constraints</span><span class="p">,</span> <span class="n">ramp_constraints</span><span class="p">)</span>
 
