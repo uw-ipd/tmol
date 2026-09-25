@@ -123,15 +123,8 @@ def block_pair_energies(param_db, pose_stack, coords):
     """[n_poses, n_blocks, n_blocks] energies, upper triangle."""
     site_rows, site_params, fan_rows, fan_params = restraints(param_db, pose_stack)
     n_poses, max_n_blocks = pose_stack.block_type_ind64.shape
-    # a structure whose sites are all filled internally carries no restraint at
-    #    all, and the zero it scores still has to reach the caller's backward
-    out = (
-        torch.zeros(
-            (n_poses, max_n_blocks, max_n_blocks),
-            dtype=coords.dtype,
-            device=coords.device,
-        )
-        + 0.0 * coords.sum()
+    out = torch.zeros(
+        (n_poses, max_n_blocks, max_n_blocks), dtype=coords.dtype, device=coords.device
     )
     offsets = pose_stack.block_coord_offset64.to(coords.device)
 

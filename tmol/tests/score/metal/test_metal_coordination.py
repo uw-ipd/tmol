@@ -202,18 +202,21 @@ def test_kernel_matches_oracle(built, stem, default_database, torch_device):
     noise = 0.1 * torch.randn(coords.shape, generator=generator, dtype=coords.dtype)
     coords = (coords + noise.to(coords.device)).requires_grad_(True)
 
+    def gradient(energy):
+        """Zero where a structure carries no restraint at all, as cobalt hexammine does."""
+        (grad,) = torch.autograd.grad(energy.sum(), coords, allow_unused=True)
+        return torch.zeros_like(coords) if grad is None else grad
+
     expected = metal_oracle.block_pair_energies(default_database, pose_stack, coords)
-    (expected_grad,) = torch.autograd.grad(expected.sum(), coords)
+    expected_grad = gradient(expected)
 
     whole = render(term, pose_stack)(coords)
-    (grad,) = torch.autograd.grad(whole.sum(), coords)
     torch.testing.assert_close(whole[0], expected.sum(dim=(1, 2)))
-    torch.testing.assert_close(grad, expected_grad)
+    torch.testing.assert_close(gradient(whole), expected_grad)
 
     pairs = render(term, pose_stack, block_pair=True)(coords)
-    (pair_grad,) = torch.autograd.grad(pairs.sum(), coords)
     torch.testing.assert_close(pairs[0], expected)
-    torch.testing.assert_close(pair_grad, expected_grad)
+    torch.testing.assert_close(gradient(pairs), expected_grad)
 
 
 @pytest.mark.parametrize("stem", LOADABLE)
