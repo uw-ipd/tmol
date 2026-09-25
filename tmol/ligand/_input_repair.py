@@ -58,10 +58,16 @@ def _infer_carboxylate_bonds(rw: Chem.RWMol, conf: Chem.Conformer) -> int:
         if atom.GetAtomicNum() != 6 or atom.GetDegree() != 3:
             continue
         c = atom.GetIdx()
+        # An oxygen still holding its hydrogen is a carboxylic acid's, and a
+        #    carboxylic acid is not a carboxylate mis-encoded as a diol: both its
+        #    oxygens are terminal and its C-O bonds are both short enough to pass
+        #    the distance test below.
         term_os = [
             nb.GetIdx()
             for nb in atom.GetNeighbors()
-            if nb.GetAtomicNum() == 8 and nb.GetDegree() == 1
+            if nb.GetAtomicNum() == 8
+            and nb.GetDegree() == 1
+            and nb.GetTotalNumHs() == 0
         ]
         if len(term_os) != 2:
             continue
@@ -77,7 +83,9 @@ def _infer_carboxylate_bonds(rw: Chem.RWMol, conf: Chem.Conformer) -> int:
         if angle_sum is None or angle_sum < _SP2_ANGLE_SUM_MIN:
             continue
 
-        oa, ob = term_os
+        # The carbonyl is the shorter bond; taking them in neighbour order would
+        #    let the input's atom ordering decide which oxygen carries the charge.
+        oa, ob = term_os if co_dists[0] <= co_dists[1] else term_os[::-1]
         for idx in (c, oa, ob):
             rw.GetAtomWithIdx(idx).SetIsAromatic(False)
         b_oa = rw.GetBondBetweenAtoms(c, oa)
