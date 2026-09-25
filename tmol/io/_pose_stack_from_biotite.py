@@ -1714,14 +1714,19 @@ def _metal_coordination_from_biotite(
     """
     if array.bonds is None:
         return numpy.zeros((0, 4), dtype=numpy.int64)
+    bonds = array.bonds.as_array()
+    # Almost every bond in a structure is an ordinary one, and a structure with no
+    # metal has none of these at all; finding that out should not cost a pass over
+    # the whole table in Python.
+    declared = bonds[bonds[:, 2] == biotite.structure.BondType.COORDINATION]
+    if not len(declared):
+        return numpy.zeros((0, 4), dtype=numpy.int64)
     atom_canonical_ind = numpy.full(array.array_length(), -1, dtype=numpy.int64)
     atom_canonical_ind[valid_atom_mask] = valid_atom_inds
     metals = [ion["element"].upper() for ion in metal_table()["ions"]]
     is_metal = numpy.isin(numpy.char.upper(array.element.astype(str)), metals)
     rows = []
-    for atom1, atom2, order in array.bonds.as_array():
-        if order != biotite.structure.BondType.COORDINATION:
-            continue
+    for atom1, atom2, _ in declared:
         if is_metal[atom2] and not is_metal[atom1]:
             atom1, atom2 = atom2, atom1
         if not is_metal[atom1] or is_metal[atom2]:

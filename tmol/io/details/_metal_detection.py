@@ -240,6 +240,27 @@ class ClusterSites:
 def build_canonical_metal_tables(
     canonical_ordering, chemical_db, table: dict
 ) -> CanonicalMetalTables:
+    """Fold the chemical database down to what detection reads per atom.
+
+    The three inputs are immutable and every pose stack asks the same question of
+    them, so the answer is kept rather than rebuilt -- most of the cost is walking
+    the cluster residues' icoors, which do not change.
+    """
+    key = (id(canonical_ordering), id(chemical_db), id(table))
+    cached = _CANONICAL_METAL_TABLES.get(key)
+    if cached is not None:
+        return cached
+    built = _build_canonical_metal_tables(canonical_ordering, chemical_db, table)
+    _CANONICAL_METAL_TABLES[key] = built
+    return built
+
+
+_CANONICAL_METAL_TABLES: Dict[tuple, "CanonicalMetalTables"] = {}
+
+
+def _build_canonical_metal_tables(
+    canonical_ordering, chemical_db, table: dict
+) -> CanonicalMetalTables:
     """Fold the chemical database down to what detection reads per atom."""
     atom_type = {at.name: at for at in chemical_db.atom_types}
     ion_for_name3 = {ion["name3"]: ion for ion in table["ions"]}
@@ -333,24 +354,26 @@ def _pose_donor_table(pose, rt, xyz, excluded, tables):
     Each metal wants this list without its own residue, which is a mask over a
     table built once rather than a reason to walk the pose again per metal.
     """
-    donor_xyz, donor_elements, donor_atoms, donor_residue = [], [], [], []
-    for other in range(rt.shape[1]):
-        if rt[pose, other] < 0 or excluded[pose, other]:
-            continue
-        for j, element in enumerate(tables.donor_element[rt[pose, other]]):
-            if not element:
-                continue
-            p = xyz[pose, other, j]
-            if numpy.all(numpy.isfinite(p)):
-                donor_xyz.append(p)
-                donor_elements.append(element)
-                donor_atoms.append((other, j))
-                donor_residue.append(other)
+    types = rt[pose]
+    live = (types >= 0) & ~excluded[pose]
+    if not live.any():
+        return numpy.zeros((0, 3)), [], [], numpy.zeros(0, dtype=int)
+
+    # tables.donor_element is one row of atom-name-or-empty per block type; the
+    # donors of a pose are that table indexed by its residues, masked by which
+    # coordinates were actually observed.
+    n_atoms = min(tables.donor_element.shape[1], xyz.shape[2])
+    element = tables.donor_element[types][:, :n_atoms].copy()
+    element[~live] = ""
+    keep = (element != "") & numpy.isfinite(xyz[pose, :, :n_atoms]).all(-1)
+    residue, atom = numpy.nonzero(keep)
     return (
-        donor_xyz,
-        donor_elements,
-        donor_atoms,
-        numpy.asarray(donor_residue, dtype=int),
+        numpy.ascontiguousarray(xyz[pose][residue, atom], dtype=numpy.float64).reshape(
+            -1, 3
+        ),
+        [str(e) for e in element[residue, atom]],
+        list(zip(residue.tolist(), atom.tolist())),
+        residue.astype(int),
     )
 
 
@@ -358,10 +381,10 @@ def _donors_excluding(donor_table, res):
     """The pose's donors with residue ``res`` left out, order preserved."""
     donor_xyz, donor_elements, donor_atoms, donor_residue = donor_table
     if not len(donor_residue):
-        return [], [], []
+        return numpy.zeros((0, 3)), [], []
     keep = numpy.flatnonzero(donor_residue != res)
     return (
-        [donor_xyz[i] for i in keep],
+        donor_xyz[keep],
         [donor_elements[i] for i in keep],
         [donor_atoms[i] for i in keep],
     )
@@ -371,10 +394,8 @@ def _assign_cluster_site(
     pose,
     res,
     cluster,
-    rt,
     xyz,
     donor_table,
-    tables,
     table,
     declared_sites,
     required_donors,
@@ -544,11 +565,14 @@ def _frame_candidates(a, b, free, donors):
         # collinear satisfiers fix an axis only
         axis = unit(b[0])
         return _spins(_aligning(unit(a[0]), axis), axis, free, donors)
-    out = [u @ vt]
     if s[2] < 1e-6 * s[0]:
-        # coplanar satisfiers leave a mirror through their plane
-        out.append(u @ numpy.diag([1.0, 1.0, -1.0]) @ vt)
-    return out
+        # coplanar satisfiers leave a mirror through their plane: both sides are
+        # candidates, and the caller scores them.
+        return [u @ vt, u @ numpy.diag([1.0, 1.0, -1.0]) @ vt]
+    # Non-coplanar satisfiers fix the frame outright, so there is no second
+    # candidate and u @ vt has to be the proper one -- an improper map would put
+    # every free site on the wrong side of the satisfiers.
+    return [u @ numpy.diag([1.0, 1.0, numpy.sign(numpy.linalg.det(u @ vt))]) @ vt]
 
 
 def _spins(start, axis, free, donors):
@@ -645,10 +669,8 @@ def find_metal_geometries(
                 int(pose),
                 int(res),
                 cluster,
-                rt,
                 xyz,
                 donor_table,
-                tables,
                 table,
                 declared_sites,
                 required_donors,

@@ -218,14 +218,28 @@ def _declared_connections(co: CanonicalOrdering, pose_stack: PoseStack):
             bt.connections[conn].atom
         ]
 
+    # Everything below is a property of the block type, not of the residue, so it is
+    # worked out once per type rather than once per residue.
+    per_type = {}
+    for index, bt in enumerate(pbt.active_block_types):
+        per_type[index] = (
+            {
+                bt.up_connection_ind,
+                bt.down_connection_ind,
+                bt.connection_to_cidx.get("dslf", -1),
+            },
+            tuple(site_connections(bt)) if bt.metal_sites else (),
+            GEOMETRY_NAMES.index(bt.metal_sites[0].geometry) if bt.metal_sites else -1,
+        )
+
     sites, coordination, bonds = [], [], []
     for pose, res in zip(*numpy.nonzero(bt_inds >= 0)):
         pose, res = int(pose), int(res)
         bt = pbt.active_block_types[bt_inds[pose, res]]
+        structural, site_names, geometry_index = per_type[int(bt_inds[pose, res])]
         if bt.metal_sites:
-            geometry = bt.metal_sites[0].geometry
-            sites.append((pose, res, GEOMETRY_NAMES.index(geometry)))
-            for k, name in enumerate(site_connections(bt)):
+            sites.append((pose, res, geometry_index))
+            for k, name in enumerate(site_names):
                 partner, conn = irc[pose, res, bt.connection_to_cidx[name]]
                 if partner >= 0:
                     other = pbt.active_block_types[bt_inds[pose, partner]]
@@ -234,8 +248,6 @@ def _declared_connections(co: CanonicalOrdering, pose_stack: PoseStack):
             continue
         if bt.is_ligand_fragment:
             continue
-        structural = {bt.up_connection_ind, bt.down_connection_ind}
-        structural.add(bt.connection_to_cidx.get("dslf", -1))
         for conn in range(len(bt.connections)):
             partner, partner_conn = irc[pose, res, conn]
             if conn in structural or partner <= res:

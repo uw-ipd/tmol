@@ -58,10 +58,41 @@ def _best_rotations(donors: numpy.ndarray, targets: numpy.ndarray) -> numpy.ndar
     return u @ correction @ vt
 
 
+def _rotation_group(verts: numpy.ndarray) -> numpy.ndarray:
+    """Vertex permutations a rotation of the polyhedron realises, including identity.
+
+    Found rather than tabulated: for each permutation of the vertices, Kabsch the
+    polyhedron onto its image and keep the permutation if the fit is exact.
+    """
+    group = []
+    for candidate in permutations(range(len(verts))):
+        image = verts[list(candidate)]
+        rotation = _best_rotations(verts, image[numpy.newaxis])[0]
+        if numpy.allclose(verts @ rotation, image, atol=1e-9):
+            group.append(candidate)
+    return numpy.array(group, dtype=int)
+
+
 @lru_cache(maxsize=None)
-def _assignments(n_sites: int, n_donors: int) -> numpy.ndarray:
-    """Every injective donor-to-vertex map, as one (n, n_donors) index array."""
-    return numpy.array(list(permutations(range(n_sites), n_donors)), dtype=int)
+def _assignments(vertex_key: tuple, n_donors: int) -> numpy.ndarray:
+    """One injective donor-to-vertex map per distinct fit.
+
+    Maps related by a rotation of the polyhedron place the donors identically and
+    score identically, so enumerating all of them only asks floating point to
+    choose between answers that are the same. One representative per orbit leaves
+    the choice to the geometry: 720 maps for an octahedron become 30.
+    """
+    verts = numpy.array(vertex_key, dtype=numpy.float64).reshape(-1, 3)
+    n_sites = len(verts)
+    group = _rotation_group(verts)
+    seen, keep = set(), []
+    for candidate in permutations(range(n_sites), n_donors):
+        if candidate in seen:
+            continue
+        keep.append(candidate)
+        for symmetry in group:
+            seen.add(tuple(int(symmetry[v]) for v in candidate))
+    return numpy.array(keep, dtype=int)
 
 
 def fit_geometry(
@@ -80,22 +111,20 @@ def fit_geometry(
     if n_donors == 0 or n_donors > n_sites:
         return None
 
-    candidates = _assignments(n_sites, n_donors)
+    candidates = _assignments(tuple(verts.ravel()), n_donors)
     targets = verts[candidates]
     rotations = _best_rotations(donors, targets)
     rotated = numpy.einsum("ki,nij->nkj", donors, rotations)
     cosines = numpy.clip(numpy.sum(rotated * targets, axis=2), -1.0, 1.0)
     rms = numpy.sqrt(numpy.mean(numpy.degrees(numpy.arccos(cosines)) ** 2, axis=1))
-    # Symmetric polyhedra fit equally well several ways, and batched SVD moves the
-    # last few bits, so take the first of the tied assignments rather than whichever
-    # one rounding favours.
-    best = int(numpy.flatnonzero(rms <= rms.min() + 1e-9)[0])
+    best = int(numpy.argmin(rms))
     return GeometryFit(
         geometry="",
         rms_angle=float(rms[best]),
         vertex_for_donor=tuple(int(v) for v in candidates[best]),
         n_sites=n_sites,
-        rotation=rotations[best],
+        # A row of the batch, which would otherwise hold the whole stack alive.
+        rotation=rotations[best].copy(),
     )
 
 
