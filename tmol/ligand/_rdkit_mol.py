@@ -16,9 +16,12 @@ from atomworks.io.tools.rdkit import (
     assign_stereochemistry_from_3d,
     fix_charge_based_on_valence,
 )
+from collections.abc import Collection, Mapping
+
 from rdkit import Chem
 
 from tmol.ligand._detect import NonStandardResidueInfo, _strip_metals
+from tmol.ligand._input_repair import correct_carboxylate_bond_orders
 
 logger = logging.getLogger(__name__)
 
@@ -440,7 +443,91 @@ def ligand_atom_array_to_rdkit_mol(
     ):
         # Tripos delocalized COO bonds become singles during normalization.
         # Reuse the shared repair on the generated, finite mol2 geometry.
-        from atomworks.io.tools.protonation import correct_carboxylate_bond_orders
-
         mol = correct_carboxylate_bond_orders(mol)
     return mol
+
+
+def transfer_tetrahedral_stereochemistry(
+    mol: Chem.Mol,
+    reference: Chem.Mol,
+    atom_mapping: Mapping[int, int],
+    *,
+    replaced_atoms: Collection[int] = (),
+) -> int:
+    """Fill undefined tetrahedral centers using an explicit structural correspondence.
+
+    ``atom_mapping`` maps reference indices to molecule indices, including any
+    explicitly chosen replacement for a displaced neighbor. The caller owns that
+    chemical correspondence. Reference indices in ``replaced_atoms`` explicitly
+    identify displaced neighbors, whose replacements may have different elements.
+    Other mapped atoms must have matching elements/isotopes;
+    a center is transferred only if all neighbors, bond orders and hydrogen counts
+    match. Existing chirality and coordinates are unchanged. Neighbor-order parity,
+    rather than the reference's R/S label, preserves handedness when an attachment
+    changes CIP priorities.
+
+    Returns:
+        Number of centers assigned.
+
+    Raises:
+        ValueError: If the mapping repeats a destination, has invalid indices, or
+            maps different elements/isotopes.
+    """
+    if (
+        not set(replaced_atoms) <= atom_mapping.keys()
+        or len(set(atom_mapping.values())) != len(atom_mapping)
+        or any(
+            not 0 <= source < reference.GetNumAtoms()
+            or not 0 <= target < mol.GetNumAtoms()
+            for source, target in atom_mapping.items()
+        )
+    ):
+        raise ValueError("Stereo correspondence requires valid, distinct atom indices")
+    for source, target in atom_mapping.items():
+        if source in replaced_atoms:
+            continue
+        left, right = reference.GetAtomWithIdx(source), mol.GetAtomWithIdx(target)
+        if (left.GetAtomicNum(), left.GetIsotope()) != (
+            right.GetAtomicNum(),
+            right.GetIsotope(),
+        ):
+            raise ValueError(
+                f"Stereo correspondence maps different elements/isotopes: {source} -> {target}"
+            )
+    pending = []
+    for source, target in atom_mapping.items():
+        if source in replaced_atoms:
+            continue
+        left, right = reference.GetAtomWithIdx(source), mol.GetAtomWithIdx(target)
+        if left.GetChiralTag() not in (
+            Chem.ChiralType.CHI_TETRAHEDRAL_CW,
+            Chem.ChiralType.CHI_TETRAHEDRAL_CCW,
+        ):
+            continue
+        if right.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED:
+            continue
+        neighbors = [atom_mapping.get(atom.GetIdx()) for atom in left.GetNeighbors()]
+        target_neighbors = [atom.GetIdx() for atom in right.GetNeighbors()]
+        if (
+            len(neighbors) not in (3, 4)
+            or set(neighbors) != set(target_neighbors)
+            or left.GetTotalNumHs() != right.GetTotalNumHs()
+            or any(
+                bond.GetBondType()
+                != mol.GetBondBetweenAtoms(target, neighbor).GetBondType()
+                for bond, neighbor in zip(left.GetBonds(), neighbors, strict=True)
+            )
+        ):
+            continue
+        order = [target_neighbors.index(neighbor) for neighbor in neighbors]
+        invert = sum(a > b for i, a in enumerate(order) for b in order[i + 1 :]) % 2
+        pending.append((right, left.GetChiralTag(), invert))
+    for atom, tag, invert in pending:
+        atom.SetChiralTag(tag)
+        if invert:
+            atom.InvertChirality()
+    if pending:
+        Chem.AssignStereochemistry(mol, cleanIt=True, force=True)
+    return sum(
+        atom.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED for atom, _, _ in pending
+    )
