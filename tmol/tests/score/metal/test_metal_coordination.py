@@ -63,6 +63,12 @@ def residual_detail(param_db, pose_stack, coords):
     def tensor(values):
         return torch.tensor(values, dtype=coords.dtype, device=coords.device)
 
+    pbt = pose_stack.packed_block_types
+
+    def label(pose, block, atom):
+        bt = pbt.active_block_types[pose_stack.block_type_ind64[pose, block]]
+        return f"{bt.name}:{bt.atoms[atom].name}"
+
     rows, site_total, fan_total = [], 0.0, 0.0
     for (pose, mblock, matom, vatom, dblock, datom), params in zip(
         site_rows, site_params
@@ -77,7 +83,14 @@ def residual_detail(param_db, pose_stack, coords):
             )
         )
         site_total += energy
-        rows.append((energy, f"site {mblock}:{matom}-{dblock}:{datom}"))
+        distance = float((at(pose, mblock, matom) - at(pose, dblock, datom)).norm())
+        rows.append(
+            (
+                energy,
+                f"site {label(pose, mblock, matom)}-{label(pose, dblock, datom)}"
+                f" d={distance:.2f} d0={params[0]:.2f}",
+            )
+        )
     for (pose, block, a, b), params in zip(fan_rows, fan_params):
         energy = float(
             metal_oracle.fan_energies(
@@ -85,9 +98,16 @@ def residual_detail(param_db, pose_stack, coords):
             )
         )
         fan_total += energy
-        rows.append((energy, f"fan {block}:{a}-{b}"))
+        distance = float((at(pose, block, a) - at(pose, block, b)).norm())
+        rows.append(
+            (
+                energy,
+                f"fan {label(pose, block, a)}-{label(pose, block, b)}"
+                f" d={distance:.2f} l0={params[0]:.2f}",
+            )
+        )
     rows.sort(reverse=True)
-    worst = "; ".join(f"{label} {energy:.3f}" for energy, label in rows[:5])
+    worst = "; ".join(f"{text} -> {energy:.3f}" for energy, text in rows[:5])
     return f"sites {site_total:.3f}, fan {fan_total:.3f}; worst {worst}"
 
 
