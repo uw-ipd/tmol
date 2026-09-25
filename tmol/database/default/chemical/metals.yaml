@@ -1,0 +1,177 @@
+# Metal coordination reference data.
+#
+# Distances are median metal-ligand separations measured from annotated
+#    coordination in high-resolution PDB entries; only cells with enough
+#    observations are listed. Some are shifted so that relaxed structures,
+#    under the full score function, center on the measured median. Anything
+#    absent is filled by the generator as ionic_radius + donor_radius.
+# Geometry vertices are unit vectors; a geometry with none is untemplated,
+#    meaning metal-ligand distances are restrained but site geometry is not.
+# Each ion's geometries are listed most-common first, from observed
+#    coordination numbers in high-resolution entries; the first is the
+#    default when nothing else decides. Those counts include waters, which
+#    structure input drops, so detection will usually see fewer donors than
+#    the geometry has sites -- the list is what supplies the rest.
+
+donor_radii:
+  O: 1.396
+  N: 1.353
+  S: 1.549
+  Owat: 1.404
+  F: 1.300
+
+geometries:
+  - name: linear
+    vertices:
+    - [ 0.000000,  0.000000,  1.000000]
+    - [ 0.000000,  0.000000, -1.000000]
+  - name: trigonal
+    vertices:
+    - [ 1.000000,  0.000000,  0.000000]
+    - [-0.500000,  0.866025,  0.000000]
+    - [-0.500000, -0.866025,  0.000000]
+  - name: tetrahedral
+    vertices:
+    - [ 0.577350,  0.577350,  0.577350]
+    - [ 0.577350, -0.577350, -0.577350]
+    - [-0.577350,  0.577350, -0.577350]
+    - [-0.577350, -0.577350,  0.577350]
+  - name: square_planar
+    vertices:
+    - [ 1.000000,  0.000000,  0.000000]
+    - [ 0.000000,  1.000000,  0.000000]
+    - [-1.000000,  0.000000,  0.000000]
+    - [ 0.000000, -1.000000,  0.000000]
+  - name: square_pyramidal
+    vertices:
+    - [ 0.000000,  0.000000,  1.000000]
+    - [ 1.000000,  0.000000,  0.000000]
+    - [ 0.000000,  1.000000,  0.000000]
+    - [-1.000000,  0.000000,  0.000000]
+    - [ 0.000000, -1.000000,  0.000000]
+  - name: trigonal_bipyramidal
+    vertices:
+    - [ 0.000000,  0.000000,  1.000000]
+    - [ 1.000000,  0.000000,  0.000000]
+    - [-0.500000,  0.866025,  0.000000]
+    - [-0.500000, -0.866025,  0.000000]
+    - [ 0.000000,  0.000000, -1.000000]
+  - name: octahedral
+    vertices:
+    - [ 1.000000,  0.000000,  0.000000]
+    - [ 0.000000,  1.000000,  0.000000]
+    - [ 0.000000,  0.000000,  1.000000]
+    - [-1.000000,  0.000000,  0.000000]
+    - [ 0.000000, -1.000000,  0.000000]
+    - [ 0.000000,  0.000000, -1.000000]
+  - name: irregular
+    vertices: []
+    # site connections for an untemplated ion; K+ reaches eight in channels
+    max_sites: 8
+
+ions:
+  - element: Mg
+    oxidation_state: 2
+    atom_type: Mg2p
+    name3: MG
+    ionic_radius: 0.72
+    geometries: [octahedral]
+    distances: { O: 2.073, Owat: 2.086, F: 1.918 }
+  - element: Ca
+    oxidation_state: 2
+    atom_type: Ca2p
+    name3: CA
+    ionic_radius: 1.0
+    geometries: [irregular]
+    distances: { O: 2.305, Owat: 2.396 }
+  - element: Na
+    oxidation_state: 1
+    atom_type: Na1p
+    name3: NA
+    ionic_radius: 1.02
+    geometries: [irregular]
+    distances: { O: 2.381, Owat: 2.502 }
+  - element: K
+    oxidation_state: 1
+    atom_type: K1p
+    name3: K
+    ionic_radius: 1.38
+    geometries: [irregular]
+    distances: { O: 2.840, Owat: 2.814 }
+  - element: Mn
+    oxidation_state: 2
+    atom_type: Mn2p
+    name3: MN
+    ionic_radius: 0.83
+    geometries: [octahedral]
+    distances: { O: 2.150, N: 2.145, Owat: 2.195 }
+  - element: Fe
+    oxidation_state: 2
+    atom_type: Fe2p
+    name3: FE2
+    ionic_radius: 0.78
+    geometries: [octahedral, tetrahedral]
+    distances: { O: 2.175, N: 2.178, S: 2.307, Owat: 2.137 }
+  - element: Fe
+    oxidation_state: 3
+    atom_type: Fe3p
+    name3: FE
+    ionic_radius: 0.645
+    geometries: [octahedral, tetrahedral]
+    distances: { O: 2.110, N: 2.151, S: 2.216, Owat: 2.186 }
+  - element: Co
+    oxidation_state: 2
+    atom_type: Co2p
+    name3: CO
+    ionic_radius: 0.745
+    geometries: [octahedral, tetrahedral]
+    distances: { O: 2.092, N: 2.102, Owat: 2.128 }
+  - element: Co
+    oxidation_state: 3
+    atom_type: Co3p
+    name3: 3CO
+    ionic_radius: 0.61
+    geometries: [octahedral]
+    distances: { N: 2.012, S: 2.250 }
+  - element: Ni
+    oxidation_state: 2
+    atom_type: Ni2p
+    name3: NI
+    ionic_radius: 0.69
+    geometries: [octahedral, square_planar, tetrahedral]
+    distances: { O: 2.099, N: 1.979, S: 2.239, Owat: 2.101 }
+  - element: Cu
+    oxidation_state: 1
+    atom_type: Cu1p
+    name3: CU1
+    ionic_radius: 0.77
+    geometries: [trigonal, tetrahedral, linear]
+    distances: { N: 1.998, S: 2.163 }
+  - element: Cu
+    oxidation_state: 2
+    atom_type: Cu2p
+    name3: CU
+    ionic_radius: 0.73
+    geometries: [square_planar, square_pyramidal, octahedral, trigonal_bipyramidal]
+    distances: { O: 2.195, N: 1.994, S: 2.247, Owat: 2.127 }
+  - element: Zn
+    oxidation_state: 2
+    atom_type: Zn2p
+    name3: ZN
+    ionic_radius: 0.74
+    geometries: [tetrahedral, trigonal_bipyramidal, octahedral]
+    distances: { O: 2.033, N: 2.030, S: 2.377 }
+  - element: Cd
+    oxidation_state: 2
+    atom_type: Cd2p
+    name3: CD
+    ionic_radius: 0.95
+    geometries: [octahedral, tetrahedral]
+    distances: { O: 2.399, N: 2.299, S: 2.538, Owat: 2.391 }
+  - element: Hg
+    oxidation_state: 2
+    atom_type: Hg2p
+    name3: HG
+    ionic_radius: 1.02
+    geometries: [linear, tetrahedral]
+    distances: { O: 3.130, N: 2.443, S: 2.401, Owat: 2.500 }

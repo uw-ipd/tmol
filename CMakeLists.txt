@@ -453,6 +453,9 @@ set(_C_SOURCES
   tmol/score/lk_ball/potentials/compiled.ops.cpp
   tmol/score/lk_ball/potentials/lk_ball_pose_score.cpu.cpp
   tmol/score/lk_ball/potentials/gen_pose_waters.cpu.cpp
+  # score/metal
+  tmol/score/metal/potentials/compiled.ops.cpp
+  tmol/score/metal/potentials/metal_coordination_pose_score.cpu.cpp
   # score/na_torsion (CUDA implementation registered separately below)
   tmol/score/na_torsion/potentials/compiled.ops.cpp
 )
@@ -481,6 +484,7 @@ if(TMOL_HAS_CUDA)
     tmol/score/ljlk/potentials/ljlk_elec_pose_score.cuda.cu
     tmol/score/lk_ball/potentials/lk_ball_pose_score.cuda.cu
     tmol/score/lk_ball/potentials/gen_pose_waters.cuda.cu
+    tmol/score/metal/potentials/metal_coordination_pose_score.cuda.cu
     tmol/score/na_torsion/potentials/na_torsion_pose_score.cuda.cu
   )
   # Approximate CUDA math is accurate for the pairwise nonbonded terms and

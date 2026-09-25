@@ -455,24 +455,39 @@ def annotate_packed_block_types_w_dslf_conn_inds(pbt: PackedBlockTypes):
     setattr(pbt, "canonical_dslf_conn_ind", canonical_dslf_conn_ind)
 
 
+def annotate_packed_block_types_w_kinematic_conns(pbt: PackedBlockTypes):
+    """Mark, per block type, which connections carry motion between blocks."""
+    if hasattr(pbt, "kinematic_conn"):
+        return
+    kinematic_conn = numpy.zeros((pbt.n_types, pbt.max_n_conn), dtype=bool)
+    for i, bt in enumerate(pbt.active_block_types):
+        for ind, conn in enumerate(bt.connections):
+            kinematic_conn[i, ind] = conn.kinematic
+    setattr(
+        pbt,
+        "kinematic_conn",
+        torch.tensor(kinematic_conn, dtype=torch.bool, device=pbt.device),
+    )
+
+
 def annotate_packed_block_types_w_conjugation_conns(pbt: PackedBlockTypes):
     """Mark, per block type, which connections are conjugations.
 
-    A connection that is neither the polymer up or down nor the disulfide joins
-    a residue to something other than its own chain: a glycan on a serine, a
-    ligand on a lysine. Read from the connections themselves, so a generated
-    component and a patched canonical residue are treated alike.
+    A kinematic connection other than the polymer up or down joins a residue to
+    something other than its own chain: a glycan on a serine, a ligand on a
+    lysine. Read from the connections themselves, so a generated component and
+    a patched canonical residue are treated alike.
     """
     if hasattr(pbt, "conjugation_conn"):
         return
-    annotate_packed_block_types_w_dslf_conn_inds(pbt)
-    dslf = pbt.canonical_dslf_conn_ind.cpu().numpy()
+    annotate_packed_block_types_w_kinematic_conns(pbt)
+    kinematic = pbt.kinematic_conn.cpu().numpy()
 
     conjugation_conn = numpy.zeros((pbt.n_types, pbt.max_n_conn), dtype=bool)
     for i, bt in enumerate(pbt.active_block_types):
-        structural = {bt.down_connection_ind, bt.up_connection_ind, int(dslf[i])}
+        polymer = {bt.down_connection_ind, bt.up_connection_ind}
         for ind in range(len(bt.connections)):
-            conjugation_conn[i, ind] = ind not in structural
+            conjugation_conn[i, ind] = ind not in polymer and kinematic[i, ind]
     setattr(
         pbt,
         "conjugation_conn",

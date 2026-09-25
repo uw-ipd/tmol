@@ -76,6 +76,8 @@ def test_rule_priority_blocks_only_previously_tagged_ionization_sites():
         ("CN(C)C=C", "C=CN(C)C"),
         ("CN(C)N=O", "CN(C)N=O"),
         ("COP(=O)(S)OC", "COP(=O)([S-])OC"),
+        ("[O-]S([O-])(=O)=O", "O=S(=O)([O-])[O-]"),
+        ("OP(O)(O)=O", "O=P([O-])([O-])O"),
     ],
 )
 def test_tmol_specific_rules_cover_frank_protonation_cases(smiles, expected):

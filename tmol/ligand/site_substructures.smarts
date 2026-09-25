@@ -2,6 +2,8 @@
 Nitro	[C,c,N,n,O,o:1]-[NX3:2](=[O:3])-[O:4]-[H]	3	-1000.0	0
 AmidineGuanidine1	[N:1]-[C:2](-[N:3])=[NX2:4]-[H:5]	3	12.025333333333334	1.5941046150769165
 AmidineGuanidine2	[C:1](-[N:2])=[NX2+0:3]	2	10.035538461538462	2.1312826469414716
+# free sulfate; the Sulfate rule needs an ester oxygen
+Sulfuric_acid	[SX4:1](=[O:2])(=[O:3])(-[OX2:4]-[H])-[OX2:5]-[H]	3	-3.0	0.5	5	1.99	0.5
 Sulfate	[SX4:1](=[O:2])(=[O:3])([O:4]-[C,c,N,n:5])-[OX2:6]-[H]	5	-2.36	1.3048043093561141
 Sulfonate	[SX4:1](=[O:2])(=[O:3])(-[C,c,N,n:4])-[OX2:5]-[H]	4	-1.8184615384615386	1.4086213481855594
 Sulfinic_acid	[SX3:1](=[O:2])-[O:3]-[H]	2	1.7933333333333332	0.4372070447739835
@@ -10,6 +12,10 @@ Carboxyl	[C:1](=[O:2])-[O:3]-[H]	2	3.456652971502591	1.2871420886834017
 Thioic_acid	[C,c,N,n:1](=[O,S:2])-[SX2,OX2:3]-[H]	2	0.678267	1.497048763660801
 Phenyl_Thiol	[c,n:1]-[SX2:2]-[H]	1	4.978235294117647	2.6137000480499806
 Thiol	[C,N:1]-[SX2:2]-[H]	1	9.12448275862069	1.3317968158171463
+
+# free orthophosphate; ahead of Phosphate, which would leave its third
+# hydroxyl to Phosphate_ester_acid
+Orthophosphate	[PX4:1](=[O:2])(-[OX2:3]-[H])(-[OX2:4]-[H])-[OX2:5]-[H]	2	2.15	0.5	4	7.20	0.5	6	12.35	0.5
 
 # [*]OP(=O)(O[H])O[H]. Note that this matches terminal phosphate of ATP, ADP, AMP.
 Phosphate	[PX4:1](=[O:2])(-[OX2:3]-[H])(-[O+0:4])-[OX2:5]-[H]	2	2.4182608695652172	1.1091177991945305	5	6.5055	0.9512787792174668

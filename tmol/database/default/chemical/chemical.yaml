@@ -5,12 +5,22 @@ element_types:
   - {name: O, atomic_number: 8}
   - {name: F, atomic_number: 9}
   - {name: Na, atomic_number: 11}
+  - {name: Mg, atomic_number: 12}
   - {name: P, atomic_number: 15}
   - {name: S, atomic_number: 16}
   - {name: Cl, atomic_number: 17}
   - {name: K, atomic_number: 19}
+  - {name: Ca, atomic_number: 20}
+  - {name: Mn, atomic_number: 25}
+  - {name: Fe, atomic_number: 26}
+  - {name: Co, atomic_number: 27}
+  - {name: Ni, atomic_number: 28}
+  - {name: Cu, atomic_number: 29}
+  - {name: Zn, atomic_number: 30}
   - {name: Br, atomic_number: 35}
+  - {name: Cd, atomic_number: 48}
   - {name: I, atomic_number: 53}
+  - {name: Hg, atomic_number: 80}
   - {name: Vr, atomic_number: 0}
 
 atom_types:
@@ -31,9 +41,9 @@ atom_types:
   - { name: Ntrp, element: N, is_donor : true } #Tryp indole or pyrrole
 
   - { name: NhisE,      element: N, is_donor : true, conjugated_type: NG2 } #Far in His imidazole
-  - { name: NhisEDepro, element: N, is_acceptor: true, acceptor_hybridization: ring, conjugated_type: NG2 } # Deprotenated form in HIS
+  - { name: NhisEDepro, element: N, is_acceptor: true, acceptor_hybridization: ring, conjugated_type: NG2, is_metal_donor: true } # Deprotenated form in HIS
   - { name: NhisD,      element: N, is_donor : true, conjugated_type: NG2 }  #Near in His imidazole
-  - { name: NhisDDepro, element: N, is_acceptor: true, acceptor_hybridization: ring, conjugated_type: NG2 } # Deprotenated form in HIS_D
+  - { name: NhisDDepro, element: N, is_acceptor: true, acceptor_hybridization: ring, conjugated_type: NG2, is_metal_donor: true } # Deprotenated form in HIS_D
 
   - { name: NtrR, element: N, is_donor : true }
   - { name: NH2O, element: N, is_donor : true , conjugated_type: Nglyc }
@@ -41,19 +51,20 @@ atom_types:
   - { name: Narg, element: N, is_donor : true }
   - { name: Npro, element: N, is_donor : true } # should not be a donor, but matching rosetta
 
-  - { name: OH      , element: O, is_donor : true, is_acceptor : true, acceptor_hybridization: sp3, is_hydroxyl : true , conjugated_type: Oet3 }
-  - { name: OHphenol, element: O, is_donor : true, is_acceptor : true, acceptor_hybridization: sp3, is_hydroxyl : true , conjugated_type: Oet3 } # Phenol hydrogen in TYR
+  - { name: OH      , element: O, is_donor : true, is_acceptor : true, acceptor_hybridization: sp3, is_hydroxyl : true , conjugated_type: Oet3, is_metal_donor: true }
+  - { name: OHphenol, element: O, is_donor : true, is_acceptor : true, acceptor_hybridization: sp3, is_hydroxyl : true , conjugated_type: Oet3 } # Phenol hydrogen in TYR; the phenolate (OOC) coordinates metals
 
-  - { name: Owat, element: O, is_donor: true, is_acceptor : true , acceptor_hybridization: sp3 }
-  - { name: ONH2, element: O, is_acceptor : true, acceptor_hybridization: sp2 }
-  - { name: OOC , element: O, is_acceptor : true, acceptor_hybridization: sp2 }
+  - { name: Owat, element: O, is_donor: true, is_acceptor : true , acceptor_hybridization: sp3, is_metal_donor: true }
+  - { name: ONH2, element: O, is_acceptor : true, acceptor_hybridization: sp2, is_metal_donor: true }
+  - { name: OOC , element: O, is_acceptor : true, acceptor_hybridization: sp2, is_metal_donor: true }
 
-  - { name: S   , element: S }
-  - { name: SH1 , element: S , conjugated_type: S }
+  - { name: S   , element: S, is_metal_donor: true }
+  - { name: SH1 , element: S , conjugated_type: S } # thiol; the thiolate (Sthio) coordinates metals
+  - { name: Sthio, element: S , conjugated_type: S, is_metal_donor: true } # thiolate, in CYS_DEP
   - { name: Nbb , element: N, is_donor : true }
   - { name: CAbb, element: C }
   - { name: CObb, element: C }
-  - { name: OCbb, element: O, is_acceptor : true, acceptor_hybridization: sp2 }
+  - { name: OCbb, element: O, is_acceptor : true, acceptor_hybridization: sp2, is_metal_donor: true }
 
   - { name: Hapo, element: H }
   - { name: Haro, element: H }
@@ -67,13 +78,13 @@ atom_types:
   # DNA atom types. Rosetta shares Ntrp/Nhis/NH2O/Npro between protein and DNA;
   # tmol splits them so the DNA-specific LK values do not perturb protein scores.
   - { name: Pdna, element: P }
-  - { name: OOP , element: O, is_acceptor : true, acceptor_hybridization: sp2 } # phosphate OP1/OP2
-  - { name: Oet2, element: O, is_acceptor : true, acceptor_hybridization: sp2 } # phosphate ester O5'/O3'
+  - { name: OOP , element: O, is_acceptor : true, acceptor_hybridization: sp2, is_metal_donor: true } # phosphate OP1/OP2
+  - { name: Oet2, element: O, is_acceptor : true, acceptor_hybridization: sp2, is_metal_donor: true } # phosphate ester O5'/O3'
   - { name: Oet3, element: O, is_acceptor : true, acceptor_hybridization: sp3, is_donor : true } # ribose ring O4'; should not be a donor, but matching rosetta
-  - { name: Obacc   , element: O, is_acceptor : true, acceptor_hybridization: sp2 } # pyrimidine O2/O4
-  - { name: ObaccG, element: O, is_acceptor : true, acceptor_hybridization: sp2 } # guanine O6; hbacc_CXL where Obacc is hbacc_CXA
+  - { name: Obacc   , element: O, is_acceptor : true, acceptor_hybridization: sp2, is_metal_donor: true } # pyrimidine O2/O4
+  - { name: ObaccG, element: O, is_acceptor : true, acceptor_hybridization: sp2, is_metal_donor: true } # guanine O6; hbacc_CXL where Obacc is hbacc_CXA
   - { name: Nglyc, element: N, is_donor : true } # glycosidic N9/N1; should not be a donor, but matching rosetta
-  - { name: Nbacc, element: N, is_acceptor : true, acceptor_hybridization: ring } # base ring acceptors
+  - { name: Nbacc, element: N, is_acceptor : true, acceptor_hybridization: ring, is_metal_donor: true } # base ring acceptors
   - { name: Nbamn, element: N, is_donor : true } # exocyclic amines N6/N4/N2
   - { name: Nbdon, element: N, is_donor : true } # protonated ring N: GUA N1, THY N3
 
@@ -106,7 +117,7 @@ atom_types:
   - { name: Nam2, element: N, is_donor: true }
   - { name: Ngu1, element: N, is_donor: true }
   - { name: Ngu2, element: N, is_donor: true }
-  - { name: Nim , element: N, is_acceptor: true, acceptor_hybridization: ring }
+  - { name: Nim , element: N, is_acceptor: true, acceptor_hybridization: ring, is_metal_donor: true }
   - { name: Nin , element: N, is_donor: true }
   - { name: NG1 , element: N }
   - { name: NG2 , element: N }
@@ -114,15 +125,15 @@ atom_types:
   - { name: NG22, element: N, is_donor: true }
   - { name: NG3 , element: N }
   # Oxygen
-  - { name: Oad , element: O, is_acceptor: true, acceptor_hybridization: sp2 }
-  - { name: Oal , element: O, is_acceptor: true, acceptor_hybridization: sp2 }
-  - { name: Oat , element: O, is_acceptor: true, acceptor_hybridization: sp2 }
+  - { name: Oad , element: O, is_acceptor: true, acceptor_hybridization: sp2, is_metal_donor: true }
+  - { name: Oal , element: O, is_acceptor: true, acceptor_hybridization: sp2, is_metal_donor: true }
+  - { name: Oat , element: O, is_acceptor: true, acceptor_hybridization: sp2, is_metal_donor: true }
   - { name: Oet , element: O } # fd: this should be an acceptor, leaving as-is to match Rosetta
   - { name: Ofu , element: O }
-  - { name: Ohx , element: O, is_donor: true, is_acceptor: true, acceptor_hybridization: sp3 , conjugated_type: Oet } # fd: is_hydroxyl should be true but false to match Rosetta
+  - { name: Ohx , element: O, is_donor: true, is_acceptor: true, acceptor_hybridization: sp3 , conjugated_type: Oet, is_metal_donor: true } # fd: is_hydroxyl should be true but false to match Rosetta
   - { name: Ont , element: O }
-  - { name: OG2 , element: O, is_acceptor: true, acceptor_hybridization: sp2 }
-  - { name: OG3 , element: O, is_acceptor: true, acceptor_hybridization: sp3 }
+  - { name: OG2 , element: O, is_acceptor: true, acceptor_hybridization: sp2, is_metal_donor: true }
+  - { name: OG3 , element: O, is_acceptor: true, acceptor_hybridization: sp3, is_metal_donor: true }
   - { name: OG31, element: O, is_acceptor: true, acceptor_hybridization: sp3 }
   # Sulfur
   - { name: SR  , element: S }
@@ -136,7 +147,7 @@ atom_types:
   - { name: PG5 , element: P }
   - { name: Phos, element: P }
   # Halogens
-  - { name: F   , element: F, acceptor_hybridization: sp3 }
+  - { name: F   , element: F, acceptor_hybridization: sp3, is_metal_donor: true }
   - { name: Cl  , element: Cl, acceptor_hybridization: sp3 }
   - { name: Br  , element: Br, acceptor_hybridization: sp3 }
   - { name: I   , element: I, acceptor_hybridization: sp3 }
@@ -144,6 +155,26 @@ atom_types:
   - { name: ClR , element: Cl }
   - { name: BrR , element: Br }
   - { name: IR  , element: I }
+
+# Metal ions, one type per oxidation state: the state fixes the electrostatic
+#    charge and the Lennard-Jones radius, so Fe(II) and Fe(III) cannot share a
+#    type. Coordination geometry is not here -- it belongs to the residue type,
+#    since one Fe(II) is octahedral in a heme and tetrahedral in a rubredoxin.
+  - { name: Mg2p, element: Mg, is_metal: true, oxidation_state: 2 }
+  - { name: Ca2p, element: Ca, is_metal: true, oxidation_state: 2 }
+  - { name: Na1p, element: Na, is_metal: true, oxidation_state: 1 }
+  - { name: K1p , element: K , is_metal: true, oxidation_state: 1 }
+  - { name: Mn2p, element: Mn, is_metal: true, oxidation_state: 2 }
+  - { name: Fe2p, element: Fe, is_metal: true, oxidation_state: 2 }
+  - { name: Fe3p, element: Fe, is_metal: true, oxidation_state: 3 }
+  - { name: Co2p, element: Co, is_metal: true, oxidation_state: 2 }
+  - { name: Co3p, element: Co, is_metal: true, oxidation_state: 3 }
+  - { name: Ni2p, element: Ni, is_metal: true, oxidation_state: 2 }
+  - { name: Cu1p, element: Cu, is_metal: true, oxidation_state: 1 }
+  - { name: Cu2p, element: Cu, is_metal: true, oxidation_state: 2 }
+  - { name: Zn2p, element: Zn, is_metal: true, oxidation_state: 2 }
+  - { name: Cd2p, element: Cd, is_metal: true, oxidation_state: 2 }
+  - { name: Hg2p, element: Hg, is_metal: true, oxidation_state: 2 }
 
 # an input residue read as another's; the name does not survive input. MSE is
 #    selenomethionine, whose selenium has no parameters of its own and is read
@@ -658,6 +689,90 @@ residues:
       samples: [60, 180, 300]
       expansions: []
     default_jump_connection_atom: CA
+  - name:  CYS_DEP
+    base_name: CYS_DEP
+    name3: CYS
+    io_equiv_class: CYS
+    rama_reference: CYS
+    dunbrack_reference: CYS_DEP
+    atoms:
+    - { name: N   , atom_type: Nbb  }
+    - { name: CA  , atom_type: CAbb }
+    - { name: C   , atom_type: CObb }
+    - { name: O   , atom_type: OCbb }
+    - { name: CB  , atom_type: CH2  }
+    - { name: SG  , atom_type: Sthio  }
+    - { name: H   , atom_type: HNbb }
+    - { name: HA  , atom_type: Hapo }
+    - { name: HB2 , atom_type: Hapo }
+    - { name: HB3 , atom_type: Hapo }
+    atom_aliases:
+    - { name: HB2 , alt_name: 1HB}
+    - { name: HB3 , alt_name: 2HB}
+    bonds:
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CB,   SG, SINGLE, false]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
+    connections:
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
+    torsions:
+    - name: phi
+      a: { connection: down, bond_sep_from_conn: 0 }
+      b: { atom: N }
+      c: { atom: CA }
+      d: { atom: C }
+    - name: psi
+      a: { atom: N }
+      b: { atom: CA }
+      c: { atom: C }
+      d: { connection: up, bond_sep_from_conn: 0 }
+    - name: omega
+      a: { atom: CA }
+      b: { atom: C }
+      c: { connection: up, bond_sep_from_conn: 0 }
+      d: { connection: up, bond_sep_from_conn: 1 }
+    - { name: chi1,  a: {atom:  N}, b: {atom: CA}, c: {atom: CB}, d: {atom: SG}}
+    icoors:
+    - { name:     N, phi:         0.0 deg, theta:    0.000000 deg, d:    0.000000, parent:     N, grand_parent:    CA, great_grand_parent:     C}
+    - { name:    CA, phi:         0.0 deg, theta:  180.000000 deg, d:    1.458001, parent:     N, grand_parent:    CA, great_grand_parent:     C}
+    - { name:     C, phi:         0.0 deg, theta:   68.800003 deg, d:    1.523258, parent:    CA, grand_parent:     N, great_grand_parent:     C}
+    - { name:    up, phi:       150.0 deg, theta:   63.800018 deg, d:    1.328685, parent:     C, grand_parent:    CA, great_grand_parent:     N}
+    - { name:     O, phi:       180.0 deg, theta:   59.200008 deg, d:    1.231015, parent:     C, grand_parent:    CA, great_grand_parent:    up}
+    - { name:    CB, phi:      -121.6 deg, theta:   69.400000 deg, d:    1.528861, parent:    CA, grand_parent:     N, great_grand_parent:     C}
+    - { name:    SG, phi:         0.0 deg, theta:   65.900000 deg, d:    1.808803, parent:    CB, grand_parent:    CA, great_grand_parent:     N}
+    - { name:   HB2, phi:       121.2 deg, theta:   70.500000 deg, d:    1.090249, parent:    CB, grand_parent:    CA, great_grand_parent:    SG}
+    - { name:   HB3, phi:       117.6 deg, theta:   70.500000 deg, d:    1.089821, parent:    CB, grand_parent:    CA, great_grand_parent:   HB2}
+    - { name:    HA, phi:      -119.0 deg, theta:   71.500000 deg, d:    1.090059, parent:    CA, grand_parent:     N, great_grand_parent:    CB}
+    - { name:  down, phi:      -150.0 deg, theta:   58.299995 deg, d:    1.328685, parent:     N, grand_parent:    CA, great_grand_parent:     C}
+    - { name:     H, phi:       180.0 deg, theta:   60.849998 deg, d:    1.010000, parent:     N, grand_parent:    CA, great_grand_parent:  down}
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha_aa
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: negatively_charged
+        pH: 7
+      virtual: []
+    chi_samples: []
+    default_jump_connection_atom: CA
   - name:  CYD
     base_name: CYD
     name3: CYS
@@ -691,7 +806,7 @@ residues:
     connections:
     - { name:  down, atom: N, type: AROMATIC }
     - { name:    up, atom: C, type: AROMATIC }
-    - { name:  dslf, atom: SG, type: SINGLE }
+    - { name:  dslf, atom: SG, type: SINGLE, kinematic: false }
     torsions:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
@@ -1357,6 +1472,112 @@ residues:
       protonation:
         protonated_atoms: [ND1, NE2]
         protonation_state: positively_charged
+        pH: 7
+      virtual: []
+    chi_samples: []
+    default_jump_connection_atom: CA
+  - name:  HIS_DEP
+    base_name: HIS_DEP
+    name3: HIS
+    io_equiv_class: HIS
+    rama_reference: HIS
+    dunbrack_reference: HIS_DEP
+    atoms:
+    - { name: N   ,  atom_type: Nbb  }
+    - { name: CA  ,  atom_type: CAbb }
+    - { name: C   ,  atom_type: CObb }
+    - { name: O   ,  atom_type: OCbb }
+    - { name: CB  ,  atom_type: CH2  }
+    - { name: CG  ,  atom_type: CH0  }
+    - { name: ND1 ,  atom_type: NhisDDepro }
+
+    - { name: CD2 ,  atom_type: Caro }
+    - { name: CE1 ,  atom_type: Caro }
+    - { name: NE2 ,  atom_type: NhisEDepro }
+
+    - { name: H   ,  atom_type: HNbb }
+    - { name: HA  ,  atom_type: Hapo }
+    - { name: HB2 ,  atom_type: Hapo }
+    - { name: HB3 ,  atom_type: Hapo }
+    - { name: HE1 ,  atom_type: Hapo }
+    - { name: HD2 ,  atom_type: Hapo }
+    atom_aliases:
+    - { name: HB2 , alt_name: 1HB }
+    - { name: HB3 , alt_name: 2HB }
+    bonds:
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CB,   CG, SINGLE, false]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
+    - [  CG,  ND1, AROMATIC, true]
+    - [  CG,  CD2, AROMATIC, true]
+    - [ ND1,  CE1, AROMATIC, true]
+    - [ CD2,  NE2, AROMATIC, true]
+    - [ CD2,  HD2, SINGLE, false]
+    - [ CE1,  NE2, AROMATIC, true]
+    - [ CE1,  HE1, SINGLE, false]
+    connections:
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
+    torsions:
+    - name: phi
+      a: { connection: down, bond_sep_from_conn: 0 }
+      b: { atom: N }
+      c: { atom: CA }
+      d: { atom: C }
+    - name: psi
+      a: { atom: N }
+      b: { atom: CA }
+      c: { atom: C }
+      d: { connection: up, bond_sep_from_conn: 0 }
+    - name: omega
+      a: { atom: CA }
+      b: { atom: C }
+      c: { connection: up, bond_sep_from_conn: 0 }
+      d: { connection: up, bond_sep_from_conn: 1 }
+    - { name: chi1,  a: {atom:  N}, b: {atom: CA}, c: {atom: CB}, d: {atom: CG}}
+    - { name: chi2,  a: {atom: CA}, b: {atom: CB}, c: {atom: CG}, d: {atom: ND1}}
+    icoors:
+    - { name:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, parent:     N, grand_parent:    CA, great_grand_parent:     C}
+    - { name:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458002, parent:     N, grand_parent:    CA, great_grand_parent:     C}
+    - { name:     C, phi:    0.000000 deg, theta:   68.800018 deg, d:    1.523258, parent:    CA, grand_parent:     N, great_grand_parent:     C}
+    - { name:    up, phi:  150.000015 deg, theta:   63.800034 deg, d:    1.328685, parent:     C, grand_parent:    CA, great_grand_parent:     N}
+    - { name:     O, phi:  180.000000 deg, theta:   59.199982 deg, d:    1.231016, parent:     C, grand_parent:    CA, great_grand_parent:    up}
+    - { name:    CB, phi: -122.200000 deg, theta:   69.310982 deg, d:    1.532116, parent:    CA, grand_parent:     N, great_grand_parent:     C}
+    - { name:    CG, phi:   -0.000081 deg, theta:   66.309441 deg, d:    1.497164, parent:    CB, grand_parent:    CA, great_grand_parent:     N}
+    - { name:   ND1, phi:    0.000008 deg, theta:   57.369984 deg, d:    1.379165, parent:    CG, grand_parent:    CB, great_grand_parent:    CA}
+    - { name:   CE1, phi:  179.999619 deg, theta:   70.714851 deg, d:    1.321925, parent:   ND1, grand_parent:    CG, great_grand_parent:    CB}
+    - { name:   NE2, phi:    0.043487 deg, theta:   71.617294 deg, d:    1.320378, parent:   CE1, grand_parent:   ND1, great_grand_parent:    CG}
+    - { name:   CD2, phi:   -0.028256 deg, theta:   70.994614 deg, d:    1.373210, parent:   NE2, grand_parent:   CE1, great_grand_parent:   ND1}
+    - { name:   HD2, phi:  179.968872 deg, theta:   53.600000 deg, d:    1.090336, parent:   CD2, grand_parent:   NE2, great_grand_parent:   CE1}
+    - { name:   HE1, phi: -179.977402 deg, theta:   54.200000 deg, d:    1.089785, parent:   CE1, grand_parent:   ND1, great_grand_parent:   NE2}
+    - { name:   HB2, phi:  121.200000 deg, theta:   70.500000 deg, d:    1.090580, parent:    CB, grand_parent:    CA, great_grand_parent:    CG}
+    - { name:   HB3, phi:  117.600000 deg, theta:   70.500000 deg, d:    1.089658, parent:    CB, grand_parent:    CA, great_grand_parent:   HB2}
+    - { name:    HA, phi: -119.000000 deg, theta:   70.500000 deg, d:    1.089618, parent:    CA, grand_parent:     N, great_grand_parent:    CB}
+    - { name:  down, phi: -149.999969 deg, theta:   58.300014 deg, d:    1.328685, parent:     N, grand_parent:    CA, great_grand_parent:     C}
+    - { name:     H, phi:  179.999985 deg, theta:   60.850006 deg, d:    1.010000, parent:     N, grand_parent:    CA, great_grand_parent:  down}
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha_aa
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: negatively_charged
         pH: 7
       virtual: []
     chi_samples: []
@@ -2430,7 +2651,6 @@ residues:
     - [   C,    O, DOUBLE, false]
     - [  CA,   CB, SINGLE, false]
     - [  CA,   HA, SINGLE, false]
-    - [   C,    O, SINGLE, false]
     - [  CB,   CG, SINGLE, false]
     - [  CB,  HB2, SINGLE, false]
     - [  CB,  HB3, SINGLE, false]
@@ -2516,6 +2736,122 @@ residues:
       samples: [0, 180]
       expansions: [20]
     default_jump_connection_atom: CA
+  - name:  TYR_DEP
+    base_name: TYR_DEP
+    name3: TYR
+    io_equiv_class: TYR
+    rama_reference: TYR
+    dunbrack_reference: TYR_DEP
+    atoms:
+    - { name: N   ,  atom_type: Nbb  }
+    - { name: CA  ,  atom_type: CAbb }
+    - { name: C   ,  atom_type: CObb }
+    - { name: O   ,  atom_type: OCbb }
+    - { name: CB  ,  atom_type: CH2  }
+    - { name: CG  ,  atom_type: CH0  }
+    - { name: CD1 ,  atom_type: Caro }
+    - { name: CD2 ,  atom_type: Caro }
+    - { name: CE1 ,  atom_type: Caro }
+    - { name: CE2 ,  atom_type: Caro }
+    - { name: CZ  ,  atom_type: CH0  }
+    - { name: OH  ,  atom_type: OOC   }
+    - { name: H   ,  atom_type: HNbb }
+    - { name: HA  ,  atom_type: Hapo }
+    - { name: HB2 ,  atom_type: Hapo }
+    - { name: HB3 ,  atom_type: Hapo }
+    - { name: HD1 ,  atom_type: Haro }
+    - { name: HD2 ,  atom_type: Haro }
+    - { name: HE1 ,  atom_type: Haro }
+    - { name: HE2 ,  atom_type: Haro }
+    atom_aliases:
+    - { name: HB2 ,  atom_type: Hapo, alt_name: 1HB}
+    - { name: HB3 ,  atom_type: Hapo, alt_name: 2HB}
+    bonds:
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CB,   CG, SINGLE, false]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
+    - [  CG,  CD1, AROMATIC, true]
+    - [  CG,  CD2, AROMATIC, true]
+    - [ CD1,  CE1, AROMATIC, true]
+    - [ CD1,  HD1, SINGLE, false]
+    - [ CD2,  CE2, AROMATIC, true]
+    - [ CD2,  HD2, SINGLE, false]
+    - [ CE1,   CZ, AROMATIC, true]
+    - [ CE1,  HE1, SINGLE, false]
+    - [ CE2,   CZ, AROMATIC, true]
+    - [ CE2,  HE2, SINGLE, false]
+    - [  CZ,   OH, SINGLE, false]
+    connections:
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
+    torsions:
+    - name: phi
+      a: { connection: down, bond_sep_from_conn: 0 }
+      b: { atom: N }
+      c: { atom: CA }
+      d: { atom: C }
+    - name: psi
+      a: { atom: N }
+      b: { atom: CA }
+      c: { atom: C }
+      d: { connection: up, bond_sep_from_conn: 0 }
+    - name: omega
+      a: { atom: CA }
+      b: { atom: C }
+      c: { connection: up, bond_sep_from_conn: 0 }
+      d: { connection: up, bond_sep_from_conn: 1 }
+    - { name: chi1,  a: {atom:  N}, b: {atom: CA}, c: {atom: CB}, d: {atom: CG}}
+    - { name: chi2,  a: {atom: CA}, b: {atom: CB}, c: {atom: CG}, d: {atom: CD1}}
+    icoors:
+    - { name:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, parent:     N, grand_parent:    CA, great_grand_parent:     C}
+    - { name:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458004, parent:     N, grand_parent:    CA, great_grand_parent:     C}
+    - { name:     C, phi:    0.000000 deg, theta:   68.799995 deg, d:    1.523259, parent:    CA, grand_parent:     N, great_grand_parent:     C}
+    - { name:    up, phi:  149.999924 deg, theta:   63.800079 deg, d:    1.328686, parent:     C, grand_parent:    CA, great_grand_parent:     N}
+    - { name:     O, phi: -179.999817 deg, theta:   59.199955 deg, d:    1.231014, parent:     C, grand_parent:    CA, great_grand_parent:    up}
+    - { name:    CB, phi: -122.800000 deg, theta:   69.525192 deg, d:    1.530351, parent:    CA, grand_parent:     N, great_grand_parent:     C}
+    - { name:    CG, phi:   -0.000069 deg, theta:   66.200000 deg, d:    1.512656, parent:    CB, grand_parent:    CA, great_grand_parent:     N}
+    - { name:   CD1, phi:    0.000000 deg, theta:   60.000000 deg, d:    1.387195, parent:    CG, grand_parent:    CB, great_grand_parent:    CA}
+    - { name:   CE1, phi: -180.000000 deg, theta:   60.000000 deg, d:    1.381552, parent:   CD1, grand_parent:    CG, great_grand_parent:    CB}
+    - { name:   HE1, phi:  180.000000 deg, theta:   60.000000 deg, d:    1.089660, parent:   CE1, grand_parent:   CD1, great_grand_parent:    CG}
+    - { name:   HD1, phi:  180.000000 deg, theta:   60.000000 deg, d:    1.090234, parent:   CD1, grand_parent:    CG, great_grand_parent:   CE1}
+    - { name:   CD2, phi:  180.000000 deg, theta:   60.000000 deg, d:    1.386886, parent:    CG, grand_parent:    CB, great_grand_parent:   CD1}
+    - { name:   CE2, phi: -180.000000 deg, theta:   60.000000 deg, d:    1.381360, parent:   CD2, grand_parent:    CG, great_grand_parent:    CB}
+    - { name:    CZ, phi:    0.000000 deg, theta:   60.000000 deg, d:    1.379988, parent:   CE2, grand_parent:   CD2, great_grand_parent:    CG}
+    - { name:    OH, phi:  180.000000 deg, theta:   60.000000 deg, d:    1.375964, parent:    CZ, grand_parent:   CE2, great_grand_parent:   CD2}
+    - { name:   HE2, phi: -179.948822 deg, theta:   60.000000 deg, d:    1.090286, parent:   CE2, grand_parent:   CD2, great_grand_parent:    CZ}
+    - { name:   HD2, phi: -179.936905 deg, theta:   60.000000 deg, d:    1.090021, parent:   CD2, grand_parent:    CG, great_grand_parent:   CE2}
+    - { name:   HB2, phi:  121.200000 deg, theta:   70.500000 deg, d:    1.090973, parent:    CB, grand_parent:    CA, great_grand_parent:    CG}
+    - { name:   HB3, phi:  117.600000 deg, theta:   70.500000 deg, d:    1.089572, parent:    CB, grand_parent:    CA, great_grand_parent:   HB2}
+    - { name:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090319, parent:    CA, grand_parent:     N, great_grand_parent:    CB}
+    - { name:  down, phi: -150.000107 deg, theta:   58.299919 deg, d:    1.328686, parent:     N, grand_parent:    CA, great_grand_parent:     C}
+    - { name:     H, phi: -179.999924 deg, theta:   60.849972 deg, d:    1.010001, parent:     N, grand_parent:    CA, great_grand_parent:  down}
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha_aa
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: negatively_charged
+        pH: 7
+      virtual: []
+    chi_samples: []
+    default_jump_connection_atom: CA
   - name:  VAL
     base_name: VAL
     name3: VAL
@@ -2554,7 +2890,6 @@ residues:
     - [   C,    O, DOUBLE, false]
     - [  CA,   CB, SINGLE, false]
     - [  CA,   HA, SINGLE, false]
-    - [   C,    O, SINGLE, false]
     - [  CB,  CG1, SINGLE, false]
     - [  CB,  CG2, SINGLE, false]
     - [  CB,   HB, SINGLE, false]

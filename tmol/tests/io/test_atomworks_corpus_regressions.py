@@ -21,6 +21,13 @@ from tmol.score import beta2016_score_function
 DATA = Path(__file__).parents[1] / "data" / "atomworks_regressions"
 
 
+def assert_metal_bonds_are_coordination(array, metal):
+    """A metal is declared bonded only by coordination, never covalently."""
+    bonds = array.bonds.as_array()
+    touches = metal[bonds[:, :2]].any(axis=1)
+    assert (bonds[touches, 2] == struc.BondType.COORDINATION).all()
+
+
 def test_partial_sugar_rings_construct_score_and_minimize(torch_device, monkeypatch):
     from tmol.io import build_context_from_biotite
     from tmol.io.details import _build_missing_nonpolymer_atoms as completion
@@ -65,7 +72,7 @@ def test_partial_sugar_rings_construct_score_and_minimize(torch_device, monkeypa
     ]
     template_before = template.copy()
     metal = array.element == "CA"
-    assert not metal[array.bonds.as_array()[:, :2]].any()
+    assert_metal_bonds_are_coordination(array, metal)
     array = array[~metal & (array.res_name != "HOH")]
     supplied = array.coord.copy()
     context = build_context_from_biotite(
@@ -204,7 +211,7 @@ def test_terminal_and_linked_glycans_construct_score_and_minimize(
 
     array = atom_array_from_cif(DATA / f"terminal_and_linked_glycans_{pdb}.cif.gz")
     metal = np.isin(np.char.upper(array.element), ("ZN", "NA", "MG", "CA"))
-    assert not metal[array.bonds.as_array()[:, :2]].any()
+    assert_metal_bonds_are_coordination(array, metal)
     array = array[~metal & (array.res_name != "HOH")]
     supplied = array.coord.copy()
     context = build_context_from_biotite(
@@ -508,7 +515,7 @@ def test_macrocycle_preserves_every_bond_across_residue_order(torch_device):
         array, torch_device, prepare_ligands=True, ligand_seed=20260909
     )
     records = context.parameter_database.scoring.cartbonded.connection_params
-    assert any({r.connection1, r.connection2} == {"up", "conj_OG"} for r in records)
+    assert any({r.connection1, r.connection2} == {"conj_C", "conj_OG"} for r in records)
     assert all(p.K == 300 for r in records for p in r.length_parameters)
     assert all(p.K == 80 for r in records for p in r.angle_parameters)
     residue = next(r for r in context.restype_set.residue_types if r.name == "QUI")
@@ -577,7 +584,7 @@ def test_repeated_glycans_share_transferable_attachment_targets(
     array = atom_array_from_cif(DATA / f"{fixture}.cif.gz")
     array = array[array.res_name != "HOH"]
     metals = np.isin(np.char.upper(array.element), ("ZN", "NA", "MG", "CA"))
-    assert not metals[array.bonds.as_array()[:, :2]].any()
+    assert_metal_bonds_are_coordination(array, metals)
     array = array[~metals]
     context = build_context_from_biotite(
         array, torch_device, prepare_ligands=True, ligand_seed=20260909
@@ -1095,7 +1102,7 @@ def test_small_attachment_frames_and_minimization(fixture, components, torch_dev
         # Exercise the generator length fallback when the attachment is unresolved.
         array.coord[(array.res_name == "VDF") & (array.atom_name == "OP3")] = np.nan
     metals = np.isin(np.char.upper(array.element), ("ZN", "NA", "MG", "CA"))
-    assert not metals[array.bonds.as_array()[:, :2]].any()
+    assert_metal_bonds_are_coordination(array, metals)
     # Retain every resolved non-water residue, including the complete adducts.
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)
     resolved = np.logical_or.reduceat(np.isfinite(array.coord).all(-1), starts[:-1])
@@ -1169,7 +1176,7 @@ def test_sidechain_substitutions_retain_chemistry(
     prefix = "phosphohistidine" if code == "1hxq" else "isopeptide"
     array = atom_array_from_cif(DATA / f"{prefix}_{code}.cif.gz")
     metals = np.isin(np.char.upper(array.element), ("CA", "ZN", "FE"))
-    assert not metals[array.bonds.as_array()[:, :2]].any()
+    assert_metal_bonds_are_coordination(array, metals)
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)
     backbone = np.isin(array.atom_name, ("N", "CA", "C"))
     observed = np.isfinite(array.coord).all(-1)
@@ -1243,7 +1250,7 @@ def test_ester_and_thioester_contexts_survive_reuse_and_export(torch_device, tmp
 
     array = atom_array_from_cif(DATA / "attachment_contexts_8trb.cif.gz")
     metals = np.isin(np.char.upper(array.element), ("NA", "ZN"))
-    assert not metals[array.bonds.as_array()[:, :2]].any()
+    assert_metal_bonds_are_coordination(array, metals)
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)
     backbone = np.isin(array.atom_name, ("N", "CA", "C")) & np.isfinite(
         array.coord

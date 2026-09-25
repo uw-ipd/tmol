@@ -1,3 +1,5 @@
+import attr
+import pytest
 import torch
 
 from tmol.io import (
@@ -14,6 +16,41 @@ from tmol.kinematics import (
     _annotate_packed_block_type_with_gen_scan_path_segs,
 )
 from tmol.kinematics.compiled import inverse_kin, forward_kin_op
+from tmol.pose import PackedBlockTypes
+
+
+@pytest.fixture
+def two_six_res_ubqs_own_types(stack_of_two_six_res_ubqs_no_term):
+    """The two-ubq stack, packed with only the block types it uses.
+
+    Generation depths are maxed over every packed block type, so packing the
+    default set would tie these golds to the deepest residue type in the
+    database, and adding a default residue type would change them.
+    """
+    pose_stack = stack_of_two_six_res_ubqs_no_term
+    pbt = pose_stack.packed_block_types
+    used = sorted(
+        set(pose_stack.block_type_ind64[pose_stack.block_type_ind64 >= 0].tolist())
+    )
+    own = PackedBlockTypes.from_restype_list(
+        pbt.chem_db,
+        pbt.restype_set,
+        [pbt.active_block_types[i] for i in used],
+        pbt.device,
+    )
+    remap = torch.full((pbt.n_types,), -1, dtype=torch.int64, device=pbt.device)
+    remap[used] = torch.arange(len(used), device=pbt.device)
+    ind64 = torch.where(
+        pose_stack.block_type_ind64 >= 0,
+        remap[pose_stack.block_type_ind64.clamp_min(0)],
+        pose_stack.block_type_ind64,
+    )
+    return attr.evolve(
+        pose_stack,
+        packed_block_types=own,
+        block_type_ind=ind64.to(torch.int32),
+        block_type_ind64=ind64,
+    )
 
 
 def test_gen_seg_scan_paths_block_type_annotation_smoke(fresh_default_restype_set):
@@ -160,11 +197,11 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
 
 
 def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_H(
-    stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H
+    two_six_res_ubqs_own_types, ff_2ubq_6res_H
 ):
     from tmol.kinematics.compiled import calculate_ff_edge_delays
 
-    pose_stack = stack_of_two_six_res_ubqs_no_term
+    pose_stack = two_six_res_ubqs_own_types
     pbt = pose_stack.packed_block_types
     _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs
@@ -236,11 +273,11 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_H(
 
 
 def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_U(
-    stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_U
+    two_six_res_ubqs_own_types, ff_2ubq_6res_U
 ):
     from tmol.kinematics.compiled import calculate_ff_edge_delays
 
-    pose_stack = stack_of_two_six_res_ubqs_no_term
+    pose_stack = two_six_res_ubqs_own_types
     pbt = pose_stack.packed_block_types
     _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs
@@ -309,11 +346,11 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_U(
 
 
 def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_K(
-    stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_K
+    two_six_res_ubqs_own_types, ff_2ubq_6res_K
 ):
     from tmol.kinematics.compiled import calculate_ff_edge_delays
 
-    pose_stack = stack_of_two_six_res_ubqs_no_term
+    pose_stack = two_six_res_ubqs_own_types
     pbt = pose_stack.packed_block_types
     _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs

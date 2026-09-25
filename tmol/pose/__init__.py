@@ -5,6 +5,7 @@ from ._split_block_mapping import SplitBlockEntry, SplitBlockMapping  # noqa: F4
 from ._packed_block_types import (  # noqa: F401
     PackedBlockTypes,
     annotate_packed_block_types_w_dslf_conn_inds,
+    annotate_packed_block_types_w_kinematic_conns,
 )
 from ._pdb_info import (  # noqa: F401
     DEFAULT_ATOM_B_FACTOR,
@@ -27,6 +28,7 @@ __all__ = [
     "DEFAULT_ATOM_OCCUPANCY",
     "PackedBlockTypes",
     "annotate_packed_block_types_w_dslf_conn_inds",
+    "annotate_packed_block_types_w_kinematic_conns",
     "PoseStack",
     "PoseStackBuilder",
     "SeqToken",

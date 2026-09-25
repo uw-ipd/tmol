@@ -12,7 +12,8 @@ def test_concatenate_pose_stacks_ctor(ubq_pdb, default_database, torch_device):
     poses = PoseStackBuilder.from_poses([p1, p2], torch.device(torch_device.type))
     assert poses.block_type_ind.shape == (2, 60)
     assert poses.coords.shape == (2, 962, 3)  # fd 959->961 for nterm
-    assert poses.inter_block_bondsep.shape == (2, 60, 60, 3, 3)
+    max_n_conn = poses.packed_block_types.max_n_conn
+    assert poses.inter_block_bondsep.shape == (2, 60, 60, max_n_conn, max_n_conn)
     assert poses.device == torch_device
     torch.testing.assert_close(
         poses.block_ind_for_rot,
@@ -800,4 +801,9 @@ def test_from_block_type_names_smoke(
     interblock_dslf_pair_correction(ibb_gold, res_bound_to_next, 0, 2, 4)
     interblock_dslf_pair_correction(ibb_gold, res_bound_to_next, 1, 3, 5)
 
-    torch.testing.assert_close(pose_stack.inter_block_bondsep, ibb_gold)
+    # connection slots past the three these residue types have are padding
+    ibb = pose_stack.inter_block_bondsep
+    torch.testing.assert_close(ibb[..., :max_n_conn, :max_n_conn], ibb_gold)
+    padding = torch.ones_like(ibb, dtype=torch.bool)
+    padding[..., :max_n_conn, :max_n_conn] = False
+    assert bool((ibb[padding] == MAX_SIG_BOND_SEPARATION).all())

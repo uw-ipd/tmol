@@ -1,4 +1,5 @@
 import copy
+from collections import defaultdict
 from enum import IntEnum
 
 from frozendict import frozendict
@@ -478,27 +479,37 @@ class RefinedResidueType(RawResidueType):
         # filled with -1s to ensure deterministic indexing of the paths.
         def get_paths_length_3(connection):
             paths = numpy.full((MAX_PATHS_FROM_CONNECTION, 3), -1, dtype=numpy.int32)
-            # create a convenient datastructure for following connections
-            bondmap = {-1: []}
+            # create a convenient datastructure for following connections;
+            #    virtual atoms have no bonded geometry to reach
+            virtual = {self.atom_to_idx[name] for name in self.properties.virtual}
+            bondmap = defaultdict(list)
             for bond in self.bond_indices:
-                if bond[0] not in bondmap:
-                    bondmap[bond[0]] = []
-                bondmap[bond[0]].append(bond[1])
+                if bond[0] not in virtual and bond[1] not in virtual:
+                    bondmap[bond[0]].append(bond[1])
 
             atom0 = self.atom_to_idx[connection.atom]
             # Add the immediate atom
             paths[0] = (atom0, -1, -1)
 
+            # an atom with more than three partners besides the way back (a
+            #    cluster metal or a bridging oxide) keeps the first three
+            def partners(atom, back=None):
+                out = bondmap[atom]
+                rest = [a for a in out if a != back]
+                if len(rest) > 3:
+                    out = ([back] if back in out else []) + rest[:3]
+                return out + [-1] * (3 - len(out))
+
             idx = 1
             # Add the 3 paths connecting to the immediate atom
-            for atom1 in bondmap[atom0] + [-1] * (3 - len(bondmap[atom0])):
+            for atom1 in partners(atom0):
                 if atom1 != -1:
                     paths[idx] = (atom0, atom1, -1)
                 idx += 1
 
             # Add the 9 paths connecting to the 3 from the previous step
-            for atom1 in bondmap[atom0] + [-1] * (3 - len(bondmap[atom0])):
-                for atom2 in bondmap[atom1] + [-1] * (3 - len(bondmap[atom1])):
+            for atom1 in partners(atom0):
+                for atom2 in partners(atom1, atom0):
                     if atom2 != atom0 and atom2 != -1:
                         paths[idx] = (atom0, atom1, atom2)
                     if atom2 != atom0:

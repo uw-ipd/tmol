@@ -569,6 +569,11 @@ def build_ligand_fragment_definition(  # noqa: C901
                 alias for alias in restype.atom_aliases if alias.name in name_set
             ),
             bonds=local_bonds,
+            io_bond_orders=tuple(
+                b
+                for b in restype.io_bond_orders
+                if b[0] in name_set and b[1] in name_set
+            ),
             connections=tuple(
                 Connection(
                     name=conn.connection_name,
@@ -1147,6 +1152,11 @@ def _unsplit_chain_and_pdb(
     chain_labels = np.full((n_poses, new_max_n_blocks), "", dtype=object)
     occ = np.full((n_poses, new_max_n_atoms), DEFAULT_ATOM_OCCUPANCY, dtype=np.float32)
     bf = np.full((n_poses, new_max_n_atoms), DEFAULT_ATOM_B_FACTOR, dtype=np.float32)
+    origins = (
+        None
+        if old_pdb.metal_origins is None
+        else np.full((n_poses, new_max_n_blocks), None, dtype=object)
+    )
     old_chain = pose_stack.chain_id.cpu().numpy()
     for p, (blocks, m) in enumerate(zip(per_pose_blocks, old_to_new)):
         for old_b, new_b in m.items():
@@ -1156,6 +1166,8 @@ def _unsplit_chain_and_pdb(
             res_labels[p, new_b] = old_pdb.residue_labels[p, old_b]
             ins_codes[p, new_b] = old_pdb.residue_insertion_codes[p, old_b]
             chain_labels[p, new_b] = old_pdb.chain_labels[p, old_b]
+            if origins is not None:
+                origins[p, new_b] = old_pdb.metal_origins[p, old_b]
         for new_b, (bt_idx, kind, src) in enumerate(blocks):
             if kind != "orig":
                 continue
@@ -1175,6 +1187,7 @@ def _unsplit_chain_and_pdb(
         chain_labels=chain_labels,
         atom_occupancy=occ,
         atom_b_factor=bf,
+        metal_origins=origins,
     )
     return new_chain_id, new_pdb
 

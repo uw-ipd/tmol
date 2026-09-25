@@ -1764,6 +1764,7 @@ def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_de
         ScoreType.cart_impropers: n([20.951893]),
         ScoreType.cart_hxltorsions: n([47.41971]),
         ScoreType.disulfide: n([0.0]),
+        ScoreType.metal_coordination: n([0.0]),
         ScoreType.fa_ljatr: n([-417.02362]),
         ScoreType.fa_ljrep: n([39.92654]),
         ScoreType.fa_lk: n([301.93347]),
@@ -1814,6 +1815,7 @@ def test_score_function_all_score_types(ubq_pdb):
         ScoreType.cart_impropers: n([20.951893]),
         ScoreType.cart_hxltorsions: n([47.41971]),
         ScoreType.disulfide: n([0.0]),
+        ScoreType.metal_coordination: n([0.0]),
         ScoreType.fa_ljatr: n([-417.02362]),
         ScoreType.fa_ljrep: n([240.7147]),
         ScoreType.fa_lk: n([301.93347]),
@@ -1867,6 +1869,7 @@ def test_score_function_all_score_types_protein_dna(protein_dna_pdb):
         ScoreType.cart_impropers: n([23.998163]),
         ScoreType.cart_hxltorsions: n([26.123291]),
         ScoreType.disulfide: n([0.0]),
+        ScoreType.metal_coordination: n([0.0]),
         ScoreType.rama: n([91.406868]),
         ScoreType.omega: n([133.222443]),
         ScoreType.dunbrack_rot: n([198.613831]),
@@ -1913,6 +1916,7 @@ def test_score_function_two_body_terms_getter():
     )
     from tmol.score.cartbonded import CartBondedEnergyTerm
     from tmol.score.disulfide import DisulfideEnergyTerm
+    from tmol.score.metal import MetalCoordinationEnergyTerm
     from tmol.score.na_torsion import (
         NaTorsionEnergyTerm,
     )
@@ -1933,6 +1937,7 @@ def test_score_function_two_body_terms_getter():
         BackboneTorsionEnergyTerm,
         CartBondedEnergyTerm,
         DisulfideEnergyTerm,
+        MetalCoordinationEnergyTerm,
         NaTorsionEnergyTerm,
         ElecEnergyTerm,
         GenBondedEnergyTerm,
@@ -1955,6 +1960,7 @@ def test_score_function_all_terms_getter():
     )
     from tmol.score.cartbonded import CartBondedEnergyTerm
     from tmol.score.disulfide import DisulfideEnergyTerm
+    from tmol.score.metal import MetalCoordinationEnergyTerm
     from tmol.score.na_torsion import (
         NaTorsionEnergyTerm,
     )
@@ -1979,6 +1985,7 @@ def test_score_function_all_terms_getter():
         BackboneTorsionEnergyTerm,
         CartBondedEnergyTerm,
         DisulfideEnergyTerm,
+        MetalCoordinationEnergyTerm,
         NaTorsionEnergyTerm,
         ElecEnergyTerm,
         GenBondedEnergyTerm,

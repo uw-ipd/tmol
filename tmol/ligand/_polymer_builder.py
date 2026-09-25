@@ -899,6 +899,11 @@ def to_polymer_residue_type(
         hydrogens_regenerated=restype.hydrogens_regenerated,
         dunbrack_reference=dunbrack_reference,
         rama_reference=rama_reference,
+        io_bond_orders=tuple(
+            (rename(a), rename(b), order)
+            for a, b, order in restype.io_bond_orders
+            if a not in dropped and b not in dropped
+        ),
     )
 
 

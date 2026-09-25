@@ -15,7 +15,7 @@ from tmol.database import (
 from tmol.pose import PackedBlockTypes
 from tmol.chemical import ResidueTypeSet, l_base_name
 from tmol.utility import resolve_device
-from typing import List, Mapping, Optional, Tuple, Union
+from typing import FrozenSet, List, Mapping, Optional, Tuple, Union
 from ._canonical_form import CanonicalForm
 from ._pdb_parsing import parse_pdb
 import toolz.functoolz
@@ -210,6 +210,8 @@ class CanonicalOrdering:
 
     # input residue names read as another residue's, from the chemical database
     name3_aliases: Mapping[str, str] = attr.ib(factory=dict)
+    # atoms that are scoring scaffolding rather than structure, per class
+    restypes_virtual_atoms: Mapping[str, FrozenSet[str]] = attr.ib(factory=dict)
 
     @property
     def n_restype_io_equiv_classes(self):
@@ -360,6 +362,10 @@ class CanonicalOrdering:
             equiv: tuple(sorted(atoms)) for equiv, atoms in by_class.items()
         }
 
+        virtual_atoms = defaultdict(set)
+        for restype in chemdb.residues:
+            virtual_atoms[restype.io_equiv_class].update(restype.properties.virtual)
+
         return cls(
             max_n_canonical_atoms=max_n_canonical_atoms,
             restype_io_equiv_classes=ordered_restypes,
@@ -374,6 +380,11 @@ class CanonicalOrdering:
             termini_patch_added_atoms=termini_patch_added_atoms,
             termini_only_atoms=termini_only_atoms,
             termini_only_atoms_by_class=termini_only_atoms_by_class,
+            restypes_virtual_atoms={
+                equiv: frozenset(names)
+                for equiv, names in virtual_atoms.items()
+                if names
+            },
             name3_aliases={
                 alias.name3: alias.read_as
                 for alias in chemdb.name3_aliases
