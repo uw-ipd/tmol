@@ -246,16 +246,24 @@ def build_canonical_metal_tables(
     them, so the answer is kept rather than rebuilt -- most of the cost is walking
     the cluster residues' icoors, which do not change.
     """
-    key = (id(canonical_ordering), id(chemical_db), id(table))
-    cached = _CANONICAL_METAL_TABLES.get(key)
-    if cached is not None:
-        return cached
+    global _LAST_METAL_TABLES
+    if _LAST_METAL_TABLES is not None:
+        ordering, database, parameters, built = _LAST_METAL_TABLES
+        if (
+            ordering is canonical_ordering
+            and database is chemical_db
+            and parameters is table
+        ):
+            return built
     built = _build_canonical_metal_tables(canonical_ordering, chemical_db, table)
-    _CANONICAL_METAL_TABLES[key] = built
+    _LAST_METAL_TABLES = (canonical_ordering, chemical_db, table, built)
     return built
 
 
-_CANONICAL_METAL_TABLES: Dict[tuple, "CanonicalMetalTables"] = {}
+# The inputs are compared by identity rather than keyed by id(), which a later
+# object can reuse once the first is collected. One entry is the whole cache: a
+# process reads one canonical ordering.
+_LAST_METAL_TABLES: Optional[tuple] = None
 
 
 def _build_canonical_metal_tables(
