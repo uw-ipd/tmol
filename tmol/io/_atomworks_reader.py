@@ -73,7 +73,9 @@ def _read_declared(path, model, assembly_id):
     block = getattr(file, "block", None)
     if block is None:
         # The shared PDB loader retains CONECT and TER chain boundaries.
-        array, _ = load_pdb(path, model=model, use_ccd=False)
+        array, _ = load_pdb(
+            path, model=model, use_ccd=False, infer_unstated_bond_orders=False
+        )
         entries = {}
     else:
         array = get_structure(file, model=model, extra_fields=_FIELDS)
