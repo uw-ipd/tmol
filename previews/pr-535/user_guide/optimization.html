@@ -542,9 +542,9 @@ parser, ambiguous-constraint layer, or a dedicated three-atom angle constraint.<
 <section id="missing-side-chains-and-hydrogens">
 <h2>Missing Side Chains and Hydrogens<a class="headerlink" href="#missing-side-chains-and-hydrogens" title="Link to this heading">#</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">pose_stack_from_biotite()</span></code> automatically routes blocks with missing heavy atoms
-through <code class="docutils literal notranslate"><span class="pre">build_missing_sidechains()</span></code>. By default it also places and optimizes
-hydrogens for complete residues. Pass <code class="docutils literal notranslate"><span class="pre">no_optH=True</span></code> to skip that hydrogen
-optimization path.</p>
+through <code class="docutils literal notranslate"><span class="pre">build_missing_sidechains()</span></code>. Hydrogen optimization is off by default;
+pass <code class="docutils literal notranslate"><span class="pre">no_optH=False</span></code> to place and optimize hydrogens for complete residues as
+well.</p>
 <p>For standard residues and the default parameter database, TMol automatically
 reuses the structure-independent construction and packing setup. If many
 structures share prepared ligand definitions, explicitly reuse a
