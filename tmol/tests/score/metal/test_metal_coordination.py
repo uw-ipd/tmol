@@ -6,6 +6,7 @@ import pytest
 import torch
 from yaml import safe_load
 
+from tmol.database.chemical import is_metal_cluster
 from tmol.database.scoring import MetalWellDepth
 from tmol.io import atom_array_from_cif, pose_stack_from_biotite, pose_stack_from_pdb
 from tmol.pack import PackerPalette, PackerTask, SetPackerTask
@@ -145,7 +146,7 @@ def idealized(param_db, pose_stack):
     pbt = pose_stack.packed_block_types
     for pose, block in torch.nonzero(pose_stack.block_type_ind64 >= 0).tolist():
         bt = pbt.active_block_types[pose_stack.block_type_ind64[pose, block]]
-        if not any(site.internal_satisfiers for site in bt.metal_sites):
+        if not is_metal_cluster(bt):
             continue
         start = int(pose_stack.block_coord_offset64[pose, block])
         ideal = torch.tensor(

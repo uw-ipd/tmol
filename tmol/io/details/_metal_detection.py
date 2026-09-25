@@ -577,10 +577,9 @@ def _frame_candidates(a, b, free, donors):
         # coplanar satisfiers leave a mirror through their plane: both sides are
         # candidates, and the caller scores them.
         return [u @ vt, u @ numpy.diag([1.0, 1.0, -1.0]) @ vt]
-    # Non-coplanar satisfiers fix the frame outright, so there is no second
-    # candidate and u @ vt has to be the proper one -- an improper map would put
-    # every free site on the wrong side of the satisfiers.
-    return [u @ numpy.diag([1.0, 1.0, numpy.sign(numpy.linalg.det(u @ vt))]) @ vt]
+    # non-coplanar satisfiers fix the frame, reflection included: a deposited
+    # cluster's atoms may be named in the mirror sense of its template
+    return [u @ vt]
 
 
 def _spins(start, axis, free, donors):
