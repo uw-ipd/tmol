@@ -1252,8 +1252,12 @@ def _bonds_from_pose_stack(pose_stack, structure, block_for_atom):
         for i, (block, name) in enumerate(zip(block_for_atom, structure.atom_name))
     }
 
-    def metal_bond(bt, conn):
-        return bt.connections[conn].name in site_connections(bt)
+    sites_for_type = {}
+
+    def metal_bond(bt, bt_ind, conn):
+        if bt_ind not in sites_for_type:
+            sites_for_type[bt_ind] = frozenset(site_connections(bt))
+        return bt.connections[conn].name in sites_for_type[bt_ind]
 
     orders_for_type = {}
     bonds = []
@@ -1261,8 +1265,10 @@ def _bonds_from_pose_stack(pose_stack, structure, block_for_atom):
         if bt_ind < 0:
             continue
         bt = pbt.active_block_types[bt_ind]
-        element_of = {a.name: element_for_type[a.atom_type] for a in bt.atoms}
         if bt_ind not in orders_for_type:
+            # Only the first block of each type needs this; there are two dozen
+            # types behind hundreds of blocks.
+            element_of = {a.name: element_for_type[a.atom_type] for a in bt.atoms}
             orders_for_type[bt_ind] = _chemical_bond_orders(bt, element_of)
         for key, order in orders_for_type[bt_ind].items():
             a, b = tuple(key)
@@ -1277,7 +1283,9 @@ def _bonds_from_pose_stack(pose_stack, structure, block_for_atom):
             j = index.get((partner, other.connections[partner_conn].atom))
             if i is None or j is None:
                 continue
-            if metal_bond(bt, conn) or metal_bond(other, partner_conn):
+            if metal_bond(bt, bt_ind, conn) or metal_bond(
+                other, bt_for_block[partner], partner_conn
+            ):
                 bonds.append((i, j, "COORDINATION"))
             else:
                 order = ChemBondType(bt.connection_bond_types[conn]).name
