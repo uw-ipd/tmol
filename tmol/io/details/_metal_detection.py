@@ -327,13 +327,53 @@ def _cluster_sites(res, index_of, atom_type, table):
     )
 
 
+def _pose_donor_table(pose, rt, xyz, excluded, tables):
+    """Every donor atom in one pose, in residue then atom order.
+
+    Each metal wants this list without its own residue, which is a mask over a
+    table built once rather than a reason to walk the pose again per metal.
+    """
+    donor_xyz, donor_elements, donor_atoms, donor_residue = [], [], [], []
+    for other in range(rt.shape[1]):
+        if rt[pose, other] < 0 or excluded[pose, other]:
+            continue
+        for j, element in enumerate(tables.donor_element[rt[pose, other]]):
+            if not element:
+                continue
+            p = xyz[pose, other, j]
+            if numpy.all(numpy.isfinite(p)):
+                donor_xyz.append(p)
+                donor_elements.append(element)
+                donor_atoms.append((other, j))
+                donor_residue.append(other)
+    return (
+        donor_xyz,
+        donor_elements,
+        donor_atoms,
+        numpy.asarray(donor_residue, dtype=int),
+    )
+
+
+def _donors_excluding(donor_table, res):
+    """The pose's donors with residue ``res`` left out, order preserved."""
+    donor_xyz, donor_elements, donor_atoms, donor_residue = donor_table
+    if not len(donor_residue):
+        return [], [], []
+    keep = numpy.flatnonzero(donor_residue != res)
+    return (
+        [donor_xyz[i] for i in keep],
+        [donor_elements[i] for i in keep],
+        [donor_atoms[i] for i in keep],
+    )
+
+
 def _assign_cluster_site(
     pose,
     res,
     cluster,
     rt,
     xyz,
-    excluded,
+    donor_table,
     tables,
     table,
     declared_sites,
@@ -371,16 +411,7 @@ def _assign_cluster_site(
             metal_rotations=tuple(rotations),
             declared=True,
         )
-    donor_xyz, donor_elements, donor_atoms = [], [], []
-    for other in range(rt.shape[1]):
-        if other == res or rt[pose, other] < 0 or excluded[pose, other]:
-            continue
-        for j, element in enumerate(tables.donor_element[rt[pose, other]]):
-            p = xyz[pose, other, j]
-            if element and numpy.all(numpy.isfinite(p)):
-                donor_xyz.append(p)
-                donor_elements.append(element)
-                donor_atoms.append((other, j))
+    donor_xyz, donor_elements, donor_atoms = _donors_excluding(donor_table, res)
     wanted = (required_donors or {}).get((pose, res), set())
     return _cluster_assignment(
         res,
@@ -598,8 +629,14 @@ def find_metal_geometries(
         else excluded_donor_residues.cpu().numpy()
     )
     assignments = []
+    donor_tables = {}
 
     for pose, res in zip(*numpy.nonzero(is_metal_class)):
+        if int(pose) not in donor_tables:
+            donor_tables[int(pose)] = _pose_donor_table(
+                int(pose), rt, xyz, excluded, tables
+            )
+        donor_table = donor_tables[int(pose)]
         cls = int(rt[pose, res])
         if cls in tables.cluster_for_class:
             cluster = tables.cluster_for_class[cls]
@@ -610,7 +647,7 @@ def find_metal_geometries(
                 cluster,
                 rt,
                 xyz,
-                excluded,
+                donor_table,
                 tables,
                 table,
                 declared_sites,
@@ -625,18 +662,7 @@ def find_metal_geometries(
         if not numpy.all(numpy.isfinite(metal_xyz)):
             continue
 
-        donor_xyz, donor_elements, donor_atoms = [], [], []
-        for other in range(rt.shape[1]):
-            if other == res or rt[pose, other] < 0 or excluded[pose, other]:
-                continue
-            for j, element in enumerate(tables.donor_element[rt[pose, other]]):
-                if not element:
-                    continue
-                p = xyz[pose, other, j]
-                if numpy.all(numpy.isfinite(p)):
-                    donor_xyz.append(p)
-                    donor_elements.append(element)
-                    donor_atoms.append((other, j))
+        donor_xyz, donor_elements, donor_atoms = _donors_excluding(donor_table, res)
 
         if (int(pose), int(res)) in (declared_sites or {}):
             geometry, filled = declared_sites[(int(pose), int(res))]
