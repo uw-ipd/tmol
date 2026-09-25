@@ -62,13 +62,14 @@ def _rotation_group(verts: numpy.ndarray) -> numpy.ndarray:
     """Vertex permutations a rotation of the polyhedron realises, including identity.
 
     Found rather than tabulated: for each permutation of the vertices, Kabsch the
-    polyhedron onto its image and keep the permutation if the fit is exact.
+    polyhedron onto its image and keep the permutation if the fit is exact to the
+    precision the tabulated vertices carry (six decimals).
     """
     group = []
     for candidate in permutations(range(len(verts))):
         image = verts[list(candidate)]
         rotation = _best_rotations(verts, image[numpy.newaxis])[0]
-        if numpy.allclose(verts @ rotation, image, atol=1e-9):
+        if numpy.allclose(verts @ rotation, image, atol=1e-6):
             group.append(candidate)
     return numpy.array(group, dtype=int)
 
