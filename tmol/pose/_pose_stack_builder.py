@@ -1256,37 +1256,15 @@ class PoseStackBuilder:
 
         cls._shortest_paths_for_connectivity_graph(pconn_matrix)
 
-        bconn_ind = torch.arange(
-            max_n_conn, dtype=torch.int64, device=pconn_matrix.device
-        )
-        real_bconn = bconn_ind[None, None, :] < block_n_conn[:, :, None]
-        pconn_for_bconn = torch.where(
-            real_bconn,
-            pconn_offsets[:, :, None] + bconn_ind,
-            0,
-        ).flatten(1)
+        from tmol.pose.compiled import block_bondsep
 
-        n_padded_bconn = pconn_for_bconn.shape[1]
-        pconn_rows = torch.gather(
+        return block_bondsep(
             pconn_matrix,
-            1,
-            pconn_for_bconn[:, :, None].expand(n_poses, n_padded_bconn, max_n_pconn),
+            pconn_offsets,
+            block_n_conn,
+            max_n_conn,
+            MAX_SIG_BOND_SEPARATION,
         )
-        inter_block_bondsep = torch.gather(
-            pconn_rows,
-            2,
-            pconn_for_bconn[:, None, :].expand(n_poses, n_padded_bconn, n_padded_bconn),
-        ).reshape(n_poses, max_n_blocks, max_n_conn, max_n_blocks, max_n_conn)
-        inter_block_bondsep = inter_block_bondsep.permute(0, 1, 3, 2, 4)
-
-        # Sentinel padded connections without constructing a dense 5-D mask.
-        inter_block_bondsep.masked_fill_(
-            ~real_bconn[:, :, None, :, None], MAX_SIG_BOND_SEPARATION
-        )
-        inter_block_bondsep.masked_fill_(
-            ~real_bconn[:, None, :, None, :], MAX_SIG_BOND_SEPARATION
-        )
-        return inter_block_bondsep.contiguous()
 
     @classmethod
     @validate_args
