@@ -124,6 +124,7 @@ def _renumber_decreasing_author_ids(array):
     and renumbering keeps both. Returns the array unchanged where nothing decreases.
     """
     res_id = array.res_id.copy()
+    ins_code = array.ins_code.copy()
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)
     repaired = []
     for chain in dict.fromkeys(array.chain_id.tolist()):
@@ -135,6 +136,9 @@ def _renumber_decreasing_author_ids(array):
             if array.chain_id[begin] == chain:
                 number += 1
                 res_id[begin:end] = number
+        # renumbering supersedes this chain's insertion codes and no others:
+        #    elsewhere they are load-bearing, as an antibody's CDRs are
+        ins_code[in_chain] = ""
         repaired.append(str(chain))
     if not repaired:
         return array
@@ -146,23 +150,39 @@ def _renumber_decreasing_author_ids(array):
     )
     array = array.copy()
     array.res_id = res_id
-    array.ins_code[:] = ""
+    array.ins_code = ins_code
     return array
 
 
-def _parse_repairing_author_numbering(path, config, model):
-    """``parse`` the file, renumbering author ids first where it will not read them."""
+def _parse_repairing_author_numbering(path, config, model, assembly_id):
+    """``parse`` the file, renumbering author ids first where it will not read them.
+
+    Only the asymmetric unit: building an assembly is ``parse``'s to do, and the
+    repaired array goes to ``prepare_atom_array``, which does not build one. A
+    file that needs both is refused with AtomWorks' own message.
+    """
+    from atomworks.io import load_pdb
     from atomworks.io.parser import prepare_atom_array
     from atomworks.io.utils.io_utils import get_structure, read_any
 
     try:
         return parse(path, config=config)
     except ValueError as refused:
-        if "non-decreasing order" not in str(refused):
+        if assembly_id is not None or "non-decreasing order" not in str(refused):
             raise
         file = read_any(path)
         block = getattr(file, "block", None)
-        array = get_structure(file, model=model, extra_fields=_FIELDS)
+        if block is None:
+            array, _ = load_pdb(
+                path,
+                model=model,
+                use_ccd=config.use_ccd,
+                infer_unstated_bond_orders=config.infer_unstated_bond_orders,
+            )
+            if array.coord.ndim == 3:
+                array = array[0]
+        else:
+            array = get_structure(file, model=model, extra_fields=_FIELDS)
         repaired = _renumber_decreasing_author_ids(array)
         if repaired is array:
             raise
@@ -194,7 +214,7 @@ def read_structure(path, *, model=1, assembly_id=None, use_ccd=True):
             long_bond_policy="keep",
             struct_conn_distance_policy="keep",
         )
-        result = _parse_repairing_author_numbering(path, config, model)
+        result = _parse_repairing_author_numbering(path, config, model, assembly_id)
         array = (
             result["asym_unit"]
             if assembly_id is None
