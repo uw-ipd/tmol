@@ -107,10 +107,12 @@ def _normalize_schedule(
         elif isinstance(entry, dict):
             pack_frac = float(entry["fa_rep_pack_frac"])
             min_frac = float(entry["fa_rep_min_frac"])
+            # A schedule's cst_frac column *is* the ramp, so a caller who asked
+            # not to ramp is asking for it to be ignored.
             constraint = (
-                constraint_fraction(i)
-                if "cst_frac" not in entry
-                else float(entry["cst_frac"])
+                float(entry["cst_frac"])
+                if constrain and ramp_constraints and "cst_frac" in entry
+                else constraint_fraction(i)
             )
             normalized.append((pack_frac, min_frac, constraint))
         else:
@@ -277,12 +279,12 @@ def fast_relax(  # noqa: C901
 
     constraint_weight_start = sfxn.get_weight(ScoreType.constraint)
     use_constraints = constraint_weight_start != 0
+    if ramp_constraints is None:
+        ramp_constraints = True
     if not use_constraints and ramp_constraints:
         print(
             "Warning: ramp_constraints is True but sfxn's 'constraint' weight is 0; no constraints will be used."
         )
-    if ramp_constraints is None:
-        ramp_constraints = True
 
     steps = _normalize_schedule(schedule, use_constraints, ramp_constraints)
 
