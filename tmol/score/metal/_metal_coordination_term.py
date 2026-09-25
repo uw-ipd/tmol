@@ -16,6 +16,8 @@ from .._energy_term import EnergyTerm
 # kernel sentinels for metal_conn_virt
 NOT_A_SITE = -2
 NO_VIRTUAL = -1
+# most in-residue metals one donor atom can satisfy
+MAX_INTERNAL_METALS = 4
 
 
 class MetalCoordinationEnergyTerm(EnergyTerm):
@@ -28,7 +30,9 @@ class MetalCoordinationEnergyTerm(EnergyTerm):
     the fan is built from its icoors.
 
     A site is occupied when its connection on the metal is filled; the donor
-    is the atom on the partner's side of that connection.
+    is the atom on the partner's side of that connection. Two metals in
+    different residues bonded to one donor atom get a one-sided wall on their
+    separation, scored between the two metals' residues.
     """
 
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
@@ -82,12 +86,20 @@ class MetalCoordinationEnergyTerm(EnergyTerm):
         site_params = numpy.zeros((pbt.n_types, n_conn, n_keys, 4), dtype=numpy.float32)
         fans = [[] for _ in range(pbt.n_types)]
 
+        internal_metal = numpy.full(
+            (pbt.n_types, n_conn, MAX_INTERNAL_METALS), -1, dtype=numpy.int32
+        )
+        internal_d0 = numpy.zeros(
+            (pbt.n_types, n_conn, MAX_INTERNAL_METALS), dtype=numpy.float32
+        )
+
         for i, bt in enumerate(pbt.active_block_types):
             for c, conn in enumerate(bt.connections):
                 atom = bt.atoms[bt.atom_to_idx[conn.atom]]
                 conn_key[i, c] = self.donor_key(atom_types[atom.atom_type])
             for site in bt.metal_sites:
                 self.setup_site(bt, i, site, conn_metal, conn_virt, site_params, fans)
+            self.setup_internal_bridges(bt, i, internal_metal, internal_d0)
 
         max_fan = max(1, max(len(f) for f in fans))
         fan_atoms = numpy.full((pbt.n_types, max_fan, 2), -1, dtype=numpy.int32)
@@ -96,6 +108,12 @@ class MetalCoordinationEnergyTerm(EnergyTerm):
             for j, (a, b, l0) in enumerate(rows):
                 fan_atoms[i, j] = (a, b)
                 fan_params[i, j] = (l0, self.params.global_parameters.fan_sd)
+
+        bridge_params = numpy.zeros((n_keys, 2), dtype=numpy.float32)
+        width = numpy.radians(self.params.global_parameters.bridge_width)
+        for k, key in enumerate(self.donor_keys):
+            floor = self.params.bridge_floor(key)
+            bridge_params[k] = (numpy.radians(floor) if floor else 0.0, width)
 
         def t(x):
             return torch.from_numpy(x).to(self.device)
@@ -107,6 +125,9 @@ class MetalCoordinationEnergyTerm(EnergyTerm):
             "metal_coordination_site_params": t(site_params),
             "metal_coordination_fan_atoms": t(fan_atoms),
             "metal_coordination_fan_params": t(fan_params),
+            "metal_coordination_bridge_internal_metal": t(internal_metal),
+            "metal_coordination_bridge_internal_d0": t(internal_d0),
+            "metal_coordination_bridge_params": t(bridge_params),
         }
         for name, value in fields.items():
             setattr(pbt, name, value)
@@ -150,6 +171,28 @@ class MetalCoordinationEnergyTerm(EnergyTerm):
         for n, v in enumerate(virts):
             for other in anchors + virts[:n]:
                 fans[i].append((v, other, numpy.linalg.norm(coords[v] - coords[other])))
+
+    def setup_internal_bridges(self, bt, i, internal_metal, internal_d0):
+        """Metals of bt its own donating atoms satisfy, and their ideal distances."""
+        if not bt.metal_sites:
+            return
+        ideal = bt.ideal_coords  # in icoor order
+
+        def at(name):
+            return ideal[bt.icoors_index[name]]
+
+        site_names = {n for site in bt.metal_sites for n in site.site_connections}
+        for c, conn in enumerate(bt.connections):
+            if conn.name in site_names:
+                continue
+            metals = [
+                site.metal_atom
+                for site in bt.metal_sites
+                if conn.atom in site.internal_satisfiers
+            ][:MAX_INTERNAL_METALS]
+            for k, metal in enumerate(metals):
+                internal_metal[i, c, k] = bt.atom_to_idx[metal]
+                internal_d0[i, c, k] = numpy.linalg.norm(at(metal) - at(conn.atom))
 
     def donor_key(self, atom_type):
         """Index of an atom type's metal-donor distance key, or -1."""
@@ -196,6 +239,9 @@ class MetalCoordinationEnergyTerm(EnergyTerm):
             pbt.metal_coordination_site_params,
             pbt.metal_coordination_fan_atoms,
             pbt.metal_coordination_fan_params,
+            pbt.metal_coordination_bridge_internal_metal,
+            pbt.metal_coordination_bridge_internal_d0,
+            pbt.metal_coordination_bridge_params,
         ]
 
     def check_donors(self, pose_stack: PoseStack):

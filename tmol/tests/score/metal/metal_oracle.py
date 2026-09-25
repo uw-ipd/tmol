@@ -119,6 +119,68 @@ def fan_energies(a, b, params):
     return ((torch.linalg.norm(a - b, dim=-1) - l0) / sd) ** 2
 
 
+def bridges(param_db, pose_stack):
+    """Bridge rows for every pair of metals in different blocks sharing a donor.
+
+    Rows are (pose, block, metal atom, block, metal atom) with (d1, d2, floor,
+    width): each metal's ideal distance to the shared donor, and the donor's
+    floor angle and the wall width in radians. A metal reaches the donor
+    through a filled site, or holds it as an internal satisfier in the donor's
+    own block.
+    """
+    params = param_db.scoring.metal_coordination
+    donor_radii = metal_table()["donor_radii"]
+    atom_types = {at.name: at for at in param_db.chemical.atom_types}
+    pbt = pose_stack.packed_block_types
+    atom_types.update({at.name: at for at in pbt.chem_db.atom_types})
+    bt_inds = pose_stack.block_type_ind64.cpu().numpy()
+    site_rows, site_params, _, _ = restraints(param_db, pose_stack)
+
+    def donor_key(atom_type_name):
+        at = atom_types[atom_type_name]
+        return at.name if at.name in donor_radii else at.element
+
+    # (pose, donor block, donor atom) -> [(metal block, metal atom, ideal distance)]
+    metals_on = {}
+    for (pose, mblock, matom, _, dblock, datom), p in zip(site_rows, site_params):
+        metals_on.setdefault((pose, dblock, datom), []).append((mblock, matom, p[0]))
+    for pose, dblock, datom in list(metals_on):
+        bt = pbt.active_block_types[bt_inds[pose, dblock]]
+        name = bt.atoms[datom].name
+        coords = bt.compute_ideal_coords()  # in icoor order
+        for site in bt.metal_sites:
+            if name in site.internal_satisfiers:
+                metal = bt.atom_to_idx[site.metal_atom]
+                d = numpy.linalg.norm(
+                    coords[bt.icoors_index[site.metal_atom]]
+                    - coords[bt.icoors_index[name]]
+                )
+                metals_on[(pose, dblock, datom)].append((dblock, metal, float(d)))
+
+    rows, row_params = [], []
+    width = numpy.radians(params.global_parameters.bridge_width)
+    for (pose, dblock, datom), metals in metals_on.items():
+        bt = pbt.active_block_types[bt_inds[pose, dblock]]
+        floor = params.bridge_floor(donor_key(bt.atoms[datom].atom_type))
+        if not floor:
+            continue
+        for (b1, m1, d1), (b2, m2, d2) in combinations(metals, 2):
+            if b1 == b2:
+                continue
+            rows.append((pose, b1, m1, b2, m2))
+            row_params.append((d1, d2, numpy.radians(floor), width))
+    return rows, row_params
+
+
+def bridge_energies(a, b, params):
+    """One-sided wall on the separation of two bridged metals."""
+    d1, d2, floor, width = params.unbind(-1)
+    wall = torch.sqrt(d1 * d1 + d2 * d2 - 2 * d1 * d2 * torch.cos(floor))
+    sd = d1 * d2 * torch.sin(floor) / wall * width
+    short_by = (wall - torch.linalg.norm(a - b, dim=-1)).clamp_min(0)
+    return (short_by / sd) ** 2
+
+
 def block_pair_energies(param_db, pose_stack, coords):
     """[n_poses, n_blocks, n_blocks] energies, upper triangle."""
     site_rows, site_params, fan_rows, fan_params = restraints(param_db, pose_stack)
@@ -157,4 +219,12 @@ def block_pair_energies(param_db, pose_stack, coords):
             params(fan_params),
         )
         out = out.index_put((pose, block, block), e, accumulate=True)
+    bridge_rows, bridge_params = bridges(param_db, pose_stack)
+    if bridge_rows:
+        pose, b1, m1, b2, m2 = rows(bridge_rows).unbind(1)
+        e = bridge_energies(
+            atom(pose, b1, m1), atom(pose, b2, m2), params(bridge_params)
+        )
+        lo, hi = torch.minimum(b1, b2), torch.maximum(b1, b2)
+        out = out.index_put((pose, lo, hi), e, accumulate=True)
     return out

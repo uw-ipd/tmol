@@ -6,9 +6,15 @@ import pytest
 import torch
 from yaml import safe_load
 
-from tmol.database.chemical import is_metal_cluster
+from tmol.database.chemical import is_metal_cluster, site_connections
 from tmol.database.scoring import MetalWellDepth
-from tmol.io import atom_array_from_cif, pose_stack_from_biotite, pose_stack_from_pdb
+from tmol.io import (
+    add_metal_coordination,
+    atom_array_from_cif,
+    pose_stack_from_biotite,
+    pose_stack_from_pdb,
+    remove_metal_coordination,
+)
 from tmol.pack import PackerPalette, PackerTask, SetPackerTask
 from tmol.pack.rotamer import build_rotamers
 from tmol.score import ScoreType
@@ -128,6 +134,22 @@ def residuals(param_db, pose_stack, coords):
                 energy,
                 f"fan {label(pose, block, a)}-{label(pose, block, b)}"
                 f" d={distance:.2f} l0={params[0]:.2f}",
+            )
+        )
+    # a wall between two bridged metals is not one atom's to shed
+    bridge_rows, bridge_params = metal_oracle.bridges(param_db, pose_stack)
+    for (pose, b1, m1, b2, m2), params in zip(bridge_rows, bridge_params):
+        energy = float(
+            metal_oracle.bridge_energies(
+                at(pose, b1, m1), at(pose, b2, m2), tensor(params)
+            )
+        )
+        irreducible += energy
+        distance = float((at(pose, b1, m1) - at(pose, b2, m2)).norm())
+        rows.append(
+            (
+                energy,
+                f"bridge {label(pose, b1, m1)}-{label(pose, b2, m2)} d={distance:.2f}",
             )
         )
     rows.sort(reverse=True)
@@ -266,6 +288,88 @@ def test_ideal_sites_score_zero(built, stem, default_database, torch_device):
     assert score == pytest.approx(
         settled + irreducible, rel=1e-5, abs=1e-6
     ), f"{stem}: {detail}"
+
+
+def block_index(pose_stack, chain, resnum):
+    info = pose_stack.pdb_info
+    for block in range(pose_stack.max_n_blocks):
+        if (str(info.chain_labels[0, block]), int(info.residue_labels[0, block])) == (
+            chain,
+            resnum,
+        ):
+            return block
+    raise KeyError((chain, resnum))
+
+
+def metal_atom(pose_stack, block):
+    bt = pose_stack.packed_block_types.active_block_types[
+        pose_stack.block_type_ind64[0, block]
+    ]
+    return bt.atom_to_idx[bt.metal_sites[0].metal_atom]
+
+
+def bridged_sod(device):
+    """3F7L with His61 ND1 bonded to both its zinc and the copper."""
+    structure = atom_array_from_cif(os.path.join(FIXTURE_DIR, "cu_zn_sod_3f7l.cif.gz"))
+    pose_stack, context = pose_stack_from_biotite(
+        structure, device, prepare_ligands=True, return_context=True
+    )
+    cu, zn, his61, his118 = (
+        block_index(pose_stack, "A", r) for r in (201, 203, 61, 118)
+    )
+    bt = pose_stack.packed_block_types.active_block_types[
+        pose_stack.block_type_ind64[0, cu]
+    ]
+    irc = pose_stack.inter_residue_connections64[0, cu].cpu()
+    (site,) = [
+        k
+        for k, name in enumerate(site_connections(bt))
+        if int(irc[bt.connection_to_cidx[name], 0]) == his118
+    ]
+    co = context.canonical_ordering
+    opened = remove_metal_coordination(co, pose_stack, 0, cu, site)
+    return add_metal_coordination(co, opened, 0, cu, his61, "ND1", site=site), cu, zn
+
+
+def test_bridge_matches_oracle(default_database, torch_device):
+    pose_stack, cu, zn = bridged_sod(torch_device)
+    rows, _ = metal_oracle.bridges(default_database, pose_stack)
+    assert [(b1, b2) for _, b1, _, b2, _ in rows] in ([(cu, zn)], [(zn, cu)])
+
+    term = MetalCoordinationEnergyTerm(default_database, torch_device)
+    coords = pose_stack.coords.detach().clone().double()
+    # bring the zinc inside the wall
+    cu_at, zn_at = (
+        global_index(pose_stack, 0, b, metal_atom(pose_stack, b)) for b in (cu, zn)
+    )
+    toward = coords[0, cu_at] - coords[0, zn_at]
+    coords[0, zn_at] += toward * (1 - 1.5 / float(toward.norm()))
+    coords.requires_grad_(True)
+
+    expected = metal_oracle.block_pair_energies(default_database, pose_stack, coords)
+    lo, hi = min(cu, zn), max(cu, zn)
+    assert float(expected[0, lo, hi]) > 1.0
+    (expected_grad,) = torch.autograd.grad(expected.sum(), coords)
+
+    whole = render(term, pose_stack)(coords)
+    torch.testing.assert_close(whole[0], expected.sum(dim=(1, 2)))
+    (grad,) = torch.autograd.grad(whole.sum(), coords)
+    torch.testing.assert_close(grad, expected_grad)
+    # the wall pushes the zinc away from the copper
+    assert float(grad[0, zn_at] @ toward) > 0
+
+    pairs = render(term, pose_stack, block_pair=True)(coords)
+    torch.testing.assert_close(pairs[0], expected)
+
+
+def test_bridge_is_zero_beyond_its_floor(default_database, torch_device):
+    pose_stack, cu, zn = bridged_sod(torch_device)
+    coords = pose_stack.coords.detach().clone().double()
+    rows, params = metal_oracle.bridges(default_database, pose_stack)
+    (_, b1, m1, b2, m2), row = rows[0], params[0]
+    a = coords[0, global_index(pose_stack, 0, b1, m1)]
+    b = coords[0, global_index(pose_stack, 0, b2, m2)]
+    assert float(metal_oracle.bridge_energies(a, b, torch.tensor(row).to(a))) == 0.0
 
 
 def test_known_distortions(built, default_database):

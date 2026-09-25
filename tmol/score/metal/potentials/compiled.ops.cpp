@@ -60,6 +60,9 @@ class MetalCoordinationPoseScoreOp
       Tensor site_params,
       Tensor fan_atoms,
       Tensor fan_params,
+      Tensor bridge_internal_metal,
+      Tensor bridge_internal_d0,
+      Tensor bridge_params,
 
       bool output_block_pair_energies) {
     at::Tensor score;
@@ -102,6 +105,9 @@ class MetalCoordinationPoseScoreOp
                   TCAST(site_params),
                   TCAST(fan_atoms),
                   TCAST(fan_params),
+                  TCAST(bridge_internal_metal),
+                  TCAST(bridge_internal_d0),
+                  TCAST(bridge_params),
                   output_block_pair_energies,
                   rot_coords.requires_grad());
 
@@ -135,7 +141,10 @@ class MetalCoordinationPoseScoreOp
            conn_key,
            site_params,
            fan_atoms,
-           fan_params});
+           fan_params,
+           bridge_internal_metal,
+           bridge_internal_d0,
+           bridge_params});
     } else {
       score = score.squeeze(-1).squeeze(-1);
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
@@ -191,6 +200,9 @@ class MetalCoordinationPoseScoreOp
       auto site_params = saved[i++];
       auto fan_atoms = saved[i++];
       auto fan_params = saved[i++];
+      auto bridge_internal_metal = saved[i++];
+      auto bridge_internal_d0 = saved[i++];
+      auto bridge_params = saved[i++];
 
       using Int = int32_t;
 
@@ -231,6 +243,9 @@ class MetalCoordinationPoseScoreOp
                     TCAST(site_params),
                     TCAST(fan_atoms),
                     TCAST(fan_params),
+                    TCAST(bridge_internal_metal),
+                    TCAST(bridge_internal_d0),
+                    TCAST(bridge_params),
                     TCAST(dTdV));
 
             dV_d_pose_coords = result.tensor;
@@ -255,7 +270,10 @@ class MetalCoordinationPoseScoreOp
         torch::Tensor(),
         torch::Tensor(),
 
-        // 9 custom params
+        // 12 custom params
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
@@ -303,6 +321,9 @@ class MetalCoordinationRotamerScoreOp
       Tensor site_params,
       Tensor fan_atoms,
       Tensor fan_params,
+      Tensor bridge_internal_metal,
+      Tensor bridge_internal_d0,
+      Tensor bridge_params,
 
       bool output_block_pair_energies) {
     at::Tensor score;
@@ -347,6 +368,9 @@ class MetalCoordinationRotamerScoreOp
                   TCAST(site_params),
                   TCAST(fan_atoms),
                   TCAST(fan_params),
+                  TCAST(bridge_internal_metal),
+                  TCAST(bridge_internal_d0),
+                  TCAST(bridge_params),
                   output_block_pair_energies,
                   rot_coords.requires_grad());
 
@@ -383,6 +407,9 @@ class MetalCoordinationRotamerScoreOp
            site_params,
            fan_atoms,
            fan_params,
+           bridge_internal_metal,
+           bridge_internal_d0,
+           bridge_params,
            terms_for_dispatch});
     } else {
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
@@ -444,6 +471,9 @@ class MetalCoordinationRotamerScoreOp
       auto site_params = saved[i++];
       auto fan_atoms = saved[i++];
       auto fan_params = saved[i++];
+      auto bridge_internal_metal = saved[i++];
+      auto bridge_internal_d0 = saved[i++];
+      auto bridge_params = saved[i++];
       auto terms_for_dispatch = saved[i++];
 
       using Int = int32_t;
@@ -487,6 +517,9 @@ class MetalCoordinationRotamerScoreOp
                     TCAST(site_params),
                     TCAST(fan_atoms),
                     TCAST(fan_params),
+                    TCAST(bridge_internal_metal),
+                    TCAST(bridge_internal_d0),
+                    TCAST(bridge_params),
                     TCAST(terms_for_dispatch),
                     TCAST(dTdV));
 
@@ -512,7 +545,10 @@ class MetalCoordinationRotamerScoreOp
         torch::Tensor(),
         torch::Tensor(),
 
-        // 9 custom params
+        // 12 custom params
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
@@ -554,6 +590,9 @@ std::vector<Tensor> metal_coordination_pose_scores_op(
     Tensor site_params,
     Tensor fan_atoms,
     Tensor fan_params,
+    Tensor bridge_internal_metal,
+    Tensor bridge_internal_d0,
+    Tensor bridge_params,
 
     bool output_block_pair_energies) {
   return MetalCoordinationPoseScoreOp<DispatchMethod>::apply(
@@ -583,6 +622,9 @@ std::vector<Tensor> metal_coordination_pose_scores_op(
       site_params,
       fan_atoms,
       fan_params,
+      bridge_internal_metal,
+      bridge_internal_d0,
+      bridge_params,
 
       output_block_pair_energies);
 }
@@ -617,6 +659,9 @@ std::vector<Tensor> metal_coordination_rotamer_scores_op(
     Tensor site_params,
     Tensor fan_atoms,
     Tensor fan_params,
+    Tensor bridge_internal_metal,
+    Tensor bridge_internal_d0,
+    Tensor bridge_params,
 
     bool output_block_pair_energies) {
   return MetalCoordinationRotamerScoreOp<DispatchMethod>::apply(
@@ -646,6 +691,9 @@ std::vector<Tensor> metal_coordination_rotamer_scores_op(
       site_params,
       fan_atoms,
       fan_params,
+      bridge_internal_metal,
+      bridge_internal_d0,
+      bridge_params,
 
       output_block_pair_energies);
 }

@@ -11,6 +11,8 @@ class MetalCoordinationGlobalParameters:
     radial_sd: float
     lateral_sd: float
     fan_sd: float
+    # width, in degrees, of the wall below a bridge floor
+    bridge_width: float
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -28,10 +30,18 @@ class MetalWellDepth:
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
+class MetalBridgeFloor:
+    donor: str
+    # smallest metal-donor-metal angle, degrees
+    floor: float
+
+
+@attr.s(auto_attribs=True, slots=True, frozen=True)
 class MetalCoordinationDatabase:
     global_parameters: MetalCoordinationGlobalParameters
     ions: Tuple[MetalIonWidths, ...] = ()
     well_depths: Tuple[MetalWellDepth, ...] = ()
+    bridge_floors: Tuple[MetalBridgeFloor, ...] = ()
 
     @classmethod
     def from_file(cls, path):
@@ -48,6 +58,13 @@ class MetalCoordinationDatabase:
                 radial = ion.radial_sd if ion.radial_sd is not None else radial
                 lateral = ion.lateral_sd if ion.lateral_sd is not None else lateral
         return radial, lateral
+
+    def bridge_floor(self, donor: str) -> Optional[float]:
+        """Smallest metal-donor-metal angle, degrees, for a donor key; None if unset."""
+        for row in self.bridge_floors:
+            if row.donor == donor:
+                return row.floor
+        return None
 
     def well_depth(self, atom_type: str, donor: str) -> float:
         for well in self.well_depths:

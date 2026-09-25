@@ -96,6 +96,48 @@ TMOL_DEVICE_FUNC void accumulate_metal_fan_pair(
   }
 }
 
+// Wall on the separation of two metals bridged by one donor: the floor is
+// where the metal-donor-metal angle reaches its minimum with both metals at
+// their ideal donor distances d1 and d2; the width maps the angular width onto
+// the separation there.
+template <typename Real, tmol::Device D>
+TMOL_DEVICE_FUNC void accumulate_metal_bridge(
+    TView<Vec<Real, 3>, 1, D> coords,
+    int a_ind,
+    int b_ind,
+    Real d1,
+    Real d2,
+    MetalBridgeParams<Real> const& p,
+    TView<Vec<Real, 3>, 2, D> dV_dx,
+    bool compute_derivs,
+    Real dTdV,
+    Real* V) {
+  if (p.floor <= 0) {
+    return;  // a donor with no floor puts no wall on its metals
+  }
+  Real const floor_sq = d1 * d1 + d2 * d2 - 2 * d1 * d2 * std::cos(p.floor);
+  if (floor_sq <= 0) {
+    return;
+  }
+  Real const floor = std::sqrt(floor_sq);
+  Real const sd = d1 * d2 * std::sin(p.floor) / floor * p.width;
+  Vec<Real, 3> const sep = coords[a_ind] - coords[b_ind];
+  Real const dist = sep.norm();
+  if (dist >= floor) {
+    return;
+  }
+  Real const k = 1 / (sd * sd);
+  Real const short_by = floor - dist;
+  if (V != nullptr) {
+    accumulate<D, Real>::add(*V, short_by * short_by * k);
+  }
+  if (compute_derivs && dist > 0) {
+    Vec<Real, 3> const dE_da = (-2 * short_by * k / dist) * sep;
+    accumulate<D, Vec<Real, 3>>::add(dV_dx[0][a_ind], dE_da * dTdV);
+    accumulate<D, Vec<Real, 3>>::add(dV_dx[0][b_ind], -dE_da * dTdV);
+  }
+}
+
 }  // namespace potentials
 }  // namespace metal
 }  // namespace score

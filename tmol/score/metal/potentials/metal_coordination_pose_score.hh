@@ -48,6 +48,9 @@ struct MetalCoordinationPoseScoreDispatch {
       TView<MetalSiteParams<Real>, 3, D> site_params,
       TView<Vec<Int, 2>, 2, D> fan_atoms,
       TView<MetalFanParams<Real>, 2, D> fan_params,
+      TView<Int, 3, D> bridge_internal_metal,
+      TView<Real, 3, D> bridge_internal_d0,
+      TView<MetalBridgeParams<Real>, 1, D> bridge_params,
       bool output_block_pair_energies,
       bool compute_derivs)
       -> std::tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 2, D>>;
@@ -77,6 +80,9 @@ struct MetalCoordinationPoseScoreDispatch {
       TView<MetalSiteParams<Real>, 3, D> site_params,
       TView<Vec<Int, 2>, 2, D> fan_atoms,
       TView<MetalFanParams<Real>, 2, D> fan_params,
+      TView<Int, 3, D> bridge_internal_metal,
+      TView<Real, 3, D> bridge_internal_d0,
+      TView<MetalBridgeParams<Real>, 1, D> bridge_params,
       TView<Real, 4, D> dTdV) -> TPack<Vec<Real, 3>, 2, D>;
 };
 
@@ -111,6 +117,9 @@ struct MetalCoordinationRotamerScoreDispatch {
       TView<MetalSiteParams<Real>, 3, D> site_params,
       TView<Vec<Int, 2>, 2, D> fan_atoms,
       TView<MetalFanParams<Real>, 2, D> fan_params,
+      TView<Int, 3, D> bridge_internal_metal,
+      TView<Real, 3, D> bridge_internal_d0,
+      TView<MetalBridgeParams<Real>, 1, D> bridge_params,
       bool output_block_pair_energies,
       bool compute_derivs)
       -> std::tuple<
@@ -144,6 +153,9 @@ struct MetalCoordinationRotamerScoreDispatch {
       TView<MetalSiteParams<Real>, 3, D> site_params,
       TView<Vec<Int, 2>, 2, D> fan_atoms,
       TView<MetalFanParams<Real>, 2, D> fan_params,
+      TView<Int, 3, D> bridge_internal_metal,
+      TView<Real, 3, D> bridge_internal_d0,
+      TView<MetalBridgeParams<Real>, 1, D> bridge_params,
       TView<Int, 2, D> terms_for_dispatch,  // from forward pass
       TView<Real, 2, D> dTdV) -> TPack<Vec<Real, 3>, 2, D>;
 };
