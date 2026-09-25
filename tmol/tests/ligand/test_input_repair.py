@@ -17,8 +17,8 @@ def test_a_neutral_carboxylic_acid_keeps_its_proton():
     """Both its oxygens are terminal and both C-O bonds are short.
 
     The repair reads that shape as a carboxylate written as a geminal diol, so
-    without asking whether an oxygen still holds a hydrogen it deprotonates an
-    acid that was encoded correctly to begin with.
+    without asking whether a carbonyl is already written it deprotonates an acid
+    that was encoded correctly to begin with.
     """
     acid = _embedded("CC(=O)O")
 
