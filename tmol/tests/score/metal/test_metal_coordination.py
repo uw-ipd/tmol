@@ -261,8 +261,11 @@ def test_ideal_sites_score_zero(built, stem, default_database, torch_device):
     assert settled < 1e-6, f"{stem}: {detail}"
 
     score = float(render(term, pose_stack)(coords).sum())
-    # the kernel reads its parameters in single precision, as the oracle notes
-    assert score == pytest.approx(settled + irreducible, rel=1e-5), f"{stem}: {detail}"
+    # the kernel reads its parameters in single precision, as the oracle notes, and
+    #    a structure whose restraints are all at rest expects exactly zero
+    assert score == pytest.approx(
+        settled + irreducible, rel=1e-5, abs=1e-6
+    ), f"{stem}: {detail}"
 
 
 def test_known_distortions(built, default_database):
