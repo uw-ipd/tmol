@@ -59,7 +59,7 @@ def _polymer_from_backbone_bonds(array):
 
 def _read_declared(path, model, assembly_id):
     """Read authored atoms and bonds without any dictionary supplementation."""
-    from atomworks.io._loaders import load_pdb
+    from atomworks.io import load_pdb
     from atomworks.io.transforms.categories import category_to_dict
     from atomworks.io.utils.atom_array_plus import as_atom_array_plus
     from atomworks.io.utils.bonds import get_struct_conn_bonds

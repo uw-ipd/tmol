@@ -5,7 +5,7 @@ suitable for registration in tmol's ChemicalDatabase. Handles atom tree
 construction, internal coordinate computation, rotatable bond detection,
 and non-polymer property assignment.
 
-The atom tree and internal coordinates come from :mod:`atomworks.geometry`,
+The atom tree and internal coordinates come from :mod:`atomworks.protonation`,
 so a structure keeps the same geometry whichever library placed it.
 """
 
