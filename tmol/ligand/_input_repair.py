@@ -72,15 +72,6 @@ def _infer_carboxylate_bonds(rw: Chem.RWMol, conf: Chem.Conformer) -> int:
         ]
         if not all(0 < d <= _CARBOXYL_CO_MAX for d in co_dists):
             continue
-        # A carbonyl already written is a carboxylic acid's, not a carboxylate
-        #    recorded as a geminal diol: an acid's oxygens are both terminal and
-        #    both its C-O bonds are short enough to reach here, so only a centre
-        #    with no double bond at all is missing one.
-        if any(
-            rw.GetBondBetweenAtoms(c, o).GetBondType() == Chem.BondType.DOUBLE
-            for o in term_os
-        ):
-            continue
         nbrs = [nb.GetIdx() for nb in atom.GetNeighbors()]
         angle_sum = _sp2_angle_sum(conf, c, nbrs)
         if angle_sum is None or angle_sum < _SP2_ANGLE_SUM_MIN:
