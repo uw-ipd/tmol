@@ -1,4 +1,5 @@
 import os
+from collections import Counter
 
 import attr
 import pytest
@@ -51,11 +52,27 @@ def global_index(pose_stack, pose, block, atom):
     return int(pose_stack.block_coord_offset64[pose, block]) + atom
 
 
-def residual_detail(param_db, pose_stack, coords):
-    """Where a non-zero ideal-geometry score sits: site restraints or the fan."""
+def contested_atoms(site_rows, fan_rows):
+    """Atoms two restraints pull toward different places.
+
+    A donor bridging two metals has an ideal position for each of them, and a
+    cluster's own satisfier that is also another metal's donor has one for its
+    cluster and one for that metal. No single coordinate answers both.
+    """
+    served = Counter((pose, block, atom) for pose, _, _, _, block, atom in site_rows)
+    for pose, block, a, b in fan_rows:
+        for atom in (a, b):
+            if served[(pose, block, atom)]:
+                served[(pose, block, atom)] += 1
+    return {key for key, count in served.items() if count > 1}
+
+
+def residuals(param_db, pose_stack, coords):
+    """Energy an atom could have shed, energy it could not, and where it sits."""
     site_rows, site_params, fan_rows, fan_params = metal_oracle.restraints(
         param_db, pose_stack
     )
+    contested = contested_atoms(site_rows, fan_rows)
 
     def at(pose, block, atom):
         return coords[pose, global_index(pose_stack, pose, block, atom)]
@@ -69,7 +86,7 @@ def residual_detail(param_db, pose_stack, coords):
         bt = pbt.active_block_types[pose_stack.block_type_ind64[pose, block]]
         return f"{bt.name}:{bt.atoms[atom].name}"
 
-    rows, site_total, fan_total = [], 0.0, 0.0
+    rows, settled, irreducible = [], 0.0, 0.0
     for (pose, mblock, matom, vatom, dblock, datom), params in zip(
         site_rows, site_params
     ):
@@ -82,7 +99,10 @@ def residual_detail(param_db, pose_stack, coords):
                 tensor(params),
             )
         )
-        site_total += energy
+        if (pose, dblock, datom) in contested:
+            irreducible += energy
+        else:
+            settled += energy
         distance = float((at(pose, mblock, matom) - at(pose, dblock, datom)).norm())
         rows.append(
             (
@@ -97,7 +117,10 @@ def residual_detail(param_db, pose_stack, coords):
                 at(pose, block, a), at(pose, block, b), tensor(params)
             )
         )
-        fan_total += energy
+        if {(pose, block, a), (pose, block, b)} & contested:
+            irreducible += energy
+        else:
+            settled += energy
         distance = float((at(pose, block, a) - at(pose, block, b)).norm())
         rows.append(
             (
@@ -108,7 +131,8 @@ def residual_detail(param_db, pose_stack, coords):
         )
     rows.sort(reverse=True)
     worst = "; ".join(f"{text} -> {energy:.3f}" for energy, text in rows[:5])
-    return f"sites {site_total:.3f}, fan {fan_total:.3f}; worst {worst}"
+    detail = f"settled {settled:.3f}, irreducible {irreducible:.3f}; worst {worst}"
+    return settled, irreducible, detail
 
 
 def idealized(param_db, pose_stack):
@@ -221,13 +245,22 @@ def test_kernel_matches_oracle(built, stem, default_database, torch_device):
 
 @pytest.mark.parametrize("stem", LOADABLE)
 def test_ideal_sites_score_zero(built, stem, default_database, torch_device):
+    """Every restraint one atom can satisfy on its own is at rest.
+
+    An atom two restraints pull apart -- a cysteine bridging two metals, a
+    fluoride that is one metal's satisfier and another's donor -- has an ideal
+    position for each and can take only one, so what is left of those is the
+    strain the ideal geometry cannot remove.
+    """
     pose_stack = built(stem, torch_device)
     term = MetalCoordinationEnergyTerm(default_database, torch_device)
     coords, _ = idealized(default_database, pose_stack)
+
+    settled, irreducible, detail = residuals(default_database, pose_stack, coords)
+    assert settled < 1e-6, f"{stem}: {detail}"
+
     score = float(render(term, pose_stack)(coords).sum())
-    assert (
-        score < 1e-6
-    ), f"{stem}: {residual_detail(default_database, pose_stack, coords)}"
+    assert score == pytest.approx(settled + irreducible, abs=1e-6), f"{stem}: {detail}"
 
 
 def test_known_distortions(built, default_database):
