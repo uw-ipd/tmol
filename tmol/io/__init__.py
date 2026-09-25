@@ -98,8 +98,13 @@ from ._write_pose_stack_pdb import (  # noqa: F401
     atom_records_from_pose_stack,
     atom_records_from_coords,
 )
+from ._metal_coordination import (  # noqa: F401
+    add_metal_coordination,
+    remove_metal_coordination,
+)
 
 __all__ = [
+    "add_metal_coordination",
     "atom_array_from_file",
     "Atom37MappingError",
     "CanonicalForm",
@@ -132,6 +137,7 @@ __all__ = [
     "pose_stack_from_file",
     "pose_stack_from_canonical_form_and_context",
     "prepare_atom37_pose_builder",
+    "remove_metal_coordination",
     "pose_stack_from_atom37_and_topology",
     "pose_stack_from_biotite",
     "pose_stack_from_cif",

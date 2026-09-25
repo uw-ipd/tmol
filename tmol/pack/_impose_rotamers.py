@@ -254,6 +254,7 @@ def impose_top_rotamer_assignments(
             chain_labels=orig_pose_stack.pdb_info.chain_labels,
             atom_occupancy=new_atom_occupancy,
             atom_b_factor=new_atom_b_factor,
+            metal_origins=orig_pose_stack.pdb_info.metal_origins,
         )
     else:
         new_pdb_info = orig_pose_stack.pdb_info

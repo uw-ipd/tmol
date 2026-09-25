@@ -11,6 +11,29 @@ from tmol.score.common import (
 from tmol.pose import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 
 
+def left_justify_residue_indices(res_types, rows, res_columns):
+    """Rewrite a pose-indexed table's residue columns to left-justified indices."""
+    is_real = res_types != -1
+    old_2_new = torch.full(
+        res_types.shape, -1, dtype=torch.int64, device=res_types.device
+    )
+    old_2_new[is_real] = torch.cumsum(is_real, dim=1)[is_real] - 1
+    pose_ind = rows[:, 0]
+    rewritten = rows.clone()
+    for column in res_columns:
+        rewritten[:, column] = old_2_new[pose_ind, rows[:, column]]
+        if not bool((rewritten[:, column] >= 0).all()):
+            # old_2_new is -1 where the residue was excised, and torch reads
+            # -1 as the last residue, so an endpoint naming a padded token
+            # would silently attach the bond to an arbitrary real one.
+            missing = rows[rewritten[:, column] < 0][:20].tolist()
+            raise ValueError(
+                "bond endpoints name residues that are not present "
+                f"(pose, ...): {missing}"
+            )
+    return rewritten
+
+
 def left_justify_canonical_form(
     chain_id: Tensor[torch.int32][:, :],
     res_types: Tensor[torch.int32][:, :],
@@ -26,6 +49,7 @@ def left_justify_canonical_form(
     atom_occupancy: Optional[NDArray[float][:, :, :]] = None,
     atom_b_factor: Optional[NDArray[float][:, :, :]] = None,
 ):
+    old_res_types = res_types
     old_res_types_real = res_types != -1
     cinds = condense_torch_inds(old_res_types_real, res_types.device)
     good_cinds = cinds[cinds >= 0].view(-1)
@@ -67,25 +91,7 @@ def left_justify_canonical_form(
         atom_is_present = lj(atom_is_present, 0)
 
     def lj_res_index_list(rows, res_columns):
-        """Rewrite the residue indices of a pose-indexed table in place."""
-        old_2_new = torch.full(
-            res_types.shape, -1, dtype=torch.int64, device=res_types.device
-        )
-        old_2_new[old_res_types_real] = torch.nonzero(res_types != -1)[:, 1]
-        pose_ind = rows[:, 0]
-        rewritten = rows.clone()
-        for column in res_columns:
-            rewritten[:, column] = old_2_new[pose_ind, rows[:, column]]
-            if not bool((rewritten[:, column] >= 0).all()):
-                # old_2_new is -1 where the residue was excised, and torch reads
-                # -1 as the last residue, so an endpoint naming a padded token
-                # would silently attach the bond to an arbitrary real one.
-                missing = rows[rewritten[:, column] < 0][:20].tolist()
-                raise ValueError(
-                    "bond endpoints name residues that are not present "
-                    f"(pose, ...): {missing}"
-                )
-        return rewritten
+        return left_justify_residue_indices(old_res_types, rows, res_columns)
 
     if disulfides is not None:
         disulfides = lj_res_index_list(disulfides, (1, 2))

@@ -12,6 +12,8 @@ tell one hydroxyl of a sugar from another. They are therefore scoped to the one
 residue type they were generated for.
 """
 
+from collections import defaultdict
+
 import attr
 import biotite.structure as struc
 import networkx
@@ -98,16 +100,25 @@ def leaving_atoms(residue_type, atom: str, chemdb, n_leaving: int = 1):
     return tuple(removed)
 
 
-def declared_heavy_leaving_groups(atom_array):
+def declared_heavy_leaving_groups(atom_array, chemdb=None):
     """Absent template-declared groups at connected sites, scoped by residue.
 
     Template-declared groups must be absent. An unobserved terminal carbonyl/phosphoryl O/N
     branch can also be displaced by an explicit attachment. Copies using the
-    same patch must agree on their leaving groups.
+    same patch must agree on their leaving groups. A residue whose type is in
+    ``chemdb`` is read against that type rather than a template: a file tmol
+    wrote defines the component as its bonded form.
     """
-    templates = getattr(atom_array, "_custom_ccd_registry", {})
-    if not templates or atom_array.bonds is None:
+    if atom_array.bonds is None:
         return {}
+    known = _database_heavy_leaving_groups(atom_array, chemdb)
+    templates = {
+        name: template
+        for name, template in getattr(atom_array, "_custom_ccd_registry", {}).items()
+        if chemdb is None or name not in {rt.name for rt in chemdb.residues}
+    }
+    if not templates:
+        return known
     starts = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
     bonds = atom_array.bonds.as_array()[:, :2]
     residues = np.searchsorted(starts, bonds, side="right") - 1
@@ -138,6 +149,45 @@ def declared_heavy_leaving_groups(atom_array):
         )
         removed |= frozenset(absent.get(atom, ())) & set(
             templates[name].atom_name[~np.isin(templates[name].element, ("H", "D"))]
+        )
+        key = (name, atom)
+        if result.setdefault(key, removed) != removed:
+            raise ValueError(f"Incompatible declared leaving groups at {key}")
+    result.update(known)
+    return result
+
+
+def _database_heavy_leaving_groups(atom_array, chemdb):
+    """Terminal heavy atoms a connected site lost, read against database types.
+
+    At each atom bonded to another residue, a heavy atom its database type bonds
+    to it, that has no other heavy neighbor, and that the structure lacks, has
+    left. An unresolved atom is kept by the reader, so it does not count.
+    """
+    if chemdb is None:
+        return {}
+    types = {rt.name: rt for rt in chemdb.residues if rt.name == rt.base_name}
+    element = {at.name: at.element for at in chemdb.atom_types}
+    starts = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
+    bonds = atom_array.bonds.as_array()[:, :2]
+    residues = np.searchsorted(starts, bonds, side="right") - 1
+    result = {}
+    for index in np.unique(bonds[residues[:, 0] != residues[:, 1]]):
+        name, atom = str(atom_array.res_name[index]), str(atom_array.atom_name[index])
+        restype = types.get(name)
+        if restype is None or atom not in {a.name for a in restype.atoms}:
+            continue
+        heavy = {a.name for a in restype.atoms if element[a.atom_type] != "H"}
+        neighbors = defaultdict(set)
+        for a, b, *_ in restype.bonds:
+            neighbors[a].add(b)
+            neighbors[b].add(a)
+        ri = int(np.searchsorted(starts, index, side="right") - 1)
+        present = set(atom_array.atom_name[starts[ri] : starts[ri + 1]])
+        removed = frozenset(
+            n
+            for n in neighbors[atom] & heavy
+            if n not in present and neighbors[n] & heavy == {atom}
         )
         key = (name, atom)
         if result.setdefault(key, removed) != removed:

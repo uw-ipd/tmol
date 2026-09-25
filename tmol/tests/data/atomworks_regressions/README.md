@@ -144,7 +144,8 @@ residues; the regression explicitly accounts for their construction exclusion.
 `phosphate_charge_4js1.cif.gz` retains the complete source with its inconsistent
 formal charge on a double-bonded phosphate oxygen. The shared workflow checks
 phosphate charge conservation, observed coordinates, complete construction,
-scoring, gradients and 100-step minimization through both readers.
+scoring, gradients and 100-step minimization through both readers. The input
+reads as PO4(3-); ligand preparation at pH 7.4 builds it as HPO4(2-).
 
 `chloride_complex_4hbt.cif.gz` is the complete structure, including its bound
 ligand and chloride ion. Both readers construct, score and minimize the full

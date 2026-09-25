@@ -1702,7 +1702,7 @@ def _build_na_profile(chemdb, kind: str) -> Optional[PolymerProfile]:
     ring = _commonest(Counter(rings))
     anchors = (_commonest(anchor_counts),) if anchor_counts else tuple(sorted(ring))
 
-    torsions = _na_backbone_torsions(residues, shared, mainchain)
+    torsions = _na_backbone_torsions(residues, shared, mainchain, element)
     icoors = {r.name: {i.name: i for i in r.icoors} for r in residues}
     reference = residues[0]
     ref_icoors = icoors[reference.name]
@@ -1771,12 +1771,13 @@ def _na_caps(icoors, mainchain, down_atom, up_atom, reference=None):
     )
 
 
-def _na_backbone_torsions(residues, backbone, mainchain):
+def _na_backbone_torsions(residues, backbone, mainchain, element):
     """The canonical torsions that name only backbone atoms and connections.
 
     Everything but the glycosidic one: alpha through zeta and the sugar
     puckers are the same four atoms in every nucleotide, while chi runs into
-    the base and is named per residue.
+    the base and is named per residue. A proton chi, such as the 2'-hydroxyl's,
+    belongs to the residue and is found with its other chi.
     """
 
     def spec(atom):
@@ -1786,9 +1787,12 @@ def _na_backbone_torsions(residues, backbone, mainchain):
 
     out, seen = [], set()
     for residue in residues:
+        types = {a.name: a.atom_type for a in residue.atoms}
         for torsion in residue.torsions:
             atoms = tuple(spec(a) for a in (torsion.a, torsion.b, torsion.c, torsion.d))
             if torsion.name in seen:
+                continue
+            if any(element.get(types.get(a, "")) == "H" for a in atoms):
                 continue
             if not all(a in backbone or ":" in a for a in atoms):
                 continue

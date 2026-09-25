@@ -3,7 +3,7 @@ import attr
 import enum
 
 from tmol.types import NDArray
-from tmol.pose import PoseStack, annotate_packed_block_types_w_dslf_conn_inds
+from tmol.pose import PoseStack, annotate_packed_block_types_w_kinematic_conns
 
 
 class EdgeType(enum.IntEnum):
@@ -15,14 +15,16 @@ class EdgeType(enum.IntEnum):
     chemical = enum.auto()
 
 
-def _build_pose_fold_forest(bti_p, irc_p, up_c, down_c, dslf_c, n_conn, chain_id_p):
+def _build_pose_fold_forest(
+    bti_p, irc_p, up_c, down_c, kinematic_c, n_conn, chain_id_p
+):
     """Build fold forest edges for a single pose from its chemical connectivity.
 
     Backbone (up/down) connections give a disjoint union of simple paths
     (linear chains) and simple cycles (C→N cyclisation).  Every other
-    connection except the disulfide is a chemical bond joining two such
-    chains, and becomes a chemical edge; disulfides are left to close on
-    their own, as they always have.
+    kinematic connection is a chemical bond joining two such chains, and
+    becomes a chemical edge; non-kinematic ones (a disulfide, a metal-ligand
+    bond) are left to close on their own.
 
     poly_succ / poly_pred are built with a vectorised numpy gather:
     for each residue r, r's *up*-conn slot points to the C-terminal neighbour s,
@@ -125,10 +127,18 @@ def _build_pose_fold_forest(bti_p, irc_p, up_c, down_c, dslf_c, n_conn, chain_id
     # ------------------------------------------------------------------
     # Contract each chain to a node and span the chemical bonds between
     # them.  Chemical bonds are the connections that are neither polymeric
-    # nor the disulfide: a glycan on a serine, a ligand on a lysine.
+    # nor non-kinematic: a glycan on a serine, a ligand on a lysine.
     # ------------------------------------------------------------------
     chem_parent = _chemical_spanning_forest(
-        chains, poly_succ_arr, bti_p, irc_p, up_c, down_c, dslf_c, n_conn, real_mask
+        chains,
+        poly_succ_arr,
+        bti_p,
+        irc_p,
+        up_c,
+        down_c,
+        kinematic_c,
+        n_conn,
+        real_mask,
     )
 
     # ------------------------------------------------------------------
@@ -177,12 +187,12 @@ def _build_pose_fold_forest(bti_p, irc_p, up_c, down_c, dslf_c, n_conn, chain_id
 
 
 def _chemical_spanning_forest(
-    chains, poly_succ_arr, bti_p, irc_p, up_c, down_c, dslf_c, n_conn, real_mask
+    chains, poly_succ_arr, bti_p, irc_p, up_c, down_c, kinematic_c, n_conn, real_mask
 ):
     """Which chemical bond, if any, builds each polymer chain.
 
     Each chain is contracted to a node and the bonds between them -- the
-    connections that are neither polymeric nor the disulfide -- are spanned
+    kinematic connections that are not polymeric -- are spanned
     breadth-first from each component's lowest-index chain.  A bond reaching
     an already-visited chain would close a cycle and is dropped; because the
     polymer chains are contracted first, a cycle of mixed polymer and
@@ -203,9 +213,9 @@ def _chemical_spanning_forest(
     for r in numpy.where(real_mask)[0]:
         r = int(r)
         bt = int(bti_p[r])
-        structural = {int(up_c[bt]), int(down_c[bt]), int(dslf_c[bt])}
+        polymer = {int(up_c[bt]), int(down_c[bt])}
         for c in range(int(n_conn[bt])):
-            if c in structural:
+            if c in polymer or not kinematic_c[bt, c]:
                 continue
             partner = int(irc_p[r, c, 0])
             if partner < 0 or not real_mask[partner]:
@@ -293,9 +303,8 @@ class FoldForest:
         between different biological chains produce separate root-jumps.
         Cyclic polymers (C→N cyclisation) are broken at the bond entering
         the lowest-index residue; that bond is dropped to keep the forest
-        a valid tree.  Every remaining connection except the disulfide --
-        a glycan on a serine, a ligand on a lysine -- becomes a chemical
-        edge, so torsions across it propagate downstream; a chemical bond
+        a valid tree.  Every remaining kinematic connection -- a glycan on
+        a serine, a ligand on a lysine -- becomes a chemical edge, so torsions across it propagate downstream; a chemical bond
         that would close a cycle is the one dropped.
         """
         irc = pose_stack.inter_residue_connections.cpu().numpy()
@@ -305,12 +314,12 @@ class FoldForest:
         up_c = pbt.up_conn_inds.cpu().numpy()
         down_c = pbt.down_conn_inds.cpu().numpy()
         n_conn = pbt.n_conn.cpu().numpy()
-        annotate_packed_block_types_w_dslf_conn_inds(pbt)
-        dslf_c = pbt.canonical_dslf_conn_ind.cpu().numpy()
+        annotate_packed_block_types_w_kinematic_conns(pbt)
+        kinematic_c = pbt.kinematic_conn.cpu().numpy()
 
         all_pose_edges = [
             _build_pose_fold_forest(
-                bti[p], irc[p], up_c, down_c, dslf_c, n_conn, chain_id[p]
+                bti[p], irc[p], up_c, down_c, kinematic_c, n_conn, chain_id[p]
             )
             for p in range(pose_stack.n_poses)
         ]

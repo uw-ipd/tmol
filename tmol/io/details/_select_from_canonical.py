@@ -10,7 +10,12 @@ from tmol.types import (
     NDArray,
     validate_args,
 )
-from tmol.chemical import l_base_name
+from tmol.database.chemical import (
+    GEOMETRY_NAMES,
+    METAL_GEOMETRY_VAR_BASE,
+    site_connections,
+    special_case_variant_index,
+)
 from tmol.io import CanonicalOrdering
 from tmol.pose import (
     PackedBlockTypes,
@@ -33,11 +38,17 @@ def assign_block_types(
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
     cyclic_closures64: Optional[Tensor[torch.int64][:, 3]] = None,
     covalent_bonds64: Optional[Tensor[torch.int64][:, 5]] = None,
+    metal_connections: Optional[list] = None,
 ) -> Tuple[
     Tensor[torch.int64][:, :],
     Tensor[torch.int64][:, :, :, 2],
     Tensor[torch.int32][:, :, :, :, :],
 ]:
+    """Choose each residue's block type and wire every inter-residue connection.
+
+    ``metal_connections`` are (pose, metal, site, donor, donor canonical atom):
+    site is the index into the metal's site connections the donor fills.
+    """
     pbt = packed_block_types
     _annotate_packed_block_types_w_canonical_res_order(canonical_ordering, pbt)
     annotate_packed_block_types_w_dslf_conn_inds(pbt)
@@ -101,6 +112,9 @@ def assign_block_types(
     )
     conjugation_conns = _apply_conjugated_variants(
         canonical_ordering, pbt, block_type_ind64, covalent_bonds64
+    )
+    conjugation_conns += _apply_metal_connections(
+        canonical_ordering, pbt, block_type_ind64, metal_connections
     )
 
     # UGH: stealing/duplicating a lot of code from pose_stack_builder below
@@ -905,15 +919,6 @@ def _map_term_to_int(is_down_term, is_up_term):
     return 1
 
 
-def _map_spcase_var_to_int(is_cyd, is_hisd, is_hispos):
-    # spcase == SPecial CASE
-    if is_cyd or is_hisd:
-        return 1
-    if is_hispos:
-        return 2
-    return 0
-
-
 def _term_and_spcase_var_candidate_lists(max_n_term, max_n_spcase):
     candidates = []
     for i in range(max_n_term):
@@ -932,11 +937,6 @@ def _assign_var_inds_for_bt(co, bt):
     bt_is_down_term = is_polymer and bt.down_connection_ind < 0
     bt_is_up_term = is_polymer and bt.up_connection_ind < 0
     bt_is_non_default_term = False
-    # a d-amino acid shares its l form's sidechain states
-    bt_base = l_base_name(bt)
-    bt_is_cyd = bt_base == "CYD"
-    bt_is_hisd = bt_base == "HIS_D"
-    bt_is_hispos = bt_base == "HIS_POS"
     for var_name in bt_vars[1:]:
         if var_name in co.down_termini_patches:
             bt_is_down_term = True
@@ -947,7 +947,7 @@ def _assign_var_inds_for_bt(co, bt):
             if var_name != co.restypes_default_termini_mapping[bt.io_equiv_class][1]:
                 bt_is_non_default_term = True
     term_ind = _map_term_to_int(bt_is_down_term, bt_is_up_term)
-    spcase_var_ind = _map_spcase_var_to_int(bt_is_cyd, bt_is_hisd, bt_is_hispos)
+    spcase_var_ind = special_case_variant_index(bt)
     return term_ind, spcase_var_ind, bt_is_non_default_term
 
 
@@ -1103,9 +1103,8 @@ def _annotate_packed_block_types_w_canonical_res_order(
         return
 
     max_n_termini_types = 4  # 0=down-term, 1=mid, 2=up-term, 3=down+up
-    max_n_special_case_aa_variant_types = (
-        3  # CYS=0, CYD=1; HISE=0, HISD=1; HIS_POS=2; all others, 0
-    )
+    # layout in tmol.database.chemical: sidechain states, then metal geometries
+    max_n_special_case_aa_variant_types = METAL_GEOMETRY_VAR_BASE + len(GEOMETRY_NAMES)
 
     pbt_io_equiv_class_name_set = set(
         [bt.io_equiv_class for bt in pbt.active_block_types]
@@ -1294,7 +1293,7 @@ def _apply_conjugated_variants(  # noqa: C901
         if not atoms:
             continue
         base = bt.name
-        key = (base, frozenset(atoms))
+        key = (base, tuple(sorted(atoms)))
         conjugated = pbt.conjugated_bt_for_base_and_atoms.get(key)
         if conjugated is None:
             raise ValueError(
@@ -1389,33 +1388,119 @@ def _apply_conjugated_variants(  # noqa: C901
     return connections
 
 
+def _apply_metal_connections(
+    canonical_ordering, pbt, block_type_ind64, metal_connections
+):
+    """Swap in each donor's coordinating form and join it to its metal's site.
+
+    Returns the connections as ``(pose, metal, site conn, donor, donor conn)``;
+    the block types are edited in place.
+    """
+    if not metal_connections:
+        return []
+    _annotate_packed_block_types_w_conjugations(pbt)
+    names_for_class = canonical_ordering.restypes_ordered_atom_names
+    block_types = block_type_ind64.cpu().tolist()
+
+    def atom_name(pose, res, atom):
+        bt = pbt.active_block_types[block_types[pose][res]]
+        return names_for_class[bt.io_equiv_class][atom]
+
+    rows = [
+        (int(pose), int(metal), int(site), int(res), int(atom))
+        for pose, metal, site, res, atom in metal_connections
+        if block_types[pose][metal] >= 0 and block_types[pose][res] >= 0
+    ]
+    donated = defaultdict(list)
+    for pose, _, _, res, atom in rows:
+        donated[(pose, res)].append(atom_name(pose, res, atom))
+    for (pose, res), atoms in donated.items():
+        bt_ind = block_types[pose][res]
+        key = (
+            pbt.conjugation_base_for_bt[bt_ind],
+            tuple(sorted((*pbt.conjugation_atoms_for_bt[bt_ind], *atoms))),
+        )
+        coordinating = pbt.conjugated_bt_for_base_and_atoms.get(key)
+        if coordinating is None:
+            raise ValueError(
+                f"no residue type for {pbt.active_block_types[bt_ind].name} "
+                f"coordinating a metal at {sorted(atoms)}"
+            )
+        block_types[pose][res] = coordinating
+
+    connections, filled = [], set()
+    for pose, metal, site, res, atom in rows:
+        metal_bt = pbt.active_block_types[block_types[pose][metal]]
+        donor_bt = pbt.active_block_types[block_types[pose][res]]
+        sites = site_connections(metal_bt)
+        name = atom_name(pose, res, atom)
+        if site >= len(sites):
+            logger.warning(
+                "%s has %d sites; %s %s left uncoordinated",
+                metal_bt.name,
+                len(sites),
+                donor_bt.name,
+                name,
+            )
+            continue
+        # an atom bridging several metals has a connection for each
+        donor_conn = next(
+            i
+            for i, c in enumerate(donor_bt.connections)
+            if c.atom == name and not c.kinematic and (pose, res, i) not in filled
+        )
+        filled.add((pose, res, donor_conn))
+        metal_conn = metal_bt.connection_to_cidx[sites[site]]
+        connections.append((pose, metal, metal_conn, res, donor_conn))
+
+    block_type_ind64.copy_(
+        torch.tensor(block_types, dtype=torch.int64, device=pbt.device)
+    )
+    return connections
+
+
 def _annotate_packed_block_types_w_conjugations(pbt: PackedBlockTypes):
-    """Which connections join a residue to something other than its chain.
+    """Which connections an input bond selects a residue's form by.
 
-    A connection that is neither the polymer up or down nor the disulfide is a
-    conjugation: a glycan on a serine, a ligand on a lysine. Read from the
-    connections themselves, so it holds for a generated component and a patched
-    canonical residue alike.
+    Any connection but the polymer up or down, the disulfide, and a metal's
+    own site connections is an attachment: a glycan on a serine, a ligand on a
+    lysine, a histidine coordinating a metal. The disulfide is chosen on the
+    variant axis instead, and a metal type carries its sites whether filled or
+    not. Read from the connections themselves, so it holds for a generated
+    component and a patched canonical residue alike.
 
-    Annotates, per block type, the atoms its conjugations attach at, and a
-    lookup from (unconjugated name, attachment atoms) to the block type that
-    carries exactly those.
+    Annotates, per block type, the atoms its attachments are at and its name
+    without them, and a lookup from (unattached name, attachment atoms) to the
+    block type that carries exactly those.
     """
     if hasattr(pbt, "conjugation_atoms_for_bt"):
         return
     annotate_packed_block_types_w_dslf_conn_inds(pbt)
     dslf = pbt.canonical_dslf_conn_ind.cpu().numpy()
 
-    atoms_for_bt = []
+    atoms_for_bt, base_for_bt = [], []
     by_base_and_atoms = {}
     contextual = {}
     for i, bt in enumerate(pbt.active_block_types):
         structural = {bt.down_connection_ind, bt.up_connection_ind, int(dslf[i])}
+        structural |= {
+            bt.connection_to_cidx[name]
+            for site in bt.metal_sites
+            for name in site.site_connections
+        }
         conjugations = [
             conn for ind, conn in enumerate(bt.connections) if ind not in structural
         ]
-        atoms = frozenset(conn.atom for conn in conjugations)
+        # a multiset: an atom bridging two metals carries two connections
+        atoms = tuple(sorted(conn.atom for conn in conjugations))
         atoms_for_bt.append(atoms)
+        # the variant tags to drop are the connections' own names
+        tags = {conn.name for conn in conjugations}
+        combined = {"nterm"} if "conj_N" in tags else set()
+        base = ":".join(
+            part for part in bt.name.split(":") if part not in tags | combined
+        )
+        base_for_bt.append(base)
         if bt.conjugation_context:
             from tmol.ligand._conjugate_context import CONTEXT_PREFIX
 
@@ -1424,14 +1509,9 @@ def _annotate_packed_block_types_w_conjugations(pbt: PackedBlockTypes):
             )
             contextual.setdefault(source, {})[bt.conjugation_context] = i
             continue
-        # the variant tags to drop are the connections' own names
-        tags = {conn.name for conn in conjugations}
-        combined = {"nterm"} if "conj_N" in tags else set()
-        base = ":".join(
-            part for part in bt.name.split(":") if part not in tags | combined
-        )
         by_base_and_atoms[(base, atoms)] = i
 
     setattr(pbt, "conjugation_atoms_for_bt", atoms_for_bt)
+    setattr(pbt, "conjugation_base_for_bt", base_for_bt)
     setattr(pbt, "conjugated_bt_for_base_and_atoms", by_base_and_atoms)
     setattr(pbt, "contextual_conjugates", contextual)

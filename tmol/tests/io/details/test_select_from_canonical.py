@@ -484,7 +484,7 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
         co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
     )
 
-    inter_res_conn_gold = numpy.full((1, 12, 3, 2), -1, dtype=numpy.int64)
+    inter_res_conn_gold = numpy.full((1, 12, pbt.max_n_conn, 2), -1, dtype=numpy.int64)
 
     def p(x, y):
         return numpy.array([x, y], dtype=numpy.int64)
@@ -1129,20 +1129,21 @@ def test_select_best_block_type_candidate_error_impossible_combo(
         co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
     )
 
-    expected_err_msg = """failed to resolve a block type from the candidates available
+    bt_ind = {bt.name: i for i, bt in enumerate(pbt.active_block_types)}
+    expected_err_msg = f"""failed to resolve a block type from the candidates available
  Failed to resolve block type for 0 19 SER
- 0 19 0 72 SER restype 15 equiv class SER
+ 0 19 0 {bt_ind["SER"]} SER restype 15 equiv class SER
   atom P provided but absent from candidate SER
   atom M provided but absent from candidate SER
  Failed to resolve block type for 0 19 SER
- 0 19 1 75 SER:phospho restype 15 equiv class SER
+ 0 19 1 {bt_ind["SER:phospho"]} SER:phospho restype 15 equiv class SER
   atom HG provided but absent from candidate SER:phospho
   atom M provided but absent from candidate SER:phospho
   atom OP1 missing but present in candidate SER:phospho
   atom OP2 missing but present in candidate SER:phospho
   atom OP3 missing but present in candidate SER:phospho
  Failed to resolve block type for 0 19 SER
- 0 19 2 76 SER:mospho restype 15 equiv class SER
+ 0 19 2 {bt_ind["SER:mospho"]} SER:mospho restype 15 equiv class SER
   atom HG provided but absent from candidate SER:mospho
   atom P provided but absent from candidate SER:mospho
   atom OM1 missing but present in candidate SER:mospho

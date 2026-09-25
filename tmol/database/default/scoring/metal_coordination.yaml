@@ -1,0 +1,22 @@
+# Parameters for the metal_coordination term.
+#
+# Each occupied site restrains its donor onto the ray from the metal through
+# the site's virtual: a harmonic on the metal-donor distance about its ideal
+# d0 (chemical/metals.yaml) and on the donor's displacement off the ray.
+# Energy per site is ((r - d0) / radial_sd)^2 + (off_ray / lateral_sd)^2 +
+# well depth. The fan term holds metal-virtual and virtual-virtual separations
+# at ideal. Well depths are provisional.
+
+global_parameters:
+  radial_sd: 0.20
+  lateral_sd: 0.40
+  fan_sd: 0.05
+
+# per-ion width overrides, keyed by the metal's atom type:
+#   - { atom_type: Zn2p, radial_sd: 0.15, lateral_sd: 0.30 }
+ions: []
+
+# well depth per filled site, kcal/mol, keyed by metal atom type and donor
+# (a key of donor_radii in chemical/metals.yaml); absent pairs are 0:
+#   - { atom_type: Zn2p, donor: S, depth: -10.0 }
+well_depths: []
