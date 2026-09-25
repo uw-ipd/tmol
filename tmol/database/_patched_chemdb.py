@@ -672,6 +672,20 @@ def _patch_preserves_torsion_support(res, variant, namemap, deleted):
 # returns:
 #    newreses - list of new residues produced by the patch (currently only support for 1)
 #    newmarked - updated list of modified atoms in new residue
+# marks an atom a patch created, as against one it modified
+CREATED = "+"
+
+
+def _only_adds_connections(variant):
+    return bool(variant.add_connections) and not (
+        variant.add_atoms
+        or variant.remove_atoms
+        or variant.modify_atoms
+        or variant.add_bonds
+        or variant.icoors
+    )
+
+
 def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
     added, modded, deleted = get_modified_atoms(variant)
     assert len(modded) + len(deleted) > 0, (
@@ -705,8 +719,14 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
             if j in deleted and i not in deleted:
                 modded.append(i)
 
-        # 0. check if we've already modified any of these atoms
-        if set(modded) & set(newmark):
+        # 0. check if we've already modified any of these atoms; a patch that
+        #    only adds connections may attach to an atom another patch created
+        blocking = {
+            x[1:] if x.startswith(CREATED) else x
+            for x in newmark
+            if not (x.startswith(CREATED) and _only_adds_connections(variant))
+        }
+        if set(modded) & blocking:
             continue
 
         # a patch cannot delete an atom a connection it keeps sits on
@@ -787,12 +807,12 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
         # 6. update modified atoms
         # a) directly modified/added
         newmark.extend(modded)
-        newmark.extend(added)
+        newmark.extend(CREATED + a for a in added)
 
         # b) bonded to deleted atoms
 
         # c) removed atoms
-        newmark = list(filter(lambda x: x not in deleted, newmark))
+        newmark = [x for x in newmark if x.removeprefix(CREATED) not in deleted]
 
         newreses.append(newres)
         newmarked.append(newmark)

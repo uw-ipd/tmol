@@ -738,10 +738,19 @@ class PoseStackBuilder:
         chain_labels = numpy.full((n_poses, max_n_blocks), "", dtype=object)
         atom_occupancy = numpy.full((n_poses, max_n_atoms), 1.0, dtype=numpy.float32)
         atom_b_factor = numpy.full((n_poses, max_n_atoms), 0.0, dtype=numpy.float32)
+        metal_origins = (
+            numpy.full((n_poses, max_n_blocks), None, dtype=object)
+            if any(ps.pdb_info.metal_origins is not None for ps in pose_stacks)
+            else None
+        )
 
         for i, pose_stack in enumerate(pose_stacks):
             offset = ps_offsets[i]
             i_nblocks = pose_stack.pdb_info.residue_labels.shape[1]
+            if pose_stack.pdb_info.metal_origins is not None:
+                metal_origins[offset : (offset + len(pose_stack)), :i_nblocks] = (
+                    pose_stack.pdb_info.metal_origins
+                )
             residue_labels[offset : (offset + len(pose_stack)), :i_nblocks] = (
                 pose_stack.pdb_info.residue_labels
             )
@@ -764,6 +773,7 @@ class PoseStackBuilder:
             chain_labels=chain_labels,
             atom_occupancy=atom_occupancy,
             atom_b_factor=atom_b_factor,
+            metal_origins=metal_origins,
         )
 
     @classmethod

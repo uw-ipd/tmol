@@ -54,7 +54,7 @@ class MetalCoordinationPoseScoreOp
       // custom params
       Tensor pose_stack_inter_block_connections,
       Tensor conn_atom,
-      Tensor metal_atom,
+      Tensor conn_metal,
       Tensor conn_virt,
       Tensor conn_key,
       Tensor site_params,
@@ -96,7 +96,7 @@ class MetalCoordinationPoseScoreOp
 
                   TCAST(pose_stack_inter_block_connections),
                   TCAST(conn_atom),
-                  TCAST(metal_atom),
+                  TCAST(conn_metal),
                   TCAST(conn_virt),
                   TCAST(conn_key),
                   TCAST(site_params),
@@ -130,7 +130,7 @@ class MetalCoordinationPoseScoreOp
 
            pose_stack_inter_block_connections,
            conn_atom,
-           metal_atom,
+           conn_metal,
            conn_virt,
            conn_key,
            site_params,
@@ -185,7 +185,7 @@ class MetalCoordinationPoseScoreOp
 
       auto pose_stack_inter_block_connections = saved[i++];
       auto conn_atom = saved[i++];
-      auto metal_atom = saved[i++];
+      auto conn_metal = saved[i++];
       auto conn_virt = saved[i++];
       auto conn_key = saved[i++];
       auto site_params = saved[i++];
@@ -225,7 +225,7 @@ class MetalCoordinationPoseScoreOp
 
                     TCAST(pose_stack_inter_block_connections),
                     TCAST(conn_atom),
-                    TCAST(metal_atom),
+                    TCAST(conn_metal),
                     TCAST(conn_virt),
                     TCAST(conn_key),
                     TCAST(site_params),
@@ -297,7 +297,7 @@ class MetalCoordinationRotamerScoreOp
       // custom params
       Tensor pose_stack_inter_block_connections,
       Tensor conn_atom,
-      Tensor metal_atom,
+      Tensor conn_metal,
       Tensor conn_virt,
       Tensor conn_key,
       Tensor site_params,
@@ -341,7 +341,7 @@ class MetalCoordinationRotamerScoreOp
 
                   TCAST(pose_stack_inter_block_connections),
                   TCAST(conn_atom),
-                  TCAST(metal_atom),
+                  TCAST(conn_metal),
                   TCAST(conn_virt),
                   TCAST(conn_key),
                   TCAST(site_params),
@@ -377,7 +377,7 @@ class MetalCoordinationRotamerScoreOp
 
            pose_stack_inter_block_connections,
            conn_atom,
-           metal_atom,
+           conn_metal,
            conn_virt,
            conn_key,
            site_params,
@@ -438,7 +438,7 @@ class MetalCoordinationRotamerScoreOp
 
       auto pose_stack_inter_block_connections = saved[i++];
       auto conn_atom = saved[i++];
-      auto metal_atom = saved[i++];
+      auto conn_metal = saved[i++];
       auto conn_virt = saved[i++];
       auto conn_key = saved[i++];
       auto site_params = saved[i++];
@@ -481,7 +481,7 @@ class MetalCoordinationRotamerScoreOp
 
                     TCAST(pose_stack_inter_block_connections),
                     TCAST(conn_atom),
-                    TCAST(metal_atom),
+                    TCAST(conn_metal),
                     TCAST(conn_virt),
                     TCAST(conn_key),
                     TCAST(site_params),
@@ -548,7 +548,7 @@ std::vector<Tensor> metal_coordination_pose_scores_op(
     // custom params
     Tensor pose_stack_inter_block_connections,
     Tensor conn_atom,
-    Tensor metal_atom,
+    Tensor conn_metal,
     Tensor conn_virt,
     Tensor conn_key,
     Tensor site_params,
@@ -577,7 +577,7 @@ std::vector<Tensor> metal_coordination_pose_scores_op(
       // custom params
       pose_stack_inter_block_connections,
       conn_atom,
-      metal_atom,
+      conn_metal,
       conn_virt,
       conn_key,
       site_params,
@@ -611,7 +611,7 @@ std::vector<Tensor> metal_coordination_rotamer_scores_op(
     // custom params
     Tensor pose_stack_inter_block_connections,
     Tensor conn_atom,
-    Tensor metal_atom,
+    Tensor conn_metal,
     Tensor conn_virt,
     Tensor conn_key,
     Tensor site_params,
@@ -640,7 +640,7 @@ std::vector<Tensor> metal_coordination_rotamer_scores_op(
       // custom params
       pose_stack_inter_block_connections,
       conn_atom,
-      metal_atom,
+      conn_metal,
       conn_virt,
       conn_key,
       site_params,

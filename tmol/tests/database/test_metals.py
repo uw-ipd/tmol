@@ -1,9 +1,16 @@
+import os
 from types import SimpleNamespace
 
 import pytest
+from yaml import safe_load
 
 import tmol.database
-from tmol.database.chemical import GEOMETRY_SITE_COUNT, Connection, MetalSite
+from tmol.database.chemical import (
+    GEOMETRY_SITE_COUNT,
+    Connection,
+    MetalSite,
+    is_metal_cluster,
+)
 from tmol.database._patched_chemdb import _validate_raw_residue_metal_sites
 
 # The supported set, chosen against PDB entry counts. Asserted exactly so that
@@ -115,7 +122,7 @@ def test_only_deprotonated_thiol_and_phenol_donate(
     default_database: tmol.database.ParameterDatabase,
 ):
     # the thiolate and phenolate coordinate; the protonated forms do not, so a
-    # coordinating cysteine or tyrosine is built as CYS_D or TYR_D
+    # coordinating cysteine or tyrosine is built as CYS_DEP or TYR_DEP
     donors = donor_names(default_database)
     assert "Sthio" in donors and "OOC" in donors
     assert "SH1" not in donors
@@ -148,12 +155,17 @@ def test_water_donates_when_it_is_present(
     assert "Owat" in donor_names(default_database)
 
 
-def test_metal_donors_are_oxygen_nitrogen_or_sulfur(
+def test_metal_donors_are_plausible_elements(
     default_database: tmol.database.ParameterDatabase,
 ):
     for at in default_database.chemical.atom_types:
         if at.is_metal_donor:
-            assert at.element in ("O", "N", "S"), f"{at.name} is an implausible donor"
+            assert at.element in (
+                "O",
+                "N",
+                "S",
+                "F",
+            ), f"{at.name} is an implausible donor"
 
 
 def test_metals_are_not_donors(default_database: tmol.database.ParameterDatabase):
@@ -284,10 +296,6 @@ def test_untemplated_geometry_is_not_budget_checked():
 
 
 def geometry_table():
-    import os
-
-    from yaml import safe_load
-
     path = os.path.join(
         os.path.dirname(tmol.database.__file__), "default", "chemical", "metals.yaml"
     )
@@ -324,6 +332,8 @@ def test_metal_ion_ideal_coords_rebuild_their_polyhedra(default_restype_set):
     for restype in default_restype_set.residue_types:
         if not restype.metal_sites or not restype.metal_sites[0].site_virts:
             continue
+        if is_metal_cluster(restype):
+            continue
         site = restype.metal_sites[0]
         target = vertices[site.geometry]
         if len(target) < 2:
@@ -349,7 +359,8 @@ def test_metal_ion_block_types_are_loaded(
 ):
     metal_types = {at.name for at in metal_types_list(default_database)}
     by_name = {r.name: r for r in default_database.chemical.residues}
-    generated = [r for r in default_database.chemical.residues if r.metal_sites]
+    ions = generated_ion_names()
+    generated = [r for r in default_database.chemical.residues if r.name in ions]
     assert generated, "no generated metal ion residue types were loaded"
 
     for res in generated:
@@ -377,6 +388,45 @@ def metal_types_list(db):
     return [at for at in db.chemical.atom_types if at.is_metal]
 
 
+def generated_ion_names():
+    return {
+        f"{i['name3']}_{g}" for i in geometry_table()["ions"] for g in i["geometries"]
+    }
+
+
+def generated_cluster_names():
+    path = os.path.join(
+        os.path.dirname(tmol.database.__file__),
+        "default",
+        "chemical",
+        "metal_clusters.yaml",
+    )
+    with open(path) as infile:
+        return {r["name"] for r in safe_load(infile)["residues"]}
+
+
+def test_metal_cluster_block_types_are_loaded(
+    default_database: tmol.database.ParameterDatabase,
+):
+    # each metal's own atoms and its free sites together fill its geometry
+    metal_types = {at.name for at in metal_types_list(default_database)}
+    clusters = [
+        r
+        for r in default_database.chemical.residues
+        if r.name in generated_cluster_names()
+    ]
+    assert {"SF4", "FES", "F3S"} <= {r.name for r in clusters}
+    for res in clusters:
+        types = {a.name: a.atom_type for a in res.atoms}
+        connections = {c.name: c for c in res.connections}
+        for site in res.metal_sites:
+            assert types[site.metal_atom] in metal_types
+            assert len(site.site_virts) == site.n_free_sites
+            assert len(site.site_connections) == site.n_free_sites
+            for name in site.site_connections:
+                assert connections[name].atom == site.metal_atom
+
+
 def test_every_metal_atom_has_a_zero_elec_charge(
     default_database: tmol.database.ParameterDatabase,
 ):
@@ -398,10 +448,9 @@ def test_existing_residues_declare_no_metal_sites(
 ):
     # regression guard for the schema addition: the field is optional, and
     # nothing in the hand-maintained database has gained one by accident. The
-    # generated ion types are the only residues that may declare sites.
-    generated = {
-        f"{i['name3']}_{g}" for i in geometry_table()["ions"] for g in i["geometries"]
-    }
+    # generated ion and cluster types are the only residues that may declare
+    # sites.
+    generated = generated_ion_names() | generated_cluster_names()
     for res in default_database.chemical.residues:
         if res.name in generated:
             continue

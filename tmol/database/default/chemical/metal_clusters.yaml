@@ -1,0 +1,1935 @@
+residues:
+- name: SF4
+  base_name: SF4
+  name3: SF4
+  io_equiv_class: SF4
+  atoms:
+  - {name: FE1, atom_type: Fe2p}
+  - {name: FE2, atom_type: Fe2p}
+  - {name: FE3, atom_type: Fe2p}
+  - {name: FE4, atom_type: Fe2p}
+  - {name: S1, atom_type: Sthio}
+  - {name: S2, atom_type: Sthio}
+  - {name: S3, atom_type: Sthio}
+  - {name: S4, atom_type: Sthio}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [FE1, S2, SINGLE, false]
+  - [FE1, S3, SINGLE, false]
+  - [FE1, S4, SINGLE, false]
+  - [FE2, S1, SINGLE, false]
+  - [FE2, S3, SINGLE, false]
+  - [FE2, S4, SINGLE, false]
+  - [FE3, S1, SINGLE, false]
+  - [FE3, S2, SINGLE, false]
+  - [FE3, S4, SINGLE, false]
+  - [FE4, S1, SINGLE, false]
+  - [FE4, S2, SINGLE, false]
+  - [FE4, S3, SINGLE, false]
+  - [FE1, V1, SINGLE, false]
+  - [FE2, V2, SINGLE, false]
+  - [FE3, V3, SINGLE, false]
+  - [FE4, V4, SINGLE, false]
+  connections:
+  - {name: site1, atom: FE1, type: SINGLE, kinematic: false}
+  - {name: site2, atom: FE2, type: SINGLE, kinematic: false}
+  - {name: site3, atom: FE3, type: SINGLE, kinematic: false}
+  - {name: site4, atom: FE4, type: SINGLE, kinematic: false}
+  torsions: []
+  icoors:
+  - {name: FE1, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: FE1, grand_parent: S2,
+    great_grand_parent: S3}
+  - {name: S2, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.365066, parent: FE1,
+    grand_parent: S2, great_grand_parent: S3}
+  - {name: S3, phi: 0.000000 deg, theta: 75.333352 deg, d: 2.398375, parent: FE1,
+    grand_parent: S2, great_grand_parent: S3}
+  - {name: S4, phi: -111.556643 deg, theta: 73.470560 deg, d: 2.342216, parent: FE1,
+    grand_parent: S2, great_grand_parent: S3}
+  - {name: FE3, phi: 97.363035 deg, theta: 109.066315 deg, d: 2.321719, parent: S2,
+    grand_parent: FE1, great_grand_parent: S3}
+  - {name: FE4, phi: 20.090837 deg, theta: 107.069887 deg, d: 2.279067, parent: S2,
+    grand_parent: FE1, great_grand_parent: S3}
+  - {name: FE2, phi: -94.162779 deg, theta: 111.358186 deg, d: 2.453818, parent: S3,
+    grand_parent: FE1, great_grand_parent: S2}
+  - {name: S1, phi: -96.418992 deg, theta: 74.601406 deg, d: 2.321179, parent: FE3,
+    grand_parent: S2, great_grand_parent: FE1}
+  - {name: V1, phi: 123.805192 deg, theta: 66.888468 deg, d: 2.307, parent: FE1, grand_parent: S2,
+    great_grand_parent: S3}
+  - {name: V2, phi: -143.025815 deg, theta: 67.589633 deg, d: 2.307, parent: FE2,
+    grand_parent: S3, great_grand_parent: FE1}
+  - {name: V3, phi: 139.560500 deg, theta: 67.475836 deg, d: 2.307, parent: FE3, grand_parent: S2,
+    great_grand_parent: FE1}
+  - {name: V4, phi: -143.612440 deg, theta: 67.032964 deg, d: 2.307, parent: FE4,
+    grand_parent: S2, great_grand_parent: FE1}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: [V1, V2, V3, V4]
+  chi_samples: []
+  default_jump_connection_atom: FE1
+  metal_sites:
+  - metal_atom: FE1
+    geometry: tetrahedral
+    internal_satisfiers: [S2, S3, S4]
+    site_virts: [V1]
+    site_connections: [site1]
+  - metal_atom: FE2
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S3, S4]
+    site_virts: [V2]
+    site_connections: [site2]
+  - metal_atom: FE3
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S2, S4]
+    site_virts: [V3]
+    site_connections: [site3]
+  - metal_atom: FE4
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S2, S3]
+    site_virts: [V4]
+    site_connections: [site4]
+- name: FES
+  base_name: FES
+  name3: FES
+  io_equiv_class: FES
+  atoms:
+  - {name: FE1, atom_type: Fe2p}
+  - {name: FE2, atom_type: Fe2p}
+  - {name: S1, atom_type: Sthio}
+  - {name: S2, atom_type: Sthio}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [FE1, S1, SINGLE, false]
+  - [FE1, S2, SINGLE, false]
+  - [FE2, S1, SINGLE, false]
+  - [FE2, S2, SINGLE, false]
+  - [FE1, V1, SINGLE, false]
+  - [FE1, V2, SINGLE, false]
+  - [FE2, V3, SINGLE, false]
+  - [FE2, V4, SINGLE, false]
+  connections:
+  - {name: site1, atom: FE1, type: SINGLE, kinematic: false}
+  - {name: site2, atom: FE1, type: SINGLE, kinematic: false}
+  - {name: site3, atom: FE2, type: SINGLE, kinematic: false}
+  - {name: site4, atom: FE2, type: SINGLE, kinematic: false}
+  torsions: []
+  icoors:
+  - {name: FE1, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: FE1, grand_parent: S1,
+    great_grand_parent: S2}
+  - {name: S1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.195611, parent: FE1,
+    grand_parent: S1, great_grand_parent: S2}
+  - {name: S2, phi: 0.000000 deg, theta: 96.571126 deg, d: 2.195611, parent: FE1,
+    grand_parent: S1, great_grand_parent: S2}
+  - {name: FE2, phi: 29.865732 deg, theta: 91.578396 deg, d: 2.195611, parent: S1,
+    grand_parent: FE1, great_grand_parent: S2}
+  - {name: V1, phi: -115.198012 deg, theta: 64.470550 deg, d: 2.307, parent: FE1,
+    grand_parent: S1, great_grand_parent: S2}
+  - {name: V2, phi: 115.198012 deg, theta: 64.470550 deg, d: 2.307, parent: FE1, grand_parent: S1,
+    great_grand_parent: S2}
+  - {name: V3, phi: 85.332280 deg, theta: 64.470550 deg, d: 2.307, parent: FE2, grand_parent: S1,
+    great_grand_parent: FE1}
+  - {name: V4, phi: -145.063745 deg, theta: 64.470550 deg, d: 2.307, parent: FE2,
+    grand_parent: S1, great_grand_parent: FE1}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: [V1, V2, V3, V4]
+  chi_samples: []
+  default_jump_connection_atom: FE1
+  metal_sites:
+  - metal_atom: FE1
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S2]
+    site_virts: [V1, V2]
+    site_connections: [site1, site2]
+  - metal_atom: FE2
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S2]
+    site_virts: [V3, V4]
+    site_connections: [site3, site4]
+- name: F3S
+  base_name: F3S
+  name3: F3S
+  io_equiv_class: F3S
+  atoms:
+  - {name: FE1, atom_type: Fe2p}
+  - {name: FE3, atom_type: Fe2p}
+  - {name: FE4, atom_type: Fe2p}
+  - {name: S1, atom_type: Sthio}
+  - {name: S2, atom_type: Sthio}
+  - {name: S3, atom_type: Sthio}
+  - {name: S4, atom_type: Sthio}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [FE1, S1, SINGLE, false]
+  - [FE1, S2, SINGLE, false]
+  - [FE1, S3, SINGLE, false]
+  - [FE3, S1, SINGLE, false]
+  - [FE3, S3, SINGLE, false]
+  - [FE3, S4, SINGLE, false]
+  - [FE4, S2, SINGLE, false]
+  - [FE4, S3, SINGLE, false]
+  - [FE4, S4, SINGLE, false]
+  - [FE1, V1, SINGLE, false]
+  - [FE3, V2, SINGLE, false]
+  - [FE4, V3, SINGLE, false]
+  connections:
+  - {name: site1, atom: FE1, type: SINGLE, kinematic: false}
+  - {name: site2, atom: FE3, type: SINGLE, kinematic: false}
+  - {name: site3, atom: FE4, type: SINGLE, kinematic: false}
+  torsions: []
+  icoors:
+  - {name: FE1, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: FE1, grand_parent: S1,
+    great_grand_parent: S2}
+  - {name: S1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.208089, parent: FE1,
+    grand_parent: S1, great_grand_parent: S2}
+  - {name: S2, phi: 0.000000 deg, theta: 33.156079 deg, d: 2.208356, parent: FE1,
+    grand_parent: S1, great_grand_parent: S2}
+  - {name: S3, phi: 66.583099 deg, theta: 96.738368 deg, d: 2.193739, parent: FE1,
+    grand_parent: S1, great_grand_parent: S2}
+  - {name: FE3, phi: -36.303055 deg, theta: 92.080440 deg, d: 2.20788, parent: S1,
+    grand_parent: FE1, great_grand_parent: S2}
+  - {name: FE4, phi: 36.306559 deg, theta: 92.063783 deg, d: 2.20763, parent: S2,
+    grand_parent: FE1, great_grand_parent: S1}
+  - {name: S4, phi: 36.358108 deg, theta: 33.105110 deg, d: 2.207851, parent: FE3,
+    grand_parent: S1, great_grand_parent: FE1}
+  - {name: V1, phi: -170.782058 deg, theta: 73.625569 deg, d: 2.307, parent: FE1,
+    grand_parent: S1, great_grand_parent: S2}
+  - {name: V2, phi: -152.890920 deg, theta: 73.650320 deg, d: 2.307, parent: FE3,
+    grand_parent: S1, great_grand_parent: FE1}
+  - {name: V3, phi: 152.903536 deg, theta: 73.635472 deg, d: 2.307, parent: FE4, grand_parent: S2,
+    great_grand_parent: FE1}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: [V1, V2, V3]
+  chi_samples: []
+  default_jump_connection_atom: FE1
+  metal_sites:
+  - metal_atom: FE1
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S2, S3]
+    site_virts: [V1]
+    site_connections: [site1]
+  - metal_atom: FE3
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S3, S4]
+    site_virts: [V2]
+    site_connections: [site2]
+  - metal_atom: FE4
+    geometry: tetrahedral
+    internal_satisfiers: [S2, S3, S4]
+    site_virts: [V3]
+    site_connections: [site3]
+- name: CLF
+  base_name: CLF
+  name3: CLF
+  io_equiv_class: CLF
+  atoms:
+  - {name: FE1, atom_type: Fe2p}
+  - {name: FE2, atom_type: Fe2p}
+  - {name: FE3, atom_type: Fe2p}
+  - {name: FE4, atom_type: Fe2p}
+  - {name: S1, atom_type: Sthio}
+  - {name: S2A, atom_type: Sthio}
+  - {name: S4A, atom_type: Sthio}
+  - {name: S3A, atom_type: Sthio}
+  - {name: FE5, atom_type: Fe2p}
+  - {name: FE6, atom_type: Fe2p}
+  - {name: FE7, atom_type: Fe2p}
+  - {name: FE8, atom_type: Fe2p}
+  - {name: S2B, atom_type: Sthio}
+  - {name: S3B, atom_type: Sthio}
+  - {name: S4B, atom_type: Sthio}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  - {name: V6, atom_type: Vrt}
+  - {name: V7, atom_type: Vrt}
+  - {name: V8, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [FE1, S1, SINGLE, false]
+  - [FE1, S2A, SINGLE, false]
+  - [FE1, S3A, SINGLE, false]
+  - [FE2, S1, SINGLE, false]
+  - [FE2, S2A, SINGLE, false]
+  - [FE2, S4A, SINGLE, false]
+  - [FE3, S2A, SINGLE, false]
+  - [FE3, S4A, SINGLE, false]
+  - [FE3, S3A, SINGLE, false]
+  - [FE4, S1, SINGLE, false]
+  - [FE4, S4A, SINGLE, false]
+  - [FE4, S3A, SINGLE, false]
+  - [S1, FE5, SINGLE, false]
+  - [S1, FE6, SINGLE, false]
+  - [S1, FE8, SINGLE, false]
+  - [FE5, S2B, SINGLE, false]
+  - [FE5, S4B, SINGLE, false]
+  - [FE6, S2B, SINGLE, false]
+  - [FE6, S3B, SINGLE, false]
+  - [FE7, S2B, SINGLE, false]
+  - [FE7, S3B, SINGLE, false]
+  - [FE7, S4B, SINGLE, false]
+  - [FE8, S3B, SINGLE, false]
+  - [FE8, S4B, SINGLE, false]
+  - [FE1, V1, SINGLE, false]
+  - [FE2, V2, SINGLE, false]
+  - [FE3, V3, SINGLE, false]
+  - [FE4, V4, SINGLE, false]
+  - [FE5, V5, SINGLE, false]
+  - [FE6, V6, SINGLE, false]
+  - [FE7, V7, SINGLE, false]
+  - [FE8, V8, SINGLE, false]
+  connections:
+  - {name: site1, atom: FE1, type: SINGLE, kinematic: false}
+  - {name: site2, atom: FE2, type: SINGLE, kinematic: false}
+  - {name: site3, atom: FE3, type: SINGLE, kinematic: false}
+  - {name: site4, atom: FE4, type: SINGLE, kinematic: false}
+  - {name: site5, atom: FE5, type: SINGLE, kinematic: false}
+  - {name: site6, atom: FE6, type: SINGLE, kinematic: false}
+  - {name: site7, atom: FE7, type: SINGLE, kinematic: false}
+  - {name: site8, atom: FE8, type: SINGLE, kinematic: false}
+  torsions: []
+  icoors:
+  - {name: FE1, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: FE1, grand_parent: S1,
+    great_grand_parent: S2A}
+  - {name: S1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.402846, parent: FE1,
+    grand_parent: S1, great_grand_parent: S2A}
+  - {name: S2A, phi: 0.000000 deg, theta: 64.233286 deg, d: 2.315261, parent: FE1,
+    grand_parent: S1, great_grand_parent: S2A}
+  - {name: S3A, phi: -115.914806 deg, theta: 72.762922 deg, d: 2.270081, parent: FE1,
+    grand_parent: S1, great_grand_parent: S2A}
+  - {name: FE2, phi: 16.964410 deg, theta: 118.758694 deg, d: 2.490262, parent: S1,
+    grand_parent: FE1, great_grand_parent: S2A}
+  - {name: FE4, phi: 89.503796 deg, theta: 116.488935 deg, d: 2.391286, parent: S1,
+    grand_parent: FE1, great_grand_parent: S2A}
+  - {name: FE5, phi: 86.090993 deg, theta: 42.287819 deg, d: 2.426275, parent: S1,
+    grand_parent: FE1, great_grand_parent: S2A}
+  - {name: FE6, phi: -122.865847 deg, theta: 22.277842 deg, d: 2.503518, parent: S1,
+    grand_parent: FE1, great_grand_parent: S2A}
+  - {name: FE8, phi: -3.525764 deg, theta: 49.670043 deg, d: 2.484896, parent: S1,
+    grand_parent: FE1, great_grand_parent: S2A}
+  - {name: FE3, phi: -96.190112 deg, theta: 106.074138 deg, d: 2.322997, parent: S2A,
+    grand_parent: FE1, great_grand_parent: S1}
+  - {name: S4A, phi: 96.884141 deg, theta: 72.696536 deg, d: 2.273531, parent: FE2,
+    grand_parent: S1, great_grand_parent: FE1}
+  - {name: S2B, phi: 147.295634 deg, theta: 66.999794 deg, d: 2.317653, parent: FE5,
+    grand_parent: S1, great_grand_parent: FE1}
+  - {name: S4B, phi: -94.995476 deg, theta: 69.036576 deg, d: 2.252888, parent: FE5,
+    grand_parent: S1, great_grand_parent: FE1}
+  - {name: S3B, phi: 108.967604 deg, theta: 68.722787 deg, d: 2.357431, parent: FE6,
+    grand_parent: S1, great_grand_parent: FE1}
+  - {name: FE7, phi: 101.670155 deg, theta: 106.020389 deg, d: 2.361133, parent: S2B,
+    grand_parent: FE5, great_grand_parent: S1}
+  - {name: V1, phi: 123.700341 deg, theta: 71.145148 deg, d: 2.307, parent: FE1, grand_parent: S1,
+    great_grand_parent: S2A}
+  - {name: V2, phi: -141.072917 deg, theta: 69.950082 deg, d: 2.307, parent: FE2,
+    grand_parent: S1, great_grand_parent: FE1}
+  - {name: V3, phi: -145.709307 deg, theta: 63.886923 deg, d: 2.307, parent: FE3,
+    grand_parent: S2A, great_grand_parent: FE1}
+  - {name: V4, phi: 146.210026 deg, theta: 70.859784 deg, d: 2.307, parent: FE4, grand_parent: S1,
+    great_grand_parent: FE1}
+  - {name: V5, phi: 25.769729 deg, theta: 71.648744 deg, d: 2.307, parent: FE5, grand_parent: S1,
+    great_grand_parent: FE1}
+  - {name: V6, phi: -14.756020 deg, theta: 70.212515 deg, d: 2.307, parent: FE6, grand_parent: S1,
+    great_grand_parent: FE1}
+  - {name: V7, phi: 143.894510 deg, theta: 63.378414 deg, d: 2.307, parent: FE7, grand_parent: S2B,
+    great_grand_parent: FE5}
+  - {name: V8, phi: -15.060453 deg, theta: 70.862071 deg, d: 2.307, parent: FE8, grand_parent: S1,
+    great_grand_parent: FE1}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: [V1, V2, V3, V4, V5, V6, V7, V8]
+  chi_samples: []
+  default_jump_connection_atom: FE1
+  metal_sites:
+  - metal_atom: FE1
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S2A, S3A]
+    site_virts: [V1]
+    site_connections: [site1]
+  - metal_atom: FE2
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S2A, S4A]
+    site_virts: [V2]
+    site_connections: [site2]
+  - metal_atom: FE3
+    geometry: tetrahedral
+    internal_satisfiers: [S2A, S4A, S3A]
+    site_virts: [V3]
+    site_connections: [site3]
+  - metal_atom: FE4
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S4A, S3A]
+    site_virts: [V4]
+    site_connections: [site4]
+  - metal_atom: FE5
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S2B, S4B]
+    site_virts: [V5]
+    site_connections: [site5]
+  - metal_atom: FE6
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S2B, S3B]
+    site_virts: [V6]
+    site_connections: [site6]
+  - metal_atom: FE7
+    geometry: tetrahedral
+    internal_satisfiers: [S2B, S3B, S4B]
+    site_virts: [V7]
+    site_connections: [site7]
+  - metal_atom: FE8
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S3B, S4B]
+    site_virts: [V8]
+    site_connections: [site8]
+- name: 1CL
+  base_name: 1CL
+  name3: 1CL
+  io_equiv_class: 1CL
+  atoms:
+  - {name: S1, atom_type: Sthio}
+  - {name: FE1, atom_type: Fe2p}
+  - {name: FE2, atom_type: Fe2p}
+  - {name: FE3, atom_type: Fe2p}
+  - {name: FE4, atom_type: Fe2p}
+  - {name: FE5, atom_type: Fe2p}
+  - {name: FE6, atom_type: Fe2p}
+  - {name: FE7, atom_type: Fe2p}
+  - {name: FE8, atom_type: Fe2p}
+  - {name: S2A, atom_type: Sthio}
+  - {name: S2B, atom_type: Sthio}
+  - {name: S3A, atom_type: Sthio}
+  - {name: S3B, atom_type: Sthio}
+  - {name: S4A, atom_type: Sthio}
+  - {name: S4B, atom_type: Sthio}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  - {name: V6, atom_type: Vrt}
+  - {name: V7, atom_type: Vrt}
+  - {name: V8, atom_type: Vrt}
+  - {name: V9, atom_type: Vrt}
+  - {name: V10, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [S1, FE1, SINGLE, false]
+  - [S1, FE2, SINGLE, false]
+  - [S1, FE4, SINGLE, false]
+  - [S1, FE8, SINGLE, false]
+  - [FE1, S2A, SINGLE, false]
+  - [FE1, S3A, SINGLE, false]
+  - [FE2, S2A, SINGLE, false]
+  - [FE2, S4A, SINGLE, false]
+  - [FE3, S2A, SINGLE, false]
+  - [FE3, S3A, SINGLE, false]
+  - [FE3, S4A, SINGLE, false]
+  - [FE4, S3A, SINGLE, false]
+  - [FE4, S4A, SINGLE, false]
+  - [FE5, S2B, SINGLE, false]
+  - [FE5, S4B, SINGLE, false]
+  - [FE6, S2B, SINGLE, false]
+  - [FE6, S3B, SINGLE, false]
+  - [FE7, S2B, SINGLE, false]
+  - [FE7, S3B, SINGLE, false]
+  - [FE7, S4B, SINGLE, false]
+  - [FE8, S3B, SINGLE, false]
+  - [FE8, S4B, SINGLE, false]
+  - [FE1, V1, SINGLE, false]
+  - [FE2, V2, SINGLE, false]
+  - [FE3, V3, SINGLE, false]
+  - [FE4, V4, SINGLE, false]
+  - [FE5, V5, SINGLE, false]
+  - [FE5, V6, SINGLE, false]
+  - [FE6, V7, SINGLE, false]
+  - [FE6, V8, SINGLE, false]
+  - [FE7, V9, SINGLE, false]
+  - [FE8, V10, SINGLE, false]
+  connections:
+  - {name: site1, atom: FE1, type: SINGLE, kinematic: false}
+  - {name: site2, atom: FE2, type: SINGLE, kinematic: false}
+  - {name: site3, atom: FE3, type: SINGLE, kinematic: false}
+  - {name: site4, atom: FE4, type: SINGLE, kinematic: false}
+  - {name: site5, atom: FE5, type: SINGLE, kinematic: false}
+  - {name: site6, atom: FE5, type: SINGLE, kinematic: false}
+  - {name: site7, atom: FE6, type: SINGLE, kinematic: false}
+  - {name: site8, atom: FE6, type: SINGLE, kinematic: false}
+  - {name: site9, atom: FE7, type: SINGLE, kinematic: false}
+  - {name: site10, atom: FE8, type: SINGLE, kinematic: false}
+  torsions: []
+  icoors:
+  - {name: FE1, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: FE1, grand_parent: S1,
+    great_grand_parent: S2A}
+  - {name: S1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.389298, parent: FE1,
+    grand_parent: S1, great_grand_parent: S2A}
+  - {name: S2A, phi: 0.000000 deg, theta: 64.607974 deg, d: 2.307616, parent: FE1,
+    grand_parent: S1, great_grand_parent: S2A}
+  - {name: S3A, phi: -111.681799 deg, theta: 74.301768 deg, d: 2.310695, parent: FE1,
+    grand_parent: S1, great_grand_parent: S2A}
+  - {name: FE2, phi: 15.396215 deg, theta: 117.798818 deg, d: 2.483661, parent: S1,
+    grand_parent: FE1, great_grand_parent: S2A}
+  - {name: FE4, phi: 86.887463 deg, theta: 112.955227 deg, d: 2.3659, parent: S1,
+    grand_parent: FE1, great_grand_parent: S2A}
+  - {name: FE8, phi: -6.778178 deg, theta: 45.440699 deg, d: 2.346015, parent: S1,
+    grand_parent: FE1, great_grand_parent: S2A}
+  - {name: FE3, phi: -94.442722 deg, theta: 105.105393 deg, d: 2.290529, parent: S2A,
+    grand_parent: FE1, great_grand_parent: S1}
+  - {name: S4A, phi: 96.919441 deg, theta: 71.679061 deg, d: 2.276843, parent: FE2,
+    grand_parent: S1, great_grand_parent: FE1}
+  - {name: S3B, phi: -132.982330 deg, theta: 57.472915 deg, d: 2.283284, parent: FE8,
+    grand_parent: S1, great_grand_parent: FE1}
+  - {name: S4B, phi: 102.241379 deg, theta: 66.746356 deg, d: 2.323835, parent: FE8,
+    grand_parent: S1, great_grand_parent: FE1}
+  - {name: FE6, phi: -36.682780 deg, theta: 88.798572 deg, d: 2.33012, parent: S3B,
+    grand_parent: FE8, great_grand_parent: S1}
+  - {name: FE7, phi: -109.475416 deg, theta: 106.543354 deg, d: 2.31992, parent: S3B,
+    grand_parent: FE8, great_grand_parent: S1}
+  - {name: FE5, phi: 41.054720 deg, theta: 84.691747 deg, d: 2.310239, parent: S4B,
+    grand_parent: FE8, great_grand_parent: S1}
+  - {name: S2B, phi: -63.988357 deg, theta: 75.083102 deg, d: 2.329561, parent: FE6,
+    grand_parent: S3B, great_grand_parent: FE8}
+  - {name: V1, phi: 126.218499 deg, theta: 69.965669 deg, d: 2.307, parent: FE1, grand_parent: S1,
+    great_grand_parent: S2A}
+  - {name: V2, phi: -139.925796 deg, theta: 69.793640 deg, d: 2.307, parent: FE2,
+    grand_parent: S1, great_grand_parent: FE1}
+  - {name: V3, phi: -144.772084 deg, theta: 64.646456 deg, d: 2.307, parent: FE3,
+    grand_parent: S2A, great_grand_parent: FE1}
+  - {name: V4, phi: 146.554900 deg, theta: 69.822032 deg, d: 2.307, parent: FE4, grand_parent: S1,
+    great_grand_parent: FE1}
+  - {name: V5, phi: -57.611354 deg, theta: 69.007422 deg, d: 2.307, parent: FE5, grand_parent: S4B,
+    great_grand_parent: FE8}
+  - {name: V6, phi: -179.593166 deg, theta: 69.007422 deg, d: 2.307, parent: FE5,
+    grand_parent: S4B, great_grand_parent: FE8}
+  - {name: V7, phi: 55.289824 deg, theta: 69.402509 deg, d: 2.307, parent: FE6, grand_parent: S3B,
+    great_grand_parent: FE8}
+  - {name: V8, phi: 176.733461 deg, theta: 69.402509 deg, d: 2.307, parent: FE6, grand_parent: S3B,
+    great_grand_parent: FE8}
+  - {name: V9, phi: -145.499553 deg, theta: 65.725743 deg, d: 2.307, parent: FE7,
+    grand_parent: S3B, great_grand_parent: FE8}
+  - {name: V10, phi: -14.016637 deg, theta: 76.241664 deg, d: 2.307, parent: FE8,
+    grand_parent: S1, great_grand_parent: FE1}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: [V1, V2, V3, V4, V5, V6, V7, V8, V9, V10]
+  chi_samples: []
+  default_jump_connection_atom: FE1
+  metal_sites:
+  - metal_atom: FE1
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S2A, S3A]
+    site_virts: [V1]
+    site_connections: [site1]
+  - metal_atom: FE2
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S2A, S4A]
+    site_virts: [V2]
+    site_connections: [site2]
+  - metal_atom: FE3
+    geometry: tetrahedral
+    internal_satisfiers: [S2A, S3A, S4A]
+    site_virts: [V3]
+    site_connections: [site3]
+  - metal_atom: FE4
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S3A, S4A]
+    site_virts: [V4]
+    site_connections: [site4]
+  - metal_atom: FE5
+    geometry: tetrahedral
+    internal_satisfiers: [S2B, S4B]
+    site_virts: [V5, V6]
+    site_connections: [site5, site6]
+  - metal_atom: FE6
+    geometry: tetrahedral
+    internal_satisfiers: [S2B, S3B]
+    site_virts: [V7, V8]
+    site_connections: [site7, site8]
+  - metal_atom: FE7
+    geometry: tetrahedral
+    internal_satisfiers: [S2B, S3B, S4B]
+    site_virts: [V9]
+    site_connections: [site9]
+  - metal_atom: FE8
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S3B, S4B]
+    site_virts: [V10]
+    site_connections: [site10]
+- name: SF3
+  base_name: SF3
+  name3: SF3
+  io_equiv_class: SF3
+  atoms:
+  - {name: FE1, atom_type: Fe2p}
+  - {name: FE3, atom_type: Fe2p}
+  - {name: FE4, atom_type: Fe2p}
+  - {name: FE7, atom_type: Fe2p}
+  - {name: S1, atom_type: Sthio}
+  - {name: S2, atom_type: Sthio}
+  - {name: S3, atom_type: Sthio}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  - {name: V6, atom_type: Vrt}
+  - {name: V7, atom_type: Vrt}
+  - {name: V8, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [FE1, S1, SINGLE, false]
+  - [FE1, S2, SINGLE, false]
+  - [FE1, S3, SINGLE, false]
+  - [FE3, S1, SINGLE, false]
+  - [FE3, S3, SINGLE, false]
+  - [FE4, S2, SINGLE, false]
+  - [FE4, S3, SINGLE, false]
+  - [FE7, S2, SINGLE, false]
+  - [FE1, V1, SINGLE, false]
+  - [FE3, V2, SINGLE, false]
+  - [FE3, V3, SINGLE, false]
+  - [FE4, V4, SINGLE, false]
+  - [FE4, V5, SINGLE, false]
+  - [FE7, V6, SINGLE, false]
+  - [FE7, V7, SINGLE, false]
+  - [FE7, V8, SINGLE, false]
+  connections:
+  - {name: site1, atom: FE1, type: SINGLE, kinematic: false}
+  - {name: site2, atom: FE3, type: SINGLE, kinematic: false}
+  - {name: site3, atom: FE3, type: SINGLE, kinematic: false}
+  - {name: site4, atom: FE4, type: SINGLE, kinematic: false}
+  - {name: site5, atom: FE4, type: SINGLE, kinematic: false}
+  - {name: site6, atom: FE7, type: SINGLE, kinematic: false}
+  - {name: site7, atom: FE7, type: SINGLE, kinematic: false}
+  - {name: site8, atom: FE7, type: SINGLE, kinematic: false}
+  torsions: []
+  icoors:
+  - {name: FE1, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: FE1, grand_parent: S1,
+    great_grand_parent: S2}
+  - {name: S1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.194412, parent: FE1,
+    grand_parent: S1, great_grand_parent: S2}
+  - {name: S2, phi: 0.000000 deg, theta: 7.726328 deg, d: 2.192851, parent: FE1, grand_parent: S1,
+    great_grand_parent: S2}
+  - {name: S3, phi: -1.746962 deg, theta: 93.889464 deg, d: 2.196728, parent: FE1,
+    grand_parent: S1, great_grand_parent: S2}
+  - {name: FE3, phi: -27.145804 deg, theta: 93.749491 deg, d: 2.193232, parent: S1,
+    grand_parent: FE1, great_grand_parent: S2}
+  - {name: FE4, phi: -30.650108 deg, theta: 93.759812 deg, d: 2.194062, parent: S2,
+    grand_parent: FE1, great_grand_parent: S1}
+  - {name: FE7, phi: 149.334037 deg, theta: 89.983933 deg, d: 2.190544, parent: S2,
+    grand_parent: FE1, great_grand_parent: S1}
+  - {name: V1, phi: -115.040892 deg, theta: 88.359583 deg, d: 2.307, parent: FE1,
+    grand_parent: S1, great_grand_parent: S2}
+  - {name: V2, phi: -86.856244 deg, theta: 65.070652 deg, d: 2.307, parent: FE3, grand_parent: S1,
+    great_grand_parent: FE1}
+  - {name: V3, phi: 144.725722 deg, theta: 65.070652 deg, d: 2.307, parent: FE3, grand_parent: S1,
+    great_grand_parent: FE1}
+  - {name: V4, phi: 144.729904 deg, theta: 65.067892 deg, d: 2.307, parent: FE4, grand_parent: S2,
+    great_grand_parent: FE1}
+  - {name: V5, phi: -86.846753 deg, theta: 65.067892 deg, d: 2.307, parent: FE4, grand_parent: S2,
+    great_grand_parent: FE1}
+  - {name: V6, phi: 177.256192 deg, theta: 70.528779 deg, d: 2.307, parent: FE7, grand_parent: S2,
+    great_grand_parent: FE1}
+  - {name: V7, phi: 57.256192 deg, theta: 70.528779 deg, d: 2.307, parent: FE7, grand_parent: S2,
+    great_grand_parent: FE1}
+  - {name: V8, phi: -62.743808 deg, theta: 70.528779 deg, d: 2.307, parent: FE7, grand_parent: S2,
+    great_grand_parent: FE1}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: [V1, V2, V3, V4, V5, V6, V7, V8]
+  chi_samples: []
+  default_jump_connection_atom: FE1
+  metal_sites:
+  - metal_atom: FE1
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S2, S3]
+    site_virts: [V1]
+    site_connections: [site1]
+  - metal_atom: FE3
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S3]
+    site_virts: [V2, V3]
+    site_connections: [site2, site3]
+  - metal_atom: FE4
+    geometry: tetrahedral
+    internal_satisfiers: [S2, S3]
+    site_virts: [V4, V5]
+    site_connections: [site4, site5]
+  - metal_atom: FE7
+    geometry: tetrahedral
+    internal_satisfiers: [S2]
+    site_virts: [V6, V7, V8]
+    site_connections: [site6, site7, site8]
+- name: F4S
+  base_name: F4S
+  name3: F4S
+  io_equiv_class: F4S
+  atoms:
+  - {name: S1, atom_type: Sthio}
+  - {name: FE1, atom_type: Fe2p}
+  - {name: S2, atom_type: Sthio}
+  - {name: FE2, atom_type: Fe2p}
+  - {name: S3, atom_type: Sthio}
+  - {name: FE3, atom_type: Fe2p}
+  - {name: FE4, atom_type: Fe2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  - {name: V6, atom_type: Vrt}
+  - {name: V7, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [S1, FE1, SINGLE, false]
+  - [S1, FE2, SINGLE, false]
+  - [S1, FE4, SINGLE, false]
+  - [FE1, S2, SINGLE, false]
+  - [S2, FE2, SINGLE, false]
+  - [S2, FE3, SINGLE, false]
+  - [FE2, S3, SINGLE, false]
+  - [S3, FE3, SINGLE, false]
+  - [S3, FE4, SINGLE, false]
+  - [FE1, V1, SINGLE, false]
+  - [FE1, V2, SINGLE, false]
+  - [FE2, V3, SINGLE, false]
+  - [FE3, V4, SINGLE, false]
+  - [FE3, V5, SINGLE, false]
+  - [FE4, V6, SINGLE, false]
+  - [FE4, V7, SINGLE, false]
+  connections:
+  - {name: site1, atom: FE1, type: SINGLE, kinematic: false}
+  - {name: site2, atom: FE1, type: SINGLE, kinematic: false}
+  - {name: site3, atom: FE2, type: SINGLE, kinematic: false}
+  - {name: site4, atom: FE3, type: SINGLE, kinematic: false}
+  - {name: site5, atom: FE3, type: SINGLE, kinematic: false}
+  - {name: site6, atom: FE4, type: SINGLE, kinematic: false}
+  - {name: site7, atom: FE4, type: SINGLE, kinematic: false}
+  torsions: []
+  icoors:
+  - {name: FE1, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: FE1, grand_parent: S1,
+    great_grand_parent: S2}
+  - {name: S1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.288019, parent: FE1,
+    grand_parent: S1, great_grand_parent: S2}
+  - {name: S2, phi: 0.000000 deg, theta: 74.010981 deg, d: 2.265885, parent: FE1,
+    grand_parent: S1, great_grand_parent: S2}
+  - {name: FE2, phi: -23.491793 deg, theta: 110.766590 deg, d: 2.278912, parent: S1,
+    grand_parent: FE1, great_grand_parent: S2}
+  - {name: FE4, phi: -106.460381 deg, theta: 108.519570 deg, d: 2.279313, parent: S1,
+    grand_parent: FE1, great_grand_parent: S2}
+  - {name: FE3, phi: 90.267910 deg, theta: 79.025610 deg, d: 2.292016, parent: S2,
+    grand_parent: FE1, great_grand_parent: S1}
+  - {name: S3, phi: -83.564637 deg, theta: 76.874602 deg, d: 2.268615, parent: FE2,
+    grand_parent: S1, great_grand_parent: FE1}
+  - {name: V1, phi: -119.452540 deg, theta: 69.665383 deg, d: 2.307, parent: FE1,
+    grand_parent: S1, great_grand_parent: S2}
+  - {name: V2, phi: 119.452540 deg, theta: 69.665383 deg, d: 2.307, parent: FE1, grand_parent: S1,
+    great_grand_parent: S2}
+  - {name: V3, phi: 150.528506 deg, theta: 65.560596 deg, d: 2.307, parent: FE2, grand_parent: S1,
+    great_grand_parent: FE1}
+  - {name: V4, phi: -158.375880 deg, theta: 68.489332 deg, d: 2.307, parent: FE3,
+    grand_parent: S2, great_grand_parent: FE1}
+  - {name: V5, phi: 78.910073 deg, theta: 68.489332 deg, d: 2.307, parent: FE3, grand_parent: S2,
+    great_grand_parent: FE1}
+  - {name: V6, phi: -160.626049 deg, theta: 68.613864 deg, d: 2.307, parent: FE4,
+    grand_parent: S1, great_grand_parent: FE1}
+  - {name: V7, phi: -38.090820 deg, theta: 68.613864 deg, d: 2.307, parent: FE4, grand_parent: S1,
+    great_grand_parent: FE1}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: [V1, V2, V3, V4, V5, V6, V7]
+  chi_samples: []
+  default_jump_connection_atom: FE1
+  metal_sites:
+  - metal_atom: FE1
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S2]
+    site_virts: [V1, V2]
+    site_connections: [site1, site2]
+  - metal_atom: FE2
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S2, S3]
+    site_virts: [V3]
+    site_connections: [site3]
+  - metal_atom: FE3
+    geometry: tetrahedral
+    internal_satisfiers: [S2, S3]
+    site_virts: [V4, V5]
+    site_connections: [site4, site5]
+  - metal_atom: FE4
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S3]
+    site_virts: [V6, V7]
+    site_connections: [site6, site7]
+- name: 9S8
+  base_name: 9S8
+  name3: 9S8
+  io_equiv_class: 9S8
+  atoms:
+  - {name: S1, atom_type: Sthio}
+  - {name: FE2, atom_type: Fe2p}
+  - {name: S3, atom_type: Sthio}
+  - {name: FE4, atom_type: Fe2p}
+  - {name: S5, atom_type: Sthio}
+  - {name: FE6, atom_type: Fe2p}
+  - {name: S7, atom_type: Sthio}
+  - {name: FE9, atom_type: Fe2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  - {name: V6, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [S1, FE2, SINGLE, false]
+  - [S1, FE4, SINGLE, false]
+  - [S1, FE9, SINGLE, false]
+  - [FE2, S3, SINGLE, false]
+  - [S3, FE4, SINGLE, false]
+  - [FE4, S5, SINGLE, false]
+  - [FE4, S7, SINGLE, false]
+  - [S5, FE6, SINGLE, false]
+  - [FE6, S7, SINGLE, false]
+  - [S7, FE9, SINGLE, false]
+  - [FE2, V1, SINGLE, false]
+  - [FE2, V2, SINGLE, false]
+  - [FE6, V3, SINGLE, false]
+  - [FE6, V4, SINGLE, false]
+  - [FE9, V5, SINGLE, false]
+  - [FE9, V6, SINGLE, false]
+  connections:
+  - {name: site1, atom: FE2, type: SINGLE, kinematic: false}
+  - {name: site2, atom: FE2, type: SINGLE, kinematic: false}
+  - {name: site3, atom: FE6, type: SINGLE, kinematic: false}
+  - {name: site4, atom: FE6, type: SINGLE, kinematic: false}
+  - {name: site5, atom: FE9, type: SINGLE, kinematic: false}
+  - {name: site6, atom: FE9, type: SINGLE, kinematic: false}
+  torsions: []
+  icoors:
+  - {name: FE2, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: FE2, grand_parent: S1,
+    great_grand_parent: S3}
+  - {name: S1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.144431, parent: FE2,
+    grand_parent: S1, great_grand_parent: S3}
+  - {name: S3, phi: 0.000000 deg, theta: 110.774398 deg, d: 2.245341, parent: FE2,
+    grand_parent: S1, great_grand_parent: S3}
+  - {name: FE4, phi: 30.050255 deg, theta: 74.080408 deg, d: 2.129025, parent: S1,
+    grand_parent: FE2, great_grand_parent: S3}
+  - {name: FE9, phi: 119.782459 deg, theta: 60.531998 deg, d: 2.155027, parent: S1,
+    grand_parent: FE2, great_grand_parent: S3}
+  - {name: S5, phi: -152.808581 deg, theta: 107.957973 deg, d: 2.246669, parent: FE4,
+    grand_parent: S1, great_grand_parent: FE2}
+  - {name: S7, phi: 135.031984 deg, theta: 83.545991 deg, d: 2.139934, parent: FE4,
+    grand_parent: S1, great_grand_parent: FE2}
+  - {name: FE6, phi: -117.712008 deg, theta: 81.284302 deg, d: 2.22517, parent: S5,
+    grand_parent: FE4, great_grand_parent: S1}
+  - {name: V1, phi: -111.883167 deg, theta: 61.629923 deg, d: 2.307, parent: FE2,
+    grand_parent: S1, great_grand_parent: S3}
+  - {name: V2, phi: 111.883167 deg, theta: 61.629923 deg, d: 2.307, parent: FE2, grand_parent: S1,
+    great_grand_parent: S3}
+  - {name: V3, phi: -97.732420 deg, theta: 62.936177 deg, d: 2.307, parent: FE6, grand_parent: S5,
+    great_grand_parent: FE4}
+  - {name: V4, phi: 129.314562 deg, theta: 62.936177 deg, d: 2.307, parent: FE6, grand_parent: S5,
+    great_grand_parent: FE4}
+  - {name: V5, phi: 122.246924 deg, theta: 67.067443 deg, d: 2.307, parent: FE9, grand_parent: S1,
+    great_grand_parent: FE2}
+  - {name: V6, phi: -2.643075 deg, theta: 67.067443 deg, d: 2.307, parent: FE9, grand_parent: S1,
+    great_grand_parent: FE2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: [V1, V2, V3, V4, V5, V6]
+  chi_samples: []
+  default_jump_connection_atom: FE2
+  metal_sites:
+  - metal_atom: FE2
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S3]
+    site_virts: [V1, V2]
+    site_connections: [site1, site2]
+  - metal_atom: FE4
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S3, S5, S7]
+    site_virts: []
+    site_connections: []
+  - metal_atom: FE6
+    geometry: tetrahedral
+    internal_satisfiers: [S5, S7]
+    site_virts: [V3, V4]
+    site_connections: [site3, site4]
+  - metal_atom: FE9
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S7]
+    site_virts: [V5, V6]
+    site_connections: [site5, site6]
+- name: MGF
+  base_name: MGF
+  name3: MGF
+  io_equiv_class: MGF
+  atoms:
+  - {name: F1, atom_type: F}
+  - {name: MG, atom_type: Mg2p}
+  - {name: F2, atom_type: F}
+  - {name: F3, atom_type: F}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [F1, MG, SINGLE, false]
+  - [MG, F2, SINGLE, false]
+  - [MG, F3, SINGLE, false]
+  - [MG, V1, SINGLE, false]
+  - [MG, V2, SINGLE, false]
+  connections:
+  - {name: site1, atom: MG, type: SINGLE, kinematic: false}
+  - {name: site2, atom: MG, type: SINGLE, kinematic: false}
+  torsions: []
+  icoors:
+  - {name: MG, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: MG, grand_parent: F1,
+    great_grand_parent: F2}
+  - {name: F1, phi: 0.000000 deg, theta: 180.000000 deg, d: 1.790163, parent: MG,
+    grand_parent: F1, great_grand_parent: F2}
+  - {name: F2, phi: 0.000000 deg, theta: 59.991318 deg, d: 1.790114, parent: MG, grand_parent: F1,
+    great_grand_parent: F2}
+  - {name: F3, phi: 179.667347 deg, theta: 60.003396 deg, d: 1.789896, parent: MG,
+    grand_parent: F1, great_grand_parent: F2}
+  - {name: V1, phi: -90.166347 deg, theta: 89.903977 deg, d: 2.073, parent: MG, grand_parent: F1,
+    great_grand_parent: F2}
+  - {name: V2, phi: 89.833653 deg, theta: 90.096023 deg, d: 2.073, parent: MG, grand_parent: F1,
+    great_grand_parent: F2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: [V1, V2]
+  chi_samples: []
+  default_jump_connection_atom: MG
+  metal_sites:
+  - metal_atom: MG
+    geometry: trigonal_bipyramidal
+    internal_satisfiers: [F1, F2, F3]
+    site_virts: [V1, V2]
+    site_connections: [site1, site2]
+- name: MF4
+  base_name: MF4
+  name3: MF4
+  io_equiv_class: MF4
+  atoms:
+  - {name: MG, atom_type: Mg2p}
+  - {name: F1, atom_type: F}
+  - {name: F2, atom_type: F}
+  - {name: F3, atom_type: F}
+  - {name: F4, atom_type: F}
+  atom_aliases: []
+  bonds:
+  - [MG, F1, SINGLE, false]
+  - [MG, F2, SINGLE, false]
+  - [MG, F3, SINGLE, false]
+  - [MG, F4, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: MG, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: MG, grand_parent: F1,
+    great_grand_parent: F2}
+  - {name: F1, phi: 0.000000 deg, theta: 180.000000 deg, d: 1.790121, parent: MG,
+    grand_parent: F1, great_grand_parent: F2}
+  - {name: F2, phi: 0.000000 deg, theta: 70.487483 deg, d: 1.790121, parent: MG, grand_parent: F1,
+    great_grand_parent: F2}
+  - {name: F3, phi: 119.987352 deg, theta: 70.549424 deg, d: 1.790121, parent: MG,
+    grand_parent: F1, great_grand_parent: F2}
+  - {name: F4, phi: -119.987352 deg, theta: 70.549424 deg, d: 1.790121, parent: MG,
+    grand_parent: F1, great_grand_parent: F2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: []
+  chi_samples: []
+  default_jump_connection_atom: MG
+  metal_sites:
+  - metal_atom: MG
+    geometry: tetrahedral
+    internal_satisfiers: [F1, F2, F3, F4]
+    site_virts: []
+    site_connections: []
+- name: NCO
+  base_name: NCO
+  name3: NCO
+  io_equiv_class: NCO
+  atoms:
+  - {name: CO, atom_type: Co3p}
+  - {name: N1, atom_type: Nlys}
+  - {name: N2, atom_type: Nlys}
+  - {name: N3, atom_type: Nlys}
+  - {name: N4, atom_type: Nlys}
+  - {name: N5, atom_type: Nlys}
+  - {name: N6, atom_type: Nlys}
+  - {name: HN11, atom_type: Hpol}
+  - {name: HN12, atom_type: Hpol}
+  - {name: HN13, atom_type: Hpol}
+  - {name: HN21, atom_type: Hpol}
+  - {name: HN22, atom_type: Hpol}
+  - {name: HN23, atom_type: Hpol}
+  - {name: HN31, atom_type: Hpol}
+  - {name: HN32, atom_type: Hpol}
+  - {name: HN33, atom_type: Hpol}
+  - {name: HN41, atom_type: Hpol}
+  - {name: HN42, atom_type: Hpol}
+  - {name: HN43, atom_type: Hpol}
+  - {name: HN51, atom_type: Hpol}
+  - {name: HN52, atom_type: Hpol}
+  - {name: HN53, atom_type: Hpol}
+  - {name: HN61, atom_type: Hpol}
+  - {name: HN62, atom_type: Hpol}
+  - {name: HN63, atom_type: Hpol}
+  atom_aliases: []
+  bonds:
+  - [CO, N1, SINGLE, false]
+  - [CO, N2, SINGLE, false]
+  - [CO, N3, SINGLE, false]
+  - [CO, N4, SINGLE, false]
+  - [CO, N5, SINGLE, false]
+  - [CO, N6, SINGLE, false]
+  - [N1, HN11, SINGLE, false]
+  - [N1, HN12, SINGLE, false]
+  - [N1, HN13, SINGLE, false]
+  - [N2, HN21, SINGLE, false]
+  - [N2, HN22, SINGLE, false]
+  - [N2, HN23, SINGLE, false]
+  - [N3, HN31, SINGLE, false]
+  - [N3, HN32, SINGLE, false]
+  - [N3, HN33, SINGLE, false]
+  - [N4, HN41, SINGLE, false]
+  - [N4, HN42, SINGLE, false]
+  - [N4, HN43, SINGLE, false]
+  - [N5, HN51, SINGLE, false]
+  - [N5, HN52, SINGLE, false]
+  - [N5, HN53, SINGLE, false]
+  - [N6, HN61, SINGLE, false]
+  - [N6, HN62, SINGLE, false]
+  - [N6, HN63, SINGLE, false]
+  connections: []
+  torsions: []
+  icoors:
+  - {name: CO, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: CO, grand_parent: N1,
+    great_grand_parent: N2}
+  - {name: N1, phi: 0.000000 deg, theta: 180.000000 deg, d: 1.809773, parent: CO,
+    grand_parent: N1, great_grand_parent: N2}
+  - {name: N2, phi: 0.000000 deg, theta: 0.000000 deg, d: 1.809773, parent: CO, grand_parent: N1,
+    great_grand_parent: N2}
+  - {name: N3, phi: 0.000000 deg, theta: 89.991134 deg, d: 1.810343, parent: CO, grand_parent: N1,
+    great_grand_parent: N2}
+  - {name: N4, phi: 0.000000 deg, theta: 89.976803 deg, d: 1.809684, parent: CO, grand_parent: N1,
+    great_grand_parent: N2}
+  - {name: N5, phi: 0.000000 deg, theta: 90.008866 deg, d: 1.810343, parent: CO, grand_parent: N1,
+    great_grand_parent: N2}
+  - {name: N6, phi: 0.000000 deg, theta: 90.023197 deg, d: 1.809684, parent: CO, grand_parent: N1,
+    great_grand_parent: N2}
+  - {name: HN11, phi: 0.000000 deg, theta: 70.525744 deg, d: 1.008675, parent: N1,
+    grand_parent: CO, great_grand_parent: N2}
+  - {name: HN12, phi: 0.000000 deg, theta: 70.460499 deg, d: 1.008577, parent: N1,
+    grand_parent: CO, great_grand_parent: N2}
+  - {name: HN13, phi: 0.000000 deg, theta: 70.584561 deg, d: 1.009913, parent: N1,
+    grand_parent: CO, great_grand_parent: N2}
+  - {name: HN21, phi: 0.000000 deg, theta: 70.568161 deg, d: 1.009886, parent: N2,
+    grand_parent: CO, great_grand_parent: N1}
+  - {name: HN22, phi: 0.000000 deg, theta: 70.515247 deg, d: 1.008858, parent: N2,
+    grand_parent: CO, great_grand_parent: N1}
+  - {name: HN23, phi: 0.000000 deg, theta: 70.487210 deg, d: 1.00841, parent: N2,
+    grand_parent: CO, great_grand_parent: N1}
+  - {name: HN31, phi: 164.982994 deg, theta: 70.568292 deg, d: 1.009042, parent: N3,
+    grand_parent: CO, great_grand_parent: N1}
+  - {name: HN32, phi: -75.017837 deg, theta: 70.544865 deg, d: 1.008524, parent: N3,
+    grand_parent: CO, great_grand_parent: N1}
+  - {name: HN33, phi: 45.045917 deg, theta: 70.525001 deg, d: 1.008874, parent: N3,
+    grand_parent: CO, great_grand_parent: N1}
+  - {name: HN41, phi: 104.979614 deg, theta: 70.509349 deg, d: 1.00853, parent: N4,
+    grand_parent: CO, great_grand_parent: N1}
+  - {name: HN42, phi: -134.960012 deg, theta: 70.498550 deg, d: 1.009516, parent: N4,
+    grand_parent: CO, great_grand_parent: N1}
+  - {name: HN43, phi: -14.973292 deg, theta: 70.553633 deg, d: 1.00965, parent: N4,
+    grand_parent: CO, great_grand_parent: N1}
+  - {name: HN51, phi: 165.017818 deg, theta: 70.539102 deg, d: 1.008973, parent: N5,
+    grand_parent: CO, great_grand_parent: N1}
+  - {name: HN52, phi: -75.001948 deg, theta: 70.528891 deg, d: 1.008928, parent: N5,
+    grand_parent: CO, great_grand_parent: N1}
+  - {name: HN53, phi: 45.007039 deg, theta: 70.569525 deg, d: 1.009258, parent: N5,
+    grand_parent: CO, great_grand_parent: N1}
+  - {name: HN61, phi: -15.038473 deg, theta: 70.525102 deg, d: 1.008602, parent: N6,
+    grand_parent: CO, great_grand_parent: N1}
+  - {name: HN62, phi: 104.999421 deg, theta: 70.509652 deg, d: 1.009579, parent: N6,
+    grand_parent: CO, great_grand_parent: N1}
+  - {name: HN63, phi: -135.043564 deg, theta: 70.538681 deg, d: 1.009464, parent: N6,
+    grand_parent: CO, great_grand_parent: N1}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: []
+  chi_samples: []
+  default_jump_connection_atom: CO
+  metal_sites:
+  - metal_atom: CO
+    geometry: octahedral
+    internal_satisfiers: [N1, N2, N3, N4, N5, N6]
+    site_virts: []
+    site_connections: []
+- name: FEO
+  base_name: FEO
+  name3: FEO
+  io_equiv_class: FEO
+  atoms:
+  - {name: FE1, atom_type: Fe2p}
+  - {name: FE2, atom_type: Fe2p}
+  - {name: O, atom_type: OH}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  - {name: V6, atom_type: Vrt}
+  - {name: V7, atom_type: Vrt}
+  - {name: V8, atom_type: Vrt}
+  - {name: V9, atom_type: Vrt}
+  - {name: V10, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [FE1, O, SINGLE, false]
+  - [FE2, O, SINGLE, false]
+  - [FE1, V1, SINGLE, false]
+  - [FE1, V2, SINGLE, false]
+  - [FE1, V3, SINGLE, false]
+  - [FE1, V4, SINGLE, false]
+  - [FE1, V5, SINGLE, false]
+  - [FE2, V6, SINGLE, false]
+  - [FE2, V7, SINGLE, false]
+  - [FE2, V8, SINGLE, false]
+  - [FE2, V9, SINGLE, false]
+  - [FE2, V10, SINGLE, false]
+  connections:
+  - {name: site1, atom: FE1, type: SINGLE, kinematic: false}
+  - {name: site2, atom: FE1, type: SINGLE, kinematic: false}
+  - {name: site3, atom: FE1, type: SINGLE, kinematic: false}
+  - {name: site4, atom: FE1, type: SINGLE, kinematic: false}
+  - {name: site5, atom: FE1, type: SINGLE, kinematic: false}
+  - {name: site6, atom: FE2, type: SINGLE, kinematic: false}
+  - {name: site7, atom: FE2, type: SINGLE, kinematic: false}
+  - {name: site8, atom: FE2, type: SINGLE, kinematic: false}
+  - {name: site9, atom: FE2, type: SINGLE, kinematic: false}
+  - {name: site10, atom: FE2, type: SINGLE, kinematic: false}
+  torsions: []
+  icoors:
+  - {name: FE1, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: FE1, grand_parent: O,
+    great_grand_parent: FE2}
+  - {name: O, phi: 0.000000 deg, theta: 180.000000 deg, d: 1.789225, parent: FE1,
+    grand_parent: O, great_grand_parent: FE2}
+  - {name: FE2, phi: 0.000000 deg, theta: 143.431117 deg, d: 2.874, parent: FE1, grand_parent: O,
+    great_grand_parent: FE2}
+  - {name: V1, phi: 180.000000 deg, theta: 90.000000 deg, d: 2.175, parent: FE1, grand_parent: O,
+    great_grand_parent: FE2}
+  - {name: V2, phi: 90.000000 deg, theta: 90.000000 deg, d: 2.175, parent: FE1, grand_parent: O,
+    great_grand_parent: FE2}
+  - {name: V3, phi: 180.000000 deg, theta: 0.000000 deg, d: 2.175, parent: FE1, grand_parent: O,
+    great_grand_parent: FE2}
+  - {name: V4, phi: 0.000000 deg, theta: 90.000000 deg, d: 2.175, parent: FE1, grand_parent: O,
+    great_grand_parent: FE2}
+  - {name: V5, phi: -90.000000 deg, theta: 90.000000 deg, d: 2.175, parent: FE1, grand_parent: O,
+    great_grand_parent: FE2}
+  - {name: V6, phi: 180.000000 deg, theta: 90.000000 deg, d: 2.175, parent: FE2, grand_parent: O,
+    great_grand_parent: FE1}
+  - {name: V7, phi: 90.000000 deg, theta: 90.000000 deg, d: 2.175, parent: FE2, grand_parent: O,
+    great_grand_parent: FE1}
+  - {name: V8, phi: 180.000000 deg, theta: 0.000000 deg, d: 2.175, parent: FE2, grand_parent: O,
+    great_grand_parent: FE1}
+  - {name: V9, phi: 0.000000 deg, theta: 90.000000 deg, d: 2.175, parent: FE2, grand_parent: O,
+    great_grand_parent: FE1}
+  - {name: V10, phi: -90.000000 deg, theta: 90.000000 deg, d: 2.175, parent: FE2,
+    grand_parent: O, great_grand_parent: FE1}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: [V1, V2, V3, V4, V5, V6, V7, V8, V9, V10]
+  chi_samples: []
+  default_jump_connection_atom: FE1
+  metal_sites:
+  - metal_atom: FE1
+    geometry: octahedral
+    internal_satisfiers: [O]
+    site_virts: [V1, V2, V3, V4, V5]
+    site_connections: [site1, site2, site3, site4, site5]
+  - metal_atom: FE2
+    geometry: octahedral
+    internal_satisfiers: [O]
+    site_virts: [V6, V7, V8, V9, V10]
+    site_connections: [site6, site7, site8, site9, site10]
+- name: C2O
+  base_name: C2O
+  name3: C2O
+  io_equiv_class: C2O
+  atoms:
+  - {name: CU2, atom_type: Cu2p}
+  - {name: CU3, atom_type: Cu2p}
+  - {name: O1, atom_type: OH}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  - {name: V6, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [CU2, O1, SINGLE, false]
+  - [CU3, O1, SINGLE, false]
+  - [CU2, V1, SINGLE, false]
+  - [CU2, V2, SINGLE, false]
+  - [CU2, V3, SINGLE, false]
+  - [CU3, V4, SINGLE, false]
+  - [CU3, V5, SINGLE, false]
+  - [CU3, V6, SINGLE, false]
+  connections:
+  - {name: site1, atom: CU2, type: SINGLE, kinematic: false}
+  - {name: site2, atom: CU2, type: SINGLE, kinematic: false}
+  - {name: site3, atom: CU2, type: SINGLE, kinematic: false}
+  - {name: site4, atom: CU3, type: SINGLE, kinematic: false}
+  - {name: site5, atom: CU3, type: SINGLE, kinematic: false}
+  - {name: site6, atom: CU3, type: SINGLE, kinematic: false}
+  torsions: []
+  icoors:
+  - {name: CU2, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: CU2, grand_parent: O1,
+    great_grand_parent: CU3}
+  - {name: O1, phi: 0.000000 deg, theta: 180.000000 deg, d: 1.996707, parent: CU2,
+    grand_parent: O1, great_grand_parent: CU3}
+  - {name: CU3, phi: 0.000000 deg, theta: 159.489267 deg, d: 3.736969, parent: CU2,
+    grand_parent: O1, great_grand_parent: CU3}
+  - {name: V1, phi: -144.411991 deg, theta: 70.528779 deg, d: 1.994, parent: CU2,
+    grand_parent: O1, great_grand_parent: CU3}
+  - {name: V2, phi: 95.588009 deg, theta: 70.528779 deg, d: 1.994, parent: CU2, grand_parent: O1,
+    great_grand_parent: CU3}
+  - {name: V3, phi: -24.411991 deg, theta: 70.528779 deg, d: 1.994, parent: CU2, grand_parent: O1,
+    great_grand_parent: CU3}
+  - {name: V4, phi: 77.627393 deg, theta: 70.528779 deg, d: 1.994, parent: CU3, grand_parent: O1,
+    great_grand_parent: CU2}
+  - {name: V5, phi: -42.372607 deg, theta: 70.528779 deg, d: 1.994, parent: CU3, grand_parent: O1,
+    great_grand_parent: CU2}
+  - {name: V6, phi: -162.372607 deg, theta: 70.528779 deg, d: 1.994, parent: CU3,
+    grand_parent: O1, great_grand_parent: CU2}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: [V1, V2, V3, V4, V5, V6]
+  chi_samples: []
+  default_jump_connection_atom: CU2
+  metal_sites:
+  - metal_atom: CU2
+    geometry: tetrahedral
+    internal_satisfiers: [O1]
+    site_virts: [V1, V2, V3]
+    site_connections: [site1, site2, site3]
+  - metal_atom: CU3
+    geometry: tetrahedral
+    internal_satisfiers: [O1]
+    site_virts: [V4, V5, V6]
+    site_connections: [site4, site5, site6]
+- name: CUA
+  base_name: CUA
+  name3: CUA
+  io_equiv_class: CUA
+  atoms:
+  - {name: CU1, atom_type: Cu1p}
+  - {name: CU2, atom_type: Cu1p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  - {name: V6, atom_type: Vrt}
+  - {name: V7, atom_type: Vrt}
+  - {name: V8, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [CU1, CU2, SINGLE, false]
+  - [CU1, V1, SINGLE, false]
+  - [CU1, V2, SINGLE, false]
+  - [CU1, V3, SINGLE, false]
+  - [CU1, V4, SINGLE, false]
+  - [CU2, V5, SINGLE, false]
+  - [CU2, V6, SINGLE, false]
+  - [CU2, V7, SINGLE, false]
+  - [CU2, V8, SINGLE, false]
+  connections:
+  - {name: site1, atom: CU1, type: SINGLE, kinematic: false}
+  - {name: site2, atom: CU1, type: SINGLE, kinematic: false}
+  - {name: site3, atom: CU1, type: SINGLE, kinematic: false}
+  - {name: site4, atom: CU1, type: SINGLE, kinematic: false}
+  - {name: site5, atom: CU2, type: SINGLE, kinematic: false}
+  - {name: site6, atom: CU2, type: SINGLE, kinematic: false}
+  - {name: site7, atom: CU2, type: SINGLE, kinematic: false}
+  - {name: site8, atom: CU2, type: SINGLE, kinematic: false}
+  torsions: []
+  icoors:
+  - {name: CU1, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: CU1, grand_parent: CU2,
+    great_grand_parent: V1}
+  - {name: CU2, phi: 0.000000 deg, theta: 180.000000 deg, d: 1.74, parent: CU1, grand_parent: CU2,
+    great_grand_parent: V1}
+  - {name: V1, phi: 0.000000 deg, theta: 125.264390 deg, d: 2.163, parent: CU1, grand_parent: CU2,
+    great_grand_parent: V1}
+  - {name: V2, phi: 90.000000 deg, theta: 54.735610 deg, d: 2.163, parent: CU1, grand_parent: CU2,
+    great_grand_parent: V1}
+  - {name: V3, phi: -90.000000 deg, theta: 54.735610 deg, d: 2.163, parent: CU1, grand_parent: CU2,
+    great_grand_parent: V1}
+  - {name: V4, phi: 180.000000 deg, theta: 125.264390 deg, d: 2.163, parent: CU1,
+    grand_parent: CU2, great_grand_parent: V1}
+  - {name: V5, phi: 0.000000 deg, theta: 54.735610 deg, d: 2.163, parent: CU2, grand_parent: CU1,
+    great_grand_parent: V1}
+  - {name: V6, phi: -90.000000 deg, theta: 125.264390 deg, d: 2.163, parent: CU2,
+    grand_parent: CU1, great_grand_parent: V1}
+  - {name: V7, phi: 90.000000 deg, theta: 125.264390 deg, d: 2.163, parent: CU2, grand_parent: CU1,
+    great_grand_parent: V1}
+  - {name: V8, phi: 180.000000 deg, theta: 54.735610 deg, d: 2.163, parent: CU2, grand_parent: CU1,
+    great_grand_parent: V1}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: [V1, V2, V3, V4, V5, V6, V7, V8]
+  chi_samples: []
+  default_jump_connection_atom: CU1
+  metal_sites:
+  - metal_atom: CU1
+    geometry: tetrahedral
+    internal_satisfiers: []
+    site_virts: [V1, V2, V3, V4]
+    site_connections: [site1, site2, site3, site4]
+  - metal_atom: CU2
+    geometry: tetrahedral
+    internal_satisfiers: []
+    site_virts: [V5, V6, V7, V8]
+    site_connections: [site5, site6, site7, site8]
+- name: XCC
+  base_name: XCC
+  name3: XCC
+  io_equiv_class: XCC
+  atoms:
+  - {name: FE1, atom_type: Fe2p}
+  - {name: FE2, atom_type: Fe2p}
+  - {name: FE3, atom_type: Fe2p}
+  - {name: FE4, atom_type: Fe2p}
+  - {name: S1, atom_type: Sthio}
+  - {name: S2, atom_type: Sthio}
+  - {name: S4, atom_type: Sthio}
+  - {name: S3, atom_type: Sthio}
+  - {name: NI, atom_type: Ni2p}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  - {name: V6, atom_type: Vrt}
+  - {name: V7, atom_type: Vrt}
+  - {name: V8, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [FE1, S2, SINGLE, false]
+  - [FE1, S4, SINGLE, false]
+  - [FE1, S3, SINGLE, false]
+  - [FE2, S3, SINGLE, false]
+  - [FE3, S1, SINGLE, false]
+  - [FE3, S2, SINGLE, false]
+  - [FE3, S4, SINGLE, false]
+  - [FE4, S1, SINGLE, false]
+  - [FE4, S2, SINGLE, false]
+  - [FE4, S3, SINGLE, false]
+  - [S1, NI, SINGLE, false]
+  - [NI, S4, SINGLE, false]
+  - [FE1, V1, SINGLE, false]
+  - [FE2, V2, SINGLE, false]
+  - [FE2, V3, SINGLE, false]
+  - [FE2, V4, SINGLE, false]
+  - [FE3, V5, SINGLE, false]
+  - [FE4, V6, SINGLE, false]
+  - [NI, V7, SINGLE, false]
+  - [NI, V8, SINGLE, false]
+  connections:
+  - {name: site1, atom: FE1, type: SINGLE, kinematic: false}
+  - {name: site2, atom: FE2, type: SINGLE, kinematic: false}
+  - {name: site3, atom: FE2, type: SINGLE, kinematic: false}
+  - {name: site4, atom: FE2, type: SINGLE, kinematic: false}
+  - {name: site5, atom: FE3, type: SINGLE, kinematic: false}
+  - {name: site6, atom: FE4, type: SINGLE, kinematic: false}
+  - {name: site7, atom: NI, type: SINGLE, kinematic: false}
+  - {name: site8, atom: NI, type: SINGLE, kinematic: false}
+  torsions: []
+  icoors:
+  - {name: FE1, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: FE1, grand_parent: S2,
+    great_grand_parent: S4}
+  - {name: S2, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.25852, parent: FE1,
+    grand_parent: S2, great_grand_parent: S4}
+  - {name: S4, phi: 0.000000 deg, theta: 76.626524 deg, d: 2.309628, parent: FE1,
+    grand_parent: S2, great_grand_parent: S4}
+  - {name: S3, phi: -114.025940 deg, theta: 77.458916 deg, d: 2.339969, parent: FE1,
+    grand_parent: S2, great_grand_parent: S4}
+  - {name: FE3, phi: 15.755103 deg, theta: 105.603404 deg, d: 2.308265, parent: S2,
+    grand_parent: FE1, great_grand_parent: S4}
+  - {name: FE4, phi: 95.216250 deg, theta: 105.111198 deg, d: 2.323836, parent: S2,
+    grand_parent: FE1, great_grand_parent: S4}
+  - {name: NI, phi: -92.537036 deg, theta: 93.799509 deg, d: 2.288291, parent: S4,
+    grand_parent: FE1, great_grand_parent: S2}
+  - {name: FE2, phi: 147.381108 deg, theta: 75.312561 deg, d: 1.93816, parent: S3,
+    grand_parent: FE1, great_grand_parent: S2}
+  - {name: S1, phi: 91.889703 deg, theta: 78.435342 deg, d: 2.317382, parent: FE3,
+    grand_parent: S2, great_grand_parent: FE1}
+  - {name: V1, phi: 123.171904 deg, theta: 65.598664 deg, d: 2.307, parent: FE1, grand_parent: S2,
+    great_grand_parent: S4}
+  - {name: V2, phi: -119.073137 deg, theta: 70.528779 deg, d: 2.307, parent: FE2,
+    grand_parent: S3, great_grand_parent: FE1}
+  - {name: V3, phi: 120.926863 deg, theta: 70.528779 deg, d: 2.307, parent: FE2, grand_parent: S3,
+    great_grand_parent: FE1}
+  - {name: V4, phi: 0.926863 deg, theta: 70.528779 deg, d: 2.307, parent: FE2, grand_parent: S3,
+    great_grand_parent: FE1}
+  - {name: V5, phi: -142.589931 deg, theta: 64.502062 deg, d: 2.307, parent: FE3,
+    grand_parent: S2, great_grand_parent: FE1}
+  - {name: V6, phi: 143.891269 deg, theta: 64.671261 deg, d: 2.307, parent: FE4, grand_parent: S2,
+    great_grand_parent: FE1}
+  - {name: V7, phi: -165.697939 deg, theta: 69.359427 deg, d: 2.239, parent: NI, grand_parent: S4,
+    great_grand_parent: FE1}
+  - {name: V8, phi: -44.196445 deg, theta: 69.359427 deg, d: 2.239, parent: NI, grand_parent: S4,
+    great_grand_parent: FE1}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: [V1, V2, V3, V4, V5, V6, V7, V8]
+  chi_samples: []
+  default_jump_connection_atom: FE1
+  metal_sites:
+  - metal_atom: FE1
+    geometry: tetrahedral
+    internal_satisfiers: [S2, S4, S3]
+    site_virts: [V1]
+    site_connections: [site1]
+  - metal_atom: FE2
+    geometry: tetrahedral
+    internal_satisfiers: [S3]
+    site_virts: [V2, V3, V4]
+    site_connections: [site2, site3, site4]
+  - metal_atom: FE3
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S2, S4]
+    site_virts: [V5]
+    site_connections: [site5]
+  - metal_atom: FE4
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S2, S3]
+    site_virts: [V6]
+    site_connections: [site6]
+  - metal_atom: NI
+    geometry: tetrahedral
+    internal_satisfiers: [S1, S4]
+    site_virts: [V7, V8]
+    site_connections: [site7, site8]
+- name: OEX
+  base_name: OEX
+  name3: OEX
+  io_equiv_class: OEX
+  atoms:
+  - {name: O1, atom_type: OH}
+  - {name: CA1, atom_type: Ca2p}
+  - {name: MN1, atom_type: Mn2p}
+  - {name: O2, atom_type: OH}
+  - {name: MN2, atom_type: Mn2p}
+  - {name: O3, atom_type: OH}
+  - {name: MN3, atom_type: Mn2p}
+  - {name: O4, atom_type: OH}
+  - {name: MN4, atom_type: Mn2p}
+  - {name: O5, atom_type: OH}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  - {name: V6, atom_type: Vrt}
+  - {name: V7, atom_type: Vrt}
+  - {name: V8, atom_type: Vrt}
+  - {name: V9, atom_type: Vrt}
+  - {name: V10, atom_type: Vrt}
+  - {name: V11, atom_type: Vrt}
+  - {name: V12, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [O1, CA1, SINGLE, false]
+  - [O1, MN1, SINGLE, false]
+  - [O1, MN2, SINGLE, false]
+  - [CA1, O2, SINGLE, false]
+  - [CA1, O5, SINGLE, false]
+  - [MN1, O5, SINGLE, false]
+  - [MN1, O3, SINGLE, false]
+  - [O2, MN2, SINGLE, false]
+  - [O2, MN3, SINGLE, false]
+  - [MN2, O3, SINGLE, false]
+  - [MN4, O5, SINGLE, false]
+  - [O3, MN3, SINGLE, false]
+  - [MN3, O4, SINGLE, false]
+  - [O4, MN4, SINGLE, false]
+  - [MN3, O5, SINGLE, false]
+  - [MN1, V1, SINGLE, false]
+  - [MN1, V2, SINGLE, false]
+  - [MN1, V3, SINGLE, false]
+  - [MN2, V4, SINGLE, false]
+  - [MN2, V5, SINGLE, false]
+  - [MN2, V6, SINGLE, false]
+  - [MN3, V7, SINGLE, false]
+  - [MN3, V8, SINGLE, false]
+  - [MN4, V9, SINGLE, false]
+  - [MN4, V10, SINGLE, false]
+  - [MN4, V11, SINGLE, false]
+  - [MN4, V12, SINGLE, false]
+  connections:
+  - {name: site1, atom: MN1, type: SINGLE, kinematic: false}
+  - {name: site2, atom: MN1, type: SINGLE, kinematic: false}
+  - {name: site3, atom: MN1, type: SINGLE, kinematic: false}
+  - {name: site4, atom: MN2, type: SINGLE, kinematic: false}
+  - {name: site5, atom: MN2, type: SINGLE, kinematic: false}
+  - {name: site6, atom: MN2, type: SINGLE, kinematic: false}
+  - {name: site7, atom: MN3, type: SINGLE, kinematic: false}
+  - {name: site8, atom: MN3, type: SINGLE, kinematic: false}
+  - {name: site9, atom: MN4, type: SINGLE, kinematic: false}
+  - {name: site10, atom: MN4, type: SINGLE, kinematic: false}
+  - {name: site11, atom: MN4, type: SINGLE, kinematic: false}
+  - {name: site12, atom: MN4, type: SINGLE, kinematic: false}
+  torsions: []
+  icoors:
+  - {name: CA1, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: CA1, grand_parent: O1,
+    great_grand_parent: O2}
+  - {name: O1, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.328385, parent: CA1,
+    grand_parent: O1, great_grand_parent: O2}
+  - {name: O2, phi: 0.000000 deg, theta: 104.846364 deg, d: 2.485112, parent: CA1,
+    grand_parent: O1, great_grand_parent: O2}
+  - {name: O5, phi: 79.511057 deg, theta: 103.236849 deg, d: 2.494327, parent: CA1,
+    grand_parent: O1, great_grand_parent: O2}
+  - {name: MN1, phi: -84.958562 deg, theta: 66.670891 deg, d: 1.870991, parent: O1,
+    grand_parent: CA1, great_grand_parent: O2}
+  - {name: MN2, phi: 12.132200 deg, theta: 80.107318 deg, d: 2.062892, parent: O1,
+    grand_parent: CA1, great_grand_parent: O2}
+  - {name: MN3, phi: 81.119989 deg, theta: 77.865358 deg, d: 1.874979, parent: O2,
+    grand_parent: CA1, great_grand_parent: O1}
+  - {name: MN4, phi: -153.318231 deg, theta: 81.482161 deg, d: 2.503241, parent: O5,
+    grand_parent: CA1, great_grand_parent: O1}
+  - {name: O3, phi: 86.497249 deg, theta: 88.060366 deg, d: 1.810567, parent: MN1,
+    grand_parent: O1, great_grand_parent: CA1}
+  - {name: O4, phi: 94.750925 deg, theta: 96.807973 deg, d: 2.086905, parent: MN3,
+    grand_parent: O2, great_grand_parent: CA1}
+  - {name: V1, phi: -15.246029 deg, theta: 4.036670 deg, d: 2.15, parent: MN1, grand_parent: O1,
+    great_grand_parent: CA1}
+  - {name: V2, phi: -89.249845 deg, theta: 91.114102 deg, d: 2.15, parent: MN1, grand_parent: O1,
+    great_grand_parent: CA1}
+  - {name: V3, phi: -179.174286 deg, theta: 86.120609 deg, d: 2.15, parent: MN1, grand_parent: O1,
+    great_grand_parent: CA1}
+  - {name: V4, phi: 77.737331 deg, theta: 84.462236 deg, d: 2.15, parent: MN2, grand_parent: O1,
+    great_grand_parent: CA1}
+  - {name: V5, phi: 167.782298 deg, theta: 89.536207 deg, d: 2.15, parent: MN2, grand_parent: O1,
+    great_grand_parent: CA1}
+  - {name: V6, phi: -97.445359 deg, theta: 5.557272 deg, d: 2.15, parent: MN2, grand_parent: O1,
+    great_grand_parent: CA1}
+  - {name: V7, phi: -176.652199 deg, theta: 91.009304 deg, d: 2.15, parent: MN3, grand_parent: O2,
+    great_grand_parent: CA1}
+  - {name: V8, phi: 110.288299 deg, theta: 3.460041 deg, d: 2.15, parent: MN3, grand_parent: O2,
+    great_grand_parent: CA1}
+  - {name: V9, phi: 159.456424 deg, theta: 90.000000 deg, d: 2.15, parent: MN4, grand_parent: O5,
+    great_grand_parent: CA1}
+  - {name: V10, phi: -110.543576 deg, theta: 91.230962 deg, d: 2.15, parent: MN4,
+    grand_parent: O5, great_grand_parent: CA1}
+  - {name: V11, phi: -110.543576 deg, theta: 1.230962 deg, d: 2.15, parent: MN4, grand_parent: O5,
+    great_grand_parent: CA1}
+  - {name: V12, phi: -20.543576 deg, theta: 90.000000 deg, d: 2.15, parent: MN4, grand_parent: O5,
+    great_grand_parent: CA1}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: [V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12]
+  chi_samples: []
+  default_jump_connection_atom: CA1
+  metal_sites:
+  - metal_atom: MN1
+    geometry: octahedral
+    internal_satisfiers: [O1, O5, O3]
+    site_virts: [V1, V2, V3]
+    site_connections: [site1, site2, site3]
+  - metal_atom: MN2
+    geometry: octahedral
+    internal_satisfiers: [O1, O2, O3]
+    site_virts: [V4, V5, V6]
+    site_connections: [site4, site5, site6]
+  - metal_atom: MN3
+    geometry: octahedral
+    internal_satisfiers: [O2, O3, O4, O5]
+    site_virts: [V7, V8]
+    site_connections: [site7, site8]
+  - metal_atom: MN4
+    geometry: octahedral
+    internal_satisfiers: [O5, O4]
+    site_virts: [V9, V10, V11, V12]
+    site_connections: [site9, site10, site11, site12]
+- name: OEY
+  base_name: OEY
+  name3: OEY
+  io_equiv_class: OEY
+  atoms:
+  - {name: O1, atom_type: OH}
+  - {name: CA1, atom_type: Ca2p}
+  - {name: MN1, atom_type: Mn2p}
+  - {name: O2, atom_type: OH}
+  - {name: MN2, atom_type: Mn2p}
+  - {name: O3, atom_type: OH}
+  - {name: MN3, atom_type: Mn2p}
+  - {name: O4, atom_type: OH}
+  - {name: MN4, atom_type: Mn2p}
+  - {name: O5, atom_type: OH}
+  - {name: O6, atom_type: OH}
+  - {name: V1, atom_type: Vrt}
+  - {name: V2, atom_type: Vrt}
+  - {name: V3, atom_type: Vrt}
+  - {name: V4, atom_type: Vrt}
+  - {name: V5, atom_type: Vrt}
+  - {name: V6, atom_type: Vrt}
+  - {name: V7, atom_type: Vrt}
+  - {name: V8, atom_type: Vrt}
+  - {name: V9, atom_type: Vrt}
+  - {name: V10, atom_type: Vrt}
+  - {name: V11, atom_type: Vrt}
+  - {name: V12, atom_type: Vrt}
+  atom_aliases: []
+  bonds:
+  - [O1, MN1, SINGLE, false]
+  - [O1, MN2, SINGLE, false]
+  - [MN1, O3, SINGLE, false]
+  - [MN1, O6, SINGLE, false]
+  - [O2, MN2, SINGLE, false]
+  - [O2, MN3, SINGLE, false]
+  - [MN2, O3, SINGLE, false]
+  - [O3, MN3, SINGLE, false]
+  - [MN3, O4, SINGLE, false]
+  - [MN3, O5, SINGLE, false]
+  - [O4, MN4, SINGLE, false]
+  - [MN4, O5, SINGLE, false]
+  - [O5, O6, SINGLE, false]
+  - [O5, CA1, SINGLE, false]
+  - [O1, CA1, SINGLE, false]
+  - [O2, CA1, SINGLE, false]
+  - [MN1, V1, SINGLE, false]
+  - [MN1, V2, SINGLE, false]
+  - [MN1, V3, SINGLE, false]
+  - [MN2, V4, SINGLE, false]
+  - [MN2, V5, SINGLE, false]
+  - [MN2, V6, SINGLE, false]
+  - [MN3, V7, SINGLE, false]
+  - [MN3, V8, SINGLE, false]
+  - [MN4, V9, SINGLE, false]
+  - [MN4, V10, SINGLE, false]
+  - [MN4, V11, SINGLE, false]
+  - [MN4, V12, SINGLE, false]
+  connections:
+  - {name: site1, atom: MN1, type: SINGLE, kinematic: false}
+  - {name: site2, atom: MN1, type: SINGLE, kinematic: false}
+  - {name: site3, atom: MN1, type: SINGLE, kinematic: false}
+  - {name: site4, atom: MN2, type: SINGLE, kinematic: false}
+  - {name: site5, atom: MN2, type: SINGLE, kinematic: false}
+  - {name: site6, atom: MN2, type: SINGLE, kinematic: false}
+  - {name: site7, atom: MN3, type: SINGLE, kinematic: false}
+  - {name: site8, atom: MN3, type: SINGLE, kinematic: false}
+  - {name: site9, atom: MN4, type: SINGLE, kinematic: false}
+  - {name: site10, atom: MN4, type: SINGLE, kinematic: false}
+  - {name: site11, atom: MN4, type: SINGLE, kinematic: false}
+  - {name: site12, atom: MN4, type: SINGLE, kinematic: false}
+  torsions: []
+  icoors:
+  - {name: CA1, phi: 0.000000 deg, theta: 0.000000 deg, d: 0.0, parent: CA1, grand_parent: O5,
+    great_grand_parent: O1}
+  - {name: O5, phi: 0.000000 deg, theta: 180.000000 deg, d: 2.524975, parent: CA1,
+    grand_parent: O5, great_grand_parent: O1}
+  - {name: O1, phi: 0.000000 deg, theta: 98.228154 deg, d: 2.54442, parent: CA1, grand_parent: O5,
+    great_grand_parent: O1}
+  - {name: O2, phi: 64.062901 deg, theta: 115.641816 deg, d: 2.630277, parent: CA1,
+    grand_parent: O5, great_grand_parent: O1}
+  - {name: MN3, phi: -63.908354 deg, theta: 76.535818 deg, d: 2.018553, parent: O5,
+    grand_parent: CA1, great_grand_parent: O1}
+  - {name: MN4, phi: -146.179520 deg, theta: 64.940724 deg, d: 2.302563, parent: O5,
+    grand_parent: CA1, great_grand_parent: O1}
+  - {name: O6, phi: 69.556311 deg, theta: 89.266422 deg, d: 1.455676, parent: O5,
+    grand_parent: CA1, great_grand_parent: O1}
+  - {name: MN1, phi: -26.089135 deg, theta: 78.809596 deg, d: 1.838376, parent: O1,
+    grand_parent: CA1, great_grand_parent: O5}
+  - {name: MN2, phi: 72.194657 deg, theta: 77.083855 deg, d: 1.780199, parent: O1,
+    grand_parent: CA1, great_grand_parent: O5}
+  - {name: O3, phi: 84.269469 deg, theta: 85.757347 deg, d: 2.091396, parent: MN3,
+    grand_parent: O5, great_grand_parent: CA1}
+  - {name: O4, phi: -88.300994 deg, theta: 82.457324 deg, d: 1.921385, parent: MN3,
+    grand_parent: O5, great_grand_parent: CA1}
+  - {name: V1, phi: -177.443147 deg, theta: 97.396324 deg, d: 2.15, parent: MN1, grand_parent: O1,
+    great_grand_parent: CA1}
+  - {name: V2, phi: -179.389365 deg, theta: 7.400545 deg, d: 2.15, parent: MN1, grand_parent: O1,
+    great_grand_parent: CA1}
+  - {name: V3, phi: -87.475412 deg, theta: 89.751450 deg, d: 2.15, parent: MN1, grand_parent: O1,
+    great_grand_parent: CA1}
+  - {name: V4, phi: 82.103014 deg, theta: 90.463802 deg, d: 2.15, parent: MN2, grand_parent: O1,
+    great_grand_parent: CA1}
+  - {name: V5, phi: 162.926750 deg, theta: 2.905927 deg, d: 2.15, parent: MN2, grand_parent: O1,
+    great_grand_parent: CA1}
+  - {name: V6, phi: 172.126255 deg, theta: 92.868613 deg, d: 2.15, parent: MN2, grand_parent: O1,
+    great_grand_parent: CA1}
+  - {name: V7, phi: 178.581038 deg, theta: 89.478549 deg, d: 2.15, parent: MN3, grand_parent: O5,
+    great_grand_parent: CA1}
+  - {name: V8, phi: 63.139074 deg, theta: 1.213666 deg, d: 2.15, parent: MN3, grand_parent: O5,
+    great_grand_parent: CA1}
+  - {name: V9, phi: 165.683670 deg, theta: 90.000000 deg, d: 2.15, parent: MN4, grand_parent: O5,
+    great_grand_parent: CA1}
+  - {name: V10, phi: -104.316330 deg, theta: 88.258276 deg, d: 2.15, parent: MN4,
+    grand_parent: O5, great_grand_parent: CA1}
+  - {name: V11, phi: 75.683670 deg, theta: 1.741724 deg, d: 2.15, parent: MN4, grand_parent: O5,
+    great_grand_parent: CA1}
+  - {name: V12, phi: -14.316330 deg, theta: 90.000000 deg, d: 2.15, parent: MN4, grand_parent: O5,
+    great_grand_parent: CA1}
+  properties:
+    is_canonical: false
+    polymer:
+      is_polymer: false
+      polymer_type: null
+      backbone_type: null
+      mainchain_atoms: []
+      sidechain_chirality: NA
+      termini_variants: []
+    chemical_modifications: []
+    connectivity: []
+    protonation:
+      protonated_atoms: []
+      protonation_state: neutral
+      pH: 7
+    virtual: [V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12]
+  chi_samples: []
+  default_jump_connection_atom: CA1
+  metal_sites:
+  - metal_atom: MN1
+    geometry: octahedral
+    internal_satisfiers: [O1, O3, O6]
+    site_virts: [V1, V2, V3]
+    site_connections: [site1, site2, site3]
+  - metal_atom: MN2
+    geometry: octahedral
+    internal_satisfiers: [O1, O2, O3]
+    site_virts: [V4, V5, V6]
+    site_connections: [site4, site5, site6]
+  - metal_atom: MN3
+    geometry: octahedral
+    internal_satisfiers: [O2, O3, O4, O5]
+    site_virts: [V7, V8]
+    site_connections: [site7, site8]
+  - metal_atom: MN4
+    geometry: octahedral
+    internal_satisfiers: [O4, O5]
+    site_virts: [V9, V10, V11, V12]
+    site_connections: [site9, site10, site11, site12]

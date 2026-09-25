@@ -75,36 +75,19 @@ class MetalCoordinationEnergyTerm(EnergyTerm):
         pbt = packed_block_types
         atom_types = {at.name: at for at in pbt.chem_db.atom_types}
         n_keys = len(self.donor_keys)
-        metal_atom = numpy.full(pbt.n_types, -1, dtype=numpy.int32)
-        conn_virt = numpy.full((pbt.n_types, pbt.max_n_conn), NOT_A_SITE, numpy.int32)
-        conn_key = numpy.full((pbt.n_types, pbt.max_n_conn), -1, dtype=numpy.int32)
-        site_params = numpy.zeros((pbt.n_types, n_keys, 4), dtype=numpy.float32)
+        n_conn = pbt.max_n_conn
+        conn_metal = numpy.full((pbt.n_types, n_conn), -1, dtype=numpy.int32)
+        conn_virt = numpy.full((pbt.n_types, n_conn), NOT_A_SITE, numpy.int32)
+        conn_key = numpy.full((pbt.n_types, n_conn), -1, dtype=numpy.int32)
+        site_params = numpy.zeros((pbt.n_types, n_conn, n_keys, 4), dtype=numpy.float32)
         fans = [[] for _ in range(pbt.n_types)]
 
         for i, bt in enumerate(pbt.active_block_types):
             for c, conn in enumerate(bt.connections):
                 atom = bt.atoms[bt.atom_to_idx[conn.atom]]
                 conn_key[i, c] = self.donor_key(atom_types[atom.atom_type])
-            if not bt.metal_sites or bt.metal_sites[0].internal_satisfiers:
-                continue
-            site = bt.metal_sites[0]
-            metal = bt.atom_to_idx[site.metal_atom]
-            metal_type = bt.atoms[metal].atom_type
-            metal_atom[i] = metal
-            virts = [bt.atom_to_idx[v] for v in site.site_virts]
-            for k, name in enumerate(site.site_connections):
-                conn_virt[i, bt.connection_to_cidx[name]] = (
-                    virts[k] if virts else NO_VIRTUAL
-                )
-            dist = ideal_distances(self.ion_for_atom_type[metal_type], self.donor_radii)
-            radial_sd, lateral_sd = self.params.widths(metal_type)
-            for k, key in enumerate(self.donor_keys):
-                depth = self.params.well_depth(metal_type, key)
-                site_params[i, k] = (dist[key], depth, radial_sd, lateral_sd)
-            if virts:
-                ideal = self.ideal_fan(bt, site)
-                for a, b in combinations(list(ideal), 2):
-                    fans[i].append((a, b, numpy.linalg.norm(ideal[a] - ideal[b])))
+            for site in bt.metal_sites:
+                self.setup_site(bt, i, site, conn_metal, conn_virt, site_params, fans)
 
         max_fan = max(1, max(len(f) for f in fans))
         fan_atoms = numpy.full((pbt.n_types, max_fan, 2), -1, dtype=numpy.int32)
@@ -118,7 +101,7 @@ class MetalCoordinationEnergyTerm(EnergyTerm):
             return torch.from_numpy(x).to(self.device)
 
         fields = {
-            "metal_coordination_metal_atom": t(metal_atom),
+            "metal_coordination_conn_metal": t(conn_metal),
             "metal_coordination_conn_virt": t(conn_virt),
             "metal_coordination_conn_key": t(conn_key),
             "metal_coordination_site_params": t(site_params),
@@ -134,6 +117,39 @@ class MetalCoordinationEnergyTerm(EnergyTerm):
             tuple(fields.values()),
             fields=tuple(fields),
         )
+
+    def setup_site(self, bt, i, site, conn_metal, conn_virt, site_params, fans):
+        """Fill one metal's site connections, parameters and fan for block type i."""
+        metal = bt.atom_to_idx[site.metal_atom]
+        metal_type = bt.atoms[metal].atom_type
+        virts = [bt.atom_to_idx[v] for v in site.site_virts]
+        dist = ideal_distances(self.ion_for_atom_type[metal_type], self.donor_radii)
+        radial_sd, lateral_sd = self.params.widths(metal_type)
+        params = [
+            (dist[key], self.params.well_depth(metal_type, key), radial_sd, lateral_sd)
+            for key in self.donor_keys
+        ]
+        for k, name in enumerate(site.site_connections):
+            c = bt.connection_to_cidx[name]
+            conn_metal[i, c] = metal
+            conn_virt[i, c] = virts[k] if virts else NO_VIRTUAL
+            site_params[i, c] = params
+        if not virts:
+            return
+        if not site.internal_satisfiers:
+            ideal = self.ideal_fan(bt, site)
+            for a, b in combinations(list(ideal), 2):
+                fans[i].append((a, b, numpy.linalg.norm(ideal[a] - ideal[b])))
+            return
+        # a cofactor's free sites hold their direction against its own atoms
+        ideal = bt.ideal_coords  # in icoor order
+        coords = {
+            j: ideal[bt.icoors_index[bt.atoms[j].name]] for j in range(len(bt.atoms))
+        }
+        anchors = [metal, *(bt.atom_to_idx[a] for a in site.internal_satisfiers)]
+        for n, v in enumerate(virts):
+            for other in anchors + virts[:n]:
+                fans[i].append((v, other, numpy.linalg.norm(coords[v] - coords[other])))
 
     def donor_key(self, atom_type):
         """Index of an atom type's metal-donor distance key, or -1."""
@@ -155,7 +171,7 @@ class MetalCoordinationEnergyTerm(EnergyTerm):
     def pose_score_term_is_invariant_zero(self, pose_stack: PoseStack):
         pbt = pose_stack.packed_block_types
         bt = pose_stack.block_type_ind64
-        is_metal = pbt.metal_coordination_metal_atom[bt.clamp_min(0)] >= 0
+        is_metal = (pbt.metal_coordination_conn_metal[bt.clamp_min(0)] >= 0).any(-1)
         return not bool((is_metal & (bt >= 0)).any())
 
     def get_pose_score_term_function(self):
@@ -174,7 +190,7 @@ class MetalCoordinationEnergyTerm(EnergyTerm):
         return [
             pose_stack.inter_residue_connections,
             pbt.conn_atom,
-            pbt.metal_coordination_metal_atom,
+            pbt.metal_coordination_conn_metal,
             pbt.metal_coordination_conn_virt,
             pbt.metal_coordination_conn_key,
             pbt.metal_coordination_site_params,

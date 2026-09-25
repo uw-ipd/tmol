@@ -3,6 +3,7 @@ import pytest
 from yaml import safe_load
 
 import tmol.database
+from tmol.database.chemical import is_metal_cluster
 from tmol.io.details._metal_detection import (
     MetalSiteAssignment,
     assign_one,
@@ -180,9 +181,12 @@ def test_the_metal_atom_index_points_at_the_metal(
 def test_the_metal_atom_is_named_by_element_not_component(
     default_database: tmol.database.ParameterDatabase,
 ):
-    # CU1, FE2 and 3CO name their single atom CU, FE and CO
+    # CU1, FE2 and 3CO name their single atom CU, FE and CO; a cluster numbers
+    #    its metals
     element_of = {t.name: t.element for t in default_database.chemical.atom_types}
     for res in default_database.chemical.residues:
+        if is_metal_cluster(res):
+            continue
         type_of = {a.name: a.atom_type for a in res.atoms}
         for site in res.metal_sites:
             assert site.metal_atom == element_of[type_of[site.metal_atom]].upper()
@@ -335,8 +339,8 @@ def _assignment_with_donors(donor_atoms):
     [
         ("HIS", "NE2", "HIS_D"),
         ("HIS", "ND1", "HIS"),
-        ("CYS", "SG", "CYS_D"),
-        ("TYR", "OH", "TYR_D"),
+        ("CYS", "SG", "CYS_DEP"),
+        ("TYR", "OH", "TYR_DEP"),
         ("SER", "OG", "SER"),
         ("ASP", "OD1", "ASP"),
     ],
@@ -377,7 +381,7 @@ def test_deprotonated_forms_are_never_the_default_variant(
     from tmol.database.chemical import special_case_variant_index
 
     for res in default_database.chemical.residues:
-        if res.base_name in ("CYS_D", "TYR_D", "DCYS_D", "DTYR_D"):
+        if res.base_name in ("CYS_DEP", "TYR_DEP", "DCYS_DEP", "DTYR_DEP"):
             assert special_case_variant_index(res) != 0, res.name
 
 

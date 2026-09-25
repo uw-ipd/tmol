@@ -33,41 +33,67 @@ def restraints(param_db, pose_stack):
     site_rows, site_params, fan_rows, fan_params = [], [], [], []
     for pose, block in zip(*numpy.nonzero(bt_inds >= 0)):
         bt = pbt.active_block_types[bt_inds[pose, block]]
-        if not bt.metal_sites or bt.metal_sites[0].internal_satisfiers:
-            continue
-        site = bt.metal_sites[0]
-        metal = bt.atom_to_idx[site.metal_atom]
-        metal_type = bt.atoms[metal].atom_type
-        dist = ideal_distances(ion_for_atom_type[metal_type], donor_radii)
-        radial_sd, lateral_sd = params.widths(metal_type)
-        virts = [bt.atom_to_idx[v] for v in site.site_virts]
+        for site in bt.metal_sites:
+            metal = bt.atom_to_idx[site.metal_atom]
+            metal_type = bt.atoms[metal].atom_type
+            dist = ideal_distances(ion_for_atom_type[metal_type], donor_radii)
+            radial_sd, lateral_sd = params.widths(metal_type)
+            virts = [bt.atom_to_idx[v] for v in site.site_virts]
 
-        for k, name in enumerate(site.site_connections):
-            partner, partner_conn = irc[pose, block, bt.connection_to_cidx[name]]
-            if partner < 0:
+            for k, name in enumerate(site.site_connections):
+                partner, partner_conn = irc[pose, block, bt.connection_to_cidx[name]]
+                if partner < 0:
+                    continue
+                other = pbt.active_block_types[bt_inds[pose, partner]]
+                donor = other.atom_to_idx[other.connections[partner_conn].atom]
+                key = donor_key(other.atoms[donor].atom_type)
+                site_rows.append(
+                    (pose, block, metal, virts[k] if virts else -1, partner, donor)
+                )
+                site_params.append(
+                    (
+                        dist[key],
+                        params.well_depth(metal_type, key),
+                        radial_sd,
+                        lateral_sd,
+                    )
+                )
+
+            if not virts:
                 continue
-            other = pbt.active_block_types[bt_inds[pose, partner]]
-            donor = other.atom_to_idx[other.connections[partner_conn].atom]
-            key = donor_key(other.atoms[donor].atom_type)
-            site_rows.append(
-                (pose, block, metal, virts[k] if virts else -1, partner, donor)
-            )
-            site_params.append(
-                (dist[key], params.well_depth(metal_type, key), radial_sd, lateral_sd)
-            )
-
-        if virts:
-            d = {ic.name: ic.d for ic in bt.icoors}
-            verts = numpy.asarray(vertices_for[site.geometry], dtype=numpy.float64)
-            verts /= numpy.linalg.norm(verts, axis=1, keepdims=True)
-            ideal = {metal: numpy.zeros(3)}
-            for vertex, name in zip(verts, site.site_virts):
-                ideal[bt.atom_to_idx[name]] = vertex * d[name]
-            for a, b in combinations(list(ideal), 2):
+            if site.internal_satisfiers:
+                # each free-site virtual against the metal, its satisfiers and
+                #    the virtuals before it, at the residue's ideal geometry
+                coords = bt.compute_ideal_coords()  # in icoor order
+                anchors = [
+                    metal,
+                    *(bt.atom_to_idx[a] for a in site.internal_satisfiers),
+                ]
+                pairs = [
+                    (v, other)
+                    for n, v in enumerate(virts)
+                    for other in anchors + virts[:n]
+                ]
+                ideal = {
+                    a: coords[bt.icoors_index[bt.atoms[a].name]]
+                    for pair in pairs
+                    for a in pair
+                }
+            else:
+                d = {ic.name: ic.d for ic in bt.icoors}
+                verts = numpy.asarray(vertices_for[site.geometry], dtype=numpy.float64)
+                verts /= numpy.linalg.norm(verts, axis=1, keepdims=True)
+                ideal = {metal: numpy.zeros(3)}
+                for vertex, name in zip(verts, site.site_virts):
+                    ideal[bt.atom_to_idx[name]] = vertex * d[name]
+                pairs = list(combinations(list(ideal), 2))
+            for a, b in pairs:
                 fan_rows.append((pose, block, a, b))
                 fan_params.append(
                     (
-                        numpy.linalg.norm(ideal[a] - ideal[b]),
+                        numpy.linalg.norm(
+                            numpy.asarray(ideal[a]) - numpy.asarray(ideal[b])
+                        ),
                         params.global_parameters.fan_sd,
                     )
                 )

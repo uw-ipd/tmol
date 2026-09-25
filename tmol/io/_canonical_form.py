@@ -54,6 +54,9 @@ class CanonicalForm:
     metal_sites: Optional[Tensor[torch.int64][:, 3]] = None
     # n_filled_sites x 5: pose, metal res, site, donor res, donor canonical atom
     metal_coordination: Optional[Tensor[torch.int64][:, 5]] = None
+    # n_poses x max_n_res: for a metal split out of a component, (res label,
+    # insertion code, res name, atom name) of where it sat; None elsewhere
+    metal_origins: Optional[NDArray[object][:, :]] = None
 
     def __iter__(self):
         return iter(attr.astuple(self, recurse=False))

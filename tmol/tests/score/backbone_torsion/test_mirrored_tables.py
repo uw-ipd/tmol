@@ -169,10 +169,10 @@ def test_every_amino_acid_block_type_has_backbone_tables(term, param_db) -> None
         ("CYD", "CYS"),
         ("HIS_POS", "HIS"),
         ("HIS_D", "HIS"),
-        ("CYS_D", "CYS"),
-        ("TYR_D", "TYR"),
-        ("DCYS_D", "DCYS"),
-        ("DTYR_D", "DTYR"),
+        ("CYS_DEP", "CYS"),
+        ("TYR_DEP", "TYR"),
+        ("DCYS_DEP", "DCYS"),
+        ("DTYR_DEP", "DTYR"),
     ],
 )
 def test_tautomers_share_their_class_tables(term, param_db, borrower, parent) -> None:

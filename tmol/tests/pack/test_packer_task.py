@@ -238,7 +238,7 @@ def test_types_only_metal_detection_selects_keep_their_own_palette(
     pp = PackerPalette()
     pbt = fresh_default_packed_block_types
     names = [bt.name for bt in pbt.active_block_types]
-    for name in ("ZN_tetrahedral", "CYS_D", "TYR_D"):
+    for name in ("ZN_tetrahedral", "CYS_DEP", "TYR_DEP"):
         i = names.index(name)
         n_allowed, allowed_bts, _ = pp.block_types_from_original(
             pbt, torch.tensor([[i]], dtype=torch.int64, device=torch_device)

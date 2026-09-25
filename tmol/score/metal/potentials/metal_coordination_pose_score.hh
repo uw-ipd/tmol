@@ -42,10 +42,10 @@ struct MetalCoordinationPoseScoreDispatch {
 
       TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
       TView<Int, 2, D> conn_atom,
-      TView<Int, 1, D> metal_atom,
+      TView<Int, 2, D> conn_metal,
       TView<Int, 2, D> conn_virt,
       TView<Int, 2, D> conn_key,
-      TView<MetalSiteParams<Real>, 2, D> site_params,
+      TView<MetalSiteParams<Real>, 3, D> site_params,
       TView<Vec<Int, 2>, 2, D> fan_atoms,
       TView<MetalFanParams<Real>, 2, D> fan_params,
       bool output_block_pair_energies,
@@ -71,10 +71,10 @@ struct MetalCoordinationPoseScoreDispatch {
 
       TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
       TView<Int, 2, D> conn_atom,
-      TView<Int, 1, D> metal_atom,
+      TView<Int, 2, D> conn_metal,
       TView<Int, 2, D> conn_virt,
       TView<Int, 2, D> conn_key,
-      TView<MetalSiteParams<Real>, 2, D> site_params,
+      TView<MetalSiteParams<Real>, 3, D> site_params,
       TView<Vec<Int, 2>, 2, D> fan_atoms,
       TView<MetalFanParams<Real>, 2, D> fan_params,
       TView<Real, 4, D> dTdV) -> TPack<Vec<Real, 3>, 2, D>;
@@ -105,10 +105,10 @@ struct MetalCoordinationRotamerScoreDispatch {
 
       TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
       TView<Int, 2, D> conn_atom,
-      TView<Int, 1, D> metal_atom,
+      TView<Int, 2, D> conn_metal,
       TView<Int, 2, D> conn_virt,
       TView<Int, 2, D> conn_key,
-      TView<MetalSiteParams<Real>, 2, D> site_params,
+      TView<MetalSiteParams<Real>, 3, D> site_params,
       TView<Vec<Int, 2>, 2, D> fan_atoms,
       TView<MetalFanParams<Real>, 2, D> fan_params,
       bool output_block_pair_energies,
@@ -138,10 +138,10 @@ struct MetalCoordinationRotamerScoreDispatch {
 
       TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
       TView<Int, 2, D> conn_atom,
-      TView<Int, 1, D> metal_atom,
+      TView<Int, 2, D> conn_metal,
       TView<Int, 2, D> conn_virt,
       TView<Int, 2, D> conn_key,
-      TView<MetalSiteParams<Real>, 2, D> site_params,
+      TView<MetalSiteParams<Real>, 3, D> site_params,
       TView<Vec<Int, 2>, 2, D> fan_atoms,
       TView<MetalFanParams<Real>, 2, D> fan_params,
       TView<Int, 2, D> terms_for_dispatch,  // from forward pass

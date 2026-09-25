@@ -487,6 +487,30 @@ def l_base_name(restype) -> str:
     return base
 
 
+def site_connections(restype) -> Tuple[str, ...]:
+    """Every free-site connection of a residue's metals, numbered in order.
+
+    A metal site's index everywhere outside the residue type is its position
+    here, so a cluster's sites run on across its metals.
+    """
+    return tuple(name for site in restype.metal_sites for name in site.site_connections)
+
+
+def is_metal_cluster(restype) -> bool:
+    """Whether a residue's metals are a cluster: several, or bonded in-residue."""
+    sites = restype.metal_sites
+    return len(sites) > 1 or any(site.internal_satisfiers for site in sites)
+
+
+def site_metal(restype, index: int) -> Tuple["MetalSite", int]:
+    """The metal site owning a residue's ``index``-th free site, and its position."""
+    for site in restype.metal_sites:
+        if index < len(site.site_connections):
+            return site, index
+        index -= len(site.site_connections)
+    raise IndexError(f"{restype.name} has no free site {index}")
+
+
 def special_case_variant_index(restype) -> int:
     """Where a residue type sits on the res_type_variant axis of its class."""
     if restype.metal_sites:
@@ -501,7 +525,11 @@ def special_case_variant_index(restype) -> int:
     return 0
 
 
-GENERATED_RESIDUE_FILES = ("d_amino_acids.yaml", "metal_ions.yaml")
+GENERATED_RESIDUE_FILES = (
+    "d_amino_acids.yaml",
+    "metal_ions.yaml",
+    "metal_clusters.yaml",
+)
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

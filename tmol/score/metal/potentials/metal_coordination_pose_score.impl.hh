@@ -32,9 +32,9 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 constexpr int NOT_A_SITE = -2;
 
 // Each metal block owns its site connections: the fan is a one-body energy on
-// the metal, and each filled site is a two-body energy between the metal and
-// the block across the connection. Donor blocks never initiate, so every site
-// is scored once.
+// the block, and each filled site is a two-body energy between the site's
+// metal atom (a block may hold several) and the block across the connection.
+// Donor blocks never initiate, so every site is scored once.
 
 template <
     template <tmol::Device> class DeviceDispatch,
@@ -59,10 +59,10 @@ auto MetalCoordinationPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
     TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
     TView<Int, 2, D> conn_atom,
-    TView<Int, 1, D> metal_atom,
+    TView<Int, 2, D> conn_metal,
     TView<Int, 2, D> conn_virt,
     TView<Int, 2, D> conn_key,
-    TView<MetalSiteParams<Real>, 2, D> site_params,
+    TView<MetalSiteParams<Real>, 3, D> site_params,
     TView<Vec<Int, 2>, 2, D> fan_atoms,
     TView<MetalFanParams<Real>, 2, D> fan_params,
     bool output_block_pair_energies,
@@ -96,11 +96,10 @@ auto MetalCoordinationPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       return;
     }
     int const block_type1 = first_rot_block_type[pose_ind][block_ind1];
-    if (block_type1 < 0 || metal_atom[block_type1] < 0) {
+    if (block_type1 < 0) {
       return;
     }
     int const offset1 = rot_coord_offset[rot_ind1];
-    int const metal_ind = offset1 + metal_atom[block_type1];
     int const Vind1 = output_block_pair_energies ? block_ind1 : 0;
 
     for (int i = 0; i < max_n_fan; i++) {
@@ -147,10 +146,10 @@ auto MetalCoordinationPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       int const Vhi = output_block_pair_energies ? hi : 0;
       accumulate_metal_site<Real, D>(
           rot_coords,
-          metal_ind,
+          offset1 + conn_metal[block_type1][conn1],
           virt >= 0 ? offset1 + virt : -1,
           rot_coord_offset[rot_ind2] + conn_atom[block_type2][conn2],
-          site_params[block_type1][key],
+          site_params[block_type1][conn1][key],
           dV_dx,
           compute_derivs,
           Real(1),
@@ -187,10 +186,10 @@ auto MetalCoordinationPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
 
     TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
     TView<Int, 2, D> conn_atom,
-    TView<Int, 1, D> metal_atom,
+    TView<Int, 2, D> conn_metal,
     TView<Int, 2, D> conn_virt,
     TView<Int, 2, D> conn_key,
-    TView<MetalSiteParams<Real>, 2, D> site_params,
+    TView<MetalSiteParams<Real>, 3, D> site_params,
     TView<Vec<Int, 2>, 2, D> fan_atoms,
     TView<MetalFanParams<Real>, 2, D> fan_params,
     TView<Real, 4, D> dTdV) -> TPack<Vec<Real, 3>, 2, D> {
@@ -218,11 +217,10 @@ auto MetalCoordinationPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       return;
     }
     int const block_type1 = first_rot_block_type[pose_ind][block_ind1];
-    if (block_type1 < 0 || metal_atom[block_type1] < 0) {
+    if (block_type1 < 0) {
       return;
     }
     int const offset1 = rot_coord_offset[rot_ind1];
-    int const metal_ind = offset1 + metal_atom[block_type1];
 
     Real const dTdV_fan = dTdV[0][pose_ind][block_ind1][block_ind1];
     if (dTdV_fan != 0) {
@@ -272,10 +270,10 @@ auto MetalCoordinationPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       }
       accumulate_metal_site<Real, D>(
           rot_coords,
-          metal_ind,
+          offset1 + conn_metal[block_type1][conn1],
           virt >= 0 ? offset1 + virt : -1,
           rot_coord_offset[rot_ind2] + conn_atom[block_type2][conn2],
-          site_params[block_type1][key],
+          site_params[block_type1][conn1][key],
           dV_dx,
           true,
           dTdV_site,
@@ -315,10 +313,10 @@ auto MetalCoordinationRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::
 
         TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
         TView<Int, 2, D> conn_atom,
-        TView<Int, 1, D> metal_atom,
+        TView<Int, 2, D> conn_metal,
         TView<Int, 2, D> conn_virt,
         TView<Int, 2, D> conn_key,
-        TView<MetalSiteParams<Real>, 2, D> site_params,
+        TView<MetalSiteParams<Real>, 3, D> site_params,
         TView<Vec<Int, 2>, 2, D> fan_atoms,
         TView<MetalFanParams<Real>, 2, D> fan_params,
         bool output_block_pair_energies,
@@ -343,8 +341,7 @@ auto MetalCoordinationRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::
     int const pose_ind = pose_ind_for_rot[rot_ind];
     int const block_ind = block_ind_for_rot[rot_ind];
     int const block_type = block_type_ind_for_rot[rot_ind];
-    if (pose_ind < 0 || block_ind < 0 || block_type < 0
-        || metal_atom[block_type] < 0) {
+    if (pose_ind < 0 || block_ind < 0 || block_type < 0) {
       return;
     }
     int64_t n_energies = fan_atoms[block_type][0][0] >= 0 ? 1 : 0;
@@ -489,10 +486,10 @@ auto MetalCoordinationRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::
     int const virt = conn_virt[block_type1][conn1];
     accumulate_metal_site<Real, D>(
         rot_coords,
-        offset1 + metal_atom[block_type1],
+        offset1 + conn_metal[block_type1][conn1],
         virt >= 0 ? offset1 + virt : -1,
         rot_coord_offset[rot_ind2] + conn_atom[block_type2][conn2],
-        site_params[block_type1][key],
+        site_params[block_type1][conn1][key],
         dV_dx,
         compute_derivs,
         Real(1),
@@ -528,10 +525,10 @@ auto MetalCoordinationRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::
 
         TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
         TView<Int, 2, D> conn_atom,
-        TView<Int, 1, D> metal_atom,
+        TView<Int, 2, D> conn_metal,
         TView<Int, 2, D> conn_virt,
         TView<Int, 2, D> conn_key,
-        TView<MetalSiteParams<Real>, 2, D> site_params,
+        TView<MetalSiteParams<Real>, 3, D> site_params,
         TView<Vec<Int, 2>, 2, D> fan_atoms,
         TView<MetalFanParams<Real>, 2, D> fan_params,
         TView<Int, 2, D> terms_for_dispatch,
@@ -590,10 +587,10 @@ auto MetalCoordinationRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::
     int const virt = conn_virt[block_type1][conn1];
     accumulate_metal_site<Real, D>(
         rot_coords,
-        offset1 + metal_atom[block_type1],
+        offset1 + conn_metal[block_type1][conn1],
         virt >= 0 ? offset1 + virt : -1,
         rot_coord_offset[rot_ind2] + conn_atom[block_type2][conn2],
-        site_params[block_type1][key],
+        site_params[block_type1][conn1][key],
         dV_dx,
         true,
         weight,

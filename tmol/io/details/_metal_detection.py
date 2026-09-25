@@ -11,6 +11,7 @@ then is a geometry fitted, and only then are sites assigned.
 """
 
 import logging
+import math
 from collections import Counter, defaultdict
 from typing import Dict, Optional, Sequence, Tuple
 
@@ -19,11 +20,13 @@ import numpy
 import torch
 
 from tmol.chemical import ResidueTypeSet
+from tmol.chemical._ideal_coords import build_coords_from_icoors
 from tmol.database.chemical import (
     Connection,
     VariantScope,
     VariantType,
     ideal_distances,
+    is_metal_cluster,
     metal_geometry_variant_index,
     metal_table,
     special_case_variant_index,
@@ -60,6 +63,9 @@ class MetalSiteAssignment:
     donor_atoms: Tuple[Tuple[int, int], ...] = ()
     # carries the geometry's vertices onto the donors; None when nothing fixes it
     rotation: Optional[numpy.ndarray] = attr.ib(default=None, eq=False)
+    # per cluster metal: row-vector map carrying its ideal atoms, about the
+    #    metal, onto the observed ones; None where the metal was not fitted
+    metal_rotations: Tuple[Optional[numpy.ndarray], ...] = attr.ib(default=(), eq=False)
     # given by the caller rather than inferred; its input virtuals are kept
     declared: bool = False
 
@@ -199,6 +205,36 @@ class CanonicalMetalTables:
     metal_atom_index: Dict[int, int]
     # [n_classes, max_n_canonical_atoms], "" where the atom cannot donate
     donor_element: numpy.ndarray
+    # equivalence class index -> its cluster's metals, for multi-metal cofactors
+    cluster_for_class: Dict[int, "ClusterSites"] = attr.Factory(dict)
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class ClusterMetal:
+    """One metal of a cluster: where it is, what fills it, and its free sites."""
+
+    atom: int
+    ion: dict
+    satisfiers: Tuple[int, ...]
+    # the cluster's global index of each free site
+    sites: Tuple[int, ...]
+    # ideal positions of the metal, its satisfiers, then its free-site virtuals
+    ideal: numpy.ndarray = attr.ib(eq=False)
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class ClusterSites:
+    """A cofactor holding several metals, each with sites its own atoms fill."""
+
+    geometry: str
+    variant: int
+    metals: Tuple[ClusterMetal, ...]
+    # every metal atom, those without sites (a calcium among manganese) too
+    metal_atoms: Tuple[int, ...] = ()
+
+    @property
+    def n_sites(self) -> int:
+        return sum(len(m.sites) for m in self.metals)
 
 
 def build_canonical_metal_tables(
@@ -215,7 +251,7 @@ def build_canonical_metal_tables(
     classes = canonical_ordering.restype_io_equiv_classes
     n_atoms = canonical_ordering.max_n_canonical_atoms
     donor_element = numpy.full((len(classes), n_atoms), "", dtype=object)
-    ion_for_class, metal_atom_index = {}, {}
+    ion_for_class, metal_atom_index, cluster_for_class = {}, {}, {}
 
     for i, equiv_class in enumerate(classes):
         index_of = canonical_ordering.restypes_atom_index_mapping[equiv_class]
@@ -235,7 +271,285 @@ def build_canonical_metal_tables(
             sites = [r.metal_sites[0] for r in members[equiv_class] if r.metal_sites]
             ion_for_class[i] = ion_for_name3[equiv_class]
             metal_atom_index[i] = index_of[sites[0].metal_atom]
-    return CanonicalMetalTables(ion_for_class, metal_atom_index, donor_element)
+            continue
+        cluster = next(
+            (r for r in members.get(equiv_class, ()) if is_metal_cluster(r)),
+            None,
+        )
+        if cluster is not None:
+            cluster_for_class[i] = _cluster_sites(cluster, index_of, atom_type, table)
+    return CanonicalMetalTables(
+        ion_for_class, metal_atom_index, donor_element, cluster_for_class
+    )
+
+
+def _raw_ideal_coords(res):
+    """{atom name: ideal position} built from a raw residue's icoors."""
+    names = [ic.name for ic in res.icoors]
+    index = {n: i for i, n in enumerate(names)}
+    ancestors = numpy.array(
+        [
+            [index[ic.parent], index[ic.grand_parent], index[ic.great_grand_parent]]
+            for ic in res.icoors
+        ],
+        dtype=numpy.int32,
+    )
+    geom = numpy.array([[ic.phi, ic.theta, ic.d] for ic in res.icoors])
+    coords = build_coords_from_icoors(ancestors, geom).astype(numpy.float64)
+    return dict(zip(names, coords))
+
+
+def _cluster_sites(res, index_of, atom_type, table):
+    """Detection's view of a cluster: each metal, its satisfiers and free sites."""
+    ion_for_atom_type = {ion["atom_type"]: ion for ion in table["ions"]}
+    types = {a.name: a.atom_type for a in res.atoms}
+    ideal = _raw_ideal_coords(res)
+    metals, first = [], 0
+    for site in res.metal_sites:
+        names = (site.metal_atom, *site.internal_satisfiers, *site.site_virts)
+        metals.append(
+            ClusterMetal(
+                atom=index_of[site.metal_atom],
+                ion=ion_for_atom_type[types[site.metal_atom]],
+                satisfiers=tuple(index_of[a] for a in site.internal_satisfiers),
+                sites=tuple(range(first, first + len(site.site_connections))),
+                ideal=numpy.array([ideal[n] for n in names]),
+            )
+        )
+        first += len(site.site_connections)
+    return ClusterSites(
+        geometry=res.metal_sites[0].geometry,
+        variant=special_case_variant_index(res),
+        metals=tuple(metals),
+        metal_atoms=tuple(
+            index_of[a.name] for a in res.atoms if a.atom_type in ion_for_atom_type
+        ),
+    )
+
+
+def _assign_cluster_site(
+    pose,
+    res,
+    cluster,
+    rt,
+    xyz,
+    excluded,
+    tables,
+    table,
+    declared_sites,
+    required_donors,
+    tolerance,
+    find_additional,
+):
+    """A cluster's donors: as declared with their sites, or detected around it."""
+    if (pose, res) in (declared_sites or {}):
+        _, filled = declared_sites[(pose, res)]
+        first = cluster.metals[0].ion
+        rotations = []
+        for m in cluster.metals:
+            local = {site: k for k, site in enumerate(m.sites)}
+            mine = [
+                (local[int(site)], xyz[pose, int(r), int(a)])
+                for site, r, a in filled
+                if int(site) in local
+            ]
+            rotations.append(
+                _metal_rotation(
+                    m, xyz[pose, res], [p for _, p in mine], [k for k, _ in mine]
+                )
+            )
+        return MetalSiteAssignment(
+            metal=res,
+            element=first["element"],
+            oxidation_state=first["oxidation_state"],
+            geometry=cluster.geometry,
+            how_chosen="declared",
+            donors=tuple(range(len(filled))),
+            vertex_for_donor=tuple(int(site) for site, _, _ in filled),
+            n_open_sites=cluster.n_sites - len(filled),
+            donor_atoms=tuple((int(r), int(a)) for _, r, a in filled),
+            metal_rotations=tuple(rotations),
+            declared=True,
+        )
+    donor_xyz, donor_elements, donor_atoms = [], [], []
+    for other in range(rt.shape[1]):
+        if other == res or rt[pose, other] < 0 or excluded[pose, other]:
+            continue
+        for j, element in enumerate(tables.donor_element[rt[pose, other]]):
+            p = xyz[pose, other, j]
+            if element and numpy.all(numpy.isfinite(p)):
+                donor_xyz.append(p)
+                donor_elements.append(element)
+                donor_atoms.append((other, j))
+    wanted = (required_donors or {}).get((pose, res), set())
+    return _cluster_assignment(
+        res,
+        cluster,
+        xyz[pose, res],
+        donor_xyz,
+        donor_elements,
+        donor_atoms,
+        wanted,
+        table,
+        tolerance,
+        find_additional,
+    )
+
+
+def _cluster_assignment(
+    res,
+    cluster,
+    xyz,
+    donor_xyz,
+    donor_elements,
+    donor_atoms,
+    wanted,
+    table,
+    tolerance,
+    find_additional,
+):
+    """Fill each metal's free sites: declared donors first, then the closest.
+
+    A site takes the donor its ideal direction points at best, the ideal
+    directions coming from the cluster's own atoms as observed. A donor in
+    range of several metals bridges them, filling a site on each.
+    """
+    donor_xyz = numpy.asarray(donor_xyz, dtype=numpy.float64).reshape(-1, 3)
+    sites, chosen, rotations = [], [], []
+    metal_xyz = [xyz[a] for a in cluster.metal_atoms]
+    for m in cluster.metals:
+        center = xyz[m.atom]
+        frame = numpy.array([center, *(xyz[a] for a in m.satisfiers)])
+        if not numpy.isfinite(frame).all() or not len(m.sites):
+            rotations.append(None)
+            continue
+        distances = ideal_distances(m.ion, table["donor_radii"])
+        order = []
+        for i, element in enumerate(donor_elements):
+            r = numpy.linalg.norm(donor_xyz[i] - center)
+            nearest = numpy.argmin(
+                [numpy.linalg.norm(donor_xyz[i] - c) for c in metal_xyz]
+            )
+            excess = r - distances.get(element, distances["O"])
+            if donor_atoms[i] in wanted and (
+                cluster.metal_atoms[nearest] == m.atom or excess <= tolerance
+            ):
+                order.append((-1.0, i))
+            elif find_additional and excess <= tolerance:
+                order.append((excess, i))
+        order = [i for _, i in sorted(order)][: len(m.sites)]
+        rotation = _metal_rotation(m, xyz, donor_xyz[order])
+        rotations.append(rotation)
+        n_frame = 1 + len(m.satisfiers)
+        rays = unit((m.ideal[n_frame:] - m.ideal[0]) @ rotation)
+        free = list(range(len(m.sites)))
+        for i in order:
+            direction = unit(donor_xyz[i] - center)
+            best = max(free, key=lambda k: float(rays[k] @ direction))
+            free.remove(best)
+            sites.append(m.sites[best])
+            chosen.append(i)
+    first = cluster.metals[0].ion
+    return MetalSiteAssignment(
+        metal=res,
+        element=first["element"],
+        oxidation_state=first["oxidation_state"],
+        geometry=cluster.geometry,
+        how_chosen="cluster",
+        donors=tuple(range(len(chosen))),
+        vertex_for_donor=tuple(sites),
+        n_open_sites=cluster.n_sites - len(chosen),
+        donor_atoms=tuple(donor_atoms[i] for i in chosen),
+        metal_rotations=tuple(rotations),
+    )
+
+
+def _metal_rotation(metal, xyz, donors, assigned=None):
+    """Row-vector map, about the metal, carrying its ideal atoms onto ``xyz``.
+
+    The metal's own satisfiers fix what they can: spread in three dimensions
+    they fix the frame, in a plane they leave a mirror through it, on a line
+    they leave the spin about it, and with none the donors fix it all. Donors choose among what is left: each
+    donor scores the site ``assigned`` to it, or else its best site.
+    """
+    n_frame = 1 + len(metal.satisfiers)
+    center = numpy.asarray(xyz[metal.atom], dtype=numpy.float64)
+    b = numpy.array([xyz[j] for j in metal.satisfiers], dtype=numpy.float64)
+    b = b.reshape(-1, 3) - center
+    if not numpy.isfinite(center).all() or not numpy.isfinite(b).all():
+        return None
+    donors = numpy.asarray(donors, dtype=numpy.float64).reshape(-1, 3)
+    placed = numpy.isfinite(donors).all(axis=1)
+    donors = unit(donors[placed] - center)
+    if assigned is not None:
+        assigned = numpy.asarray(assigned, dtype=numpy.int64)[placed]
+    a = metal.ideal[1:n_frame] - metal.ideal[0]
+    free = unit(metal.ideal[n_frame:] - metal.ideal[0])
+    candidates = _frame_candidates(a, b, free, donors)
+    if len(candidates) == 1 or not len(donors):
+        return candidates[0]
+
+    def score(rotation):
+        dots = donors @ (free @ rotation).T
+        if assigned is not None:
+            return float(dots[numpy.arange(len(donors)), assigned].sum())
+        return float(dots.max(axis=1).sum())
+
+    return max(candidates, key=score)
+
+
+def _frame_candidates(a, b, free, donors):
+    """Maps carrying satisfiers ``a`` onto ``b``, spun toward unit ``donors``."""
+    if len(a) == 0:
+        # no satisfiers: some site faces the first donor, spun toward the rest
+        if not len(donors):
+            return [numpy.eye(3)]
+        out = []
+        for r in free:
+            out += _spins(_aligning(r, donors[0]), donors[0], free, donors[1:])
+        return out
+    u, s, vt = numpy.linalg.svd(a.T @ b)
+    if s[1] < 1e-6 * s[0]:
+        # collinear satisfiers fix an axis only
+        axis = unit(b[0])
+        return _spins(_aligning(unit(a[0]), axis), axis, free, donors)
+    out = [u @ vt]
+    if s[2] < 1e-6 * s[0]:
+        # coplanar satisfiers leave a mirror through their plane
+        out.append(u @ numpy.diag([1.0, 1.0, -1.0]) @ vt)
+    return out
+
+
+def _spins(start, axis, free, donors):
+    """``start``, and ``start`` spun about ``axis`` to put a site on each donor."""
+    out = [start]
+    for d in donors:
+        q = d - (d @ axis) * axis
+        for r in free @ start:
+            p = r - (r @ axis) * axis
+            theta = math.atan2(float(axis @ numpy.cross(p, q)), float(p @ q))
+            out.append(start @ _about(axis, theta).T)
+    return out
+
+
+def _about(axis, theta):
+    """Column-vector rotation by ``theta`` about unit ``axis``."""
+    k = numpy.array(
+        [[0.0, -axis[2], axis[1]], [axis[2], 0.0, -axis[0]], [-axis[1], axis[0], 0.0]]
+    )
+    return numpy.eye(3) + math.sin(theta) * k + (1.0 - math.cos(theta)) * (k @ k)
+
+
+def _aligning(u, v):
+    """Row-vector rotation carrying unit ``u`` onto unit ``v``."""
+    axis = numpy.cross(u, v)
+    sin = numpy.linalg.norm(axis)
+    if sin < 1e-9:
+        if u @ v > 0:
+            return numpy.eye(3)
+        axis = numpy.cross(u, numpy.eye(3)[numpy.argmin(numpy.abs(u))])
+        sin = 0.0
+    return _about(unit(axis), math.atan2(sin, float(u @ v))).T
 
 
 def find_metal_geometries(
@@ -269,11 +583,11 @@ def find_metal_geometries(
     table_vertices = {g["name"]: g["vertices"] for g in table["geometries"]}
     tables = build_canonical_metal_tables(canonical_ordering, chemical_db, table)
     variants = torch.zeros_like(res_types, dtype=torch.int32)
-    if not tables.ion_for_class:
+    if not tables.ion_for_class and not tables.cluster_for_class:
         return variants, []
 
     rt = res_types.cpu().numpy()
-    is_metal_class = numpy.isin(rt, list(tables.ion_for_class))
+    is_metal_class = numpy.isin(rt, [*tables.ion_for_class, *tables.cluster_for_class])
     if not is_metal_class.any():
         return variants, []
     # the choice is discrete, so coordinates enter it without gradient
@@ -287,6 +601,25 @@ def find_metal_geometries(
 
     for pose, res in zip(*numpy.nonzero(is_metal_class)):
         cls = int(rt[pose, res])
+        if cls in tables.cluster_for_class:
+            cluster = tables.cluster_for_class[cls]
+            variants[pose, res] = cluster.variant
+            got = _assign_cluster_site(
+                int(pose),
+                int(res),
+                cluster,
+                rt,
+                xyz,
+                excluded,
+                tables,
+                table,
+                declared_sites,
+                required_donors,
+                tolerance,
+                find_additional,
+            )
+            assignments.append(((int(pose), int(res)), got))
+            continue
         ion = tables.ion_for_class[cls]
         metal_xyz = xyz[pose, res, tables.metal_atom_index[cls]]
         if not numpy.all(numpy.isfinite(metal_xyz)):
@@ -487,9 +820,18 @@ def donor_patches(canonical_ordering, chemical_db, res_types, assignments):
         equiv_class = classes[int(res_types[pose, res])]
         name = canonical_ordering.restypes_ordered_atom_names[equiv_class][atom]
         for base in bases[equiv_class]:
+            # the atom may be the base's own or one a variant adds (a C-terminal OXT)
+            atoms = [
+                *base.atoms,
+                *(
+                    a
+                    for v in chemical_db.variants
+                    if v.applies_to.matches(base)
+                    for a in v.add_atoms
+                ),
+            ]
             if any(
-                a.name == name and atom_type[a.atom_type].is_metal_donor
-                for a in base.atoms
+                a.name == name and atom_type[a.atom_type].is_metal_donor for a in atoms
             ):
                 patches[(base.name, name, n)] = metal_donor_patch(base.name, name, n)
     return tuple(patches.values())
@@ -571,6 +913,21 @@ def _assign_crowded(
     )
 
 
+def _place_cluster_virtuals(bt, coords, missing, rotations):
+    """Carry each metal's ideal free-site virtuals by its fitted rotation."""
+    ideal = bt.ideal_coords  # in icoor order
+    for site, rotation in zip(bt.metal_sites, rotations):
+        virts = [bt.atom_to_idx[v] for v in site.site_virts]
+        if rotation is None or not virts or not bool(missing[virts].any()):
+            continue
+        metal = coords[bt.atom_to_idx[site.metal_atom]].detach().cpu().numpy()
+        template = ideal[bt.icoors_index[site.metal_atom]]
+        for j in virts:
+            offset = ideal[bt.icoors_index[bt.atoms[j].name]] - template
+            coords[j] = coords.new_tensor(metal + offset @ rotation)
+            missing[j] = False
+
+
 def place_site_virtuals(pbt, block_types64, block_coords, missing_atoms, assignments):
     """Build each free ion's site virtuals along its fitted vertex directions.
 
@@ -586,6 +943,14 @@ def place_site_virtuals(pbt, block_types64, block_coords, missing_atoms, assignm
         if bt_index < 0:
             continue
         bt = pbt.active_block_types[bt_index]
+        if is_metal_cluster(bt):
+            _place_cluster_virtuals(
+                bt,
+                block_coords[pose, res],
+                missing_atoms[pose, res],
+                got.metal_rotations,
+            )
+            continue
         site = bt.metal_sites[0]
         if not site.site_virts or site.internal_satisfiers:
             continue

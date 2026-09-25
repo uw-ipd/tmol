@@ -13,6 +13,7 @@ from tmol.types import (
 from tmol.database.chemical import (
     GEOMETRY_NAMES,
     METAL_GEOMETRY_VAR_BASE,
+    site_connections,
     special_case_variant_index,
 )
 from tmol.io import CanonicalOrdering
@@ -1431,7 +1432,7 @@ def _apply_metal_connections(
     for pose, metal, site, res, atom in rows:
         metal_bt = pbt.active_block_types[block_types[pose][metal]]
         donor_bt = pbt.active_block_types[block_types[pose][res]]
-        sites = metal_bt.metal_sites[0].site_connections
+        sites = site_connections(metal_bt)
         name = atom_name(pose, res, atom)
         if site >= len(sites):
             logger.warning(

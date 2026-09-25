@@ -55,8 +55,8 @@ def attachment_connection_name(
 ):
     """Classify a cross-residue endpoint from both atoms' chemistry.
 
-    A polymer nitrogen's ``down`` connection means an incoming carbonyl, not
-    every possible bond at that atom. Alkyl carbon and phosphorus partners are
+    A polymer nitrogen's ``down`` connection means an incoming carbonyl or
+    thiocarbonyl, not every possible bond at that atom. Alkyl carbon and phosphorus partners are
     ordinary conjugations, including when the nitrogen is at a chain end.
     Likewise an ``up`` atom bonded to a known polymer residue anywhere but its
     ``down`` atom (a sidechain amine) is a conjugation.
@@ -77,7 +77,7 @@ def attachment_connection_name(
         return connection_name(atom)
     neighbors, orders = atom_array.bonds.get_bonds(partner)
     carbonyl = any(
-        str(atom_array.element[neighbor]).strip().upper() == "O"
+        str(atom_array.element[neighbor]).strip().upper() in ("O", "S")
         and int(order) == int(struc.BondType.DOUBLE)
         for neighbor, order in zip(neighbors, orders)
         if neighbor != index
@@ -191,10 +191,11 @@ def iter_capped_conjugate_models(atom_array, chemical_database):
         return f"residue {ri} {atom_array.res_name[index]}.{atom_array.atom_name[index]} ({name})"
 
     def slot(index, partner):
-        # a declared up/down atom has one partner whichever connection it takes
+        # an up carbonyl has room for one partner, whichever connection it takes;
+        #    a down nitrogen may carry an alkyl conjugation beside its link
         ri, name = port(index, partner)
         atom = str(atom_array.atom_name[index])
-        return ri, _polymer_connection(definition(ri), atom) or name
+        return ri, "up" if _polymer_connection(definition(ri), atom) == "up" else name
 
     polymer_attached = set()
     for first, second, order in cross:

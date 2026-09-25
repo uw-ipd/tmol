@@ -620,12 +620,12 @@ residues:
     expansions: []
   default_jump_connection_atom: CA
   reference_mirrored: true
-- name: DCYS_D
-  base_name: DCYS_D
+- name: DCYS_DEP
+  base_name: DCYS_DEP
   name3: DCY
   io_equiv_class: DCY
   rama_reference: CYS
-  dunbrack_reference: CYS_D
+  dunbrack_reference: CYS_DEP
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}
@@ -3060,12 +3060,12 @@ residues:
     expansions: [20]
   default_jump_connection_atom: CA
   reference_mirrored: true
-- name: DTYR_D
-  base_name: DTYR_D
+- name: DTYR_DEP
+  base_name: DTYR_DEP
   name3: DTY
   io_equiv_class: DTY
   rama_reference: TYR
-  dunbrack_reference: TYR_D
+  dunbrack_reference: TYR_DEP
   atoms:
   - {name: N, atom_type: Nbb}
   - {name: CA, atom_type: CAbb}

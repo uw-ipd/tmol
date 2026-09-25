@@ -20,6 +20,7 @@ from tmol.io import (
     remove_metal_coordination,
     write_pose_stack_pdb,
 )
+from tmol.database.chemical import site_connections
 from tmol.kinematics import EdgeType, FoldForest
 from tmol.pose import PoseStackBuilder
 from tmol.tests.data import data_path
@@ -85,8 +86,10 @@ def test_metal_geometry_selects_the_block_type(built, stem):
             bt = pose_stack.packed_block_types.active_block_types[bt_index]
             names[residue_key(pose_stack, 0, res)] = bt.name
     for metal in spec["metals"]:
-        geometry = metal["geometry"] or "irregular"
-        assert names[(metal["chain"], metal["res"])] == f"{metal['comp']}_{geometry}"
+        expected = metal.get("block_type") or (
+            f"{metal['comp']}_{metal['geometry'] or 'irregular'}"
+        )
+        assert names[(metal["chain"], metal["res"])] == expected
 
 
 @pytest.mark.parametrize("stem", fixture_params())
@@ -116,7 +119,7 @@ def test_detected_donors_match_expected(built, stem):
 
 @pytest.mark.parametrize("stem", fixture_params())
 def test_every_donor_is_built_in_a_form_that_can_donate(built, stem, default_database):
-    # a histidine coordinating through NE2 must be HIS_D, a cysteine CYS_D
+    # a histidine coordinating through NE2 must be HIS_D, a cysteine CYS_DEP
     pose_stack, (co, res_types, assignments) = built(stem)
     donor_type = {
         at.name for at in default_database.chemical.atom_types if at.is_metal_donor
@@ -146,7 +149,7 @@ def test_every_donor_is_connected_to_its_metal(built, stem):
     for (pose, metal), got in assignments:
         metal_bt = pbt.active_block_types[int(pose_stack.block_type_ind[pose, metal])]
         partners = set()
-        for name in metal_bt.metal_sites[0].site_connections:
+        for name in site_connections(metal_bt):
             res, conn = irc[pose, metal, metal_bt.connection_to_cidx[name]].tolist()
             if res >= 0:
                 bt = pbt.active_block_types[int(pose_stack.block_type_ind[pose, res])]
@@ -290,6 +293,33 @@ def labeled_metal_bonds(pose_stack):
         (residue_key(pose_stack, 0, m), residue_key(pose_stack, 0, d), atom)
         for (m, _), (d, atom) in metal_bonds(pose_stack).items()
     }
+
+
+@pytest.mark.parametrize("stem", ["sf4_ferredoxin_2fdn", "sf4_ferredoxin_1fdn"])
+def test_cluster_sites_face_their_donors_in_either_naming(
+    built, stem, default_database
+):
+    # 2FDN names its cubane atoms in the mirror sense of the SF4 template,
+    #    1FDN in the same sense; every free site must face its own cysteine
+    from tmol.tests.score.metal.metal_oracle import restraints
+
+    pose_stack, _ = built(stem)
+    site_rows, _, fan_rows, fan_params = restraints(default_database, pose_stack)
+    xyz = pose_stack.coords[0].double()
+    offset = pose_stack.block_coord_offset64[0]
+
+    def at(block, atom):
+        return xyz[offset[block] + atom]
+
+    assert len(site_rows) == 8
+    for _, metal_block, metal, virt, donor_block, donor in site_rows:
+        m = at(metal_block, metal)
+        ray = at(metal_block, virt) - m
+        ray = ray / ray.norm()
+        delta = at(donor_block, donor) - m
+        assert float((delta - (delta @ ray) * ray).norm()) < 1.0
+    for (_, block, a, b), (l0, _) in zip(fan_rows, fan_params):
+        assert abs(float((at(block, a) - at(block, b)).norm()) - l0) < 0.3
 
 
 def test_written_pdb_has_no_virtual_atoms(built, tmp_path):

@@ -16,7 +16,7 @@ import numpy as np
 from rdkit import Chem
 
 from tmol.database import ParameterDatabase
-from tmol.database.chemical import AtomAlias
+from tmol.database.chemical import DEPROTONATED_STATE, AtomAlias
 from tmol.io import CanonicalOrdering
 from tmol.ligand._atom_typing import AtomTypeAssignment, assign_tmol_atom_types
 from tmol.ligand._detect import (
@@ -896,6 +896,7 @@ def _prepare_ligand_via_smiles(
     seed: int | None = None,
     assign_ring_chis: bool = False,
     generate_heavy_chi_samples: bool = False,
+    coordinating_atoms: frozenset = frozenset(),
 ) -> LigandPreparation:
     """Prepare one ligand through the unified CIF -> SMILES -> params path.
 
@@ -910,6 +911,8 @@ def _prepare_ligand_via_smiles(
         seed: Fixed RNG seed for reproducible 3D coordinates; ``None`` is
             random, which makes the measured bonded parameters differ between
             runs of the same input.
+        coordinating_atoms: Names of atoms bonded to a metal; each keeps a free
+            lone pair for it (see _deprotonated_for_coordination).
 
     Returns:
         The :class:`LigandPreparation`.
@@ -933,7 +936,17 @@ def _prepare_ligand_via_smiles(
 
     try:
         smiles_info = nonstandard_residue_info_from_smiles_via_mol2(
-            smiles, res_name=ligand_info.res_name, ph=ph, protonate=protonate, seed=seed
+            smiles,
+            res_name=ligand_info.res_name,
+            ph=ph,
+            protonate=protonate,
+            seed=seed,
+            # map numbers are source index + 1 (_tag_source_atom_map)
+            coordinating=frozenset(
+                i + 1
+                for i, name in enumerate(array.atom_name)
+                if name in coordinating_atoms
+            ),
         )
         prep = prepare_single_ligand(
             smiles_info,
@@ -1498,6 +1511,38 @@ def _ligand_unsupported_reason(
     return None
 
 
+def _deprotonated_variant(lig, base, donors, ph, seed, generate_heavy_chi_samples):
+    """The ligand with its metal donors given free lone pairs, or None if unchanged.
+
+    It shares the base type's equivalence class and is marked deprotonated, so
+    detection selects it for a copy whose donors need it.
+    """
+    prep = _prepare_ligand_via_smiles(
+        lig,
+        ph=ph,
+        seed=seed,
+        generate_heavy_chi_samples=generate_heavy_chi_samples,
+        coordinating_atoms=donors,
+    )
+    if {a.name for a in prep.residue_type.atoms} == {
+        a.name for a in base.residue_type.atoms
+    }:
+        return None
+    residue = prep.residue_type
+    name = f"{residue.name}_DEP"
+    protonation = attr.evolve(
+        residue.properties.protonation, protonation_state=DEPROTONATED_STATE
+    )
+    residue = attr.evolve(
+        residue,
+        name=name,
+        base_name=name,
+        io_equiv_class=base.residue_type.io_equiv_class,
+        properties=attr.evolve(residue.properties, protonation=protonation),
+    )
+    return replace(prep, residue_type=residue)
+
+
 def prepare_ligands(  # noqa: C901
     atom_array: struc.AtomArray,
     param_db: Optional[ParameterDatabase] = None,
@@ -1511,6 +1556,7 @@ def prepare_ligands(  # noqa: C901
     chem_comp_types: dict[str, str] | None = None,
     use_ccd: bool = True,
     seed: int | None = None,
+    coordinating_atoms: dict[str, frozenset[str]] | None = None,
 ) -> tuple:
     """Detect, prepare, and register all non-standard residues.
 
@@ -1564,6 +1610,9 @@ def prepare_ligands(  # noqa: C901
         seed: Fixed RNG seed for the 3D conformer each residue is built from.
             ``None`` is random, which makes the prepared residue types differ
             between runs.
+        coordinating_atoms: {residue name: atoms bonded to a metal}. A ligand
+            whose metal donors need deprotonating gets a deprotonated variant
+            beside its base type.
 
     Returns:
         A (ParameterDatabase, CanonicalOrdering) tuple. When
@@ -1821,6 +1870,13 @@ def prepare_ligands(  # noqa: C901
             prepared_polymers.append(prep)
         else:
             prepared_ligands.append((lig, prep))
+            donors = (coordinating_atoms or {}).get(lig.res_name, frozenset())
+            if donors:
+                deprotonated = _deprotonated_variant(
+                    lig, prep, donors, ph, seed, bool(conjugations)
+                )
+                if deprotonated is not None:
+                    preparations.append(deprotonated)
 
     from tmol.ligand._conjugation_patches import declared_heavy_leaving_groups
 
@@ -1856,9 +1912,10 @@ def prepare_ligands(  # noqa: C901
         )
         prepared_by_name = {}
         for prep in preparations:
-            name = prep.residue_type.name
+            # a deprotonated variant is looked up as the residue it varies
+            name = prep.residue_type.io_equiv_class
             atoms = conjugation_atoms(ligands_by_name[name], polymer_ports)
-            prepared_by_name[name] = _with_conjugation(
+            prepared_by_name[prep.residue_type.name] = _with_conjugation(
                 prep,
                 atoms,
                 param_db.chemical,

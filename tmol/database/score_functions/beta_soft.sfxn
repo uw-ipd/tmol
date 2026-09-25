@@ -32,7 +32,7 @@ options:
       ALA: 1.3535
       CYS: 2.9828
       CYD: 2.9828
-      CYS_D: 2.9828
+      CYS_DEP: 2.9828
       ASP: -1.9872
       GLU: -2.0080
       PHE: 3.6543
@@ -53,4 +53,4 @@ options:
       VAL: 3.5934
       TRP: 5.8434
       TYR: 2.7219
-      TYR_D: 2.7219
+      TYR_DEP: 2.7219

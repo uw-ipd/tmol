@@ -36,6 +36,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
     covalent_bonds: Optional[Tensor[torch.int64][:, 5]] = None,
     metal_sites: Optional[Tensor[torch.int64][:, 3]] = None,
     metal_coordination: Optional[Tensor[torch.int64][:, 5]] = None,
+    metal_origins: Optional[NDArray[object][:, :]] = None,
     *,
     trust_hydrogen_names: bool = False,
     find_additional_disulfides: Optional[bool] = True,
@@ -79,6 +80,8 @@ def pose_stack_from_canonical_form(  # noqa: C901
             into GEOMETRY_NAMES. A listed metal is not detected.
         metal_coordination: Explicit ``[pose, metal, site, donor, atom]`` rows
             for listed metals, atom in canonical ordering.
+        metal_origins: Per residue, where a metal split out of a component
+            sat, kept in pdb_info so export can put it back.
         find_additional_metal_coordination: Detect the geometry and donors of
             metals absent from metal_sites; otherwise they take their default
             geometry with every site open.
@@ -358,6 +361,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
         chain_labels=chain_labels,
         atom_occupancy=atom_occupancy_pose_layout,
         atom_b_factor=atom_b_factor_pose_layout,
+        metal_origins=metal_origins,
     )
 
     block_coord_offset64 = i64(block_coord_offset)

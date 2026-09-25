@@ -15,7 +15,7 @@ from tmol.types import validate_args
 from tmol.chemical import ResidueTypeSet
 from tmol.chemical import BondType as ChemBondType
 from tmol.database import ParameterDatabase
-from tmol.database.chemical import metal_table
+from tmol.database.chemical import metal_table, site_connections
 from tmol.io import (
     CanonicalForm,
     CanonicalOrdering,
@@ -400,6 +400,9 @@ def prepare_atom37_pose_builder(
     biotite_structure = _normalize_input_identifiers(
         biotite_structure, context.canonical_ordering.name3_aliases
     )
+    biotite_structure = _with_input_chemistry_normalized(
+        biotite_structure, _metal_atom_names(co=context.canonical_ordering)
+    )
     filtered, _ = _filter_supported_atoms_and_connectivity(
         biotite_structure,
         context.canonical_ordering,
@@ -538,6 +541,10 @@ def build_context_from_biotite(
         biotite_structure,
         {alias.name3: alias.read_as for alias in chemdb.name3_aliases},
     )
+    biotite_structure = _with_input_chemistry_normalized(
+        biotite_structure, _metal_atom_names(chemdb=chemdb)
+    )
+    coordinating_atoms = _metal_bound_atoms(biotite_structure)
     biotite_structure = _without_metal_coordination_bonds(biotite_structure)
     if prepare_ligands:
         from tmol.ligand import prepare_ligands as _prepare_ligands
@@ -562,6 +569,7 @@ def build_context_from_biotite(
             chem_comp_types=chem_comp_types,
             use_ccd=use_ccd,
             seed=ligand_seed,
+            coordinating_atoms=coordinating_atoms,
         )
         if (
             using_default_database
@@ -1083,7 +1091,9 @@ def biotite_from_pose_stack(
         merge_fragments: Restore fragmented ligands to their original residue
             identity. Set to False to keep fragment residues separate.
         include_virtual_atoms: Also write virtual atoms, such as a metal's
-            site virtuals.
+            site virtuals. A metal split out of a component is then left as
+            its own residue, which its virtuals belong to; otherwise it is put
+            back in the component it came from.
 
     Returns:
         Biotite AtomArray for single-pose or AtomArrayStack for multi-pose,
@@ -1098,12 +1108,67 @@ def biotite_from_pose_stack(
         cf, co, include_virtual_atoms
     )
     structure.bonds = _bonds_from_pose_stack(pose_stack, structure, block_for_atom)
+    if not include_virtual_atoms and cf.metal_origins is not None:
+        structure = _with_metals_rejoined(
+            structure, block_for_atom, cf.metal_origins[0]
+        )
     sbm = getattr(pose_stack, "split_block_mapping", None)
     if merge_fragments and sbm is not None and sbm.entries:
         from tmol.ligand import recombine_fragmented_ligands
 
         structure = recombine_fragmented_ligands(structure, pose_stack)
     return _renumbered_for_cif(structure)
+
+
+def _with_metals_rejoined(structure, block_for_atom, origins):
+    """Put each split-out metal back in the component it came from."""
+    block_for_atom = numpy.asarray(block_for_atom)
+    ins = (
+        structure.ins_code
+        if "ins_code" in structure.get_annotation_categories()
+        else numpy.full(structure.array_length(), "")
+    )
+    after = {}
+    for block in numpy.flatnonzero([o is not None for o in origins]):
+        res_id, ins_code, res_name, atom_name = origins[block]
+        metal = numpy.flatnonzero(block_for_atom == block)
+        if len(metal) != 1:
+            continue
+        metal = int(metal[0])
+        component = numpy.flatnonzero(
+            (structure.chain_id == structure.chain_id[metal])
+            & (structure.res_id == res_id)
+            & (ins == ins_code)
+            & (structure.res_name == res_name)
+        )
+        if not len(component):
+            continue
+        structure.res_id[metal] = res_id
+        structure.res_name[metal] = res_name
+        structure.atom_name[metal] = atom_name
+        if "ins_code" in structure.get_annotation_categories():
+            structure.ins_code[metal] = ins_code
+        if "hetero" in structure.get_annotation_categories():
+            structure.hetero[metal] = structure.hetero[component[0]]
+        after[metal] = int(component[-1])
+        # within a residue CIF has no coordination order; the split retypes them
+        bonds = structure.bonds.as_array()
+        inside = ((bonds[:, 0] == metal) & numpy.isin(bonds[:, 1], component)) | (
+            (bonds[:, 1] == metal) & numpy.isin(bonds[:, 0], component)
+        )
+        bonds[inside, 2] = biotite.structure.BondType.SINGLE
+        structure.bonds = biotite.structure.BondList(structure.array_length(), bonds)
+    if not after:
+        return structure
+    order = []
+    for i in range(structure.array_length()):
+        if i in after:
+            continue
+        order.append(i)
+        order += [m for m, last in after.items() if last == i]
+    if isinstance(structure, biotite.structure.AtomArrayStack):
+        return structure[:, order]
+    return structure[order]
 
 
 def _order_name(order):
@@ -1188,8 +1253,7 @@ def _bonds_from_pose_stack(pose_stack, structure, block_for_atom):
     }
 
     def metal_bond(bt, conn):
-        sites = bt.metal_sites[0].site_connections if bt.metal_sites else ()
-        return bt.connections[conn].name in sites
+        return bt.connections[conn].name in site_connections(bt)
 
     orders_for_type = {}
     bonds = []
@@ -1341,6 +1405,21 @@ def _metal_coordination_bond_mask(structure):
     return bonds, coordination
 
 
+def _metal_bound_atoms(structure):
+    """{residue name: names of its atoms with a declared metal bond}."""
+    if structure.bonds is None:
+        return {}
+    bonds, coordination = _metal_coordination_bond_mask(structure)
+    template = _template_array(structure)
+    metals = [ion["element"].upper() for ion in metal_table()["ions"]]
+    is_metal = numpy.isin(numpy.char.upper(template.element.astype(str)), metals)
+    out = defaultdict(set)
+    for i in bonds[coordination, :2].ravel():
+        if not is_metal[i]:
+            out[str(template.res_name[i])].add(str(template.atom_name[i]))
+    return {name: frozenset(atoms) for name, atoms in out.items()}
+
+
 def _without_metal_coordination_bonds(structure):
     """Drop metal coordination bonds, which ligand preparation does not read."""
     if structure.bonds is None:
@@ -1353,6 +1432,260 @@ def _without_metal_coordination_bonds(structure):
         _template_array(structure).array_length(), bonds[~coordination]
     )
     return structure
+
+
+def _metal_atom_names(chemdb=None, co=None):
+    """The metal atom of each ion residue class, by name3."""
+    if chemdb is not None:
+        return {
+            r.io_equiv_class: r.metal_sites[0].metal_atom
+            for r in chemdb.residues
+            if r.metal_sites
+        }
+    out = {}
+    for ion in metal_table()["ions"]:
+        names = co.restypes_ordered_atom_names.get(ion["name3"])
+        if names:
+            virtual = co.restypes_virtual_atoms.get(ion["name3"], frozenset())
+            out[ion["name3"]] = next(n for n in names if n and n not in virtual)
+    return out
+
+
+def _chelated_metals(template, metal_atom):
+    """Metal atoms to move out of their components, with the ion each becomes.
+
+    A metal leaves its component when it is a supported ion, bonds only to N, O
+    or S of that component, and what remains is one carbon-containing molecule:
+    a tetrapyrrole's iron or magnesium, not an inorganic cluster. One with no
+    coordinates stays: it was not observed, so it is no ion.
+    """
+    ion_for_element = {}
+    for ion in metal_table()["ions"]:
+        ion_for_element.setdefault(ion["element"].upper(), ion["name3"])
+    elements = numpy.char.upper(template.element.astype(str))
+    starts = biotite.structure.get_residue_starts(template, add_exclusive_stop=True)
+    bonds = template.bonds
+    moved = {}
+    for start, stop in zip(starts[:-1], starts[1:]):
+        if stop - start < 2:
+            continue
+        members = set(range(start, stop))
+        metals = [i for i in members if elements[i] in ion_for_element]
+        rest = members - set(metals)
+        if not metals or "C" not in elements[list(rest)]:
+            continue
+        # bonds to other residues are ordinary coordination; within, only N/O/S
+        partners = {i: set(bonds.get_bonds(i)[0].tolist()) & rest for i in metals}
+        if not all(partners.values()):
+            continue
+        if not all(
+            elements[j] in ("N", "O", "S") for p in partners.values() for j in p
+        ):
+            continue
+        # the remainder must be one molecule
+        seen, stack = set(), [min(rest)]
+        while stack:
+            i = stack.pop()
+            if i in seen:
+                continue
+            seen.add(i)
+            stack.extend(j for j in bonds.get_bonds(i)[0].tolist() if j in rest)
+        if seen != rest:
+            continue
+        for i in metals:
+            name3 = ion_for_element[elements[i]]
+            if name3 in metal_atom and numpy.isfinite(template.coord[i]).all():
+                moved[i] = (name3, metal_atom[name3])
+    return moved
+
+
+# per atom: "res_id<TAB>ins_code<TAB>res_name<TAB>atom_name" of the component
+#    a split-out metal came from; empty elsewhere
+METAL_ORIGIN = "tmol_metal_origin"
+
+
+def _metal_origins(structure):
+    """Per residue, (res label, ins code, res name, atom name) a metal came from."""
+    if METAL_ORIGIN not in structure.get_annotation_categories():
+        return None
+    starts = biotite.structure.get_residue_starts(structure)
+    out = numpy.full(len(starts), None, dtype=object)
+    for r, value in enumerate(structure.get_annotation(METAL_ORIGIN)[starts]):
+        if value:
+            res_id, ins, name, atom = str(value).split("\t")
+            out[r] = (int(res_id), ins, name, atom)
+    return out if any(o is not None for o in out) else None
+
+
+def _with_peptide_tautomers(structure):
+    """Rewrite an iminol or iminothiol peptide link as the amide it stands for.
+
+    Where a link between residues is drawn C=N and the carbon also carries a
+    singly bonded, uncharged terminal X (X = O, S), as a thioamide read with its
+    leaving oxygen gone comes out, the double bond moves to X and any hydrogen
+    on X is dropped.
+    """
+    template = _template_array(structure)
+    if template.bonds is None:
+        return structure
+    bonds = template.bonds.as_array()
+    elements = numpy.char.upper(template.element.astype(str))
+    residue = biotite.structure.get_residue_positions(
+        template, numpy.arange(template.array_length())
+    )
+    double = bonds[:, 2] == biotite.structure.BondType.DOUBLE
+    charge = (
+        template.charge
+        if "charge" in template.get_annotation_categories()
+        else numpy.zeros(template.array_length(), dtype=int)
+    )
+    rewrites, dropped = [], set()
+    for a, b, _ in bonds[double & (residue[bonds[:, 0]] != residue[bonds[:, 1]])]:
+        carbon, nitrogen = (a, b) if elements[a] == "C" else (b, a)
+        if elements[carbon] != "C" or elements[nitrogen] != "N":
+            continue
+        for x, order in zip(*template.bonds.get_bonds(carbon)):
+            if (
+                elements[x] not in ("O", "S")
+                or order != biotite.structure.BondType.SINGLE
+                or charge[x] != 0
+            ):
+                continue
+            partners = template.bonds.get_bonds(x)[0]
+            hydrogens = [h for h in partners if elements[h] in ("H", "D")]
+            if len(partners) - len(hydrogens) == 1:
+                rewrites.append((carbon, nitrogen, x))
+                dropped.update(hydrogens)
+                break
+    if not rewrites:
+        return structure
+    orders = {}
+    for carbon, nitrogen, x in rewrites:
+        orders[frozenset((carbon, nitrogen))] = biotite.structure.BondType.SINGLE
+        orders[frozenset((carbon, x))] = biotite.structure.BondType.DOUBLE
+    for row in bonds:
+        order = orders.get(frozenset((int(row[0]), int(row[1]))))
+        if order is not None:
+            row[2] = order
+    structure = structure.copy()
+    structure.bonds = biotite.structure.BondList(template.array_length(), bonds)
+    keep = numpy.ones(template.array_length(), dtype=bool)
+    keep[list(dropped)] = False
+    if isinstance(structure, biotite.structure.AtomArrayStack):
+        return structure[:, keep]
+    return structure[keep]
+
+
+def _with_input_chemistry_normalized(structure, metal_atom):
+    """Input chemistry as tmol models it: amide peptide links, chelated metals split."""
+    return _with_chelated_metals_split(_with_peptide_tautomers(structure), metal_atom)
+
+
+def _with_chelated_metals_split(structure, metal_atom):
+    """Move each chelated metal into an ion residue of its own.
+
+    Its bonds to the component become metal coordination, so the component is
+    prepared as an organic molecule and the metal is an ordinary ion. Where it
+    sat is kept in the METAL_ORIGIN annotation, for export to put it back.
+    """
+    template = _template_array(structure)
+    if template.bonds is None:
+        return structure
+    moved = _chelated_metals(template, metal_atom)
+    if not moved:
+        return structure
+    starts = biotite.structure.get_residue_starts(template, add_exclusive_stop=True)
+    structure = structure.copy()
+    template = _template_array(structure)
+    bonds = template.bonds.as_array()
+    touches = numpy.isin(bonds[:, 0], list(moved)) | numpy.isin(
+        bonds[:, 1], list(moved)
+    )
+    bonds[touches, 2] = biotite.structure.BondType.COORDINATION
+    bond_list = biotite.structure.BondList(template.array_length(), bonds)
+
+    next_id = {}
+    for chain in numpy.unique(structure.chain_id):
+        next_id[chain] = int(structure.res_id[structure.chain_id == chain].max()) + 1
+    origin = numpy.full(template.array_length(), "", dtype=object)
+    if METAL_ORIGIN in structure.get_annotation_categories():
+        origin[:] = structure.get_annotation(METAL_ORIGIN)
+    ins = (
+        structure.ins_code
+        if "ins_code" in structure.get_annotation_categories()
+        else numpy.full(template.array_length(), "")
+    )
+    for i, (name3, atom_name) in sorted(moved.items()):
+        origin[i] = "\t".join(
+            (
+                str(structure.res_id[i]),
+                str(ins[i]),
+                str(structure.res_name[i]),
+                str(structure.atom_name[i]),
+            )
+        )
+        chain = structure.chain_id[i]
+        structure.res_name[i] = name3
+        structure.atom_name[i] = atom_name
+        structure.res_id[i] = next_id[chain]
+        next_id[chain] += 1
+        if "hetero" in structure.get_annotation_categories():
+            structure.hetero[i] = True
+    structure.bonds = bond_list
+    structure.set_annotation(METAL_ORIGIN, origin.astype(str))
+    # each ion follows the component it came from, so residues stay contiguous
+    order, components = [], set()
+    for start, stop in zip(starts[:-1], starts[1:]):
+        members = range(start, stop)
+        order += [i for i in members if i not in moved]
+        order += [i for i in members if i in moved]
+        kept = [i for i in members if i not in moved]
+        if kept and len(kept) < len(members):
+            components.add(str(template.res_name[kept[0]]))
+    registry = getattr(structure, "_custom_ccd_registry", None)
+    if isinstance(structure, biotite.structure.AtomArrayStack):
+        structure = structure[:, order]
+    else:
+        structure = structure[order]
+    if registry:
+        structure._custom_ccd_registry = _without_chelated_metals(
+            registry, components, _ion_elements(metal_atom)
+        )
+    return structure
+
+
+def _ion_elements(metal_atom):
+    """Elements of the ions a chelated metal can become."""
+    return {
+        ion["element"].upper()
+        for ion in metal_table()["ions"]
+        if ion["name3"] in metal_atom
+    }
+
+
+def _without_chelated_metals(registry, components, elements):
+    """Component templates as their split residues are: no metal, no metal stereo.
+
+    An atom a metal made a stereocenter, such as a heme pyrrole nitrogen, is
+    planar once the metal is gone, so its declared configuration is dropped.
+    """
+    out = dict(registry)
+    for name in components:
+        template = registry.get(name)
+        if template is None:
+            continue
+        is_metal = numpy.isin(
+            numpy.char.upper(template.element.astype(str)), list(elements)
+        )
+        if not is_metal.any():
+            continue
+        template = template.copy()
+        if "stereo" in template.get_annotation_categories():
+            for i in numpy.flatnonzero(is_metal):
+                for j in template.bonds.get_bonds(i)[0]:
+                    template.stereo[j] = "N"
+        out[name] = template[~is_metal]
+    return out
 
 
 def _with_metal_coordination_typed(structure):
@@ -2200,6 +2533,9 @@ def canonical_form_from_biotite(
     biotite_structure = _normalize_input_identifiers(
         biotite_structure, co.name3_aliases
     )
+    biotite_structure = _with_input_chemistry_normalized(
+        biotite_structure, _metal_atom_names(co=co)
+    )
     biotite_structure = _with_metal_coordination_typed(biotite_structure)
     biotite_structure, not_connected = _filter_supported_atoms_and_connectivity(
         biotite_structure,
@@ -2286,6 +2622,9 @@ def canonical_form_from_biotite(
     biotite_residue_labels = copy_for_all_poses(biotite_residue_labels)
     biotite_chain_labels = copy_for_all_poses(biotite_chain_labels)
     biotite_insertion_codes = copy_for_all_poses(biotite_insertion_codes)
+    metal_origins = _metal_origins(biotite_structure)
+    if metal_origins is not None:
+        metal_origins = copy_for_all_poses(metal_origins)
 
     chain_id = (
         torch.tensor(biotite_chain_id_for_res, dtype=torch.int32, device=torch_device)
@@ -2347,6 +2686,7 @@ def canonical_form_from_biotite(
         metal_coordination=_bonds_for_poses(
             metal_coordination_np, n_poses, torch_device
         ),
+        metal_origins=metal_origins,
     )
 
 

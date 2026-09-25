@@ -12,7 +12,7 @@ from tmol.io import (
     CanonicalForm,
     chain_inds_for_pose_stack,
 )
-from tmol.database.chemical import GEOMETRY_NAMES
+from tmol.database.chemical import GEOMETRY_NAMES, site_connections
 from tmol.io.details import (
     _annotate_packed_block_types_w_canonical_res_order,
 )
@@ -199,6 +199,7 @@ def canonical_form_from_pose_stack(
         covalent_bonds=covalent_bonds,
         metal_sites=metal_sites,
         metal_coordination=metal_coordination,
+        metal_origins=pose_stack.pdb_info.metal_origins,
     )
 
 
@@ -222,9 +223,9 @@ def _declared_connections(co: CanonicalOrdering, pose_stack: PoseStack):
         pose, res = int(pose), int(res)
         bt = pbt.active_block_types[bt_inds[pose, res]]
         if bt.metal_sites:
-            site = bt.metal_sites[0]
-            sites.append((pose, res, GEOMETRY_NAMES.index(site.geometry)))
-            for k, name in enumerate(site.site_connections):
+            geometry = bt.metal_sites[0].geometry
+            sites.append((pose, res, GEOMETRY_NAMES.index(geometry)))
+            for k, name in enumerate(site_connections(bt)):
                 partner, conn = irc[pose, res, bt.connection_to_cidx[name]]
                 if partner >= 0:
                     other = pbt.active_block_types[bt_inds[pose, partner]]

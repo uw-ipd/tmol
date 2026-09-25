@@ -8,7 +8,8 @@
 # site_waters are the waters the deposited model coordinates to the metal.
 # They are reference data for placing open-site waters, not detection targets.
 #
-# geometry null means untemplated. xfail names why a fixture cannot load yet.
+# geometry null means untemplated. A cluster names its block_type instead. xfail
+# names why a fixture cannot load yet.
 
 fixtures:
   zn_tetrahedral_3ks3:
@@ -45,10 +46,10 @@ fixtures:
   sf4_ferredoxin_2fdn:
     pdb: 2FDN
     resolution: 0.94
-    xfail: SF4 is a metal-containing cofactor; needs an authored block type
+    # atoms named in the mirror sense of the SF4 template
     metals:
-      - {chain: A, res: 61, comp: SF4}
-      - {chain: A, res: 62, comp: SF4}
+      - {chain: A, res: 61, comp: SF4, block_type: SF4, n_open_sites: 0}
+      - {chain: A, res: 62, comp: SF4, block_type: SF4, n_open_sites: 0}
     donors:
       A/SF4/61:
         - {chain: A, res: 8, comp: CYS, atom: SG, metal_atom: FE1, dist: 2.264}
@@ -62,17 +63,41 @@ fixtures:
         - {chain: A, res: 18, comp: CYS, atom: SG, metal_atom: FE4, dist: 2.277}
     site_waters: {}
 
+  sf4_ferredoxin_1fdn:
+    pdb: 1FDN
+    resolution: 1.84
+    # atoms named in the same sense as the SF4 template
+    metals:
+      - {chain: A, res: 56, comp: SF4, block_type: SF4, n_open_sites: 0}
+      - {chain: A, res: 57, comp: SF4, block_type: SF4, n_open_sites: 0}
+    donors:
+      A/SF4/56:
+        - {chain: A, res: 47, comp: CYS, atom: SG, metal_atom: FE1, dist: 2.229}
+        - {chain: A, res: 14, comp: CYS, atom: SG, metal_atom: FE2, dist: 2.232}
+        - {chain: A, res: 8, comp: CYS, atom: SG, metal_atom: FE3, dist: 2.236}
+        - {chain: A, res: 11, comp: CYS, atom: SG, metal_atom: FE4, dist: 2.277}
+      A/SF4/57:
+        - {chain: A, res: 18, comp: CYS, atom: SG, metal_atom: FE1, dist: 2.264}
+        - {chain: A, res: 43, comp: CYS, atom: SG, metal_atom: FE2, dist: 2.247}
+        - {chain: A, res: 37, comp: CYS, atom: SG, metal_atom: FE3, dist: 2.262}
+        - {chain: A, res: 40, comp: CYS, atom: SG, metal_atom: FE4, dist: 2.276}
+    site_waters: {}
+
   heme_myoglobin_5yce:
     pdb: 5YCE
     resolution: 0.77
-    xfail: HEM is a metal-containing cofactor; needs an authored block type
+    # the iron is split out of HEM as its own residue, numbered after the chain
     metals:
-      - {chain: A, res: 201, comp: HEM}
+      - {chain: A, res: 596, comp: FE2, geometry: octahedral, n_open_sites: 1}
     donors:
-      A/HEM/201:
-        - {chain: A, res: 93, comp: HIS, atom: NE2, metal_atom: FE, dist: 2.116}
+      A/FE2/596:
+        - {chain: A, res: 201, comp: HEM, atom: NA, dist: 2.026}
+        - {chain: A, res: 201, comp: HEM, atom: NB, dist: 2.063}
+        - {chain: A, res: 201, comp: HEM, atom: NC, dist: 2.045}
+        - {chain: A, res: 201, comp: HEM, atom: ND, dist: 2.026}
+        - {chain: A, res: 93, comp: HIS, atom: NE2, dist: 2.116}
     site_waters:
-      A/HEM/201:
+      A/FE2/596:
         - {res: 365, dist: 2.110}
 
   cu_blue_copper_2ov0:
@@ -203,3 +228,104 @@ fixtures:
         - {res: 303, dist: 2.114}
         - {res: 341, dist: 2.172}
         - {res: 344, dist: 2.007}
+
+  fes_ferredoxin_6e6r:
+    pdb: 6E6R
+    resolution: 1.50
+    # [2Fe-2S], each Fe bound by two Cys
+    metals:
+      - {chain: A, res: 101, comp: FES, block_type: FES, n_open_sites: 0}
+    donors:
+      A/FES/101:
+        - {chain: A, res: 4, comp: CYS, atom: SG, metal_atom: FE2, dist: 2.429}
+        - {chain: A, res: 6, comp: CYS, atom: SG, metal_atom: FE1, dist: 2.594}
+        - {chain: A, res: 38, comp: CYS, atom: SG, metal_atom: FE1, dist: 2.423}
+        - {chain: A, res: 41, comp: CYS, atom: SG, metal_atom: FE2, dist: 2.349}
+    site_waters: {}
+
+  mgf_phosphoglucomutase_6h8z:
+    pdb: 6H8Z
+    resolution: 1.60
+    # MgF3- bound by Asp8; F is a metal donor inside the residue. F2 also
+    # coordinates the catalytic MG 301 (1.73 A), a bond struct_conn omits
+    metals:
+      - {chain: A, res: 302, comp: MGF, block_type: "MGF:metal_F2", n_open_sites: 1}
+    donors:
+      A/MGF/302:
+        - {chain: A, res: 8, comp: ASP, atom: OD1, metal_atom: MG, dist: 1.785}
+    site_waters: {}
+
+  nco_zdna_1dn8:
+    pdb: 1DN8
+    resolution: 1.50
+    # cobalt hexammine, saturated by its own ammines
+    metals:
+      - {chain: B, res: 5, comp: NCO, block_type: NCO, n_open_sites: 0}
+    donors:
+      B/NCO/5: []
+    site_waters: {}
+
+  feo_myohemerythrin_2mhr:
+    pdb: 2MHR
+    resolution: 1.30
+    # Fe-O-Fe with one internal satisfier per Fe; azide removed
+    metals:
+      - {chain: A, res: 119, comp: FEO, block_type: FEO, n_open_sites: 1}
+    donors:
+      A/FEO/119:
+        - {chain: A, res: 25, comp: HIS, atom: NE2, metal_atom: FE2, dist: 2.222}
+        - {chain: A, res: 54, comp: HIS, atom: NE2, metal_atom: FE2, dist: 2.152}
+        - {chain: A, res: 58, comp: GLU, atom: OE1, metal_atom: FE1, dist: 2.049}
+        - {chain: A, res: 58, comp: GLU, atom: OE2, metal_atom: FE2, dist: 2.176}
+        - {chain: A, res: 73, comp: HIS, atom: NE2, metal_atom: FE1, dist: 2.250}
+        - {chain: A, res: 77, comp: HIS, atom: NE2, metal_atom: FE1, dist: 2.113}
+        - {chain: A, res: 106, comp: HIS, atom: NE2, metal_atom: FE1, dist: 2.134}
+        - {chain: A, res: 111, comp: ASP, atom: OD1, metal_atom: FE1, dist: 2.102}
+        - {chain: A, res: 111, comp: ASP, atom: OD2, metal_atom: FE2, dist: 2.053}
+    site_waters: {}
+
+  cua_ba3_2cua:
+    pdb: 2CUA
+    resolution: 1.60
+    # Cu2 with no internal satisfiers; two Cys bridge both Cu
+    metals:
+      - {chain: A, res: 169, comp: CUA, block_type: CUA, n_open_sites: 0}
+      - {chain: B, res: 170, comp: CUA, block_type: CUA, n_open_sites: 0}
+    donors:
+      A/CUA/169:
+        - {chain: A, res: 114, comp: HIS, atom: ND1, metal_atom: CU1, dist: 2.107}
+        - {chain: A, res: 149, comp: CYS, atom: SG, metal_atom: CU1, dist: 2.366}
+        - {chain: A, res: 149, comp: CYS, atom: SG, metal_atom: CU2, dist: 2.284}
+        - {chain: A, res: 151, comp: GLN, atom: O, metal_atom: CU2, dist: 2.616}
+        - {chain: A, res: 153, comp: CYS, atom: SG, metal_atom: CU1, dist: 2.400}
+        - {chain: A, res: 153, comp: CYS, atom: SG, metal_atom: CU2, dist: 2.275}
+        - {chain: A, res: 157, comp: HIS, atom: ND1, metal_atom: CU2, dist: 1.876}
+        - {chain: A, res: 160, comp: MET, atom: SD, metal_atom: CU1, dist: 2.460}
+      B/CUA/170:
+        - {chain: B, res: 114, comp: HIS, atom: ND1, metal_atom: CU1, dist: 2.104}
+        - {chain: B, res: 149, comp: CYS, atom: SG, metal_atom: CU1, dist: 2.340}
+        - {chain: B, res: 149, comp: CYS, atom: SG, metal_atom: CU2, dist: 2.303}
+        - {chain: B, res: 151, comp: GLN, atom: O, metal_atom: CU2, dist: 2.664}
+        - {chain: B, res: 153, comp: CYS, atom: SG, metal_atom: CU1, dist: 2.437}
+        - {chain: B, res: 153, comp: CYS, atom: SG, metal_atom: CU2, dist: 2.259}
+        - {chain: B, res: 157, comp: HIS, atom: ND1, metal_atom: CU2, dist: 1.882}
+        - {chain: B, res: 160, comp: MET, atom: SD, metal_atom: CU1, dist: 2.466}
+    site_waters: {}
+
+  clf_nitrogenase_7adr:
+    pdb: 7ADR
+    resolution: 1.00
+    # P-cluster, cropped; Cys56 and Cys75 each bridge two Fe
+    metals:
+      - {chain: B, res: 501, comp: CLF, block_type: CLF, n_open_sites: 0}
+    donors:
+      B/CLF/501:
+        - {chain: B, res: 31, comp: CYS, atom: SG, metal_atom: FE7, dist: 2.294}
+        - {chain: A, res: 49, comp: CYS, atom: SG, metal_atom: FE3, dist: 2.305}
+        - {chain: B, res: 56, comp: CYS, atom: SG, metal_atom: FE2, dist: 2.385}
+        - {chain: B, res: 56, comp: CYS, atom: SG, metal_atom: FE8, dist: 2.292}
+        - {chain: A, res: 75, comp: CYS, atom: SG, metal_atom: FE4, dist: 2.339}
+        - {chain: A, res: 75, comp: CYS, atom: SG, metal_atom: FE5, dist: 2.343}
+        - {chain: B, res: 115, comp: CYS, atom: SG, metal_atom: FE6, dist: 2.294}
+        - {chain: A, res: 138, comp: CYS, atom: SG, metal_atom: FE1, dist: 2.336}
+    site_waters: {}

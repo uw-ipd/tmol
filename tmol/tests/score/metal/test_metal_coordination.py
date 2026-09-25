@@ -52,8 +52,28 @@ def global_index(pose_stack, pose, block, atom):
 
 
 def idealized(param_db, pose_stack):
-    """Coordinates with every paired donor moved onto its site at ideal distance."""
+    """Coordinates with every paired donor moved onto its site at ideal distance.
+
+    A cluster is first replaced by its ideal geometry, fitted onto it with a
+    reflection allowed, since its atoms may be named in the mirror sense.
+    """
     coords = pose_stack.coords.detach().clone().double()
+    pbt = pose_stack.packed_block_types
+    for pose, block in torch.nonzero(pose_stack.block_type_ind64 >= 0).tolist():
+        bt = pbt.active_block_types[pose_stack.block_type_ind64[pose, block]]
+        if not any(site.internal_satisfiers for site in bt.metal_sites):
+            continue
+        start = int(pose_stack.block_coord_offset64[pose, block])
+        ideal = torch.tensor(
+            [bt.ideal_coords[bt.icoors_index[a.name]] for a in bt.atoms],
+            dtype=coords.dtype,
+        )
+        real = [j for j in range(bt.n_atoms) if not bt.atoms[j].name.startswith("V")]
+        a, b = ideal[real], coords[pose, start + torch.tensor(real)].cpu()
+        ca, cb = a.mean(0), b.mean(0)
+        u, _, vt = torch.linalg.svd((a - ca).T @ (b - cb))
+        placed = (ideal - ca) @ (u @ vt) + cb
+        coords[pose, start : start + bt.n_atoms] = placed.to(coords.device)
     site_rows, site_params, _, _ = metal_oracle.restraints(param_db, pose_stack)
     for (pose, mblock, matom, vatom, dblock, datom), params in zip(
         site_rows, site_params

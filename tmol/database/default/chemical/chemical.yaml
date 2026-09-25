@@ -60,7 +60,7 @@ atom_types:
 
   - { name: S   , element: S, is_metal_donor: true }
   - { name: SH1 , element: S , conjugated_type: S } # thiol; the thiolate (Sthio) coordinates metals
-  - { name: Sthio, element: S , conjugated_type: S, is_metal_donor: true } # thiolate, in CYS_D
+  - { name: Sthio, element: S , conjugated_type: S, is_metal_donor: true } # thiolate, in CYS_DEP
   - { name: Nbb , element: N, is_donor : true }
   - { name: CAbb, element: C }
   - { name: CObb, element: C }
@@ -147,7 +147,7 @@ atom_types:
   - { name: PG5 , element: P }
   - { name: Phos, element: P }
   # Halogens
-  - { name: F   , element: F, acceptor_hybridization: sp3 }
+  - { name: F   , element: F, acceptor_hybridization: sp3, is_metal_donor: true }
   - { name: Cl  , element: Cl, acceptor_hybridization: sp3 }
   - { name: Br  , element: Br, acceptor_hybridization: sp3 }
   - { name: I   , element: I, acceptor_hybridization: sp3 }
@@ -689,12 +689,12 @@ residues:
       samples: [60, 180, 300]
       expansions: []
     default_jump_connection_atom: CA
-  - name:  CYS_D
-    base_name: CYS_D
+  - name:  CYS_DEP
+    base_name: CYS_DEP
     name3: CYS
     io_equiv_class: CYS
     rama_reference: CYS
-    dunbrack_reference: CYS_D
+    dunbrack_reference: CYS_DEP
     atoms:
     - { name: N   , atom_type: Nbb  }
     - { name: CA  , atom_type: CAbb }
@@ -2736,12 +2736,12 @@ residues:
       samples: [0, 180]
       expansions: [20]
     default_jump_connection_atom: CA
-  - name:  TYR_D
-    base_name: TYR_D
+  - name:  TYR_DEP
+    base_name: TYR_DEP
     name3: TYR
     io_equiv_class: TYR
     rama_reference: TYR
-    dunbrack_reference: TYR_D
+    dunbrack_reference: TYR_DEP
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }

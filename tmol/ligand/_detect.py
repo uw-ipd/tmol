@@ -946,6 +946,44 @@ def _dimorphite_protonate_smiles(
     return Chem.MolToSmiles(variants[0])
 
 
+def _has_free_lone_pair(atom) -> bool:
+    """Whether an atom has a lone pair left to give a metal.
+
+    A cation has none, and neither does a trigonal nitrogen: a pyrrole or amide
+    N-H keeps its pair in the pi system.
+    """
+    if atom.GetFormalCharge() > 0:
+        return False
+    if atom.GetSymbol() == "N":
+        sigma = atom.GetDegree() + atom.GetTotalNumHs()
+        return not (
+            sigma == 3 and atom.GetHybridization() == Chem.HybridizationType.SP2
+        )
+    return True
+
+
+def _deprotonated_for_coordination(smiles: str, map_numbers) -> str:
+    """The SMILES with each mapped metal donor given a free lone pair.
+
+    A donor without one loses a hydrogen and gains a negative charge; any
+    other donor is left as protonated.
+    """
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return smiles
+    for atom in mol.GetAtoms():
+        if atom.GetAtomMapNum() not in map_numbers:
+            continue
+        while atom.GetTotalNumHs() > 0 and not _has_free_lone_pair(atom):
+            atom.SetNumExplicitHs(atom.GetTotalNumHs() - 1)
+            atom.SetNoImplicit(True)
+            atom.SetFormalCharge(atom.GetFormalCharge() - 1)
+            mol.UpdatePropertyCache(strict=False)
+            Chem.SetHybridization(mol)
+    Chem.SanitizeMol(mol)
+    return Chem.MolToSmiles(mol)
+
+
 def nonstandard_residue_info_from_smiles_via_mol2(
     smiles: str,
     res_name: str | None = None,
@@ -953,6 +991,7 @@ def nonstandard_residue_info_from_smiles_via_mol2(
     ph: float = 7.4,
     protonate: bool = True,
     seed: int | None = None,
+    coordinating: frozenset = frozenset(),
 ) -> NonStandardResidueInfo:
     """Construct ``NonStandardResidueInfo`` from a SMILES via the mol2 route.
 
@@ -977,6 +1016,8 @@ def nonstandard_residue_info_from_smiles_via_mol2(
         protonate: When ``True`` (default) run Dimorphite on ``smiles`` first;
             set ``False`` to pin an already-protonated SMILES verbatim.
         seed: Fixed RNG seed for reproducible 3D coordinates; ``None`` is random.
+        coordinating: Atom map numbers of metal donors, each deprotonated
+            after protonation if it has no free lone pair.
 
     Raises:
         OpenBabelUnavailableError: If the ``openbabel`` package is missing
@@ -990,6 +1031,8 @@ def nonstandard_residue_info_from_smiles_via_mol2(
 
     smiles = _normalize_radical_oxygens(smiles)
     prep_smiles = _dimorphite_protonate_smiles(smiles, ph) if protonate else smiles
+    if coordinating:
+        prep_smiles = _deprotonated_for_coordination(prep_smiles, coordinating)
     source_order = source_atom_order_from_mapped_smiles(prep_smiles)
     molecule = _build_charged_3d_mol2_mol(prep_smiles, seed=seed)
     info = nonstandard_residue_info_from_mol2_block(

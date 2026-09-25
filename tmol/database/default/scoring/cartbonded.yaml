@@ -266,7 +266,7 @@ residue_params:
     - {atm1: N, atm2: C, atm3: CA, atm4: CB, k1: 29.4476, phi1: 5.2747926535897935}
     - {atm1: N, atm2: C, atm3: CA, atm4: HA, k1: 39.904, phi1: 1.0586926535897931}
     hxltorsion_parameters: []
-  CYS_D:
+  CYS_DEP:
     length_parameters:
     - {atm1: SG, atm2: SG, x0: 0, K: 0}
     - {atm1: C, atm2: O, x0: 1.23102, K: 563.084}
@@ -1454,7 +1454,7 @@ residue_params:
     - {atm1: N, atm2: C, atm3: CA, atm4: HA, k1: 39.904, phi1: 1.070272653589793}
     hxltorsion_parameters:
     - {atm1: CE2, atm2: CZ, atm3: OH, atm4: HH, k2: 0.5, phi2: 3.141592}
-  TYR_D:
+  TYR_DEP:
     length_parameters:
     - {atm1: C, atm2: O, x0: 1.23101, K: 563.084}
     - {atm1: CA, atm2: C, x0: 1.52326, K: 301.675}
