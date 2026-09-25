@@ -1,5 +1,7 @@
 """Read supplied structure information before tmol validates parameter requirements."""
 
+import warnings
+
 import biotite.structure as struc
 import numpy as np
 
@@ -128,33 +130,87 @@ def _with_metal_coordination(array, block):
     )
 
 
+def _renumber_decreasing_author_ids(array):
+    """Renumber, in file order, any chain whose author numbering runs backwards.
+
+    Author numbering is the depositor's, and real entries do run backwards --
+    5XNL numbers its waters that way. AtomWorks reads res_id as an ordering and
+    refuses a chain that decreases, so supplying numbering it can rely on is the
+    reader's job. Residue identity and order are what is wanted from res_id here,
+    and renumbering keeps both. Returns the array unchanged where nothing decreases.
+    """
+    res_id = array.res_id.copy()
+    starts = struc.get_residue_starts(array, add_exclusive_stop=True)
+    repaired = []
+    for chain in dict.fromkeys(array.chain_id.tolist()):
+        in_chain = array.chain_id == chain
+        if not (np.diff(res_id[in_chain]) < 0).any():
+            continue
+        number = 0
+        for begin, end in zip(starts[:-1], starts[1:], strict=False):
+            if array.chain_id[begin] == chain:
+                number += 1
+                res_id[begin:end] = number
+        repaired.append(str(chain))
+    if not repaired:
+        return array
+
+    warnings.warn(
+        f"Renumbering chain(s) {', '.join(repaired)}: author numbering that decreases "
+        "within a chain is not an ordering that can be relied on downstream.",
+        stacklevel=2,
+    )
+    array = array.copy()
+    array.res_id = res_id
+    array.ins_code[:] = ""
+    return array
+
+
+def _parse_repairing_author_numbering(path, config, model):
+    """``parse`` the file, renumbering author ids first where it will not read them."""
+    from atomworks.io.parser import prepare_atom_array
+    from atomworks.io.utils.io_utils import get_structure, read_any
+
+    try:
+        return parse(path, config=config)
+    except ValueError as refused:
+        if "non-decreasing order" not in str(refused):
+            raise
+        file = read_any(path)
+        block = getattr(file, "block", None)
+        array = get_structure(file, model=model, extra_fields=_FIELDS)
+        repaired = _renumber_decreasing_author_ids(array)
+        if repaired is array:
+            raise
+        atoms = prepare_atom_array(repaired, config=config, cif_block=block)
+        return {"asym_unit": atoms, "cif_block": block}
+
+
 def read_structure(path, *, model=1, assembly_id=None, use_ccd=True):
     """Read PDB/CIF atoms and available bonds, optionally supplemented from CCD."""
     if model is None or model < 1:
         raise ValueError("The structure reader requires a positive model number")
     if use_ccd:
-        result = parse(
-            path,
-            config=ParseConfig(
-                model=model,
-                add_missing_atoms=False,
-                build_assembly=None if assembly_id is None else [assembly_id],
-                extra_fields=_FIELDS,
-                remove_ccds=[],
-                remove_waters=False,
-                fix_arginines=False,
-                fix_ligands_at_symmetry_centers=False,
-                add_bond_types_from_struct_conn=["covale", "disulf"],
-                hydrogen_policy="keep",
-                ccd_mirror_path=None,
-                cif_ccd_on_mismatch="ignore",
-                add_id_and_entity_annotations=False,
-                keep_cif_block=True,
-                return_atom_array_plus=True,
-                long_bond_policy="keep",
-                struct_conn_distance_policy="keep",
-            ),
+        config = ParseConfig(
+            model=model,
+            add_missing_atoms=False,
+            build_assembly=None if assembly_id is None else [assembly_id],
+            extra_fields=_FIELDS,
+            remove_ccds=[],
+            remove_waters=False,
+            fix_arginines=False,
+            fix_ligands_at_symmetry_centers=False,
+            add_bond_types_from_struct_conn=["covale", "disulf"],
+            hydrogen_policy="keep",
+            ccd_mirror_path=None,
+            cif_ccd_on_mismatch="ignore",
+            add_id_and_entity_annotations=False,
+            keep_cif_block=True,
+            return_atom_array_plus=True,
+            long_bond_policy="keep",
+            struct_conn_distance_policy="keep",
         )
+        result = _parse_repairing_author_numbering(path, config, model)
         array = (
             result["asym_unit"]
             if assembly_id is None
