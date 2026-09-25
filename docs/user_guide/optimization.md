@@ -67,9 +67,9 @@ parser, ambiguous-constraint layer, or a dedicated three-atom angle constraint.
 ## Missing Side Chains and Hydrogens
 
 `pose_stack_from_biotite()` automatically routes blocks with missing heavy atoms
-through `build_missing_sidechains()`. By default it also places and optimizes
-hydrogens for complete residues. Pass `no_optH=True` to skip that hydrogen
-optimization path.
+through `build_missing_sidechains()`. Hydrogen optimization is off by default;
+pass `no_optH=False` to place and optimize hydrogens for complete residues as
+well.
 
 For standard residues and the default parameter database, TMol automatically
 reuses the structure-independent construction and packing setup. If many
