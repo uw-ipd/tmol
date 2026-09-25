@@ -1,14 +1,14 @@
-"""Contracts for tmol's vendored Dimorphite engine and rule inventory."""
+"""Contracts for tmol's Dimorphite rule inventory, run on AtomWorks' engine."""
 
 from pathlib import Path
 
 import pytest
 from rdkit import Chem
 
-from atomworks.external.dimorphite_dl.dimorphite_dl import (
+from atomworks.protonation.external.dimorphite_dl.dimorphite_dl import (
     ProtSubstructFuncs as AtomWorksProtSubstructFuncs,
 )
-from atomworks.external.dimorphite_dl.dimorphite_dl import (
+from atomworks.protonation.external.dimorphite_dl.dimorphite_dl import (
     protonate_mol_variants as atomworks_protonate_mol_variants,
 )
 from tmol.ligand._dimorphite_dl import ProtSubstructFuncs, protonate_mol_variants
@@ -99,8 +99,12 @@ def test_tmol_specific_rules_cover_frank_protonation_cases(smiles, expected):
         "N[C@@H](COP(=O)(O)O)C(=O)O",
     ],
 )
-def test_vendored_engine_matches_atomworks_with_the_same_rules(smiles):
-    """Keep engine behavior aligned while allowing inventories to differ."""
+def test_tmol_rules_are_supplied_without_the_caller_asking(smiles):
+    """Calling tmol's wrapper must use tmol's inventory, not the engine's default.
+
+    The engine is shared, so the only thing that can go wrong is the rule set
+    silently reverting to AtomWorks' -- which no call site would notice.
+    """
     molecule = Chem.MolFromSmiles(smiles)
     kwargs = {
         "min_ph": 7.4,
@@ -114,3 +118,24 @@ def test_vendored_engine_matches_atomworks_with_the_same_rules(smiles):
     )
     observed = protonate_mol_variants(molecule, **kwargs)
     assert canonical_states(observed) == canonical_states(expected)
+
+
+def test_the_shared_engine_carries_the_rule_tmol_needs():
+    """A case Frank added: the engine's own defaults once left this neutral.
+
+    AtomWorks now ships the full rule inventory, so the two agree. Asserting
+    that agreement is what keeps the shared engine honest -- a rule dropped
+    upstream would show up here.
+    """
+    molecule = Chem.MolFromSmiles("COP(=O)(S)OC")
+    kwargs = {"min_ph": 7.4, "max_ph": 7.4, "pka_precision": 0.1}
+
+    with_tmol_rules = canonical_states(protonate_mol_variants(molecule, **kwargs))
+    with_engine_rules = canonical_states(
+        atomworks_protonate_mol_variants(
+            molecule, **kwargs, rule_provider=AtomWorksProtSubstructFuncs
+        )
+    )
+
+    assert with_tmol_rules == ["COP(=O)([S-])OC"]
+    assert with_engine_rules == with_tmol_rules

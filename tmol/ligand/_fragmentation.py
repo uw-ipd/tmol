@@ -14,6 +14,7 @@ from typing import Mapping, Sequence
 
 import biotite.structure as struc
 import numpy as np
+from atomworks.protonation import signed_dihedral_angle, vertex_angle
 
 from tmol.chemical import build_coords_from_icoors
 from tmol.database.chemical import Connection, Icoor, RawResidueType
@@ -180,29 +181,15 @@ def _full_ideal_coords(restype: RawResidueType) -> dict[str, np.ndarray]:
 
 
 def _angle(a: np.ndarray, b: np.ndarray, c: np.ndarray) -> float:
-    ba = a - b
-    bc = c - b
-    denom = float(np.linalg.norm(ba) * np.linalg.norm(bc))
-    if denom < 1e-12:
+    """Angle at vertex b, in radians; zero where the points coincide."""
+    if float(np.linalg.norm(a - b) * np.linalg.norm(c - b)) < 1e-12:
         return 0.0
-    return float(np.arccos(np.clip(np.dot(ba, bc) / denom, -1.0, 1.0)))
+    return math.radians(vertex_angle(a, b, c))
 
 
 def _dihedral(a: np.ndarray, b: np.ndarray, c: np.ndarray, d: np.ndarray) -> float:
-    b1 = b - a
-    b2 = c - b
-    b3 = d - c
-    n1 = np.cross(b1, b2)
-    n2 = np.cross(b2, b3)
-    n1_norm = float(np.linalg.norm(n1))
-    n2_norm = float(np.linalg.norm(n2))
-    b2_norm = float(np.linalg.norm(b2))
-    if min(n1_norm, n2_norm, b2_norm) < 1e-12:
-        return 0.0
-    n1 /= n1_norm
-    n2 /= n2_norm
-    m1 = np.cross(n1, b2 / b2_norm)
-    return float(np.arctan2(np.dot(m1, n2), np.dot(n1, n2)))
+    """Dihedral a-b-c-d, in radians."""
+    return math.radians(signed_dihedral_angle(a, b, c, d))
 
 
 def _fragment_atom_tree(  # noqa: C901
