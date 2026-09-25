@@ -160,7 +160,10 @@ def idealized(param_db, pose_stack):
         placed = (ideal - ca) @ (u @ vt) + cb
         coords[pose, start : start + bt.n_atoms] = placed.to(coords.device)
     site_rows, site_params, _, _ = metal_oracle.restraints(param_db, pose_stack)
-    targets = {}
+    # A donor bridging two metals has a target for each and can take only one:
+    #    the last wins, and what the other keeps is accounted irreducible. Their
+    #    midpoint is not a third answer -- for two metals far enough apart it
+    #    lands on one of them.
     for (pose, mblock, matom, vatom, dblock, datom), params in zip(
         site_rows, site_params
     ):
@@ -170,13 +173,7 @@ def idealized(param_db, pose_stack):
             ray = coords[pose, global_index(pose_stack, pose, mblock, vatom)] - metal
         else:
             ray = coords[pose, donor] - metal
-        targets.setdefault((pose, donor), []).append(
-            metal + params[0] * ray / ray.norm()
-        )
-    # a donor bridging two metals carries one target per metal and cannot sit
-    #    on both; its restraints balance at their mean
-    for (pose, donor), points in targets.items():
-        coords[pose, donor] = torch.stack(points).mean(0)
+        coords[pose, donor] = metal + params[0] * ray / ray.norm()
     return coords, site_rows
 
 
@@ -229,7 +226,10 @@ def test_kernel_matches_oracle(built, stem, default_database, torch_device):
 
     def gradient(energy):
         """Zero where a structure carries no restraint at all, as cobalt hexammine does."""
-        (grad,) = torch.autograd.grad(energy.sum(), coords, allow_unused=True)
+        total = energy.sum()
+        if not total.requires_grad:
+            return torch.zeros_like(coords)
+        (grad,) = torch.autograd.grad(total, coords, allow_unused=True)
         return torch.zeros_like(coords) if grad is None else grad
 
     expected = metal_oracle.block_pair_energies(default_database, pose_stack, coords)
@@ -261,7 +261,8 @@ def test_ideal_sites_score_zero(built, stem, default_database, torch_device):
     assert settled < 1e-6, f"{stem}: {detail}"
 
     score = float(render(term, pose_stack)(coords).sum())
-    assert score == pytest.approx(settled + irreducible, abs=1e-6), f"{stem}: {detail}"
+    # the kernel reads its parameters in single precision, as the oracle notes
+    assert score == pytest.approx(settled + irreducible, rel=1e-5), f"{stem}: {detail}"
 
 
 def test_known_distortions(built, default_database):
