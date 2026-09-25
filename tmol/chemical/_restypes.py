@@ -491,13 +491,13 @@ class RefinedResidueType(RawResidueType):
             # Add the immediate atom
             paths[0] = (atom0, -1, -1)
 
-            # an atom with more than three partners (a cluster metal or a
-            #    bridging oxide) keeps three, one of them the way back
+            # an atom with more than three partners besides the way back (a
+            #    cluster metal or a bridging oxide) keeps the first three
             def partners(atom, back=None):
                 out = bondmap[atom]
-                if len(out) > 3:
-                    rest = [a for a in out if a != back]
-                    out = ([back] if back in out else []) + rest[: 3 - (back in out)]
+                rest = [a for a in out if a != back]
+                if len(rest) > 3:
+                    out = ([back] if back in out else []) + rest[:3]
                 return out + [-1] * (3 - len(out))
 
             idx = 1
