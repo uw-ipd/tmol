@@ -48,6 +48,11 @@ def best_rotation(donors: numpy.ndarray, targets: numpy.ndarray) -> numpy.ndarra
     return _best_rotations(donors, targets[numpy.newaxis])[0]
 
 
+# Wider than arccos amplification near cos=1, narrower than any angle that means
+# something: two assignments this close are the same fit, differently rounded.
+_FIT_TIE_DEG = 1e-4
+
+
 def _best_rotations(donors: numpy.ndarray, targets: numpy.ndarray) -> numpy.ndarray:
     """Kabsch for a stack of target sets at once, ``targets`` shaped (n, k, 3)."""
     covariance = numpy.einsum("ki,nkj->nij", donors, targets)
@@ -118,7 +123,11 @@ def fit_geometry(
     rotated = numpy.einsum("ki,nij->nkj", donors, rotations)
     cosines = numpy.clip(numpy.sum(rotated * targets, axis=2), -1.0, 1.0)
     rms = numpy.sqrt(numpy.mean(numpy.degrees(numpy.arccos(cosines)) ** 2, axis=1))
-    best = int(numpy.argmin(rms))
+    # Assignments that fit equally well each go through their own SVD, and arccos
+    # near one amplifies the last bits into about 1e-6 degrees. A strict minimum
+    # would let that decide between assignments pointing free sites different ways,
+    # so take the first inside a window above the noise and below anything real.
+    best = int(numpy.flatnonzero(rms <= rms.min() + _FIT_TIE_DEG)[0])
     return GeometryFit(
         geometry="",
         rms_angle=float(rms[best]),
