@@ -473,9 +473,12 @@ exercises, continue with the numbered Tutorials.</p>
 </div></blockquote>
 <section id="install-tmol">
 <h2>Install TMol<a class="headerlink" href="#install-tmol" title="Link to this heading">#</a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>tmol
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>tmol<span class="w"> </span>--find-links<span class="w"> </span>https://github.com/uw-ipd/tmol/releases/expanded_assets/v0.1.55
 </pre></div>
 </div>
+<p><code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">tmol</span></code> on its own takes the PyPI source distribution and builds the
+extensions, which needs a compiler and, for CUDA, <code class="docutils literal notranslate"><span class="pre">nvcc</span></code>. See
+<a class="reference internal" href="installation.html"><span class="doc">Installation</span></a> for the wheel channels.</p>
 </section>
 <section id="load-and-score-one-structure">
 <h2>Load and score one structure<a class="headerlink" href="#load-and-score-one-structure" title="Link to this heading">#</a></h2>
