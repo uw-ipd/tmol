@@ -77,7 +77,9 @@ def _infer_carboxylate_bonds(rw: Chem.RWMol, conf: Chem.Conformer) -> int:
         if angle_sum is None or angle_sum < _SP2_ANGLE_SUM_MIN:
             continue
 
-        oa, ob = term_os
+        # The carbonyl is the shorter bond; taking them in neighbour order would
+        #    let the input's atom ordering decide which oxygen carries the charge.
+        oa, ob = term_os if co_dists[0] <= co_dists[1] else term_os[::-1]
         for idx in (c, oa, ob):
             rw.GetAtomWithIdx(idx).SetIsAromatic(False)
         b_oa = rw.GetBondBetweenAtoms(c, oa)
