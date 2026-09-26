@@ -46,7 +46,9 @@ jobs:
           - platform: linux-x86_64
             runs-on: ubuntu-latest
             build_workers: 4
-            test_workers: 6
+            # a hosted runner gives 16 GB, and each worker holds its own poses:
+            # six of them run out where four finish the suite with room to spare
+            test_workers: 4
           - platform: linux-aarch64
             runs-on: ubuntu-24.04-arm
             build_workers: 4
