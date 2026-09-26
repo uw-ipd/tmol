@@ -65,25 +65,25 @@ dna:
   rama: 0.0
   ref: 0.0
 nonstandard_aa:
-  cart_angles: 67.7406
+  cart_angles: 67.4757
   cart_hxltorsions: 1.3347
   cart_impropers: 6.9254
-  cart_lengths: 247.6708
+  cart_lengths: 247.6195
   cart_torsions: 3.798
   disulfide: 0.0
-  dunbrack_rot: 23.3038
+  dunbrack_rot: 22.7186
   dunbrack_rotdev: 24.3836
   dunbrack_semirot: 22.6102
-  fa_elec: -115.4695
-  fa_ljatr: -202.2302
-  fa_ljrep: 288.5656
-  fa_lk: 161.9896
-  gen_torsions: 50.0291
+  fa_elec: -117.8393
+  fa_ljatr: -196.5779
+  fa_ljrep: 119.114
+  fa_lk: 157.5564
+  gen_torsions: 40.0708
   hbond: -28.1345
-  lk_ball: 77.4107
-  lk_ball_iso: 189.6132
-  lk_bridge: 0.0705
-  lk_bridge_uncpl: 0.945
+  lk_ball: 75.4451
+  lk_ball_iso: 184.314
+  lk_bridge: 0.0616
+  lk_bridge_uncpl: 0.7813
   metal_coordination: 0.0
   na_torsion: 0.0
   na_torsion_well: 0.0
