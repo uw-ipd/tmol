@@ -477,16 +477,17 @@ class RefinedResidueType(RawResidueType):
         # 3 paths coming from that atom, followed by the 3 coming out
         # of each of those in turn. If a path doesn't exist, it is
         # filled with -1s to ensure deterministic indexing of the paths.
+        # a convenient datastructure for following connections; virtual atoms have
+        #    no bonded geometry to reach. Neither this nor the virtual set depends
+        #    on the connection, and a cluster metal asks for them twelve times.
+        virtual = {self.atom_to_idx[name] for name in self.properties.virtual}
+        bondmap = defaultdict(list)
+        for bond in self.bond_indices:
+            if bond[0] not in virtual and bond[1] not in virtual:
+                bondmap[bond[0]].append(bond[1])
+
         def get_paths_length_3(connection):
             paths = numpy.full((MAX_PATHS_FROM_CONNECTION, 3), -1, dtype=numpy.int32)
-            # create a convenient datastructure for following connections;
-            #    virtual atoms have no bonded geometry to reach
-            virtual = {self.atom_to_idx[name] for name in self.properties.virtual}
-            bondmap = defaultdict(list)
-            for bond in self.bond_indices:
-                if bond[0] not in virtual and bond[1] not in virtual:
-                    bondmap[bond[0]].append(bond[1])
-
             atom0 = self.atom_to_idx[connection.atom]
             # Add the immediate atom
             paths[0] = (atom0, -1, -1)

@@ -16,6 +16,7 @@ from tmol.chemical import ResidueTypeSet
 from tmol.chemical import BondType as ChemBondType
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import metal_table, site_connections
+from tmol.io._canonical_ordering import _only_coordinates_a_metal
 from tmol.io import (
     CanonicalForm,
     CanonicalOrdering,
@@ -576,7 +577,7 @@ def build_context_from_biotite(
             and param_db is _paramdb_for_biotite()
             and not fragment_definitions
         ):
-            return _default_pose_build_context(torch_device)
+            return _default_pose_build_context_for(biotite_structure, torch_device)
 
         rts = ResidueTypeSet.from_database(param_db.chemical)
         pbt = PackedBlockTypes.from_restype_list(
@@ -592,7 +593,7 @@ def build_context_from_biotite(
         )
 
     if param_db is None:
-        return _default_pose_build_context(torch_device)
+        return _default_pose_build_context_for(biotite_structure, torch_device)
 
     db = param_db
     co, rts, pbt = _derived_types_for_param_db(db, torch_device)
@@ -2741,8 +2742,54 @@ def packed_block_types_for_biotite(device: torch.device) -> PackedBlockTypes:
 
     restype_set = _restype_set_for_biotite()
 
+    # A twelve-site cluster makes every pose packed beside it as wide as itself --
+    # the bond-separation table by the square of that, the cartbonded dispatch by
+    # it directly -- so a structure with no metal in it is not packed with them.
+    active = [
+        rt for rt in restype_set.residue_types if not _only_coordinates_a_metal(rt)
+    ]
+
+    return PackedBlockTypes.from_restype_list(
+        restype_set.chem_db, restype_set, active, device
+    )
+
+
+@validate_args
+@toolz.functoolz.memoize
+def packed_block_types_for_biotite_with_metals(
+    device: torch.device,
+) -> PackedBlockTypes:
+    """The Biotite packed block types, plus the ions and clusters.
+
+    A metal the structure carries needs its block type here whether or not
+    anything coordinates it: a coordinated one arrives with the donor patches, an
+    uncoordinated one has nothing to bring it.
+    """
+    restype_set = _restype_set_for_biotite()
+
     return PackedBlockTypes.from_restype_list(
         restype_set.chem_db, restype_set, restype_set.residue_types, device
+    )
+
+
+def _carries_a_metal(structure) -> bool:
+    """Whether the structure has an atom of an element that coordinates."""
+    metals = [ion["element"].upper() for ion in metal_table()["ions"]]
+    elements = numpy.char.upper(numpy.asarray(structure.element, dtype=str))
+    return bool(numpy.isin(elements, metals).any())
+
+
+def _default_pose_build_context_for(
+    structure, device: torch.device
+) -> PoseBuildContext:
+    """The process-wide context, packed wide enough for what this structure holds."""
+    if not _carries_a_metal(structure):
+        return _default_pose_build_context(device)
+    return PoseBuildContext(
+        canonical_ordering=canonical_ordering_for_biotite(),
+        packed_block_types=packed_block_types_for_biotite_with_metals(device),
+        parameter_database=_paramdb_for_biotite(),
+        restype_set=_restype_set_for_biotite(),
     )
 
 
