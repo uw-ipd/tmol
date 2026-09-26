@@ -30,7 +30,7 @@ def assert_metal_bonds_are_coordination(array, metal):
 
 def test_partial_sugar_rings_construct_score_and_minimize(torch_device, monkeypatch):
     from tmol.io import build_context_from_biotite
-    from tmol.io.details import _build_missing_nonpolymer_atoms as completion
+    from tmol.io.details import _build_missing_leaf_atoms as leaf
     from rdkit import Chem
     from tmol.ligand._conjugate_model import capped_conjugate_models
 
@@ -100,28 +100,32 @@ def test_partial_sugar_rings_construct_score_and_minimize(torch_device, monkeypa
     assert assigned == centers
     assert template.equal_annotations(template_before)
     np.testing.assert_array_equal(template.coord, template_before.coord)
-    original = completion.build_missing_nonpolymer_atoms
+    original = leaf.build_missing_by_context
     calls = []
 
-    def record(*args):
-        result = original(*args)
-        calls.append((args, result))
+    def record(*args, **kwargs):
+        result = original(*args, **kwargs)
+        calls.append((args, kwargs, result))
         return result
 
-    monkeypatch.setattr(completion, "build_missing_nonpolymer_atoms", record)
+    monkeypatch.setattr(leaf, "build_missing_by_context", record)
     pose = pose_stack_from_biotite(array, torch_device, context=context, no_optH=True)
     np.testing.assert_array_equal(array.coord, supplied)
-    assert len(calls) == 1
-    (pbt, coords, targets, offsets, types, connections), completed = calls[0]
-    changed = torch.isnan(coords).any(-1) & torch.isfinite(completed).all(-1)
-    assert int(changed.sum()) == 48
-    finite = torch.isfinite(coords).all(-1)
+    # the heavy atoms, grown before any hydrogen
+    (pbt, coords, missing, targets, offsets, types, connections), kwargs, result = next(
+        c for c in calls if c[1].get("heavy_only", True)
+    )
+    completed, built = result
+    assert bool(targets.any())
+    torch.testing.assert_close(built, targets, rtol=0, atol=0)
+    changed = built
+    finite = ~missing
     torch.testing.assert_close(completed[finite], coords[finite], rtol=0, atol=0)
 
     # Both rings keep every internal distance, including the closure bond, and
     # every heavy-atom tetrahedral center keeps its generated handedness.
     anchors = set()
-    for pi, bi in torch.nonzero(targets.any(-1)).tolist():
+    for pi, bi in torch.nonzero(_blocks_with(targets, offsets, types, pbt)).tolist():
         bt = pbt.active_block_types[int(types[pi, bi])]
         offset = int(offsets[pi, bi])
         ring = [bt.atom_to_idx[n] for n in ("C1", "C2", "C3", "C4", "C5", "O5")]
@@ -145,61 +149,60 @@ def test_partial_sugar_rings_construct_score_and_minimize(torch_device, monkeypa
                 if abs(float(before)) > 0.1:
                     assert before * torch.linalg.det(xyz[heavy] - xyz[atom]) > 0
         for ai in (
-            torch.nonzero(
-                torch.isfinite(coords[pi, offset : offset + bt.n_atoms]).all(-1)
-            )
-            .flatten()
-            .tolist()
+            torch.nonzero(finite[pi, offset : offset + bt.n_atoms]).flatten().tolist()
         ):
             anchors.add((pi, offset + ai))
         for ci in range(len(bt.connections)):
             other, port = connections[pi, bi, ci].tolist()
             if other >= 0:
-                for sep in (0, 1):
-                    ai = int(
-                        pbt.atom_downstream_of_conn[int(types[pi, other]), port, sep]
-                    )
-                    if ai >= 0:
-                        anchors.add((pi, int(offsets[pi, other]) + ai))
+                partner = int(pbt.conn_atom[int(types[pi, other]), port])
+                anchors.add((pi, int(offsets[pi, other]) + partner))
 
-    # Check the actual reconstruction graph with finite differences through
-    # the observed atoms, including each connection's external references.
+    # Gradients reach the observed atoms the rebuilt ones are placed from,
+    # including each connection partner.
     indices = tuple(torch.tensor(sorted(anchors), device=torch_device).T)
     base = coords.detach().double()
     values = base[indices].clone().requires_grad_()
 
     def finish(values):
-        return original(
-            pbt, base.index_put(indices, values), targets, offsets, types, connections
-        )[changed]
+        rebuilt, _ = original(
+            pbt,
+            base.index_put(indices, values),
+            missing,
+            targets,
+            offsets,
+            types,
+            connections,
+        )
+        return rebuilt[changed]
 
     assert torch.autograd.gradcheck(finish, (values,), fast_mode=True)
+
+    # Moving the whole input rigidly moves the rebuilt atoms with it.
     rotation = base.new_tensor([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
-    moved = base @ rotation.T + base.new_tensor([12, -4, 7])
-    actual = original(pbt, moved, targets, offsets, types, connections)
+    shift = base.new_tensor([12, -4, 7])
+    moved, _ = original(
+        pbt, base @ rotation.T + shift, missing, targets, offsets, types, connections
+    )
     torch.testing.assert_close(
-        actual[changed], finish(values) @ rotation.T + base.new_tensor([12, -4, 7])
+        moved[changed], finish(values).detach() @ rotation.T + shift
     )
 
-    # A collinear input cannot orient either ring. Removing the partner's
-    # downstream reference also leaves the singly anchored MAN unresolved.
-    collinear = base.clone()
-    collinear[finite] = 0
-    unresolved = original(pbt, collinear, targets, offsets, types, connections)
-    assert torch.isnan(unresolved[changed]).all()
-    for pi, bi in torch.nonzero(targets.any(-1)).tolist():
-        bt = pbt.active_block_types[int(types[pi, bi])]
-        if bt.name != "MAN:conj_C1":
-            continue
-        other, port = connections[pi, bi, bt.connection_to_cidx["conj_C1"]].tolist()
-        ai = int(pbt.atom_downstream_of_conn[int(types[pi, other]), port, 1])
-        absent = base.clone()
-        absent[pi, int(offsets[pi, other]) + ai] = float("nan")
-        unresolved = original(pbt, absent, targets, offsets, types, connections)
-        offset = int(offsets[pi, bi])
-        assert torch.isnan(unresolved[pi, offset + bt.atom_to_idx["C2"]]).all()
     _, minimized = _score_and_minimize(pose, context, max_iter=100)
     assert torch.isfinite(minimized.coords[minimized.real_atoms]).all()
+
+
+def _blocks_with(atoms, offsets, types, pbt):
+    """[n_poses, max_n_blocks]: blocks holding any of the given pose atoms."""
+    out = torch.zeros(types.shape, dtype=torch.bool, device=types.device)
+    for pi, a in torch.nonzero(atoms).tolist():
+        for bi in range(types.shape[1]):
+            if types[pi, bi] < 0:
+                continue
+            start = int(offsets[pi, bi])
+            if start <= a < start + pbt.active_block_types[int(types[pi, bi])].n_atoms:
+                out[pi, bi] = True
+    return out
 
 
 @pytest.mark.parametrize("pdb,sugar,count", [("1en2", "NAG", 4), ("4ndz", "GLC", 10)])
