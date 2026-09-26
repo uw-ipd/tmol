@@ -455,6 +455,10 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">PatchedChemicalDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility._device</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
 
+<span class="c1"># The per-block connection capacity of the ljlk, elec, hbond and lk_ball</span>
+<span class="c1"># kernels' shared-memory tiles (MAX_N_CONN in their .hh files).</span>
+<span class="n">MAX_N_CONN</span> <span class="o">=</span> <span class="mi">12</span>
+
 
 <span class="k">def</span><span class="w"> </span><span class="nf">residue_types_from_residues</span><span class="p">(</span><span class="n">residues</span><span class="p">):</span>
     <span class="n">rt_dict</span> <span class="o">=</span> <span class="p">{}</span>
@@ -577,7 +581,20 @@
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Packed residue-type tensors and their concrete device metadata.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If a residue type has more than ``MAX_N_CONN`` connections.</span>
 <span class="sd">        """</span>
+        <span class="n">overfull</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">bt</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">connections</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span>
+            <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">active_block_types</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">connections</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">MAX_N_CONN</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="n">overfull</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Residue types exceed the </span><span class="si">{</span><span class="n">MAX_N_CONN</span><span class="si">}</span><span class="s2"> connections the scoring "</span>
+                <span class="sa">f</span><span class="s2">"kernels hold per block: </span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">overfull</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
         <span class="n">device</span> <span class="o">=</span> <span class="n">resolve_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
         <span class="n">max_n_atoms</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">count_max_n_atoms</span><span class="p">(</span><span class="n">active_block_types</span><span class="p">)</span>
         <span class="n">n_atoms</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">count_n_atoms</span><span class="p">(</span><span class="n">active_block_types</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>

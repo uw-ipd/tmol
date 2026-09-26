@@ -2178,7 +2178,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_metal_coordination_from_biotite</span><span class="p">(</span>
-    <span class="n">array</span><span class="p">,</span> <span class="n">atom_res_inds</span><span class="p">,</span> <span class="n">restype_for_res</span><span class="p">,</span> <span class="n">valid_atom_mask</span><span class="p">,</span> <span class="n">valid_atom_inds</span><span class="p">,</span> <span class="n">co</span>
+    <span class="n">array</span><span class="p">,</span> <span class="n">atom_res_inds</span><span class="p">,</span> <span class="n">valid_atom_mask</span><span class="p">,</span> <span class="n">valid_atom_inds</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">"""(metal, -1, donor, donor atom) for each declared metal bond.</span>
 
@@ -3055,10 +3055,8 @@
     <span class="n">metal_coordination_np</span> <span class="o">=</span> <span class="n">_metal_coordination_from_biotite</span><span class="p">(</span>
         <span class="n">_template_array</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">),</span>
         <span class="n">atom_res_inds</span><span class="p">,</span>
-        <span class="n">tmol_restypes</span><span class="p">,</span>
         <span class="n">valid_atom_mask</span><span class="p">,</span>
         <span class="n">valid_atom_inds</span><span class="p">,</span>
-        <span class="n">co</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">atom37_coords</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">tmol_coords</span><span class="p">,</span> <span class="n">n_poses</span> <span class="o">=</span> <span class="n">_populate_canonical_coords</span><span class="p">(</span>
