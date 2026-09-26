@@ -493,3 +493,26 @@ def test_fast_relax_for_different_shapes(
     print(
         f"Three differently-shaped PDBs relaxed; Execution time: {elapsed_time:.6f} seconds"
     )
+
+
+def test_not_ramping_constraints_holds_them_at_full_weight():
+    """The default schedule states a cst_frac column, and that column is the ramp.
+
+    A caller who asks not to ramp is asking for the constraint weight to stay
+    where their score function set it.
+    """
+    from tmol.relax._fast_relax import DEFAULT_RELAX_SCHEDULE, _normalize_schedule
+
+    ramped = [
+        cst for _, _, cst in _normalize_schedule(DEFAULT_RELAX_SCHEDULE, True, True)
+    ]
+    held = [
+        cst for _, _, cst in _normalize_schedule(DEFAULT_RELAX_SCHEDULE, True, False)
+    ]
+    unconstrained = [
+        cst for _, _, cst in _normalize_schedule(DEFAULT_RELAX_SCHEDULE, False, True)
+    ]
+
+    assert ramped == [1.0, 0.5, 0.0, 0.0]
+    assert held == [1.0] * len(DEFAULT_RELAX_SCHEDULE)
+    assert unconstrained == [0.0] * len(DEFAULT_RELAX_SCHEDULE)
