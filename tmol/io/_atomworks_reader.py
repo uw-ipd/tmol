@@ -73,9 +73,7 @@ def _read_declared(path, model, assembly_id):
     block = getattr(file, "block", None)
     if block is None:
         # The shared PDB loader retains CONECT and TER chain boundaries.
-        array, _ = load_pdb(
-            path, model=model, use_ccd=False, infer_unstated_bond_orders=False
-        )
+        array, _ = load_pdb(path, model=model, infer_unstated_bond_orders=False)
         entries = {}
     else:
         array = get_structure(file, model=model, extra_fields=_FIELDS)
@@ -176,7 +174,6 @@ def _parse_repairing_author_numbering(path, config, model, assembly_id):
             array, _ = load_pdb(
                 path,
                 model=model,
-                use_ccd=config.use_ccd,
                 infer_unstated_bond_orders=config.infer_unstated_bond_orders,
             )
             if array.coord.ndim == 3:
