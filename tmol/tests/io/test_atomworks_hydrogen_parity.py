@@ -6,16 +6,13 @@ a hydrogen. A hydrogen tmol cannot account for is one it rebuilds from its own
 table, and this is what notices when the two tables drift apart.
 """
 
+import biotite.structure as struc
+import biotite.structure.info as info
 import numpy as np
 import pytest
+from atomworks.protonation import ensure_hydrogens
 
-pytest.importorskip("atomworks")
-
-import biotite.structure as struc  # noqa: E402
-import biotite.structure.info as info  # noqa: E402
-from atomworks.protonation import ensure_hydrogens  # noqa: E402
-
-from tmol.io import biotite_from_pose_stack, pose_stack_from_biotite  # noqa: E402
+from tmol.io import biotite_from_pose_stack, pose_stack_from_biotite
 
 STANDARD = [
     "ALA",

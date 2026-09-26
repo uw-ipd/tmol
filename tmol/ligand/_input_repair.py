@@ -194,14 +194,8 @@ def get_absent_substitution_leaving_groups(
     return result
 
 
-# ---------------------------------------------------------------------------
-# Leaving groups
-#
-# A component's leaving atoms are the ones displaced when it forms a bond. The
-# grouping is a property of the template's bond graph and its leaving-atom
-# flags, so it lives here with the rest of the chemistry TMol resolves for
-# itself rather than asking AtomWorks for.
-# ---------------------------------------------------------------------------
+# Leaving groups: the atoms a component sheds when it bonds, read from its
+# template's bond graph and leaving-atom flags rather than from the CCD.
 
 
 def _find_connected_components_after_removal(
