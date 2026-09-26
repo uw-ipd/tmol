@@ -840,6 +840,23 @@ def pose_stack_from_canonical_form_and_context(
     """
     from tmol.io import pose_stack_from_canonical_form
     from tmol.pack import build_missing_sidechains
+    from tmol.pack.rotamer import (
+        FixedAAChiSampler,
+        bfs_sidechain_atoms,
+        construct_single_residue_kinforest,
+    )
+
+    # amino-acid side chains a rotamer sampler covers are left for the packer
+    samplers = (context._dunbrack_sampler, FixedAAChiSampler())
+
+    def packer_atoms(rt):
+        placed = numpy.zeros(rt.n_atoms, dtype=bool)
+        for sampler in samplers:
+            if sampler.defines_rotamers_for_rt(rt):
+                construct_single_residue_kinforest(rt)
+                roots = [rt.atom_to_idx[a] for a in sampler.first_sc_atoms_for_rt(rt)]
+                placed |= bfs_sidechain_atoms(rt, roots).astype(bool)
+        return placed
 
     if atom37_coords is not None:
         # Both searches are geometric, so leaving either on makes the chemistry
@@ -860,6 +877,7 @@ def pose_stack_from_canonical_form_and_context(
         context.packed_block_types,
         *cf,
         return_block_has_missing_atoms=True,
+        packer_atoms=packer_atoms,
         **kwargs,
     )
 
