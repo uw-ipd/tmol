@@ -1715,7 +1715,7 @@ def _with_metal_coordination_typed(structure):
 
 
 def _metal_coordination_from_biotite(
-    array, atom_res_inds, restype_for_res, valid_atom_mask, valid_atom_inds, co
+    array, atom_res_inds, valid_atom_mask, valid_atom_inds
 ):
     """(metal, -1, donor, donor atom) for each declared metal bond.
 
@@ -2590,10 +2590,8 @@ def canonical_form_from_biotite(
     metal_coordination_np = _metal_coordination_from_biotite(
         _template_array(biotite_structure),
         atom_res_inds,
-        tmol_restypes,
         valid_atom_mask,
         valid_atom_inds,
-        co,
     )
     if atom37_coords is None:
         tmol_coords, n_poses = _populate_canonical_coords(
