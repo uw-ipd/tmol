@@ -548,14 +548,67 @@ def transfer_tetrahedral_stereochemistry(
 # ---------------------------------------------------------------------------
 
 
+def _double_bond_ends(mol: Mol):
+    for bond in mol.GetBonds():
+        if bond.GetBondType() == Chem.BondType.DOUBLE and not bond.GetIsAromatic():
+            i, j = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+            yield bond, ((i, j), (j, i))
+
+
+def _impute_double_bond_substituents(mol: Mol, coords, finite):
+    """Coordinates with an unresolved second substituent on a resolved double bond
+    end placed opposite the resolved one, in the bond's plane."""
+    coords = coords.copy()
+    for _, ends in _double_bond_ends(mol):
+        for end, other in ends:
+            subs = [n.GetIdx() for n in mol.GetAtomWithIdx(end).GetNeighbors()]
+            subs = [x for x in subs if x != other]
+            resolved = [x for x in subs if finite[x]]
+            if (
+                len(subs) != 2
+                or len(resolved) != 1
+                or not (finite[end] and finite[other])
+            ):
+                continue
+            axis = coords[other] - coords[end]
+            axis = axis / np.linalg.norm(axis)
+            v = coords[resolved[0]] - coords[end]
+            missing = subs[0] if subs[1] == resolved[0] else subs[1]
+            coords[missing] = coords[end] + 2 * (v @ axis) * axis - v
+    return coords
+
+
+def _clear_undetermined_double_bond_stereo(mol: Mol, finite) -> None:
+    """Drop cis/trans that rests on an unresolved atom, with its bond directions."""
+    for bond, ((i, j), _) in _double_bond_ends(mol):
+        if bond.GetStereo() == Chem.BondStereo.STEREONONE:
+            continue
+        if finite[[i, j, *bond.GetStereoAtoms()]].all():
+            continue
+        bond.SetStereo(Chem.BondStereo.STEREONONE)
+        for end in (i, j):
+            for adjacent in mol.GetAtomWithIdx(end).GetBonds():
+                adjacent.SetBondDir(Chem.BondDir.NONE)
+
+
 def assign_stereochemistry_from_3d(mol: Mol) -> None:
     """Assign geometry-derived stereo while preserving unresolved coordinates.
 
     Three resolved neighbors determine a tetrahedral center's orientation even
     when its fourth neighbor is unresolved. Use a temporary conformer for that
-    inference; centers with insufficient geometry remain unspecified.
+    inference; centers with insufficient geometry remain unspecified. A double
+    bond's cis/trans is read from one resolved substituent on each end.
     """
+    conf = mol.GetConformer()
+    coords = conf.GetPositions()
+    finite = np.isfinite(coords).all(axis=1)
+    if not finite.all():
+        imputed = _impute_double_bond_substituents(mol, coords, finite)
+        conf.SetPositions(imputed)
     Chem.AssignStereochemistryFrom3D(mol)
+    if not finite.all():
+        conf.SetPositions(coords)
+        _clear_undetermined_double_bond_stereo(mol, np.isfinite(imputed).all(axis=1))
     # Record chiral H as a count without adding atoms or changing coordinates.
     # An implicit H on a ring root can otherwise reverse SMILES stereochemistry.
     for atom in mol.GetAtoms():
