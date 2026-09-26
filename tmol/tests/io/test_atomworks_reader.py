@@ -434,8 +434,10 @@ def test_shared_parser_builds_and_scores_general_chemistry(fixture, torch_device
     if "4js1" in fixture or "4hbt" in fixture:
         from tmol.tests.ligand.test_local_conjugate_params import _charges
 
+        # charge is the input chemistry; names are the prepared type, and
+        #    phosphate is prepared at pH 7.4 as HPO4(2-)
         ion, names, charge = (
-            ("PO4", {"P", "O1", "O2", "O3", "O4"}, -3)
+            ("PO4", {"P", "O1", "O2", "O3", "O4", "HO1"}, -3)
             if "4js1" in fixture
             else ("CL", {"CL"}, -1)
         )
