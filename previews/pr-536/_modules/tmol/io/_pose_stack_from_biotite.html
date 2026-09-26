@@ -458,6 +458,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">BondType</span> <span class="k">as</span> <span class="n">ChemBondType</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">metal_table</span><span class="p">,</span> <span class="n">site_connections</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._canonical_ordering</span><span class="w"> </span><span class="kn">import</span> <span class="n">_only_coordinates_a_metal</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">CanonicalForm</span><span class="p">,</span>
     <span class="n">CanonicalOrdering</span><span class="p">,</span>
@@ -1029,7 +1030,7 @@
             <span class="ow">and</span> <span class="n">param_db</span> <span class="ow">is</span> <span class="n">_paramdb_for_biotite</span><span class="p">()</span>
             <span class="ow">and</span> <span class="ow">not</span> <span class="n">fragment_definitions</span>
         <span class="p">):</span>
-            <span class="k">return</span> <span class="n">_default_pose_build_context</span><span class="p">(</span><span class="n">torch_device</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">_default_pose_build_context_for</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">)</span>
 
         <span class="n">rts</span> <span class="o">=</span> <span class="n">ResidueTypeSet</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
         <span class="n">pbt</span> <span class="o">=</span> <span class="n">PackedBlockTypes</span><span class="o">.</span><span class="n">from_restype_list</span><span class="p">(</span>
@@ -1045,7 +1046,7 @@
         <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">param_db</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">_default_pose_build_context</span><span class="p">(</span><span class="n">torch_device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_default_pose_build_context_for</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">)</span>
 
     <span class="n">db</span> <span class="o">=</span> <span class="n">param_db</span>
     <span class="n">co</span><span class="p">,</span> <span class="n">rts</span><span class="p">,</span> <span class="n">pbt</span> <span class="o">=</span> <span class="n">_derived_types_for_param_db</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">)</span>
@@ -3225,8 +3226,54 @@
 
     <span class="n">restype_set</span> <span class="o">=</span> <span class="n">_restype_set_for_biotite</span><span class="p">()</span>
 
+    <span class="c1"># A twelve-site cluster makes every pose packed beside it as wide as itself --</span>
+    <span class="c1"># the bond-separation table by the square of that, the cartbonded dispatch by</span>
+    <span class="c1"># it directly -- so a structure with no metal in it is not packed with them.</span>
+    <span class="n">active</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">rt</span> <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">restype_set</span><span class="o">.</span><span class="n">residue_types</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">_only_coordinates_a_metal</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">PackedBlockTypes</span><span class="o">.</span><span class="n">from_restype_list</span><span class="p">(</span>
+        <span class="n">restype_set</span><span class="o">.</span><span class="n">chem_db</span><span class="p">,</span> <span class="n">restype_set</span><span class="p">,</span> <span class="n">active</span><span class="p">,</span> <span class="n">device</span>
+    <span class="p">)</span>
+
+
+<span class="nd">@validate_args</span>
+<span class="nd">@toolz</span><span class="o">.</span><span class="n">functoolz</span><span class="o">.</span><span class="n">memoize</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">packed_block_types_for_biotite_with_metals</span><span class="p">(</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PackedBlockTypes</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The Biotite packed block types, plus the ions and clusters.</span>
+
+<span class="sd">    A metal the structure carries needs its block type here whether or not</span>
+<span class="sd">    anything coordinates it: a coordinated one arrives with the donor patches, an</span>
+<span class="sd">    uncoordinated one has nothing to bring it.</span>
+<span class="sd">    """</span>
+    <span class="n">restype_set</span> <span class="o">=</span> <span class="n">_restype_set_for_biotite</span><span class="p">()</span>
+
     <span class="k">return</span> <span class="n">PackedBlockTypes</span><span class="o">.</span><span class="n">from_restype_list</span><span class="p">(</span>
         <span class="n">restype_set</span><span class="o">.</span><span class="n">chem_db</span><span class="p">,</span> <span class="n">restype_set</span><span class="p">,</span> <span class="n">restype_set</span><span class="o">.</span><span class="n">residue_types</span><span class="p">,</span> <span class="n">device</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_carries_a_metal</span><span class="p">(</span><span class="n">structure</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Whether the structure has an atom of an element that coordinates."""</span>
+    <span class="n">metals</span> <span class="o">=</span> <span class="p">[</span><span class="n">ion</span><span class="p">[</span><span class="s2">"element"</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">for</span> <span class="n">ion</span> <span class="ow">in</span> <span class="n">metal_table</span><span class="p">()[</span><span class="s2">"ions"</span><span class="p">]]</span>
+    <span class="n">elements</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">upper</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">structure</span><span class="o">.</span><span class="n">element</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">))</span>
+    <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">elements</span><span class="p">,</span> <span class="n">metals</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">())</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_default_pose_build_context_for</span><span class="p">(</span>
+    <span class="n">structure</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseBuildContext</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The process-wide context, packed wide enough for what this structure holds."""</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_carries_a_metal</span><span class="p">(</span><span class="n">structure</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_default_pose_build_context</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">PoseBuildContext</span><span class="p">(</span>
+        <span class="n">canonical_ordering</span><span class="o">=</span><span class="n">canonical_ordering_for_biotite</span><span class="p">(),</span>
+        <span class="n">packed_block_types</span><span class="o">=</span><span class="n">packed_block_types_for_biotite_with_metals</span><span class="p">(</span><span class="n">device</span><span class="p">),</span>
+        <span class="n">parameter_database</span><span class="o">=</span><span class="n">_paramdb_for_biotite</span><span class="p">(),</span>
+        <span class="n">restype_set</span><span class="o">=</span><span class="n">_restype_set_for_biotite</span><span class="p">(),</span>
     <span class="p">)</span>
 
 

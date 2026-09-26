@@ -1084,14 +1084,38 @@
 
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_only_coordinates_a_metal</span><span class="p">(</span><span class="n">restype</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Whether this type is an ion or a cluster: not a polymer, only metal sites.</span>
+
+<span class="sd">    A metal's sites are not kinematic -- but neither is a disulfide, and a cystine</span>
+<span class="sd">    capped at both ends has nothing else left, so being a polymer is what keeps it.</span>
+<span class="sd">    What this picks out is the ions and clusters, which nothing reaches without a</span>
+<span class="sd">    metal in the structure.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">restype</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">is_polymer</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="n">connections</span> <span class="o">=</span> <span class="n">restype</span><span class="o">.</span><span class="n">connections</span>
+    <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">connections</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span>
+        <span class="n">connection</span><span class="o">.</span><span class="n">kinematic</span> <span class="k">for</span> <span class="n">connection</span> <span class="ow">in</span> <span class="n">connections</span>
+    <span class="p">)</span>
+
+
 <span class="nd">@toolz</span><span class="o">.</span><span class="n">functoolz</span><span class="o">.</span><span class="n">memoize</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_memoized_packed_block_types</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PackedBlockTypes</span><span class="p">:</span>
     <span class="n">restype_set</span> <span class="o">=</span> <span class="n">ResidueTypeSet</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
 
+    <span class="c1"># A metal cluster carries twelve connections where a polymer carries three, and</span>
+    <span class="c1"># every pose is sized by the widest type packed with it -- the bond-separation</span>
+    <span class="c1"># table by the square of it, and the cartbonded dispatch by it directly. The</span>
+    <span class="c1"># ions and clusters join the packed set when a structure has one.</span>
+    <span class="n">active</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">rt</span> <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">restype_set</span><span class="o">.</span><span class="n">residue_types</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">_only_coordinates_a_metal</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span>
+    <span class="p">]</span>
+
     <span class="k">return</span> <span class="n">PackedBlockTypes</span><span class="o">.</span><span class="n">from_restype_list</span><span class="p">(</span>
         <span class="n">chem_db</span><span class="o">=</span><span class="n">restype_set</span><span class="o">.</span><span class="n">chem_db</span><span class="p">,</span>
         <span class="n">restype_set</span><span class="o">=</span><span class="n">restype_set</span><span class="p">,</span>
-        <span class="n">active_block_types</span><span class="o">=</span><span class="n">restype_set</span><span class="o">.</span><span class="n">residue_types</span><span class="p">,</span>
+        <span class="n">active_block_types</span><span class="o">=</span><span class="n">active</span><span class="p">,</span>
         <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
     <span class="p">)</span>
 
