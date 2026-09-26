@@ -93,6 +93,11 @@ from ._pose_stack_from_biotite import (  # noqa: F401
     prepare_atom37_pose_builder,
     biotite_from_canonical_form,
 )
+from ._assemble import (  # noqa: F401
+    assemble_input,
+    atom_array_from_mol2,
+    cif_from_atom_array,
+)
 from ._write_pose_stack_pdb import (  # noqa: F401
     write_pose_stack_pdb,
     atom_records_from_pose_stack,
@@ -100,7 +105,10 @@ from ._write_pose_stack_pdb import (  # noqa: F401
 )
 
 __all__ = [
+    "assemble_input",
     "atom_array_from_file",
+    "atom_array_from_mol2",
+    "cif_from_atom_array",
     "Atom37MappingError",
     "CanonicalForm",
     "CanonicalOrdering",

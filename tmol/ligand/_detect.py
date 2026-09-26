@@ -20,6 +20,7 @@ from rdkit import Chem
 from rdkit.Chem import RWMol
 
 from tmol.io import CanonicalOrdering
+from tmol.ligand._input_repair import normalize_radical_oxygens
 from tmol.ligand._mol2_names import apply_disambiguated_mol2_names
 
 logger = logging.getLogger(__name__)
@@ -907,8 +908,6 @@ def _normalize_radical_oxygens(smiles: str) -> str:
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return smiles
-    from atomworks.io.tools.protonation import normalize_radical_oxygens
-
     fixed = normalize_radical_oxygens(mol)
     return smiles if fixed is mol else Chem.MolToSmiles(fixed)
 
