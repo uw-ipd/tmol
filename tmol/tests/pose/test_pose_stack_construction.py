@@ -49,7 +49,7 @@ def test_pose_stack_builder_find_inter_block_sep_for_polymeric_monomers_lcaa(
     )
     block_type_ind64 = i64([[1, 2, 0, 1]])
 
-    ibs64 = PoseStackBuilder._find_inter_block_separation_for_polymeric_monomers_heavy(
+    ibs = PoseStackBuilder._find_inter_block_separation_for_polymeric_monomers_heavy(
         torch_device,
         bt_polymeric_down_to_up_nbonds,
         bt_up_conn_inds,
@@ -60,9 +60,9 @@ def test_pose_stack_builder_find_inter_block_sep_for_polymeric_monomers_lcaa(
         real_res,
         block_type_ind64,
     )
-    inter_block_separation64 = ibs64
+    inter_block_separation = ibs
 
-    gold_inter_block_separation64 = i64(
+    gold_inter_block_separation = i32(
         [
             [
                 [
@@ -93,7 +93,7 @@ def test_pose_stack_builder_find_inter_block_sep_for_polymeric_monomers_lcaa(
         ]
     )
 
-    torch.testing.assert_close(gold_inter_block_separation64, inter_block_separation64)
+    torch.testing.assert_close(gold_inter_block_separation, inter_block_separation)
 
 
 def test_pose_stack_builder_inter_block_sep_mix_alpha_and_beta(
@@ -118,7 +118,7 @@ def test_pose_stack_builder_inter_block_sep_mix_alpha_and_beta(
     )
     block_type_ind64 = i64([[1, 2, 4, 1]])
 
-    ibs64 = PoseStackBuilder._find_inter_block_separation_for_polymeric_monomers_heavy(
+    ibs = PoseStackBuilder._find_inter_block_separation_for_polymeric_monomers_heavy(
         torch_device,
         bt_polymeric_down_to_up_nbonds,
         bt_up_conn_inds,
@@ -129,9 +129,9 @@ def test_pose_stack_builder_inter_block_sep_mix_alpha_and_beta(
         real_res,
         block_type_ind64,
     )
-    inter_block_separation64 = ibs64
+    inter_block_separation = ibs
 
-    gold_inter_block_separation64 = i64(
+    gold_inter_block_separation = i32(
         [
             [
                 [
@@ -162,7 +162,7 @@ def test_pose_stack_builder_inter_block_sep_mix_alpha_and_beta(
         ]
     )
 
-    torch.testing.assert_close(gold_inter_block_separation64, inter_block_separation64)
+    torch.testing.assert_close(gold_inter_block_separation, inter_block_separation)
 
 
 def test_take_real_conn_conn_intrablock_pairs_heavy(torch_device):

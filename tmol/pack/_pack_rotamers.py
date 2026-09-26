@@ -279,7 +279,6 @@ def _slice_pose_stack_for_packing(
         inter_residue_connections=view(pose_stack.inter_residue_connections),
         inter_residue_connections64=view(pose_stack.inter_residue_connections64),
         inter_block_bondsep=view(pose_stack.inter_block_bondsep),
-        inter_block_bondsep64=view(pose_stack.inter_block_bondsep64),
         block_type_ind=view(pose_stack.block_type_ind),
         block_type_ind64=view(pose_stack.block_type_ind64),
         chain_id=view(pose_stack.chain_id),

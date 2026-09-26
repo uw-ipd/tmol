@@ -166,7 +166,6 @@ class PoseStackBuilder:
             inter_residue_connections=inter_residue_connections,
             inter_residue_connections64=i64(inter_residue_connections),
             inter_block_bondsep=inter_block_bondsep,
-            inter_block_bondsep64=i64(inter_block_bondsep),
             block_type_ind=block_type_ind,
             block_type_ind64=i64(block_type_ind),
             chain_id=chain_id,
@@ -310,10 +309,8 @@ class PoseStackBuilder:
         )
 
         # 4
-        inter_block_bondsep64 = (
-            cls._calculate_interblock_bondsep_from_connectivity_graph(
-                pbt, pconn_offsets, block_n_conn, pconn_matrix
-            )
+        inter_block_bondsep = cls._calculate_interblock_bondsep_from_connectivity_graph(
+            pbt, pconn_offsets, block_n_conn, pconn_matrix
         )
 
         n_atoms = torch.zeros((n_poses, max_n_res), dtype=torch.int32, device=device)
@@ -361,8 +358,7 @@ class PoseStackBuilder:
             block_coord_offset64=block_coord_offset.to(torch.int64),
             inter_residue_connections=inter_residue_connections64.to(torch.int32),
             inter_residue_connections64=inter_residue_connections64,
-            inter_block_bondsep=inter_block_bondsep64.to(torch.int32),
-            inter_block_bondsep64=inter_block_bondsep64,
+            inter_block_bondsep=inter_block_bondsep,
             block_type_ind=block_type_ind64.to(torch.int32),
             block_type_ind64=block_type_ind64,
             chain_id=chain_id,
@@ -1326,7 +1322,7 @@ class PoseStackBuilder:
         max_n_res: int,
         real_res: Tensor[torch.bool][:, :],
         block_type_ind64: Tensor[torch.int64][:, :],
-    ) -> Tensor[torch.int64][:, :, :, :, :]:
+    ) -> Tensor[torch.int32][:, :, :, :, :]:
         return cls._find_inter_block_separation_for_polymeric_monomers_heavy(
             pbt.device,
             pbt.polymeric_down_to_up_nbonds,
@@ -1352,7 +1348,7 @@ class PoseStackBuilder:
         max_n_conn: int,
         real_res: Tensor[torch.bool][:, :],
         block_type_ind64: Tensor[torch.int64][:, :],
-    ) -> Tensor[torch.int64][:, :, :, :, :]:
+    ) -> Tensor[torch.int32][:, :, :, :, :]:
         assert real_res.shape[0] == n_chains
         assert real_res.shape[1] == max_n_res
         assert block_type_ind64.shape[0] == n_chains
@@ -1443,11 +1439,12 @@ class PoseStackBuilder:
             - down_to_down_chain_distance[:, :, None]
         )
 
-        # D: inter_block_bondsep
-        inter_block_bondsep64 = torch.full(
+        # D: inter_block_bondsep. Held as int32: this is the largest tensor a pose
+        #    carries, and a capped bond separation never needs the width.
+        inter_block_bondsep = torch.full(
             (n_chains, max_n_res, max_n_res, max_n_conn, max_n_conn),
             100,
-            dtype=torch.int64,
+            dtype=torch.int32,
             device=device,
         )
 
@@ -1474,21 +1471,21 @@ class PoseStackBuilder:
 
         # finally we can enter the information for these connections into their
         # positions in the output tensor
-        inter_block_bondsep64[
+        inter_block_bondsep[
             nz_brr[:, 0], nz_brr[:, 1], nz_brr[:, 2], nz_brr_upconn_1, nz_brr_downconn_2
-        ] = up_down_distance[both_res_real]
-        inter_block_bondsep64[
+        ] = up_down_distance[both_res_real].to(torch.int32)
+        inter_block_bondsep[
             nz_brr[:, 0], nz_brr[:, 1], nz_brr[:, 2], nz_brr_downconn_1, nz_brr_upconn_2
-        ] = down_up_distance[both_res_real]
-        inter_block_bondsep64[
+        ] = down_up_distance[both_res_real].to(torch.int32)
+        inter_block_bondsep[
             nz_brr[:, 0],
             nz_brr[:, 1],
             nz_brr[:, 2],
             nz_brr_downconn_1,
             nz_brr_downconn_2,
-        ] = torch.abs(pair_distances[both_res_real])
-        inter_block_bondsep64[
+        ] = torch.abs(pair_distances[both_res_real]).to(torch.int32)
+        inter_block_bondsep[
             nz_brr[:, 0], nz_brr[:, 1], nz_brr[:, 2], nz_brr_upconn_1, nz_brr_upconn_2
-        ] = up_up_distance[both_res_real]
+        ] = up_up_distance[both_res_real].to(torch.int32)
 
-        return inter_block_bondsep64
+        return inter_block_bondsep

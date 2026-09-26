@@ -32,7 +32,6 @@ class PoseStack:
         inter_residue_connections: Connected residue and connection indices.
         inter_residue_connections64: 64-bit connection-index copy.
         inter_block_bondsep: Capped bond separation between residue connections.
-        inter_block_bondsep64: 64-bit bond-separation copy.
         block_type_ind: Packed block-type index for each residue; ``-1`` is padding.
         block_type_ind64: 64-bit block-type-index copy.
         chain_id: Chain index for each residue.
@@ -57,7 +56,6 @@ class PoseStack:
     inter_residue_connections64: Tensor[torch.int64][:, :, :, 2]
 
     inter_block_bondsep: Tensor[torch.int32][:, :, :, :, :]
-    inter_block_bondsep64: Tensor[torch.int64][:, :, :, :, :]
 
     block_type_ind: Tensor[torch.int32][:, :]
     block_type_ind64: Tensor[torch.int64][:, :]
@@ -129,6 +127,16 @@ class PoseStack:
         return self.coords.shape[0]
 
     @property
+    def inter_block_bondsep64(self) -> Tensor[torch.int64][:, :, :, :, :]:
+        """``inter_block_bondsep`` widened for use as a torch index.
+
+        Derived rather than stored: it is the largest tensor a pose would carry,
+        growing with the square of both the residue count and the connection
+        count, and nothing reads it that cannot widen it on the spot.
+        """
+        return self.inter_block_bondsep.to(torch.int64)
+
+    @property
     def n_poses(self) -> int:
         """Return the number of poses in the stack."""
         return self.coords.shape[0]
@@ -188,7 +196,6 @@ class PoseStack:
             inter_residue_connections=self.inter_residue_connections.detach().clone(),
             inter_residue_connections64=self.inter_residue_connections64.detach().clone(),
             inter_block_bondsep=self.inter_block_bondsep.detach().clone(),
-            inter_block_bondsep64=self.inter_block_bondsep64.detach().clone(),
             block_type_ind=self.block_type_ind.detach().clone(),
             block_type_ind64=self.block_type_ind64.detach().clone(),
             chain_id=self.chain_id.detach().clone(),
@@ -230,7 +237,6 @@ class PoseStack:
             inter_residue_connections=self.inter_residue_connections,
             inter_residue_connections64=self.inter_residue_connections64,
             inter_block_bondsep=self.inter_block_bondsep,
-            inter_block_bondsep64=self.inter_block_bondsep64,
             block_type_ind=self.block_type_ind.detach().clone(),
             block_type_ind64=self.block_type_ind64.detach().clone(),
             chain_id=self.chain_id.detach().clone(),
@@ -261,9 +267,6 @@ class PoseStack:
             .detach()
             .clone(),
             inter_block_bondsep=self.inter_block_bondsep[index : index + 1]
-            .detach()
-            .clone(),
-            inter_block_bondsep64=self.inter_block_bondsep64[index : index + 1]
             .detach()
             .clone(),
             block_type_ind=self.block_type_ind[index : index + 1].detach().clone(),
