@@ -377,7 +377,6 @@ def pose_stack_from_canonical_form(  # noqa: C901
         inter_residue_connections=inter_residue_connections,
         inter_residue_connections64=inter_residue_connections64,
         inter_block_bondsep=inter_block_bondsep,
-        inter_block_bondsep64=i64(inter_block_bondsep),
         block_type_ind=i32(block_types64),
         block_type_ind64=block_types64,
         chain_id=chain_id,
