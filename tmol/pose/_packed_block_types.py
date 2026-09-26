@@ -16,6 +16,10 @@ from tmol.chemical import (
 from tmol.database import PatchedChemicalDatabase
 from tmol.utility._device import resolve_device
 
+# The per-block connection capacity of the ljlk, elec, hbond and lk_ball
+# kernels' shared-memory tiles (MAX_N_CONN in their .hh files).
+MAX_N_CONN = 12
+
 
 def residue_types_from_residues(residues):
     rt_dict = {}
@@ -134,7 +138,20 @@ class PackedBlockTypes:
 
         Returns:
             Packed residue-type tensors and their concrete device metadata.
+
+        Raises:
+            ValueError: If a residue type has more than ``MAX_N_CONN`` connections.
         """
+        overfull = [
+            f"{bt.name} ({len(bt.connections)})"
+            for bt in active_block_types
+            if len(bt.connections) > MAX_N_CONN
+        ]
+        if overfull:
+            raise ValueError(
+                f"Residue types exceed the {MAX_N_CONN} connections the scoring "
+                f"kernels hold per block: {', '.join(overfull)}"
+            )
         device = resolve_device(device)
         max_n_atoms = cls.count_max_n_atoms(active_block_types)
         n_atoms = cls.count_n_atoms(active_block_types, device)

@@ -1,4 +1,5 @@
 import numpy
+import pytest
 import torch
 
 from tmol.pose import PackedBlockTypes
@@ -115,3 +116,18 @@ def test_packed_block_types_device(
     assert pbt.down_conn_inds.device == torch_device
     assert pbt.up_conn_inds.device == torch_device
     assert pbt.device == torch_device
+
+
+def test_residue_types_beyond_the_kernel_connection_capacity_are_refused(
+    default_database, fresh_default_restype_set, torch_device, monkeypatch
+):
+    import tmol.pose._packed_block_types as packed_block_types
+
+    monkeypatch.setattr(packed_block_types, "MAX_N_CONN", 1)
+    with pytest.raises(ValueError, match="exceed the 1 connections"):
+        PackedBlockTypes.from_restype_list(
+            default_database.chemical,
+            fresh_default_restype_set,
+            fresh_default_restype_set.residue_types,
+            torch_device,
+        )
