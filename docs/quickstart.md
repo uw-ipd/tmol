@@ -18,8 +18,12 @@ exercises, continue with the numbered Tutorials.
 ## Install TMol
 
 ```bash
-pip install tmol
+pip install tmol --find-links https://github.com/uw-ipd/tmol/releases/expanded_assets/v0.1.55
 ```
+
+`pip install tmol` on its own takes the PyPI source distribution and builds the
+extensions, which needs a compiler and, for CUDA, `nvcc`. See
+{doc}`installation` for the wheel channels.
 
 ## Load and score one structure
 
