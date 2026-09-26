@@ -539,13 +539,8 @@ def transfer_tetrahedral_stereochemistry(
     )
 
 
-# ---------------------------------------------------------------------------
-# Template and stereochemistry helpers
-#
-# These read a component template into RDKit and infer stereo from geometry.
-# They exist only on an AtomWorks branch that was never merged, so TMol keeps
-# them here rather than pinning to that branch.
-# ---------------------------------------------------------------------------
+# Template and stereochemistry helpers: read a component template into RDKit
+# and infer stereo from geometry.
 
 
 def assign_stereochemistry_from_3d(mol: Mol) -> None:
