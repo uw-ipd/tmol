@@ -1175,16 +1175,18 @@ def profile_for_atom_array(
         from tmol.database import ParameterDatabase
 
         chemdb = ParameterDatabase.get_default().chemical
-    # a sugar has no backbone; its attachments carry its topology instead
-    if is_carbohydrate(atom_array, connection_atoms):
-        return None
     # Recognize the sugar before peptide end completion: a terminal nucleotide
-    # can carry a base amine that is unrelated to its polymer backbone.
+    # can carry a base amine that is unrelated to its polymer backbone. An
+    # abasic nucleotide's C1' hydroxyl makes it look like a sugar, so this
+    # comes first.
     kind = na_backbone_kind(atom_array, connection_atoms)
     if kind is not None:
         return _na_profile_for_structure(
             atom_array, connection_atoms, na_profile(chemdb, kind)
         )
+    # a sugar has no backbone; its attachments carry its topology instead
+    if is_carbohydrate(atom_array, connection_atoms):
+        return None
     if connection_atoms and len(connection_atoms) == 1:
         known = next(iter(connection_atoms))
         # nothing to continue the chain with: this residue terminates it
@@ -1201,13 +1203,22 @@ def profile_for_atom_array(
 
 
 def _na_profile_for_structure(atom_array, connection_atoms, profile):
-    """A phosphate with a retained ester substituent has no free polymer port."""
-    if profile is None or profile.down is None:
+    """Drop a polymer port the structure cannot use.
+
+    A phosphate with a retained ester substituent has no free 5' port, and a
+    3'-deoxy sugar has no 3' one.
+    """
+    if profile is None:
         return profile
     adjacency, _, elements = _heavy_adjacency(atom_array)
     path, _ = na_sugar_mainchain(adjacency, elements)
+    if path is None:
+        return profile
+    if profile.up is not None and elements.get(path[-1]) != "O":
+        # no 3' oxygen: the backbone ends at C3', so nothing may graft one on
+        profile = _without_atom(_without_connection(profile, "up"), profile.up[1])
     if (
-        path is None
+        profile.down is None
         or elements.get(path[0]) != "P"
         or path[0] in (connection_atoms or ())
     ):
@@ -1218,9 +1229,24 @@ def _na_profile_for_structure(atom_array, connection_atoms, profile):
         and len(adjacency[neighbor]) > 1
         for neighbor in adjacency[path[0]]
     )
-    if not substituted:
-        return profile
-    blocked = {profile.down[1]}
+    return _without_connection(profile, "down") if substituted else profile
+
+
+def _without_atom(profile, atom):
+    """The profile with a backbone atom the residue lacks no longer described."""
+    return attr.evolve(
+        profile,
+        mainchain_atoms=tuple(a for a in profile.mainchain_atoms if a != atom),
+        backbone_types=tuple(t for t in profile.backbone_types if t[0] != atom),
+        backbone_h_types=tuple(t for t in profile.backbone_h_types if t[0] != atom),
+        transplant_icoors=tuple(a for a in profile.transplant_icoors if a != atom),
+    )
+
+
+def _without_connection(profile, which):
+    """The profile with its down or up port, and what stands across it, removed."""
+    connection = getattr(profile, which)
+    blocked = {connection[1]}
     caps = []
     for cap in profile.caps:
         if cap.bond_to in blocked:
@@ -1229,13 +1255,15 @@ def _na_profile_for_structure(atom_array, connection_atoms, profile):
             caps.append(cap)
     return attr.evolve(
         profile,
-        down=None,
-        down_partner=None,
+        **{which: None, f"{which}_partner": None},
         caps=tuple(caps),
         mainchain_torsions=tuple(
             (name, atoms)
             for name, atoms in profile.mainchain_torsions
-            if not any(atom.startswith(profile.down[0] + ":") for atom in atoms)
+            if not any(
+                atom.startswith(connection[0] + ":") or atom in blocked
+                for atom in atoms
+            )
         ),
     )
 
@@ -1245,43 +1273,49 @@ def na_sugar_mainchain(adjacency, element):
 
     Returns (path, ring) with the path running 5' to 3' -- P-O5'-C5'-C4'-C3'-O3',
     or the same without the phosphate, which a residue seen only at a 5'
-    terminus does not have. Derived from the ring rather than from the
-    connections, since a residue at a chain end has only one of those and the
-    missing one is exactly what has to be worked out.
+    terminus does not have, or without O3', which a 3'-deoxy sugar does not.
+    Derived from the ring rather than from the connections, since a residue at
+    a chain end has only one of those and the missing one is exactly what has
+    to be worked out.
     """
-    for ring in _five_rings(adjacency, element):
-        hetero = next(a for a in ring if element.get(a) != "C")
-        for c3 in ring:
-            if c3 == hetero:
-                continue
-            exocyclic_o = [
-                n
-                for n in sorted(adjacency[c3])
-                if n not in ring and element.get(n) == "O"
-            ]
-            for c4 in sorted(adjacency[c3] & ring):
-                if c4 == hetero or hetero not in adjacency[c4]:
-                    continue
-                for c5 in sorted(adjacency[c4] - ring):
-                    if element.get(c5) != "C":
-                        continue
-                    for o5 in sorted(adjacency[c5]):
-                        if element.get(o5) != "O" or o5 in ring:
-                            continue
-                        for o3 in exocyclic_o:
-                            path = [o5, c5, c4, c3, o3]
-                            if len(set(path)) != 5:
-                                continue
-                            phosphate = [
-                                n
-                                for n in sorted(adjacency[o5])
-                                if element.get(n) == "P"
-                            ]
-                            return (
-                                tuple(phosphate[:1] + path),
-                                tuple(ring),
-                            )
+    # a sugar with its 3' oxygen is preferred over one read without it
+    for require_o3 in (True, False):
+        for ring in _five_rings(adjacency, element):
+            found = _sugar_path(adjacency, element, ring, require_o3)
+            if found is not None:
+                return found, tuple(ring)
     return None, None
+
+
+def _sugar_path(adjacency, element, ring, require_o3):
+    """P-O5'-C5'-C4'-C3'(-O3') on this ring, or None."""
+    hetero = next(a for a in ring if element.get(a) != "C")
+    for c3 in ring:
+        if c3 == hetero:
+            continue
+        exocyclic_o = [
+            n for n in sorted(adjacency[c3]) if n not in ring and element.get(n) == "O"
+        ]
+        if require_o3 != bool(exocyclic_o):
+            continue
+        for c4 in sorted(adjacency[c3] & ring):
+            if c4 == hetero or hetero not in adjacency[c4]:
+                continue
+            for c5 in sorted(adjacency[c4] - ring):
+                if element.get(c5) != "C":
+                    continue
+                for o5 in sorted(adjacency[c5]):
+                    if element.get(o5) != "O" or o5 in ring:
+                        continue
+                    for o3 in exocyclic_o or [None]:
+                        path = [o5, c5, c4, c3] + ([o3] if o3 is not None else [])
+                        if len(set(path)) != len(path):
+                            continue
+                        phosphate = [
+                            n for n in sorted(adjacency[o5]) if element.get(n) == "P"
+                        ]
+                        return tuple(phosphate[:1] + path)
+    return None
 
 
 def _five_rings(adjacency, element):
@@ -1362,7 +1396,7 @@ def na_backbone_kind(atom_array, connection_atoms) -> Optional[str]:
     Standard means a five-membered sugar with the phosphate-to-3'-oxygen path
     closed on it. What hangs off the sugar is not looked at, so a modified base
     or a substituted 2' position is still standard; RNA is told from DNA by an
-    oxygen on the sugar, which is where a ribose differs from a deoxyribose.
+    oxygen on C2', which is where a ribose differs from a deoxyribose.
     """
     if not connection_atoms:
         return None
@@ -1370,16 +1404,19 @@ def na_backbone_kind(atom_array, connection_atoms) -> Optional[str]:
     path, ring = na_sugar_mainchain(adjacency, element)
     if path is None:
         return None
-    # the connections have to be this backbone's ends, not a sidechain's
-    if not set(connection_atoms) <= {path[0], path[-1]}:
+    # the chain has to bond at this backbone's ends; a connection off the
+    #    mainchain is a crosslink, not a backbone end
+    ends = {path[0], path[-1]}
+    if not set(connection_atoms) & ends or set(connection_atoms) & (set(path) - ends):
         return None
 
+    # C2' is the ring carbon past C3', the last ring atom on the path
+    c4, c3 = [atom for atom in path if atom in ring][-2:]
+    c2 = next(atom for atom in adjacency[c3] & set(ring) if atom != c4)
     exocyclic_oxygen = any(
         element.get(other_atom) == "O"
-        for atom in ring
-        if atom not in path
-        for other_atom in adjacency[atom]
-        if other_atom not in ring and other_atom not in path
+        for other_atom in adjacency[c2]
+        if other_atom not in ring
     )
     return "rna" if exocyclic_oxygen else "dna"
 
@@ -1767,7 +1804,9 @@ def _na_caps(icoors, mainchain, down_atom, up_atom, reference=None):
             "OY1", "O", (c3, up_atom, "PY"), icoors["OP1"], -130.0, "PY", "DOUBLE"
         ),
         _stub_from_icoor("OY2", "O", (c3, up_atom, "PY"), icoors["OP2"], 114.0, "PY"),
-        _stub_from_icoor("OY3", "O", (c3, up_atom, "PY"), icoors[phosphate], 0.0, "PY"),
+        _stub_from_icoor(
+            "OY3", "O", (c3, up_atom, "PY"), icoors[ref_phosphate], 0.0, "PY"
+        ),
     )
 
 
@@ -1883,7 +1922,16 @@ def _generic_na_profile(path, chemdb) -> PolymerProfile:
         up=("up", path[-1]),
         connection_bond_type="SINGLE",
         caps=_na_caps(
-            icoors, (path[0], path[1], path[2], path[-3], path[-2]), path[0], path[-1]
+            icoors,
+            (path[0], path[1], path[2], path[-3], path[-2]),
+            path[0],
+            path[-1],
+            # the reference's icoors are keyed by its own atom names
+            (
+                None
+                if reference is None
+                else (reference.mainchain_atoms[0], reference.up[1])
+            ),
         ),
         down_partner="OY",
         up_partner="PY",
