@@ -70,7 +70,7 @@ if TYPE_CHECKING:
 # always emit this version: until the format settles at 1.0, tracking a
 # per-feature minimum version costs more than it buys. Every file is checked
 # on load.
-TMOL_FORMAT_VERSION: str = "5.1"
+TMOL_FORMAT_VERSION: str = "5.2"
 
 
 _RAW_RESIDUE_DEFAULTS: dict[str, Any] = {

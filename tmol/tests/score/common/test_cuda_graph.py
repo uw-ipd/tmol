@@ -5,19 +5,10 @@ import pytest
 import torch
 
 from tmol.score.common._cuda_graph import CapturedScoringGraph
-from tmol.tests import requires_cuda
 
-pytestmark = [
-    requires_cuda,
-    pytest.mark.filterwarnings(
-        "ignore:The AccumulateGrad node's stream does not match"
-    ),
-]
-
-
-@pytest.fixture
-def torch_device():
-    return torch.device("cuda", torch.cuda.current_device())
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:The AccumulateGrad node's stream does not match"
+)
 
 
 class _ScoringExample(torch.nn.Module):
@@ -38,15 +29,18 @@ class _ScoringExample(torch.nn.Module):
         return coords * self.weight - self.offset
 
 
-@pytest.mark.parametrize("trainable,layout", [(False, "strided"), (True, "negative")])
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+@pytest.mark.parametrize("trainable", [False, True])
+@pytest.mark.parametrize("layout", ["contiguous", "strided", "negative"])
 def test_cuda_scoring_capture_replays_values_and_parameter_gradients(
-    torch_device, trainable, layout
+    torch_device, dtype, trainable, layout
 ):
-    dtype = torch.float32
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA scoring capture")
     module = _ScoringExample(torch_device, dtype, trainable)
     sample = torch.zeros((3, 5), device=torch_device, dtype=dtype, requires_grad=True)
     capture = CapturedScoringGraph(module, sample)
-    for shift in (0, -2):
+    for shift in (0, 1, -2):
         coords = (
             torch.arange(15, device=torch_device, dtype=dtype).reshape(3, 5) + shift
         ) / 8
@@ -63,15 +57,21 @@ def test_cuda_scoring_capture_replays_values_and_parameter_gradients(
         expected_grads = torch.autograd.grad(expected.sum(), inputs)
         for actual_grad, expected_grad in zip(actual_grads, expected_grads):
             torch.testing.assert_close(actual_grad, expected_grad, atol=0, rtol=0)
+
     capture.eval()
     torch.testing.assert_close(
         capture(coords), coords * module.weight - module.offset, atol=0, rtol=0
     )
 
 
-def test_cuda_scoring_capture_preserves_unused_coordinate_gradients(torch_device):
-    module = _ScoringExample(torch_device, torch.float32, unused_coords=True)
-    sample = torch.zeros((3, 5), device=torch_device, requires_grad=True)
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_cuda_scoring_capture_preserves_unused_coordinate_gradients(
+    torch_device, dtype
+):
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA scoring capture")
+    module = _ScoringExample(torch_device, dtype, unused_coords=True)
+    sample = torch.zeros((3, 5), device=torch_device, dtype=dtype, requires_grad=True)
     capture = CapturedScoringGraph(module, sample)
     coords = torch.ones_like(sample, requires_grad=True)
     coord_grad, weight_grad = torch.autograd.grad(
@@ -84,6 +84,8 @@ def test_cuda_scoring_capture_preserves_unused_coordinate_gradients(torch_device
 
 
 def test_cuda_scoring_capture_lives_until_pending_backward_finishes(torch_device):
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA scoring capture")
     gc.collect()
     gc_enabled = gc.isenabled()
     gc.disable()
@@ -145,13 +147,15 @@ def test_cuda_scoring_capture_preserves_device_and_caller_stream(device_index):
 
 @pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])
 def test_cuda_scoring_capture_preserves_uncached_autocast(torch_device, dtype):
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA scoring capture")
     module = torch.nn.Linear(5, 3, bias=False, device=torch_device)
     with torch.no_grad():
         module.weight.copy_(torch.arange(15, device=torch_device).reshape(3, 5) / 8)
     sample = torch.zeros((4, 5), device=torch_device, requires_grad=True)
     with torch.autocast("cuda", dtype=dtype, cache_enabled=False):
         capture = CapturedScoringGraph(module, sample)
-    for shift in (0, -2):
+    for shift in (0, 1, -2):
         coords = (
             (torch.arange(20, device=torch_device).reshape(4, 5) + shift) / 8
         ).requires_grad_(True)
@@ -163,3 +167,50 @@ def test_cuda_scoring_capture_preserves_uncached_autocast(torch_device, dtype):
         expected_grads = torch.autograd.grad(expected.sum(), (coords, module.weight))
         for actual_grad, expected_grad in zip(actual_grads, expected_grads):
             torch.testing.assert_close(actual_grad, expected_grad, atol=0, rtol=0)
+
+
+def test_cuda_scoring_capture_rejects_autocast_cache(torch_device):
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA scoring capture")
+    module = _ScoringExample(torch_device, torch.float32)
+    sample = torch.zeros((3, 5), device=torch_device, requires_grad=True)
+    with torch.autocast("cuda", cache_enabled=True):
+        with pytest.raises(RuntimeError, match="cache_enabled=False"):
+            CapturedScoringGraph(module, sample)
+
+
+@pytest.mark.parametrize(
+    "hook", ["forward", "forward_pre", "full_backward", "full_backward_pre"]
+)
+def test_cuda_scoring_capture_rejects_existing_hooks(torch_device, hook):
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA scoring capture")
+    module = _ScoringExample(torch_device, torch.float32)
+    getattr(module, f"register_{hook}_hook")(lambda *args: None)
+    sample = torch.zeros((3, 5), device=torch_device, requires_grad=True)
+    with pytest.raises(AssertionError, match="must not have hooks"):
+        CapturedScoringGraph(module, sample)
+
+
+def test_cuda_scoring_capture_rejects_trainable_buffers(torch_device):
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA scoring capture")
+    module = _ScoringExample(torch_device, torch.float32)
+    module.offset.requires_grad_(True)
+    sample = torch.zeros((3, 5), device=torch_device, requires_grad=True)
+    with pytest.raises(AssertionError, match="buffers must have requires_grad=False"):
+        CapturedScoringGraph(module, sample)
+
+
+def test_cuda_scoring_capture_retains_double_backward_restriction(torch_device):
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA scoring capture")
+    module = _ScoringExample(torch_device, torch.float32)
+    sample = torch.zeros((3, 5), device=torch_device, requires_grad=True)
+    capture = CapturedScoringGraph(module, sample)
+    coords = torch.ones_like(sample, requires_grad=True)
+    score = capture(coords)
+    upstream = torch.ones_like(score, requires_grad=True)
+    (grad,) = torch.autograd.grad(score, coords, upstream, create_graph=True)
+    with pytest.raises(RuntimeError, match="once_differentiable"):
+        grad.sum().backward()

@@ -42,6 +42,9 @@ class RestypeGraphBuilder:
 def remove_atom(res, atom):
     res.atoms = tuple(x for x in res.atoms if x.name != atom)
     res.bonds = tuple(b for b in res.bonds if b[0] != atom and b[1] != atom)
+    res.io_bond_orders = tuple(
+        b for b in res.io_bond_orders if b[0] != atom and b[1] != atom
+    )
     res.torsions = tuple(
         x for x in res.torsions if atom not in [x.a.atom, x.b.atom, x.c.atom, x.d.atom]
     )
@@ -234,6 +237,67 @@ def validate_raw_residue(res):
     _validate_raw_residue_torsions(res, allatoms, allconns)
     _validate_raw_residue_connections(res, allatoms)
     _validate_raw_residue_icoors(res, allatoms, allconns)
+    _validate_raw_residue_metal_sites(res, allatoms)
+
+
+def _validate_raw_residue_metal_sites(res, allatoms):
+    """Every metal site names atoms this residue has, and no site is oversubscribed.
+
+    Patching carries metal_sites through untouched, so a variant that deletes a
+    referenced atom must fail here rather than leave a site pointing at nothing.
+    """
+    from tmol.database.chemical import GEOMETRY_SITE_COUNT
+
+    for site in res.metal_sites:
+        named = (site.metal_atom, *site.internal_satisfiers, *site.site_virts)
+        missing = [name for name in named if name not in allatoms]
+        if missing:
+            raise RuntimeError(
+                f"Bad raw residue: {res.name}\n"
+                f"Error: metal site on {site.metal_atom} names atoms the residue "
+                f"does not have: {', '.join(missing)}"
+            )
+
+        virtual = set(res.properties.virtual)
+        not_virtual = [name for name in site.site_virts if name not in virtual]
+        if not_virtual:
+            raise RuntimeError(
+                f"Bad raw residue: {res.name}\n"
+                f"Error: metal site on {site.metal_atom} marks free sites with "
+                f"atoms that are not virtual: {', '.join(not_virtual)}"
+            )
+
+        connections = {c.name: c for c in res.connections}
+        for name in site.site_connections:
+            conn = connections.get(name)
+            if conn is None or conn.atom != site.metal_atom or conn.kinematic:
+                raise RuntimeError(
+                    f"Bad raw residue: {res.name}\n"
+                    f"Error: metal site connection {name} must be a non-kinematic "
+                    f"connection on {site.metal_atom}"
+                )
+
+        n_total = GEOMETRY_SITE_COUNT[site.geometry]
+        if n_total is None:
+            # untemplated: occupancy comes from the structure, so there is no
+            # vertex budget to exceed
+            continue
+        n_named = len(site.internal_satisfiers) + len(site.site_virts)
+        if n_named > n_total:
+            raise RuntimeError(
+                f"Bad raw residue: {res.name}\n"
+                f"Error: metal site on {site.metal_atom} is {site.geometry} with "
+                f"{n_total} sites, but names {len(site.internal_satisfiers)} "
+                f"internal satisfier(s) and {len(site.site_virts)} free-site "
+                f"virtual(s)"
+            )
+        if len(site.site_connections) != len(site.site_virts):
+            raise RuntimeError(
+                f"Bad raw residue: {res.name}\n"
+                f"Error: metal site on {site.metal_atom} has "
+                f"{len(site.site_virts)} free-site virtual(s) but "
+                f"{len(site.site_connections)} site connection(s)"
+            )
 
 
 def _validate_raw_residue_atoms(res, allatoms):
@@ -608,6 +672,20 @@ def _patch_preserves_torsion_support(res, variant, namemap, deleted):
 # returns:
 #    newreses - list of new residues produced by the patch (currently only support for 1)
 #    newmarked - updated list of modified atoms in new residue
+# marks an atom a patch created, as against one it modified
+CREATED = "+"
+
+
+def _only_adds_connections(variant):
+    return bool(variant.add_connections) and not (
+        variant.add_atoms
+        or variant.remove_atoms
+        or variant.modify_atoms
+        or variant.add_bonds
+        or variant.icoors
+    )
+
+
 def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
     added, modded, deleted = get_modified_atoms(variant)
     assert len(modded) + len(deleted) > 0, (
@@ -641,8 +719,19 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
             if j in deleted and i not in deleted:
                 modded.append(i)
 
-        # 0. check if we've already modified any of these atoms
-        if set(modded) & set(newmark):
+        # 0. check if we've already modified any of these atoms; a patch that
+        #    only adds connections may attach to an atom another patch created
+        blocking = {
+            x[1:] if x.startswith(CREATED) else x
+            for x in newmark
+            if not (x.startswith(CREATED) and _only_adds_connections(variant))
+        }
+        if set(modded) & blocking:
+            continue
+
+        # a patch cannot delete an atom a connection it keeps sits on
+        gone = set(deleted)
+        if any(c.atom in gone and c.name not in gone for c in res.connections):
             continue
 
         if not _patch_preserves_torsion_support(res, variant, namemap, deleted):
@@ -718,12 +807,12 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
         # 6. update modified atoms
         # a) directly modified/added
         newmark.extend(modded)
-        newmark.extend(added)
+        newmark.extend(CREATED + a for a in added)
 
         # b) bonded to deleted atoms
 
         # c) removed atoms
-        newmark = list(filter(lambda x: x not in deleted, newmark))
+        newmark = [x for x in newmark if x.removeprefix(CREATED) not in deleted]
 
         newreses.append(newres)
         newmarked.append(newmark)

@@ -93,14 +93,27 @@ from ._pose_stack_from_biotite import (  # noqa: F401
     prepare_atom37_pose_builder,
     biotite_from_canonical_form,
 )
+from ._assemble import (  # noqa: F401
+    assemble_input,
+    atom_array_from_mol2,
+    cif_from_atom_array,
+)
 from ._write_pose_stack_pdb import (  # noqa: F401
     write_pose_stack_pdb,
     atom_records_from_pose_stack,
     atom_records_from_coords,
 )
+from ._metal_coordination import (  # noqa: F401
+    add_metal_coordination,
+    remove_metal_coordination,
+)
 
 __all__ = [
+    "add_metal_coordination",
+    "assemble_input",
     "atom_array_from_file",
+    "atom_array_from_mol2",
+    "cif_from_atom_array",
     "Atom37MappingError",
     "CanonicalForm",
     "CanonicalOrdering",
@@ -132,6 +145,7 @@ __all__ = [
     "pose_stack_from_file",
     "pose_stack_from_canonical_form_and_context",
     "prepare_atom37_pose_builder",
+    "remove_metal_coordination",
     "pose_stack_from_atom37_and_topology",
     "pose_stack_from_biotite",
     "pose_stack_from_cif",

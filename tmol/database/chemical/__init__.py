@@ -21,6 +21,82 @@ def _parse_acceptor_hybridization(v, t):
 
 cattr.register_structure_hook(AcceptorHybridization, _parse_acceptor_hybridization)
 
+CoordinationGeometry = NewType("CoordinationGeometry", str)
+
+# Vertex count per coordination geometry. "irregular" has no fixed vertices:
+# its sites are not templated, so only metal-ligand distances are restrained
+# and the occupied count comes from the structure rather than from here.
+GEOMETRY_SITE_COUNT = {
+    "linear": 2,
+    "trigonal": 3,
+    "tetrahedral": 4,
+    "square_planar": 4,
+    "trigonal_bipyramidal": 5,
+    "square_pyramidal": 5,
+    "octahedral": 6,
+    "irregular": None,
+}
+
+
+# Stable ordering for the geometry registry, used to encode which coordination
+# geometry a residue type carries into the res_type_variant axis that structure
+# input uses to choose among block types sharing an io equivalence class.
+GEOMETRY_NAMES = tuple(GEOMETRY_SITE_COUNT)
+
+# Layout of that axis. 0-2 are the amino-acid special cases (CYD, the histidine
+# tautomers); 3 is what the histidine kernel writes for an unresolved tautomer
+# and must select nothing; 4 is the deprotonated forms only metal coordination
+# selects; metals take one index per geometry above those. The index is per
+# equivalence class, so a metal never meets a disulfide or a histidine state.
+HIS_UNRESOLVED_VAR_IND = 3
+DEPROTONATED_VAR_IND = 4
+METAL_GEOMETRY_VAR_BASE = 5
+
+# protonation_state of the forms only a coordinating metal selects
+DEPROTONATED_STATE = "negatively_charged"
+
+
+def metal_geometry_variant_index(geometry: str) -> int:
+    """The res_type_variant index selecting this coordination geometry."""
+    return METAL_GEOMETRY_VAR_BASE + GEOMETRY_NAMES.index(geometry)
+
+
+def geometry_for_metal_variant_index(index: int) -> str:
+    """The geometry a res_type_variant index selects; inverse of the above."""
+    return GEOMETRY_NAMES[index - METAL_GEOMETRY_VAR_BASE]
+
+
+_METAL_TABLE = None
+
+
+def metal_table() -> dict:
+    """The metal reference table in chemical/metals.yaml, loaded once."""
+    global _METAL_TABLE
+    if _METAL_TABLE is None:
+        path = os.path.join(
+            os.path.dirname(__file__), "..", "default", "chemical", "metals.yaml"
+        )
+        with open(path) as infile:
+            _METAL_TABLE = safe_load(infile)
+    return _METAL_TABLE
+
+
+def ideal_distances(ion: dict, donor_radii: dict) -> dict:
+    """Measured metal-ligand distances, completed by ionic_radius + donor_radius."""
+    out = dict(ion["distances"])
+    for donor, radius in donor_radii.items():
+        out.setdefault(donor, round(ion["ionic_radius"] + radius, 3))
+    return out
+
+
+def _parse_coordination_geometry(v, t):
+    if v in GEOMETRY_SITE_COUNT:
+        return v
+    raise ValueError(f"Invalid CoordinationGeometry value: {v}")
+
+
+cattr.register_structure_hook(CoordinationGeometry, _parse_coordination_geometry)
+
 
 def normalize_bond_tuples(raw: Any) -> Any:  # noqa: C901
     """Normalize legacy 2-field bond entries to include bond order.
@@ -81,6 +157,14 @@ class AtomType:
     is_hydroxyl: bool = False
     is_polarh: bool = False
     acceptor_hybridization: Optional[AcceptorHybridization] = None
+    # Metals are typed per oxidation state, because the state sets both the
+    # electrostatic charge and the Lennard-Jones radius: Fe2p is not Fe3p.
+    is_metal: bool = False
+    oxidation_state: Optional[int] = None
+    # Can donate a lone pair to a metal. Deliberately separate from is_acceptor:
+    # thiolate and thioether sulfur coordinate metals while being poor hydrogen
+    # bond acceptors, and is_acceptor is pinned to Rosetta's hbond typing.
+    is_metal_donor: bool = False
     # the type this atom takes when a covalent bond replaces its hydrogen:
     #    a hydroxyl becomes an ether, a thiol a thioether
     conjugated_type: Optional[str] = None
@@ -158,6 +242,10 @@ class Connection:
     # written for a ring bond. Only a cut that splits a ring sets this: a
     # polymer up/down bond and an ordinary attachment do not close one.
     in_ring: bool = False
+    # False for a bond that neither builds the kinematic tree nor ties its
+    # blocks into one packing group: a disulfide, a metal-ligand bond. It is
+    # still a bond for count-pair.
+    kinematic: bool = True
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -236,6 +324,40 @@ class ChemicalProperties:
     virtual: Tuple[str, ...]
 
 
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class MetalSite:
+    """The coordination sites on one metal atom of a residue type.
+
+    ``internal_satisfiers`` are in-block atoms already occupying sites: a
+    heme's four porphyrin nitrogens, an Fe-S cluster's bridging sulfurs. One
+    atom may satisfy sites on several metals, so a bridging sulfur is listed by
+    every iron it bridges. Detection fills only the sites left over.
+
+    ``site_virts`` mark the directions of the free sites, and are where lk_ball
+    builds its waters. A cofactor authors their internal coordinates; a free
+    ion has no internal geometry to orient against, so its fan is placed when
+    the site is assigned.
+
+    ``site_connections`` are the metal atom's connections a donor fills, one
+    per free site and parallel to ``site_virts``; an untemplated ion has
+    connections but no virtuals. An unfilled connection is an open site.
+    """
+
+    metal_atom: str
+    geometry: CoordinationGeometry
+    internal_satisfiers: Tuple[str, ...] = ()
+    site_virts: Tuple[str, ...] = ()
+    site_connections: Tuple[str, ...] = ()
+
+    @property
+    def n_free_sites(self) -> Optional[int]:
+        """Sites detection may fill; None when the geometry is untemplated."""
+        n_total = GEOMETRY_SITE_COUNT[self.geometry]
+        if n_total is None:
+            return None
+        return n_total - len(self.internal_satisfiers)
+
+
 @attr.s(auto_attribs=True)
 class RawResidueType:
     """Unpatched residue definition loaded from the chemical database."""
@@ -273,6 +395,11 @@ class RawResidueType:
     # Attachment atom, partner equivalence class, partner atom. Equal atom
     # inventories can need different parameters (e.g. ester vs thioester).
     conjugation_context: Tuple[Tuple[str, str, str], ...] = ()
+    # One entry per metal atom this residue carries; empty for everything else.
+    metal_sites: Tuple[MetalSite, ...] = ()
+    # Output only, never read by scoring: the chemical (Lewis) order of each
+    # bond whose `bonds` order is a topology order, as (atom, atom, order).
+    io_bond_orders: Tuple[Tuple[str, str, str], ...] = ()
 
     def atom_name(self, index: int) -> str:
         """Return the name of the atom at ``index``."""
@@ -360,7 +487,49 @@ def l_base_name(restype) -> str:
     return base
 
 
-GENERATED_RESIDUE_FILES = ("d_amino_acids.yaml",)
+def site_connections(restype) -> Tuple[str, ...]:
+    """Every free-site connection of a residue's metals, numbered in order.
+
+    A metal site's index everywhere outside the residue type is its position
+    here, so a cluster's sites run on across its metals.
+    """
+    return tuple(name for site in restype.metal_sites for name in site.site_connections)
+
+
+def is_metal_cluster(restype) -> bool:
+    """Whether a residue's metals are a cluster: several, or bonded in-residue."""
+    sites = restype.metal_sites
+    return len(sites) > 1 or any(site.internal_satisfiers for site in sites)
+
+
+def site_metal(restype, index: int) -> Tuple["MetalSite", int]:
+    """The metal site owning a residue's ``index``-th free site, and its position."""
+    for site in restype.metal_sites:
+        if index < len(site.site_connections):
+            return site, index
+        index -= len(site.site_connections)
+    raise IndexError(f"{restype.name} has no free site {index}")
+
+
+def special_case_variant_index(restype) -> int:
+    """Where a residue type sits on the res_type_variant axis of its class."""
+    if restype.metal_sites:
+        return metal_geometry_variant_index(restype.metal_sites[0].geometry)
+    if restype.properties.protonation.protonation_state == DEPROTONATED_STATE:
+        return DEPROTONATED_VAR_IND
+    base = l_base_name(restype)
+    if base in ("CYD", "HIS_D"):
+        return 1
+    if base == "HIS_POS":
+        return 2
+    return 0
+
+
+GENERATED_RESIDUE_FILES = (
+    "d_amino_acids.yaml",
+    "metal_ions.yaml",
+    "metal_clusters.yaml",
+)
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

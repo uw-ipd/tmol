@@ -29,5 +29,6 @@ class ScoreType(AutoNumber):
     gen_torsions = ()
     na_torsion = ()
     na_torsion_well = ()
+    metal_coordination = ()
     # keep this one last
     n_score_types = ()

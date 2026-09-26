@@ -284,4 +284,16 @@ def atom_records_from_coords(
     results["occupancy"] = atom_occupancy[atom_is_real]
     results["b"] = atom_b_factor[atom_is_real]
 
+    # virtual atoms are scoring scaffolding, not part of the structure
+    bt_atom_is_virtual = numpy.zeros((pbt.n_types, pbt.max_n_atoms), dtype=bool)
+    for i, bt in enumerate(pbt.active_block_types):
+        for name in bt.properties.virtual:
+            bt_atom_is_virtual[i, bt.atom_to_idx[name]] = True
+    keep = ~bt_atom_is_virtual[bt_for_real_atom, block_local_atom_index_for_real_atom]
+    if not keep.all():
+        results = results[keep]
+        kept_pose = pose_for_real_atom[keep]
+        first_in_pose = numpy.searchsorted(kept_pose, kept_pose)
+        results["atomi"] = numpy.arange(len(results)) - first_in_pose + 1
+
     return results

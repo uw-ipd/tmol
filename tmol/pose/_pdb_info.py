@@ -1,3 +1,5 @@
+from typing import Optional
+
 import attr
 import numpy
 
@@ -38,6 +40,8 @@ class PDBInfo:
     chain_labels: NDArray[object][:, :]
     atom_occupancy: NDArray[numpy.float32][:, :]
     atom_b_factor: NDArray[numpy.float32][:, :]
+    # per residue: where a metal split out of a component sat, else None
+    metal_origins: Optional[NDArray[object][:, :]] = None
 
     def split(self, index) -> "PDBInfo":
         """Split out a single pose's worth of PDBInfo from a batch."""
@@ -49,4 +53,9 @@ class PDBInfo:
             chain_labels=self.chain_labels[index : index + 1].copy(),
             atom_occupancy=self.atom_occupancy[index : index + 1].copy(),
             atom_b_factor=self.atom_b_factor[index : index + 1].copy(),
+            metal_origins=(
+                None
+                if self.metal_origins is None
+                else self.metal_origins[index : index + 1].copy()
+            ),
         )

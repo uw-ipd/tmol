@@ -15,7 +15,7 @@ from tmol.database import (
 from tmol.pose import PackedBlockTypes
 from tmol.chemical import ResidueTypeSet, l_base_name
 from tmol.utility import resolve_device
-from typing import List, Mapping, Optional, Tuple, Union
+from typing import FrozenSet, List, Mapping, Optional, Tuple, Union
 from ._canonical_form import CanonicalForm
 from ._pdb_parsing import parse_pdb
 import toolz.functoolz
@@ -210,6 +210,8 @@ class CanonicalOrdering:
 
     # input residue names read as another residue's, from the chemical database
     name3_aliases: Mapping[str, str] = attr.ib(factory=dict)
+    # atoms that are scoring scaffolding rather than structure, per class
+    restypes_virtual_atoms: Mapping[str, FrozenSet[str]] = attr.ib(factory=dict)
 
     @property
     def n_restype_io_equiv_classes(self):
@@ -360,6 +362,10 @@ class CanonicalOrdering:
             equiv: tuple(sorted(atoms)) for equiv, atoms in by_class.items()
         }
 
+        virtual_atoms = defaultdict(set)
+        for restype in chemdb.residues:
+            virtual_atoms[restype.io_equiv_class].update(restype.properties.virtual)
+
         return cls(
             max_n_canonical_atoms=max_n_canonical_atoms,
             restype_io_equiv_classes=ordered_restypes,
@@ -374,6 +380,11 @@ class CanonicalOrdering:
             termini_patch_added_atoms=termini_patch_added_atoms,
             termini_only_atoms=termini_only_atoms,
             termini_only_atoms_by_class=termini_only_atoms_by_class,
+            restypes_virtual_atoms={
+                equiv: frozenset(names)
+                for equiv, names in virtual_atoms.items()
+                if names
+            },
             name3_aliases={
                 alias.name3: alias.read_as
                 for alias in chemdb.name3_aliases
@@ -622,14 +633,38 @@ def default_packed_block_types(device: torch.device) -> PackedBlockTypes:
     return _memoized_packed_block_types(resolve_device(device))
 
 
+def _only_coordinates_a_metal(restype) -> bool:
+    """Whether this type is an ion or a cluster: not a polymer, only metal sites.
+
+    A metal's sites are not kinematic -- but neither is a disulfide, and a cystine
+    capped at both ends has nothing else left, so being a polymer is what keeps it.
+    What this picks out is the ions and clusters, which nothing reaches without a
+    metal in the structure.
+    """
+    if restype.properties.polymer.is_polymer:
+        return False
+    connections = restype.connections
+    return bool(connections) and not any(
+        connection.kinematic for connection in connections
+    )
+
+
 @toolz.functoolz.memoize
 def _memoized_packed_block_types(device: torch.device) -> PackedBlockTypes:
     restype_set = ResidueTypeSet.get_default()
 
+    # A metal cluster carries twelve connections where a polymer carries three, and
+    # every pose is sized by the widest type packed with it -- the bond-separation
+    # table by the square of it, and the cartbonded dispatch by it directly. The
+    # ions and clusters join the packed set when a structure has one.
+    active = [
+        rt for rt in restype_set.residue_types if not _only_coordinates_a_metal(rt)
+    ]
+
     return PackedBlockTypes.from_restype_list(
         chem_db=restype_set.chem_db,
         restype_set=restype_set,
-        active_block_types=restype_set.residue_types,
+        active_block_types=active,
         device=device,
     )
 

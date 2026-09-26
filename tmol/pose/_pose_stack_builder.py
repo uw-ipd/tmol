@@ -38,8 +38,44 @@ from tmol.utility.tensor import (
 from tmol.utility._device import resolve_device
 
 
+def _is_leading_run(block_types, pbt) -> bool:
+    """Whether block_types begin pbt's active block types, as the same objects."""
+    active = pbt.active_block_types
+    return len(block_types) <= len(active) and all(
+        a is b for a, b in zip(block_types, active)
+    )
+
+
 class PoseStackBuilder:
     """Build heterogeneous pose stacks while preserving chemical-database identity."""
+
+    @staticmethod
+    def _widest_packed_block_types(pose_stacks):
+        """The packed block types over the largest chemical database.
+
+        Databases only grow by appending residues, whether ligands or metal
+        donor forms, so a database whose residues are a leading run of
+        another's, as the same objects, names nothing the larger one does not
+        mean identically. Any other pair was built from unrelated sources.
+        """
+        widest = max(
+            (ps.packed_block_types for ps in pose_stacks),
+            key=lambda pbt: (len(pbt.chem_db.residues), pbt.n_types),
+        )
+        residues = widest.chem_db.residues
+        for ps in pose_stacks:
+            chem_db = ps.packed_block_types.chem_db
+            if chem_db is widest.chem_db:
+                continue
+            shared = residues[: len(chem_db.residues)]
+            if len(shared) != len(chem_db.residues) or any(
+                a is not b for a, b in zip(shared, chem_db.residues)
+            ):
+                raise ValueError(
+                    "pose stacks were built from chemical databases neither of "
+                    "which extends the other; build them from one context"
+                )
+        return widest
 
     @classmethod
     @validate_args
@@ -49,7 +85,8 @@ class PoseStackBuilder:
         """Combine one or more pose stacks on a common device.
 
         Args:
-            pose_stacks: Pose stacks built from the same chemical database.
+            pose_stacks: Pose stacks whose chemical databases are one database
+                or extensions of one another.
             device: Device for the combined tensors.
 
         Returns:
@@ -57,14 +94,11 @@ class PoseStackBuilder:
             block mappings are concatenated when present.
         """
         device = resolve_device(device)
-        pbt0 = pose_stacks[0].packed_block_types
-        for ps in pose_stacks:
-            # all PoseStacks must be built from the same chemical database
-            # even if some of the residue types were perhaps created
-            # programmatically instead of being read from an input file
-            assert pbt0.chem_db is ps.packed_block_types.chem_db
+        pbt0 = cls._widest_packed_block_types(pose_stacks)
+        # a grown generation keeps every earlier block type at its index
         reuse_pbt = all(
-            pose_stack.packed_block_types is pbt0 for pose_stack in pose_stacks
+            _is_leading_run(ps.packed_block_types.active_block_types, pbt0)
+            for ps in pose_stacks
         )
         if reuse_pbt:
             packed_block_types = pbt0
@@ -132,7 +166,6 @@ class PoseStackBuilder:
             inter_residue_connections=inter_residue_connections,
             inter_residue_connections64=i64(inter_residue_connections),
             inter_block_bondsep=inter_block_bondsep,
-            inter_block_bondsep64=i64(inter_block_bondsep),
             block_type_ind=block_type_ind,
             block_type_ind64=i64(block_type_ind),
             chain_id=chain_id,
@@ -276,10 +309,8 @@ class PoseStackBuilder:
         )
 
         # 4
-        inter_block_bondsep64 = (
-            cls._calculate_interblock_bondsep_from_connectivity_graph(
-                pbt, pconn_offsets, block_n_conn, pconn_matrix
-            )
+        inter_block_bondsep = cls._calculate_interblock_bondsep_from_connectivity_graph(
+            pbt, pconn_offsets, block_n_conn, pconn_matrix
         )
 
         n_atoms = torch.zeros((n_poses, max_n_res), dtype=torch.int32, device=device)
@@ -327,8 +358,7 @@ class PoseStackBuilder:
             block_coord_offset64=block_coord_offset.to(torch.int64),
             inter_residue_connections=inter_residue_connections64.to(torch.int32),
             inter_residue_connections64=inter_residue_connections64,
-            inter_block_bondsep=inter_block_bondsep64.to(torch.int32),
-            inter_block_bondsep64=inter_block_bondsep64,
+            inter_block_bondsep=inter_block_bondsep,
             block_type_ind=block_type_ind64.to(torch.int32),
             block_type_ind64=block_type_ind64,
             chain_id=chain_id,
@@ -704,10 +734,19 @@ class PoseStackBuilder:
         chain_labels = numpy.full((n_poses, max_n_blocks), "", dtype=object)
         atom_occupancy = numpy.full((n_poses, max_n_atoms), 1.0, dtype=numpy.float32)
         atom_b_factor = numpy.full((n_poses, max_n_atoms), 0.0, dtype=numpy.float32)
+        metal_origins = (
+            numpy.full((n_poses, max_n_blocks), None, dtype=object)
+            if any(ps.pdb_info.metal_origins is not None for ps in pose_stacks)
+            else None
+        )
 
         for i, pose_stack in enumerate(pose_stacks):
             offset = ps_offsets[i]
             i_nblocks = pose_stack.pdb_info.residue_labels.shape[1]
+            if pose_stack.pdb_info.metal_origins is not None:
+                metal_origins[offset : (offset + len(pose_stack)), :i_nblocks] = (
+                    pose_stack.pdb_info.metal_origins
+                )
             residue_labels[offset : (offset + len(pose_stack)), :i_nblocks] = (
                 pose_stack.pdb_info.residue_labels
             )
@@ -730,6 +769,7 @@ class PoseStackBuilder:
             chain_labels=chain_labels,
             atom_occupancy=atom_occupancy,
             atom_b_factor=atom_b_factor,
+            metal_origins=metal_origins,
         )
 
     @classmethod
@@ -1256,37 +1296,15 @@ class PoseStackBuilder:
 
         cls._shortest_paths_for_connectivity_graph(pconn_matrix)
 
-        bconn_ind = torch.arange(
-            max_n_conn, dtype=torch.int64, device=pconn_matrix.device
-        )
-        real_bconn = bconn_ind[None, None, :] < block_n_conn[:, :, None]
-        pconn_for_bconn = torch.where(
-            real_bconn,
-            pconn_offsets[:, :, None] + bconn_ind,
-            0,
-        ).flatten(1)
+        from tmol.pose.compiled import block_bondsep
 
-        n_padded_bconn = pconn_for_bconn.shape[1]
-        pconn_rows = torch.gather(
+        return block_bondsep(
             pconn_matrix,
-            1,
-            pconn_for_bconn[:, :, None].expand(n_poses, n_padded_bconn, max_n_pconn),
+            pconn_offsets,
+            block_n_conn,
+            max_n_conn,
+            MAX_SIG_BOND_SEPARATION,
         )
-        inter_block_bondsep = torch.gather(
-            pconn_rows,
-            2,
-            pconn_for_bconn[:, None, :].expand(n_poses, n_padded_bconn, n_padded_bconn),
-        ).reshape(n_poses, max_n_blocks, max_n_conn, max_n_blocks, max_n_conn)
-        inter_block_bondsep = inter_block_bondsep.permute(0, 1, 3, 2, 4)
-
-        # Sentinel padded connections without constructing a dense 5-D mask.
-        inter_block_bondsep.masked_fill_(
-            ~real_bconn[:, :, None, :, None], MAX_SIG_BOND_SEPARATION
-        )
-        inter_block_bondsep.masked_fill_(
-            ~real_bconn[:, None, :, None, :], MAX_SIG_BOND_SEPARATION
-        )
-        return inter_block_bondsep.contiguous()
 
     @classmethod
     @validate_args
@@ -1304,7 +1322,7 @@ class PoseStackBuilder:
         max_n_res: int,
         real_res: Tensor[torch.bool][:, :],
         block_type_ind64: Tensor[torch.int64][:, :],
-    ) -> Tensor[torch.int64][:, :, :, :, :]:
+    ) -> Tensor[torch.int32][:, :, :, :, :]:
         return cls._find_inter_block_separation_for_polymeric_monomers_heavy(
             pbt.device,
             pbt.polymeric_down_to_up_nbonds,
@@ -1330,7 +1348,7 @@ class PoseStackBuilder:
         max_n_conn: int,
         real_res: Tensor[torch.bool][:, :],
         block_type_ind64: Tensor[torch.int64][:, :],
-    ) -> Tensor[torch.int64][:, :, :, :, :]:
+    ) -> Tensor[torch.int32][:, :, :, :, :]:
         assert real_res.shape[0] == n_chains
         assert real_res.shape[1] == max_n_res
         assert block_type_ind64.shape[0] == n_chains
@@ -1421,11 +1439,12 @@ class PoseStackBuilder:
             - down_to_down_chain_distance[:, :, None]
         )
 
-        # D: inter_block_bondsep
-        inter_block_bondsep64 = torch.full(
+        # D: inter_block_bondsep. Held as int32: this is the largest tensor a pose
+        #    carries, and a capped bond separation never needs the width.
+        inter_block_bondsep = torch.full(
             (n_chains, max_n_res, max_n_res, max_n_conn, max_n_conn),
             100,
-            dtype=torch.int64,
+            dtype=torch.int32,
             device=device,
         )
 
@@ -1452,21 +1471,21 @@ class PoseStackBuilder:
 
         # finally we can enter the information for these connections into their
         # positions in the output tensor
-        inter_block_bondsep64[
+        inter_block_bondsep[
             nz_brr[:, 0], nz_brr[:, 1], nz_brr[:, 2], nz_brr_upconn_1, nz_brr_downconn_2
-        ] = up_down_distance[both_res_real]
-        inter_block_bondsep64[
+        ] = up_down_distance[both_res_real].to(torch.int32)
+        inter_block_bondsep[
             nz_brr[:, 0], nz_brr[:, 1], nz_brr[:, 2], nz_brr_downconn_1, nz_brr_upconn_2
-        ] = down_up_distance[both_res_real]
-        inter_block_bondsep64[
+        ] = down_up_distance[both_res_real].to(torch.int32)
+        inter_block_bondsep[
             nz_brr[:, 0],
             nz_brr[:, 1],
             nz_brr[:, 2],
             nz_brr_downconn_1,
             nz_brr_downconn_2,
-        ] = torch.abs(pair_distances[both_res_real])
-        inter_block_bondsep64[
+        ] = torch.abs(pair_distances[both_res_real]).to(torch.int32)
+        inter_block_bondsep[
             nz_brr[:, 0], nz_brr[:, 1], nz_brr[:, 2], nz_brr_upconn_1, nz_brr_upconn_2
-        ] = up_up_distance[both_res_real]
+        ] = up_up_distance[both_res_real].to(torch.int32)
 
-        return inter_block_bondsep64
+        return inter_block_bondsep

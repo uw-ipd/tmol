@@ -12,16 +12,16 @@ import biotite.structure as struc
 import networkx as nx
 import numpy as np
 from rdkit import Chem
-from atomworks.io.tools.rdkit import (
-    ccd_template_to_rdkit,
-    transfer_tetrahedral_stereochemistry,
-)
+from tmol.ligand._rdkit_mol import ccd_template_to_rdkit
 from atomworks.io.utils.atom_array_plus import concatenate_atom_array_plus
-from atomworks.io.utils.leaving_atoms import get_leaving_atom_groups
+from tmol.ligand._input_repair import get_leaving_atom_groups
 
 from tmol.ligand._polymer_profile import cap_residue, profile_for_atom_array
 from tmol.ligand._conjugation_patches import connection_name
-from tmol.ligand._rdkit_mol import rdkit_mol_from_ligand_atom_array
+from tmol.ligand._rdkit_mol import (
+    rdkit_mol_from_ligand_atom_array,
+    transfer_tetrahedral_stereochemistry,
+)
 
 
 @dataclass(frozen=True)
@@ -50,22 +50,34 @@ def _polymer_connection(residue, atom):
     )
 
 
-def attachment_connection_name(atom_array, index, partner, residue):
+def attachment_connection_name(
+    atom_array, index, partner, residue, partner_residue=None
+):
     """Classify a cross-residue endpoint from both atoms' chemistry.
 
-    A polymer nitrogen's ``down`` connection means an incoming carbonyl, not
-    every possible bond at that atom. Alkyl carbon and phosphorus partners are
+    A polymer nitrogen's ``down`` connection means an incoming carbonyl or
+    thiocarbonyl, not every possible bond at that atom. Alkyl carbon and phosphorus partners are
     ordinary conjugations, including when the nitrogen is at a chain end.
+    Likewise an ``up`` atom bonded to a known polymer residue anywhere but its
+    ``down`` atom (a sidechain amine) is a conjugation.
     """
     atom = str(atom_array.atom_name[index])
     declared = _polymer_connection(residue, atom)
+    if (
+        declared == "up"
+        and partner_residue is not None
+        and partner_residue.properties.polymer.is_polymer
+        and _polymer_connection(partner_residue, str(atom_array.atom_name[partner]))
+        != "down"
+    ):
+        return connection_name(atom)
     if declared != "down" or str(atom_array.element[index]).strip().upper() != "N":
         return declared or connection_name(atom)
     if str(atom_array.element[partner]).strip().upper() != "C":
         return connection_name(atom)
     neighbors, orders = atom_array.bonds.get_bonds(partner)
     carbonyl = any(
-        str(atom_array.element[neighbor]).strip().upper() == "O"
+        str(atom_array.element[neighbor]).strip().upper() in ("O", "S")
         and int(order) == int(struc.BondType.DOUBLE)
         for neighbor, order in zip(neighbors, orders)
         if neighbor != index
@@ -162,31 +174,47 @@ def iter_capped_conjugate_models(atom_array, chemical_database):
     bonds = atom_array.bonds.as_array()
     cross = bonds[indices[bonds[:, 0]] != indices[bonds[:, 1]]]
 
+    def partner_definition(partner):
+        return definitions.get(str(atom_array.res_name[partner]))
+
     def port(index, partner):
         ri = int(indices[index])
         return (
             ri,
-            attachment_connection_name(atom_array, index, partner, definition(ri)),
+            attachment_connection_name(
+                atom_array, index, partner, definition(ri), partner_definition(partner)
+            ),
         )
 
     def label(index, partner):
         ri, name = port(index, partner)
         return f"residue {ri} {atom_array.res_name[index]}.{atom_array.atom_name[index]} ({name})"
 
+    def slot(index, partner):
+        # an up carbonyl has room for one partner, whichever connection it takes;
+        #    a down nitrogen may carry an alkyl conjugation beside its link
+        ri, name = port(index, partner)
+        atom = str(atom_array.atom_name[index])
+        return ri, "up" if _polymer_connection(definition(ri), atom) == "up" else name
+
     polymer_attached = set()
     for first, second, order in cross:
         first, second = int(first), int(second)
         ri, rj = int(indices[first]), int(indices[second])
         for endpoint, partner in ((first, second), (second, first)):
-            previous = occupied.setdefault(port(endpoint, partner), partner)
+            previous = occupied.setdefault(slot(endpoint, partner), partner)
             if previous != partner:
                 raise ValueError(
                     f"{label(endpoint, partner)} has multiple declared partners: "
                     f"{label(previous, endpoint)} and {label(partner, endpoint)}. "
                     "Each connection accepts one partner; resolve the input bond graph."
                 )
-        ci = attachment_connection_name(atom_array, first, second, definition(ri))
-        cj = attachment_connection_name(atom_array, second, first, definition(rj))
+        ci = attachment_connection_name(
+            atom_array, first, second, definition(ri), partner_definition(second)
+        )
+        cj = attachment_connection_name(
+            atom_array, second, first, definition(rj), partner_definition(first)
+        )
         if {ci, cj} == {"up", "down"}:
             polymer_attached.update(
                 (

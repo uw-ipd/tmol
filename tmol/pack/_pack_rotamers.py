@@ -261,6 +261,11 @@ def _slice_pose_stack_for_packing(
         chain_labels=pdb_info.chain_labels[first_pose:last_pose].copy(),
         atom_occupancy=pdb_info.atom_occupancy[first_pose:last_pose].copy(),
         atom_b_factor=pdb_info.atom_b_factor[first_pose:last_pose].copy(),
+        metal_origins=(
+            None
+            if pdb_info.metal_origins is None
+            else pdb_info.metal_origins[first_pose:last_pose].copy()
+        ),
     )
 
     def view(tensor):
@@ -274,7 +279,6 @@ def _slice_pose_stack_for_packing(
         inter_residue_connections=view(pose_stack.inter_residue_connections),
         inter_residue_connections64=view(pose_stack.inter_residue_connections64),
         inter_block_bondsep=view(pose_stack.inter_block_bondsep),
-        inter_block_bondsep64=view(pose_stack.inter_block_bondsep64),
         block_type_ind=view(pose_stack.block_type_ind),
         block_type_ind64=view(pose_stack.block_type_ind64),
         chain_id=view(pose_stack.chain_id),

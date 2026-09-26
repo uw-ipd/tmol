@@ -254,6 +254,7 @@ def impose_top_rotamer_assignments(
             chain_labels=orig_pose_stack.pdb_info.chain_labels,
             atom_occupancy=new_atom_occupancy,
             atom_b_factor=new_atom_b_factor,
+            metal_origins=orig_pose_stack.pdb_info.metal_origins,
         )
     else:
         new_pdb_info = orig_pose_stack.pdb_info
@@ -267,7 +268,6 @@ def impose_top_rotamer_assignments(
         inter_residue_connections=orig_pose_stack.inter_residue_connections,
         inter_residue_connections64=orig_pose_stack.inter_residue_connections64,
         inter_block_bondsep=orig_pose_stack.inter_block_bondsep,
-        inter_block_bondsep64=orig_pose_stack.inter_block_bondsep64,
         block_type_ind=new_block_type_ind64.to(torch.int32),
         block_type_ind64=new_block_type_ind64,
         chain_id=orig_pose_stack.chain_id,

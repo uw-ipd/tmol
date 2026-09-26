@@ -105,6 +105,7 @@ rosetta_atoms:
   OOC: [OOC, Oat, O*, X]
   S: [S, SG3, S*, X]
   SH1: [SH1, Sth, S*, X]
+  Sthio: [Sthio, Sth, S*, X]
   # nucleic acid
   Pdna: [Pdna, PG3, P*, X]
   OOP: [OOP, Oat, O*, X]

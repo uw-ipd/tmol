@@ -9,6 +9,7 @@ and a ligand conjugated to a sidechain.
 | `nglycan_tree_1ax2.cif` | PDB 1AX2 chains A, B, C | 239 + 7 + 2 | N-glycan on `ASN ND2`, three-way branch |
 | `oglycan_sia_1g1s.cif` | PDB 1G1S chains D, F | 13 + 6 | O-glycan on `THR OG1`, sialylated |
 | `lys_biotin_1bdo.cif` | PDB 1BDO chain A | 80 + 1 | biotin on `LYS NZ` |
+| `lactam_cyclic_7ag5.cif` | PDB 7AG5 chain A | 11 | C-terminal `PRO C` on `DNP NG`, closing a ring |
 
 Read these with `include_bonds=True`: the attachment bonds come from
 `struct_conn`, and nothing else in the file records them. Unlike the
@@ -54,3 +55,20 @@ to the correlated group; all seven residues and their connections are retained.
 The 44 observed atoms and source bonds are preserved, with component definitions
 written by AtomWorks. Source: local 2026-01-06 PDB mirror, compressed SHA256
 `54c162cb313732e8c1bab213983d53a0bf0290c444736cf259de4f0faceefef1`.
+
+## Sidechain-closed ring
+
+`lactam_cyclic_7ag5.cif` is the peptide core of a calcium-dependent lipopeptide
+antibiotic, `ASP-DNP-CPI-ASP-ASP-GLY-ASP-GLY-2RA-ILE-PRO`, model 1 with the
+first alternate location. The N-terminal lipid, both calcium ions, the bound
+ligand and the solvent were dropped; the atom records, hydrogens included, are
+the deposited ones. Unlike the others here it keeps no `chem_comp` block,
+only the bonds (`chem_comp_bond` and `struct_conn`).
+
+`DNP` (2,3-diaminopropionic acid) bonds through three atoms: its alpha
+nitrogen and carbonyl continue the chain, and its beta nitrogen `NG` is
+acylated by the C-terminal proline's carbonyl, closing the ring. Either
+nitrogen with the carbonyl makes a valid peptide backbone, alpha or beta, so
+the chain is read through the alpha one. The proline's `up` carbonyl lands on
+a sidechain amine rather than a backbone nitrogen, so it is a conjugation, not
+a polymer connection.

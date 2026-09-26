@@ -670,11 +670,11 @@ struct LKBallBlockPairSharedData {
   LKBallTypeParams<Real> lk_ball_params1[TILE_SIZE];  // 192 bytes for params
   LKBallTypeParams<Real> lk_ball_params2[TILE_SIZE];
 
-  unsigned char conn_ats1[MAX_N_CONN];  // 8 bytes
+  unsigned char conn_ats1[MAX_N_CONN];  // 12 bytes
   unsigned char conn_ats2[MAX_N_CONN];
-  unsigned char path_dist1[MAX_N_CONN * TILE_SIZE];  // 256 bytes
+  unsigned char path_dist1[MAX_N_CONN * TILE_SIZE];  // 384 bytes
   unsigned char path_dist2[MAX_N_CONN * TILE_SIZE];
-  unsigned char conn_seps[MAX_N_CONN * MAX_N_CONN];  // 64 bytes
+  unsigned char conn_seps[MAX_N_CONN * MAX_N_CONN];  // 144 bytes
 };
 
 #undef def

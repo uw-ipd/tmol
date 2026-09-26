@@ -27,7 +27,10 @@ namespace potentials {
 namespace ljlk_elec_detail {
 
 constexpr int tile_size = 32;
-constexpr int max_n_conn = 4;
+// Must not sit below the widest block type the database carries: the shared
+// tile is indexed by a block's own connection count, so a narrower bound writes
+// past it. The unfused kernels hold the same number.
+constexpr int max_n_conn = 12;
 
 template <typename Real>
 struct SingleResData {
@@ -566,6 +569,7 @@ auto ljlk_elec_forward_impl(
       auto load_connections = ([&](int tid) {
         int const n1 = data.r1.n_conn;
         int const n2 = data.r2.n_conn;
+        assert(n1 <= max_n_conn && n2 <= max_n_conn);
         int const total = n1 + n2 + n1 * n2;
         for (int index = tid; index < total; index += score_nt) {
           if (index < n1) {

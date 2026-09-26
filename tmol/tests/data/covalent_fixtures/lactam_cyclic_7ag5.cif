@@ -1,0 +1,276 @@
+data_7AG5_A
+#
+loop_
+_struct_conn.id 
+_struct_conn.conn_type_id 
+_struct_conn.pdbx_value_order 
+_struct_conn.ptnr1_label_asym_id 
+_struct_conn.ptnr2_label_asym_id 
+_struct_conn.ptnr1_label_comp_id 
+_struct_conn.ptnr2_label_comp_id 
+_struct_conn.ptnr1_label_seq_id 
+_struct_conn.ptnr2_label_seq_id 
+_struct_conn.ptnr1_label_atom_id 
+_struct_conn.ptnr2_label_atom_id 
+_struct_conn.pdbx_ptnr1_PDB_ins_code 
+_struct_conn.pdbx_ptnr2_PDB_ins_code 
+1 covale sing A A ASP DNP 1 2  C  N . .
+2 covale sing A A DNP CPI 2 3  C  N . .
+3 covale sing A A DNP PRO 2 11 NG C . .
+4 covale sing A A CPI ASP 3 4  C  N . .
+5 covale sing A A GLY 2RA 8 9  C  N . .
+6 covale sing A A 2RA ILE 9 10 C  N . .
+#
+loop_
+_chem_comp_bond.pdbx_ordinal 
+_chem_comp_bond.comp_id 
+_chem_comp_bond.atom_id_1 
+_chem_comp_bond.atom_id_2 
+_chem_comp_bond.value_order 
+_chem_comp_bond.pdbx_aromatic_flag 
+_chem_comp_bond.pdbx_stereo_config 
+1  ASP N   CA   SING N ?
+2  ASP CA  C    SING N ?
+3  ASP CA  CB   SING N ?
+4  ASP CA  HA   SING N ?
+5  ASP C   O    DOUB N ?
+6  ASP CB  CG   SING N ?
+7  ASP CB  HB2  SING N ?
+8  ASP CB  HB3  SING N ?
+9  ASP CG  OD1  DOUB N ?
+10 ASP CG  OD2  SING N ?
+11 DNP N   CA   SING N ?
+12 DNP N   H    SING N ?
+13 DNP CA  CB   SING N ?
+14 DNP CA  C    SING N ?
+15 DNP CA  HA   SING N ?
+16 DNP CB  NG   SING N ?
+17 DNP CB  HB2  SING N ?
+18 DNP CB  HB3  SING N ?
+19 DNP NG  HG1  SING N ?
+20 DNP C   O    DOUB N ?
+21 CPI N   CE   SING N ?
+22 CPI N   CA   SING N ?
+23 CPI CE  CD   SING N ?
+24 CPI CE  HE2  SING N ?
+25 CPI CE  HE3  SING N ?
+26 CPI CD  CG   SING N ?
+27 CPI CD  HD2  SING N ?
+28 CPI CD  HD3  SING N ?
+29 CPI CG  CB   SING N ?
+30 CPI CG  HG2  SING N ?
+31 CPI CG  HG3  SING N ?
+32 CPI CB  CA   SING N ?
+33 CPI CB  HB2  SING N ?
+34 CPI CB  HB3  SING N ?
+35 CPI CA  C    SING N ?
+36 CPI CA  HA   SING N ?
+37 CPI C   O    DOUB N ?
+38 ASP N   H    SING N ?
+39 GLY N   CA   SING N ?
+40 GLY N   H    SING N ?
+41 GLY CA  C    SING N ?
+42 GLY CA  HA2  SING N ?
+43 GLY CA  HA3  SING N ?
+44 GLY C   O    DOUB N ?
+45 2RA C   O    DOUB N ?
+46 2RA C   CA   SING N ?
+47 2RA N   CA   SING N ?
+48 2RA CA  CB   SING N ?
+49 2RA CB  NG   SING N ?
+50 2RA N   H    SING N ?
+51 2RA CA  HA   SING N ?
+52 2RA CB  HB1  SING N ?
+53 2RA CB  HB2  SING N ?
+54 2RA NG  HG1  SING N ?
+55 2RA NG  HG2  SING N ?
+56 ILE N   CA   SING N ?
+57 ILE N   H    SING N ?
+58 ILE CA  C    SING N ?
+59 ILE CA  CB   SING N ?
+60 ILE CA  HA   SING N ?
+61 ILE C   O    DOUB N ?
+62 ILE CB  CG1  SING N ?
+63 ILE CB  CG2  SING N ?
+64 ILE CB  HB   SING N ?
+65 ILE CG1 CD1  SING N ?
+66 ILE CG1 HG12 SING N ?
+67 ILE CG1 HG13 SING N ?
+68 ILE CG2 HG21 SING N ?
+69 ILE CG2 HG22 SING N ?
+70 ILE CG2 HG23 SING N ?
+71 ILE CD1 HD11 SING N ?
+72 ILE CD1 HD12 SING N ?
+73 ILE CD1 HD13 SING N ?
+74 PRO N   CA   SING N ?
+75 PRO N   CD   SING N ?
+76 PRO CA  C    SING N ?
+77 PRO CA  CB   SING N ?
+78 PRO CA  HA   SING N ?
+79 PRO C   O    DOUB N ?
+80 PRO CB  CG   SING N ?
+81 PRO CB  HB2  SING N ?
+82 PRO CB  HB3  SING N ?
+83 PRO CG  CD   SING N ?
+84 PRO CG  HG2  SING N ?
+85 PRO CG  HG3  SING N ?
+86 PRO CD  HD2  SING N ?
+87 PRO CD  HD3  SING N ?
+#
+loop_
+_atom_site.group_PDB 
+_atom_site.type_symbol 
+_atom_site.label_atom_id 
+_atom_site.label_alt_id 
+_atom_site.label_comp_id 
+_atom_site.label_asym_id 
+_atom_site.label_entity_id 
+_atom_site.label_seq_id 
+_atom_site.pdbx_PDB_ins_code 
+_atom_site.auth_seq_id 
+_atom_site.auth_comp_id 
+_atom_site.auth_asym_id 
+_atom_site.auth_atom_id 
+_atom_site.B_iso_or_equiv 
+_atom_site.occupancy 
+_atom_site.Cartn_x 
+_atom_site.Cartn_y 
+_atom_site.Cartn_z 
+_atom_site.pdbx_PDB_model_num 
+_atom_site.id 
+ATOM   N N    . ASP A 1 1  . 1  ASP A N    9.31  1.0 -6.834  11.849 6.859  1 1
+ATOM   C CA   . ASP A 1 1  . 1  ASP A CA   9.05  1.0 -6.208  13.011 7.439  1 2
+ATOM   C C    . ASP A 1 1  . 1  ASP A C    9.65  1.0 -5.236  13.635 6.447  1 3
+ATOM   O O    . ASP A 1 1  . 1  ASP A O    12.7  1.0 -4.697  12.961 5.569  1 4
+ATOM   C CB   . ASP A 1 1  . 1  ASP A CB   9.15  1.0 -5.445  12.67  8.704  1 5
+ATOM   C CG   . ASP A 1 1  . 1  ASP A CG   10.03 1.0 -6.249  12.086 9.85   1 6
+ATOM   O OD1  . ASP A 1 1  . 1  ASP A OD1  9.14  1.0 -7.502  12.34  9.906  1 7
+ATOM   O OD2  . ASP A 1 1  . 1  ASP A OD2  13.06 1.0 -5.643  11.401 10.699 1 8
+ATOM   H H1   . ASP A 1 1  . 1  ASP A H1   9.16  1.0 -6.261  11.201 6.57   1 9
+ATOM   H HA   . ASP A 1 1  . 1  ASP A HA   9.32  1.0 -6.903  13.671 7.659  1 10
+ATOM   H HB2  . ASP A 1 1  . 1  ASP A HB2  9.18  1.0 -4.743  12.026 8.476  1 11
+ATOM   H HB3  . ASP A 1 1  . 1  ASP A HB3  9.24  1.0 -5.01   13.484 9.032  1 12
+HETATM N N    . DNP A 1 2  . 2  DNP A N    8.33  1.0 -4.955  14.906 6.659  1 13
+HETATM C CA   . DNP A 1 2  . 2  DNP A CA   8.01  1.0 -3.953  15.615 5.88   1 14
+HETATM C CB   . DNP A 1 2  . 2  DNP A CB   8.73  1.0 -4.627  16.518 4.848  1 15
+HETATM N NG   . DNP A 1 2  . 2  DNP A NG   8.18  1.0 -5.479  17.528 5.441  1 16
+HETATM C C    . DNP A 1 2  . 2  DNP A C    7.39  1.0 -3.054  16.432 6.797  1 17
+HETATM O O    . DNP A 1 2  . 2  DNP A O    7.55  1.0 -3.402  16.698 7.943  1 18
+HETATM H H    . DNP A 1 2  . 2  DNP A H    8.5   1.0 -5.438  15.404 7.388  1 19
+HETATM H HA   . DNP A 1 2  . 2  DNP A HA   8.11  1.0 -3.405  14.954 5.403  1 20
+HETATM H HB2  . DNP A 1 2  . 2  DNP A HB2  8.43  1.0 -5.165  15.958 4.252  1 21
+HETATM H HB3  . DNP A 1 2  . 2  DNP A HB3  8.67  1.0 -3.933  16.952 4.312  1 22
+HETATM H HG1  . DNP A 1 2  . 2  DNP A HG1  8.29  1.0 -6.282  17.273 5.736  1 23
+HETATM N N    . CPI A 1 3  . 3  CPI A N    8.34  1.0 -1.874  16.884 6.293  1 24
+HETATM C CE   . CPI A 1 3  . 3  CPI A CE   9.23  1.0 -1.245  16.406 5.054  1 25
+HETATM C CD   . CPI A 1 3  . 3  CPI A CD   11.46 1.0 -0.844  17.521 4.12   1 26
+HETATM C CG   . CPI A 1 3  . 3  CPI A CG   11.68 1.0 -0.031  18.568 4.842  1 27
+HETATM C CB   . CPI A 1 3  . 3  CPI A CB   10.71 1.0 -0.767  19.063 6.069  1 28
+HETATM C CA   . CPI A 1 3  . 3  CPI A CA   8.74  1.0 -1.173  17.951 7.031  1 29
+HETATM C C    . CPI A 1 3  . 3  CPI A C    8.79  1.0 0.018   17.42  7.83   1 30
+HETATM O O    . CPI A 1 3  . 3  CPI A O    10.59 1.0 0.91    18.166 8.216  1 31
+HETATM H HE2  . CPI A 1 3  . 3  CPI A HE2  9.19  1.0 -0.431  15.878 5.287  1 32
+HETATM H HE3  . CPI A 1 3  . 3  CPI A HE3  9.23  1.0 -1.869  15.801 4.573  1 33
+HETATM H HD2  . CPI A 1 3  . 3  CPI A HD2  10.9  1.0 -0.319  17.148 3.38   1 34
+HETATM H HD3  . CPI A 1 3  . 3  CPI A HD3  10.97 1.0 -1.652  17.931 3.745  1 35
+HETATM H HG2  . CPI A 1 3  . 3  CPI A HG2  11.31 1.0 0.833   18.186 5.109  1 36
+HETATM H HG3  . CPI A 1 3  . 3  CPI A HG3  11.13 1.0 0.144   19.322 4.238  1 37
+HETATM H HB2  . CPI A 1 3  . 3  CPI A HB2  10.43 1.0 -1.575  19.543 5.78   1 38
+HETATM H HB3  . CPI A 1 3  . 3  CPI A HB3  10.26 1.0 -0.195  19.707 6.545  1 39
+HETATM H HA   . CPI A 1 3  . 3  CPI A HA   8.81  1.0 -1.811  18.34  7.685  1 40
+ATOM   N N    . ASP A 1 4  . 4  ASP A N    8.54  1.0 0.019   16.108 8.122  1 41
+ATOM   C CA   . ASP A 1 4  . 4  ASP A CA   8.4   1.0 0.985   15.524 9.054  1 42
+ATOM   C C    . ASP A 1 4  . 4  ASP A C    9.19  1.0 0.787   16.03  10.481 1 43
+ATOM   O O    . ASP A 1 4  . 4  ASP A O    12.33 1.0 1.698   16.014 11.317 1 44
+ATOM   C CB   . ASP A 1 4  . 4  ASP A CB   9.51  1.0 2.448   15.653 8.622  1 45
+ATOM   C CG   . ASP A 1 4  . 4  ASP A CG   10.63 1.0 3.355   14.671 9.343  1 46
+ATOM   O OD1  . ASP A 1 4  . 4  ASP A OD1  13.28 1.0 2.906   13.533 9.648  1 47
+ATOM   O OD2  . ASP A 1 4  . 4  ASP A OD2  11.28 1.0 4.526   15.002 9.586  1 48
+ATOM   H H    . ASP A 1 4  . 4  ASP A H    8.49  1.0 -0.567  15.593 7.745  1 49
+ATOM   H HA   . ASP A 1 4  . 4  ASP A HA   8.81  1.0 0.793   14.558 9.07   1 50
+ATOM   H HB2  . ASP A 1 4  . 4  ASP A HB2  9.38  1.0 2.513   15.496 7.659  1 51
+ATOM   H HB3  . ASP A 1 4  . 4  ASP A HB3  9.64  1.0 2.764   16.56  8.81   1 52
+ATOM   N N    . ASP A 1 5  . 5  ASP A N    8.07  1.0 -0.451  16.444 10.806 1 53
+ATOM   C CA   . ASP A 1 5  . 5  ASP A CA   8.73  1.0 -0.806  16.838 12.162 1 54
+ATOM   C C    . ASP A 1 5  . 5  ASP A C    8.91  1.0 -2.041  16.094 12.654 1 55
+ATOM   O O    . ASP A 1 5  . 5  ASP A O    10.61 1.0 -2.641  16.495 13.649 1 56
+ATOM   C CB   . ASP A 1 5  . 5  ASP A CB   8.88  1.0 -1.054  18.351 12.266 1 57
+ATOM   C CG   . ASP A 1 5  . 5  ASP A CG   8.71  1.0 -2.292  18.845 11.546 1 58
+ATOM   O OD1  . ASP A 1 5  . 5  ASP A OD1  8.8   1.0 -2.816  18.063 10.72  1 59
+ATOM   O OD2  . ASP A 1 5  . 5  ASP A OD2  10.05 1.0 -2.673  19.998 11.808 1 60
+ATOM   H H    . ASP A 1 5  . 5  ASP A H    8.23  1.0 -1.164  16.484 10.093 1 61
+ATOM   H HA   . ASP A 1 5  . 5  ASP A HA   8.77  1.0 -0.054  16.612 12.757 1 62
+ATOM   H HB2  . ASP A 1 5  . 5  ASP A HB2  8.87  1.0 -1.132  18.595 13.211 1 63
+ATOM   H HB3  . ASP A 1 5  . 5  ASP A HB3  8.76  1.0 -0.279  18.821 11.896 1 64
+ATOM   N N    . GLY A 1 6  . 6  GLY A N    8.67  1.0 -2.376  14.983 12.014 1 65
+ATOM   C CA   . GLY A 1 6  . 6  GLY A CA   9.2   1.0 -3.519  14.197 12.427 1 66
+ATOM   C C    . GLY A 1 6  . 6  GLY A C    7.92  1.0 -4.838  14.81  11.988 1 67
+ATOM   O O    . GLY A 1 6  . 6  GLY A O    8.01  1.0 -4.92   15.555 11.012 1 68
+ATOM   H H    . GLY A 1 6  . 6  GLY A H    8.73  1.0 -1.824  14.663 11.233 1 69
+ATOM   H HA2  . GLY A 1 6  . 6  GLY A HA2  9.23  1.0 -3.438  13.289 12.04  1 70
+ATOM   H HA3  . GLY A 1 6  . 6  GLY A HA3  8.86  1.0 -3.51   14.109 13.413 1 71
+ATOM   N N    . ASP A 1 7  . 7  ASP A N    9.16  1.0 -5.894  14.358 12.676 1 72
+ATOM   C CA   . ASP A 1 7  . 7  ASP A CA   8.22  1.0 -7.235  14.675 12.298 1 73
+ATOM   C C    . ASP A 1 7  . 7  ASP A C    8.06  1.0 -7.497  16.16  12.528 1 74
+ATOM   O O    . ASP A 1 7  . 7  ASP A O    10.27 1.0 -7.116  16.729 13.549 1 75
+ATOM   C CB   . ASP A 1 7  . 7  ASP A CB   9.15  1.0 -8.21   13.85  13.137 1 76
+ATOM   C CG   . ASP A 1 7  . 7  ASP A CG   8.43  1.0 -9.658  13.915 12.663 1 77
+ATOM   O OD1  . ASP A 1 7  . 7  ASP A OD1  8.84  1.0 -9.905  13.922 11.46  1 78
+ATOM   O OD2  . ASP A 1 7  . 7  ASP A OD2  13.71 1.0 -10.545 13.964 13.547 1 79
+ATOM   H H    . ASP A 1 7  . 7  ASP A H    8.53  1.0 -5.744  13.774 13.488 1 80
+ATOM   H HA   . ASP A 1 7  . 7  ASP A HA   8.45  1.0 -7.359  14.463 11.345 1 81
+ATOM   H HB2  . ASP A 1 7  . 7  ASP A HB2  8.82  1.0 -7.926  12.913 13.121 1 82
+ATOM   H HB3  . ASP A 1 7  . 7  ASP A HB3  8.97  1.0 -8.175  14.162 14.064 1 83
+ATOM   N N    . GLY A 1 8  . 8  GLY A N    7.87  1.0 -8.207  16.764 11.592 1 84
+ATOM   C CA   . GLY A 1 8  . 8  GLY A CA   8.26  1.0 -8.473  18.188 11.694 1 85
+ATOM   C C    . GLY A 1 8  . 8  GLY A C    7.9   1.0 -7.202  19.019 11.653 1 86
+ATOM   O O    . GLY A 1 8  . 8  GLY A O    8.08  1.0 -6.21   18.632 11.043 1 87
+ATOM   H H    . GLY A 1 8  . 8  GLY A H    7.8   1.0 -8.601  16.238 10.83  1 88
+ATOM   H HA2  . GLY A 1 8  . 8  GLY A HA2  8.26  1.0 -9.065  18.459 10.949 1 89
+ATOM   H HA3  . GLY A 1 8  . 8  GLY A HA3  8.05  1.0 -8.952  18.364 12.542 1 90
+HETATM C C    . 2RA A 1 9  . 9  2RA A C    7.69  1.0 -5.858  21.441 10.678 1 91
+HETATM N N    . 2RA A 1 9  . 9  2RA A N    8.11  1.0 -7.242  20.197 12.243 1 92
+HETATM O O    . 2RA A 1 9  . 9  2RA A O    7.91  1.0 -6.782  21.825 9.93   1 93
+HETATM C CA   . 2RA A 1 9  . 9  2RA A CA   8.13  1.0 -6.128  21.149 12.135 1 94
+HETATM C CB   . 2RA A 1 9  . 9  2RA A CB   10.17 0.8 -6.523  22.469 12.799 1 95
+HETATM N NG   . 2RA A 1 9  . 9  2RA A NG   9.31  0.8 -7.846  23.037 12.26  1 96
+HETATM H H    . 2RA A 1 9  . 9  2RA A H    8.18  1.0 -8.048  20.45  12.792 1 97
+HETATM H HA   . 2RA A 1 9  . 9  2RA A HA   8.31  1.0 -5.324  20.766 12.555 1 98
+HETATM H HB1  . 2RA A 1 9  . 9  2RA A HB1  9.82  0.8 -5.809  23.128 12.653 1 99
+HETATM H HB2  . 2RA A 1 9  . 9  2RA A HB2  9.45  0.8 -6.609  22.326 13.767 1 100
+HETATM H HG1  . 2RA A 1 9  . 9  2RA A HG1  9.23  0.8 -7.706  23.834 11.893 1 101
+HETATM H HG2  . 2RA A 1 9  . 9  2RA A HG2  9.39  0.8 -8.19   22.514 11.631 1 102
+ATOM   N N    . ILE A 1 10 . 10 ILE A N    8.15  1.0 -4.589  21.387 10.267 1 103
+ATOM   C CA   . ILE A 1 10 . 10 ILE A CA   7.79  1.0 -4.295  21.673 8.879  1 104
+ATOM   C C    . ILE A 1 10 . 10 ILE A C    7.87  1.0 -4.861  20.555 8.022  1 105
+ATOM   O O    . ILE A 1 10 . 10 ILE A O    7.53  1.0 -4.678  19.369 8.359  1 106
+ATOM   C CB   . ILE A 1 10 . 10 ILE A CB   9.6   1.0 -2.77   21.802 8.678  1 107
+ATOM   C CG1  . ILE A 1 10 . 10 ILE A CG1  14.53 1.0 -2.093  22.789 9.641  1 108
+ATOM   C CG2  . ILE A 1 10 . 10 ILE A CG2  11.02 1.0 -2.48   22.076 7.216  1 109
+ATOM   C CD1  . ILE A 1 10 . 10 ILE A CD1  16.4  1.0 -2.7    23.966 10.0   1 110
+ATOM   H H    . ILE A 1 10 . 10 ILE A H    7.97  1.0 -3.844  21.148 10.905 1 111
+ATOM   H HA   . ILE A 1 10 . 10 ILE A HA   8.19  1.0 -4.715  22.514 8.634  1 112
+ATOM   H HB   . ILE A 1 10 . 10 ILE A HB   9.83  1.0 -2.387  20.912 8.878  1 113
+ATOM   H HG12 . ILE A 1 10 . 10 ILE A HG12 13.86 1.0 -1.904  22.299 10.47  1 114
+ATOM   H HG13 . ILE A 1 10 . 10 ILE A HG13 13.32 1.0 -1.223  23.022 9.252  1 115
+ATOM   H HG21 . ILE A 1 10 . 10 ILE A HG21 10.91 1.0 -2.621  21.266 6.696  1 116
+ATOM   H HG22 . ILE A 1 10 . 10 ILE A HG22 10.73 1.0 -1.557  22.366 7.114  1 117
+ATOM   H HG23 . ILE A 1 10 . 10 ILE A HG23 10.42 1.0 -3.075  22.774 6.891  1 118
+ATOM   H HD11 . ILE A 1 10 . 10 ILE A HD11 16.2  1.0 -2.702  24.574 9.241  1 119
+ATOM   H HD12 . ILE A 1 10 . 10 ILE A HD12 15.68 1.0 -2.21   24.372 10.736 1 120
+ATOM   H HD13 . ILE A 1 10 . 10 ILE A HD13 15.32 1.0 -3.615  23.794 10.28  1 121
+ATOM   N N    . PRO A 1 11 . 11 PRO A N    8.08  1.0 -5.612  20.817 6.953  1 122
+ATOM   C CA   . PRO A 1 11 . 11 PRO A CA   7.98  1.0 -6.182  19.717 6.186  1 123
+ATOM   C C    . PRO A 1 11 . 11 PRO A C    8.2   1.0 -5.128  18.799 5.559  1 124
+ATOM   O O    . PRO A 1 11 . 11 PRO A O    9.28  1.0 -4.043  19.23  5.158  1 125
+ATOM   C CB   . PRO A 1 11 . 11 PRO A CB   9.87  1.0 -7.021  20.397 5.108  1 126
+ATOM   C CG   . PRO A 1 11 . 11 PRO A CG   11.2  1.0 -7.293  21.817 5.657  1 127
+ATOM   C CD   . PRO A 1 11 . 11 PRO A CD   9.9   1.0 -6.046  22.129 6.447  1 128
+ATOM   H HA   . PRO A 1 11 . 11 PRO A HA   8.0   1.0 -6.779  19.19  6.774  1 129
+ATOM   H HB2  . PRO A 1 11 . 11 PRO A HB2  9.81  1.0 -6.531  20.442 4.259  1 130
+ATOM   H HB3  . PRO A 1 11 . 11 PRO A HB3  9.57  1.0 -7.862  19.914 4.963  1 131
+ATOM   H HG2  . PRO A 1 11 . 11 PRO A HG2  10.52 1.0 -7.417  22.459 4.928  1 132
+ATOM   H HG3  . PRO A 1 11 . 11 PRO A HG3  10.82 1.0 -8.084  21.827 6.232  1 133
+ATOM   H HD2  . PRO A 1 11 . 11 PRO A HD2  9.59  1.0 -5.361  22.528 5.878  1 134
+ATOM   H HD3  . PRO A 1 11 . 11 PRO A HD3  9.54  1.0 -6.244  22.74  7.18   1 135
+#

@@ -12,7 +12,8 @@ def test_concatenate_pose_stacks_ctor(ubq_pdb, default_database, torch_device):
     poses = PoseStackBuilder.from_poses([p1, p2], torch.device(torch_device.type))
     assert poses.block_type_ind.shape == (2, 60)
     assert poses.coords.shape == (2, 962, 3)  # fd 959->961 for nterm
-    assert poses.inter_block_bondsep.shape == (2, 60, 60, 3, 3)
+    max_n_conn = poses.packed_block_types.max_n_conn
+    assert poses.inter_block_bondsep.shape == (2, 60, 60, max_n_conn, max_n_conn)
     assert poses.device == torch_device
     torch.testing.assert_close(
         poses.block_ind_for_rot,
@@ -48,7 +49,7 @@ def test_pose_stack_builder_find_inter_block_sep_for_polymeric_monomers_lcaa(
     )
     block_type_ind64 = i64([[1, 2, 0, 1]])
 
-    ibs64 = PoseStackBuilder._find_inter_block_separation_for_polymeric_monomers_heavy(
+    ibs = PoseStackBuilder._find_inter_block_separation_for_polymeric_monomers_heavy(
         torch_device,
         bt_polymeric_down_to_up_nbonds,
         bt_up_conn_inds,
@@ -59,9 +60,9 @@ def test_pose_stack_builder_find_inter_block_sep_for_polymeric_monomers_lcaa(
         real_res,
         block_type_ind64,
     )
-    inter_block_separation64 = ibs64
+    inter_block_separation = ibs
 
-    gold_inter_block_separation64 = i64(
+    gold_inter_block_separation = i32(
         [
             [
                 [
@@ -92,7 +93,7 @@ def test_pose_stack_builder_find_inter_block_sep_for_polymeric_monomers_lcaa(
         ]
     )
 
-    torch.testing.assert_close(gold_inter_block_separation64, inter_block_separation64)
+    torch.testing.assert_close(gold_inter_block_separation, inter_block_separation)
 
 
 def test_pose_stack_builder_inter_block_sep_mix_alpha_and_beta(
@@ -117,7 +118,7 @@ def test_pose_stack_builder_inter_block_sep_mix_alpha_and_beta(
     )
     block_type_ind64 = i64([[1, 2, 4, 1]])
 
-    ibs64 = PoseStackBuilder._find_inter_block_separation_for_polymeric_monomers_heavy(
+    ibs = PoseStackBuilder._find_inter_block_separation_for_polymeric_monomers_heavy(
         torch_device,
         bt_polymeric_down_to_up_nbonds,
         bt_up_conn_inds,
@@ -128,9 +129,9 @@ def test_pose_stack_builder_inter_block_sep_mix_alpha_and_beta(
         real_res,
         block_type_ind64,
     )
-    inter_block_separation64 = ibs64
+    inter_block_separation = ibs
 
-    gold_inter_block_separation64 = i64(
+    gold_inter_block_separation = i32(
         [
             [
                 [
@@ -161,7 +162,7 @@ def test_pose_stack_builder_inter_block_sep_mix_alpha_and_beta(
         ]
     )
 
-    torch.testing.assert_close(gold_inter_block_separation64, inter_block_separation64)
+    torch.testing.assert_close(gold_inter_block_separation, inter_block_separation)
 
 
 def test_take_real_conn_conn_intrablock_pairs_heavy(torch_device):
@@ -800,4 +801,9 @@ def test_from_block_type_names_smoke(
     interblock_dslf_pair_correction(ibb_gold, res_bound_to_next, 0, 2, 4)
     interblock_dslf_pair_correction(ibb_gold, res_bound_to_next, 1, 3, 5)
 
-    torch.testing.assert_close(pose_stack.inter_block_bondsep, ibb_gold)
+    # connection slots past the three these residue types have are padding
+    ibb = pose_stack.inter_block_bondsep
+    torch.testing.assert_close(ibb[..., :max_n_conn, :max_n_conn], ibb_gold)
+    padding = torch.ones_like(ibb, dtype=torch.bool)
+    padding[..., :max_n_conn, :max_n_conn] = False
+    assert bool((ibb[padding] == MAX_SIG_BOND_SEPARATION).all())

@@ -14,6 +14,7 @@ from typing import Mapping, Sequence
 
 import biotite.structure as struc
 import numpy as np
+from atomworks.protonation import signed_dihedral_angle, vertex_angle
 
 from tmol.chemical import build_coords_from_icoors
 from tmol.database.chemical import Connection, Icoor, RawResidueType
@@ -180,29 +181,15 @@ def _full_ideal_coords(restype: RawResidueType) -> dict[str, np.ndarray]:
 
 
 def _angle(a: np.ndarray, b: np.ndarray, c: np.ndarray) -> float:
-    ba = a - b
-    bc = c - b
-    denom = float(np.linalg.norm(ba) * np.linalg.norm(bc))
-    if denom < 1e-12:
+    """Angle at vertex b, in radians; zero where the points coincide."""
+    if float(np.linalg.norm(a - b) * np.linalg.norm(c - b)) < 1e-12:
         return 0.0
-    return float(np.arccos(np.clip(np.dot(ba, bc) / denom, -1.0, 1.0)))
+    return math.radians(vertex_angle(a, b, c))
 
 
 def _dihedral(a: np.ndarray, b: np.ndarray, c: np.ndarray, d: np.ndarray) -> float:
-    b1 = b - a
-    b2 = c - b
-    b3 = d - c
-    n1 = np.cross(b1, b2)
-    n2 = np.cross(b2, b3)
-    n1_norm = float(np.linalg.norm(n1))
-    n2_norm = float(np.linalg.norm(n2))
-    b2_norm = float(np.linalg.norm(b2))
-    if min(n1_norm, n2_norm, b2_norm) < 1e-12:
-        return 0.0
-    n1 /= n1_norm
-    n2 /= n2_norm
-    m1 = np.cross(n1, b2 / b2_norm)
-    return float(np.arctan2(np.dot(m1, n2), np.dot(n1, n2)))
+    """Dihedral a-b-c-d, in radians."""
+    return math.radians(signed_dihedral_angle(a, b, c, d))
 
 
 def _fragment_atom_tree(  # noqa: C901
@@ -582,6 +569,11 @@ def build_ligand_fragment_definition(  # noqa: C901
                 alias for alias in restype.atom_aliases if alias.name in name_set
             ),
             bonds=local_bonds,
+            io_bond_orders=tuple(
+                b
+                for b in restype.io_bond_orders
+                if b[0] in name_set and b[1] in name_set
+            ),
             connections=tuple(
                 Connection(
                     name=conn.connection_name,
@@ -878,7 +870,7 @@ def apply_fragment_connections(pose_stack, mapping: FragmentedLigandPoseMapping)
     PoseStackBuilder._incorporate_inter_residue_connections_into_connectivity_graph(
         inter_residue_connections64, pconn_offsets, pconn_matrix
     )
-    inter_block_bondsep64 = (
+    inter_block_bondsep = (
         PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph(
             pbt, pconn_offsets, block_n_conn, pconn_matrix
         )
@@ -888,8 +880,7 @@ def apply_fragment_connections(pose_stack, mapping: FragmentedLigandPoseMapping)
         coords=pose_stack.coords.clone(),
         inter_residue_connections=inter_residue_connections64.to(torch.int32),
         inter_residue_connections64=inter_residue_connections64,
-        inter_block_bondsep=inter_block_bondsep64.to(torch.int32),
-        inter_block_bondsep64=inter_block_bondsep64,
+        inter_block_bondsep=inter_block_bondsep,
     )
     result, sbm = build_split_block_mapping(result, mapping)
     return attr.evolve(result, split_block_mapping=sbm)
@@ -1160,6 +1151,11 @@ def _unsplit_chain_and_pdb(
     chain_labels = np.full((n_poses, new_max_n_blocks), "", dtype=object)
     occ = np.full((n_poses, new_max_n_atoms), DEFAULT_ATOM_OCCUPANCY, dtype=np.float32)
     bf = np.full((n_poses, new_max_n_atoms), DEFAULT_ATOM_B_FACTOR, dtype=np.float32)
+    origins = (
+        None
+        if old_pdb.metal_origins is None
+        else np.full((n_poses, new_max_n_blocks), None, dtype=object)
+    )
     old_chain = pose_stack.chain_id.cpu().numpy()
     for p, (blocks, m) in enumerate(zip(per_pose_blocks, old_to_new)):
         for old_b, new_b in m.items():
@@ -1169,6 +1165,8 @@ def _unsplit_chain_and_pdb(
             res_labels[p, new_b] = old_pdb.residue_labels[p, old_b]
             ins_codes[p, new_b] = old_pdb.residue_insertion_codes[p, old_b]
             chain_labels[p, new_b] = old_pdb.chain_labels[p, old_b]
+            if origins is not None:
+                origins[p, new_b] = old_pdb.metal_origins[p, old_b]
         for new_b, (bt_idx, kind, src) in enumerate(blocks):
             if kind != "orig":
                 continue
@@ -1188,6 +1186,7 @@ def _unsplit_chain_and_pdb(
         chain_labels=chain_labels,
         atom_occupancy=occ,
         atom_b_factor=bf,
+        metal_origins=origins,
     )
     return new_chain_id, new_pdb
 
@@ -1293,7 +1292,6 @@ def unsplit_pose_stack(pose_stack):
         inter_residue_connections=new_irc64.to(torch.int32),
         inter_residue_connections64=new_irc64,
         inter_block_bondsep=new_ibs64.to(torch.int32),
-        inter_block_bondsep64=new_ibs64,
         block_type_ind=new_bt32,
         block_type_ind64=new_bt64,
         chain_id=new_chain_id,
