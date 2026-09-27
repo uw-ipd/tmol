@@ -33,12 +33,18 @@ Four ways in:
 The shortest path is:
 
 ```bash
-pip install tmol
+pip install tmol --find-links https://github.com/uw-ipd/tmol/releases/expanded_assets/v0.1.55
 ```
 
-TMol first looks for a matching prebuilt wheel and otherwise builds locally.
-For a deterministic CPU/GPU binary install, supported Python/PyTorch/CUDA
-combinations, Colab, macOS, and HPC troubleshooting, see the
+Prebuilt wheels are published as GitHub Release assets, not on PyPI: each one
+carries a local version tag naming the accelerator and PyTorch build it was
+compiled against (`+cputorch2.13`, `+cu130torch2.13`), and PyPI does not accept
+local versions. The `--find-links` above is what makes pip see them, so replace
+the tag with the release you want. Without it pip falls back to the source
+distribution and compiles locally, which needs a matching CUDA toolchain.
+
+For supported Python/PyTorch/CUDA combinations, Colab, macOS, and HPC
+troubleshooting, see the
 **[installation guide](https://uw-ipd.github.io/tmol/latest/installation.html)**
 and **[GitHub Releases](https://github.com/uw-ipd/tmol/releases)**.
 
