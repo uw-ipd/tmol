@@ -596,7 +596,7 @@ def pose_stack_from_biotite(  # noqa: C901
     torch_device: torch.device,
     param_db: ParameterDatabase | None = None,
     missing_density_distance_threshold: float = 2.4,
-    no_optH: bool = True,
+    no_optH: bool = False,
     prepare_ligands: bool = False,
     ligand_ph: float = 7.4,
     strict_atom_types: bool = False,
@@ -640,11 +640,12 @@ def pose_stack_from_biotite(  # noqa: C901
             Adjacent residues whose closest inter-atom distance exceeds this
             value are treated as disconnected (upper/lower connects broken).
             Set to 0 to disable. Default is 2.4.
-        no_optH: When True (default), preserve finite input hydrogen coordinates
-            and build only missing hydrogens and heavy-atom sidechains. When
-            False, residues with complete heavy atoms are packed with OptHSampler
-            to optimize hydrogen positions and NHQ flips, while residues with
-            missing heavy atoms are rebuilt with DunbrackChiSampler. Generated
+        no_optH: When False (default), residues with complete heavy atoms are
+            packed with OptHSampler to optimize hydrogen positions, NHQ flips
+            and histidine tautomers, while residues with missing heavy atoms are
+            rebuilt with DunbrackChiSampler. When True, preserve finite input
+            hydrogen coordinates and build only missing hydrogens and heavy-atom
+            sidechains. Generated
             ligand types may still rebuild hydrogens whose names changed during
             parameter generation; pass ``trust_hydrogen_names=True`` only when
             those names are known to match the prepared database.

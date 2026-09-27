@@ -48,9 +48,12 @@ and repeated construction. Direct AtomArray inputs follow the same contract.
 
 :func:`tmol.io.pose_stack_from_pdb` accepts paths, text and lists of lines through
 the same file path. File and AtomArray inputs preserve matching supplied coordinates
-for ordinary protein residues. Pose construction builds missing hydrogens but
-preserves finite authored protein hydrogen coordinates by default. Pass
-``no_optH=False`` to request OptH packing. Generated ligand types may rebuild
+for ordinary protein residues. File and AtomArray construction builds missing
+hydrogens and, by default, packs complete residues with OptH, which places polar
+hydrogens and chooses NHQ flips and histidine tautomers. Pass ``no_optH=True`` to
+preserve finite authored protein hydrogen coordinates instead;
+:func:`tmol.io.pose_stack_from_pdb` preserves them unless given
+``no_optH=False``. Generated ligand types may rebuild
 hydrogens whose names changed during parameter generation; pass
 ``trust_hydrogen_names=True`` only when those names match the prepared database.
 Low-level PDB atom-record/DataFrame utilities retain their canonical-only contract.
