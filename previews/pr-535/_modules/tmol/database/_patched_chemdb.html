@@ -1116,6 +1116,9 @@
 <span class="c1">#    newmarked - updated list of modified atoms in new residue</span>
 <span class="c1"># marks an atom a patch created, as against one it modified</span>
 <span class="n">CREATED</span> <span class="o">=</span> <span class="s2">"+"</span>
+<span class="c1"># marks an atom a patch only bonded to or took a neighbor from, leaving the</span>
+<span class="c1">#    atom itself (its type, its placement) as it was</span>
+<span class="n">ANCHORED</span> <span class="o">=</span> <span class="s2">"~"</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_only_adds_connections</span><span class="p">(</span><span class="n">variant</span><span class="p">):</span>
@@ -1163,10 +1166,13 @@
 
         <span class="c1"># 0. check if we've already modified any of these atoms; a patch that</span>
         <span class="c1">#    only adds connections may attach to an atom another patch created</span>
+        <span class="c1">#    or only anchored</span>
         <span class="n">blocking</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">CREATED</span><span class="p">)</span> <span class="k">else</span> <span class="n">x</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="n">CREATED</span> <span class="o">+</span> <span class="n">ANCHORED</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">newmark</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">CREATED</span><span class="p">)</span> <span class="ow">and</span> <span class="n">_only_adds_connections</span><span class="p">(</span><span class="n">variant</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="n">CREATED</span><span class="p">,</span> <span class="n">ANCHORED</span><span class="p">))</span> <span class="ow">and</span> <span class="n">_only_adds_connections</span><span class="p">(</span><span class="n">variant</span><span class="p">)</span>
+            <span class="p">)</span>
         <span class="p">}</span>
         <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">modded</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">blocking</span><span class="p">:</span>
             <span class="k">continue</span>
@@ -1247,14 +1253,21 @@
         <span class="n">newres</span><span class="o">.</span><span class="n">chi_samples</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">newres</span><span class="o">.</span><span class="n">chi_samples</span><span class="p">,</span> <span class="o">*</span><span class="n">variant</span><span class="o">.</span><span class="n">add_chi_samples</span><span class="p">)</span>
 
         <span class="c1"># 6. update modified atoms</span>
-        <span class="c1"># a) directly modified/added</span>
-        <span class="n">newmark</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">modded</span><span class="p">)</span>
+        <span class="c1"># a) directly modified/added; an atom whose type, placement or</span>
+        <span class="c1">#    connections the patch changed, as against one it only anchored</span>
+        <span class="n">changed</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">namemap</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">(</span>
+                <span class="o">*</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">variant</span><span class="o">.</span><span class="n">modify_atoms</span><span class="p">),</span>
+                <span class="o">*</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">variant</span><span class="o">.</span><span class="n">icoors</span><span class="p">),</span>
+                <span class="o">*</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">atom</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">variant</span><span class="o">.</span><span class="n">add_connections</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="p">}</span>
+        <span class="n">newmark</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">x</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">changed</span> <span class="k">else</span> <span class="n">ANCHORED</span> <span class="o">+</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">modded</span><span class="p">)</span>
         <span class="n">newmark</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">CREATED</span> <span class="o">+</span> <span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">added</span><span class="p">)</span>
 
-        <span class="c1"># b) bonded to deleted atoms</span>
-
-        <span class="c1"># c) removed atoms</span>
-        <span class="n">newmark</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">newmark</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">removeprefix</span><span class="p">(</span><span class="n">CREATED</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">deleted</span><span class="p">]</span>
+        <span class="c1"># b) removed atoms</span>
+        <span class="n">newmark</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">newmark</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="n">CREATED</span> <span class="o">+</span> <span class="n">ANCHORED</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">deleted</span><span class="p">]</span>
 
         <span class="n">newreses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">newres</span><span class="p">)</span>
         <span class="n">newmarked</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">newmark</span><span class="p">)</span>
