@@ -14,7 +14,7 @@ from typing import Mapping, Sequence
 
 import biotite.structure as struc
 import numpy as np
-from atomworks.protonation import signed_dihedral_angle, vertex_angle
+from atomworks.experimental.protonation import signed_dihedral_angle, vertex_angle
 
 from tmol.chemical import build_coords_from_icoors
 from tmol.database.chemical import Connection, Icoor, RawResidueType

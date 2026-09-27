@@ -10,7 +10,7 @@ from collections import deque
 
 import numpy
 
-from atomworks.protonation import icoor_geometry_from_coords
+from atomworks.experimental.protonation import icoor_geometry_from_coords
 
 from tmol.database.chemical import (
     ChemicalProperties,

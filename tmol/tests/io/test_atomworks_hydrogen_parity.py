@@ -10,7 +10,7 @@ import biotite.structure as struc
 import biotite.structure.info as info
 import numpy as np
 import pytest
-from atomworks.protonation import ensure_hydrogens
+from atomworks.experimental.protonation import ensure_hydrogens
 
 from tmol.io import biotite_from_pose_stack, pose_stack_from_biotite
 
