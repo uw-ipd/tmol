@@ -5,14 +5,14 @@ suitable for registration in tmol's ChemicalDatabase. Handles atom tree
 construction, internal coordinate computation, rotatable bond detection,
 and non-polymer property assignment.
 
-The atom tree and internal coordinates come from :mod:`atomworks.protonation`,
+The atom tree and internal coordinates come from :mod:`atomworks.experimental.protonation`,
 so a structure keeps the same geometry whichever library placed it.
 """
 
 import logging
 
 import numpy as np
-from atomworks.protonation import (
+from atomworks.experimental.protonation import (
     build_atom_tree,
     find_root_atom,
     icoor_geometry_from_coords,

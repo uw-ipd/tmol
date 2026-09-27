@@ -3,7 +3,7 @@
 Every TMol caller goes through this module.
 """
 
-from atomworks.protonation.external.dimorphite_dl.dimorphite_dl import (  # noqa: F401
+from atomworks.experimental.protonation.external.dimorphite_dl.dimorphite_dl import (  # noqa: F401
     ArgParseFuncs,
     LoadSMIFile,
     MyParser,
