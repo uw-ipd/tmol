@@ -36,6 +36,9 @@ if TYPE_CHECKING:
 
 _MAX_PREPARED_BATCH_SIZES = 4
 
+# Per-atom annotation set by biotite_from_pose_stack().
+RESIDUE_IS_POLYMER_ANNOTATION = "tmol_residue_is_polymer"
+
 
 def _clone_pose_topology(pose_stack: PoseStack) -> PoseStack:
     """Clone caller-mutable pose data while retaining shared chemical types."""
@@ -1069,6 +1072,9 @@ def biotite_from_pose_stack(
 ) -> biotite.structure.AtomArray | biotite.structure.AtomArrayStack:
     """Convert PoseStack back to Biotite structure.
 
+    Each atom gets a ``tmol_residue_is_polymer`` annotation from its residue's
+    block type (``properties.polymer.is_polymer``). ``hetero`` is unchanged.
+
     Args:
         pose_stack: Pose stack to convert.
         co: Canonical ordering used for conversion. Provide the ordering that
@@ -1082,13 +1088,38 @@ def biotite_from_pose_stack(
     if co is None:
         co = canonical_ordering_for_biotite()
     cf = canonical_form_from_pose_stack(co, pose_stack)
-    structure = biotite_from_canonical_form(cf, co=co)
+    structure, atom_block = _biotite_and_atom_blocks_from_canonical_form(cf, co)
+    structure.set_annotation(
+        RESIDUE_IS_POLYMER_ANNOTATION,
+        _atom_residue_is_polymer(pose_stack, atom_block),
+    )
     sbm = getattr(pose_stack, "split_block_mapping", None)
     if merge_fragments and sbm is not None and sbm.entries:
         from tmol.ligand import recombine_fragmented_ligands
 
         structure = recombine_fragmented_ligands(structure, pose_stack)
     return structure
+
+
+def _atom_residue_is_polymer(
+    pose_stack: PoseStack, atom_block: numpy.ndarray
+) -> numpy.ndarray:
+    """Per-atom ``is_polymer`` of the block each exported atom belongs to."""
+    pbt = pose_stack.packed_block_types
+    bt_is_polymer = numpy.array(
+        [bt.properties.polymer.is_polymer for bt in pbt.active_block_types],
+        dtype=bool,
+    )
+    bt_ind = pose_stack.block_type_ind64.cpu().numpy()[:, atom_block]
+    if (bt_ind < 0).any():
+        raise ValueError("exported atoms must belong to real blocks")
+    per_pose = bt_is_polymer[bt_ind]
+    if not (per_pose == per_pose[:1]).all():
+        raise ValueError(
+            "Cannot export a PoseStack whose poses disagree on which residues "
+            "are polymer residues as one AtomArrayStack."
+        )
+    return per_pose[0]
 
 
 def _map_atoms_to_canonical(co, atom_res_inds, res_names, atom_names, elements):
@@ -2155,10 +2186,19 @@ def biotite_from_canonical_form(
     author labels default to internal chain IDs and one-based residue positions.
     This host-array export detaches coordinates from autograd.
     """
-    import biotite.structure as struc
-
     if co is None:
         co = canonical_ordering_for_biotite()
+    return _biotite_and_atom_blocks_from_canonical_form(cf, co)[0]
+
+
+def _biotite_and_atom_blocks_from_canonical_form(
+    cf: CanonicalForm, co: CanonicalOrdering
+) -> tuple[
+    biotite.structure.AtomArray | biotite.structure.AtomArrayStack, numpy.ndarray
+]:
+    """The exported structure and each atom's residue index in ``cf``."""
+    import biotite.structure as struc
+
     n_poses, n_residues, max_atoms = cf.coords.shape[:3]
     if n_poses > 1 and not _poses_have_identical_metadata(cf):
         raise ValueError(
@@ -2218,7 +2258,7 @@ def biotite_from_canonical_form(
     ):
         if values is not None:
             result.set_annotation(name, values[0, rows, columns].copy())
-    return result
+    return result, rows
 
 
 @validate_args

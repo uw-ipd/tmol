@@ -237,6 +237,14 @@ def test_fragmented_ligand_export_restores_original_residue(torch_device):
 
     np.testing.assert_array_equal(merged.res_name, restored.res_name)
     np.testing.assert_array_equal(merged.res_id, restored.res_id)
+    # Split or recombined, only the ligand's atoms are non-polymer.
+    np.testing.assert_array_equal(
+        split.tmol_residue_is_polymer,
+        ~np.char.startswith(split.res_name.astype(str), LIGAND_NAME),
+    )
+    np.testing.assert_array_equal(
+        merged.tmol_residue_is_polymer, merged.res_name != LIGAND_NAME
+    )
     assert not np.any(np.char.startswith(merged.res_name, f"{LIGAND_NAME}."))
     pbt = pose.packed_block_types
     expected_frag_res_ids = {

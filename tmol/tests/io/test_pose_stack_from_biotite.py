@@ -306,6 +306,101 @@ def test_canonical_form_multipose_metadata_propagation(biotite_1r21, torch_devic
     assert empty_canonical.res_types.shape == (biotite_1r21.stack_depth(), 0)
 
 
+def _gly_and_water_canonical_form(co, n_poses, torch_device):
+    """A glycine and a water, as two chains, in ``n_poses`` identical poses."""
+    from tmol.io import CanonicalForm
+
+    residues = {
+        "GLY": {
+            "N": (0.0, 0.0, 0.0),
+            "CA": (1.46, 0.0, 0.0),
+            "C": (2.0, 1.4, 0.0),
+            "O": (3.2, 1.5, 0.0),
+        },
+        "HOH": {
+            "O": (10.0, 10.0, 10.0),
+            "H1": (10.96, 10.0, 10.0),
+            "H2": (9.76, 10.93, 10.0),
+        },
+    }
+    coords = torch.full(
+        (n_poses, len(residues), co.max_n_canonical_atoms, 3), numpy.nan
+    )
+    for res_ind, (name, atoms) in enumerate(residues.items()):
+        for atom, xyz in atoms.items():
+            coords[:, res_ind, co.restypes_atom_index_mapping[name][atom]] = (
+                torch.tensor(xyz)
+            )
+    res_types = [co.restype_io_equiv_classes.index(name) for name in residues]
+    return CanonicalForm(
+        chain_id=torch.tensor([[0, 1]] * n_poses, dtype=torch.int32),
+        res_types=torch.tensor([res_types] * n_poses, dtype=torch.int32),
+        coords=coords.to(torch_device),
+        res_labels=numpy.array([[1, 101]] * n_poses),
+        residue_insertion_codes=numpy.array([["", ""]] * n_poses, dtype=object),
+        chain_labels=numpy.array([["A", "W"]] * n_poses, dtype=object),
+        atom_occupancy=None,
+        atom_b_factor=None,
+        disulfides=None,
+        res_not_connected=None,
+    )
+
+
+@pytest.mark.parametrize("n_poses", [1, 2])
+def test_biotite_export_records_residue_polymer_identity(n_poses, torch_device):
+    """The annotation is read from each residue's block type; hetero is not."""
+    from tmol.io import canonical_form_from_pose_stack, pose_stack_from_canonical_form
+    from tmol.io._pose_stack_from_biotite import (
+        RESIDUE_IS_POLYMER_ANNOTATION,
+        biotite_from_canonical_form,
+        canonical_ordering_for_biotite,
+        packed_block_types_for_biotite,
+    )
+
+    co = canonical_ordering_for_biotite()
+    cf = _gly_and_water_canonical_form(co, n_poses, torch_device)
+    pose_stack = pose_stack_from_canonical_form(
+        co, packed_block_types_for_biotite(torch_device), **cf.as_dict()
+    )
+    block_types = pose_stack.packed_block_types.active_block_types
+    polymer = [
+        block_types[int(i)].properties.polymer.is_polymer
+        for i in pose_stack.block_type_ind[0]
+    ]
+    assert polymer == [True, False]
+
+    exported = biotite_from_pose_stack(pose_stack, co)
+    if n_poses > 1:
+        assert exported.stack_depth() == n_poses
+    numpy.testing.assert_array_equal(
+        exported.get_annotation(RESIDUE_IS_POLYMER_ANNOTATION),
+        exported.res_name != "HOH",
+    )
+
+    # hetero is unchanged
+    plain = biotite_from_canonical_form(
+        canonical_form_from_pose_stack(co, pose_stack), co
+    )
+    assert RESIDUE_IS_POLYMER_ANNOTATION not in plain.get_annotation_categories()
+    numpy.testing.assert_array_equal(exported.hetero, plain.hetero)
+
+
+def test_biotite_export_marks_selenomethionine_as_polymer(biotite_1ubq, torch_device):
+    """A modified residue built into the chain is a polymer residue."""
+    from tmol.io._pose_stack_from_biotite import RESIDUE_IS_POLYMER_ANNOTATION
+
+    structure = biotite_1ubq.copy()
+    met = structure.res_name == "MET"
+    assert met.any()
+    structure.res_name[met] = "MSE"
+    sulfur = met & (structure.atom_name == "SD")
+    structure.atom_name[sulfur] = "SE"
+    structure.element[sulfur] = "SE"
+
+    exported = biotite_from_pose_stack(pose_stack_from_biotite(structure, torch_device))
+    assert exported.get_annotation(RESIDUE_IS_POLYMER_ANNOTATION).all()
+
+
 def test_pose_stack_from_biotite_1ubq_slice_smoke(biotite_1ubq, torch_device):
     starts = biotite.structure.get_residue_starts(biotite_1ubq)
     bt = biotite_1ubq[0 : starts[30]]
@@ -393,6 +488,7 @@ def test_ligand_proton_chi_samples_build_finite_coords(torch_device):
     assert lg1.chi_samples
     exported = biotite_from_pose_stack(pose_stack, context.canonical_ordering)
     assert exported.element[exported.atom_name == "QZ"].tolist() == ["C"]
+    assert not exported.tmol_residue_is_polymer.any()
     rebuilt = pose_stack_from_biotite(
         exported,
         torch_device,
@@ -417,6 +513,47 @@ def test_ligand_proton_chi_samples_build_finite_coords(torch_device):
     torch.testing.assert_close(
         canonical.coords.grad[observed], torch.ones_like(canonical.coords[observed])
     )
+
+
+def test_ligand_selection_by_polymer_identity_survives_a_round_trip(torch_device):
+    """The ligand is non-polymer after one and two round trips; hetero is unchanged."""
+    import pathlib
+
+    import biotite.structure.io
+
+    from tmol.database import ParameterDatabase
+
+    data = pathlib.Path(__file__).resolve().parents[1] / "data" / "protein_ligand_test"
+    structure = biotite.structure.io.load_structure(
+        str(data / "ace.tmol.nomin.cif"), model=1, include_bonds=True
+    )
+    pose_stack, context = pose_stack_from_biotite(
+        structure,
+        torch_device,
+        prepare_ligands=True,
+        ligand_params_files=[str(data / "ace.xtal-lig.mmff94.tmol")],
+        no_optH=True,
+        param_db=ParameterDatabase.get_default(),
+        return_context=True,
+    )
+
+    exported = biotite_from_pose_stack(pose_stack, context.canonical_ordering)
+    ligand = exported.res_name == "LG1"
+    assert ligand.any() and not ligand.all()
+    numpy.testing.assert_array_equal(exported.tmol_residue_is_polymer, ~ligand)
+
+    rebuilt = pose_stack_from_biotite(
+        exported,
+        torch_device,
+        context=context,
+        no_optH=True,
+        trust_hydrogen_names=True,
+    )
+    again = biotite_from_pose_stack(rebuilt, context.canonical_ordering)
+    numpy.testing.assert_array_equal(
+        again.tmol_residue_is_polymer, again.res_name != "LG1"
+    )
+    numpy.testing.assert_array_equal(again.hetero, exported.hetero)
 
 
 def test_ligand_build_from_mol2_bond_orders(torch_device):
