@@ -674,6 +674,9 @@ def _patch_preserves_torsion_support(res, variant, namemap, deleted):
 #    newmarked - updated list of modified atoms in new residue
 # marks an atom a patch created, as against one it modified
 CREATED = "+"
+# marks an atom a patch only bonded to or took a neighbor from, leaving the
+#    atom itself (its type, its placement) as it was
+ANCHORED = "~"
 
 
 def _only_adds_connections(variant):
@@ -721,10 +724,13 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
 
         # 0. check if we've already modified any of these atoms; a patch that
         #    only adds connections may attach to an atom another patch created
+        #    or only anchored
         blocking = {
-            x[1:] if x.startswith(CREATED) else x
+            x.lstrip(CREATED + ANCHORED)
             for x in newmark
-            if not (x.startswith(CREATED) and _only_adds_connections(variant))
+            if not (
+                x.startswith((CREATED, ANCHORED)) and _only_adds_connections(variant)
+            )
         }
         if set(modded) & blocking:
             continue
@@ -805,14 +811,21 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
         newres.chi_samples = (*newres.chi_samples, *variant.add_chi_samples)
 
         # 6. update modified atoms
-        # a) directly modified/added
-        newmark.extend(modded)
+        # a) directly modified/added; an atom whose type, placement or
+        #    connections the patch changed, as against one it only anchored
+        changed = {
+            namemap.get(x, x)
+            for x in (
+                *(a.name for a in variant.modify_atoms),
+                *(i.name for i in variant.icoors),
+                *(c.atom for c in variant.add_connections),
+            )
+        }
+        newmark.extend(x if x in changed else ANCHORED + x for x in modded)
         newmark.extend(CREATED + a for a in added)
 
-        # b) bonded to deleted atoms
-
-        # c) removed atoms
-        newmark = [x for x in newmark if x.removeprefix(CREATED) not in deleted]
+        # b) removed atoms
+        newmark = [x for x in newmark if x.lstrip(CREATED + ANCHORED) not in deleted]
 
         newreses.append(newres)
         newmarked.append(newmark)

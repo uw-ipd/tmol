@@ -45,6 +45,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
     return_chain_ind: bool = False,
     return_atom_mapping: bool = False,
     return_block_has_missing_atoms: bool = False,
+    packer_atoms=None,
 ):
     """Build a pose stack from tensors in canonical atom ordering.
 
@@ -92,6 +93,8 @@ def pose_stack_from_canonical_form(  # noqa: C901
             ``ps_atom_mapping`` tensors between canonical and pose atom order.
         return_block_has_missing_atoms: Include a ``[pose, residue]`` mask for
             blocks missing non-leaf input atoms instead of rejecting them.
+        packer_atoms: Given a block type, the atoms rotamer packing will place;
+            missing ones are left for the packer instead of built here.
 
     Returns:
         The pose stack. If any return flag is set, returns ``(pose_stack,
@@ -332,6 +335,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
         missing_atoms,
         inter_residue_connections,
         fail_on_missing_nonleaf_atoms=not return_block_has_missing_atoms,
+        packer_atoms=packer_atoms,
     )
 
     def i64(x):

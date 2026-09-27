@@ -10,6 +10,8 @@ from tmol.types import (
 from tmol.pose import PackedBlockTypes
 from tmol.chemical import RefinedResidueType
 
+from ._build_missing_context import build_missing_by_context
+
 
 @validate_args
 def build_missing_leaf_atoms(
@@ -20,6 +22,7 @@ def build_missing_leaf_atoms(
     block_atom_missing: Tensor[torch.bool][:, :, :],
     inter_residue_connections: Tensor[torch.int32][:, :, :, 2],
     fail_on_missing_nonleaf_atoms: bool = True,
+    packer_atoms=None,
 ):
     """Convert the block layout into the condensed layout used by PoseStack and
     build any missing "leaf" atoms at the same time. This is a fully differentiable
@@ -27,12 +30,13 @@ def build_missing_leaf_atoms(
     from the input structure will be distributed across the atoms that define the
     geometry of those atoms. A leaf atom is an atom that is not a parent to any other
     atom; these include hydrogens and carbonyl/carboxyl oxygens.
-    Non-polymer, noncanonical sidechain, and nucleic-acid phosphate atoms are
-    completed when their construction frames are available, followed by their
-    dependents. Stalled blocks use their prepared conformer and resolved anchors,
-    with a declared linkage
-    sample if needed to orient a singly anchored attachment. Observed atoms
-    are preserved; components without sufficient references remain unresolved.
+    Missing heavy atoms of non-polymer, noncanonical and nucleic-acid blocks are
+    grown outward from their observed atoms and connection partners, each rotation
+    the observed atoms leave free chosen to avoid clashes (see
+    build_missing_by_context); their hydrogens then follow from icoors. Observed
+    atoms are preserved; atoms no placed reference reaches remain unresolved.
+    packer_atoms, given a block type, marks the atoms rotamer packing will place;
+    those are left missing for it.
     """
 
     (
@@ -53,8 +57,9 @@ def build_missing_leaf_atoms(
         inter_residue_connections,
     )
 
-    # Include anchored ligand heavy atoms in the first pass, then finish their
-    # dependents below. Canonical protein blocks retain leaf-only completion.
+    # Missing heavy atoms of non-canonical blocks are grown from their observed
+    # atoms with clash-aware torsions; hydrogens and canonical leaves follow from
+    # icoors. Canonical protein blocks retain leaf-only completion.
     conformer_blocks = None
     targets = block_leaf_atom_is_missing
     if packed_block_types.has_conformer_frames:
@@ -62,11 +67,41 @@ def build_missing_leaf_atoms(
             block_types64.clamp_min(0)
         ]
         rebuildable = packed_block_types.conformer_atoms[block_types64.clamp_min(0)]
+        if packer_atoms is not None:
+            rebuildable = rebuildable & ~_packer_atom_mask(
+                packed_block_types, block_types64, packer_atoms
+            )
         targets = targets | (
             conformer_blocks.unsqueeze(-1) & block_atom_missing & rebuildable
         )
     pose_coords = block_coords.new_zeros((*pose_stack_atom_is_missing.shape, 3))
     pose_coords[pose_at_is_real] = block_coords[real_block_atoms]
+    if conformer_blocks is not None:
+        heavy = packed_block_types.atom_is_hydrogen[block_types64.clamp_min(0)] == 0
+        context = (
+            conformer_blocks.unsqueeze(-1)
+            & block_atom_missing
+            & rebuildable
+            & heavy
+            & real_block_atoms
+        )
+        if torch.any(context):
+            pose_targets = torch.zeros_like(pose_stack_atom_is_missing)
+            pose_targets[pose_at_is_real] = context[real_block_atoms]
+            pose_coords, pose_built = build_missing_by_context(
+                packed_block_types,
+                pose_coords,
+                pose_stack_atom_is_missing,
+                pose_targets,
+                block_coord_offset,
+                block_types,
+                inter_residue_connections,
+            )
+            block_built = torch.zeros_like(block_atom_missing)
+            block_built[real_block_atoms] = pose_built[pose_at_is_real]
+            pose_stack_atom_is_missing = pose_stack_atom_is_missing & ~pose_built
+            block_atom_missing = block_atom_missing & ~block_built
+            targets = targets & ~block_built
     new_pose_coords = _build_coords_from_icoors(
         packed_block_types,
         pose_coords,
@@ -105,17 +140,19 @@ def build_missing_leaf_atoms(
                 inter_residue_connections,
             )
             if torch.equal(torch.isnan(built).any(dim=-1), missing_pose):
-                from ._build_missing_nonpolymer_atoms import (
-                    build_missing_nonpolymer_atoms,
-                )
-
-                built = build_missing_nonpolymer_atoms(
+                # no icoor frame reaches them (hydrogens on a lone heavy atom):
+                #    grow them from what is placed
+                pose_targets = torch.zeros_like(missing_pose)
+                pose_targets[pose_at_is_real] = targets[real_block_atoms]
+                built, _ = build_missing_by_context(
                     packed_block_types,
                     built,
-                    targets,
+                    missing_pose,
+                    pose_targets,
                     block_coord_offset,
                     block_types,
                     inter_residue_connections,
+                    heavy_only=False,
                 )
                 if torch.equal(torch.isnan(built).any(dim=-1), missing_pose):
                     break
@@ -161,6 +198,17 @@ def build_missing_leaf_atoms(
         pose_at_is_real,
         block_has_missing_atoms,
     )
+
+
+def _packer_atom_mask(pbt, block_types64, packer_atoms):
+    """[n_poses, max_n_blocks, max_n_atoms]: the atoms packer_atoms marks."""
+    table = torch.zeros((pbt.n_types, pbt.max_n_atoms), dtype=torch.bool)
+    for t in torch.unique(block_types64[block_types64 >= 0]).tolist():
+        bt = pbt.active_block_types[t]
+        table[t, : bt.n_atoms] = torch.from_numpy(
+            numpy.asarray(packer_atoms(bt), dtype=bool)
+        )
+    return table.to(block_types64.device)[block_types64.clamp_min(0)]
 
 
 def _setup_for_leaf_atom_coord_building(

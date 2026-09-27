@@ -27,6 +27,8 @@ from rdkit import (
 )
 from rdkit.Chem import AllChem
 
+from tmol.ligand._atom_typing import assign_tmol_atom_types
+
 RDLogger.DisableLog("rdApp.*")
 
 logger = logging.getLogger(__name__)
@@ -128,7 +130,7 @@ def _generate_conformer(smiles: str, minimize_steps: int, seed: Optional[int]):
     rd = _obmol_to_rdkit(obmol)
     if rd is None:
         raise ValueError(f"could not parse ligand chemistry for SMILES {smiles!r}")
-    targets = _geometry_targets(rd)
+    targets = _geometry_targets(rd, _double_bond_stereo(smiles, rd))
     with _flush_denormals():
         _set_coords(obmol, _embed_coordinates(targets, seed=seed))
     _forcefield_minimize(obmol, steps=minimize_steps, frozen=targets["frozen_atoms"])
@@ -332,7 +334,105 @@ def _planar_systems(rd: Chem.Mol, bonds):  # noqa: C901
     return components, sets
 
 
-def _geometry_targets(rd: Chem.Mol) -> dict:
+def _double_bond_stereo(smiles: str, rd: Chem.Mol) -> dict:
+    """Cis/trans read from the SMILES: {(i, j): (a, d, is_cis)}, a on i and d on j.
+
+    rd lost this in the coordinate-free round trip; its atoms follow the SMILES order.
+    """
+    source = Chem.MolFromSmiles(smiles, sanitize=False)
+    if source is None:
+        return {}
+    Chem.SetBondStereoFromDirections(source)
+    out = {}
+    for bond in source.GetBonds():
+        stereo = bond.GetStereo()
+        if stereo not in (Chem.BondStereo.STEREOCIS, Chem.BondStereo.STEREOTRANS):
+            continue
+        i, j = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+        a, d = bond.GetStereoAtoms()
+        if max(i, j, a, d) >= rd.GetNumAtoms() or any(
+            source.GetAtomWithIdx(x).GetAtomicNum()
+            != rd.GetAtomWithIdx(x).GetAtomicNum()
+            for x in (i, j, a, d)
+        ):
+            return {}
+        out[(i, j)] = (a, d, stereo == Chem.BondStereo.STEREOCIS)
+    return out
+
+
+def _double_bond_torsions(rd: Chem.Mol, stereo: dict):
+    """(a, i, j, d, is_cis) for every substituent pair across an acyclic C=C-like bond.
+
+    Bonds in rings of up to 7 atoms are left to the ring. Unspecified bonds put
+    each side's bulkiest substituent trans.
+    """
+    ring_info = rd.GetRingInfo()
+
+    def bulk(x, center):
+        atom = rd.GetAtomWithIdx(x)
+        heavy = sum(
+            1
+            for n in atom.GetNeighbors()
+            if n.GetIdx() != center and n.GetAtomicNum() > 1
+        )
+        return (atom.GetAtomicNum() > 1, heavy, atom.GetAtomicNum(), -x)
+
+    out = []
+    for bond in rd.GetBonds():
+        if bond.GetBondType() != Chem.BondType.DOUBLE or bond.GetIsAromatic():
+            continue
+        if any(len(r) <= 7 for r in ring_info.BondRings() if bond.GetIdx() in r):
+            continue
+        i, j = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+        left = [
+            n.GetIdx() for n in rd.GetAtomWithIdx(i).GetNeighbors() if n.GetIdx() != j
+        ]
+        right = [
+            n.GetIdx() for n in rd.GetAtomWithIdx(j).GetNeighbors() if n.GetIdx() != i
+        ]
+        if not left or not right or len(left) > 2 or len(right) > 2:
+            continue
+        if (i, j) in stereo:
+            ref_a, ref_d, ref_cis = stereo[(i, j)]
+        elif (j, i) in stereo:
+            ref_d, ref_a, ref_cis = stereo[(j, i)]
+        else:
+            ref_a = max(left, key=lambda x: bulk(x, i))
+            ref_d = max(right, key=lambda x: bulk(x, j))
+            ref_cis = False
+        if ref_a not in left or ref_d not in right:
+            continue
+        for a in left:
+            for d in right:
+                out.append((a, i, j, d, ref_cis ^ (a != ref_a) ^ (d != ref_d)))
+    return out
+
+
+def _conjugated_single_bonds(rd: Chem.Mol):
+    """(i, j) for the single bonds ligand typing promotes to double (conjugated, amide)."""
+    mol = Chem.Mol(rd)
+    try:
+        assign_tmol_atom_types(mol)
+    except ValueError:
+        return []
+    return [
+        (b.GetBeginAtomIdx(), b.GetEndAtomIdx())
+        for b in rd.GetBonds()
+        if b.GetBondType() == Chem.BondType.SINGLE
+        and mol.GetBondWithIdx(b.GetIdx()).GetBondType() == Chem.BondType.DOUBLE
+    ]
+
+
+def _planar_14_distance(r_ai, r_ij, r_jd, theta_aij, theta_ijd, is_cis):
+    """Distance a-d across the bond i-j at dihedral 0 (cis) or 180 (trans), degrees."""
+    t1, t2 = math.radians(theta_aij), math.radians(theta_ijd)
+    ax, ay = r_ai * math.cos(t1), r_ai * math.sin(t1)
+    dx = r_ij - r_jd * math.cos(t2)
+    dy = r_jd * math.sin(t2) * (1.0 if is_cis else -1.0)
+    return math.hypot(dx - ax, dy - ay)
+
+
+def _geometry_targets(rd: Chem.Mol, double_bond_stereo: Optional[dict] = None) -> dict:
     elements = [a.GetAtomicNum() for a in rd.GetAtoms()]
     props = AllChem.MMFFGetMoleculeProperties(rd)
     if props is not None:
@@ -340,6 +440,17 @@ def _geometry_targets(rd: Chem.Mol) -> dict:
     else:
         bonds, angles, frozen = _fallback_bonds_angles(rd, elements)
     components, sets = _planar_systems(rd, bonds)
+    double_bonds = _double_bond_torsions(rd, double_bond_stereo or {})
+    # each double bond, and each single bond typing marks conjugated, is flat with
+    # its substituents
+    flat: dict[tuple, set] = {}
+    for a, i, j, d, _ in double_bonds:
+        flat.setdefault((i, j), {i, j}).update((a, d))
+    for i, j in _conjugated_single_bonds(rd):
+        flat.setdefault((i, j), {i, j}).update(
+            n.GetIdx() for x in (i, j) for n in rd.GetAtomWithIdx(x).GetNeighbors()
+        )
+    sets = sets + [tuple(sorted(x)) for x in flat.values()]
     pt = Chem.GetPeriodicTable()
     return dict(
         n=rd.GetNumAtoms(),
@@ -350,6 +461,7 @@ def _geometry_targets(rd: Chem.Mol) -> dict:
         planar_components=components,
         planar_sets=sets,
         chirals=_chiral_volume_targets(rd),
+        double_bonds=double_bonds,
         frozen_atoms=frozen,
     )
 
@@ -431,6 +543,7 @@ def _bounds_matrix(targets: dict):
     """Build the distance bounds matrix:
     * 1-2 and 1-3 atom distances exact given ideal geometry
     * planar pairs in same ring system exact given 2D embedding
+    * 1-4 pairs across an acyclic double bond exact, planar at its cis/trans
     * lower bounded given VDW radii for all others"""
     n = targets["n"]
     vdw = np.array(targets["vdw"], float)
@@ -460,6 +573,17 @@ def _bounds_matrix(targets: dict):
         if dists:
             for (i, j), d in dists.items():
                 fix(i, j, d)
+    for a, i, j, d, is_cis in targets.get("double_bonds", ()):
+        key_a, key_d = (min(a, j), i, max(a, j)), (min(i, d), j, max(i, d))
+        if exact[a, d] or key_a not in ang or key_d not in ang:
+            continue
+        fix(
+            a,
+            d,
+            _planar_14_distance(
+                r0[(a, i)], r0[(i, j)], r0[(j, d)], ang[key_a], ang[key_d], is_cis
+            ),
+        )
     L = np.minimum(L, U)
     return L, U
 
