@@ -385,6 +385,31 @@ def test_biotite_export_records_residue_polymer_identity(n_poses, torch_device):
     numpy.testing.assert_array_equal(exported.hetero, plain.hetero)
 
 
+@pytest.mark.parametrize(
+    "block_type_ind, match",
+    [([[0, 1], [0, 0]], "disagree"), ([[0, -1]], "real blocks")],
+    ids=["poses_disagree", "unassigned_block"],
+)
+def test_residue_polymer_identity_rejects_inconsistent_blocks(block_type_ind, match):
+    from types import SimpleNamespace
+
+    from tmol.io._pose_stack_from_biotite import _atom_residue_is_polymer
+
+    def block_type(is_polymer):
+        return SimpleNamespace(
+            properties=SimpleNamespace(polymer=SimpleNamespace(is_polymer=is_polymer))
+        )
+
+    pose_stack = SimpleNamespace(
+        packed_block_types=SimpleNamespace(
+            active_block_types=[block_type(True), block_type(False)]
+        ),
+        block_type_ind64=torch.tensor(block_type_ind),
+    )
+    with pytest.raises(ValueError, match=match):
+        _atom_residue_is_polymer(pose_stack, numpy.array([0, 0, 1]))
+
+
 def test_biotite_export_marks_selenomethionine_as_polymer(biotite_1ubq, torch_device):
     """A modified residue built into the chain is a polymer residue."""
     from tmol.io._pose_stack_from_biotite import RESIDUE_IS_POLYMER_ANNOTATION
