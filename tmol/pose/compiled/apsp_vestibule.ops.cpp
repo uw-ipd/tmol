@@ -40,6 +40,7 @@ Tensor block_bondsep_op(
       distances.scalar_type() == torch::kInt32
       && counts.scalar_type() == torch::kInt32);
   TORCH_CHECK(offsets.scalar_type() == torch::kInt64 && ports >= 0);
+  TORCH_CHECK(sentinel >= 0 && sentinel <= INT8_MAX);
   TORCH_CHECK(
       distances.device() == offsets.device()
       && distances.device() == counts.device());
@@ -48,7 +49,7 @@ Tensor block_bondsep_op(
       && counts.is_contiguous());
   auto output = torch::empty(
       {counts.size(0), counts.size(1), counts.size(1), ports, ports},
-      distances.options());
+      distances.options().dtype(torch::kInt8));
   TMOL_DISPATCH_INDEX_DEVICE(
       distances.options(), "block_bondsep_op", ([&] {
         gather_block_bondsep<device_t>(

@@ -70,7 +70,7 @@ struct LJLKPoseScoreDispatch {
 
       // dims: n-systems x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
-      TView<Int, 5, D> pose_stack_inter_block_bondsep,
+      TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
 
       //////////////////////
       // Chemical properties
@@ -146,7 +146,7 @@ struct LJLKPoseScoreDispatch {
 
       // dims: n-systems x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
-      TView<Int, 5, D> pose_stack_inter_block_bondsep,
+      TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
 
       //////////////////////
       // Chemical properties
@@ -221,7 +221,7 @@ struct LJLKRotamerScoreDispatch {
 
       // dims: n-systems x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
-      TView<Int, 5, D> pose_stack_inter_block_bondsep,
+      TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
 
       //////////////////////
       // Chemical properties
@@ -293,7 +293,7 @@ struct LJLKRotamerScoreDispatch {
 
       // dims: n-systems x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
-      TView<Int, 5, D> pose_stack_inter_block_bondsep,
+      TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
 
       //////////////////////
       // Chemical properties

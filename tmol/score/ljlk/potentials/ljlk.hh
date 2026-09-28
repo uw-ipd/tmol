@@ -148,7 +148,7 @@ void TMOL_DEVICE_FUNC ljlk_load_tile_invariant_interres_data(
     TView<Int, 3, D> pose_stack_min_bond_separation,
     TView<Int, 1, D> block_type_n_interblock_bonds,
     TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
-    TView<Int, 5, D> pose_stack_inter_block_bondsep,
+    TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
     TView<LJGlobalParams<Real>, 1, D> global_params,
 
     int const max_important_bond_separation,

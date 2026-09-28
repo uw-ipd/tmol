@@ -634,14 +634,14 @@ class PoseStackBuilder:
         ps_offsets: Tensor[torch.int64][:],
         max_n_blocks: int,
         device: torch.device,
-    ) -> Tensor[torch.int32][:, :, :, :, :]:
+    ) -> Tensor[torch.int8][:, :, :, :, :]:
         max_n_conn = max(
             len(rt.connections) for rt in packed_block_types.active_block_types
         )
         inter_block_bondsep = torch.full(
             (n_poses, max_n_blocks, max_n_blocks, max_n_conn, max_n_conn),
             6,
-            dtype=torch.int32,
+            dtype=torch.int8,
             device=device,
         )
         for i, pose_stack in enumerate(pose_stacks):
@@ -1256,7 +1256,7 @@ class PoseStackBuilder:
         pconn_offsets: Tensor[torch.int64][:, :],
         block_n_conn: Tensor[torch.int32][:, :],
         pconn_matrix: Tensor[torch.int32][:, :, :],
-    ) -> Tensor[torch.int32][:, :, :, :, :]:
+    ) -> Tensor[torch.int8][:, :, :, :, :]:
         return cls._calculate_interblock_bondsep_from_connectivity_graph_heavy(
             pbt.max_n_conn, pconn_offsets, block_n_conn, pconn_matrix
         )
@@ -1269,7 +1269,7 @@ class PoseStackBuilder:
         pconn_offsets: Tensor[torch.int64][:, :],
         block_n_conn: Tensor[torch.int32][:, :],
         pconn_matrix: Tensor[torch.int32][:, :, :],
-    ) -> Tensor[torch.int32][:, :, :, :, :]:
+    ) -> Tensor[torch.int8][:, :, :, :, :]:
         """Map shortest paths between pose connections onto block pairs.
 
         Args:
@@ -1281,7 +1281,7 @@ class PoseStackBuilder:
 
         Returns:
             Connection-to-connection bond separations indexed by pose and
-            block pair.
+            block pair, capped at ``MAX_SIG_BOND_SEPARATION`` and held as int8.
         """
         n_poses = block_n_conn.shape[0]
         max_n_blocks = block_n_conn.shape[1]
@@ -1302,7 +1302,7 @@ class PoseStackBuilder:
             return torch.full(
                 output_shape,
                 MAX_SIG_BOND_SEPARATION,
-                dtype=torch.int32,
+                dtype=torch.int8,
                 device=pconn_matrix.device,
             )
 

@@ -42,7 +42,7 @@ def assign_block_types(
 ) -> Tuple[
     Tensor[torch.int64][:, :],
     Tensor[torch.int64][:, :, :, 2],
-    Tensor[torch.int32][:, :, :, :, :],
+    Tensor[torch.int8][:, :, :, :, :],
 ]:
     """Choose each residue's block type and wire every inter-residue connection.
 

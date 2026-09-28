@@ -207,7 +207,7 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
     TView<Int, 1, Dev> rot_coord_offset,
     TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
     TView<Int, 3, Dev> pose_stack_min_bond_separation,
-    TView<Int, 5, Dev> pose_stack_inter_block_bondsep,
+    TView<int8_t, 5, Dev> pose_stack_inter_block_bondsep,
 
     TView<Int, 1, Dev> block_type_n_interblock_bonds,
     TView<Int, 2, Dev> block_type_atoms_forming_chemical_bonds,

@@ -36,7 +36,7 @@ def gather_with_torch(pconn_matrix, pconn_offsets, block_n_conn, max_n_conn):
     out = out.permute(0, 1, 3, 2, 4)
     out.masked_fill_(~real_bconn[:, :, None, :, None], MAX_SIG_BOND_SEPARATION)
     out.masked_fill_(~real_bconn[:, None, :, None, :], MAX_SIG_BOND_SEPARATION)
-    return out.contiguous()
+    return out.to(torch.int8).contiguous()
 
 
 def random_case(n_poses, max_n_blocks, max_n_conn, device, seed):
@@ -93,6 +93,17 @@ def test_a_block_with_no_connections_is_all_sentinel(torch_device):
     got = block_bondsep(pconn_matrix, offsets, block_n_conn, 2, MAX_SIG_BOND_SEPARATION)
     assert got.shape == (1, 3, 3, 2, 2)
     assert (got == MAX_SIG_BOND_SEPARATION).all()
+
+
+def test_separations_are_one_byte_and_saturate_at_the_sentinel(torch_device):
+    pconn_matrix = torch.tensor(
+        [[[0, 9], [300, 3]]], dtype=torch.int32, device=torch_device
+    )
+    offsets = torch.zeros((1, 1), dtype=torch.int64, device=torch_device)
+    block_n_conn = torch.full((1, 1), 2, dtype=torch.int32, device=torch_device)
+    got = block_bondsep(pconn_matrix, offsets, block_n_conn, 3, MAX_SIG_BOND_SEPARATION)
+    assert got.dtype == torch.int8
+    assert got.tolist() == [[[[[0, 6, 6], [6, 3, 6], [6, 6, 6]]]]]
 
 
 def test_no_connections_at_all_needs_no_output(torch_device):

@@ -346,6 +346,41 @@ def test_a_ligand_whose_only_hydrogens_a_metal_displaces_is_prepared_without_the
     assert [a.name for a in carbonate.atoms if a.name.startswith("H")] == []
 
 
+def test_a_twelve_connection_cluster_keeps_one_byte_per_bond_separation(
+    torch_device,
+):
+    """5XNL's Mn4CaO5 cluster (OEX A 401) takes 12 metal connections.
+
+    The block-pair bond separations grow with the square of the widest block
+    type's connection count, so the whole photosystem fits only at one byte each.
+    """
+    from tmol.chemical import MAX_SIG_BOND_SEPARATION
+    from tmol.io import build_context_from_biotite
+
+    array = atom_array_from_cif(DATA / "decreasing_water_author_ids_5xnl.cif.gz")
+    cluster = array.coord[(array.res_name == "OEX") & (array.chain_id == "A")]
+    distance = np.linalg.norm(array.coord[:, None] - cluster[None], axis=-1)
+    residue = struc.get_all_residue_positions(array)
+    site = array[np.isin(residue, residue[distance.min(axis=1) < 3.0])]
+    site = site[np.char.upper(site.element) != "H"]
+    context = build_context_from_biotite(site, torch_device)
+    pose = pose_stack_from_biotite(site, torch_device, context=context, no_optH=True)
+
+    types = pose.packed_block_types.active_block_types
+    block_types = [types[i] for i in pose.block_type_ind64[0] if i >= 0]
+    (oex,) = [bt for bt in block_types if bt.name == "OEX"]
+    assert len(oex.connections) == pose.packed_block_types.max_n_conn == 12
+    bondsep = pose.inter_block_bondsep
+    n_blocks = pose.block_type_ind.shape[1]
+    assert bondsep.shape == (1, n_blocks, n_blocks, 12, 12)
+    assert bondsep.dtype == torch.int8
+    assert bondsep.nbytes == n_blocks * n_blocks * 12 * 12
+    assert int(bondsep.max()) == MAX_SIG_BOND_SEPARATION
+    sfxn = beta2016_score_function(torch_device)
+    total = sfxn.render_whole_pose_scoring_module(pose)(pose.coords)
+    assert torch.isfinite(total).all()
+
+
 def test_af3_cyclic_peptide_resolves_leaving_atoms_and_minimizes(torch_device):
     from tmol.io import build_context_from_biotite
 

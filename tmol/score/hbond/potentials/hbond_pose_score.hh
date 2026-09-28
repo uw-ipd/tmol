@@ -64,7 +64,7 @@ struct HBondPoseScoreDispatch {
 
       // dims: n-poses x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
-      TView<Int, 5, Dev>
+      TView<int8_t, 5, Dev>
           pose_stack_inter_block_bondsep,  // ?? needed ?? I think so
 
       //////////////////////
@@ -152,7 +152,7 @@ struct HBondPoseScoreDispatch {
 
       // dims: n-poses x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
-      TView<Int, 5, Dev>
+      TView<int8_t, 5, Dev>
           pose_stack_inter_block_bondsep,  // ?? needed ?? I think so
 
       //////////////////////
@@ -270,7 +270,7 @@ struct HBondRotamerScoreDispatch {
 
       // dims: n-poses x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
-      TView<Int, 5, Dev>
+      TView<int8_t, 5, Dev>
           pose_stack_inter_block_bondsep,  // ?? needed ?? I think so
 
       //////////////////////
@@ -357,7 +357,7 @@ struct HBondRotamerScoreDispatch {
 
       // dims: n-poses x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
-      TView<Int, 5, Dev>
+      TView<int8_t, 5, Dev>
           pose_stack_inter_block_bondsep,  // ?? needed ?? I think so
 
       //////////////////////

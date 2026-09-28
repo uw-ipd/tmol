@@ -31,7 +31,8 @@ class PoseStack:
         block_coord_offset64: 64-bit copy of ``block_coord_offset`` for PyTorch.
         inter_residue_connections: Connected residue and connection indices.
         inter_residue_connections64: 64-bit connection-index copy.
-        inter_block_bondsep: Capped bond separation between residue connections.
+        inter_block_bondsep: Bond separation between residue connections, capped at
+            ``MAX_SIG_BOND_SEPARATION`` and held as int8.
         block_type_ind: Packed block-type index for each residue; ``-1`` is padding.
         block_type_ind64: 64-bit block-type-index copy.
         chain_id: Chain index for each residue.
@@ -55,7 +56,7 @@ class PoseStack:
     inter_residue_connections: Tensor[torch.int32][:, :, :, 2]
     inter_residue_connections64: Tensor[torch.int64][:, :, :, 2]
 
-    inter_block_bondsep: Tensor[torch.int32][:, :, :, :, :]
+    inter_block_bondsep: Tensor[torch.int8][:, :, :, :, :]
 
     block_type_ind: Tensor[torch.int32][:, :]
     block_type_ind64: Tensor[torch.int64][:, :]

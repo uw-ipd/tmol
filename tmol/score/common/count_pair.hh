@@ -29,7 +29,7 @@ struct CountPair {
       int alt_atom_ind,
       int neighb_atom_ind,
       TensorAccessor<Int, 2, D> min_bond_separation,
-      TensorAccessor<Int, 4, D> inter_block_bondsep,
+      TensorAccessor<int8_t, 4, D> inter_block_bondsep,
       TView<Int, 1, D> block_type_n_interblock_bonds,
       TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
       TView<Int, 3, D> block_type_path_distance) {
@@ -86,7 +86,7 @@ struct CountPair {
       int neighb_block_type,
       int alt_atom_ind,
       int neighb_atom_ind,
-      TensorAccessor<Int, 4, D> inter_block_bondsep,
+      TensorAccessor<int8_t, 4, D> inter_block_bondsep,
       TView<Int, 1, D> block_type_n_interblock_bonds,
       TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
       TView<Int, 3, D> block_type_path_distance) {

@@ -187,7 +187,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //    pose_stack_min_bond_separation (TView<Int, 3, D>)
 //    block_type_n_interblock_bonds (TView<Int, 1, D>)
 //    block_type_atoms_forming_chemical_bonds (TView<Int, 2, D>)
-//    pose_stack_inter_block_bondsep (TView<Int, 5, D>)
+//    pose_stack_inter_block_bondsep (TView<int8_t, 5, D>)
 //    global_params (TView<LJGlobalParams<Real>, 1, D>)
 //    max_important_bond_separation (int)
 #define LOAD_TILE_INVARIANT_INTERRES_DATA                            \
@@ -615,7 +615,7 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
 
     // dims: n-systems x max-n-blocks x max-n-blocks x
     // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, D> pose_stack_inter_block_bondsep,
+    TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
 
     //////////////////////
     // Chemical properties
@@ -1199,7 +1199,7 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::backward(
 
     // dims: n-systems x max-n-blocks x max-n-blocks x
     // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, D> pose_stack_inter_block_bondsep,
+    TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
 
     //////////////////////
     // Chemical properties
@@ -1500,7 +1500,7 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
 
     // dims: n-systems x max-n-blocks x max-n-blocks x
     // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, D> pose_stack_inter_block_bondsep,
+    TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
 
     //////////////////////
     // Chemical properties
@@ -1817,7 +1817,7 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::backward(
 
     // dims: n-systems x max-n-blocks x max-n-blocks x
     // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, D> pose_stack_inter_block_bondsep,
+    TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
 
     //////////////////////
     // Chemical properties

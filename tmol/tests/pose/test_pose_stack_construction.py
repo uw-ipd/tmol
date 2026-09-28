@@ -526,7 +526,7 @@ def test_calculate_interblock_bondsep_from_connectivity_graph_heavy(torch_device
                 ],
             ],
         ],
-        dtype=torch.int32,
+        dtype=torch.int8,
         device=torch_device,
     )
 
@@ -756,7 +756,7 @@ def test_from_block_type_names_smoke(
     ibb_gold = torch.full(
         (n_poses, max_n_res, max_n_res, max_n_conn, max_n_conn),
         MAX_SIG_BOND_SEPARATION,
-        dtype=torch.int32,
+        dtype=torch.int8,
         device=torch_device,
     )
 

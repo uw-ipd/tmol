@@ -1273,7 +1273,7 @@ def unsplit_pose_stack(pose_stack):
     PoseStackBuilder._incorporate_inter_residue_connections_into_connectivity_graph(
         new_irc64, pconn_offsets, pconn_matrix
     )
-    new_ibs64 = PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph(
+    new_ibs = PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph(
         pbt, pconn_offsets, block_n_conn, pconn_matrix
     )
 
@@ -1296,7 +1296,7 @@ def unsplit_pose_stack(pose_stack):
         block_coord_offset64=new_bco.to(torch.int64),
         inter_residue_connections=new_irc64.to(torch.int32),
         inter_residue_connections64=new_irc64,
-        inter_block_bondsep=new_ibs64.to(torch.int32),
+        inter_block_bondsep=new_ibs,
         block_type_ind=new_bt32,
         block_type_ind64=new_bt64,
         chain_id=new_chain_id,

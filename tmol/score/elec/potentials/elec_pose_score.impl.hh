@@ -411,7 +411,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
     // dims: n-poses x max-n-blocks x max-n-blocks x
     // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, D> pose_stack_inter_block_bondsep,
+    TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
 
     //////////////////////
     // Chemical properties
@@ -948,7 +948,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
 
     // dims: n-poses x max-n-blocks x max-n-blocks x
     // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, D> pose_stack_inter_block_bondsep,
+    TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
 
     //////////////////////
     // Chemical properties
@@ -1225,7 +1225,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
     // dims: n-poses x max-n-blocks x max-n-blocks x
     // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, D> pose_stack_inter_block_bondsep,
+    TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
 
     //////////////////////
     // Chemical properties
@@ -1530,7 +1530,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
 
     // dims: n-poses x max-n-blocks x max-n-blocks x
     // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, D> pose_stack_inter_block_bondsep,
+    TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
 
     //////////////////////
     // Chemical properties

@@ -6,8 +6,14 @@
 
 namespace tmol::pose {
 
+// The output is int8: separations saturate at the sentinel, which is the cap.
+C10_HOST_DEVICE inline int8_t saturated_bondsep(
+    int32_t distance, int32_t sentinel) {
+  return int8_t(distance < sentinel ? distance : sentinel);
+}
+
 // Decode the final contiguous layout without materializing broadcast indices.
-C10_HOST_DEVICE inline int32_t block_bondsep_value(
+C10_HOST_DEVICE inline int8_t block_bondsep_value(
     int64_t index,
     int64_t blocks,
     int64_t ports,
@@ -26,13 +32,15 @@ C10_HOST_DEVICE inline int32_t block_bondsep_value(
   auto const pose = index / blocks;
   auto const a = pose * blocks + first;
   auto const b = pose * blocks + second;
-  if (first_port >= counts[a] || second_port >= counts[b]) return sentinel;
+  if (first_port >= counts[a] || second_port >= counts[b])
+    return int8_t(sentinel);
   auto const first_node = offsets[a] + first_port;
   auto const second_node = offsets[b] + second_port;
   if (first_node < 0 || first_node >= nodes || second_node < 0
       || second_node >= nodes)
-    return sentinel;
-  return distances[(pose * nodes + first_node) * nodes + second_node];
+    return int8_t(sentinel);
+  return saturated_bondsep(
+      distances[(pose * nodes + first_node) * nodes + second_node], sentinel);
 }
 
 template <Device D>

@@ -13,7 +13,7 @@ __global__ void gather_block_bondsep_kernel(
     int32_t const* distances,
     int64_t const* offsets,
     int32_t const* counts,
-    int32_t* output,
+    int8_t* output,
     int32_t sentinel) {
   for (int64_t i = int64_t(blockIdx.x) * blockDim.x + threadIdx.x; i < size;
        i += int64_t(blockDim.x) * gridDim.x)
@@ -43,7 +43,7 @@ void gather_block_bondsep<Device::CUDA>(
       distances.data_ptr<int32_t>(),
       offsets.data_ptr<int64_t>(),
       counts.data_ptr<int32_t>(),
-      output.data_ptr<int32_t>(),
+      output.data_ptr<int8_t>(),
       sentinel);
   C10_CUDA_KERNEL_LAUNCH_CHECK();
 }
