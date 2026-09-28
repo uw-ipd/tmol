@@ -504,9 +504,8 @@
     <span class="n">atom_array</span><span class="o">.</span><span class="n">chain_id</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">chain_id</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">res_id</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">res_id</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">hetero</span><span class="p">[:]</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="c1"># A ligand code is a placeholder, and placeholders collide: "LG1" is also a real</span>
-    <span class="c1"># dictionary entry. Registering this molecule as its own component template means the</span>
-    <span class="c1"># file describes what was read, not whatever else happens to share the name.</span>
+    <span class="c1"># A placeholder code can be a real entry ("LG1"), so the molecule is registered as</span>
+    <span class="c1"># its own template: the file describes what was read, not what shares the name.</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">_custom_ccd_registry</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">upper</span><span class="p">()]</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">_component_template</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span>
     <span class="p">)</span>
@@ -641,9 +640,8 @@
     <span class="n">config</span> <span class="o">=</span> <span class="n">CIFWriteConfig</span><span class="p">(</span>
         <span class="nb">id</span><span class="o">=</span><span class="n">entry_id</span><span class="p">,</span>
         <span class="n">include_entity_categories</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="c1"># "ccd" writes a known component from the dictionary and falls back to</span>
-        <span class="c1"># the structure for one the dictionary lacks, which is exactly the split</span>
-        <span class="c1"># between a standard residue and a ligand read from a file.</span>
+        <span class="c1"># "ccd" writes a known component from the dictionary, and one it lacks</span>
+        <span class="c1"># (a ligand read from a file) from the structure.</span>
         <span class="n">chem_comp_source</span><span class="o">=</span><span class="s2">"ccd"</span><span class="p">,</span>
         <span class="n">warn_on_ccd_without_registry</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span>
