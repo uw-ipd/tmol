@@ -1,6 +1,6 @@
 """Protonation of structure inputs: AtomWorks decides it, tmol builds the hydrogens."""
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from typing import Collection, Mapping
 
 import biotite.structure as struc
@@ -14,6 +14,8 @@ from atomworks.io.utils.atom_array_plus import concatenate_any
 from atomworks.io.utils.bonds import find_disulfides
 from atomworks.io.utils.ccd import add_annotations_from_ccd, custom_ccd_residues
 from rdkit import Chem
+from scipy.sparse import coo_matrix
+from scipy.sparse.csgraph import connected_components
 
 from tmol.database.chemical import (
     DEPROTONATED_VAR_IND,
@@ -206,7 +208,7 @@ def with_atomworks_hydrogens(
     stack = isinstance(structure, struc.AtomArrayStack)
     template = _template(structure)
     n_atoms = len(template)
-    residue_of = numpy.repeat(numpy.arange(len(lacking)), numpy.diff(starts))
+    residue_of = struc.get_all_residue_positions(template)
     res_name = template.res_name[starts[:-1]]
     is_h = numpy.isin(numpy.char.upper(template.element.astype(str)), _HYDROGEN)
     bonds = template.bonds.as_array().astype(numpy.int64)
@@ -368,29 +370,19 @@ def _names_by_parent(template, parent, names, residue_of):
     AtomWorks names them after its dictionary, when it has the residue.
     """
     names = names.astype(object)
+    heavy = ~numpy.isin(numpy.char.upper(template.element.astype(str)), _HYDROGEN)
     for residue in numpy.unique(residue_of[parent]):
         mine = numpy.flatnonzero(residue_of[parent] == residue)
-        taken = {
-            str(n)
-            for n, e in zip(
-                template.atom_name[residue_of == residue],
-                numpy.char.upper(template.element[residue_of == residue].astype(str)),
-            )
-            if e not in _HYDROGEN
-        }
-        parents = list(dict.fromkeys(parent[mine].tolist()))
+        taken = set(template.atom_name[heavy & (residue_of == residue)].tolist())
+        counts = Counter(parent[mine].tolist())
         given = hydrogen_names_by_parent(
             [
-                (
-                    str(template.atom_name[p]),
-                    str(template.element[p]),
-                    int((parent[mine] == p).sum()),
-                )
-                for p in parents
+                (str(template.atom_name[p]), str(template.element[p]), n)
+                for p, n in counts.items()
             ],
             taken,
         )
-        for p, new in zip(parents, given):
+        for p, new in zip(counts, given):
             names[mine[parent[mine] == p]] = new
     return names.astype(str)
 
@@ -415,7 +407,7 @@ def _polymer_gap_links(
     n_res = len(starts) - 1
     if n_res < 2:
         return numpy.zeros((0, 3), dtype=numpy.int64)
-    residue_of = numpy.repeat(numpy.arange(n_res), numpy.diff(starts))
+    residue_of = struc.get_all_residue_positions(template)
     names = template.atom_name
     res_name = template.res_name[starts[:-1]]
     chain = template.chain_id[starts[:-1]]
@@ -547,23 +539,16 @@ def _pn_units(sub: struc.AtomArray) -> numpy.ndarray:
     chain = sub.chain_id.astype(str)
     if "is_polymer" not in sub.get_annotation_categories():
         return chain.copy()
-    starts = struc.get_residue_starts(sub, add_exclusive_stop=True)
-    residue_of = numpy.repeat(numpy.arange(len(starts) - 1), numpy.diff(starts))
+    residue_of = struc.get_all_residue_positions(sub)
     ligand = ~sub.is_polymer.astype(bool)
-    root = numpy.arange(len(starts) - 1)
-
-    def find(r):
-        while root[r] != r:
-            root[r] = root[root[r]]
-            r = root[r]
-        return r
-
-    pairs = sub.bonds.as_array()[:, :2].astype(int)
-    a, b = pairs[:, 0], pairs[:, 1]
+    a, b = sub.bonds.as_array()[:, :2].T.astype(int)
     linked = ligand[a] & ligand[b] & (chain[a] == chain[b])
-    for ra, rb in zip(residue_of[a[linked]], residue_of[b[linked]]):
-        root[find(ra)] = find(rb)
-    unit = numpy.array([find(r) for r in range(len(root))])[residue_of]
+    n_res = struc.get_residue_count(sub)
+    graph = coo_matrix(
+        (numpy.ones(linked.sum()), (residue_of[a[linked]], residue_of[b[linked]])),
+        shape=(n_res, n_res),
+    )
+    unit = connected_components(graph, directed=False)[1][residue_of]
     return numpy.where(
         ligand, numpy.char.add(numpy.char.add(chain, "/"), unit.astype(str)), chain
     )
