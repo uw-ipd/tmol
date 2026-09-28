@@ -232,6 +232,32 @@ def test_pose_stack_from_and_to_biotite_1ubq_no_opth_smoke(biotite_1ubq, torch_d
     biotite_from_pose_stack(pose_stack)
 
 
+def test_pose_stack_from_and_to_biotite_1ubq_defaults_absent_metadata(
+    biotite_1ubq, torch_device
+):
+    from tmol.pose import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+
+    biotite_1ubq.del_annotation("occupancy")
+    biotite_1ubq.del_annotation("b_factor")
+    pose_stack = pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
+    restored = biotite_from_pose_stack(pose_stack)
+    numpy.testing.assert_array_equal(restored.occupancy, DEFAULT_ATOM_OCCUPANCY)
+    numpy.testing.assert_array_equal(restored.b_factor, DEFAULT_ATOM_B_FACTOR)
+
+
+def test_pose_stack_from_and_to_biotite_1ubq_keeps_explicit_occupancy(
+    biotite_1ubq, torch_device
+):
+    biotite_1ubq.occupancy[:] = 0.5
+    biotite_1ubq.occupancy[biotite_1ubq.res_id == 1] = 0.0
+    pose_stack = pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
+    restored = biotite_from_pose_stack(pose_stack)
+    heavy = restored.element != "H"
+    first = restored.res_id == 1
+    numpy.testing.assert_array_equal(restored.occupancy[heavy & first], 0.0)
+    numpy.testing.assert_array_equal(restored.occupancy[heavy & ~first], 0.5)
+
+
 @pytest.mark.parametrize("n_models", [1, 3, 23])
 def test_pose_stack_from_and_to_biotite_multiple_poses(
     biotite_1r21, torch_device, n_models
