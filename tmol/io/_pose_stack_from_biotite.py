@@ -18,10 +18,10 @@ from tmol.database import ParameterDatabase
 from tmol.database.chemical import metal_table, site_connections
 from tmol.io._canonical_ordering import _only_coordinates_a_metal
 from tmol.io._protonation import (
-    PLACED_HYDROGEN,
+    PROTONATION_VARIANT,
+    database_forms,
     residues_lacking_hydrogens,
     with_atomworks_hydrogens,
-    with_hydrogens_named_by_handedness,
 )
 from tmol.io import (
     CanonicalForm,
@@ -2093,17 +2093,15 @@ def _break_connections_for_missing_density(
     Modifies ``not_connected`` in-place. For each pair of adjacent residues
     (i, i+1) that are currently marked as connected and belong to the same
     chain, the minimum distance between any atom in residue i and any atom in
-    residue i+1 is compared across all poses; the caller leaves hydrogens out,
-    so whether an input states them does not decide a break. If that minimum
-    distance exceeds ``threshold`` (in Angstroms), the connection is broken by
-    setting not_connected[i, 1] = True and not_connected[i+1, 0] = True.
+    residue i+1 is compared across all poses. If that minimum distance exceeds
+    ``threshold`` (in Angstroms), the connection is broken by setting
+    not_connected[i, 1] = True and not_connected[i+1, 0] = True.
 
     Args:
         not_connected: Shape (n_res, 2) boolean array. True = no connection
             (terminus or explicitly broken); False = connected.
         biotite_chain_id_for_res: Shape (n_res,) integer chain IDs.
-        tmol_coords: Shape (n_poses, n_res, max_atoms, 3) coordinate tensor,
-            NaN at hydrogens.
+        tmol_coords: Shape (n_poses, n_res, max_atoms, 3) coordinate tensor.
         threshold: Distance threshold in Angstroms. Connections where the
             closest inter-residue atom pair exceeds this distance are broken.
         is_polymeric: Shape (n_res,) boolean array; pairs where either residue
@@ -2562,36 +2560,27 @@ def _normalize_input_identifiers(biotite_structure, name3_aliases):
 
 
 def _with_input_hydrogens(biotite_structure, ph, co, chemdb, find_metal_coordination):
-    """The input with AtomWorks hydrogens on the residues tmol reads that lack them.
+    """The input with AtomWorks' protonation of the residues tmol reads that lack hydrogens.
 
     With ``co`` only its residues are read; without it every residue is, as
     when ligands are being prepared. Metal bonds detection would add are
     shown to AtomWorks as coordination, so the donors it protonates are the
     ones tmol bonds, and it sees consecutive residues of a chain bonded
-    through the up and down connections of their ``chemdb`` types. Every
-    hydrogen AtomWorks placed, now or before, then takes the name its
-    ``chemdb`` types give its side of its centre.
+    through the up and down connections of their ``chemdb`` types.
     """
     aliases = {a.name3: a.read_as for a in chemdb.name3_aliases}
     names = None
     if co is not None:
         names = set(co.restype_io_equiv_classes)
         names |= {alias for alias, name in aliases.items() if name in names}
-    if residues_lacking_hydrogens(biotite_structure, names)[1].any():
-        biotite_structure = _with_atomworks_input_hydrogens(
-            _normalize_input_identifiers(biotite_structure, aliases),
-            ph,
-            co,
-            chemdb,
-            find_metal_coordination,
-        )
-    template = _template_array(biotite_structure)
-    if PLACED_HYDROGEN not in template.get_annotation_categories():
+    if not residues_lacking_hydrogens(biotite_structure, names)[1].any():
         return biotite_structure
-    placed = template.get_annotation(PLACED_HYDROGEN).astype(bool)
-    return with_hydrogens_named_by_handedness(
-        biotite_structure,
-        _hydrogen_handedness(chemdb, set(template.res_name[placed].tolist())),
+    return _with_atomworks_input_hydrogens(
+        _normalize_input_identifiers(biotite_structure, aliases),
+        ph,
+        co,
+        chemdb,
+        find_metal_coordination,
     )
 
 
@@ -2625,77 +2614,8 @@ def _with_atomworks_input_hydrogens(
         residue_names=None if co is None else set(co.restype_io_equiv_classes),
         coordination=coordination,
         backbone=backbone,
+        forms=database_forms(chemdb),
     )
-
-
-_HANDEDNESS: dict[tuple[int, str], tuple] = {}
-
-
-def _hydrogen_handedness(chemdb, res_names):
-    """Which side of each tetrahedral centre its hydrogens' names take, by residue.
-
-    For the types of ``chemdb`` read as one of ``res_names``, every atom with
-    four bonded neighbours, two or three of them hydrogens, gives the turn of
-    two neighbours and a hydrogen about it, and every atom with three, two of
-    them hydrogens, which side of its heavy neighbour's bond a hydrogen takes,
-    both in the type's ideal coordinates, as
-    ``with_hydrogens_named_by_handedness`` takes them.
-    """
-    from tmol.ligand._preparation import _ideal_coords_by_name
-
-    element = {t.name: t.element.upper() for t in chemdb.atom_types}
-    by_class = defaultdict(list)
-    for residue in chemdb.residues:
-        if residue.io_equiv_class in res_names:
-            by_class[residue.io_equiv_class].append(residue)
-    out = {}
-    for name, residues in by_class.items():
-        cached = _HANDEDNESS.get((id(chemdb), name))
-        if cached is not None and cached[0] is chemdb:
-            out[name] = cached[1]
-            continue
-        records = {}
-        for residue in residues:
-            is_h = {
-                a.name: element.get(a.atom_type) in ("H", "D") for a in residue.atoms
-            }
-            neighbours = defaultdict(list)
-            for a, b, *_ in residue.bonds:
-                neighbours[a].append(b)
-                neighbours[b].append(a)
-            centres = [
-                (x, sorted(near, key=is_h.get))
-                for x, near in neighbours.items()
-                if x not in records
-                and not is_h[x]
-                and (len(near), sum(is_h[n] for n in near)) in ((4, 2), (4, 3), (3, 2))
-            ]
-            if not centres:
-                continue
-            xyz = _ideal_coords_by_name(residue)
-            for x, near in centres:
-                if len(near) == 4:
-                    a, b, h, other = near
-                    turn = numpy.linalg.det(
-                        numpy.stack([xyz[n] - xyz[x] for n in (a, b, h)])
-                    )
-                    records[x] = (x, a, b, h, other, "+" if turn > 0 else "-")
-                    continue
-                a, h, other = near
-                b = next((n for n in neighbours[a] if n != x and not is_h[n]), None)
-                if b is None:
-                    continue
-                axis = xyz[a] - xyz[x]
-                axis /= numpy.linalg.norm(axis)
-
-                def across(v):
-                    return v - numpy.dot(v, axis) * axis
-
-                side = numpy.dot(across(xyz[h] - xyz[x]), across(xyz[b] - xyz[a]))
-                records[x] = (x, a, b, h, other, "cis" if side > 0 else "trans")
-        out[name] = tuple(records.values())
-        _HANDEDNESS[id(chemdb), name] = (chemdb, out[name])
-    return out
 
 
 def _detected_metal_bonds(biotite_structure, co, chemdb):
@@ -2930,6 +2850,17 @@ def canonical_form_from_biotite(
     residue_annotations = _residue_annotations(biotite_structure)
     if residue_annotations is not None:
         residue_annotations = copy_for_all_poses(residue_annotations)
+    protonation_variants = None
+    if PROTONATION_VARIANT in biotite_structure.get_annotation_categories():
+        protonation_variants = torch.tensor(
+            copy_for_all_poses(
+                biotite_structure.get_annotation(PROTONATION_VARIANT)[
+                    biotite.structure.get_residue_starts(biotite_structure)
+                ]
+            ),
+            dtype=torch.int64,
+            device=torch_device,
+        )
 
     chain_id = (
         torch.tensor(biotite_chain_id_for_res, dtype=torch.int32, device=torch_device)
@@ -2959,16 +2890,10 @@ def canonical_form_from_biotite(
                 for restype in tmol_restypes
             ]
         )
-        is_h = numpy.isin(
-            numpy.char.upper(_template_array(biotite_structure).element.astype(str)),
-            ("H", "D"),
-        )[valid_atom_mask]
-        heavy_coords = tmol_coords.clone()
-        heavy_coords[:, valid_res_inds[is_h], valid_atom_inds[is_h]] = numpy.nan
         _break_connections_for_missing_density(
             not_connected,
             biotite_chain_id_for_res,
-            heavy_coords,
+            tmol_coords,
             missing_density_distance_threshold,
             polymeric,
         )
@@ -2999,6 +2924,7 @@ def canonical_form_from_biotite(
         ),
         metal_origins=metal_origins,
         residue_annotations=residue_annotations,
+        protonation_variants=protonation_variants,
     )
 
 

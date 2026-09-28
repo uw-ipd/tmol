@@ -59,6 +59,9 @@ class CanonicalForm:
     metal_origins: Optional[NDArray[object][:, :]] = None
     # n_poses x max_n_res structured array of the input's RESIDUE_ANNOTATIONS
     residue_annotations: Optional[numpy.ndarray] = None
+    # n_poses x max_n_res: the res_type_variant the input's protonation state
+    # selects, -1 where it leaves the variant to tmol
+    protonation_variants: Optional[Tensor[torch.int64][:, :]] = None
 
     def __iter__(self):
         return iter(attr.astuple(self, recurse=False))

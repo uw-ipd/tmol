@@ -38,6 +38,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
     metal_coordination: Optional[Tensor[torch.int64][:, 5]] = None,
     metal_origins: Optional[NDArray[object][:, :]] = None,
     residue_annotations: Optional[numpy.ndarray] = None,
+    protonation_variants: Optional[Tensor[torch.int64][:, :]] = None,
     *,
     trust_hydrogen_names: bool = False,
     find_additional_disulfides: Optional[bool] = True,
@@ -86,6 +87,9 @@ def pose_stack_from_canonical_form(  # noqa: C901
             sat, kept in pdb_info so export can put it back.
         residue_annotations: Per residue, input annotations such as
             is_polymer, kept in pdb_info and written back on export.
+        protonation_variants: Per residue, the res_type_variant the input's
+            protonation state selects, or -1 to leave it to tmol. Disulfides
+            are tmol's to find.
         find_additional_metal_coordination: Detect the geometry and donors of
             metals absent from metal_sites; otherwise they take their default
             geometry with every site open.
@@ -111,9 +115,9 @@ def pose_stack_from_canonical_form(  # noqa: C901
         find_metal_geometries,
         metal_connection_rows,
         place_site_virtuals,
+        select_donor_variants,
         with_donor_patches,
     )
-    from tmol.io.details._protonation_variants import select_protonation_variants
     from tmol.io.details import resolve_his_tautomerization
     from tmol.io.details import (
         assign_block_types,
@@ -147,7 +151,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
     # step 2: remove any "virtual residues," marked with a res-type ind of -1
     #         by shifting all of the residues in each Pose "to the left"
     # step 3: resolve disulfides and cyclic-chain closures
-    # step 4: resolve his tautomer, then protonation variants and the donor
+    # step 4: resolve his tautomer, then coordinating variants and the donor
     #         forms metal connections need
     # step 5: resolve termini variants, assign block-types to each input
     #         residue, and populate the inter-block connectivity tensors
@@ -173,6 +177,14 @@ def pose_stack_from_canonical_form(  # noqa: C901
     # downstream will work properly. This effectively means "shifting left"
     # all the other residues in the Pose to fill the vacated slots.
     # Single-slot poses are already left-justified.
+    if protonation_variants is not None:
+        real = res_types != -1
+        order = torch.argsort((~real).to(torch.int8), dim=1, stable=True)
+        protonation_variants = torch.where(
+            torch.gather(real, 1, order),
+            torch.gather(protonation_variants.to(res_types.device), 1, order),
+            -1,
+        )
     if res_types.shape[1] != 1:
         (
             chain_id,
@@ -265,17 +277,19 @@ def pose_stack_from_canonical_form(  # noqa: C901
         canonical_ordering, res_types, res_type_variants, coords, atom_is_present
     )
 
-    # 4a: protonation follows the hydrogens present. After 4, which rewrites
-    #     every histidine's variant.
-    res_type_variants = select_protonation_variants(
-        canonical_ordering,
-        pbt.chem_db,
-        res_types,
-        res_type_variants,
-        resolved_atom_is_present,
-        metal_assignments,
-        covalent_bonds,
+    # 4a: a donor must be able to donate: coordination selects the deprotonated
+    #     form or the other histidine tautomer, unless the input's state does.
+    #     After 4, which rewrites every histidine's variant.
+    res_type_variants = select_donor_variants(
+        canonical_ordering, pbt.chem_db, res_types, res_type_variants, metal_assignments
     )
+    if protonation_variants is not None:
+        state = protonation_variants.clone()
+        state[found_disulfides[:, 0], found_disulfides[:, 1]] = -1
+        state[found_disulfides[:, 0], found_disulfides[:, 2]] = -1
+        res_type_variants = torch.where(state >= 0, state, res_type_variants).to(
+            res_type_variants.dtype
+        )
 
     # 4b: a coordinating atom needs a connection its metal can fill; those
     #     forms are made for the donors this input has, not ahead of time

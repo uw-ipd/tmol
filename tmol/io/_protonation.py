@@ -1,21 +1,37 @@
-"""Hydrogens for structure inputs, placed by AtomWorks."""
+"""Protonation of structure inputs: AtomWorks decides it, tmol builds the hydrogens."""
 
-from typing import Collection, Mapping, Sequence
+from collections import defaultdict
+from typing import Collection, Mapping
 
 import biotite.structure as struc
 import numpy
 from atomworks.experimental.protonation import ensure_hydrogens
 from atomworks.io.utils.atom_array_plus import concatenate_any
+from atomworks.io.utils.bonds import find_disulfides
 from atomworks.io.utils.ccd import add_annotations_from_ccd, custom_ccd_residues
 from rdkit import Chem
 
+from tmol.database.chemical import (
+    DEPROTONATED_VAR_IND,
+    HIS_UNRESOLVED_VAR_IND,
+    l_base_name,
+    special_case_variant_index,
+)
 from tmol.io._cif import _FORMAL_CHARGE_SPECIFIED
 
 SOURCE_INDEX = "tmol_source_index"
-PLACED_HYDROGEN = "tmol_placed_hydrogen"
+# per atom, the res_type_variant its residue's protonation state selects; -1 for none
+PROTONATION_VARIANT = "tmol_protonation_variant"
 _HYDROGEN = ("H", "D")
 _WATER = ("HOH", "DOD", "WAT")
 _CARRIES_HYDROGEN = ("C", "N", "O", "S", "P", "B", "SE")
+
+# (heavy atoms whose hydrogen counts tell a class's forms apart,
+#    {(their counts, anionic): res_type_variant})
+Forms = tuple[tuple[str, ...], dict[tuple[tuple[int, ...], bool], int]]
+_FORMS: dict[int, tuple] = {}
+# AtomWorks' (hydrogen count, charge) of each heavy atom, by residue context
+_STATES: dict[str, dict[str, tuple[int, int]]] = {}
 
 
 def hydrogen_names_by_parent(
@@ -60,108 +76,51 @@ def hydrogen_names_by_parent(
     return out
 
 
-def _names_outside_database(template, parent, names, residue_of):
-    """``names`` with the hydrogens of residues the default database lacks renamed.
+def database_forms(chemdb) -> dict[str, Forms]:
+    """The protonation ``Forms`` of each default-database class in ``chemdb``.
 
-    Those residues get generated types, whose hydrogens are named after their
-    parents; AtomWorks names them after its dictionary, when it has the residue.
+    Only the plain, histidine and deprotonated forms count; tmol's own
+    disulfide search decides CYD.
     """
+    cached = _FORMS.get(id(chemdb))
+    if cached is not None and cached[0] is chemdb:
+        return cached[1]
     from tmol.io._pose_stack_from_biotite import canonical_ordering_for_biotite
 
     known = set(canonical_ordering_for_biotite().restype_io_equiv_classes)
-    names = names.astype(object)
-    outside = ~numpy.isin(template.res_name[parent], list(known))
-    for residue in numpy.unique(residue_of[parent[outside]]):
-        mine = numpy.flatnonzero(outside & (residue_of[parent] == residue))
-        taken = {
-            str(n)
-            for n, e in zip(
-                template.atom_name[residue_of == residue],
-                numpy.char.upper(template.element[residue_of == residue].astype(str)),
+    element = {t.name: t.element.upper() for t in chemdb.atom_types}
+    counts = defaultdict(dict)
+    for res in chemdb.residues:
+        variant = special_case_variant_index(res)
+        if (
+            res.io_equiv_class not in known
+            or variant == HIS_UNRESOLVED_VAR_IND
+            or variant > DEPROTONATED_VAR_IND
+            or l_base_name(res) == "CYD"
+        ):
+            continue
+        on = {a.name: 0 for a in res.atoms if element[a.atom_type] not in _HYDROGEN}
+        for a, b, *_ in res.bonds:
+            for heavy, h in ((a, b), (b, a)):
+                if heavy in on and h not in on:
+                    on[heavy] += 1
+        counts[res.io_equiv_class].setdefault(variant, on)
+    out = {}
+    for name, by_variant in counts.items():
+        atoms = tuple(
+            sorted(
+                a
+                for a in set().union(*by_variant.values())
+                if len({on.get(a) for on in by_variant.values()}) > 1
             )
-            if e not in _HYDROGEN
-        }
-        parents = list(dict.fromkeys(parent[mine].tolist()))
-        given = hydrogen_names_by_parent(
-            [
-                (
-                    str(template.atom_name[p]),
-                    str(template.element[p]),
-                    int((parent[mine] == p).sum()),
-                )
-                for p in parents
-            ],
-            taken,
         )
-        for p, new in zip(parents, given):
-            names[mine[parent[mine] == p]] = new
-    return names.astype(str)
-
-
-Handedness = tuple[str, str, str, str, str, str]
-_SENSES = ("+", "-", "cis", "trans")
-
-
-def with_hydrogens_named_by_handedness(
-    structure: struc.AtomArray | struc.AtomArrayStack,
-    handedness: Mapping[str, Sequence[Handedness]],
-) -> struc.AtomArray | struc.AtomArrayStack:
-    """``structure`` with its AtomWorks hydrogens renamed to the sides they sit on.
-
-    Each ``(centre, a, b, hydrogen, other, sense)`` of a residue's name in
-    ``handedness`` says where ``hydrogen`` sits: for ``sense`` "+" or "-", the
-    way ``a``, ``b`` and it turn about ``centre``; for "cis" or "trans", its
-    side of the ``a`` to ``centre`` bond relative to ``b``, bonded to ``a``. A
-    hydrogen marked ``PLACED_HYDROGEN`` that sits elsewhere trades names with
-    its ``other``, also placed. The first model decides.
-
-    Returns:
-        ``structure`` itself when no name changes, else a renamed copy.
-    """
-    template = _template(structure)
-    if PLACED_HYDROGEN not in template.get_annotation_categories():
-        return structure
-    placed = template.get_annotation(PLACED_HYDROGEN).astype(bool)
-    starts = struc.get_residue_starts(template, add_exclusive_stop=True)
-    residue_of = numpy.repeat(numpy.arange(len(starts) - 1), numpy.diff(starts))
-    res_name = template.res_name[starts[:-1]]
-    records = [
-        (r, record)
-        for r in numpy.unique(residue_of[placed]).tolist()
-        for record in handedness.get(str(res_name[r]), ())
-    ]
-    if not records:
-        return structure
-    atoms = numpy.flatnonzero(numpy.isin(residue_of, [r for r, _ in records]))
-    index = dict(
-        zip(zip(residue_of[atoms].tolist(), template.atom_name[atoms].tolist()), atoms)
-    )
-    rows = []
-    for r, (*names, sense) in records:
-        found = [int(index.get((r, n), -1)) for n in names]
-        if min(found) >= 0 and placed[found[3]] and placed[found[4]]:
-            rows.append((*found, _SENSES.index(sense)))
-    if not rows:
-        return structure
-    rows = numpy.array(rows, dtype=numpy.int64)
-    xyz = template.coord.astype(numpy.float64)
-    x, a, b, h = (xyz[rows[:, k]] for k in range(4))
-    turn = numpy.linalg.det(numpy.stack([a - x, b - x, h - x], axis=1))
-    axis = (a - x) / numpy.linalg.norm(a - x, axis=-1, keepdims=True)
-
-    def across(v):
-        return v - (v * axis).sum(-1, keepdims=True) * axis
-
-    side = (across(h - x) * across(b - a)).sum(-1)
-    measured = numpy.where(rows[:, 5] < 2, turn, side)
-    swap = rows[numpy.isfinite(measured) & ((measured > 0) != (rows[:, 5] % 2 == 0))]
-    if not len(swap):
-        return structure
-    names = template.atom_name.copy()
-    names[swap[:, 3]], names[swap[:, 4]] = names[swap[:, 4]], names[swap[:, 3]]
-    structure = structure.copy()
-    structure.atom_name = names
-    return structure
+        table = {}
+        for variant, on in sorted(by_variant.items()):
+            key = (tuple(on.get(a, -1) for a in atoms), variant == DEPROTONATED_VAR_IND)
+            table.setdefault(key, variant)
+        out[name] = (atoms, table)
+    _FORMS[id(chemdb)] = (chemdb, out)
+    return out
 
 
 def _template(structure):
@@ -203,16 +162,18 @@ def with_atomworks_hydrogens(
     residue_names: Collection[str] | None = None,
     coordination: numpy.ndarray | None = None,
     backbone: Mapping[str, tuple[str | None, str | None]] | None = None,
+    forms: Mapping[str, Forms] | None = None,
 ) -> struc.AtomArray | struc.AtomArrayStack:
-    """``structure`` with AtomWorks hydrogens on every residue that has none.
+    """``structure`` with AtomWorks' protonation of every residue that has no hydrogen.
 
-    AtomWorks ``ensure_hydrogens`` protonates those residues, and the residues
-    they bond to for context, once per model at ``ph``. Their heavy atoms take
-    its formal charges; the hydrogens it places follow each residue's heavy
-    atoms and are marked ``PLACED_HYDROGEN``. Residues with resolved hydrogens keep theirs. Unresolved heavy atoms
-    get no hydrogens; whatever later rebuilds them builds their hydrogens.
-    A structure without a bond table is bonded by residue name for AtomWorks
-    and returned without one.
+    AtomWorks decides it at ``ph`` from those residues and the residues they
+    bond to. A residue named in ``forms`` gets no hydrogens: its atoms are
+    marked ``PROTONATION_VARIANT`` with the form its state selects, for tmol to
+    build, and AtomWorks is asked only when that has more than one form and
+    its bonded context is new. Every other residue gets the hydrogens AtomWorks
+    places after its heavy atoms, and those heavy atoms take its formal charges.
+    Unresolved heavy atoms get no hydrogens. A structure without a bond table
+    is bonded by residue name for AtomWorks and returned without one.
 
     Args:
         structure: Input AtomArray or AtomArrayStack.
@@ -224,6 +185,7 @@ def with_atomworks_hydrogens(
         backbone: ``(upper, lower)`` polymer connection atoms by residue name,
             through which consecutive residues of a chain are bonded for
             AtomWorks where the structure leaves them unbonded.
+        forms: ``database_forms`` of the residues tmol builds itself.
 
     Returns:
         ``structure`` itself when nothing lacks hydrogens, else a new structure.
@@ -238,46 +200,77 @@ def with_atomworks_hydrogens(
     if not bonds_given:
         structure = structure.copy()
         structure.bonds = struc.connect_via_residue_names(_template(structure))
+    stack = isinstance(structure, struc.AtomArrayStack)
     template = _template(structure)
     n_atoms = len(template)
     residue_of = numpy.repeat(numpy.arange(len(lacking)), numpy.diff(starts))
-    element = numpy.char.upper(template.element.astype(str))
-    is_h = numpy.isin(element, _HYDROGEN)
-
-    bonds = template.bonds.as_array()
-    if coordination is None:
-        coordination = numpy.zeros((0, 2), dtype=numpy.int64)
+    res_name = template.res_name[starts[:-1]]
+    is_h = numpy.isin(numpy.char.upper(template.element.astype(str)), _HYDROGEN)
+    bonds = template.bonds.as_array().astype(numpy.int64)
+    single = int(struc.BondType.SINGLE)
+    coordination = numpy.zeros((0, 2)) if coordination is None else coordination
+    disulfides = find_disulfides(template)
     extra = numpy.concatenate(
         [
-            numpy.column_stack(
-                [
-                    coordination,
-                    numpy.full(len(coordination), struc.BondType.COORDINATION),
-                ]
-            ),
+            numpy.c_[
+                coordination,
+                numpy.full(len(coordination), int(struc.BondType.COORDINATION)),
+            ],
             _polymer_gap_links(template, starts, backbone or {}),
+            numpy.c_[disulfides, numpy.full(len(disulfides), single)],
         ]
     ).astype(numpy.int64)
-    pairs = residue_of[numpy.concatenate([bonds[:, :2], extra[:, :2]])]
-    selected = lacking.copy()
-    for a, b in (pairs.T, pairs.T[::-1]):
-        selected[b[lacking[a]]] = True
-    selected &= ~numpy.isin(template.res_name[starts[:-1]], _WATER)
-    heavy_mask = selected[residue_of] & ~is_h
 
-    models = (
-        [structure[i] for i in range(structure.stack_depth())]
-        if isinstance(structure, struc.AtomArrayStack)
-        else [structure]
-    )
-    placed = [_placed_hydrogens(model, heavy_mask, ph, extra) for model in models]
-    parent, names, charge = placed[0][:3]
+    forms = forms or {}
+    placing = lacking & ~numpy.isin(res_name, list(forms))
+    asked = [r for r in numpy.flatnonzero(lacking & ~placing) if forms[res_name[r]][0]]
+    keys = _contexts(template, starts, residue_of, numpy.r_[bonds, extra], asked, ph)
+    new = {}
+    for r, key in zip(asked, keys):
+        if key not in _STATES:
+            new.setdefault(key, r)
+    call = placing.copy()
+    call[list(new.values())] = True
+    if call.any():
+        pairs = residue_of[numpy.r_[bonds[:, :2], extra[:, :2]]]
+        selected = call.copy()
+        for a, b in (pairs.T, pairs.T[::-1]):
+            selected[b[call[a]]] = True
+        selected &= ~numpy.isin(res_name, _WATER)
+        models = (
+            [structure[i] for i in range(structure.stack_depth())]
+            if stack
+            else [structure]
+        )
+        placed = [
+            _placed_hydrogens(model, selected[residue_of] & ~is_h, ph, extra)
+            for model in models
+        ]
+        parent, names, charge, _, free = placed[0]
+        count = numpy.bincount(parent, minlength=n_atoms)
+        count[free] = -1
+        state_charge = numpy.zeros(n_atoms, dtype=numpy.int64)
+        state_charge[charge[0]] = charge[1]
+        for key, r in new.items():
+            _STATES[key] = {
+                str(template.atom_name[i]): (int(count[i]), int(state_charge[i]))
+                for i in range(starts[r], starts[r + 1])
+            }
+
+    variant = numpy.full(n_atoms, -1, dtype=numpy.int8)
+    for r, key in zip(asked, keys):
+        variant[starts[r] : starts[r + 1]] = _variant(forms[res_name[r]], _STATES[key])
+    if not placing.any():
+        out = structure.copy()
+        out.set_annotation(PROTONATION_VARIANT, variant)
+        return out if bonds_given else _unbonded(out)
+
     if any(
         not numpy.array_equal(p[0], parent) or not numpy.array_equal(p[1], names)
         for p in placed[1:]
     ):
         raise ValueError("AtomWorks protonates the models of this stack differently")
-    keep_h = lacking[residue_of[parent]]
+    keep_h = placing[residue_of[parent]]
     parent, names = parent[keep_h], names[keep_h]
     names = _names_outside_database(template, parent, names, residue_of)
     coords = numpy.stack([p[3][keep_h] for p in placed])
@@ -288,67 +281,119 @@ def with_atomworks_hydrogens(
         if "charge" in categories
         else numpy.zeros(n_atoms, dtype=numpy.int8)
     )
-    updated = lacking[residue_of[charge[0]]]
+    updated = placing[residue_of[charge[0]]]
     charges[charge[0][updated]] = charge[1][updated]
 
     registry = getattr(structure, "_custom_ccd_registry", None)
-    # the lacking residues' own unresolved hydrogens are replaced
-    kept = ~(is_h & lacking[residue_of])
+    # the placed residues' own unresolved hydrogens are replaced
+    kept = ~(is_h & placing[residue_of])
     base = structure.copy()
     base.set_annotation("charge", charges.astype(numpy.int8))
+    base.set_annotation(PROTONATION_VARIANT, variant)
     if "charge" not in categories and _FORMAL_CHARGE_SPECIFIED not in categories:
-        base.set_annotation(_FORMAL_CHARGE_SPECIFIED, lacking[residue_of])
-    if PLACED_HYDROGEN not in categories:
-        base.set_annotation(PLACED_HYDROGEN, numpy.zeros(n_atoms, dtype=bool))
+        base.set_annotation(_FORMAL_CHARGE_SPECIFIED, placing[residue_of])
     # a bond table cannot be indexed with repeated atoms
     base.bonds = None
-    if isinstance(base, struc.AtomArrayStack):
-        hydrogens = base[:, parent]
-        hydrogens.coord = coords
-    else:
-        hydrogens = base[parent]
-        hydrogens.coord = coords[0]
+    hydrogens = base[:, parent] if stack else base[parent]
+    hydrogens.coord = coords if stack else coords[0]
     hydrogens.bonds = struc.BondList(len(parent))
     base.bonds = struc.BondList(n_atoms)
     hydrogens.atom_name = names
     hydrogens.element[:] = "H"
     hydrogens.charge[:] = 0
-    hydrogens.set_annotation(PLACED_HYDROGEN, numpy.ones(len(parent), dtype=bool))
-    merged = (
-        struc.concatenate([base, hydrogens])
-        if isinstance(base, struc.AtomArrayStack)
-        else concatenate_any([base, hydrogens])
-    )
+    merged = (struc.concatenate if stack else concatenate_any)([base, hydrogens])
     total = n_atoms + len(parent)
-    merged.bonds = struc.BondList(
-        total,
-        numpy.concatenate(
-            [
-                bonds,
-                numpy.stack(
-                    [
-                        parent,
-                        n_atoms + numpy.arange(len(parent)),
-                        numpy.full(len(parent), int(struc.BondType.SINGLE)),
-                    ],
-                    axis=1,
-                ),
-            ]
-        ).astype(numpy.uint32),
-    )
-    residue_key = numpy.concatenate([residue_of, residue_of[parent]])
-    is_new = numpy.concatenate([numpy.zeros(n_atoms), numpy.ones(len(parent))])
-    keep = numpy.concatenate([kept, numpy.ones(len(parent), dtype=bool)])
+    h_bonds = numpy.c_[
+        parent, n_atoms + numpy.arange(len(parent)), [single] * len(parent)
+    ]
+    merged.bonds = struc.BondList(total, numpy.r_[bonds, h_bonds].astype(numpy.uint32))
+    residue_key = numpy.r_[residue_of, residue_of[parent]]
+    is_new = numpy.r_[numpy.zeros(n_atoms), numpy.ones(len(parent))]
+    keep = numpy.r_[kept, numpy.ones(len(parent), dtype=bool)]
     order = numpy.lexsort((numpy.arange(total), is_new, residue_key))
     order = order[keep[order]]
-    merged = (
-        merged[:, order] if isinstance(merged, struc.AtomArrayStack) else merged[order]
-    )
-    if not bonds_given:
-        merged.bonds = None
+    merged = merged[:, order] if stack else merged[order]
     if registry is not None:
         merged._custom_ccd_registry = registry
-    return merged
+    return merged if bonds_given else _unbonded(merged)
+
+
+def _unbonded(structure):
+    structure.bonds = None
+    return structure
+
+
+def _contexts(template, starts, residue_of, bonds, residues, ph) -> list[str]:
+    """A key per residue of ``residues`` for everything AtomWorks decides its state from.
+
+    That is the pH, its name, its resolved heavy atoms' charges, and the element,
+    charge and bond type met by each of its bonds to other residues.
+    """
+    mine = numpy.zeros(len(starts) - 1, dtype=bool)
+    mine[residues] = True
+    name = template.atom_name.tolist()
+    element = template.element.tolist()
+    categories = template.get_annotation_categories()
+    charge = template.charge.tolist() if "charge" in categories else [0] * len(name)
+    tokens = defaultdict(list)
+    resolved = numpy.isfinite(template.coord).all(-1)
+    for i in numpy.flatnonzero(mine[residue_of] & resolved).tolist():
+        tokens[residue_of[i]].append(f"{name[i]}{charge[i]}")
+    across = bonds[residue_of[bonds[:, 0]] != residue_of[bonds[:, 1]]]
+    for i, j, k in numpy.r_[across, across[:, [1, 0, 2]]].tolist():
+        if mine[residue_of[i]]:
+            tokens[residue_of[i]].append(f"{name[i]}>{element[j]}{charge[j]}:{k}")
+    return [
+        f"{ph}|{template.res_name[starts[r]]}|{'|'.join(sorted(tokens[r]))}"
+        for r in residues
+    ]
+
+
+def _variant(forms: Forms, state: Mapping[str, tuple[int, int]]) -> int:
+    """The res_type_variant ``state`` selects among ``forms``; -1 where it leaves it open."""
+    atoms, table = forms
+    got = [state.get(a, (-1, 0)) for a in atoms]
+    if min(n for n, _ in got) < 0:
+        return -1
+    return table.get((tuple(n for n, _ in got), any(c < 0 for _, c in got)), -1)
+
+
+def _names_outside_database(template, parent, names, residue_of):
+    """``names`` with the hydrogens of residues the default database lacks renamed.
+
+    Those residues get generated types, whose hydrogens are named after their
+    parents; AtomWorks names them after its dictionary, when it has the residue.
+    """
+    from tmol.io._pose_stack_from_biotite import canonical_ordering_for_biotite
+
+    known = set(canonical_ordering_for_biotite().restype_io_equiv_classes)
+    names = names.astype(object)
+    outside = ~numpy.isin(template.res_name[parent], list(known))
+    for residue in numpy.unique(residue_of[parent[outside]]):
+        mine = numpy.flatnonzero(outside & (residue_of[parent] == residue))
+        taken = {
+            str(n)
+            for n, e in zip(
+                template.atom_name[residue_of == residue],
+                numpy.char.upper(template.element[residue_of == residue].astype(str)),
+            )
+            if e not in _HYDROGEN
+        }
+        parents = list(dict.fromkeys(parent[mine].tolist()))
+        given = hydrogen_names_by_parent(
+            [
+                (
+                    str(template.atom_name[p]),
+                    str(template.element[p]),
+                    int((parent[mine] == p).sum()),
+                )
+                for p in parents
+            ],
+            taken,
+        )
+        for p, new in zip(parents, given):
+            names[mine[parent[mine] == p]] = new
+    return names.astype(str)
 
 
 _CONVENTIONAL_BACKBONES = (("CA", "C", "N"), ("C4'", "O3'", "P"))
@@ -549,7 +594,8 @@ def _placed_hydrogens(
     """AtomWorks protonation of the ``heavy_mask`` atoms of one model.
 
     Returns each placed hydrogen's parent (as an index into ``model``), name and
-    coordinates, and the ``(index, charge)`` of every protonated heavy atom.
+    coordinates, the ``(index, charge)`` of every protonated heavy atom, and
+    the heavy atoms whose tautomer AtomWorks leaves free.
     """
     from tmol.io._pose_stack_from_biotite import _with_metal_coordination_typed
 
@@ -589,9 +635,11 @@ def _placed_hydrogens(
     out_of_source = numpy.full(len(model), -1)
     out_of_source[index[~is_h]] = numpy.flatnonzero(~is_h)
     charge = _charges_without_chelates(out, out_of_source[source[chelates]])
+    free = out.get_annotation("tautomer_free").astype(bool) & ~is_h
     return (
         index[is_h],
         out.atom_name[is_h].astype(str),
         (index[~is_h], charge[~is_h]),
         out.coord[is_h],
+        index[free],
     )
