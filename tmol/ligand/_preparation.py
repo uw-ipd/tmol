@@ -1647,8 +1647,10 @@ def _has_open_valence(array: struc.AtomArray, bonded_out=frozenset()) -> bool:
 def _placeholder_coords(array: struc.AtomArray) -> np.ndarray:
     """Coordinates with each unresolved atom set 1.4 A out from a placed neighbor.
 
-    AtomWorks protonates only atoms it can place; the positions only stand in
-    for the chemistry and are discarded.
+    It points away from that neighbor's other placed atoms, hydrogens included,
+    so a stereocentre missing one substituent keeps the handedness its hydrogen
+    gives it. AtomWorks protonates only atoms it can place; the positions only
+    stand in for the chemistry and are discarded.
     """
     coord = array.coord.copy()
     placed = np.isfinite(coord).all(axis=-1)
@@ -1684,10 +1686,11 @@ def _as_free_molecule(lig, ph, *, use_ccd):
     Unresolved atoms take hydrogens too, at unresolved coordinates. Without
     ``use_ccd`` AtomWorks sees the molecule under a name no dictionary has.
     """
-    heavy = lig.atom_array[~np.isin(lig.atom_array.element, ("H", "D"))]
+    is_h = np.isin(lig.atom_array.element, ("H", "D"))
+    heavy = lig.atom_array[~is_h]
     unresolved = ~np.isfinite(heavy.coord).all(axis=-1)
     stand_in = heavy.copy()
-    stand_in.coord = _placeholder_coords(heavy)
+    stand_in.coord = _placeholder_coords(lig.atom_array)[~is_h]
     if not use_ccd:
         stand_in.res_name[:] = unused_ligand_name(set())
     protonated = with_atomworks_hydrogens(stand_in, ph=ph)
