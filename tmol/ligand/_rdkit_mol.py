@@ -689,11 +689,8 @@ def ccd_template_to_rdkit(
                 if atom.HasProp("_CIPCode") and atom.GetProp("_CIPCode") != expected:
                     atom.InvertChirality()
             Chem.AssignStereochemistry(mol, cleanIt=True, force=True)
-            # A declared configuration that cannot be honoured is an error for
-            # caller-supplied chemistry, which is actionable. The bundled dictionary
-            # declares R/S on atoms RDKit can never label -- porphyrin and corrin ring
-            # nitrogens -- and refusing those would make chlorophyll and cobalamin
-            # unbuildable, so they are downgraded to a warning.
+            # An unmet R/S is an error, except the dictionary's on atoms RDKit never
+            # labels (porphyrin and corrin nitrogens), which are left with a warning.
             is_registered = ccd_code.upper() in get_custom_ccd_entries()
             unperceived = []
             for atom, expected in pending:

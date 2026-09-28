@@ -60,9 +60,8 @@ def atom_array_from_mol2(
     atom_array.chain_id[:] = chain_id
     atom_array.res_id[:] = res_id
     atom_array.hetero[:] = True
-    # A ligand code is a placeholder, and placeholders collide: "LG1" is also a real
-    # dictionary entry. Registering this molecule as its own component template means the
-    # file describes what was read, not whatever else happens to share the name.
+    # A placeholder code can be a real entry ("LG1"), so the molecule is registered as
+    # its own template: the file describes what was read, not what shares the name.
     atom_array._custom_ccd_registry[str(atom_array.res_name[0]).upper()] = (
         _component_template(atom_array)
     )
@@ -191,9 +190,8 @@ def cif_from_atom_array(
     config = CIFWriteConfig(
         id=entry_id,
         include_entity_categories=True,
-        # "ccd" writes a known component from the dictionary and falls back to
-        # the structure for one the dictionary lacks, which is exactly the split
-        # between a standard residue and a ligand read from a file.
+        # "ccd" writes a known component from the dictionary, and one it lacks
+        # (a ligand read from a file) from the structure.
         chem_comp_source="ccd",
         warn_on_ccd_without_registry=False,
     )
