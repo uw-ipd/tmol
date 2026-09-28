@@ -1372,7 +1372,9 @@
 <span class="sd">    protocol). Falls back to the input SMILES if RDKit cannot parse it or</span>
 <span class="sd">    Dimorphite produces no variant.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._dimorphite_dl</span><span class="w"> </span><span class="kn">import</span> <span class="n">protonate_mol_variants</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.experimental.protonation.external.dimorphite_dl</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">protonate_mol_variants</span><span class="p">,</span>
+    <span class="p">)</span>
 
     <span class="n">mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
