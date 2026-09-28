@@ -8,6 +8,7 @@ import numpy
 from atomworks.experimental.protonation import (
     assign_hydrogens,
     hydrogen_plan,
+    names_from_parent,
     place_hydrogens,
 )
 from atomworks.io.utils.atom_array_plus import concatenate_any
@@ -42,42 +43,15 @@ _STATES: dict[str, dict[str, tuple[int, int]]] = {}
 def hydrogen_names_by_parent(
     parents: list[tuple[str, str, int]], taken: set[str]
 ) -> list[list[str]]:
-    """Names for the hydrogens of each ``(parent name, parent element, count)``.
+    """AtomWorks' names for the hydrogens of each ``(parent name, parent element, count)``.
 
-    A lone hydrogen on X is HX and several are HX1, HX2, ..., so a hydroxyl
-    hydrogen carries its oxygen's name (HO2 on O2). Names are kept to four
-    characters: past that the parent's element is dropped (H101 for a hydrogen
-    of C10), and a name still too long or already in ``taken`` falls back to
-    H<element><count>. ``taken`` gains every name given.
+    Each parent's names avoid ``taken`` and the names given before it; ``taken``
+    gains every name given.
     """
-
-    def fallback(element):
-        count = 1
-        while f"H{element}{count}" in taken:
-            count += 1
-        return f"H{element}{count}"
-
     out = []
     for name, element, count in parents:
-        element = element.upper()
-        stems = [name]
-        if name.upper().startswith(element) and len(name) > len(element):
-            stems.append(name[len(element) :])
-        for stem in stems:
-            names = (
-                [f"H{stem}"]
-                if count == 1
-                else [f"H{stem}{i}" for i in range(1, count + 1)]
-            )
-            if all(len(n) <= 4 and n not in taken for n in names):
-                break
-        else:
-            names = []
-            for _ in range(count):
-                names.append(fallback(element))
-                taken.add(names[-1])
-        taken.update(names)
-        out.append(names)
+        out.append(names_from_parent(name, element.upper(), count, taken))
+        taken.update(out[-1])
     return out
 
 
