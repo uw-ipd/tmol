@@ -1620,6 +1620,15 @@
         <span class="n">cf</span><span class="p">,</span> <span class="n">co</span><span class="p">,</span> <span class="n">include_virtual_atoms</span>
     <span class="p">)</span>
     <span class="n">structure</span><span class="o">.</span><span class="n">bonds</span> <span class="o">=</span> <span class="n">_bonds_from_pose_stack</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">structure</span><span class="p">,</span> <span class="n">block_for_atom</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">"is_polymer"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">structure</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">():</span>
+        <span class="c1"># absent input residue annotations, is_polymer follows each block type</span>
+        <span class="n">block_is_polymer</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">is_polymer</span>
+                <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+            <span class="p">]</span>
+        <span class="p">)[</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()]</span>
+        <span class="n">structure</span><span class="o">.</span><span class="n">set_annotation</span><span class="p">(</span><span class="s2">"is_polymer"</span><span class="p">,</span> <span class="n">block_is_polymer</span><span class="p">[</span><span class="n">block_for_atom</span><span class="p">])</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">include_virtual_atoms</span> <span class="ow">and</span> <span class="n">cf</span><span class="o">.</span><span class="n">metal_origins</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">structure</span> <span class="o">=</span> <span class="n">_with_metals_rejoined</span><span class="p">(</span>
             <span class="n">structure</span><span class="p">,</span> <span class="n">block_for_atom</span><span class="p">,</span> <span class="n">cf</span><span class="o">.</span><span class="n">metal_origins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
