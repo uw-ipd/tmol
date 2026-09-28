@@ -2095,8 +2095,10 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_placeholder_coords</span><span class="p">(</span><span class="n">array</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Coordinates with each unresolved atom set 1.4 A out from a placed neighbor.</span>
 
-<span class="sd">    AtomWorks protonates only atoms it can place; the positions only stand in</span>
-<span class="sd">    for the chemistry and are discarded.</span>
+<span class="sd">    It points away from that neighbor's other placed atoms, hydrogens included,</span>
+<span class="sd">    so a stereocentre missing one substituent keeps the handedness its hydrogen</span>
+<span class="sd">    gives it. AtomWorks protonates only atoms it can place; the positions only</span>
+<span class="sd">    stand in for the chemistry and are discarded.</span>
 <span class="sd">    """</span>
     <span class="n">coord</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">coord</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">placed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">coord</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
@@ -2132,10 +2134,11 @@
 <span class="sd">    Unresolved atoms take hydrogens too, at unresolved coordinates. Without</span>
 <span class="sd">    ``use_ccd`` AtomWorks sees the molecule under a name no dictionary has.</span>
 <span class="sd">    """</span>
-    <span class="n">heavy</span> <span class="o">=</span> <span class="n">lig</span><span class="o">.</span><span class="n">atom_array</span><span class="p">[</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">lig</span><span class="o">.</span><span class="n">atom_array</span><span class="o">.</span><span class="n">element</span><span class="p">,</span> <span class="p">(</span><span class="s2">"H"</span><span class="p">,</span> <span class="s2">"D"</span><span class="p">))]</span>
+    <span class="n">is_h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">lig</span><span class="o">.</span><span class="n">atom_array</span><span class="o">.</span><span class="n">element</span><span class="p">,</span> <span class="p">(</span><span class="s2">"H"</span><span class="p">,</span> <span class="s2">"D"</span><span class="p">))</span>
+    <span class="n">heavy</span> <span class="o">=</span> <span class="n">lig</span><span class="o">.</span><span class="n">atom_array</span><span class="p">[</span><span class="o">~</span><span class="n">is_h</span><span class="p">]</span>
     <span class="n">unresolved</span> <span class="o">=</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">heavy</span><span class="o">.</span><span class="n">coord</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">stand_in</span> <span class="o">=</span> <span class="n">heavy</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-    <span class="n">stand_in</span><span class="o">.</span><span class="n">coord</span> <span class="o">=</span> <span class="n">_placeholder_coords</span><span class="p">(</span><span class="n">heavy</span><span class="p">)</span>
+    <span class="n">stand_in</span><span class="o">.</span><span class="n">coord</span> <span class="o">=</span> <span class="n">_placeholder_coords</span><span class="p">(</span><span class="n">lig</span><span class="o">.</span><span class="n">atom_array</span><span class="p">)[</span><span class="o">~</span><span class="n">is_h</span><span class="p">]</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">use_ccd</span><span class="p">:</span>
         <span class="n">stand_in</span><span class="o">.</span><span class="n">res_name</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">unused_ligand_name</span><span class="p">(</span><span class="nb">set</span><span class="p">())</span>
     <span class="n">protonated</span> <span class="o">=</span> <span class="n">with_atomworks_hydrogens</span><span class="p">(</span><span class="n">stand_in</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">)</span>
