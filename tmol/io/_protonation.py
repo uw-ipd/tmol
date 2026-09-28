@@ -272,7 +272,7 @@ def with_atomworks_hydrogens(
         raise ValueError("AtomWorks protonates the models of this stack differently")
     keep_h = placing[residue_of[parent]]
     parent, names = parent[keep_h], names[keep_h]
-    names = _names_outside_database(template, parent, names, residue_of)
+    names = _names_by_parent(template, parent, names, residue_of)
     coords = numpy.stack([p[3][keep_h] for p in placed])
 
     categories = template.get_annotation_categories()
@@ -358,19 +358,15 @@ def _variant(forms: Forms, state: Mapping[str, tuple[int, int]]) -> int:
     return table.get((tuple(n for n, _ in got), any(c < 0 for _, c in got)), -1)
 
 
-def _names_outside_database(template, parent, names, residue_of):
-    """``names`` with the hydrogens of residues the default database lacks renamed.
+def _names_by_parent(template, parent, names, residue_of):
+    """``names`` with the placed hydrogens named after their parents.
 
-    Those residues get generated types, whose hydrogens are named after their
-    parents; AtomWorks names them after its dictionary, when it has the residue.
+    Those residues get generated types, whose hydrogens are named that way;
+    AtomWorks names them after its dictionary, when it has the residue.
     """
-    from tmol.io._pose_stack_from_biotite import canonical_ordering_for_biotite
-
-    known = set(canonical_ordering_for_biotite().restype_io_equiv_classes)
     names = names.astype(object)
-    outside = ~numpy.isin(template.res_name[parent], list(known))
-    for residue in numpy.unique(residue_of[parent[outside]]):
-        mine = numpy.flatnonzero(outside & (residue_of[parent] == residue))
+    for residue in numpy.unique(residue_of[parent]):
+        mine = numpy.flatnonzero(residue_of[parent] == residue)
         taken = {
             str(n)
             for n, e in zip(
