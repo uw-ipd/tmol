@@ -489,6 +489,7 @@ def transfer_tetrahedral_stereochemistry(
         )
     ):
         raise ValueError("Stereo correspondence requires valid, distinct atom indices")
+    pending = []
     for source, target in atom_mapping.items():
         if source in replaced_atoms:
             continue
@@ -500,11 +501,6 @@ def transfer_tetrahedral_stereochemistry(
             raise ValueError(
                 f"Stereo correspondence maps different elements/isotopes: {source} -> {target}"
             )
-    pending = []
-    for source, target in atom_mapping.items():
-        if source in replaced_atoms:
-            continue
-        left, right = reference.GetAtomWithIdx(source), mol.GetAtomWithIdx(target)
         if left.GetChiralTag() not in (
             Chem.ChiralType.CHI_TETRAHEDRAL_CW,
             Chem.ChiralType.CHI_TETRAHEDRAL_CCW,
