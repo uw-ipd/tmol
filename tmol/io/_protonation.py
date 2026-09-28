@@ -5,7 +5,11 @@ from typing import Collection, Mapping
 
 import biotite.structure as struc
 import numpy
-from atomworks.experimental.protonation import ensure_hydrogens
+from atomworks.experimental.protonation import (
+    assign_hydrogens,
+    hydrogen_plan,
+    place_hydrogens,
+)
 from atomworks.io.utils.atom_array_plus import concatenate_any
 from atomworks.io.utils.bonds import find_disulfides
 from atomworks.io.utils.ccd import add_annotations_from_ccd, custom_ccd_residues
@@ -19,7 +23,6 @@ from tmol.database.chemical import (
 )
 from tmol.io._cif import _FORMAL_CHARGE_SPECIFIED
 
-SOURCE_INDEX = "tmol_source_index"
 # per atom, the res_type_variant its residue's protonation state selects; -1 for none
 PROTONATION_VARIANT = "tmol_protonation_variant"
 _HYDROGEN = ("H", "D")
@@ -497,34 +500,39 @@ _BOND_ORDER = {
 }
 
 
-def _charges_without_chelates(out: struc.AtomArray, chelates: numpy.ndarray):
-    """Formal charges of ``out`` once its chelate bonds are coordination again.
+def _charges_without_chelates(
+    state: struc.AtomArray, hydrogens: numpy.ndarray, chelates: numpy.ndarray
+):
+    """Formal charges of ``state`` once its chelate bonds are coordination again.
 
     A donor keeps the electrons of the bond: one left short of its default
-    valence by its remaining bonds and hydrogens is an anion by that much.
+    valence by its remaining bonds and its ``hydrogens`` is an anion by that much.
     """
-    charge = out.charge.copy()
+    charge = state.charge.copy()
     if not len(chelates):
         return charge
     table = Chem.GetPeriodicTable()
-    bonds = out.bonds.as_array()
+    bonds = state.bonds.as_array()
     chelate = numpy.isin(
-        numpy.minimum(bonds[:, 0], bonds[:, 1]) * len(out)
+        numpy.minimum(bonds[:, 0], bonds[:, 1]) * len(state)
         + numpy.maximum(bonds[:, 0], bonds[:, 1]),
-        chelates.min(axis=1) * len(out) + chelates.max(axis=1),
+        chelates.min(axis=1) * len(state) + chelates.max(axis=1),
     )
     for donor in numpy.unique(chelates):
         rows = bonds[((bonds[:, 0] == donor) | (bonds[:, 1] == donor)) & ~chelate]
-        if not len(rows) or not all(int(t) in _BOND_ORDER for t in rows[:, 2]):
+        if not (len(rows) or hydrogens[donor]) or not all(
+            int(t) in _BOND_ORDER for t in rows[:, 2]
+        ):
             continue
-        element = str(out.element[donor]).capitalize()
+        element = str(state.element[donor]).capitalize()
         try:
             valence = table.GetDefaultValence(element)
         except RuntimeError:
             continue
         if valence <= 0 or element in ("C", "H"):
             continue
-        short = valence - sum(_BOND_ORDER[int(t)] for t in rows[:, 2])
+        short = valence - hydrogens[donor]
+        short -= sum(_BOND_ORDER[int(t)] for t in rows[:, 2])
         if short > 0 and charge[donor] == 0:
             charge[donor] = -short
     return charge
@@ -561,26 +569,6 @@ def _pn_units(sub: struc.AtomArray) -> numpy.ndarray:
     )
 
 
-def _in_chain_order(model: struc.AtomArray, atoms: numpy.ndarray) -> numpy.ndarray:
-    """``atoms`` with residues ordered by chain, then residue number and code.
-
-    AtomWorks builds a backbone hydrogen against the bonded residue earlier in
-    the array, so residues must run along their chains.
-    """
-    starts = struc.get_residue_starts(model, add_exclusive_stop=True)
-    residue = numpy.repeat(numpy.arange(len(starts) - 1), numpy.diff(starts))[atoms]
-    order = numpy.lexsort(
-        (
-            atoms,
-            residue,
-            model.ins_code[atoms],
-            model.res_id[atoms],
-            model.chain_id[atoms],
-        )
-    )
-    return atoms[order]
-
-
 def _placed_hydrogens(
     model: struc.AtomArray,
     heavy_mask: numpy.ndarray,
@@ -589,13 +577,13 @@ def _placed_hydrogens(
 ):
     """AtomWorks protonation of the ``heavy_mask`` atoms of one model.
 
-    Returns each placed hydrogen's parent (as an index into ``model``), name and
+    Returns each planned hydrogen's parent (as an index into ``model``), name and
     coordinates, the ``(index, charge)`` of every protonated heavy atom, and
     the heavy atoms whose tautomer AtomWorks leaves free.
     """
     from tmol.io._pose_stack_from_biotite import _with_metal_coordination_typed
 
-    source = _in_chain_order(model, numpy.flatnonzero(heavy_mask))
+    source = numpy.flatnonzero(heavy_mask)
     sub = model[source]
     position = numpy.full(len(model), -1)
     position[source] = numpy.arange(len(source))
@@ -603,7 +591,6 @@ def _placed_hydrogens(
         if position[a] >= 0 and position[b] >= 0:
             sub.bonds.add_bond(position[a], position[b], struc.BondType(bond_type))
     sub, chelates = _with_chelates_covalent(_with_metal_coordination_typed(sub))
-    sub.set_annotation(SOURCE_INDEX, source)
     categories = sub.get_annotation_categories()
     if "charge" not in categories:
         sub.set_annotation("charge", numpy.zeros(len(sub), dtype=numpy.int8))
@@ -620,22 +607,14 @@ def _placed_hydrogens(
             hydrogen_policy="remove",
             ccd_mirror_path=None,
         )
-        out = ensure_hydrogens(
-            sub,
-            ph=ph,
-            silence_rdkit_warnings=True,
-            silence_lost_annotation_warnings=True,
-        )
-    index = out.get_annotation(SOURCE_INDEX).astype(numpy.int64)
-    is_h = numpy.isin(numpy.char.upper(out.element.astype(str)), _HYDROGEN)
-    out_of_source = numpy.full(len(model), -1)
-    out_of_source[index[~is_h]] = numpy.flatnonzero(~is_h)
-    charge = _charges_without_chelates(out, out_of_source[source[chelates]])
-    free = out.get_annotation("tautomer_free").astype(bool) & ~is_h
+        # sub has no hydrogens, so the state's atoms are sub's, in order
+        state = assign_hydrogens(sub, ph=ph, silence_rdkit_warnings=True)
+        plan = hydrogen_plan(state)
+    hydrogens = numpy.bincount(plan.parent, minlength=len(state))
     return (
-        index[is_h],
-        out.atom_name[is_h].astype(str),
-        (index[~is_h], charge[~is_h]),
-        out.coord[is_h],
-        index[free],
+        source[plan.parent],
+        plan.atom_name.astype(str),
+        (source, _charges_without_chelates(state, hydrogens, chelates)),
+        place_hydrogens(state.coord, plan),
+        source[state.tautomer_free.astype(bool)],
     )

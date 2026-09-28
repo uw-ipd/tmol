@@ -10,7 +10,7 @@ import biotite.structure as struc
 import biotite.structure.info as info
 import numpy as np
 import pytest
-from atomworks.experimental.protonation import ensure_hydrogens
+from atomworks.experimental.protonation import add_hydrogens, assign_hydrogens
 
 from tmol.io import biotite_from_pose_stack, pose_stack_from_biotite
 
@@ -77,8 +77,8 @@ def test_tmol_keeps_the_hydrogens_atomworks_placed(res_name, torch_device):
     if torch_device.type != "cpu":
         pytest.skip("placement is device independent; one device is enough")
 
-    protonated = ensure_hydrogens(
-        _tripeptide(res_name), ph=7.4, silence_rdkit_warnings=True
+    protonated = add_hydrogens(
+        assign_hydrogens(_tripeptide(res_name), ph=7.4, silence_rdkit_warnings=True)
     )
     placed = _hydrogens(protonated, 2)
     assert len(placed) > 0, f"AtomWorks placed no hydrogen on {res_name}"
