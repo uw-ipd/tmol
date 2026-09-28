@@ -3461,23 +3461,23 @@
     <span class="n">structure</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseBuildContext</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""The process-wide context, packed wide enough for what this structure holds."""</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">_carries_a_metal</span><span class="p">(</span><span class="n">structure</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">_default_pose_build_context</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">PoseBuildContext</span><span class="p">(</span>
-        <span class="n">canonical_ordering</span><span class="o">=</span><span class="n">canonical_ordering_for_biotite</span><span class="p">(),</span>
-        <span class="n">packed_block_types</span><span class="o">=</span><span class="n">packed_block_types_for_biotite_with_metals</span><span class="p">(</span><span class="n">device</span><span class="p">),</span>
-        <span class="n">parameter_database</span><span class="o">=</span><span class="n">_paramdb_for_biotite</span><span class="p">(),</span>
-        <span class="n">restype_set</span><span class="o">=</span><span class="n">_restype_set_for_biotite</span><span class="p">(),</span>
-    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">_default_pose_build_context</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">_carries_a_metal</span><span class="p">(</span><span class="n">structure</span><span class="p">))</span>
 
 
 <span class="nd">@validate_args</span>
 <span class="nd">@toolz</span><span class="o">.</span><span class="n">functoolz</span><span class="o">.</span><span class="n">memoize</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">_default_pose_build_context</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseBuildContext</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_default_pose_build_context</span><span class="p">(</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">with_metals</span><span class="p">:</span> <span class="nb">bool</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseBuildContext</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Return the process-wide construction context for the default database."""</span>
+    <span class="n">packed</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">packed_block_types_for_biotite_with_metals</span>
+        <span class="k">if</span> <span class="n">with_metals</span>
+        <span class="k">else</span> <span class="n">packed_block_types_for_biotite</span>
+    <span class="p">)</span>
     <span class="k">return</span> <span class="n">PoseBuildContext</span><span class="p">(</span>
         <span class="n">canonical_ordering</span><span class="o">=</span><span class="n">canonical_ordering_for_biotite</span><span class="p">(),</span>
-        <span class="n">packed_block_types</span><span class="o">=</span><span class="n">packed_block_types_for_biotite</span><span class="p">(</span><span class="n">device</span><span class="p">),</span>
+        <span class="n">packed_block_types</span><span class="o">=</span><span class="n">packed</span><span class="p">(</span><span class="n">device</span><span class="p">),</span>
         <span class="n">parameter_database</span><span class="o">=</span><span class="n">_paramdb_for_biotite</span><span class="p">(),</span>
         <span class="n">restype_set</span><span class="o">=</span><span class="n">_restype_set_for_biotite</span><span class="p">(),</span>
     <span class="p">)</span>
