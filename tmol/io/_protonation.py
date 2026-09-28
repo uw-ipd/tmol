@@ -12,6 +12,7 @@ from rdkit import Chem
 from tmol.io._cif import _FORMAL_CHARGE_SPECIFIED
 
 SOURCE_INDEX = "tmol_source_index"
+PLACED_HYDROGEN = "tmol_placed_hydrogen"
 _HYDROGEN = ("H", "D")
 _WATER = ("HOH", "DOD", "WAT")
 _CARRIES_HYDROGEN = ("C", "N", "O", "S", "P", "B", "SE")
@@ -101,44 +102,49 @@ Handedness = tuple[str, str, str, str, str, str]
 _SENSES = ("+", "-", "cis", "trans")
 
 
-def _named_by_handedness(template, residue_of, parent, names, coords, handedness):
-    """``names`` with the hydrogens swapped that sit on the other side of a centre.
+def with_hydrogens_named_by_handedness(
+    structure: struc.AtomArray | struc.AtomArrayStack,
+    handedness: Mapping[str, Sequence[Handedness]],
+) -> struc.AtomArray | struc.AtomArrayStack:
+    """``structure`` with its AtomWorks hydrogens renamed to the sides they sit on.
 
-    Each ``(centre, a, b, hydrogen, other, sense)`` of a residue's name says
-    where ``hydrogen`` sits: for ``sense`` "+" or "-", the way ``a``, ``b`` and
-    it turn about ``centre``; for "cis" or "trans", its side of the ``a`` to
-    ``centre`` bond relative to ``b``, bonded to ``a``. A placed ``hydrogen``
-    that sits elsewhere trades names with its ``other``.
+    Each ``(centre, a, b, hydrogen, other, sense)`` of a residue's name in
+    ``handedness`` says where ``hydrogen`` sits: for ``sense`` "+" or "-", the
+    way ``a``, ``b`` and it turn about ``centre``; for "cis" or "trans", its
+    side of the ``a`` to ``centre`` bond relative to ``b``, bonded to ``a``. A
+    hydrogen marked ``PLACED_HYDROGEN`` that sits elsewhere trades names with
+    its ``other``, also placed. The first model decides.
+
+    Returns:
+        ``structure`` itself when no name changes, else a renamed copy.
     """
-    res_name = template.res_name[numpy.unique(residue_of, return_index=True)[1]]
-    h_residue = residue_of[parent]
+    template = _template(structure)
+    if PLACED_HYDROGEN not in template.get_annotation_categories():
+        return structure
+    placed = template.get_annotation(PLACED_HYDROGEN).astype(bool)
+    starts = struc.get_residue_starts(template, add_exclusive_stop=True)
+    residue_of = numpy.repeat(numpy.arange(len(starts) - 1), numpy.diff(starts))
+    res_name = template.res_name[starts[:-1]]
     records = [
         (r, record)
-        for r in numpy.unique(h_residue).tolist()
+        for r in numpy.unique(residue_of[placed]).tolist()
         for record in handedness.get(str(res_name[r]), ())
     ]
     if not records:
-        return names
-    n_atoms = len(template)
-    heavy = numpy.flatnonzero(
-        numpy.isin(residue_of, [r for r, _ in records])
-        & ~numpy.isin(numpy.char.upper(template.element.astype(str)), _HYDROGEN)
-    )
+        return structure
+    atoms = numpy.flatnonzero(numpy.isin(residue_of, [r for r, _ in records]))
     index = dict(
-        zip(zip(residue_of[heavy].tolist(), template.atom_name[heavy].tolist()), heavy)
-    )
-    index.update(
-        zip(zip(h_residue.tolist(), names.tolist()), n_atoms + numpy.arange(len(names)))
+        zip(zip(residue_of[atoms].tolist(), template.atom_name[atoms].tolist()), atoms)
     )
     rows = []
-    for r, (*atoms, sense) in records:
-        found = [int(index.get((r, a), -1)) for a in atoms]
-        if min(found[:3]) >= 0 and min(found[3:]) >= n_atoms:
+    for r, (*names, sense) in records:
+        found = [int(index.get((r, n), -1)) for n in names]
+        if min(found) >= 0 and placed[found[3]] and placed[found[4]]:
             rows.append((*found, _SENSES.index(sense)))
     if not rows:
-        return names
+        return structure
     rows = numpy.array(rows, dtype=numpy.int64)
-    xyz = numpy.concatenate([template.coord, coords]).astype(numpy.float64)
+    xyz = template.coord.astype(numpy.float64)
     x, a, b, h = (xyz[rows[:, k]] for k in range(4))
     turn = numpy.linalg.det(numpy.stack([a - x, b - x, h - x], axis=1))
     axis = (a - x) / numpy.linalg.norm(a - x, axis=-1, keepdims=True)
@@ -147,12 +153,15 @@ def _named_by_handedness(template, residue_of, parent, names, coords, handedness
         return v - (v * axis).sum(-1, keepdims=True) * axis
 
     side = (across(h - x) * across(b - a)).sum(-1)
-    measured = numpy.where(rows[:, 5] < 2, turn, side) > 0
-    swap = rows[measured != (rows[:, 5] % 2 == 0)]
-    names = names.copy()
-    h, other = swap[:, 3] - n_atoms, swap[:, 4] - n_atoms
-    names[h], names[other] = names[other], names[h].copy()
-    return names
+    measured = numpy.where(rows[:, 5] < 2, turn, side)
+    swap = rows[numpy.isfinite(measured) & ((measured > 0) != (rows[:, 5] % 2 == 0))]
+    if not len(swap):
+        return structure
+    names = template.atom_name.copy()
+    names[swap[:, 3]], names[swap[:, 4]] = names[swap[:, 4]], names[swap[:, 3]]
+    structure = structure.copy()
+    structure.atom_name = names
+    return structure
 
 
 def _template(structure):
@@ -194,14 +203,13 @@ def with_atomworks_hydrogens(
     residue_names: Collection[str] | None = None,
     coordination: numpy.ndarray | None = None,
     backbone: Mapping[str, tuple[str | None, str | None]] | None = None,
-    handedness: Mapping[str, Sequence[Handedness]] | None = None,
 ) -> struc.AtomArray | struc.AtomArrayStack:
     """``structure`` with AtomWorks hydrogens on every residue that has none.
 
     AtomWorks ``ensure_hydrogens`` protonates those residues, and the residues
     they bond to for context, once per model at ``ph``. Their heavy atoms take
     its formal charges; the hydrogens it places follow each residue's heavy
-    atoms. Residues with resolved hydrogens keep theirs. Unresolved heavy atoms
+    atoms and are marked ``PLACED_HYDROGEN``. Residues with resolved hydrogens keep theirs. Unresolved heavy atoms
     get no hydrogens; whatever later rebuilds them builds their hydrogens.
     A structure without a bond table is bonded by residue name for AtomWorks
     and returned without one.
@@ -216,10 +224,6 @@ def with_atomworks_hydrogens(
         backbone: ``(upper, lower)`` polymer connection atoms by residue name,
             through which consecutive residues of a chain are bonded for
             AtomWorks where the structure leaves them unbonded.
-        handedness: ``(centre, a, b, hydrogen, other, sense)`` by residue
-            name, where each placed ``hydrogen`` of a centre sits, so that the
-            names of hydrogens of one parent follow the residue's types rather
-            than AtomWorks' dictionary.
 
     Returns:
         ``structure`` itself when nothing lacks hydrogens, else a new structure.
@@ -277,9 +281,6 @@ def with_atomworks_hydrogens(
     parent, names = parent[keep_h], names[keep_h]
     names = _names_outside_database(template, parent, names, residue_of)
     coords = numpy.stack([p[3][keep_h] for p in placed])
-    names = _named_by_handedness(
-        template, residue_of, parent, names, coords[0], handedness or {}
-    )
 
     categories = template.get_annotation_categories()
     charges = (
@@ -297,6 +298,8 @@ def with_atomworks_hydrogens(
     base.set_annotation("charge", charges.astype(numpy.int8))
     if "charge" not in categories and _FORMAL_CHARGE_SPECIFIED not in categories:
         base.set_annotation(_FORMAL_CHARGE_SPECIFIED, lacking[residue_of])
+    if PLACED_HYDROGEN not in categories:
+        base.set_annotation(PLACED_HYDROGEN, numpy.zeros(n_atoms, dtype=bool))
     # a bond table cannot be indexed with repeated atoms
     base.bonds = None
     if isinstance(base, struc.AtomArrayStack):
@@ -310,6 +313,7 @@ def with_atomworks_hydrogens(
     hydrogens.atom_name = names
     hydrogens.element[:] = "H"
     hydrogens.charge[:] = 0
+    hydrogens.set_annotation(PLACED_HYDROGEN, numpy.ones(len(parent), dtype=bool))
     merged = (
         struc.concatenate([base, hydrogens])
         if isinstance(base, struc.AtomArrayStack)

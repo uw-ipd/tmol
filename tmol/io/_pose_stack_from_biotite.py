@@ -17,7 +17,12 @@ from tmol.chemical import BondType as ChemBondType
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import metal_table, site_connections
 from tmol.io._canonical_ordering import _only_coordinates_a_metal
-from tmol.io._protonation import residues_lacking_hydrogens, with_atomworks_hydrogens
+from tmol.io._protonation import (
+    PLACED_HYDROGEN,
+    residues_lacking_hydrogens,
+    with_atomworks_hydrogens,
+    with_hydrogens_named_by_handedness,
+)
 from tmol.io import (
     CanonicalForm,
     CanonicalOrdering,
@@ -2563,19 +2568,39 @@ def _with_input_hydrogens(biotite_structure, ph, co, chemdb, find_metal_coordina
     when ligands are being prepared. Metal bonds detection would add are
     shown to AtomWorks as coordination, so the donors it protonates are the
     ones tmol bonds, and it sees consecutive residues of a chain bonded
-    through the up and down connections of their ``chemdb`` types.
+    through the up and down connections of their ``chemdb`` types. Every
+    hydrogen AtomWorks placed, now or before, then takes the name its
+    ``chemdb`` types give its side of its centre.
     """
     aliases = {a.name3: a.read_as for a in chemdb.name3_aliases}
     names = None
     if co is not None:
         names = set(co.restype_io_equiv_classes)
         names |= {alias for alias, name in aliases.items() if name in names}
-    if not residues_lacking_hydrogens(biotite_structure, names)[1].any():
+    if residues_lacking_hydrogens(biotite_structure, names)[1].any():
+        biotite_structure = _with_atomworks_input_hydrogens(
+            _normalize_input_identifiers(biotite_structure, aliases),
+            ph,
+            co,
+            chemdb,
+            find_metal_coordination,
+        )
+    template = _template_array(biotite_structure)
+    if PLACED_HYDROGEN not in template.get_annotation_categories():
         return biotite_structure
-    metal_atom = _metal_atom_names(chemdb=chemdb)
-    biotite_structure = _with_input_chemistry_normalized(
-        _normalize_input_identifiers(biotite_structure, aliases), metal_atom
+    placed = template.get_annotation(PLACED_HYDROGEN).astype(bool)
+    return with_hydrogens_named_by_handedness(
+        biotite_structure,
+        _hydrogen_handedness(chemdb, set(template.res_name[placed].tolist())),
     )
+
+
+def _with_atomworks_input_hydrogens(
+    biotite_structure, ph, co, chemdb, find_metal_coordination
+):
+    """``with_atomworks_hydrogens`` of the input, told what tmol will bond."""
+    metal_atom = _metal_atom_names(chemdb=chemdb)
+    biotite_structure = _with_input_chemistry_normalized(biotite_structure, metal_atom)
     coordination = None
     if (
         find_metal_coordination
@@ -2600,9 +2625,6 @@ def _with_input_hydrogens(biotite_structure, ph, co, chemdb, find_metal_coordina
         residue_names=None if co is None else set(co.restype_io_equiv_classes),
         coordination=coordination,
         backbone=backbone,
-        handedness=_hydrogen_handedness(
-            chemdb, set(_template_array(biotite_structure).res_name.tolist())
-        ),
     )
 
 
@@ -2616,8 +2638,8 @@ def _hydrogen_handedness(chemdb, res_names):
     four bonded neighbours, two or three of them hydrogens, gives the turn of
     two neighbours and a hydrogen about it, and every atom with three, two of
     them hydrogens, which side of its heavy neighbour's bond a hydrogen takes,
-    both in the type's ideal coordinates, as ``with_atomworks_hydrogens``
-    takes them.
+    both in the type's ideal coordinates, as
+    ``with_hydrogens_named_by_handedness`` takes them.
     """
     from tmol.ligand._preparation import _ideal_coords_by_name
 
