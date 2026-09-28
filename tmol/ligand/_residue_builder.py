@@ -46,56 +46,6 @@ def _mol_coords(mol: Chem.Mol) -> np.ndarray:
     return np.array(mol.GetConformer().GetPositions(), dtype=float)
 
 
-def _connectivity(mol: Chem.Mol) -> tuple[list[tuple[int, int]], list[bool]]:
-    """The bonds and heavy-atom flags the shared geometry works from."""
-    bonds = [(b.GetBeginAtomIdx(), b.GetEndAtomIdx()) for b in mol.GetBonds()]
-    return bonds, [a.GetAtomicNum() != 1 for a in mol.GetAtoms()]
-
-
-def _find_nbr_atom(
-    mol: Chem.Mol, coords: np.ndarray, skip_indices: set[int] | None = None
-) -> int:
-    """Find the neighbor atom (root) for the atom tree."""
-    bonds, is_heavy = _connectivity(mol)
-    return find_root_atom(coords, bonds, is_heavy, skip_indices)
-
-
-def _build_atom_tree(
-    mol: Chem.Mol, root_idx: int, frame_excluded_indices=()
-) -> tuple[list[int], dict[int, int], dict[int, tuple[int, int]]]:
-    """Build an atom tree via BFS from the root."""
-    bonds, is_heavy = _connectivity(mol)
-    return build_atom_tree(
-        mol.GetNumAtoms(), bonds, is_heavy, root_idx, frame_excluded_indices
-    )
-
-
-def _compute_icoors(
-    mol: Chem.Mol,
-    order: list[int],
-    parent: dict[int, int],
-    grandparents: dict[int, tuple[int, int]],
-    atom_names: list[str],
-    coords: np.ndarray | None = None,
-) -> list[Icoor]:
-    """Compute internal coordinates for all atoms, in BFS traversal order."""
-    if coords is None:
-        coords = _mol_coords(mol)
-    geometry = icoor_geometry_from_coords(coords, order, parent, grandparents)
-    return [
-        Icoor(
-            name=atom_names[idx],
-            phi=geom.phi,
-            theta=geom.theta,
-            d=geom.d,
-            parent=atom_names[parent[idx]],
-            grand_parent=atom_names[grandparents[idx][0]],
-            great_grand_parent=atom_names[grandparents[idx][1]],
-        )
-        for idx, geom in zip(order, geometry)
-    ]
-
-
 _AMIDE_N_TYPES = {"Nad", "Nad3"}
 _GUANIDINIUM_N_TYPES = {"Ngu1", "Ngu2"}
 _PLANAR_N_TYPES = _AMIDE_N_TYPES | _GUANIDINIUM_N_TYPES
@@ -260,10 +210,14 @@ def build_residue_type(  # noqa: C901
     frame_excluded = {
         i for i, name in enumerate(atom_names) if name in frame_excluded_atoms
     }
-    nbr_idx = _find_nbr_atom(
-        mol, coords, skip_indices=(dropped_indices or set()) | frame_excluded
+    mol_bonds = [(b.GetBeginAtomIdx(), b.GetEndAtomIdx()) for b in mol.GetBonds()]
+    is_heavy = [a.GetAtomicNum() != 1 for a in mol.GetAtoms()]
+    nbr_idx = find_root_atom(
+        coords, mol_bonds, is_heavy, (dropped_indices or set()) | frame_excluded
     )
-    order, parent, grandparents = _build_atom_tree(mol, nbr_idx, frame_excluded)
+    order, parent, grandparents = build_atom_tree(
+        mol.GetNumAtoms(), mol_bonds, is_heavy, nbr_idx, frame_excluded
+    )
     if keep_indices is not None:
         order = [i for i in order if i in keep_indices]
 
@@ -278,7 +232,19 @@ def build_residue_type(  # noqa: C901
             ggp = gp
         grandparents[idx] = (gp, ggp)
 
-    icoors = _compute_icoors(mol, order, parent, grandparents, atom_names, coords)
+    geometry = icoor_geometry_from_coords(coords, order, parent, grandparents)
+    icoors = [
+        Icoor(
+            name=atom_names[idx],
+            phi=geom.phi,
+            theta=geom.theta,
+            d=geom.d,
+            parent=atom_names[parent[idx]],
+            grand_parent=atom_names[grandparents[idx][0]],
+            great_grand_parent=atom_names[grandparents[idx][1]],
+        )
+        for idx, geom in zip(order, geometry)
+    ]
 
     # Rotatable-bond (CHI / PROTON_CHI) topology, classified against the
     # perception state atom typing already built.
