@@ -571,7 +571,7 @@ def _placed_hydrogens(
             ccd_mirror_path=None,
         )
         # sub has no hydrogens, so the state's atoms are sub's, in order
-        state = assign_hydrogens(sub, ph=ph, silence_rdkit_warnings=True)
+        state = assign_hydrogens(sub, ph=ph)
         plan = hydrogen_plan(state)
     hydrogens = numpy.bincount(plan.parent, minlength=len(state))
     return (
