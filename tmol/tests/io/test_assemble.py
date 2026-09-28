@@ -59,17 +59,11 @@ def test_the_written_cif_carries_the_ligand_chemistry(protein, ligand):
     assert "_chem_comp_atom" in text
     assert "_chem_comp_bond" in text
     # The component rows name the ligand, not only the standard residues.
-    comp_rows = [line for line in text.splitlines() if LIGAND_RES_NAME in line]
-    assert comp_rows
+    assert LIGAND_RES_NAME in text
 
 
 def test_the_written_cif_parses_back_into_the_same_ligand(protein, ligand, tmp_path):
-    """The round trip is the whole point: chemistry travels inside the file.
-
-    A ligand code is a placeholder, and placeholders collide -- "LG1" is also a real
-    dictionary entry -- so this also pins that the file describes the molecule that was
-    read rather than whatever else shares its name.
-    """
+    """The file carries the molecule read, not the dictionary's own "LG1" entry."""
     path = cif_from_atom_array(
         assemble_input(protein, ligand), path=tmp_path / "complex.cif"
     )
@@ -80,9 +74,8 @@ def test_the_written_cif_parses_back_into_the_same_ligand(protein, ligand, tmp_p
     assert set(restored.atom_name) == set(ligand.atom_name)
 
     def bonds_by_name(array):
-        # The order travels with the pair: a round trip that kept the connectivity and
-        # took every order from a dictionary fallback is the failure this file exists
-        # to prevent, and comparing pairs alone cannot see it.
+        # Orders travel with their pairs: connectivity kept with dictionary orders is the
+        # failure this file exists to prevent.
         return {
             (frozenset((str(array.atom_name[i]), str(array.atom_name[j]))), int(order))
             for i, j, order in array.bonds.as_array()
