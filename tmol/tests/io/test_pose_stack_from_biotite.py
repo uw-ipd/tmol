@@ -697,6 +697,43 @@ def test_export_keeps_the_input_residue_annotations(path):
     assert (exported.hetero[~exported.is_polymer]).all()
 
 
+@pytest.mark.parametrize(
+    "path",
+    [
+        ("cif", "1BL8.cif"),
+        ("cif", "155c__1__1.A__1.B.cif"),
+    ],
+    ids=["1bl8_ions", "155c_heme"],
+)
+def test_export_without_is_polymer_takes_it_from_block_types(path):
+    """An input without is_polymer exports each atom's from its block type."""
+    structure = atom_array_from_cif(data_path(*path))
+
+    def key(array, i):
+        return (array.chain_id[i], array.res_id[i], array.ins_code[i])
+
+    # a HETATM cap such as ACE is a polymer entity's residue but a ligand block type
+    expected = {
+        key(structure, i): structure.is_polymer[i] and not structure.hetero[i]
+        for i in range(structure.array_length())
+    }
+    structure.del_annotation("is_polymer")
+    structure.del_annotation("chain_type")
+    pose_stack, context = pose_stack_from_biotite(
+        structure,
+        torch.device("cpu"),
+        prepare_ligands=True,
+        no_optH=True,
+        return_context=True,
+    )
+    exported = biotite_from_pose_stack(pose_stack, context.canonical_ordering)
+
+    assert "chain_type" not in exported.get_annotation_categories()
+    for i in range(exported.array_length()):
+        assert exported.is_polymer[i] == expected[key(exported, i)]
+    assert exported.is_polymer.any() and not exported.is_polymer.all()
+
+
 def _residues(ids, chains, ins=None):
     array = biotite.structure.AtomArray(len(ids))
     array.res_id = numpy.array(ids)
