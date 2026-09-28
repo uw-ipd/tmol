@@ -745,7 +745,7 @@
         <span class="p">]</span>
     <span class="p">)</span>
     <span class="n">dist</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">src</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">src</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-    <span class="n">angle</span> <span class="o">=</span> <span class="n">_angle</span><span class="p">(</span><span class="n">src</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">src</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">src</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+    <span class="n">angle</span> <span class="o">=</span> <span class="n">vertex_angle</span><span class="p">(</span><span class="n">src</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">src</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">src</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
     <span class="n">torsion</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">_junction_torsion_value</span><span class="p">(</span><span class="n">prev_bt</span><span class="p">,</span> <span class="n">prev_conn</span><span class="p">))</span>
 
     <span class="n">dst</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
@@ -773,11 +773,6 @@
         <span class="k">if</span> <span class="n">spans</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">targets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">tor</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="mf">180.0</span><span class="p">)</span>
     <span class="k">return</span> <span class="mf">180.0</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_angle</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Angle at vertex b, in radians."""</span>
-    <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">vertex_angle</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">))</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_rigid_transform</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">dst</span><span class="p">):</span>
