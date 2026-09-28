@@ -375,5 +375,13 @@
     "transformation": "none; complete compressed source",
     "sha256": "cb2da935e8bd1907195886980051cf5c822ba7e6a72a8e2c7fa5a662b13cfe37",
     "bytes": 777721
+  },
+  {
+    "fixture": "bridging_histidine_6iu8.cif.gz",
+    "source": "https://files.rcsb.org/download/6IU8.cif.gz",
+    "source_repository": "RCSB PDB; local 2026-01-06 PDB mirror",
+    "transformation": "none; complete compressed source",
+    "sha256": "c5912ed603d0099da2eaad1c5f84d0e44d1aedd8c0f7711d860dcfa8c0353ecf",
+    "bytes": 138874
   }
 ]

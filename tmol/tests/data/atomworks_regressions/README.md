@@ -255,3 +255,7 @@ carboxylate resonance charge that the isolated ligand cannot exercise. The
 full non-water workflow preserves input atoms, coordinates, bonds, and orphan
 hydrogens; checks preparation, parameter export/reload, pose construction,
 Frank scoring and gradients; and runs focused Cartesian minimization.
+
+`bridging_histidine_6iu8.cif.gz` retains the complete entry. HIS C89 binds
+Zn C201 through ND1 and Zn B201 through NE2, so neither ring nitrogen keeps a
+proton: it must build as the imidazolate `HIS_DEP` coordinating at both.

@@ -822,6 +822,19 @@ def test_conflicting_myristate_connections_are_reported(torch_device):
     np.testing.assert_array_equal(array.bonds.as_array(), before)
 
 
+def test_a_histidine_bridging_two_zinc_is_the_imidazolate(torch_device):
+    array = atom_array_from_cif(DATA / "bridging_histidine_6iu8.cif.gz")
+    pose_stack = pose_stack_from_biotite(array, torch_device)
+    block_types = pose_stack.packed_block_types.active_block_types
+    names = [
+        block_types[i].name.split(":") for i in pose_stack.block_type_ind64[0] if i >= 0
+    ]
+    bridging = [
+        (n[0], sorted(n[1:])) for n in names if len(n) > 2 and n[0] == "HIS_DEP"
+    ]
+    assert bridging == [("HIS_DEP", ["metal_ND1", "metal_NE2"])]
+
+
 def test_entirely_unresolved_ligand_keeps_its_chemical_identity():
     array = atom_array_from_cif(DATA / "unresolved_unl.cif")
     ligand = array[array.res_name == "UNL"]
