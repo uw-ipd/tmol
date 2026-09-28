@@ -232,6 +232,32 @@ def test_pose_stack_from_and_to_biotite_1ubq_no_opth_smoke(biotite_1ubq, torch_d
     biotite_from_pose_stack(pose_stack)
 
 
+def test_pose_stack_from_and_to_biotite_1ubq_defaults_absent_metadata(
+    biotite_1ubq, torch_device
+):
+    from tmol.pose import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+
+    biotite_1ubq.del_annotation("occupancy")
+    biotite_1ubq.del_annotation("b_factor")
+    pose_stack = pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
+    restored = biotite_from_pose_stack(pose_stack)
+    numpy.testing.assert_array_equal(restored.occupancy, DEFAULT_ATOM_OCCUPANCY)
+    numpy.testing.assert_array_equal(restored.b_factor, DEFAULT_ATOM_B_FACTOR)
+
+
+def test_pose_stack_from_and_to_biotite_1ubq_keeps_explicit_occupancy(
+    biotite_1ubq, torch_device
+):
+    biotite_1ubq.occupancy[:] = 0.5
+    biotite_1ubq.occupancy[biotite_1ubq.res_id == 1] = 0.0
+    pose_stack = pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
+    restored = biotite_from_pose_stack(pose_stack)
+    heavy = restored.element != "H"
+    first = restored.res_id == 1
+    numpy.testing.assert_array_equal(restored.occupancy[heavy & first], 0.0)
+    numpy.testing.assert_array_equal(restored.occupancy[heavy & ~first], 0.5)
+
+
 @pytest.mark.parametrize("n_models", [1, 3, 23])
 def test_pose_stack_from_and_to_biotite_multiple_poses(
     biotite_1r21, torch_device, n_models
@@ -669,6 +695,43 @@ def test_export_keeps_the_input_residue_annotations(path):
         )
     assert exported.is_polymer.any() and not exported.is_polymer.all()
     assert (exported.hetero[~exported.is_polymer]).all()
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        ("cif", "1BL8.cif"),
+        ("cif", "155c__1__1.A__1.B.cif"),
+    ],
+    ids=["1bl8_ions", "155c_heme"],
+)
+def test_export_without_is_polymer_takes_it_from_block_types(path):
+    """An input without is_polymer exports each atom's from its block type."""
+    structure = atom_array_from_cif(data_path(*path))
+
+    def key(array, i):
+        return (array.chain_id[i], array.res_id[i], array.ins_code[i])
+
+    # a HETATM cap such as ACE is a polymer entity's residue but a ligand block type
+    expected = {
+        key(structure, i): structure.is_polymer[i] and not structure.hetero[i]
+        for i in range(structure.array_length())
+    }
+    structure.del_annotation("is_polymer")
+    structure.del_annotation("chain_type")
+    pose_stack, context = pose_stack_from_biotite(
+        structure,
+        torch.device("cpu"),
+        prepare_ligands=True,
+        no_optH=True,
+        return_context=True,
+    )
+    exported = biotite_from_pose_stack(pose_stack, context.canonical_ordering)
+
+    assert "chain_type" not in exported.get_annotation_categories()
+    for i in range(exported.array_length()):
+        assert exported.is_polymer[i] == expected[key(exported, i)]
+    assert exported.is_polymer.any() and not exported.is_polymer.all()
 
 
 def _residues(ids, chains, ins=None):

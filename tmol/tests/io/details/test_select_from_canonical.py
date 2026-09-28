@@ -831,6 +831,22 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
 
     numpy.testing.assert_equal(block_coords[0, 0], block_coords_res1_gold)
 
+    # absent metadata stays absent; explicit values, including 0, are selected
+    *_, occupancy, b_factor = take_block_type_atoms_from_canonical(
+        pbt, block_types64, coords, at_is_pres
+    )
+    assert occupancy is None and b_factor is None
+
+    canonical_occupancy = numpy.full(coords.shape[:3], 0.5, dtype=numpy.float32)
+    canonical_occupancy[0, 0] = 0.0
+    *_, occupancy, b_factor = take_block_type_atoms_from_canonical(
+        pbt, block_types64, coords, at_is_pres, canonical_occupancy
+    )
+    real_atoms = real_atoms.cpu().numpy()
+    assert b_factor is None
+    numpy.testing.assert_array_equal(occupancy[0, 0][real_atoms[0, 0]], 0.0)
+    numpy.testing.assert_array_equal(occupancy[0, 1:][real_atoms[0, 1:]], 0.5)
+
 
 def variants_from_yaml(yml_string):
     raw = yaml.safe_load(yml_string)

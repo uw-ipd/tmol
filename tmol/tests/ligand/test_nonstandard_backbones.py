@@ -598,6 +598,30 @@ def test_unsupported_heavy_only_nitrogen_is_not_a_cap() -> None:
 
 
 @pytest.mark.parametrize(
+    "code, connection_atom, leaving, is_cap",
+    [
+        # 5T4J's aldimine: the carbonyl oxygen itself leaves C4A
+        ("PLP", "C4A", ("O4A", "H4A"), False),
+        # an aldehyde carbon keeps its C=O and caps like an acyl group
+        ("PLP", "C4A", ("H4A",), True),
+        ("ACE", "C", ("H",), True),
+    ],
+)
+def test_a_carbon_caps_a_chain_only_as_an_acyl_carbon(
+    code: str, connection_atom: str, leaving: tuple[str, ...], is_cap: bool
+) -> None:
+    """A terminating carbon without C=O/C=S makes an attachment, not a peptide bond."""
+    residue = info.residue(code)
+    residue.res_name[:] = code
+    residue = _heavy_only(residue[~numpy.isin(residue.atom_name, leaving)])
+
+    profile = profile_for_atom_array(residue, frozenset({connection_atom}))
+    assert (profile is not None) == is_cap
+    if is_cap:
+        assert profile.up == ("up", connection_atom)
+
+
+@pytest.mark.parametrize(
     "code, connections, expected",
     [
         ("B3K", frozenset({"N", "C"}), ("N", "CA", "CB", "C")),
