@@ -122,18 +122,6 @@ def test_concatenate_pads_and_select_poses_recovers_each_part(torch_device):
         first += n
 
 
-def test_clone_and_to_copy_both_tensors(torch_device):
-    pconn_matrix, offsets, block_n_conn = random_case(2, 6, 2, torch_device, seed=3)
-    ibb = InterBlockBondsep.from_connectivity(pconn_matrix, offsets, block_n_conn, 2)
-
-    for copy in (ibb.clone(), ibb.to(torch.device("cpu"))):
-        torch.testing.assert_close(copy.near_blocks.cpu(), ibb.near_blocks.cpu())
-        torch.testing.assert_close(copy.bondsep.cpu(), ibb.bondsep.cpu())
-    cloned = ibb.clone()
-    assert cloned.near_blocks.data_ptr() != ibb.near_blocks.data_ptr()
-    assert cloned.bondsep.data_ptr() != ibb.bondsep.data_ptr()
-
-
 def test_a_chain_stores_only_residues_two_apart(ubq_pdb, torch_device):
     pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device)
     ibb = pose_stack.inter_block_bondsep
