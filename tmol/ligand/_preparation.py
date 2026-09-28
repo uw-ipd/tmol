@@ -19,6 +19,7 @@ from tmol.database import ParameterDatabase
 from tmol.database.chemical import DEPROTONATED_STATE, AtomAlias
 from tmol.io import CanonicalOrdering
 from tmol.io._protonation import (
+    PROTONATION_VARIANT,
     database_forms,
     hydrogen_names_by_parent,
     with_atomworks_hydrogens,
@@ -1864,9 +1865,11 @@ def prepare_ligands(  # noqa: C901
             )
     if param_db is None:
         param_db = ParameterDatabase.get_default()
-    atom_array = with_atomworks_hydrogens(
-        atom_array, ph=ph, forms=database_forms(param_db.chemical)
-    )
+    # an input protonated in context (with its metal bonds) keeps that state
+    if PROTONATION_VARIANT not in atom_array.get_annotation_categories():
+        atom_array = with_atomworks_hydrogens(
+            atom_array, ph=ph, forms=database_forms(param_db.chemical)
+        )
 
     from tmol.ligand._fragmentation import (
         FRAGMENT_ID_ANNOTATION,

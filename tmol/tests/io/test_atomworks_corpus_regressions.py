@@ -323,6 +323,29 @@ def test_decreasing_water_author_ids_preserve_full_input(torch_device):
     _score_and_minimize(pose, context)
 
 
+def test_a_ligand_whose_only_hydrogens_a_metal_displaces_is_prepared_without_them(
+    torch_device,
+):
+    """5XNL's BCT D 401 binds the non-heme Fe through O2 and O3: a carbonate."""
+    from tmol.io import build_context_from_biotite
+
+    array = atom_array_from_cif(DATA / "decreasing_water_author_ids_5xnl.cif.gz")
+    iron = np.flatnonzero((array.res_name == "FE2") & (array.chain_id == "A"))
+    near = np.linalg.norm(array.coord - array.coord[iron], axis=1) < 3.0
+    residue = struc.get_all_residue_positions(array)
+    site = array[np.isin(residue, residue[near])]
+    site = site[np.char.upper(site.element) != "H"]
+    context = build_context_from_biotite(
+        site, torch_device, prepare_ligands=True, ligand_seed=20260928
+    )
+    pose = pose_stack_from_biotite(site, torch_device, context=context, no_optH=True)
+
+    types = pose.packed_block_types.active_block_types
+    names = {types[i].name: types[i] for i in pose.block_type_ind64[0] if i >= 0}
+    (carbonate,) = [t for n, t in names.items() if n.startswith("BCT")]
+    assert [a.name for a in carbonate.atoms if a.name.startswith("H")] == []
+
+
 def test_af3_cyclic_peptide_resolves_leaving_atoms_and_minimizes(torch_device):
     from tmol.io import build_context_from_biotite
 
