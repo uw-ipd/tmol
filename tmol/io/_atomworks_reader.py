@@ -35,9 +35,8 @@ def _polymer_from_backbone_bonds(array):
     """
     from atomworks.io.utils.ccd import get_polymerization_atoms
 
-    starts = struc.get_residue_starts(array, add_exclusive_stop=True)
-    residue_of = np.repeat(np.arange(len(starts) - 1), np.diff(starts))
-    polymer = ~array.hetero[starts[:-1]]
+    residue_of = struc.get_all_residue_positions(array)
+    polymer = ~array.hetero[struc.get_residue_starts(array)]
 
     if array.bonds is not None and not polymer.all():
         bonds = array.bonds.as_array()[:, :2]
@@ -62,9 +61,7 @@ def _polymer_from_backbone_bonds(array):
 def _read_declared(path, model, assembly_id):
     """Read authored atoms and bonds without any dictionary supplementation."""
     from atomworks.io import load_pdb
-    from atomworks.io.transforms.categories import category_to_dict
     from atomworks.io.utils.atom_array_plus import as_atom_array_plus
-    from atomworks.io.utils.bonds import get_struct_conn_bonds
     from atomworks.io.utils.ccd import (
         bond_dict_from_cif_block,
         build_ccd_entries_from_cif_block,
