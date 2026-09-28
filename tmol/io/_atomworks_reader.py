@@ -112,12 +112,18 @@ def _read_declared(path, model, assembly_id):
 
 
 def _with_metal_coordination(array, block):
-    """The bond table plus the file's metalc bonds, typed COORDINATION."""
+    """The bond table plus the file's metalc bonds, typed COORDINATION.
+
+    The reader has kept one conformer, so a row's alternate locations all name it.
+    """
+    struct_conn = category_to_dict(block, "struct_conn")
+    for partner in (1, 2):
+        struct_conn.pop(f"pdbx_ptnr{partner}_label_alt_id", None)
     bonds = array.bonds if array.bonds is not None else struc.BondList(len(array))
     return bonds.merge(
         get_struct_conn_bonds(
             array,
-            category_to_dict(block, "struct_conn"),
+            struct_conn,
             add_bond_types=("metalc",),
             distance_policy="keep",
             use_ccd=False,

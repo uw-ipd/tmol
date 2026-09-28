@@ -429,6 +429,26 @@ def test_declared_metal_bonds_are_coordination(built, bond_type):
     assert cf.covalent_bonds is None
 
 
+@pytest.mark.parametrize(
+    "stem, metal, donors",
+    [
+        ("cu_zn_sod_3f7l", (201, "CU"), {(44, "ND1"), (46, "NE2"), (118, "NE2")}),
+        ("clf_nitrogenase_7adr", (501, "FE6"), {(115, "SG")}),
+    ],
+)
+def test_metalc_naming_an_alternate_location_is_read(stem, metal, donors):
+    structure = atom_array_from_cif(os.path.join(FIXTURE_DIR, stem + ".cif.gz"))
+    bonds = structure.bonds.as_array()
+    bonds = bonds[bonds[:, 2] == struc.BondType.COORDINATION, :2]
+    at = numpy.flatnonzero(
+        (structure.res_id == metal[0]) & (structure.atom_name == metal[1])
+    )
+    partners = bonds[numpy.isin(bonds, at).any(axis=1)].ravel()
+    partners = partners[~numpy.isin(partners, at)]
+    read = {(int(structure.res_id[p]), str(structure.atom_name[p])) for p in partners}
+    assert donors <= read
+
+
 def test_declared_bond_beyond_cutoff_is_kept(built):
     pose_stack, _ = built("zn_tetrahedral_3ks3")
     structure, zinc = zinc_with_declared_bonds([], struc.BondType.ANY)
