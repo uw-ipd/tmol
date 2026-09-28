@@ -7,6 +7,7 @@ which atoms form the backbone, what the caps are, and what the resulting residue
 type must declare.
 """
 
+import functools
 import logging
 import math
 from collections import Counter, defaultdict, deque
@@ -754,24 +755,33 @@ def completed_connection_atoms(atom_array, connection_atoms):
         if alpha_backbone_atoms(atom_array, frozenset({known, c})) is not None
     ]
     if len(conventional) == 1:
+        _warn_terminal_ambiguity(res_name, tuple(sorted(candidates)), conventional[0])
+        return frozenset({known, conventional[0]})
+    if len(candidates) > 1:
+        _warn_terminal_ambiguity(res_name, tuple(sorted(candidates)), None)
+    return connection_atoms
+
+
+@functools.cache
+def _warn_terminal_ambiguity(res_name: str, candidates: tuple, chosen: Optional[str]):
+    """Report, once per case, a terminal residue whose far end chemistry cannot pick."""
+    if chosen is not None:
         logger.warning(
             "%s is seen only at a chain terminus and %s could each carry its "
             "other connection; it is read as the conventional backbone through "
             "%s. A copy of the residue in a chain would settle it.",
             res_name or "this residue",
-            ", ".join(sorted(candidates)),
-            conventional[0],
+            ", ".join(candidates),
+            chosen,
         )
-        return frozenset({known, conventional[0]})
-    if len(candidates) > 1:
+    else:
         logger.warning(
             "%s is seen only at a chain terminus and %s could each carry its "
             "other connection, none of them a conventional backbone; it cannot "
             "be told apart. A copy of the residue in a chain would settle it.",
             res_name or "this residue",
-            ", ".join(sorted(candidates)),
+            ", ".join(candidates),
         )
-    return connection_atoms
 
 
 def mainchain_path(atom_array, connection_atoms) -> Optional[Tuple[str, ...]]:

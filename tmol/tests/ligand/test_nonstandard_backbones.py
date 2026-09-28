@@ -553,6 +553,24 @@ def test_a_terminal_residue_finds_its_other_end(code: str) -> None:
     assert profile.mainchain_atoms == expected
 
 
+def test_an_ambiguous_terminal_residue_is_reported_once(caplog) -> None:
+    # an N-terminal ASN could continue through N or ND2; every load meets it
+    from tmol.ligand._polymer_profile import (
+        _warn_terminal_ambiguity,
+        completed_connection_atoms,
+    )
+
+    residue = _residue_bonded_only_at("ASN", "C")
+    _warn_terminal_ambiguity.cache_clear()
+    with caplog.at_level(logging.WARNING, logger="tmol.ligand._polymer_profile"):
+        for _ in range(3):
+            ends = completed_connection_atoms(residue, frozenset({"C"}))
+            assert ends == frozenset({"C", "N"})
+    assert (
+        sum("seen only at a chain terminus" in r.message for r in caplog.records) == 1
+    )
+
+
 def test_heavy_only_terminal_sar_is_a_polymer_but_b3k_stays_ambiguous() -> None:
     """Infer one supported amine endpoint without guessing between two."""
     sar = _heavy_only(_residue_bonded_only_at("SAR", "C"))
