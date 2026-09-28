@@ -1293,7 +1293,7 @@ def _apply_conjugated_variants(  # noqa: C901
         if not atoms:
             continue
         base = bt.name
-        key = (base, tuple(sorted(atoms)))
+        key = (base, tuple(sorted((False, atom) for atom in atoms)))
         conjugated = pbt.conjugated_bt_for_base_and_atoms.get(key)
         if conjugated is None:
             raise ValueError(
@@ -1416,10 +1416,8 @@ def _apply_metal_connections(
         donated[(pose, res)].append(atom_name(pose, res, atom))
     for (pose, res), atoms in donated.items():
         bt_ind = block_types[pose][res]
-        key = (
-            pbt.conjugation_base_for_bt[bt_ind],
-            tuple(sorted((*pbt.conjugation_atoms_for_bt[bt_ind], *atoms))),
-        )
+        attached = (*pbt.conjugation_atoms_for_bt[bt_ind], *((True, a) for a in atoms))
+        key = (pbt.conjugation_base_for_bt[bt_ind], tuple(sorted(attached)))
         coordinating = pbt.conjugated_bt_for_base_and_atoms.get(key)
         if coordinating is None:
             raise ValueError(
@@ -1469,8 +1467,8 @@ def _annotate_packed_block_types_w_conjugations(pbt: PackedBlockTypes):
     not. Read from the connections themselves, so it holds for a generated
     component and a patched canonical residue alike.
 
-    Annotates, per block type, the atoms its attachments are at and its name
-    without them, and a lookup from (unattached name, attachment atoms) to the
+    Annotates, per block type, its attachments as ``(is_metal, atom)`` and its
+    name without them, and a lookup from (unattached name, attachments) to the
     block type that carries exactly those.
     """
     if hasattr(pbt, "conjugation_atoms_for_bt"):
@@ -1491,8 +1489,11 @@ def _annotate_packed_block_types_w_conjugations(pbt: PackedBlockTypes):
         conjugations = [
             conn for ind, conn in enumerate(bt.connections) if ind not in structural
         ]
-        # a multiset: an atom bridging two metals carries two connections
-        atoms = tuple(sorted(conn.atom for conn in conjugations))
+        # a multiset: an atom bridging two metals carries two connections;
+        #   a donor's metal connections are named metal<k>_<atom>
+        atoms = tuple(
+            sorted((conn.name.startswith("metal"), conn.atom) for conn in conjugations)
+        )
         atoms_for_bt.append(atoms)
         # the variant tags to drop are the connections' own names
         tags = {conn.name for conn in conjugations}

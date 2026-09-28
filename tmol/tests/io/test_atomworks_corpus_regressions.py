@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import attr
+import collections
 import json
 import numpy as np
 import biotite.structure as struc
@@ -833,6 +834,28 @@ def test_a_histidine_bridging_two_zinc_is_the_imidazolate(torch_device):
         (n[0], sorted(n[1:])) for n in names if len(n) > 2 and n[0] == "HIS_DEP"
     ]
     assert bridging == [("HIS_DEP", ["metal_ND1", "metal_NE2"])]
+
+
+def test_an_ester_oxygen_and_a_metal_bound_oxygen_keep_their_own_forms(torch_device):
+    """In each of three chains PLM esterifies SER 360 OG and SER 342 OG binds Na."""
+    from tmol.io import build_context_from_biotite
+
+    array = atom_array_from_cif(DATA / "attachment_contexts_8trb.cif.gz")
+    array = array[np.char.upper(array.element) != "H"]
+    context = build_context_from_biotite(
+        array, torch_device, prepare_ligands=True, ligand_seed=20260928
+    )
+    pose = pose_stack_from_biotite(array, torch_device, context=context, no_optH=True)
+    types = pose.packed_block_types.active_block_types
+    blocks = pose.block_type_ind64[0].tolist()
+    partners = collections.Counter()
+    for res, bt in enumerate(blocks):
+        tag = types[bt].name.split(":")[-1] if bt >= 0 else ""
+        if types[bt].base_name == "SER" and tag in ("conj_OG", "metal_OG"):
+            conn = types[bt].connection_to_cidx[tag]
+            other = int(pose.inter_residue_connections64[0, res, conn, 0])
+            partners[tag, types[blocks[other]].io_equiv_class] += 1
+    assert partners == {("conj_OG", "PLM"): 3, ("metal_OG", "NA"): 3}
 
 
 def test_entirely_unresolved_ligand_keeps_its_chemical_identity():
