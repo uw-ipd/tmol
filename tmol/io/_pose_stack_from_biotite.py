@@ -2995,23 +2995,23 @@ def _default_pose_build_context_for(
     structure, device: torch.device
 ) -> PoseBuildContext:
     """The process-wide context, packed wide enough for what this structure holds."""
-    if not _carries_a_metal(structure):
-        return _default_pose_build_context(device)
-    return PoseBuildContext(
-        canonical_ordering=canonical_ordering_for_biotite(),
-        packed_block_types=packed_block_types_for_biotite_with_metals(device),
-        parameter_database=_paramdb_for_biotite(),
-        restype_set=_restype_set_for_biotite(),
-    )
+    return _default_pose_build_context(device, _carries_a_metal(structure))
 
 
 @validate_args
 @toolz.functoolz.memoize
-def _default_pose_build_context(device: torch.device) -> PoseBuildContext:
+def _default_pose_build_context(
+    device: torch.device, with_metals: bool
+) -> PoseBuildContext:
     """Return the process-wide construction context for the default database."""
+    packed = (
+        packed_block_types_for_biotite_with_metals
+        if with_metals
+        else packed_block_types_for_biotite
+    )
     return PoseBuildContext(
         canonical_ordering=canonical_ordering_for_biotite(),
-        packed_block_types=packed_block_types_for_biotite(device),
+        packed_block_types=packed(device),
         parameter_database=_paramdb_for_biotite(),
         restype_set=_restype_set_for_biotite(),
     )
