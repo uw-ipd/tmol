@@ -197,6 +197,115 @@ class InterBlockBondsep:
         )
 
     @classmethod
+    def from_bonded_graph(
+        cls,
+        counts: Tensor[torch.int32][:, :],
+        intra_separation: Tensor[torch.int32][:, :, :, :],
+        connections: Tensor[torch.int64][:, :, :, 2],
+    ) -> "InterBlockBondsep":
+        """Shortest paths below the cap over the graph of inter-block connections.
+
+        Each block's connections are joined by edges of their intra-block
+        separation, and bonded connections of two blocks by edges of one, which
+        replace an intra-block edge between the same connections. Only paths
+        shorter than the cap are explored, so the work grows with the number of
+        bonded neighbours rather than with the square of the connection count.
+
+        Args:
+            counts: ``[pose, block]`` number of connections of each block.
+            intra_separation: ``[pose, block, conn1, conn2]`` bond separation
+                between the atoms of a block's connections.
+            connections: ``[pose, block, conn, 2]`` block and connection that
+                each connection bonds to, ``-1`` if none.
+        """
+        n_poses, max_n_blocks, max_n_conn = connections.shape[:3]
+        device = connections.device
+        block_counts = counts.flatten().to(torch.int64)
+        node_start = torch.cumsum(block_counts, 0) - block_counts
+        n_nodes = int(block_counts.sum())
+        if n_nodes == 0:
+            return cls.empty(n_poses, max_n_blocks, max_n_conn, device)
+
+        conn = torch.arange(max_n_conn, dtype=torch.int64, device=device)
+        real = conn < counts[..., None]
+        intra = (
+            real[..., :, None]
+            & real[..., None, :]
+            & (intra_separation < MAX_SIG_BOND_SEPARATION)
+        )
+        pose, block, conn1, conn2 = torch.nonzero(intra, as_tuple=True)
+        first = node_start[pose * max_n_blocks + block]
+        intra_key = (first + conn1) * n_nodes + first + conn2
+        intra_weight = intra_separation[pose, block, conn1, conn2].to(torch.int32)
+        pose, block, conn1 = torch.nonzero(connections[..., 0] != -1, as_tuple=True)
+        partner = connections[pose, block, conn1]
+        inter_key = (node_start[pose * max_n_blocks + block] + conn1) * n_nodes + (
+            node_start[pose * max_n_blocks + partner[:, 0]] + partner[:, 1]
+        )
+
+        edge_key, edge_of_key = torch.unique(
+            torch.cat((intra_key, inter_key)), sorted=True, return_inverse=True
+        )
+        edge_weight = torch.empty(edge_key.shape, dtype=torch.int32, device=device)
+        edge_weight[edge_of_key[: intra_key.shape[0]]] = intra_weight
+        edge_weight[edge_of_key[intra_key.shape[0] :]] = 1
+        edge_src = torch.div(edge_key, n_nodes, rounding_mode="floor")
+        edge_dst = edge_key % n_nodes
+        out_degree = torch.bincount(edge_src, minlength=n_nodes)
+        out_start = torch.cumsum(out_degree, 0) - out_degree
+
+        # extend every path improved in the last round by one edge, until none improves
+        best_key, best_sep = edge_key, edge_weight
+        front_src, front_node, front_sep = edge_src, edge_dst, edge_weight
+        while front_src.shape[0] > 0:
+            n_out = out_degree[front_node]
+            path = torch.repeat_interleave(
+                torch.arange(front_src.shape[0], device=device), n_out
+            )
+            path_start = torch.cumsum(n_out, 0) - n_out
+            edge = out_start[front_node][path] + (
+                torch.arange(path.shape[0], device=device) - path_start[path]
+            )
+            sep = front_sep[path] + edge_weight[edge]
+            short = sep < MAX_SIG_BOND_SEPARATION
+            cand_key = front_src[path][short] * n_nodes + edge_dst[edge][short]
+
+            merged_key, merged_of = torch.unique(
+                torch.cat((best_key, cand_key)), sorted=True, return_inverse=True
+            )
+            merged_sep = torch.full(
+                merged_key.shape,
+                MAX_SIG_BOND_SEPARATION,
+                dtype=torch.int32,
+                device=device,
+            ).scatter_reduce(0, merged_of, torch.cat((best_sep, sep[short])), "amin")
+            previous = torch.full_like(merged_sep, MAX_SIG_BOND_SEPARATION)
+            previous[merged_of[: best_key.shape[0]]] = best_sep
+            improved = merged_sep < previous
+            best_key, best_sep = merged_key, merged_sep
+            front_src = torch.div(merged_key[improved], n_nodes, rounding_mode="floor")
+            front_node = merged_key[improved] % n_nodes
+            front_sep = merged_sep[improved]
+
+        node_row = torch.repeat_interleave(
+            torch.arange(block_counts.shape[0], device=device), block_counts
+        )
+        node_conn = torch.arange(n_nodes, device=device) - node_start[node_row]
+        src = torch.div(best_key, n_nodes, rounding_mode="floor")
+        dst = best_key % n_nodes
+        return cls.from_entries(
+            torch.div(node_row[src], max_n_blocks, rounding_mode="floor"),
+            node_row[src] % max_n_blocks,
+            node_row[dst] % max_n_blocks,
+            node_conn[src],
+            node_conn[dst],
+            best_sep,
+            n_poses,
+            max_n_blocks,
+            max_n_conn,
+        )
+
+    @classmethod
     def from_dense(
         cls, dense: Tensor[torch.int8][:, :, :, :, :]
     ) -> "InterBlockBondsep":

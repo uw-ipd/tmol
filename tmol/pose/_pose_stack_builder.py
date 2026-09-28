@@ -296,22 +296,9 @@ class PoseStackBuilder:
             resolved_expoly_connections, inter_residue_connections64
         )
 
-        # 3a
-        (
-            pconn_matrix,
-            pconn_offsets,
-            block_n_conn,
-            _,
-        ) = cls._take_real_conn_conn_intrablock_pairs(pbt, block_type_ind64, real_res)
-
-        # 3b
-        cls._incorporate_inter_residue_connections_into_connectivity_graph(
-            inter_residue_connections64, pconn_offsets, pconn_matrix
-        )
-
-        # 4
-        inter_block_bondsep = cls._calculate_interblock_bondsep_from_connectivity_graph(
-            pbt, pconn_offsets, block_n_conn, pconn_matrix
+        # 3
+        inter_block_bondsep = cls._inter_block_bondsep_from_connections(
+            pbt, block_type_ind64, real_res, inter_residue_connections64
         )
 
         n_atoms = torch.zeros((n_poses, max_n_res), dtype=torch.int32, device=device)
@@ -1235,6 +1222,36 @@ class PoseStackBuilder:
         )
 
         pconn_matrix[nz_real_conn_pose_ind, pconn_from, pconn_to] = 1
+
+    @classmethod
+    def _inter_block_bondsep_from_connections(
+        cls,
+        pbt: PackedBlockTypes,
+        block_type_ind64: Tensor[torch.int64][:, :],
+        real_blocks: Tensor[torch.bool][:, :],
+        inter_residue_connections64: Tensor[torch.int64][:, :, :, 2],
+    ) -> InterBlockBondsep:
+        """Bond separations between the connections of nearby blocks.
+
+        Searches the bonded graph of the blocks' connections only for
+        separations below ``MAX_SIG_BOND_SEPARATION``.
+        """
+        cls._annotate_pbt_w_intraresidue_connection_atom_distances(pbt)
+        counts = torch.zeros_like(block_type_ind64, dtype=torch.int32)
+        counts[real_blocks] = pbt.n_conn[block_type_ind64[real_blocks]]
+        max_n_conn = pbt.conn_at_intrablock_bond_sep.shape[1]
+        intra_separation = torch.full(
+            (*block_type_ind64.shape, max_n_conn, max_n_conn),
+            MAX_SIG_BOND_SEPARATION,
+            dtype=torch.int32,
+            device=pbt.device,
+        )
+        intra_separation[real_blocks] = pbt.conn_at_intrablock_bond_sep[
+            block_type_ind64[real_blocks]
+        ]
+        return InterBlockBondsep.from_bonded_graph(
+            counts, intra_separation, inter_residue_connections64
+        )
 
     @classmethod
     @validate_args

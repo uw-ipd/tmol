@@ -1,11 +1,21 @@
+from pathlib import Path
+
+import numpy as np
 import pytest
 import torch
 
 from tmol.chemical import MAX_SIG_BOND_SEPARATION
-from tmol.io import pose_stack_from_pdb
+from tmol.io import (
+    atom_array_from_cif,
+    build_context_from_biotite,
+    pose_stack_from_biotite,
+    pose_stack_from_pdb,
+)
 from tmol.pose import InterBlockBondsep, PoseStackBuilder
-from tmol.pose.compiled import block_bondsep
+from tmol.pose.compiled import block_bondsep, stacked_apsp
 from tmol.tests.pose.compiled.test_block_bondsep import random_case
+
+DATA = Path(__file__).parents[1] / "data"
 
 
 def near_block_slot(row, block2):
@@ -134,6 +144,121 @@ def test_a_chain_stores_only_residues_two_apart(ubq_pdb, torch_device):
         assert near == list(range(max(block1 - 2, 0), min(block1 + 3, n_blocks)))
     assert ibb.n_slots == 6
     assert ibb.bondsep.nbytes == n_blocks * 6 * ibb.max_n_conn**2
+
+
+def random_bonded_graph(seed, device):
+    """Random blocks with symmetric intra-block separations and random bonds."""
+    generator = torch.Generator().manual_seed(seed)
+    n_poses, n_blocks, max_n_conn = (
+        int(torch.randint(1, hi, (1,), generator=generator)) for hi in (4, 12, 5)
+    )
+    counts = torch.randint(0, max_n_conn + 1, (n_poses, n_blocks), generator=generator)
+    intra = torch.randint(
+        0, 9, (n_poses, n_blocks, max_n_conn, max_n_conn), generator=generator
+    )
+    intra = torch.minimum(intra, intra.transpose(2, 3))
+    intra.diagonal(dim1=2, dim2=3).zero_()
+    connections = torch.full((n_poses, n_blocks, max_n_conn, 2), -1, dtype=torch.int64)
+    for pose in range(n_poses):
+        ends = torch.nonzero(torch.arange(max_n_conn) < counts[pose, :, None])
+        ends = ends[torch.randperm(ends.shape[0], generator=generator)]
+        n_bonds = int(
+            torch.randint(0, ends.shape[0] // 2 + 1, (1,), generator=generator)
+        )
+        first, second = ends[:n_bonds], ends[n_bonds : 2 * n_bonds]
+        connections[pose, first[:, 0], first[:, 1]] = second
+        connections[pose, second[:, 0], second[:, 1]] = first
+    return (
+        counts.to(torch.int32).to(device),
+        intra.to(torch.int32).to(device),
+        connections.to(device),
+    )
+
+
+@pytest.mark.parametrize("seed", range(12))
+def test_the_bounded_search_matches_all_pairs_shortest_paths(seed, torch_device):
+    counts, intra, connections = random_bonded_graph(seed, torch_device)
+    offsets = torch.cumsum(counts.to(torch.int64), 1) - counts.to(torch.int64)
+    n_nodes = max(int(counts.sum(1).max()), 1)
+    real = torch.arange(intra.shape[2], device=torch_device) < counts[..., None]
+    pose, block, conn1, conn2 = torch.nonzero(
+        real[..., :, None] & real[..., None, :], as_tuple=True
+    )
+    distances = torch.full(
+        (counts.shape[0], n_nodes, n_nodes),
+        MAX_SIG_BOND_SEPARATION,
+        dtype=torch.int32,
+        device=torch_device,
+    )
+    distances[pose, offsets[pose, block] + conn1, offsets[pose, block] + conn2] = intra[
+        pose, block, conn1, conn2
+    ]
+    pose, block, conn = torch.nonzero(connections[..., 0] >= 0, as_tuple=True)
+    partner = connections[pose, block, conn]
+    distances[
+        pose, offsets[pose, block] + conn, offsets[pose, partner[:, 0]] + partner[:, 1]
+    ] = 1
+    stacked_apsp(distances, MAX_SIG_BOND_SEPARATION)
+
+    ibb = InterBlockBondsep.from_bonded_graph(counts, intra, connections)
+
+    assert_well_formed(ibb)
+    torch.testing.assert_close(
+        ibb.to_dense(),
+        InterBlockBondsep.from_connectivity(
+            distances, offsets, counts, intra.shape[2]
+        ).to_dense(),
+    )
+
+
+def heavy_pose_stack(name, device):
+    array = atom_array_from_cif(DATA / "metal_fixtures" / f"{name}.cif.gz")
+    array = array[np.char.upper(array.element.astype(str)) != "H"]
+    context = build_context_from_biotite(array, device)
+    return pose_stack_from_biotite(array, device, context=context, no_optH=True)
+
+
+def dense_apsp_bondsep(pose_stack):
+    """The builder's all-pairs-shortest-path construction, as a reference."""
+    pbt, block_types = pose_stack.packed_block_types, pose_stack.block_type_ind64
+    pconn, offsets, counts, _ = PoseStackBuilder._take_real_conn_conn_intrablock_pairs(
+        pbt, block_types, block_types >= 0
+    )
+    PoseStackBuilder._incorporate_inter_residue_connections_into_connectivity_graph(
+        pose_stack.inter_residue_connections64, offsets, pconn
+    )
+    return PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph(
+        pbt, offsets, counts, pconn
+    ).to_dense()
+
+
+@pytest.mark.parametrize(
+    "structure",
+    [
+        "ubq_stack",
+        "clf_nitrogenase_7adr",
+        "sf4_ferredoxin_1fdn",
+        "zn_tetrahedral_3ks3",
+        "nco_zdna_1dn8",
+        "heme_myoglobin_5yce",
+    ],
+)
+def test_the_bounded_search_finds_every_short_path(structure, ubq_pdb, torch_device):
+    if structure == "ubq_stack":
+        pose_stack = PoseStackBuilder.from_poses(
+            [
+                pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=n)
+                for n in (9, 40)
+            ],
+            torch_device,
+        )
+    else:
+        pose_stack = heavy_pose_stack(structure, torch_device)
+
+    assert_well_formed(pose_stack.inter_block_bondsep)
+    torch.testing.assert_close(
+        pose_stack.inter_block_bondsep.to_dense(), dense_apsp_bondsep(pose_stack)
+    )
 
 
 def test_pose_stacks_keep_their_separations_when_stacked(ubq_pdb, torch_device):

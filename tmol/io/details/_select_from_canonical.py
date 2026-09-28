@@ -272,28 +272,9 @@ def assign_block_types(
         pbt, block_type_ind64, inter_residue_connections64
     )
 
-    # proceed with the rest of the PoseStackBuilder's steps
-    # in constructing the inter_block_bondsep tensor using the
-    # all-pairs-shortest-path algorithm
-    # 3a
-    (
-        pconn_matrix,
-        pconn_offsets,
-        block_n_conn,
-        _,
-    ) = PoseStackBuilder._take_real_conn_conn_intrablock_pairs(
-        pbt, block_type_ind64, is_real_res
-    )
-
-    # 3b
-    PoseStackBuilder._incorporate_inter_residue_connections_into_connectivity_graph(
-        inter_residue_connections64, pconn_offsets, pconn_matrix
-    )
-
-    # 4
-    # ibb64 is the pose stack's inter_block_bondsep
-    ibb64 = PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph(
-        pbt, pconn_offsets, block_n_conn, pconn_matrix
+    # the pose stack's inter_block_bondsep
+    ibb64 = PoseStackBuilder._inter_block_bondsep_from_connections(
+        pbt, block_type_ind64, is_real_res, inter_residue_connections64
     )
 
     return (block_type_ind64, inter_residue_connections64, ibb64)
