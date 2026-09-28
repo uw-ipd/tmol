@@ -314,12 +314,6 @@ def with_unresolved_atoms(atom_array, declared: dict, *, use_ccd: bool = True):
     Declared leaving groups and unobserved carbonyl/phosphoryl substitution branches are
     absent at their connection sites. Other unresolved atoms retain identity.
     """
-    from tmol.ligand._input_repair import (
-        get_absent_substitution_leaving_groups,
-        get_leaving_atom_groups,
-    )
-    from tmol.ligand._polymer_profile import completed_connection_atoms
-
     boundaries = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
     starts = boundaries[:-1]
     connections = _connection_atoms_by_residue(atom_array, boundaries)
@@ -327,6 +321,12 @@ def with_unresolved_atoms(atom_array, declared: dict, *, use_ccd: bool = True):
     chemistry = {}
     warned: set = set()
     additions: dict[int, list] = {}
+    # The answer depends only on a residue's name, atoms, their resolution and
+    # its connections, which repeat across a polymer.
+    resolved: dict[tuple, list[str] | None] = {}
+    atom_names = atom_array.atom_name
+    elements = atom_array.element
+    finite = np.isfinite(atom_array.coord).all(axis=-1)
     for ri, (start, stop) in enumerate(zip(starts, boundaries[1:])):
         res_name = str(atom_array.res_name[start]).strip()
         if res_name not in templates and use_ccd:
@@ -334,51 +334,78 @@ def with_unresolved_atoms(atom_array, declared: dict, *, use_ccd: bool = True):
         template = templates.get(res_name)
         if template is None:
             continue
-        residue = atom_array[start:stop]
-        present = {str(n) for n in residue.atom_name}
-        if res_name not in chemistry:
-            chemistry[res_name] = (
-                frozenset(
-                    str(n)
-                    for n, e in zip(template.atom_name, template.element)
-                    if e not in ("H", "D")
-                ),
-                get_leaving_atom_groups(template),
+        linked = frozenset(connections.get(ri, ()))
+        key = (
+            res_name,
+            tuple(atom_names[start:stop].tolist()),
+            tuple(elements[start:stop].tolist()),
+            finite[start:stop].tobytes(),
+            linked,
+        )
+        if key not in resolved:
+            resolved[key] = _unresolved_heavy_atoms(
+                res_name, atom_array[start:stop], template, linked, chemistry, warned
             )
-        heavy, leaving = chemistry[res_name]
-        observed_heavy = {
-            str(n)
-            for n, e in zip(residue.atom_name, residue.element)
-            if e not in ("H", "D")
-        }
-        if not observed_heavy or not observed_heavy <= heavy:
-            if res_name in warned:
-                continue
+        missing = resolved[key]
+        if missing:
+            additions[int(start)] = (missing, template)
+    if not additions:
+        return atom_array
+    return _inserted(atom_array, starts, additions)
+
+
+def _unresolved_heavy_atoms(
+    res_name: str, residue, template, linked: frozenset, chemistry: dict, warned: set
+) -> list[str] | None:
+    """Sorted heavy template atoms ``residue`` lacks; ``None`` if taken as resolved.
+
+    ``chemistry`` caches each component's heavy atoms and leaving groups, and
+    ``warned`` holds the components already reported as unaccounted for.
+    """
+    from tmol.ligand._input_repair import (
+        get_absent_substitution_leaving_groups,
+        get_leaving_atom_groups,
+    )
+    from tmol.ligand._polymer_profile import completed_connection_atoms
+
+    present = {str(n) for n in residue.atom_name}
+    if res_name not in chemistry:
+        chemistry[res_name] = (
+            frozenset(
+                str(n)
+                for n, e in zip(template.atom_name, template.element)
+                if e not in ("H", "D")
+            ),
+            get_leaving_atom_groups(template),
+        )
+    heavy, leaving = chemistry[res_name]
+    observed_heavy = {
+        str(n)
+        for n, e in zip(residue.atom_name, residue.element)
+        if e not in ("H", "D")
+    }
+    if not observed_heavy or not observed_heavy <= heavy:
+        if res_name not in warned:
             warned.add(res_name)
             logger.warning(
                 "%s: the chemistry available for it does not account for the "
                 "atoms the file resolved, so it is taken as resolved",
                 res_name,
             )
-            continue
-        # Endpoint valence is meaningful only on the complete component
-        # topology, before unresolved heavy atoms are inserted below.
-        ends = completed_connection_atoms(template, frozenset(connections.get(ri, ())))
-        missing = set(heavy - present)
-        for end in ends or ():
-            for group in leaving.get(end, ()):
-                if present.isdisjoint(group):
-                    missing.difference_update(group)
-        for group in get_absent_substitution_leaving_groups(
-            template, residue, set(ends or ())
-        ).values():
-            missing.difference_update(group)
-        missing = sorted(missing)
-        if missing:
-            additions[int(start)] = (missing, template)
-    if not additions:
-        return atom_array
-    return _inserted(atom_array, starts, additions)
+        return None
+    # Endpoint valence is meaningful only on the complete component
+    # topology, before unresolved heavy atoms are inserted below.
+    ends = completed_connection_atoms(template, linked)
+    missing = set(heavy - present)
+    for end in ends or ():
+        for group in leaving.get(end, ()):
+            if present.isdisjoint(group):
+                missing.difference_update(group)
+    for group in get_absent_substitution_leaving_groups(
+        template, residue, set(ends or ())
+    ).values():
+        missing.difference_update(group)
+    return sorted(missing)
 
 
 def _connection_atoms_by_residue(atom_array, boundaries=None) -> dict:
