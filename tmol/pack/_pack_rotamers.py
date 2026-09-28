@@ -301,6 +301,9 @@ def _slice_packer_task(task: PackerTask, first_pose: int, last_pose: int) -> Pac
     for attribute in _PACKER_TASK_POSE_TENSORS:
         value = getattr(task, attribute)
         setattr(chunk_task, attribute, value[first_pose:last_pose])
+    offset = getattr(task, "per_block_considered_block_type_offset", None)
+    if offset is not None:
+        chunk_task.per_block_considered_block_type_offset = offset[first_pose:last_pose]
     chunk_task.real_block_pose, chunk_task.real_block_block = torch.nonzero(
         chunk_task.is_real_block, as_tuple=True
     )
@@ -441,6 +444,14 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
             collapse.compact_to_orig[rotamer_for_nonmolten_block.clamp(min=0)],
             rotamer_for_nonmolten_block,
         )
+    offset = getattr(task, "per_block_considered_block_type_offset", None)
+    if offset is not None:
+        # imports tmol.io and AtomWorks, which packing otherwise never loads
+        from tmol.pack.protonation_alternatives import rotamer_offsets
+
+        energy1b = energy1b + rotamer_offsets(offset, task, rotamer_set)[
+            bc_rot_to_orig_rot.to(torch.int64)
+        ].to(energy1b.dtype)
 
     packer_energy_tables = PackerEnergyTables(
         max_n_rotamers_per_pose=max_n_bump_checked_rotamers_per_pose_tensor.item(),

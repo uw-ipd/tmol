@@ -10,6 +10,7 @@ from atomworks.experimental.protonation import (
     hydrogen_plan,
     names_from_parent,
     place_hydrogens,
+    protonation_alternatives,
 )
 from atomworks.io.utils.atom_array_plus import concatenate_any
 from atomworks.io.utils.bonds import find_disulfides
@@ -28,6 +29,11 @@ from tmol.io._cif import _FORMAL_CHARGE_SPECIFIED
 
 # per atom, the res_type_variant its residue's protonation state selects; -1 for none
 PROTONATION_VARIANT = "tmol_protonation_variant"
+# per atom, its residue's protonation alternatives as "label:offset,..." (kcal/mol); "" for none
+PROTONATION_ALTERNATIVES = "tmol_protonation_alternatives"
+# AtomWorks site kinds whose every alternative is a database block type; there is
+# no neutral alpha-amino terminus type, so N termini keep their assigned state
+BLOCK_TYPE_SITE_KINDS = ("his", "cys")
 _HYDROGEN = ("H", "D")
 _WATER = ("HOH", "DOD", "WAT")
 _CARRIES_HYDROGEN = ("C", "N", "O", "S", "P", "B", "SE")
@@ -38,6 +44,73 @@ Forms = tuple[tuple[str, ...], dict[tuple[tuple[int, ...], bool], int]]
 _FORMS: dict[int, tuple] = {}
 # AtomWorks' (hydrogen count, charge) of each heavy atom, by residue context
 _STATES: dict[str, dict[str, tuple[int, int]]] = {}
+# AtomWorks' protonation alternatives of a residue, encoded, by residue context
+_ALTERNATIVES: dict[str, str] = {}
+
+
+def parse_protonation_alternatives(value: str) -> dict[str, float]:
+    """``{label: offset}`` of one residue's ``PROTONATION_ALTERNATIVES`` value.
+
+    Alternative 0 (the assigned state) comes first; offsets are kcal/mol
+    relative to it. An empty value has none.
+    """
+    out = {}
+    for entry in filter(None, str(value).split(",")):
+        label, offset = entry.rsplit(":", 1)
+        out[label] = float(offset)
+    return out
+
+
+def _encoded_alternatives(
+    source: numpy.ndarray, state: struc.AtomArray, ph: float
+) -> dict[int, str]:
+    """``{model index of a residue's first state atom: encoded alternatives}``."""
+    alternatives = protonation_alternatives(state, ph=ph)
+    out = {}
+    for site in range(alternatives.n_sites):
+        if alternatives.site_kind[site] not in BLOCK_TYPE_SITE_KINDS:
+            continue
+        rows = alternatives.alternatives_of(site)
+        out[int(source[alternatives.site_res_start[site]])] = ",".join(
+            f"{label}:{float(offset)!r}"
+            for label, offset in zip(
+                alternatives.alt_label[rows], alternatives.alt_offset[rows]
+            )
+        )
+    return out
+
+
+def _remember_alternatives(
+    new: Mapping[str, int],
+    source: numpy.ndarray,
+    state: struc.AtomArray,
+    residue_of: numpy.ndarray,
+    ph: float,
+) -> None:
+    """Cache the encoded alternatives of each ``new`` context's residue."""
+    encoded = {
+        int(residue_of[i]): value
+        for i, value in _encoded_alternatives(source, state, ph).items()
+    }
+    for key, r in new.items():
+        _ALTERNATIVES[key] = encoded.get(r, "")
+
+
+def _alternatives_by_atom(
+    n_residues: int, asked: list[int], keys: list[str], residue_of: numpy.ndarray
+) -> numpy.ndarray:
+    """Per atom, the cached encoded alternatives of its residue; "" for none."""
+    per_residue = numpy.full(n_residues, "", dtype=object)
+    for r, key in zip(asked, keys):
+        per_residue[r] = _ALTERNATIVES[key]
+    return per_residue[residue_of].astype(str)
+
+
+def _annotated(structure, annotations: Mapping[str, numpy.ndarray]):
+    """``structure`` with ``annotations`` set, in order."""
+    for name, values in annotations.items():
+        structure.set_annotation(name, values)
+    return structure
 
 
 def hydrogen_names_by_parent(
@@ -142,6 +215,7 @@ def with_atomworks_hydrogens(
     coordination: numpy.ndarray | None = None,
     backbone: Mapping[str, tuple[str | None, str | None]] | None = None,
     forms: Mapping[str, Forms] | None = None,
+    alternatives: bool = False,
 ) -> struc.AtomArray | struc.AtomArrayStack:
     """``structure`` with AtomWorks' protonation of every residue that has no hydrogen.
 
@@ -165,6 +239,10 @@ def with_atomworks_hydrogens(
             through which consecutive residues of a chain are bonded for
             AtomWorks where the structure leaves them unbonded.
         forms: ``database_forms`` of the residues tmol builds itself.
+        alternatives: Also mark every atom of a residue named in ``forms``
+            ``PROTONATION_ALTERNATIVES`` with AtomWorks'
+            ``protonation_alternatives`` of its free histidine or cysteine at
+            ``ph``, from the first model.
 
     Returns:
         ``structure`` itself when nothing lacks hydrogens, else a new structure.
@@ -206,7 +284,7 @@ def with_atomworks_hydrogens(
     keys = _contexts(template, starts, residue_of, numpy.r_[bonds, extra], asked, ph)
     new = {}
     for r, key in zip(asked, keys):
-        if key not in _STATES:
+        if key not in _STATES or (alternatives and key not in _ALTERNATIVES):
             new.setdefault(key, r)
     call = placing.copy()
     call[list(new.values())] = True
@@ -221,10 +299,11 @@ def with_atomworks_hydrogens(
             if stack
             else [structure]
         )
-        placed = [
-            _placed_hydrogens(model, selected[residue_of] & ~is_h, ph, extra)
+        states = [
+            _protonation_state(model, selected[residue_of] & ~is_h, ph, extra)
             for model in models
         ]
+        placed = [_hydrogens_of(*state) for state in states]
         parent, names, charge, _, free = placed[0]
         count = numpy.bincount(parent, minlength=n_atoms)
         count[free] = -1
@@ -235,13 +314,19 @@ def with_atomworks_hydrogens(
                 str(template.atom_name[i]): (int(count[i]), int(state_charge[i]))
                 for i in range(starts[r], starts[r + 1])
             }
+        if alternatives:
+            _remember_alternatives(new, *states[0][:2], residue_of, ph)
 
     variant = numpy.full(n_atoms, -1, dtype=numpy.int8)
     for r, key in zip(asked, keys):
         variant[starts[r] : starts[r + 1]] = _variant(forms[res_name[r]], _STATES[key])
+    marked = {PROTONATION_VARIANT: variant}
+    if alternatives:
+        marked[PROTONATION_ALTERNATIVES] = _alternatives_by_atom(
+            len(starts) - 1, asked, keys, residue_of
+        )
     if not placing.any():
-        out = structure.copy()
-        out.set_annotation(PROTONATION_VARIANT, variant)
+        out = _annotated(structure.copy(), marked)
         return out if bonds_given else _unbonded(out)
 
     if any(
@@ -268,7 +353,7 @@ def with_atomworks_hydrogens(
     kept = ~(is_h & placing[residue_of])
     base = structure.copy()
     base.set_annotation("charge", charges.astype(numpy.int8))
-    base.set_annotation(PROTONATION_VARIANT, variant)
+    _annotated(base, marked)
     if "charge" not in categories and _FORMAL_CHARGE_SPECIFIED not in categories:
         base.set_annotation(_FORMAL_CHARGE_SPECIFIED, placing[residue_of])
     # a bond table cannot be indexed with repeated atoms
@@ -544,6 +629,20 @@ def _placed_hydrogens(
     coordinates, the ``(index, charge)`` of every protonated heavy atom, and
     the heavy atoms whose tautomer AtomWorks leaves free.
     """
+    return _hydrogens_of(*_protonation_state(model, heavy_mask, ph, extra_bonds))
+
+
+def _protonation_state(
+    model: struc.AtomArray,
+    heavy_mask: numpy.ndarray,
+    ph: float,
+    extra_bonds: numpy.ndarray,
+):
+    """AtomWorks' state of the ``heavy_mask`` atoms of one model.
+
+    Returns the model index of each state atom, the state, its chelate bonds
+    and the custom-CCD registry it was decided with.
+    """
     from tmol.io._pose_stack_from_biotite import _with_metal_coordination_typed
 
     source = numpy.flatnonzero(heavy_mask)
@@ -572,6 +671,12 @@ def _placed_hydrogens(
         )
         # sub has no hydrogens, so the state's atoms are sub's, in order
         state = assign_hydrogens(sub, ph=ph)
+    return source, state, chelates, registry
+
+
+def _hydrogens_of(source, state, chelates, registry):
+    """``_placed_hydrogens``' result for a state from ``_protonation_state``."""
+    with custom_ccd_residues(registry):
         plan = hydrogen_plan(state)
     hydrogens = numpy.bincount(plan.parent, minlength=len(state))
     return (

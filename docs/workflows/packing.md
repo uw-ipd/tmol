@@ -60,3 +60,32 @@ task instead of this fixed-sequence recipe. {doc}`FastRelax
 </tutorial/06_fast_relax>` composes packing with minimization, while
 {doc}`08 — Working with DNA and RNA </tutorial/08_nucleic_acids>` uses an
 NA-specific chi sampler and explicit masks.
+
+## Protonation alternatives
+
+Packing keeps each residue's protonation state by default. To let free
+histidines and cysteines also take the other states AtomWorks lists for them
+(`HIS`, `HIS_D`, `HIS_POS`; `CYS`, `CYS_DEP`), record the alternatives when
+building the pose and turn them on in the palette:
+
+```python
+from tmol.pack.protonation_alternatives import chosen_protonation_variants
+
+pose_stack = pose_stack_from_biotite(
+    structure, device, protonation_alternatives=True
+)
+task = PackerTask(pose_stack, PackerPalette(protonation_alternatives=True))
+# ... restrict_to_repacking and samplers as above ...
+packed_pose_stack = pack_rotamers(pose_stack, sfxn, task)
+for choice in chosen_protonation_variants(packed_pose_stack):
+    print(choice.chain, choice.res_label, choice.label, choice.charge)
+```
+
+Only residues without input hydrogens and not bound to a metal or another
+residue record alternatives. Each alternative's block type gets its offset,
+`1.364 * (pH - pKa)` kcal/mol for the protonated form relative to the assigned
+state (model pKa 6.5 for histidine, 8.3 for cysteine), as a one-body energy in
+the packer. The offset is not part of score-function totals. The score
+function is not calibrated for proton transfer, so treat the chosen states as
+hypotheses. N termini keep their assigned state: the database has no neutral
+alpha-amino terminus type.
