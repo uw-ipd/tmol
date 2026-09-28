@@ -41,19 +41,7 @@ def test_partial_sugar_rings_construct_score_and_minimize(torch_device, monkeypa
     ]
     partial = sugars[-1]
     assert partial.res_name[0] == "MAN"
-    assert set(partial.atom_name) == {
-        "C1",
-        "C2",
-        "C3",
-        "C4",
-        "C5",
-        "C6",
-        "O2",
-        "O3",
-        "O4",
-        "O5",
-        "O6",
-    }
+    assert set(partial.atom_name) == set("C1 C2 C3 C4 C5 C6 O2 O3 O4 O5 O6".split())
     assert {"C1", "C2", "C3", "C4", "C5", "O5"} <= set(partial.atom_name)
     assert set(partial.atom_name[np.isfinite(partial.coord).all(axis=-1)]) == {"C1"}
     bonds = {
@@ -64,13 +52,7 @@ def test_partial_sugar_rings_construct_score_and_minimize(torch_device, monkeypa
     assert all(frozenset(pair) in bonds for pair in zip(ring[:-1], ring[1:]))
     template = array._custom_ccd_registry["MAN"]
     stereo = dict(zip(template.atom_name, template.stereo))
-    assert [stereo[name] for name in ("C1", "C2", "C3", "C4", "C5")] == [
-        "S",
-        "S",
-        "S",
-        "S",
-        "R",
-    ]
+    assert [stereo[name] for name in ("C1", "C2", "C3", "C4", "C5")] == list("SSSSR")
     template_before = template.copy()
     metal = array.element == "CA"
     assert_metal_bonds_are_coordination(array, metal)
