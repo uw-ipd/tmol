@@ -200,6 +200,7 @@ def canonical_form_from_pose_stack(
         metal_sites=metal_sites,
         metal_coordination=metal_coordination,
         metal_origins=pose_stack.pdb_info.metal_origins,
+        residue_annotations=pose_stack.pdb_info.residue_annotations,
     )
 
 

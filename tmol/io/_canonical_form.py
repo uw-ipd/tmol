@@ -57,6 +57,8 @@ class CanonicalForm:
     # n_poses x max_n_res: for a metal split out of a component, (res label,
     # insertion code, res name, atom name) of where it sat; None elsewhere
     metal_origins: Optional[NDArray[object][:, :]] = None
+    # n_poses x max_n_res structured array of the input's RESIDUE_ANNOTATIONS
+    residue_annotations: Optional[numpy.ndarray] = None
 
     def __iter__(self):
         return iter(attr.astuple(self, recurse=False))

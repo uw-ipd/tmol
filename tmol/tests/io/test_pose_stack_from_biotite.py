@@ -14,7 +14,8 @@ from tmol.io import (
     pose_stack_from_cif,
     biotite_from_pose_stack,
 )
-from tmol.io._pose_stack_from_biotite import _renumbered_for_cif
+from tmol.io._pose_stack_from_biotite import RESIDUE_ANNOTATIONS, _renumbered_for_cif
+from tmol.pose import PoseStackBuilder
 from tmol.tests.data import data_path, load_cif
 
 _CI_CIF_CODES = [
@@ -633,6 +634,41 @@ def test_export_rebuilds_the_pose_exactly(path):
         rebuilt.inter_residue_connections64, pose_stack.inter_residue_connections64
     )
     torch.testing.assert_close(rebuilt.coords, pose_stack.coords, equal_nan=True)
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        ("cif", "1BL8.cif"),
+        ("cif", "155c__1__1.A__1.B.cif"),
+    ],
+    ids=["1bl8_ions", "155c_heme"],
+)
+def test_export_keeps_the_input_residue_annotations(path):
+    """Exported atoms carry their input residue's annotations through batching."""
+    structure = atom_array_from_cif(data_path(*path))
+    device = torch.device("cpu")
+    pose_stack, context = pose_stack_from_biotite(
+        structure, device, prepare_ligands=True, no_optH=True, return_context=True
+    )
+    batch = PoseStackBuilder.from_poses([pose_stack, pose_stack], device)
+    exported = biotite_from_pose_stack(batch, context.canonical_ordering)
+
+    def key(array, i):
+        return (array.chain_id[i], array.res_id[i], array.ins_code[i])
+
+    expected = {
+        key(structure, i): tuple(
+            structure.get_annotation(name)[i] for name in RESIDUE_ANNOTATIONS
+        )
+        for i in range(structure.array_length())
+    }
+    for i in range(exported.array_length()):
+        assert expected[key(exported, i)] == tuple(
+            exported.get_annotation(name)[i] for name in RESIDUE_ANNOTATIONS
+        )
+    assert exported.is_polymer.any() and not exported.is_polymer.all()
+    assert (exported.hetero[~exported.is_polymer]).all()
 
 
 def _residues(ids, chains, ins=None):

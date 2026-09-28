@@ -37,6 +37,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
     metal_sites: Optional[Tensor[torch.int64][:, 3]] = None,
     metal_coordination: Optional[Tensor[torch.int64][:, 5]] = None,
     metal_origins: Optional[NDArray[object][:, :]] = None,
+    residue_annotations: Optional[numpy.ndarray] = None,
     *,
     trust_hydrogen_names: bool = False,
     find_additional_disulfides: Optional[bool] = True,
@@ -83,6 +84,8 @@ def pose_stack_from_canonical_form(  # noqa: C901
             for listed metals, atom in canonical ordering.
         metal_origins: Per residue, where a metal split out of a component
             sat, kept in pdb_info so export can put it back.
+        residue_annotations: Per residue, input annotations such as
+            is_polymer, kept in pdb_info and written back on export.
         find_additional_metal_coordination: Detect the geometry and donors of
             metals absent from metal_sites; otherwise they take their default
             geometry with every site open.
@@ -108,9 +111,9 @@ def pose_stack_from_canonical_form(  # noqa: C901
         find_metal_geometries,
         metal_connection_rows,
         place_site_virtuals,
-        select_donor_variants,
         with_donor_patches,
     )
+    from tmol.io.details._protonation_variants import select_protonation_variants
     from tmol.io.details import resolve_his_tautomerization
     from tmol.io.details import (
         assign_block_types,
@@ -144,7 +147,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
     # step 2: remove any "virtual residues," marked with a res-type ind of -1
     #         by shifting all of the residues in each Pose "to the left"
     # step 3: resolve disulfides and cyclic-chain closures
-    # step 4: resolve his tautomer, then coordinating variants and the donor
+    # step 4: resolve his tautomer, then protonation variants and the donor
     #         forms metal connections need
     # step 5: resolve termini variants, assign block-types to each input
     #         residue, and populate the inter-block connectivity tensors
@@ -262,11 +265,16 @@ def pose_stack_from_canonical_form(  # noqa: C901
         canonical_ordering, res_types, res_type_variants, coords, atom_is_present
     )
 
-    # 4a: a donor must be able to donate: coordination selects the deprotonated
-    #     form or the other histidine tautomer. After 4, which rewrites every
-    #     histidine's variant.
-    res_type_variants = select_donor_variants(
-        canonical_ordering, pbt.chem_db, res_types, res_type_variants, metal_assignments
+    # 4a: protonation follows the hydrogens present. After 4, which rewrites
+    #     every histidine's variant.
+    res_type_variants = select_protonation_variants(
+        canonical_ordering,
+        pbt.chem_db,
+        res_types,
+        res_type_variants,
+        resolved_atom_is_present,
+        metal_assignments,
+        covalent_bonds,
     )
 
     # 4b: a coordinating atom needs a connection its metal can fill; those
@@ -366,6 +374,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
         atom_occupancy=atom_occupancy_pose_layout,
         atom_b_factor=atom_b_factor_pose_layout,
         metal_origins=metal_origins,
+        residue_annotations=residue_annotations,
     )
 
     block_coord_offset64 = i64(block_coord_offset)

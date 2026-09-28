@@ -91,6 +91,52 @@ def test_mirror_image_scores_identically(
     ), f"terms differ between a structure and its mirror: {differing}"
 
 
+def _paired_hydrogens(pose_stack):
+    """``{(block, name): coordinate}`` of each hydrogen sharing its parent with
+    exactly one other, outside glycine, one type for both images."""
+    pbt = pose_stack.packed_block_types
+    coords = pose_stack.coords[0].detach().cpu().numpy()
+    out = {}
+    for block, ind in enumerate(pose_stack.block_type_ind[0].tolist()):
+        if ind < 0:
+            continue
+        bt = pbt.active_block_types[ind]
+        if bt.base_name == "GLY":
+            continue
+        is_h = pbt.atom_is_hydrogen[ind].cpu().numpy().astype(bool)
+        hydrogens_of = {}
+        for a, b in bt.bond_indices:
+            if is_h[b] and not is_h[a]:
+                hydrogens_of.setdefault(int(a), []).append(int(b))
+        offset = int(pose_stack.block_coord_offset[0, block])
+        for hydrogens in hydrogens_of.values():
+            if len(hydrogens) == 2:
+                for h in hydrogens:
+                    out[block, bt.atoms[h].name] = coords[offset + h]
+    return out
+
+
+def test_mirror_image_hydrogens_take_mirrored_names(
+    symmetric_gly_db, torch_device
+) -> None:
+    """A CH2 or NH2 hydrogen placed on the D image sits where its L namesake's
+    mirror does, though AtomWorks' dictionary names the D sites the other way.
+    """
+    left, right = (
+        _paired_hydrogens(
+            _pose(f"{MIRROR_PAIR}_{side}", symmetric_gly_db, torch_device, "rebuild")
+        )
+        for side in ("l", "d")
+    )
+    assert left.keys() == right.keys()
+    misplaced = {
+        key: float(numpy.linalg.norm(left[key] + right[key]))
+        for key in left
+        if numpy.linalg.norm(left[key] + right[key]) > 0.3
+    }
+    assert not misplaced
+
+
 def test_repacking_a_d_structure_keeps_it_d(symmetric_gly_db, torch_device) -> None:
     """Repacking must not quietly turn a D residue into its L form.
 

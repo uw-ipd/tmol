@@ -116,6 +116,20 @@ def _pose_atom_composition(pose):
     ]
 
 
+def _heavy_atoms(pose):
+    """``pose.real_atoms`` without the hydrogens."""
+    heavy = pose.real_atoms.clone()
+    is_h = pose.packed_block_types.atom_is_hydrogen.bool()
+    for p in range(pose.n_poses):
+        for block, index in enumerate(pose.block_type_ind[p].tolist()):
+            if index < 0:
+                continue
+            offset = int(pose.block_coord_offset[p, block])
+            n_atoms = pose.packed_block_types.n_atoms[index]
+            heavy[p, offset : offset + n_atoms] &= ~is_h[index, :n_atoms]
+    return heavy
+
+
 @pytest.mark.parametrize("fixture", RESIDUE_FIXTURES)
 def test_prepared_parameters_make_coordinate_only_pdb_complete(
     fixture, tmp_path, torch_device
@@ -272,9 +286,10 @@ def test_renamed_components_process_identically(fixture, torch_device):
     assert torch.isfinite(renamed.coords[renamed.real_atoms]).all()
     assert renamed.n_poses == named.n_poses
     assert int(renamed.real_atoms.sum()) == int(named.real_atoms.sum())
-    # Names differ by construction; the atoms they carry must not.
+    # Names differ by construction; the atoms they carry must not. AtomWorks
+    #    places hydrogens by dictionary geometry where it knows the component.
     assert _pose_atom_composition(renamed) == _pose_atom_composition(named)
     torch.testing.assert_close(
-        renamed.coords[renamed.real_atoms], named.coords[named.real_atoms]
+        renamed.coords[_heavy_atoms(renamed)], named.coords[_heavy_atoms(named)]
     )
     del named_context, renamed_context

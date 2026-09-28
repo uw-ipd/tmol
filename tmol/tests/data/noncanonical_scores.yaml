@@ -39,18 +39,18 @@ alpha_aa:
   rama: -17.3025
   ref: -14.8958
 dna:
-  cart_angles: 42.5921
+  cart_angles: 44.6204
   cart_hxltorsions: 0.0
   cart_impropers: 0.0
-  cart_lengths: 10.6323
-  cart_torsions: 12.2192
+  cart_lengths: 11.3736
+  cart_torsions: 12.1086
   disulfide: 0.0
   dunbrack_rot: 0.0
   dunbrack_rotdev: 0.0
   dunbrack_semirot: 0.0
-  fa_elec: -12.1229
-  fa_ljatr: -48.9801
-  fa_ljrep: 44.199
+  fa_elec: -12.0812
+  fa_ljatr: -48.9856
+  fa_ljrep: 44.0914
   fa_lk: 10.1341
   gen_torsions: 4.5184
   hbond: 0.0

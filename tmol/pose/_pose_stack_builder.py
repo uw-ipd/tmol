@@ -739,6 +739,13 @@ class PoseStackBuilder:
             if any(ps.pdb_info.metal_origins is not None for ps in pose_stacks)
             else None
         )
+        annotations = [ps.pdb_info.residue_annotations for ps in pose_stacks]
+        residue_annotations = (
+            numpy.zeros((n_poses, max_n_blocks), dtype=annotations[0].dtype)
+            if all(a is not None for a in annotations)
+            and len({a.dtype for a in annotations}) == 1
+            else None
+        )
 
         for i, pose_stack in enumerate(pose_stacks):
             offset = ps_offsets[i]
@@ -746,6 +753,10 @@ class PoseStackBuilder:
             if pose_stack.pdb_info.metal_origins is not None:
                 metal_origins[offset : (offset + len(pose_stack)), :i_nblocks] = (
                     pose_stack.pdb_info.metal_origins
+                )
+            if residue_annotations is not None:
+                residue_annotations[offset : (offset + len(pose_stack)), :i_nblocks] = (
+                    pose_stack.pdb_info.residue_annotations
                 )
             residue_labels[offset : (offset + len(pose_stack)), :i_nblocks] = (
                 pose_stack.pdb_info.residue_labels
@@ -770,6 +781,7 @@ class PoseStackBuilder:
             atom_occupancy=atom_occupancy,
             atom_b_factor=atom_b_factor,
             metal_origins=metal_origins,
+            residue_annotations=residue_annotations,
         )
 
     @classmethod

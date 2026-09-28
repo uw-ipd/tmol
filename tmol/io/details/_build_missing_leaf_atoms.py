@@ -158,8 +158,9 @@ def build_missing_leaf_atoms(
                     break
             new_pose_coords = built
         block_atom_missing = remaining
+    if conformer_blocks is not None:
         block_has_missing_atoms = torch.any(
-            remaining
+            block_atom_missing
             & ~packed_block_types.is_leaf_atom[block_types.clamp_min(0).long()]
             & real_block_atoms,
             dim=-1,

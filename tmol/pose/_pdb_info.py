@@ -42,6 +42,8 @@ class PDBInfo:
     atom_b_factor: NDArray[numpy.float32][:, :]
     # per residue: where a metal split out of a component sat, else None
     metal_origins: Optional[NDArray[object][:, :]] = None
+    # per residue: the input's RESIDUE_ANNOTATIONS as one structured array
+    residue_annotations: Optional[numpy.ndarray] = None
 
     def split(self, index) -> "PDBInfo":
         """Split out a single pose's worth of PDBInfo from a batch."""
@@ -57,5 +59,10 @@ class PDBInfo:
                 None
                 if self.metal_origins is None
                 else self.metal_origins[index : index + 1].copy()
+            ),
+            residue_annotations=(
+                None
+                if self.residue_annotations is None
+                else self.residue_annotations[index : index + 1].copy()
             ),
         )

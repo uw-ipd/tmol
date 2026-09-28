@@ -151,18 +151,34 @@ def test_missing_ligand_carbon_reconstructs_and_backpropagates(torch_device):
 
     rebuilt = rebuild(source)
     assert torch.isfinite(rebuilt.coords[rebuilt.real_atoms]).all()
-    # Fresh preparation must agree across atom order and bond order.
+    # Fresh preparation must agree across atom order and bond order; the
+    #    tensor route builds hydrogens that AtomWorks places from structures.
     other = atom_array_from_cif(DATA / "missing_ligand_carbon_5hs6.cif.gz")
-    other = other[other.res_name == "J3Z"][::-1]
-    other.bonds = struc.BondList(len(other), other.bonds.as_array()[::-1])
-    fresh = pose_stack_from_biotite(
-        other,
-        torch_device,
-        prepare_ligands=True,
-        ligand_seed=20260909,
-        no_optH=True,
+    other = other[other.res_name == "J3Z"]
+    fresh = []
+    for order in (slice(None), slice(None, None, -1)):
+        reordered = other[order]
+        reordered.bonds = struc.BondList(
+            len(reordered), other[order].bonds.as_array()[order]
+        )
+        fresh.append(
+            pose_stack_from_biotite(
+                reordered,
+                torch_device,
+                prepare_ligands=True,
+                ligand_seed=20260909,
+                no_optH=True,
+            )
+        )
+    torch.testing.assert_close(fresh[1].coords, fresh[0].coords, rtol=0, atol=0)
+    heavy = [
+        j
+        for j, atom in enumerate(residue.atoms)
+        if atom.atom_type not in hydrogen_types
+    ]
+    torch.testing.assert_close(
+        fresh[1].coords[0, heavy], rebuilt.coords[0, heavy], rtol=0, atol=0
     )
-    torch.testing.assert_close(fresh.coords, rebuilt.coords, rtol=0, atol=0)
 
     from atomworks.io.tools.rdkit import atom_array_to_rdkit
     from rdkit import Chem

@@ -330,7 +330,7 @@ def build_residue_type(  # noqa: C901
         properties=properties,
         chi_samples=chi_samples,
         default_jump_connection_atom=atom_names[nbr_idx],
-        # Autogen re-protonates: input H names/coords are stale, so pose build
-        # must rebuild them (see take_block_type_atoms_from_canonical).
+        # generated hydrogen names need not match the input's, so pose build
+        # rebuilds them unless the caller names them after the input's
         hydrogens_regenerated=True,
     )

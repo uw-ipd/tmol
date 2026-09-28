@@ -1156,6 +1156,11 @@ def _unsplit_chain_and_pdb(
         if old_pdb.metal_origins is None
         else np.full((n_poses, new_max_n_blocks), None, dtype=object)
     )
+    annotations = (
+        None
+        if old_pdb.residue_annotations is None
+        else np.zeros((n_poses, new_max_n_blocks), old_pdb.residue_annotations.dtype)
+    )
     old_chain = pose_stack.chain_id.cpu().numpy()
     for p, (blocks, m) in enumerate(zip(per_pose_blocks, old_to_new)):
         for old_b, new_b in m.items():
@@ -1167,6 +1172,8 @@ def _unsplit_chain_and_pdb(
             chain_labels[p, new_b] = old_pdb.chain_labels[p, old_b]
             if origins is not None:
                 origins[p, new_b] = old_pdb.metal_origins[p, old_b]
+            if annotations is not None:
+                annotations[p, new_b] = old_pdb.residue_annotations[p, old_b]
         for new_b, (bt_idx, kind, src) in enumerate(blocks):
             if kind != "orig":
                 continue
@@ -1187,6 +1194,7 @@ def _unsplit_chain_and_pdb(
         atom_occupancy=occ,
         atom_b_factor=bf,
         metal_origins=origins,
+        residue_annotations=annotations,
     )
     return new_chain_id, new_pdb
 

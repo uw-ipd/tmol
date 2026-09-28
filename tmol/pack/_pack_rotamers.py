@@ -266,6 +266,11 @@ def _slice_pose_stack_for_packing(
             if pdb_info.metal_origins is None
             else pdb_info.metal_origins[first_pose:last_pose].copy()
         ),
+        residue_annotations=(
+            None
+            if pdb_info.residue_annotations is None
+            else pdb_info.residue_annotations[first_pose:last_pose].copy()
+        ),
     )
 
     def view(tensor):
