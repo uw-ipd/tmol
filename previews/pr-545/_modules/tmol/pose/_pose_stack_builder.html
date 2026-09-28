@@ -742,22 +742,9 @@
             <span class="n">resolved_expoly_connections</span><span class="p">,</span> <span class="n">inter_residue_connections64</span>
         <span class="p">)</span>
 
-        <span class="c1"># 3a</span>
-        <span class="p">(</span>
-            <span class="n">pconn_matrix</span><span class="p">,</span>
-            <span class="n">pconn_offsets</span><span class="p">,</span>
-            <span class="n">block_n_conn</span><span class="p">,</span>
-            <span class="n">_</span><span class="p">,</span>
-        <span class="p">)</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_take_real_conn_conn_intrablock_pairs</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="n">block_type_ind64</span><span class="p">,</span> <span class="n">real_res</span><span class="p">)</span>
-
-        <span class="c1"># 3b</span>
-        <span class="bp">cls</span><span class="o">.</span><span class="n">_incorporate_inter_residue_connections_into_connectivity_graph</span><span class="p">(</span>
-            <span class="n">inter_residue_connections64</span><span class="p">,</span> <span class="n">pconn_offsets</span><span class="p">,</span> <span class="n">pconn_matrix</span>
-        <span class="p">)</span>
-
-        <span class="c1"># 4</span>
-        <span class="n">inter_block_bondsep</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_calculate_interblock_bondsep_from_connectivity_graph</span><span class="p">(</span>
-            <span class="n">pbt</span><span class="p">,</span> <span class="n">pconn_offsets</span><span class="p">,</span> <span class="n">block_n_conn</span><span class="p">,</span> <span class="n">pconn_matrix</span>
+        <span class="c1"># 3</span>
+        <span class="n">inter_block_bondsep</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_inter_block_bondsep_from_connections</span><span class="p">(</span>
+            <span class="n">pbt</span><span class="p">,</span> <span class="n">block_type_ind64</span><span class="p">,</span> <span class="n">real_res</span><span class="p">,</span> <span class="n">inter_residue_connections64</span>
         <span class="p">)</span>
 
         <span class="n">n_atoms</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_res</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
@@ -1682,6 +1669,36 @@
         <span class="p">)</span>
 
         <span class="n">pconn_matrix</span><span class="p">[</span><span class="n">nz_real_conn_pose_ind</span><span class="p">,</span> <span class="n">pconn_from</span><span class="p">,</span> <span class="n">pconn_to</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_inter_block_bondsep_from_connections</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
+        <span class="n">block_type_ind64</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:],</span>
+        <span class="n">real_blocks</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:],</span>
+        <span class="n">inter_residue_connections64</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InterBlockBondsep</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Bond separations between the connections of nearby blocks.</span>
+
+<span class="sd">        Searches the bonded graph of the blocks' connections only for</span>
+<span class="sd">        separations below ``MAX_SIG_BOND_SEPARATION``.</span>
+<span class="sd">        """</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">_annotate_pbt_w_intraresidue_connection_atom_distances</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
+        <span class="n">counts</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">block_type_ind64</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">counts</span><span class="p">[</span><span class="n">real_blocks</span><span class="p">]</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_conn</span><span class="p">[</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">real_blocks</span><span class="p">]]</span>
+        <span class="n">max_n_conn</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">conn_at_intrablock_bond_sep</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">intra_separation</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="o">*</span><span class="n">block_type_ind64</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">),</span>
+            <span class="n">MAX_SIG_BOND_SEPARATION</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">intra_separation</span><span class="p">[</span><span class="n">real_blocks</span><span class="p">]</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">conn_at_intrablock_bond_sep</span><span class="p">[</span>
+            <span class="n">block_type_ind64</span><span class="p">[</span><span class="n">real_blocks</span><span class="p">]</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">InterBlockBondsep</span><span class="o">.</span><span class="n">from_bonded_graph</span><span class="p">(</span>
+            <span class="n">counts</span><span class="p">,</span> <span class="n">intra_separation</span><span class="p">,</span> <span class="n">inter_residue_connections64</span>
+        <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="nd">@validate_args</span>
