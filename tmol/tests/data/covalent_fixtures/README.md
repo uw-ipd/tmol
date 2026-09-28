@@ -9,7 +9,7 @@ and a ligand conjugated to a sidechain.
 | `nglycan_tree_1ax2.cif` | PDB 1AX2 chains A, B, C | 239 + 7 + 2 | N-glycan on `ASN ND2`, three-way branch |
 | `oglycan_sia_1g1s.cif` | PDB 1G1S chains D, F | 13 + 6 | O-glycan on `THR OG1`, sialylated |
 | `lys_biotin_1bdo.cif` | PDB 1BDO chain A | 80 + 1 | biotin on `LYS NZ` |
-| `lactam_cyclic_7ag5.cif` | PDB 7AG5 chain A | 11 | C-terminal `PRO C` on `DNP NG`, closing a ring |
+| `lactam_cyclic_7ag5.cif.gz` | PDB 7AG5 chain A | 11 | C-terminal `PRO C` on `DNP NG`, closing a ring |
 
 Read these with `include_bonds=True`: the attachment bonds come from
 `struct_conn`, and nothing else in the file records them. Unlike the
@@ -58,7 +58,7 @@ written by AtomWorks. Source: local 2026-01-06 PDB mirror, compressed SHA256
 
 ## Sidechain-closed ring
 
-`lactam_cyclic_7ag5.cif` is the peptide core of a calcium-dependent lipopeptide
+`lactam_cyclic_7ag5.cif.gz` is the peptide core of a calcium-dependent lipopeptide
 antibiotic, `ASP-DNP-CPI-ASP-ASP-GLY-ASP-GLY-2RA-ILE-PRO`, model 1 with the
 first alternate location. The N-terminal lipid, both calcium ions, the bound
 ligand and the solvent were dropped; the atom records, hydrogens included, are

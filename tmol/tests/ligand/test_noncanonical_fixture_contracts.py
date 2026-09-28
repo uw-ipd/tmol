@@ -33,7 +33,7 @@ SEED = 20260915
 
 
 def _fixtures(directory):
-    return sorted(f"{directory}/{p.name}" for p in data_path(directory).glob("*.cif"))
+    return sorted(f"{directory}/{p.name}" for p in data_path(directory).glob("*.cif*"))
 
 
 # The two directories separate noncanonical *residues* from components joined

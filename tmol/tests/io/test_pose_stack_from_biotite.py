@@ -731,7 +731,7 @@ def _heavy_atom_mask(pose_stack):
         ("metal_fixtures", "heme_myoglobin_5yce.cif.gz"),
         ("metal_fixtures", "sf4_ferredoxin_2fdn.cif.gz"),
         ("metal_fixtures", "sf4_ferredoxin_1fdn.cif.gz"),
-        ("covalent_fixtures", "lactam_cyclic_7ag5.cif"),
+        ("covalent_fixtures", "lactam_cyclic_7ag5.cif.gz"),
     ],
     ids=lambda p: p[1].split(".")[0],
 )
