@@ -10,32 +10,10 @@ import biotite.structure as struc
 import biotite.structure.info as info
 import numpy as np
 import pytest
+from atomworks.constants import STANDARD_AA
 from atomworks.experimental.protonation import add_hydrogens, assign_hydrogens
 
 from tmol.io import biotite_from_pose_stack, pose_stack_from_biotite
-
-STANDARD = [
-    "ALA",
-    "ARG",
-    "ASN",
-    "ASP",
-    "CYS",
-    "GLN",
-    "GLU",
-    "GLY",
-    "HIS",
-    "ILE",
-    "LEU",
-    "LYS",
-    "MET",
-    "PHE",
-    "PRO",
-    "SER",
-    "THR",
-    "TRP",
-    "TYR",
-    "VAL",
-]
 
 
 def _tripeptide(middle):
@@ -52,9 +30,7 @@ def _tripeptide(middle):
         offset += 3.5
         parts.append(residue)
 
-    joined = parts[0]
-    for part in parts[1:]:
-        joined = joined + part
+    joined = struc.concatenate(parts)
     for i in range(2):
         c = int(np.flatnonzero((joined.res_id == i + 1) & (joined.atom_name == "C"))[0])
         n = int(np.flatnonzero((joined.res_id == i + 2) & (joined.atom_name == "N"))[0])
@@ -72,7 +48,7 @@ def _hydrogens(atom_array, res_id):
     return residue.coord[is_h & finite]
 
 
-@pytest.mark.parametrize("res_name", STANDARD)
+@pytest.mark.parametrize("res_name", STANDARD_AA)
 def test_tmol_keeps_the_hydrogens_atomworks_placed(res_name, torch_device):
     if torch_device.type != "cpu":
         pytest.skip("placement is device independent; one device is enough")
