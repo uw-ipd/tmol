@@ -184,12 +184,7 @@ def _angle(a: np.ndarray, b: np.ndarray, c: np.ndarray) -> float:
     """Angle at vertex b, in radians; zero where the points coincide."""
     if float(np.linalg.norm(a - b) * np.linalg.norm(c - b)) < 1e-12:
         return 0.0
-    return math.radians(vertex_angle(a, b, c))
-
-
-def _dihedral(a: np.ndarray, b: np.ndarray, c: np.ndarray, d: np.ndarray) -> float:
-    """Dihedral a-b-c-d, in radians."""
-    return math.radians(signed_dihedral_angle(a, b, c, d))
+    return vertex_angle(a, b, c)
 
 
 def _fragment_atom_tree(  # noqa: C901
@@ -266,7 +261,9 @@ def _atom_icoors(
             theta = math.pi - _angle(coords[name], coords[par], coords[gp])
             d = float(np.linalg.norm(coords[name] - coords[par]))
         else:
-            phi = -_dihedral(coords[name], coords[par], coords[gp], coords[ggp])
+            phi = -signed_dihedral_angle(
+                coords[name], coords[par], coords[gp], coords[ggp]
+            )
             theta = math.pi - _angle(coords[name], coords[par], coords[gp])
             d = float(np.linalg.norm(coords[name] - coords[par]))
         result.append(
@@ -307,7 +304,7 @@ def _connection_icoor(
     remote = coords[connection.partner_atom_name]
     return Icoor(
         name=connection.connection_name,
-        phi=-_dihedral(remote, coords[parent], coords[gp], coords[ggp]),
+        phi=-signed_dihedral_angle(remote, coords[parent], coords[gp], coords[ggp]),
         theta=math.pi - _angle(remote, coords[parent], coords[gp]),
         d=float(np.linalg.norm(remote - coords[parent])),
         parent=parent,

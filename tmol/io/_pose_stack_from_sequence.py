@@ -297,7 +297,7 @@ def _junction_transform(pose_stack, pose, block, bt, local, prev, placed):
         ]
     )
     dist = numpy.linalg.norm(src[2] - src[1])
-    angle = _angle(src[0], src[1], src[2])
+    angle = vertex_angle(src[0], src[1], src[2])
     torsion = numpy.radians(_junction_torsion_value(prev_bt, prev_conn))
 
     dst = numpy.array(
@@ -325,11 +325,6 @@ def _junction_torsion_value(prev_bt, prev_conn):
         if spans:
             return targets.get(tor.name, 180.0)
     return 180.0
-
-
-def _angle(a, b, c):
-    """Angle at vertex b, in radians."""
-    return math.radians(vertex_angle(a, b, c))
 
 
 def _rigid_transform(src, dst):

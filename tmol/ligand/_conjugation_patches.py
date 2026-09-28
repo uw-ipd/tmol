@@ -18,6 +18,7 @@ import attr
 import biotite.structure as struc
 import networkx
 import numpy as np
+from atomworks.experimental.protonation import signed_dihedral_angle
 from atomworks.io.utils.leaving_atoms import get_leaving_atom_groups
 
 from tmol.ligand._input_repair import get_absent_substitution_leaving_groups
@@ -218,7 +219,7 @@ def _open_valence_frame(residue_type, atom, chemdb, distance, geometry=None):
     oxygen needs the complete conjugate's generator targets and a local plane;
     its free torsion is sampled by the group packer.
     """
-    from tmol.ligand._fragmentation import _full_ideal_coords, _angle, _dihedral
+    from tmol.ligand._fragmentation import _full_ideal_coords, _angle
 
     element = _element_for_atom(residue_type, chemdb)
     neighbors = sorted(
@@ -288,7 +289,7 @@ def _open_valence_frame(residue_type, atom, chemdb, distance, geometry=None):
         parent=atom,
         grand_parent=gp,
         great_grand_parent=ggp,
-        phi=-_dihedral(remote, xyz[atom], xyz[gp], xyz[ggp]),
+        phi=-signed_dihedral_angle(remote, xyz[atom], xyz[gp], xyz[ggp]),
         theta=np.pi - _angle(remote, xyz[atom], xyz[gp]),
         d=float(distance if distance is not None else lengths.mean()),
     )
