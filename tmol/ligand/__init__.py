@@ -74,19 +74,6 @@ from ._detect import (  # noqa: F401
     nonstandard_residue_info_from_mol2_block,
     nonstandard_residue_info_from_smiles_via_mol2,
 )  # noqa: F401
-from ._dimorphite_dl import (  # noqa: F401
-    ArgParseFuncs,
-    LoadSMIFile,
-    MyParser,
-    ProtSubstructFuncs,
-    ProtectUnprotectFuncs,
-    Protonate,
-    TestFuncs,
-    UtilFuncs,
-    main,
-    print_header,
-    protonate_mol_variants,
-)  # noqa: F401
 from ._fragmentation import (  # noqa: F401
     FRAGMENT_ID_ANNOTATION,
     FragmentConnection,

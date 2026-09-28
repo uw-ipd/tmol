@@ -9,6 +9,10 @@ from collections import defaultdict
 import json
 import math
 
+from atomworks.experimental.protonation.external.dimorphite_dl.dimorphite_dl import (
+    ProtSubstructFuncs,
+    protonate_mol_variants,
+)
 from attr import evolve
 import numpy as np
 from rdkit import Chem, rdBase
@@ -18,7 +22,6 @@ from tmol.database.scoring import ConnectionCartRes, LengthGroup, AngleGroup
 from tmol.database.scoring._content_hash import content_hash
 from tmol.ligand._conjugate_model import iter_capped_conjugate_models
 from tmol.ligand._conjugation_patches import CONNECTION_PREFIX
-from tmol.ligand._dimorphite_dl import ProtSubstructFuncs, protonate_mol_variants
 from tmol.ligand._conformer_generation import _mmff_bonds_angles
 from tmol.ligand._registry import GENERATED_LENGTH_K, GENERATED_ANGLE_K
 

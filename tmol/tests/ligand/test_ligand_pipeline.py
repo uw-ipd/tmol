@@ -13,6 +13,9 @@ import biotite.structure as struc
 import numpy as np
 import pytest
 import torch
+from atomworks.experimental.protonation.external.dimorphite_dl import (
+    protonate_mol_variants,
+)
 
 from tmol.tests.data import data_path
 from tmol.io import canonical_ordering_for_biotite
@@ -22,7 +25,6 @@ from tmol.ligand import (
     _prepare_ligand_via_smiles,
     _residue_names_with_cross_residue_bonds,
     detect_nonstandard_residues,
-    protonate_mol_variants,
     inject_ligand_preparations,
 )
 

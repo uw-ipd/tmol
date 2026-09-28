@@ -1,9 +1,11 @@
 """Contracts for the Dimorphite engine and rule inventory TMol takes from AtomWorks."""
 
 import pytest
+from atomworks.experimental.protonation.external.dimorphite_dl.dimorphite_dl import (
+    ProtSubstructFuncs,
+    protonate_mol_variants,
+)
 from rdkit import Chem
-
-from tmol.ligand._dimorphite_dl import ProtSubstructFuncs, protonate_mol_variants
 
 
 class OverlappingSiteRules(ProtSubstructFuncs):

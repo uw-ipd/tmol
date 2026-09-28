@@ -378,7 +378,6 @@ it into the pose. Failure modes, in order of likelihood:
 | `_detect.py` | `NonStandardResidueInfo`, non-standard residue detection, mol2/SMILES readers |
 | `_structure_to_smiles.py` | SMILES from an AtomArray bond table (no geometry perception, no CCD lookup) |
 | `_fragmentation.py` | Fragment annotations, fragment block types/connections, pose mapping |
-| `_dimorphite_dl.py` | pKa-based protonation-state enumeration on SMILES |
 | `_conformer_generation.py` | 3D coordinates via RDKit distance geometry (replaces OpenBabel `make3D`) |
 | `_generated_geometry.py` | Corrections to known systematic errors in generated conformers |
 | `_openbabel_compat.py` | SMILES→mol2 (conformer + MMFF94 charges), mol2 read fallbacks |

@@ -921,7 +921,9 @@ def _dimorphite_protonate_smiles(
     protocol). Falls back to the input SMILES if RDKit cannot parse it or
     Dimorphite produces no variant.
     """
-    from tmol.ligand._dimorphite_dl import protonate_mol_variants
+    from atomworks.experimental.protonation.external.dimorphite_dl import (
+        protonate_mol_variants,
+    )
 
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:

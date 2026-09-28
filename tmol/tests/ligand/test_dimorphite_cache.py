@@ -1,9 +1,11 @@
 """Rule queries are bounded and cannot be poisoned through public results."""
 
 import pytest
+from atomworks.experimental.protonation.external.dimorphite_dl.dimorphite_dl import (
+    ProtSubstructFuncs,
+    protonate_mol_variants,
+)
 from rdkit import Chem
-
-from tmol.ligand._dimorphite_dl import ProtSubstructFuncs, protonate_mol_variants
 
 
 @pytest.fixture(autouse=True)
