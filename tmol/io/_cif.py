@@ -362,10 +362,9 @@ def _unresolved_heavy_atoms(
     ``chemistry`` caches each component's heavy atoms and leaving groups, and
     ``warned`` holds the components already reported as unaccounted for.
     """
-    from tmol.ligand._input_repair import (
-        get_absent_substitution_leaving_groups,
-        get_leaving_atom_groups,
-    )
+    from atomworks.io.utils.leaving_atoms import get_leaving_atom_groups
+
+    from tmol.ligand._input_repair import get_absent_substitution_leaving_groups
     from tmol.ligand._polymer_profile import completed_connection_atoms
 
     present = {str(n) for n in residue.atom_name}
