@@ -397,12 +397,12 @@ def _polymer_gap_links(
 ):
     """``[n, 3]`` polymer bonds across the gaps of each chain, as single bonds.
 
-    tmol connects consecutive residues of a chain through the upper atom of
-    the first and the lower atom of the second, gap or not; AtomWorks sees the
-    chemistry that gives them only when they are bonded. ``backbone`` gives
-    those ``(upper, lower)`` atoms by residue name; a residue it does not name
-    uses C/N when it has a CA and O3'/P when it has a C4'. Atoms already bonded
-    to another residue get none.
+    tmol connects consecutive residues of a chain, one chain ID, entity and
+    symmetry copy, through the upper atom of the first and the lower atom of
+    the second, gap or not; AtomWorks sees the chemistry that gives them only
+    when they are bonded. ``backbone`` gives those ``(upper, lower)`` atoms by
+    residue name; a residue it does not name uses C/N when it has a CA and
+    O3'/P when it has a C4'. Atoms already bonded to another residue get none.
     """
     n_res = len(starts) - 1
     if n_res < 2:
@@ -410,7 +410,11 @@ def _polymer_gap_links(
     residue_of = struc.get_all_residue_positions(template)
     names = template.atom_name
     res_name = template.res_name[starts[:-1]]
-    chain = template.chain_id[starts[:-1]]
+    same_chain = numpy.ones(n_res - 1, dtype=bool)
+    for key in ("chain_id", "label_entity_id", "sym_id"):
+        if key in template.get_annotation_categories():
+            values = template.get_annotation(key)[starts[:-1]]
+            same_chain &= values[1:] == values[:-1]
     bonds = template.bonds.as_array()[:, :2].astype(numpy.int64)
     linked = numpy.zeros(len(template), dtype=bool)
     across = residue_of[bonds[:, 0]] != residue_of[bonds[:, 1]]
@@ -433,7 +437,7 @@ def _polymer_gap_links(
         return out
 
     u, d = atom_by_residue(upper)[:-1], atom_by_residue(lower)[1:]
-    gap = (chain[:-1] == chain[1:]) & (u >= 0) & (d >= 0)
+    gap = same_chain & (u >= 0) & (d >= 0)
     gap &= ~linked[u] & ~linked[d]
     return numpy.column_stack(
         [u[gap], d[gap], numpy.full(int(gap.sum()), int(struc.BondType.SINGLE))]

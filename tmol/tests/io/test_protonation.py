@@ -55,3 +55,16 @@ def test_states_by_context_match_the_whole_structure(path):
             assert variant[start] == protonation._variant(forms[name], state)
             checked += 1
     assert checked > 10
+
+
+def test_a_ligand_numbered_after_its_chain_is_not_bonded_to_it():
+    """3T14 FAD 500 follows MET 418 in chain A; its pyrophosphate stays a dianion."""
+    structure = atom_array_from_cif(
+        data_path("atomworks_regressions", "sulfur_attachments_3t14.cif.gz")
+    )
+    heavy = structure[(structure.element != "H") & (structure.res_name != "HOH")]
+    protonated = protonation.with_atomworks_hydrogens(heavy)
+    phosphate = (protonated.res_name == "FAD") & numpy.isin(
+        protonated.atom_name, ("O1A", "O2A", "O1P", "O2P")
+    )
+    assert protonated.charge[phosphate].sum() == -2
