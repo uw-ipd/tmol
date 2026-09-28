@@ -22,11 +22,13 @@ Tests live in `tmol/tests/io/test_atomworks_corpus_regressions.py`,
 Successful numerical checks do not independently validate the force field.
 
 `plp_cap_5t4j.cif.gz` retains the complete RCSB entry referenced by the AtomWorks
-IO suite. Rebuilding unresolved sidechains triggers packing of a PLP-derived cap
-with a one-atom backbone. Its fingerprint must retain distinct substituent
-positions using the cap's connection/construction frame. The integrated test
-checks all retained source connections, opposite and reflected hydrogen labels,
-finite scoring/gradients and minimization through both readers. The AtomWorks
+IO suite. Its PLP C4A=N ABU external aldimine is a conjugate attachment, not a
+peptide bond: C4A keeps one hydrogen, N none, and the link its imine length.
+Rebuilding unresolved sidechains triggers packing. The integrated test checks
+all retained source connections, the aldimine chemistry, finite
+scoring/gradients and minimization. Built explicitly as a cap through C4A, the
+linked PLP copy gives a one-atom backbone whose fingerprint must retain distinct
+substituent positions and opposite, reflected hydrogen labels. The AtomWorks
 route additionally carries five entirely unresolved protein residues, which
 construction explicitly excludes; it is a partial-input success.
 

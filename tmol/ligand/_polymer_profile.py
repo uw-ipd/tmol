@@ -521,6 +521,28 @@ def _heavy_adjacency(atom_array):
     return adj, double, element
 
 
+def _can_cap_through(atom_array, atom: str) -> bool:
+    """Whether a terminating residue's only bond can be a peptide bond.
+
+    A carbon makes one only as an acyl carbon. Without its C=O or C=S (a
+    Schiff-base carbon whose carbonyl oxygen left, or an alkyl carbon) the
+    bond is an attachment, whose order the conjugate path keeps. Untyped
+    bonds say nothing either way and leave the cap in place.
+    """
+    _adj, double, element = _heavy_adjacency(atom_array)
+    if element.get(atom, "").strip().upper() != "C":
+        return True
+    index = numpy.flatnonzero(atom_array.atom_name == atom)
+    if (
+        len(index)
+        and (atom_array.bonds.get_bonds(int(index[0]))[1] == struc.BondType.ANY).any()
+    ):
+        return True
+    return any(
+        element.get(o, "").strip().upper() in ("O", "S") for o in double.get(atom, ())
+    )
+
+
 def _smallest_ring_size(adj, start: str, end: str) -> Optional[int]:
     """Size of the smallest ring containing the ``start``-``end`` bond."""
     queue = deque([(start, [start])])
@@ -1201,6 +1223,8 @@ def profile_for_atom_array(
         known = next(iter(connection_atoms))
         # nothing to continue the chain with: this residue terminates it
         if _chain_end_candidates(atom_array, known) == []:
+            if not _can_cap_through(atom_array, known):
+                return None
             return cap_polymer_profile(atom_array, known, chemdb)
     connection_atoms = completed_connection_atoms(atom_array, connection_atoms)
     if alpha_backbone_atoms(atom_array, connection_atoms) is not None:

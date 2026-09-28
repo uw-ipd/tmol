@@ -833,20 +833,21 @@ def take_block_type_atoms_from_canonical(
             & real_atoms
         )
 
-    canonical_atom_occupancy = numpy.zeros(
-        (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=numpy.float32
-    )
-    canonical_atom_b_factor = numpy.zeros(
-        (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=numpy.float32
-    )
-
+    canonical_atom_occupancy = None
     if atom_occupancy is not None:
+        canonical_atom_occupancy = numpy.zeros(
+            (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=numpy.float32
+        )
         canonical_atom_occupancy[real_atoms.cpu().numpy()] = atom_occupancy[
             nz_real_pose_ind.cpu().numpy(),
             nz_real_block_ind.cpu().numpy(),
             real_canonical_atom_inds.cpu().numpy(),
         ]
+    canonical_atom_b_factor = None
     if atom_b_factor is not None:
+        canonical_atom_b_factor = numpy.zeros(
+            (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=numpy.float32
+        )
         canonical_atom_b_factor[real_atoms.cpu().numpy()] = atom_b_factor[
             nz_real_pose_ind.cpu().numpy(),
             nz_real_block_ind.cpu().numpy(),

@@ -1158,6 +1158,15 @@ def biotite_from_pose_stack(
         cf, co, include_virtual_atoms
     )
     structure.bonds = _bonds_from_pose_stack(pose_stack, structure, block_for_atom)
+    if "is_polymer" not in structure.get_annotation_categories():
+        # absent input residue annotations, is_polymer follows each block type
+        block_is_polymer = numpy.array(
+            [
+                bt.properties.polymer.is_polymer
+                for bt in pose_stack.packed_block_types.active_block_types
+            ]
+        )[pose_stack.block_type_ind[0].cpu().numpy()]
+        structure.set_annotation("is_polymer", block_is_polymer[block_for_atom])
     if not include_virtual_atoms and cf.metal_origins is not None:
         structure = _with_metals_rejoined(
             structure, block_for_atom, cf.metal_origins[0]

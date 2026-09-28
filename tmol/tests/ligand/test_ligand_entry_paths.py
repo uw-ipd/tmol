@@ -180,7 +180,8 @@ def test_prepare_ligand_from_mol2_registers_residue(fixture, torch_device, tmp_p
         hydrogen = pose.coords[
             0, [i for i, atom in enumerate(bt.atoms) if atom.name != "N"]
         ]
-        assert hydrogen.shape == (3, 3)
+        # Ammonia (pKa 9.25) is ammonium at pH 7.4.
+        assert hydrogen.shape == (4, 3)
         lengths = (hydrogen - nitrogen).norm(dim=-1)
         assert torch.all((lengths > 0.9) & (lengths < 1.2))
     _score_and_minimize_ligand(pose, param_db)
