@@ -515,8 +515,13 @@ def _cluster_assignment(
             rotations.append(None)
             continue
         distances = ideal_distances(m.ion, table["donor_radii"])
+        reach = max(distances.values()) + tolerance + 1e-3
+        near = numpy.linalg.norm(donor_xyz - center, axis=1) <= reach
         order = []
         for i, element in enumerate(donor_elements):
+            # a donor out of reach of this metal takes a site only if wanted
+            if not near[i] and donor_atoms[i] not in wanted:
+                continue
             r = numpy.linalg.norm(donor_xyz[i] - center)
             nearest = numpy.argmin(
                 [numpy.linalg.norm(donor_xyz[i] - c) for c in metal_xyz]
