@@ -503,6 +503,9 @@
     <span class="n">metal_origins</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NDArray</span><span class="p">[</span><span class="nb">object</span><span class="p">][:,</span> <span class="p">:]]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="c1"># n_poses x max_n_res structured array of the input's RESIDUE_ANNOTATIONS</span>
     <span class="n">residue_annotations</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># n_poses x max_n_res: the res_type_variant the input's protonation state</span>
+    <span class="c1"># selects, -1 where it leaves the variant to tmol</span>
+    <span class="n">protonation_variants</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:]]</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="n">attr</span><span class="o">.</span><span class="n">astuple</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">recurse</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>

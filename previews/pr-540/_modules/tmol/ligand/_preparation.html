@@ -457,7 +457,11 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEPROTONATED_STATE</span><span class="p">,</span> <span class="n">AtomAlias</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">CanonicalOrdering</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._protonation</span><span class="w"> </span><span class="kn">import</span> <span class="n">hydrogen_names_by_parent</span><span class="p">,</span> <span class="n">with_atomworks_hydrogens</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._protonation</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">database_forms</span><span class="p">,</span>
+    <span class="n">hydrogen_names_by_parent</span><span class="p">,</span>
+    <span class="n">with_atomworks_hydrogens</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._atom_typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomTypeAssignment</span><span class="p">,</span> <span class="n">assign_tmol_atom_types</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._detect</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">NonStandardResidueInfo</span><span class="p">,</span>
@@ -1129,9 +1133,6 @@
     <span class="n">prep</span> <span class="o">=</span> <span class="n">_prepare_ligand_via_smiles</span><span class="p">(</span>
         <span class="n">detected</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
         <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span>
-        <span class="c1"># the caps carry no hydrogens of their own, so the capped model is</span>
-        <span class="c1">#    protonated as a whole; the type's hydrogens are named by parent</span>
-        <span class="n">protonate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
         <span class="c1"># a sidechain ring rotates the way proline's does; a nucleotide's rings</span>
         <span class="c1">#    are its sugar and its base, whose torsions the na_torsion term owns</span>
@@ -1387,7 +1388,7 @@
     <span class="n">ligand_info</span><span class="p">:</span> <span class="n">NonStandardResidueInfo</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">ph</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-    <span class="n">protonate</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">protonate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">assign_ring_chis</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">generate_heavy_chi_samples</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -2310,7 +2311,9 @@
             <span class="p">)</span>
     <span class="k">if</span> <span class="n">param_db</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">param_db</span> <span class="o">=</span> <span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
-    <span class="n">atom_array</span> <span class="o">=</span> <span class="n">with_atomworks_hydrogens</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">)</span>
+    <span class="n">atom_array</span> <span class="o">=</span> <span class="n">with_atomworks_hydrogens</span><span class="p">(</span>
+        <span class="n">atom_array</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span> <span class="n">forms</span><span class="o">=</span><span class="n">database_forms</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
+    <span class="p">)</span>
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._fragmentation</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">FRAGMENT_ID_ANNOTATION</span><span class="p">,</span>
@@ -2804,7 +2807,7 @@
 <span class="sd">        A ``(ParameterDatabase, CanonicalOrdering)`` with the ligand injected.</span>
 <span class="sd">    """</span>
     <span class="n">lig</span> <span class="o">=</span> <span class="n">_ligand_info_from_cif</span><span class="p">(</span><span class="n">cif_path</span><span class="p">,</span> <span class="n">res_name</span><span class="p">,</span> <span class="n">use_ccd</span><span class="o">=</span><span class="n">use_ccd</span><span class="p">)</span>
-    <span class="n">prep</span> <span class="o">=</span> <span class="n">_prepare_ligand_via_smiles</span><span class="p">(</span><span class="n">lig</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span> <span class="n">protonate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">prep</span> <span class="o">=</span> <span class="n">_prepare_ligand_via_smiles</span><span class="p">(</span><span class="n">lig</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">_inject_single</span><span class="p">(</span><span class="n">prep</span><span class="p">,</span> <span class="n">param_db</span><span class="p">,</span> <span class="n">strict_atom_types</span><span class="p">)</span></div>
 
 
@@ -2908,7 +2911,7 @@
         <span class="k">return</span> <span class="p">(</span>
             <span class="n">prepare_single_ligand</span><span class="p">(</span><span class="n">lig</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">"keep"</span> <span class="ow">or</span> <span class="p">(</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">"auto"</span> <span class="ow">and</span> <span class="n">lig</span><span class="o">.</span><span class="n">skip_protonation</span><span class="p">)</span>
-            <span class="k">else</span> <span class="n">_prepare_ligand_via_smiles</span><span class="p">(</span><span class="n">lig</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span> <span class="n">protonate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">_prepare_ligand_via_smiles</span><span class="p">(</span><span class="n">lig</span><span class="p">,</span> <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
         <span class="p">)</span>
     <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">mol2_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>

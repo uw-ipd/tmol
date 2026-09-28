@@ -506,6 +506,20 @@
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Collection of residue types refined from one chemical database.</p>
 <dl class="py method">
+<dt class="sig sig-object py" id="tmol.chemical.ResidueTypeSet.extended">
+<span class="sig-name descname"><span class="pre">extended</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chemical_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.PatchedChemicalDatabase" title="tmol.database._patched_chemdb.PatchedChemicalDatabase"><span class="pre">PatchedChemicalDatabase</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#tmol.chemical.ResidueTypeSet" title="tmol.chemical._restypes.ResidueTypeSet"><span class="pre">ResidueTypeSet</span></a></span></span><a class="reference internal" href="../_modules/tmol/chemical/_restypes.html#ResidueTypeSet.extended"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.chemical.ResidueTypeSet.extended" title="Link to this definition">#</a></dt>
+<dd><p>This set grown to <code class="docutils literal notranslate"><span class="pre">chemical_db</span></code>, whose residues begin with this set’s.</p>
+<p>The residue types already here stay the same objects, so packed block
+types built from either set share them.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If this set does not hold one type per residue of its
+    database, or <code class="docutils literal notranslate"><span class="pre">chemical_db</span></code> does not begin with those residues.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="tmol.chemical.ResidueTypeSet.get_default">
 <em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_default</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#tmol.chemical.ResidueTypeSet" title="tmol.chemical._restypes.ResidueTypeSet"><span class="pre">ResidueTypeSet</span></a></span></span><a class="reference internal" href="../_modules/tmol/chemical/_restypes.html#ResidueTypeSet.get_default"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.chemical.ResidueTypeSet.get_default" title="Link to this definition">#</a></dt>
 <dd><p>Load and return the residue type set constructed from the default param db</p>
@@ -635,6 +649,7 @@ or None if not a valid three-letter code</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.BondType"><code class="docutils literal notranslate"><span class="pre">BondType</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.RefinedResidueType"><code class="docutils literal notranslate"><span class="pre">RefinedResidueType</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.ResidueTypeSet"><code class="docutils literal notranslate"><span class="pre">ResidueTypeSet</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.ResidueTypeSet.extended"><code class="docutils literal notranslate"><span class="pre">ResidueTypeSet.extended()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#tmol.chemical.ResidueTypeSet.get_default"><code class="docutils literal notranslate"><span class="pre">ResidueTypeSet.get_default()</span></code></a></li>
 </ul>
 </li>

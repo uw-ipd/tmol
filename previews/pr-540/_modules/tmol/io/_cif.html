@@ -762,12 +762,6 @@
 <span class="sd">    Declared leaving groups and unobserved carbonyl/phosphoryl substitution branches are</span>
 <span class="sd">    absent at their connection sites. Other unresolved atoms retain identity.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._input_repair</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-        <span class="n">get_absent_substitution_leaving_groups</span><span class="p">,</span>
-        <span class="n">get_leaving_atom_groups</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._polymer_profile</span><span class="w"> </span><span class="kn">import</span> <span class="n">completed_connection_atoms</span>
-
     <span class="n">boundaries</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">get_residue_starts</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">add_exclusive_stop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">starts</span> <span class="o">=</span> <span class="n">boundaries</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">connections</span> <span class="o">=</span> <span class="n">_connection_atoms_by_residue</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">boundaries</span><span class="p">)</span>
@@ -775,6 +769,12 @@
     <span class="n">chemistry</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">warned</span><span class="p">:</span> <span class="nb">set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
     <span class="n">additions</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">list</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="c1"># The answer depends only on a residue's name, atoms, their resolution and</span>
+    <span class="c1"># its connections, which repeat across a polymer.</span>
+    <span class="n">resolved</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">atom_names</span> <span class="o">=</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">atom_name</span>
+    <span class="n">elements</span> <span class="o">=</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">element</span>
+    <span class="n">finite</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">coord</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">ri</span><span class="p">,</span> <span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">starts</span><span class="p">,</span> <span class="n">boundaries</span><span class="p">[</span><span class="mi">1</span><span class="p">:])):</span>
         <span class="n">res_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">start</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">res_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">templates</span> <span class="ow">and</span> <span class="n">use_ccd</span><span class="p">:</span>
@@ -782,51 +782,78 @@
         <span class="n">template</span> <span class="o">=</span> <span class="n">templates</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">res_name</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">template</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">continue</span>
-        <span class="n">residue</span> <span class="o">=</span> <span class="n">atom_array</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">stop</span><span class="p">]</span>
-        <span class="n">present</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">residue</span><span class="o">.</span><span class="n">atom_name</span><span class="p">}</span>
-        <span class="k">if</span> <span class="n">res_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">chemistry</span><span class="p">:</span>
-            <span class="n">chemistry</span><span class="p">[</span><span class="n">res_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="nb">frozenset</span><span class="p">(</span>
-                    <span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
-                    <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">atom_name</span><span class="p">,</span> <span class="n">template</span><span class="o">.</span><span class="n">element</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="n">e</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"H"</span><span class="p">,</span> <span class="s2">"D"</span><span class="p">)</span>
-                <span class="p">),</span>
-                <span class="n">get_leaving_atom_groups</span><span class="p">(</span><span class="n">template</span><span class="p">),</span>
+        <span class="n">linked</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">connections</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ri</span><span class="p">,</span> <span class="p">()))</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">res_name</span><span class="p">,</span>
+            <span class="nb">tuple</span><span class="p">(</span><span class="n">atom_names</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">stop</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()),</span>
+            <span class="nb">tuple</span><span class="p">(</span><span class="n">elements</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">stop</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()),</span>
+            <span class="n">finite</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">stop</span><span class="p">]</span><span class="o">.</span><span class="n">tobytes</span><span class="p">(),</span>
+            <span class="n">linked</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">resolved</span><span class="p">:</span>
+            <span class="n">resolved</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_unresolved_heavy_atoms</span><span class="p">(</span>
+                <span class="n">res_name</span><span class="p">,</span> <span class="n">atom_array</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">stop</span><span class="p">],</span> <span class="n">template</span><span class="p">,</span> <span class="n">linked</span><span class="p">,</span> <span class="n">chemistry</span><span class="p">,</span> <span class="n">warned</span>
             <span class="p">)</span>
-        <span class="n">heavy</span><span class="p">,</span> <span class="n">leaving</span> <span class="o">=</span> <span class="n">chemistry</span><span class="p">[</span><span class="n">res_name</span><span class="p">]</span>
-        <span class="n">observed_heavy</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">residue</span><span class="o">.</span><span class="n">atom_name</span><span class="p">,</span> <span class="n">residue</span><span class="o">.</span><span class="n">element</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">e</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"H"</span><span class="p">,</span> <span class="s2">"D"</span><span class="p">)</span>
-        <span class="p">}</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">observed_heavy</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">observed_heavy</span> <span class="o">&lt;=</span> <span class="n">heavy</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">res_name</span> <span class="ow">in</span> <span class="n">warned</span><span class="p">:</span>
-                <span class="k">continue</span>
+        <span class="n">missing</span> <span class="o">=</span> <span class="n">resolved</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+            <span class="n">additions</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">start</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">missing</span><span class="p">,</span> <span class="n">template</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">additions</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">atom_array</span>
+    <span class="k">return</span> <span class="n">_inserted</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">starts</span><span class="p">,</span> <span class="n">additions</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_unresolved_heavy_atoms</span><span class="p">(</span>
+    <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">residue</span><span class="p">,</span> <span class="n">template</span><span class="p">,</span> <span class="n">linked</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">,</span> <span class="n">chemistry</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">warned</span><span class="p">:</span> <span class="nb">set</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Sorted heavy template atoms ``residue`` lacks; ``None`` if taken as resolved.</span>
+
+<span class="sd">    ``chemistry`` caches each component's heavy atoms and leaving groups, and</span>
+<span class="sd">    ``warned`` holds the components already reported as unaccounted for.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._input_repair</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">get_absent_substitution_leaving_groups</span><span class="p">,</span>
+        <span class="n">get_leaving_atom_groups</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._polymer_profile</span><span class="w"> </span><span class="kn">import</span> <span class="n">completed_connection_atoms</span>
+
+    <span class="n">present</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">residue</span><span class="o">.</span><span class="n">atom_name</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">res_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">chemistry</span><span class="p">:</span>
+        <span class="n">chemistry</span><span class="p">[</span><span class="n">res_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">frozenset</span><span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">atom_name</span><span class="p">,</span> <span class="n">template</span><span class="o">.</span><span class="n">element</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">e</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"H"</span><span class="p">,</span> <span class="s2">"D"</span><span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">get_leaving_atom_groups</span><span class="p">(</span><span class="n">template</span><span class="p">),</span>
+        <span class="p">)</span>
+    <span class="n">heavy</span><span class="p">,</span> <span class="n">leaving</span> <span class="o">=</span> <span class="n">chemistry</span><span class="p">[</span><span class="n">res_name</span><span class="p">]</span>
+    <span class="n">observed_heavy</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">residue</span><span class="o">.</span><span class="n">atom_name</span><span class="p">,</span> <span class="n">residue</span><span class="o">.</span><span class="n">element</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">e</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"H"</span><span class="p">,</span> <span class="s2">"D"</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">observed_heavy</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">observed_heavy</span> <span class="o">&lt;=</span> <span class="n">heavy</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">res_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">warned</span><span class="p">:</span>
             <span class="n">warned</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">res_name</span><span class="p">)</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                 <span class="s2">"</span><span class="si">%s</span><span class="s2">: the chemistry available for it does not account for the "</span>
                 <span class="s2">"atoms the file resolved, so it is taken as resolved"</span><span class="p">,</span>
                 <span class="n">res_name</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="k">continue</span>
-        <span class="c1"># Endpoint valence is meaningful only on the complete component</span>
-        <span class="c1"># topology, before unresolved heavy atoms are inserted below.</span>
-        <span class="n">ends</span> <span class="o">=</span> <span class="n">completed_connection_atoms</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">connections</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ri</span><span class="p">,</span> <span class="p">())))</span>
-        <span class="n">missing</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">heavy</span> <span class="o">-</span> <span class="n">present</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">end</span> <span class="ow">in</span> <span class="n">ends</span> <span class="ow">or</span> <span class="p">():</span>
-            <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">leaving</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="p">()):</span>
-                <span class="k">if</span> <span class="n">present</span><span class="o">.</span><span class="n">isdisjoint</span><span class="p">(</span><span class="n">group</span><span class="p">):</span>
-                    <span class="n">missing</span><span class="o">.</span><span class="n">difference_update</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">get_absent_substitution_leaving_groups</span><span class="p">(</span>
-            <span class="n">template</span><span class="p">,</span> <span class="n">residue</span><span class="p">,</span> <span class="nb">set</span><span class="p">(</span><span class="n">ends</span> <span class="ow">or</span> <span class="p">())</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-            <span class="n">missing</span><span class="o">.</span><span class="n">difference_update</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
-        <span class="n">missing</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">missing</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
-            <span class="n">additions</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">start</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">missing</span><span class="p">,</span> <span class="n">template</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">additions</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">atom_array</span>
-    <span class="k">return</span> <span class="n">_inserted</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">starts</span><span class="p">,</span> <span class="n">additions</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="c1"># Endpoint valence is meaningful only on the complete component</span>
+    <span class="c1"># topology, before unresolved heavy atoms are inserted below.</span>
+    <span class="n">ends</span> <span class="o">=</span> <span class="n">completed_connection_atoms</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">linked</span><span class="p">)</span>
+    <span class="n">missing</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">heavy</span> <span class="o">-</span> <span class="n">present</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">end</span> <span class="ow">in</span> <span class="n">ends</span> <span class="ow">or</span> <span class="p">():</span>
+        <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">leaving</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="p">()):</span>
+            <span class="k">if</span> <span class="n">present</span><span class="o">.</span><span class="n">isdisjoint</span><span class="p">(</span><span class="n">group</span><span class="p">):</span>
+                <span class="n">missing</span><span class="o">.</span><span class="n">difference_update</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">get_absent_substitution_leaving_groups</span><span class="p">(</span>
+        <span class="n">template</span><span class="p">,</span> <span class="n">residue</span><span class="p">,</span> <span class="nb">set</span><span class="p">(</span><span class="n">ends</span> <span class="ow">or</span> <span class="p">())</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="n">missing</span><span class="o">.</span><span class="n">difference_update</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">missing</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_connection_atoms_by_residue</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">boundaries</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
