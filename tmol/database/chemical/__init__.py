@@ -52,7 +52,7 @@ HIS_UNRESOLVED_VAR_IND = 3
 DEPROTONATED_VAR_IND = 4
 METAL_GEOMETRY_VAR_BASE = 5
 
-# protonation_state of the forms only a coordinating metal selects
+# protonation_state of the forms a residue takes without its titratable hydrogen
 DEPROTONATED_STATE = "negatively_charged"
 
 

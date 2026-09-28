@@ -215,6 +215,22 @@ def test_donors_are_tabulated_for_protein_and_nucleic_acid(
         assert donor("RG", "OP1") == "O", "nucleic acid phosphate donates"
 
 
+@pytest.mark.parametrize(
+    "res, atom, hydrogens",
+    [("CYS", "SG", {"HG"}), ("TYR", "OH", {"HH"}), ("HIS", "NE2", {"HE2"})],
+)
+def test_a_donor_holding_its_hydrogen_is_known_by_that_hydrogen(
+    default_database: tmol.database.ParameterDatabase, res, atom, hydrogens
+):
+    # the thiol and phenol forms cannot donate; their hydrogen still marks the atom
+    co = canonical_ordering(default_database)
+    tables = metal_tables(default_database)
+    index = co.restypes_atom_index_mapping[res]
+    names = co.restypes_ordered_atom_names[res]
+    row = tables.donor_hydrogens[co.restype_io_equiv_classes.index(res), index[atom]]
+    assert {names[h] for h in row.tolist() if h >= 0} == hydrogens
+
+
 def test_water_is_tabulated_apart_from_other_oxygens(
     default_database: tmol.database.ParameterDatabase,
 ):
@@ -348,10 +364,11 @@ def _assignment_with_donors(donor_atoms):
 def test_coordination_selects_the_form_that_can_donate(
     default_database: tmol.database.ParameterDatabase, res, atom, expected_base
 ):
+    # heavy atoms only, as from coordinates without hydrogens
     import torch
 
     from tmol.database.chemical import special_case_variant_index
-    from tmol.io.details._metal_detection import select_donor_variants
+    from tmol.io.details._protonation_variants import select_protonation_variants
 
     co = canonical_ordering(default_database)
     index_of = {c: i for i, c in enumerate(co.restype_io_equiv_classes)}
@@ -359,11 +376,12 @@ def test_coordination_selects_the_form_that_can_donate(
     variants = torch.zeros_like(res_types)
     j = co.restypes_atom_index_mapping[res][atom]
 
-    got = select_donor_variants(
+    got = select_protonation_variants(
         co,
         default_database.chemical,
         res_types,
         variants,
+        _present(co, default_database, [("ZN", ()), (res, ())]),
         [((0, 0), _assignment_with_donors([(1, j)]))],
     )
     expected = next(
@@ -371,6 +389,75 @@ def test_coordination_selects_the_form_that_can_donate(
     )
     assert int(got[0, 1]) == special_case_variant_index(expected)
     assert int(variants[0, 1]) == 0, "the input variants are not modified"
+
+
+def _present(co, database, residues):
+    """[1, n, A] presence of each residue's heavy atoms and the named hydrogens."""
+    import torch
+
+    elements = {at.name: at.element for at in database.chemical.atom_types}
+    present = torch.zeros(
+        (1, len(residues), co.max_n_canonical_atoms), dtype=torch.bool
+    )
+    for i, (name, hydrogens) in enumerate(residues):
+        index = co.restypes_atom_index_mapping[name]
+        for res in database.chemical.residues:
+            if res.io_equiv_class != name:
+                continue
+            for a in res.atoms:
+                if a.name in index and elements.get(a.atom_type) != "H":
+                    present[0, i, index[a.name]] = True
+        for h in hydrogens:
+            present[0, i, index[h]] = True
+    return present
+
+
+@pytest.mark.parametrize(
+    "res, hydrogens, coordinating, expected_base",
+    [
+        ("CYS", ("H", "HA", "HB2", "HB3"), None, "CYS_DEP"),
+        ("CYS", ("H", "HA", "HB2", "HB3", "HG"), "SG", "CYS"),
+        ("TYR", ("H", "HA", "HB2", "HB3", "HD1", "HD2", "HE1", "HE2"), None, "TYR_DEP"),
+        ("HIS", ("H", "HA", "HB2", "HB3", "HD1", "HD2", "HE1"), "NE2", "HIS_D"),
+        ("HIS", ("H", "HA", "HB2", "HB3", "HD2", "HE1", "HE2"), None, "HIS"),
+    ],
+)
+def test_protonation_variant_follows_the_hydrogens_presented(
+    default_database: tmol.database.ParameterDatabase,
+    res,
+    hydrogens,
+    coordinating,
+    expected_base,
+):
+    import torch
+
+    from tmol.database.chemical import special_case_variant_index
+    from tmol.io.details._protonation_variants import select_protonation_variants
+
+    co = canonical_ordering(default_database)
+    index_of = {c: i for i, c in enumerate(co.restype_io_equiv_classes)}
+    res_types = torch.tensor([[index_of["ZN"], index_of[res]]], dtype=torch.int32)
+    expected = next(
+        r for r in default_database.chemical.residues if r.name == expected_base
+    )
+    # the HIS kernel has already chosen the tautomer the ring hydrogens show
+    variants = torch.zeros_like(res_types)
+    if res == "HIS":
+        variants[0, 1] = special_case_variant_index(expected)
+    assignments = []
+    if coordinating is not None:
+        j = co.restypes_atom_index_mapping[res][coordinating]
+        assignments = [((0, 0), _assignment_with_donors([(1, j)]))]
+
+    got = select_protonation_variants(
+        co,
+        default_database.chemical,
+        res_types,
+        variants,
+        _present(co, default_database, [("ZN", ()), (res, hydrogens)]),
+        assignments,
+    )
+    assert int(got[0, 1]) == special_case_variant_index(expected)
 
 
 def test_deprotonated_forms_are_never_the_default_variant(

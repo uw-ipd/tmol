@@ -287,6 +287,40 @@ def test_donor_forms_accumulate_and_stack():
     assert block_type_names(stacked)[: zinc.max_n_blocks] == block_type_names(zinc)
 
 
+def test_a_stated_thiol_hydrogen_keeps_the_cysteine_off_the_metal():
+    structure = atom_array_from_cif(
+        os.path.join(FIXTURE_DIR, "fe_rubredoxin_30oh.cif.gz")
+    )
+    structure = structure[structure.element != "H"]
+    residue = (structure.res_id == 6) & (structure.chain_id == "A")
+    sg, cb, ca = (
+        int(numpy.flatnonzero(residue & (structure.atom_name == n))[0])
+        for n in ("SG", "CB", "CA")
+    )
+    bond = structure.coord[sg] - structure.coord[cb]
+    side = numpy.cross(bond, structure.coord[ca] - structure.coord[cb])
+    direction = -0.33 * bond / numpy.linalg.norm(bond)
+    direction += 0.94 * side / numpy.linalg.norm(side)
+    hg = structure[[sg]]
+    hg.atom_name[:], hg.element[:] = "HG", "H"
+    hg.coord = structure.coord[[sg]] + 1.34 * direction / numpy.linalg.norm(direction)
+    bonds = structure.bonds.as_array()
+    bonds[:, :2] += bonds[:, :2] > sg
+    structure.bonds = None
+    with_hg = struc.concatenate([structure[: sg + 1], hg, structure[sg + 1 :]])
+    with_hg.bonds = struc.BondList(
+        len(with_hg), numpy.r_[bonds, [[sg, sg + 1, int(struc.BondType.SINGLE)]]]
+    )
+
+    pose_stack = pose_stack_from_biotite(with_hg, torch.device("cpu"))
+    cys = residue_index(pose_stack, "A", 6)
+    names = block_type_names(pose_stack)
+    assert names[cys] == "CYS"
+    assert all(d != cys for d, _ in metal_bonds(pose_stack).values())
+    others = [residue_index(pose_stack, "A", r) for r in (9, 39, 42)]
+    assert all(names[r].startswith("CYS_DEP") for r in others)
+
+
 def labeled_metal_bonds(pose_stack):
     """Metal-donor bonds by author labels, independent of residue order."""
     return {

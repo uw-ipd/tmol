@@ -207,6 +207,9 @@ class CanonicalMetalTables:
     donor_element: numpy.ndarray
     # equivalence class index -> its cluster's metals, for multi-metal cofactors
     cluster_for_class: Dict[int, "ClusterSites"] = attr.Factory(dict)
+    # [n_classes, max_n_canonical_atoms, k], the hydrogens any type of the
+    #    class bonds to each donor atom, -1 padded
+    donor_hydrogens: Optional[numpy.ndarray] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -280,12 +283,13 @@ def _build_canonical_metal_tables(
     classes = canonical_ordering.restype_io_equiv_classes
     n_atoms = canonical_ordering.max_n_canonical_atoms
     donor_element = numpy.full((len(classes), n_atoms), "", dtype=object)
+    hydrogens_on = defaultdict(set)
     ion_for_class, metal_atom_index, cluster_for_class = {}, {}, {}
 
     for i, equiv_class in enumerate(classes):
         index_of = canonical_ordering.restypes_atom_index_mapping[equiv_class]
-        # an atom donates if any type in its class lets it: which protonation
-        # state the residue takes is decided by what it coordinates
+        # an atom donates if any type in its class lets it: the residue's
+        # hydrogens say which of those types it is
         for res in members.get(equiv_class, ()):
             for atom in res.atoms:
                 at = atom_type.get(atom.atom_type)
@@ -296,6 +300,21 @@ def _build_canonical_metal_tables(
                     # water is typed apart from other oxygens: it is what an
                     # open site is assumed to hold, so it has its own distance
                     donor_element[i, j] = "Owat" if at.name == "Owat" else at.element
+        # a donor's hydrogens come from every type, also those it cannot donate in
+        for res in members.get(equiv_class, ()):
+            element_of = {
+                a.name: getattr(atom_type.get(a.atom_type), "element", "")
+                for a in res.atoms
+            }
+            for a, b, *_ in res.bonds:
+                for heavy, h in ((a, b), (b, a)):
+                    if (
+                        element_of.get(h) == "H"
+                        and heavy in index_of
+                        and h in index_of
+                        and donor_element[i, index_of[heavy]]
+                    ):
+                        hydrogens_on[i, index_of[heavy]].add(index_of[h])
         if equiv_class in ion_for_name3:
             sites = [r.metal_sites[0] for r in members[equiv_class] if r.metal_sites]
             ion_for_class[i] = ion_for_name3[equiv_class]
@@ -307,8 +326,16 @@ def _build_canonical_metal_tables(
         )
         if cluster is not None:
             cluster_for_class[i] = _cluster_sites(cluster, index_of, atom_type, table)
+    width = max((len(h) for h in hydrogens_on.values()), default=0)
+    donor_hydrogens = numpy.full((len(classes), n_atoms, width), -1, dtype=numpy.int64)
+    for (i, j), h in hydrogens_on.items():
+        donor_hydrogens[i, j, : len(h)] = sorted(h)
     return CanonicalMetalTables(
-        ion_for_class, metal_atom_index, donor_element, cluster_for_class
+        ion_for_class,
+        metal_atom_index,
+        donor_element,
+        cluster_for_class,
+        donor_hydrogens,
     )
 
 
@@ -373,8 +400,13 @@ def _pose_donor_table(pose, rt, xyz, excluded, tables):
     n_atoms = min(tables.donor_element.shape[1], xyz.shape[2])
     element = tables.donor_element[types][:, :n_atoms].copy()
     element[~live] = ""
-    keep = (element != "") & numpy.isfinite(xyz[pose, :, :n_atoms]).all(-1)
+    finite = numpy.isfinite(xyz[pose]).all(-1)
+    keep = (element != "") & finite[:, :n_atoms]
     residue, atom = numpy.nonzero(keep)
+    # an atom presenting a hydrogen of its own cannot donate
+    hydrogens = tables.donor_hydrogens[types[residue], atom]
+    held = ((hydrogens >= 0) & finite[residue[:, None], hydrogens]).any(-1)
+    residue, atom = residue[~held], atom[~held]
     return (
         numpy.ascontiguousarray(xyz[pose][residue, atom], dtype=numpy.float64).reshape(
             -1, 3
@@ -768,61 +800,6 @@ def _declared_assignment(metal, ion, geometry, filled, metal_xyz, xyz, vertices_
         rotation=rotation,
         declared=True,
     )
-
-
-def donor_atoms_by_variant(canonical_ordering, chemical_db):
-    """For each class, the canonical atoms each res_type_variant lets donate."""
-    atom_type = {at.name: at for at in chemical_db.atom_types}
-    class_index = {
-        c: i for i, c in enumerate(canonical_ordering.restype_io_equiv_classes)
-    }
-    out = defaultdict(lambda: defaultdict(set))
-    for res in chemical_db.residues:
-        i = class_index.get(res.io_equiv_class)
-        if i is None:
-            continue
-        index_of = canonical_ordering.restypes_atom_index_mapping[res.io_equiv_class]
-        v = special_case_variant_index(res)
-        for atom in res.atoms:
-            at = atom_type.get(atom.atom_type)
-            if at is not None and at.is_metal_donor and atom.name in index_of:
-                out[i][v].add(index_of[atom.name])
-    return out
-
-
-def select_donor_variants(
-    canonical_ordering, chemical_db, res_types, res_type_variants, assignments
-):
-    """Move each coordinating residue to a variant in which its donors donate.
-
-    A thiol, a phenol or the protonated nitrogen of a histidine tautomer cannot
-    coordinate; the deprotonated form, or the other tautomer, can. Residues
-    already in a variant that satisfies every donor are left alone.
-    """
-    required = defaultdict(set)
-    for (pose, _), got in assignments:
-        for res, atom in got.donor_atoms:
-            required[(pose, res)].add(atom)
-    if not required:
-        return res_type_variants
-
-    donates = donor_atoms_by_variant(canonical_ordering, chemical_db)
-    out = res_type_variants.clone()
-    for (pose, res), atoms in required.items():
-        cls = int(res_types[pose, res])
-        current = int(out[pose, res])
-        if atoms <= donates[cls][current]:
-            continue
-        options = sorted(v for v, can in donates[cls].items() if atoms <= can)
-        if not options:
-            logger.warning(
-                "%s %d coordinates through atoms no form of it can donate",
-                canonical_ordering.restype_io_equiv_classes[cls],
-                res,
-            )
-            continue
-        out[pose, res] = options[0]
-    return out
 
 
 def metal_donor_patch(base_name: str, atom: str, n_metals: int = 1) -> VariantType:

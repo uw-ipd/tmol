@@ -115,9 +115,9 @@ def pose_stack_from_canonical_form(  # noqa: C901
         find_metal_geometries,
         metal_connection_rows,
         place_site_virtuals,
-        select_donor_variants,
         with_donor_patches,
     )
+    from tmol.io.details._protonation_variants import select_protonation_variants
     from tmol.io.details import resolve_his_tautomerization
     from tmol.io.details import (
         assign_block_types,
@@ -151,7 +151,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
     # step 2: remove any "virtual residues," marked with a res-type ind of -1
     #         by shifting all of the residues in each Pose "to the left"
     # step 3: resolve disulfides and cyclic-chain closures
-    # step 4: resolve his tautomer, then coordinating variants and the donor
+    # step 4: resolve his tautomer, then protonation variants and the donor
     #         forms metal connections need
     # step 5: resolve termini variants, assign block-types to each input
     #         residue, and populate the inter-block connectivity tensors
@@ -277,11 +277,16 @@ def pose_stack_from_canonical_form(  # noqa: C901
         canonical_ordering, res_types, res_type_variants, coords, atom_is_present
     )
 
-    # 4a: a donor must be able to donate: coordination selects the deprotonated
-    #     form or the other histidine tautomer, unless the input's state does.
+    # 4a: protonation follows the hydrogens present, else the input's state.
     #     After 4, which rewrites every histidine's variant.
-    res_type_variants = select_donor_variants(
-        canonical_ordering, pbt.chem_db, res_types, res_type_variants, metal_assignments
+    res_type_variants = select_protonation_variants(
+        canonical_ordering,
+        pbt.chem_db,
+        res_types,
+        res_type_variants,
+        resolved_atom_is_present,
+        metal_assignments,
+        covalent_bonds,
     )
     if protonation_variants is not None:
         state = protonation_variants.clone()
