@@ -26,12 +26,9 @@ _FIELDS = [
 
 
 def _polymer_from_backbone_bonds(array):
-    """Mark which residues of a PDB are polymer, reading its bonds rather than its records.
+    """Mark as polymer the residues a polymer bond joins to a neighbour in their chain.
 
-    A PDB writes a modified residue inside a chain as HETATM, exactly as it writes a
-    free ligand, so the record cannot tell the two apart. The bonds can: a residue
-    joined to a neighbour through the atoms its component polymerises with is part of
-    that chain. Restoring the chain itself is the author-field mapping's job.
+    A PDB writes a modified residue in a chain as HETATM, as it writes a free ligand.
     """
     from atomworks.io.utils.ccd import get_polymerization_atoms
 
@@ -132,13 +129,10 @@ def _with_metal_coordination(array, block):
 
 
 def _renumber_decreasing_author_ids(array):
-    """Renumber, in file order, any chain whose author numbering runs backwards.
+    """Renumber, in file order, any chain whose author numbering decreases.
 
-    Author numbering is the depositor's, and real entries do run backwards --
-    5XNL numbers its waters that way. AtomWorks reads res_id as an ordering and
-    refuses a chain that decreases, so supplying numbering it can rely on is the
-    reader's job. Residue identity and order are what is wanted from res_id here,
-    and renumbering keeps both. Returns the array unchanged where nothing decreases.
+    AtomWorks refuses such a chain (5XNL numbers its waters backwards); renumbering
+    keeps residue identity and order. Returns the array unchanged where none decreases.
     """
     res_id = array.res_id.copy()
     ins_code = array.ins_code.copy()
@@ -172,11 +166,9 @@ def _renumber_decreasing_author_ids(array):
 
 
 def _parse_repairing_author_numbering(path, config, model, assembly_id):
-    """``parse`` the file, renumbering author ids first where it will not read them.
+    """``parse`` the file, renumbering refused author ids in the asymmetric unit first.
 
-    Only the asymmetric unit: building an assembly is ``parse``'s to do, and the
-    repaired array goes to ``prepare_atom_array``, which does not build one. A
-    file that needs both is refused with AtomWorks' own message.
+    An assembly that needs renumbering is refused with AtomWorks' own message.
     """
     from atomworks.io import load_pdb
     from atomworks.io.parser import prepare_atom_array
