@@ -447,7 +447,7 @@ def test_calculate_interblock_bondsep_from_connectivity_graph_heavy(torch_device
     ibb = PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph_heavy(
         pbt_max_n_conn, pconn_offsets, block_n_conn, pconn_matrix
     )
-    inter_block_bondsep = ibb
+    inter_block_bondsep = ibb.to_dense()
 
     inter_block_bondsep_gold = torch.tensor(
         [
@@ -531,7 +531,10 @@ def test_calculate_interblock_bondsep_from_connectivity_graph_heavy(torch_device
     )
 
     torch.testing.assert_close(inter_block_bondsep, inter_block_bondsep_gold)
-    assert inter_block_bondsep.is_contiguous()
+    assert ibb.near_blocks.is_contiguous() and ibb.bondsep.is_contiguous()
+    # a row holds its near blocks and one empty slot
+    near = torch.amin(inter_block_bondsep_gold, dim=(3, 4)) < MAX_SIG_BOND_SEPARATION
+    assert ibb.n_slots == int(near.sum(dim=2).max()) + 1
 
 
 def test_calculate_interblock_bondsep_without_connections(torch_device):
@@ -546,7 +549,7 @@ def test_calculate_interblock_bondsep_without_connections(torch_device):
     )
 
     assert result.shape == (2, 3, 3, 3, 3)
-    assert torch.all(result == MAX_SIG_BOND_SEPARATION)
+    assert torch.all(result.to_dense() == MAX_SIG_BOND_SEPARATION)
 
 
 def test_incorporate_extra_connections_into_inter_res_conn_set(torch_device):
@@ -802,7 +805,7 @@ def test_from_block_type_names_smoke(
     interblock_dslf_pair_correction(ibb_gold, res_bound_to_next, 1, 3, 5)
 
     # connection slots past the three these residue types have are padding
-    ibb = pose_stack.inter_block_bondsep
+    ibb = pose_stack.inter_block_bondsep.to_dense()
     torch.testing.assert_close(ibb[..., :max_n_conn, :max_n_conn], ibb_gold)
     padding = torch.ones_like(ibb, dtype=torch.bool)
     padding[..., :max_n_conn, :max_n_conn] = False

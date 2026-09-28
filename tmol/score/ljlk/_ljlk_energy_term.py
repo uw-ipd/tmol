@@ -244,8 +244,8 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             dim=1,
         )
         return [
-            pose_stack.min_block_bondsep,
-            pose_stack.inter_block_bondsep,
+            pose_stack.inter_block_bondsep.near_blocks,
+            pose_stack.inter_block_bondsep.bondsep,
             pose_stack.packed_block_types.n_atoms,
             annotation[0],
             annotation[1],

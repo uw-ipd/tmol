@@ -21,6 +21,7 @@ from tmol.chemical import (
 )
 
 from tmol.pose import (
+    InterBlockBondsep,
     PackedBlockTypes,
     PDBInfo,
     DEFAULT_ATOM_B_FACTOR,
@@ -634,28 +635,15 @@ class PoseStackBuilder:
         ps_offsets: Tensor[torch.int64][:],
         max_n_blocks: int,
         device: torch.device,
-    ) -> Tensor[torch.int8][:, :, :, :, :]:
+    ) -> InterBlockBondsep:
         max_n_conn = max(
             len(rt.connections) for rt in packed_block_types.active_block_types
         )
-        inter_block_bondsep = torch.full(
-            (n_poses, max_n_blocks, max_n_blocks, max_n_conn, max_n_conn),
-            6,
-            dtype=torch.int8,
-            device=device,
+        return InterBlockBondsep.concatenate(
+            [pose_stack.inter_block_bondsep.to(device) for pose_stack in pose_stacks],
+            max_n_blocks,
+            max_n_conn,
         )
-        for i, pose_stack in enumerate(pose_stacks):
-            offset = ps_offsets[i]
-            i_nblocks = pose_stack.inter_block_bondsep.shape[1]
-            i_nconn = pose_stack.inter_block_bondsep.shape[3]
-            inter_block_bondsep[
-                offset : (offset + len(pose_stack)),
-                :i_nblocks,
-                :i_nblocks,
-                :i_nconn,
-                :i_nconn,
-            ] = pose_stack.inter_block_bondsep
-        return inter_block_bondsep
 
     @classmethod
     @validate_args
@@ -1256,7 +1244,7 @@ class PoseStackBuilder:
         pconn_offsets: Tensor[torch.int64][:, :],
         block_n_conn: Tensor[torch.int32][:, :],
         pconn_matrix: Tensor[torch.int32][:, :, :],
-    ) -> Tensor[torch.int8][:, :, :, :, :]:
+    ) -> InterBlockBondsep:
         return cls._calculate_interblock_bondsep_from_connectivity_graph_heavy(
             pbt.max_n_conn, pconn_offsets, block_n_conn, pconn_matrix
         )
@@ -1269,7 +1257,7 @@ class PoseStackBuilder:
         pconn_offsets: Tensor[torch.int64][:, :],
         block_n_conn: Tensor[torch.int32][:, :],
         pconn_matrix: Tensor[torch.int32][:, :, :],
-    ) -> Tensor[torch.int8][:, :, :, :, :]:
+    ) -> InterBlockBondsep:
         """Map shortest paths between pose connections onto block pairs.
 
         Args:
@@ -1280,42 +1268,24 @@ class PoseStackBuilder:
                 with their all-pairs shortest paths.
 
         Returns:
-            Connection-to-connection bond separations indexed by pose and
-            block pair, capped at ``MAX_SIG_BOND_SEPARATION`` and held as int8.
+            Connection-to-connection bond separations of the block pairs closer
+            than ``MAX_SIG_BOND_SEPARATION``, the cap for every other pair.
         """
         n_poses = block_n_conn.shape[0]
         max_n_blocks = block_n_conn.shape[1]
-        max_n_conn = pbt_max_n_conn
         max_n_pconn = pconn_matrix.shape[1]
         assert pconn_matrix.shape[0] == n_poses
         assert pconn_matrix.shape[1] == pconn_matrix.shape[2]
         assert pconn_offsets.shape == block_n_conn.shape
 
-        output_shape = (
-            n_poses,
-            max_n_blocks,
-            max_n_blocks,
-            max_n_conn,
-            max_n_conn,
-        )
         if max_n_pconn == 0:
-            return torch.full(
-                output_shape,
-                MAX_SIG_BOND_SEPARATION,
-                dtype=torch.int8,
-                device=pconn_matrix.device,
+            return InterBlockBondsep.empty(
+                n_poses, max_n_blocks, pbt_max_n_conn, pconn_matrix.device
             )
 
         cls._shortest_paths_for_connectivity_graph(pconn_matrix)
-
-        from tmol.pose.compiled import block_bondsep
-
-        return block_bondsep(
-            pconn_matrix,
-            pconn_offsets,
-            block_n_conn,
-            max_n_conn,
-            MAX_SIG_BOND_SEPARATION,
+        return InterBlockBondsep.from_connectivity(
+            pconn_matrix, pconn_offsets, block_n_conn, pbt_max_n_conn
         )
 
     @classmethod

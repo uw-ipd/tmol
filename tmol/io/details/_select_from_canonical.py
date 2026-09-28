@@ -18,6 +18,7 @@ from tmol.database.chemical import (
 )
 from tmol.io import CanonicalOrdering
 from tmol.pose import (
+    InterBlockBondsep,
     PackedBlockTypes,
     PoseStackBuilder,
     annotate_packed_block_types_w_dslf_conn_inds,
@@ -42,7 +43,7 @@ def assign_block_types(
 ) -> Tuple[
     Tensor[torch.int64][:, :],
     Tensor[torch.int64][:, :, :, 2],
-    Tensor[torch.int8][:, :, :, :, :],
+    InterBlockBondsep,
 ]:
     """Choose each residue's block type and wire every inter-residue connection.
 
@@ -290,8 +291,7 @@ def assign_block_types(
     )
 
     # 4
-    # bad naming because python indentation- and line-wrapping rules are annoying:
-    # inter_block_bondsep64 == ibb64
+    # ibb64 is the pose stack's inter_block_bondsep
     ibb64 = PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph(
         pbt, pconn_offsets, block_n_conn, pconn_matrix
     )

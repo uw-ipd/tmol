@@ -66,7 +66,7 @@ struct LJLKPoseScoreDispatch {
       // logic for deciding whether two atoms in those blocks should have their
       // interaction energies calculated: all should. intentionally small to
       // (possibly) fit in constant cache
-      TView<Int, 3, D> pose_stack_min_bond_separation,
+      TView<Int, 4, D> pose_stack_near_blocks,
 
       // dims: n-systems x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
@@ -142,7 +142,7 @@ struct LJLKPoseScoreDispatch {
       // logic for deciding whether two atoms in those blocks should have their
       // interaction energies calculated: all should. intentionally small to
       // (possibly) fit in constant cache
-      TView<Int, 3, D> pose_stack_min_bond_separation,
+      TView<Int, 4, D> pose_stack_near_blocks,
 
       // dims: n-systems x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
@@ -217,7 +217,7 @@ struct LJLKRotamerScoreDispatch {
       // logic for deciding whether two atoms in those blocks should have their
       // interaction energies calculated: all should. intentionally small to
       // (possibly) fit in constant cache
-      TView<Int, 3, D> pose_stack_min_bond_separation,
+      TView<Int, 4, D> pose_stack_near_blocks,
 
       // dims: n-systems x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
@@ -289,7 +289,7 @@ struct LJLKRotamerScoreDispatch {
       // logic for deciding whether two atoms in those blocks should have their
       // interaction energies calculated: all should. intentionally small to
       // (possibly) fit in constant cache
-      TView<Int, 3, D> pose_stack_min_bond_separation,
+      TView<Int, 4, D> pose_stack_near_blocks,
 
       // dims: n-systems x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections

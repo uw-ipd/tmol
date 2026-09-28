@@ -1,3 +1,4 @@
+from operator import attrgetter
 from pathlib import Path
 
 import biotite.structure as struc
@@ -271,18 +272,16 @@ def test_prepared_atom37_builder_is_reusable_and_differentiable(
         "block_coord_offset64",
         "inter_residue_connections",
         "inter_residue_connections64",
-        "inter_block_bondsep",
-        "inter_block_bondsep64",
+        "inter_block_bondsep.near_blocks",
+        "inter_block_bondsep.bondsep",
         "block_type_ind",
         "block_type_ind64",
         "chain_id",
         "chain_id64",
     )
     for name in structural_tensors:
-        assert (
-            getattr(first_pose, name).data_ptr()
-            != getattr(cached_pose, name).data_ptr()
-        )
+        tensor = attrgetter(name)
+        assert tensor(first_pose).data_ptr() != tensor(cached_pose).data_ptr()
     assert not np.shares_memory(
         first_pose.pdb_info.residue_labels, cached_pose.pdb_info.residue_labels
     )

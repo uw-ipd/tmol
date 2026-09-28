@@ -54,7 +54,7 @@
         rot_coord_offset,                                               \
         block_type_ind_for_rot,                                         \
         pose_stack_inter_residue_connections,                           \
-        pose_stack_min_bond_separation,                                 \
+        pose_stack_near_blocks,                                         \
         pose_stack_inter_block_bondsep,                                 \
         block_type_n_interblock_bonds,                                  \
         block_type_atoms_forming_chemical_bonds,                        \
@@ -502,7 +502,7 @@ class LKBallPoseScoreDispatch {
       // logic for deciding whether two atoms in those blocks should have their
       // interaction energies calculated: all should. intentionally small to
       // (possibly) fit in constant cache
-      TView<Int, 3, Dev> pose_stack_min_bond_separation,
+      TView<Int, 4, Dev> pose_stack_near_blocks,
 
       // dims: n-poses x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
@@ -877,7 +877,7 @@ class LKBallPoseScoreDispatch {
       // logic for deciding whether two atoms in those blocks should have their
       // interaction energies calculated: all should. intentionally small to
       // (possibly) fit in constant cache
-      TView<Int, 3, Dev> pose_stack_min_bond_separation,
+      TView<Int, 4, Dev> pose_stack_near_blocks,
 
       // dims: n-poses x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
@@ -1264,7 +1264,7 @@ class LKBallRotamerScoreDispatch {
       // logic for deciding whether two atoms in those blocks should have their
       // interaction energies calculated: all should. intentionally small to
       // (possibly) fit in constant cache
-      TView<Int, 3, Dev> pose_stack_min_bond_separation,
+      TView<Int, 4, Dev> pose_stack_near_blocks,
 
       // dims: n-poses x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
@@ -1340,13 +1340,15 @@ class LKBallRotamerScoreDispatch {
     assert(pose_stack_inter_residue_connections.size(0) == n_poses);
     assert(pose_stack_inter_residue_connections.size(1) == max_n_blocks);
 
-    assert(pose_stack_min_bond_separation.size(0) == n_poses);
-    assert(pose_stack_min_bond_separation.size(1) == max_n_blocks);
-    assert(pose_stack_min_bond_separation.size(2) == max_n_blocks);
+    assert(pose_stack_near_blocks.size(0) == n_poses);
+    assert(pose_stack_near_blocks.size(1) == max_n_blocks);
+    assert(pose_stack_near_blocks.size(3) == 2);
 
     assert(pose_stack_inter_block_bondsep.size(0) == n_poses);
     assert(pose_stack_inter_block_bondsep.size(1) == max_n_blocks);
-    assert(pose_stack_inter_block_bondsep.size(2) == max_n_blocks);
+    assert(
+        pose_stack_inter_block_bondsep.size(2)
+        == pose_stack_near_blocks.size(2));
     assert(pose_stack_inter_block_bondsep.size(3) == max_n_interblock_bonds);
     assert(pose_stack_inter_block_bondsep.size(4) == max_n_interblock_bonds);
 
@@ -1628,7 +1630,7 @@ class LKBallRotamerScoreDispatch {
       // logic for deciding whether two atoms in those blocks should have their
       // interaction energies calculated: all should. intentionally small to
       // (possibly) fit in constant cache
-      TView<Int, 3, Dev> pose_stack_min_bond_separation,
+      TView<Int, 4, Dev> pose_stack_near_blocks,
 
       // dims: n-poses x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
@@ -1701,13 +1703,15 @@ class LKBallRotamerScoreDispatch {
     assert(pose_stack_inter_residue_connections.size(0) == n_poses);
     assert(pose_stack_inter_residue_connections.size(1) == max_n_blocks);
 
-    assert(pose_stack_min_bond_separation.size(0) == n_poses);
-    assert(pose_stack_min_bond_separation.size(1) == max_n_blocks);
-    assert(pose_stack_min_bond_separation.size(2) == max_n_blocks);
+    assert(pose_stack_near_blocks.size(0) == n_poses);
+    assert(pose_stack_near_blocks.size(1) == max_n_blocks);
+    assert(pose_stack_near_blocks.size(3) == 2);
 
     assert(pose_stack_inter_block_bondsep.size(0) == n_poses);
     assert(pose_stack_inter_block_bondsep.size(1) == max_n_blocks);
-    assert(pose_stack_inter_block_bondsep.size(2) == max_n_blocks);
+    assert(
+        pose_stack_inter_block_bondsep.size(2)
+        == pose_stack_near_blocks.size(2));
     assert(pose_stack_inter_block_bondsep.size(3) == max_n_interblock_bonds);
     assert(pose_stack_inter_block_bondsep.size(4) == max_n_interblock_bonds);
 

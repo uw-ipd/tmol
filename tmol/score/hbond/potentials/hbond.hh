@@ -2,6 +2,7 @@
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 
+#include <tmol/score/common/count_pair.hh>
 #include <tmol/score/common/data_loading.hh>
 #include <tmol/score/bonded_atom.hh>
 #include <tmol/score/hbond/identification.hh>
@@ -206,7 +207,7 @@ template <
 void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
     TView<Int, 1, Dev> rot_coord_offset,
     TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
-    TView<Int, 3, Dev> pose_stack_min_bond_separation,
+    TView<Int, 4, Dev> pose_stack_near_blocks,
     TView<int8_t, 5, Dev> pose_stack_inter_block_bondsep,
 
     TView<Int, 1, Dev> block_type_n_interblock_bonds,
@@ -242,8 +243,10 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
   inter_dat.r2.rot_coord_offset = rot_coord_offset[rot_ind2];
   inter_dat.pair_data.max_important_bond_separation =
       max_important_bond_separation;
+  int const near_slot = common::count_pair::near_block_slot(
+      pose_stack_near_blocks[pose_ind][block_ind1], block_ind2);
   inter_dat.pair_data.min_separation =
-      pose_stack_min_bond_separation[pose_ind][block_ind1][block_ind2];
+      pose_stack_near_blocks[pose_ind][block_ind1][near_slot][1];
   inter_dat.pair_data.in_count_pair_striking_dist =
       inter_dat.pair_data.min_separation <= max_important_bond_separation;
   inter_dat.r1.n_atoms = n_atoms1;
@@ -292,7 +295,7 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
           int conn1 = conn_ind / inter_dat.r2.n_conn;
           int conn2 = conn_ind % inter_dat.r2.n_conn;
           shared_m.conn_seps[conn_ind] =
-              pose_stack_inter_block_bondsep[pose_ind][block_ind1][block_ind2]
+              pose_stack_inter_block_bondsep[pose_ind][block_ind1][near_slot]
                                             [conn1][conn2];
         }
       }

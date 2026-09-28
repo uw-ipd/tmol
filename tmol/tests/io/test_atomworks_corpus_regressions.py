@@ -351,8 +351,8 @@ def test_a_twelve_connection_cluster_keeps_one_byte_per_bond_separation(
 ):
     """5XNL's Mn4CaO5 cluster (OEX A 401) takes 12 metal connections.
 
-    The block-pair bond separations grow with the square of the widest block
-    type's connection count, so the whole photosystem fits only at one byte each.
+    Each stored block pair holds one byte per pair of connections of the widest
+    block type, and only block pairs closer than the cap are stored.
     """
     from tmol.chemical import MAX_SIG_BOND_SEPARATION
     from tmol.io import build_context_from_biotite
@@ -374,8 +374,11 @@ def test_a_twelve_connection_cluster_keeps_one_byte_per_bond_separation(
     n_blocks = pose.block_type_ind.shape[1]
     assert bondsep.shape == (1, n_blocks, n_blocks, 12, 12)
     assert bondsep.dtype == torch.int8
-    assert bondsep.nbytes == n_blocks * n_blocks * 12 * 12
-    assert int(bondsep.max()) == MAX_SIG_BOND_SEPARATION
+    assert bondsep.bondsep.shape == (1, n_blocks, bondsep.n_slots, 12, 12)
+    dense = bondsep.to_dense()
+    assert int(dense.max()) == MAX_SIG_BOND_SEPARATION
+    near = torch.amin(dense, dim=(3, 4)) < MAX_SIG_BOND_SEPARATION
+    assert bondsep.n_slots == int(near.sum(dim=2).max()) + 1
     sfxn = beta2016_score_function(torch_device)
     total = sfxn.render_whole_pose_scoring_module(pose)(pose.coords)
     assert torch.isfinite(total).all()
