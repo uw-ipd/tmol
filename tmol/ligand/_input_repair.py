@@ -105,17 +105,9 @@ def correct_carboxylate_bond_orders(mol: Chem.Mol) -> Chem.Mol:
     if mol.GetNumConformers() == 0:
         return mol
     rw = Chem.RWMol(mol)
-    conf = rw.GetConformer()
-    n_fixed = _infer_carboxylate_bonds(rw, conf)
-    if n_fixed == 0:
+    if _infer_carboxylate_bonds(rw, rw.GetConformer()) == 0:
         return mol
-    out = rw.GetMol()
-    try:
-        Chem.SanitizeMol(out)
-    except Exception:
-        logger.warning("geometry bond correction failed to sanitize", exc_info=True)
-        return mol
-    return out
+    return _sanitized(rw, mol, "geometry bond correction failed to sanitize")
 
 
 def normalize_radical_oxygens(mol: Chem.Mol) -> Chem.Mol:
@@ -135,13 +127,16 @@ def normalize_radical_oxygens(mol: Chem.Mol) -> Chem.Mol:
             changed = True
     if not changed:
         return mol
+    return _sanitized(rw, mol, "Radical-oxygen normalization failed to sanitize mol")
+
+
+def _sanitized(rw: Chem.RWMol, mol: Chem.Mol, failure: str) -> Chem.Mol:
+    """The sanitized edit ``rw``, or the unedited ``mol`` (logging ``failure``)."""
     out = rw.GetMol()
     try:
         Chem.SanitizeMol(out)
     except Exception:
-        logger.warning(
-            "Radical-oxygen normalization failed to sanitize mol", exc_info=True
-        )
+        logger.warning(failure, exc_info=True)
         return mol
     return out
 
