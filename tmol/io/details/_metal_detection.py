@@ -19,7 +19,6 @@ import attr
 import numpy
 import torch
 
-from tmol.chemical import ResidueTypeSet
 from tmol.chemical._ideal_coords import build_coords_from_icoors
 from tmol.database.chemical import (
     Connection,
@@ -885,7 +884,7 @@ def with_donor_patches(pbt: PackedBlockTypes, patches) -> PackedBlockTypes:
     extra = tuple(p for p in patches if p.name not in known)
     if extra:
         chem_db = newest.chem_db.with_variants_applied(extra)
-        rts = ResidueTypeSet.from_database(chem_db)
+        rts = newest.restype_set.extended(chem_db)
         newest = PackedBlockTypes.from_restype_list(
             chem_db, rts, rts.residue_types, pbt.device
         )

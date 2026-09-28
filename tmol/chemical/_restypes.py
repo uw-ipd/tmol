@@ -706,6 +706,28 @@ class ResidueTypeSet:
             chem_db=chemical_db,
         )
 
+    def extended(self, chemical_db: PatchedChemicalDatabase) -> "ResidueTypeSet":
+        """This set grown to ``chemical_db``, whose residues begin with this set's.
+
+        The residue types already here stay the same objects, so packed block
+        types built from either set share them.
+
+        Raises:
+            ValueError: If this set does not hold one type per residue of its
+                database, or ``chemical_db`` does not begin with those residues.
+        """
+        old = self.chem_db.residues
+        if len(self.residue_types) != len(old) or any(
+            a is not b for a, b in zip(chemical_db.residues, old)
+        ):
+            raise ValueError("chemical_db does not extend this residue type set")
+        cache = self._default_refined_cache()
+        added = [
+            copy.copy(cache[id(r)]) if id(r) in cache else self._refine(r)
+            for r in chemical_db.residues[len(old) :]
+        ]
+        return self.from_restype_list(chemical_db, [*self.residue_types, *added])
+
     @classmethod
     def from_restype_list(
         cls, chemical_db: PatchedChemicalDatabase, restypes: List[RefinedResidueType]
