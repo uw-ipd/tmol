@@ -16,7 +16,6 @@ import torch
 
 from tmol.tests.data import data_path
 from tmol.io import canonical_ordering_for_biotite
-from tmol.io._protonation import with_atomworks_hydrogens
 from tmol.ligand import (
     chem_comp_types_from_cif,
     prepare_ligands,
@@ -111,11 +110,10 @@ class TestFullPipeline:
     ) -> None:
         """Re-injecting an already-registered ligand preparation is a no-op."""
         ligands = detect_nonstandard_residues(
-            with_atomworks_hydrogens(cif_184l_with_i4b),
-            canonical_ordering_for_biotite(),
+            cif_184l_with_i4b, canonical_ordering_for_biotite()
         )
         i4b = next(ligand for ligand in ligands if ligand.res_name == "I4B")
-        prep = _prepare_ligand_via_smiles(i4b, ph=7.4, protonate=False)
+        prep = _prepare_ligand_via_smiles(i4b, ph=7.4)
 
         n_before = len(param_db.chemical.residues)
         extended_db = inject_ligand_preparations(param_db, [prep])

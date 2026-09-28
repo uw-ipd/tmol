@@ -667,18 +667,17 @@ def pose_stack_from_biotite(  # noqa: C901
             Adjacent residues whose closest inter-atom distance exceeds this
             value are treated as disconnected (upper/lower connects broken).
             Set to 0 to disable. Default is 2.4.
-        no_optH: Residues the input gives no hydrogens get AtomWorks hydrogens
-            on their resolved heavy atoms first; the residue's protonation
-            state is read from the hydrogens it then presents. When True
-            (default), those and finite input hydrogens are kept, and only
-            hydrogens of rebuilt heavy atoms and heavy-atom sidechains are
-            built. When False, residues with complete heavy atoms are then
-            packed with OptHSampler to optimize hydrogen positions and NHQ
-            flips, while residues with missing heavy atoms are rebuilt with
-            DunbrackChiSampler. Generated ligand types whose hydrogens could
-            not be named after the input's still rebuild them; pass
-            ``trust_hydrogen_names=True`` only when those names are known to
-            match the prepared database.
+        no_optH: Residues the input gives no hydrogens take AtomWorks'
+            protonation state: database residues then get hydrogens built by
+            tmol, other residues those AtomWorks places. When True (default),
+            preserve finite input hydrogen coordinates
+            and build only missing hydrogens and heavy-atom sidechains. When
+            False, residues with complete heavy atoms are packed with OptHSampler
+            to optimize hydrogen positions and NHQ flips, while residues with
+            missing heavy atoms are rebuilt with DunbrackChiSampler. Generated
+            ligand types may still rebuild hydrogens whose names changed during
+            parameter generation; pass ``trust_hydrogen_names=True`` only when
+            those names are known to match the prepared database.
         prepare_ligands: If True, detect and prepare non-standard residues
             (see ``build_context_from_biotite`` for details).
         ligand_ph: pH AtomWorks protonates residues lacking hydrogens at
@@ -2563,40 +2562,29 @@ def _with_input_hydrogens(biotite_structure, ph, co, chemdb, find_metal_coordina
     """The input with AtomWorks' protonation of the residues tmol reads that lack hydrogens.
 
     With ``co`` only its residues are read; without it every residue is, as
-    when ligands are being prepared. Metal bonds detection would add are
-    shown to AtomWorks as coordination, so the donors it protonates are the
-    ones tmol bonds, and it sees consecutive residues of a chain bonded
-    through the up and down connections of their ``chemdb`` types.
+    when ligands are being prepared. An input already protonated here is
+    returned as it is. AtomWorks sees the metal bonds detection would add as
+    coordination, and consecutive residues of a chain bonded through the up
+    and down connections of their ``chemdb`` types.
     """
     aliases = {a.name3: a.read_as for a in chemdb.name3_aliases}
     names = None
     if co is not None:
         names = set(co.restype_io_equiv_classes)
         names |= {alias for alias, name in aliases.items() if name in names}
-    if not residues_lacking_hydrogens(biotite_structure, names)[1].any():
-        return biotite_structure
-    return _with_atomworks_input_hydrogens(
-        _normalize_input_identifiers(biotite_structure, aliases),
-        ph,
-        co,
-        chemdb,
-        find_metal_coordination,
-    )
-
-
-def _with_atomworks_input_hydrogens(
-    biotite_structure, ph, co, chemdb, find_metal_coordination
-):
-    """``with_atomworks_hydrogens`` of the input, told what tmol will bond."""
-    metal_atom = _metal_atom_names(chemdb=chemdb)
-    biotite_structure = _with_input_chemistry_normalized(biotite_structure, metal_atom)
-    coordination = None
+    template = _template_array(biotite_structure)
     if (
-        find_metal_coordination
-        and numpy.isin(
-            _template_array(biotite_structure).res_name, list(metal_atom)
-        ).any()
+        PROTONATION_VARIANT in template.get_annotation_categories()
+        or not residues_lacking_hydrogens(biotite_structure, names)[1].any()
     ):
+        return biotite_structure
+    metal_atom = _metal_atom_names(chemdb=chemdb)
+    biotite_structure = _with_input_chemistry_normalized(
+        _normalize_input_identifiers(biotite_structure, aliases), metal_atom
+    )
+    coordination = None
+    res_name = _template_array(biotite_structure).res_name
+    if find_metal_coordination and numpy.isin(res_name, list(metal_atom)).any():
         coordination = _detected_metal_bonds(
             biotite_structure, co or canonical_ordering_for_biotite(), chemdb
         )

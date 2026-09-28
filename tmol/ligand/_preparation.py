@@ -686,9 +686,6 @@ def prepare_polymer_residue(
     prep = _prepare_ligand_via_smiles(
         detected[0],
         ph=ph,
-        # the caps carry no hydrogens of their own, so the capped model is
-        #    protonated as a whole; the type's hydrogens are named by parent
-        protonate=True,
         seed=seed,
         # a sidechain ring rotates the way proline's does; a nucleotide's rings
         #    are its sugar and its base, whose torsions the na_torsion term owns
@@ -943,7 +940,7 @@ def _prepare_ligand_via_smiles(
     ligand_info: NonStandardResidueInfo,
     *,
     ph: float,
-    protonate: bool,
+    protonate: bool = True,
     seed: int | None = None,
     assign_ring_chis: bool = False,
     generate_heavy_chi_samples: bool = False,
@@ -2357,7 +2354,7 @@ def prepare_ligand_from_cif(
         A ``(ParameterDatabase, CanonicalOrdering)`` with the ligand injected.
     """
     lig = _ligand_info_from_cif(cif_path, res_name, use_ccd=use_ccd)
-    prep = _prepare_ligand_via_smiles(lig, ph=ph, protonate=True, seed=seed)
+    prep = _prepare_ligand_via_smiles(lig, ph=ph, seed=seed)
     return _inject_single(prep, param_db, strict_atom_types)
 
 
@@ -2454,7 +2451,7 @@ def _prepare_mol2(mol2_path, res_name=None, *, ph=7.4, mode="auto", seed=None):
         return (
             prepare_single_ligand(lig)
             if mode == "keep" or (mode == "auto" and lig.skip_protonation)
-            else _prepare_ligand_via_smiles(lig, ph=ph, protonate=True, seed=seed)
+            else _prepare_ligand_via_smiles(lig, ph=ph, seed=seed)
         )
     except ValueError as error:
         raise ValueError(f"{mol2_path}: {error}") from error
