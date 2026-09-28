@@ -25,10 +25,8 @@ def add_metal_coordination(
     """Bond a donor atom to one of a metal's open sites.
 
     ``site`` defaults to the open site whose virtual points closest to the
-    donor, or the first open site of an untemplated ion. The donor atom loses
-    any hydrogen on it, so a thiol or phenol becomes its anion and a
-    protonated imidazole nitrogen leaves the ring deprotonated. Everything
-    else about the stack is rebuilt as it was.
+    donor, or the first open site of an untemplated ion. Everything else about
+    the stack is rebuilt as it was.
     """
     cf = canonical_form_from_pose_stack(canonical_ordering, pose_stack)
     rows = _rows(cf.metal_coordination)
@@ -47,21 +45,6 @@ def add_metal_coordination(
     donor_bt = _block_type(pose_stack, pose, donor)
     index = canonical_ordering.restypes_atom_index_mapping[donor_bt.io_equiv_class]
     rows.append((pose, metal, site, donor, index[atom]))
-    is_h = pose_stack.packed_block_types.atom_is_hydrogen[
-        int(pose_stack.block_type_ind64[pose, donor])
-    ]
-    bonded = donor_bt.bond_indices
-    donor_atom = donor_bt.atom_to_idx[atom]
-    hydrogens = [
-        int(b)
-        for a, b in bonded.tolist()
-        if a == donor_atom and bool(is_h[b]) and donor_bt.atoms[b].name in index
-    ]
-    if hydrogens:
-        coords = cf.coords.clone()
-        for h in hydrogens:
-            coords[pose, donor, index[donor_bt.atoms[h].name]] = float("nan")
-        cf = attr.evolve(cf, coords=coords)
     return _rebuild(canonical_ordering, pose_stack, cf, rows)
 
 
@@ -72,7 +55,7 @@ def remove_metal_coordination(
     metal: int,
     site: int,
 ) -> PoseStack:
-    """Open one filled site of a metal; the donor keeps its hydrogens."""
+    """Open one filled site of a metal; the donor returns to its plain form."""
     cf = canonical_form_from_pose_stack(canonical_ordering, pose_stack)
     rows = _rows(cf.metal_coordination)
     kept = [r for r in rows if r[:3] != (pose, metal, site)]

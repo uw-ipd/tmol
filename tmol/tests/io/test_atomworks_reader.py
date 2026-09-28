@@ -379,15 +379,7 @@ def test_shared_parser_builds_and_scores_general_chemistry(fixture, torch_device
         offset = int(pose.block_coord_offset[0, 1])
         indices = [offset + bt.atom_to_idx[str(name)] for name in cytidine.atom_name]
         actual = pose.coords[0, indices].detach().cpu().numpy()
-        # the nucleotide rotamer that builds the phosphate rebuilds the residue
-        #    and repacks the base against the sugar's hydrogens
-        base = np.isin(cytidine.atom_name, ["C2", "O2", "N3", "C4", "N4", "C5", "C6"])
-        np.testing.assert_allclose(
-            actual[~missing & ~base], cytidine.coord[~missing & ~base], atol=1e-4
-        )
-        np.testing.assert_array_less(
-            np.linalg.norm(actual[base] - cytidine.coord[base], axis=-1), 0.5
-        )
+        np.testing.assert_array_equal(actual[~missing], cytidine.coord[~missing])
         assert np.isfinite(actual[missing]).all()
     _assert_all_source_connections(pose, array)
     if "/na_" in fixture:
