@@ -545,3 +545,94 @@ def test_known_and_unknown_chemistry_share_file_contract(
             _score_and_minimize(reloaded, reloaded_context, max_iter=1)
         with pytest.raises(LigandPreparationError, match="ZZQ.*chemical bond orders"):
             pose_stack_from_biotite(array, torch_device, prepare_ligands=True)
+
+
+def test_pdb_link_records_reach_the_pose(tmp_path, torch_device):
+    """A PDB's LINK records are bonds, and its HETATM residues keep their numbers.
+
+    1HZY cropped around the two Zn of chain A, with LINK and no CONECT records; its
+    HETATM records list ZN 401 and 402 before FMT 369, which carbamylates LYS 169.
+    """
+    import re
+
+    import biotite.structure as struc
+    import zstandard
+    from tmol.io import atom_array_from_file, pose_stack_from_file
+
+    fixture = DATA / "sweep_regressions" / "zn_link_records_1hzy.pdb.zst"
+    coordination, single = struc.BondType.COORDINATION, struc.BondType.SINGLE
+    links = {
+        ("HIS55.NE2", "ZN401.ZN"): coordination,
+        ("HIS57.NE2", "ZN401.ZN"): coordination,
+        ("ASP301.OD2", "ZN401.ZN"): coordination,
+        ("HIS201.ND1", "ZN402.ZN"): coordination,
+        ("HIS230.NE2", "ZN402.ZN"): coordination,
+        ("FMT369.O1", "ZN401.ZN"): coordination,
+        ("FMT369.O2", "ZN402.ZN"): coordination,
+        ("LYS169.NZ", "FMT369.C"): single,
+        ("HOH876.O", "ZN401.ZN"): coordination,
+        ("HOH876.O", "ZN402.ZN"): coordination,
+        ("HOH897.O", "ZN402.ZN"): coordination,
+    }
+
+    def read_links(path):
+        array = atom_array_from_file(path)
+        label = [
+            f"{r}{i}.{a}"
+            for r, i, a in zip(array.res_name, array.res_id, array.atom_name)
+        ]
+        residue = struc.get_all_residue_positions(array)
+        found = {
+            frozenset((label[i], label[j])): struc.BondType(t)
+            for i, j, t in array.bonds.as_array()
+            if residue[i] != residue[j]
+        }
+        return array, found
+
+    array, found = read_links(fixture)
+    assert found == {frozenset(pair): kind for pair, kind in links.items()}
+    hetero = array[array.hetero]
+    assert (np.diff(hetero.res_id) >= 0).all()
+    assert [
+        (int(i), str(n)) for i, n in zip(*struc.get_residues(hetero), strict=True)
+    ] == [
+        (369, "FMT"),
+        (401, "ZN"),
+        (402, "ZN"),
+        (408, "EDO"),
+        (425, "EDO"),
+        (876, "HOH"),
+        (897, "HOH"),
+    ]
+
+    # A LINK longer than a covalent bond, or to a symmetry mate, is no bond.
+    text = zstandard.decompress(fixture.read_bytes()).decode()
+    hydrogen_bond = (
+        "LINK         OD1 ASP A 301                 O   HOH A 876     1555   1555  2.60"
+    )
+    symmetry_mate = (
+        "LINK         OD1 ASP A 301                ZN    ZN A 402     1555   2555  2.30"
+    )
+    extra = tmp_path / "extra_links.pdb"
+    extra.write_text(text.replace("LINK", f"{hydrogen_bond}\n{symmetry_mate}\nLINK", 1))
+    assert read_links(extra)[1] == found
+
+    pose = pose_stack_from_file(
+        fixture, torch_device, prepare_ligands=True, ligand_seed=17, no_optH=True
+    )
+    labels = pose.pdb_info.residue_labels[0]
+    joined = set()
+    types = pose.packed_block_types.active_block_types
+    for block, index in enumerate(pose.block_type_ind[0].tolist()):
+        block_type = types[index]
+        backbone = {block_type.up_connection_ind, block_type.down_connection_ind}
+        for connection in range(len(block_type.connections)):
+            other = int(pose.inter_residue_connections[0, block, connection, 0])
+            if connection not in backbone and other >= 0:
+                joined.add(frozenset((int(labels[block]), int(labels[other]))))
+    # The pose drops the waters; every other link joins two blocks.
+    assert joined == {
+        frozenset(int(re.search(r"\d+", atom)[0]) for atom in pair)
+        for pair in links
+        if not pair[0].startswith("HOH")
+    }

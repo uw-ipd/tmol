@@ -5,13 +5,19 @@ import warnings
 import biotite.structure as struc
 import numpy as np
 
+from atomworks.constants import (
+    BOND_DISTANCE_THRESHOLD_CHNO,
+    BOND_DISTANCE_THRESHOLD_CHNOPS,
+    BOND_DISTANCE_THRESHOLD_OTHER,
+    METAL_ELEMENTS,
+)
 from atomworks.io import load_pdb
 from atomworks.io.config import ParseConfig
-from atomworks.io.parser import parse, prepare_atom_array
+from atomworks.io.parser import parse, parse_atom_array, prepare_atom_array
 from atomworks.io.transforms.categories import category_to_dict
 from atomworks.io.utils.bonds import get_struct_conn_bonds
 from atomworks.io.utils.ccd import get_polymerization_atoms
-from atomworks.io.utils.io_utils import get_structure, read_any
+from atomworks.io.utils.io_utils import get_structure, infer_pdb_file_type, read_any
 
 _AUTHOR_FIELDS = {
     "atom_name": "auth_atom_id",
@@ -127,23 +133,90 @@ def _renumber_decreasing_author_ids(array):
     return array
 
 
+def _link_bonds(array, lines):
+    """The LINK records as bonds, skipping symmetry mates and links longer than a covalent bond.
+
+    A link to a metal is a coordination bond.
+    """
+    index = {}
+    for i, key in enumerate(
+        zip(
+            array.auth_asym_id,
+            array.res_id,
+            array.ins_code,
+            array.res_name,
+            array.atom_name,
+            strict=True,
+        )
+    ):
+        index.setdefault(tuple(str(k) for k in key), i)
+    elements = np.char.upper(array.element.astype(str))
+    bonds = []
+    for line in lines:
+        if not line.startswith("LINK  "):
+            continue
+        line = line.ljust(80)
+        partners = [
+            (line[at + 9], line[at + 10 : at + 14], line[at + 14])
+            + (line[at + 5 : at + 8], line[at : at + 4])
+            for at in (12, 42)
+        ]
+        i, j = (index.get(tuple(field.strip() for field in p)) for p in partners)
+        mate = {line[59:65].strip(), line[66:72].strip()} - {"", "1555"}
+        if i is None or j is None or mate:
+            continue
+        pair = {elements[i], elements[j]}
+        if pair <= set("CHNO"):
+            limit = BOND_DISTANCE_THRESHOLD_CHNO
+        elif pair <= set("CHNOPS"):
+            limit = BOND_DISTANCE_THRESHOLD_CHNOPS
+        else:
+            limit = BOND_DISTANCE_THRESHOLD_OTHER
+        if np.linalg.norm(array.coord[i] - array.coord[j]) <= limit:
+            metal = bool(pair & METAL_ELEMENTS)
+            bond = struc.BondType.COORDINATION if metal else struc.BondType.ANY
+            bonds.append((i, j, bond))
+    return struc.BondList(len(array), np.array(bonds, dtype=np.int64).reshape(-1, 3))
+
+
+def _read_pdb(path, model):
+    """A PDB's atoms with its LINK records as bonds, HETATM chains in residue-number order.
+
+    PDB files may list a chain's HETATM residues out of number order (1HZY).
+    """
+    array, _ = load_pdb(path, model=model)
+    if array.coord.ndim == 3:
+        array = array[0]
+    array = _with_pdb_author_chains(array, path, model)
+    array.bonds = array.bonds.merge(_link_bonds(array, read_any(path).lines))
+    order = np.arange(len(array))
+    for chain in np.unique(array.chain_id[array.hetero]):
+        in_chain = np.flatnonzero(array.chain_id == chain)
+        if array.hetero[in_chain].all():
+            by_number = np.argsort(array.res_id[in_chain], kind="stable")
+            order[in_chain] = in_chain[by_number]
+    return array[order]
+
+
 def _parse_repairing_author_numbering(path, config, model, assembly_id):
     """``parse`` the file, renumbering refused author ids in the asymmetric unit first.
 
     An assembly that needs renumbering is refused with AtomWorks' own message.
     """
+    is_pdb = infer_pdb_file_type(path) == "pdb"
     try:
+        if is_pdb:
+            return parse_atom_array(_read_pdb(path, model), config=config)
         return parse(path, config=config)
     except ValueError as refused:
         if assembly_id is not None or "non-decreasing order" not in str(refused):
             raise
-        file = read_any(path)
-        block = getattr(file, "block", None)
-        if block is None:
-            array, _ = load_pdb(path, model=model)
-            if array.coord.ndim == 3:
-                array = array[0]
+        block = None
+        if is_pdb:
+            array = _read_pdb(path, model)
         else:
+            file = read_any(path)
+            block = getattr(file, "block", None)
             array = get_structure(file, model=model, extra_fields=_FIELDS)
         repaired = _renumber_decreasing_author_ids(array)
         if repaired is array:
@@ -206,7 +279,6 @@ def read_structure(path, *, model=1, assembly_id=None):
             array.bonds = struc.BondList(len(array), bonds)
     if block is None:
         # A PDB, where the loader has moved off whatever its records called non-polymer.
-        array = _with_pdb_author_chains(array, path, model)
         array = _polymer_from_backbone_bonds(array)
     elif assembly_id is None and "struct_conn" in block:
         array.bonds = _with_metal_coordination(array, block)
