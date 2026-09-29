@@ -3,8 +3,10 @@
 import biotite.structure
 import numpy
 import pytest
+from atomworks.io.utils.ccd import atom_array_from_ccd_code
 
 from tmol.database import ParameterDatabase
+from tmol.database.chemical import DEPROTONATED_VAR_IND
 from tmol.io import atom_array_from_cif
 from tmol.io import _protonation as protonation
 from tmol.tests.data import data_path
@@ -55,6 +57,33 @@ def test_states_by_context_match_the_whole_structure(path):
             assert variant[start] == protonation._variant(forms[name], state)
             checked += 1
     assert checked > 10
+
+
+def _cysteine_on_zinc(distance):
+    cys = atom_array_from_ccd_code("CYS")
+    cys = cys[(cys.element != "H") & (cys.atom_name != "OXT")]
+    zinc = atom_array_from_ccd_code("ZN")
+    zinc.res_id[:] = 2
+    sg, cb = (cys.coord[cys.atom_name == name][0] for name in ("SG", "CB"))
+    zinc.coord[0] = sg + distance * (sg - cb) / numpy.linalg.norm(sg - cb)
+    site = biotite.structure.concatenate([cys, zinc])
+    site.set_annotation("charge", numpy.r_[numpy.zeros(len(cys), int), 2])
+    site.bonds = biotite.structure.connect_via_residue_names(site)
+    return site, numpy.array([[len(cys), numpy.flatnonzero(cys.atom_name == "SG")[0]]])
+
+
+@pytest.mark.parametrize("lengths", [(2.3, 3.6), (3.6, 2.3)], ids=["near", "far"])
+def test_a_cached_state_follows_the_metal_bond_length(lengths):
+    """A thiolate on a bonded zinc, a thiol past AtomWorks' reach, in either order."""
+    forms = protonation.database_forms(ParameterDatabase.get_default().chemical)
+    protonation._STATES.clear()
+    for length in lengths:
+        site, coordination = _cysteine_on_zinc(length)
+        marked = protonation.with_atomworks_hydrogens(
+            site, coordination=coordination, forms=forms
+        )
+        variant = marked.get_annotation(protonation.PROTONATION_VARIANT)[0]
+        assert variant == (DEPROTONATED_VAR_IND if length < 3 else 0)
 
 
 def test_a_ligand_numbered_after_its_chain_is_not_bonded_to_it():
