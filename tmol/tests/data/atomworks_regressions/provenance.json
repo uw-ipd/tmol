@@ -383,5 +383,14 @@
     "transformation": "none; complete compressed source",
     "sha256": "c5912ed603d0099da2eaad1c5f84d0e44d1aedd8c0f7711d860dcfa8c0353ecf",
     "bytes": 138874
+  },
+  {
+    "fixture": "repeated_packing_181l.cif.gz",
+    "source": "https://files.rcsb.org/download/181L.cif.gz",
+    "source_repository": "RCSB PDB",
+    "retrieved": "2026-09-29",
+    "transformation": "none; complete compressed source",
+    "sha256": "8d41763bf1d8327a8c1d6390c68580129acf9f2b9fa9322b20a7710db1f3946e",
+    "bytes": 48786
   }
 ]

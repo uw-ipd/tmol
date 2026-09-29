@@ -261,3 +261,9 @@ Frank scoring and gradients; and runs focused Cartesian minimization.
 `bridging_histidine_6iu8.cif.gz` retains the complete entry. HIS C89 binds
 Zn C201 through ND1 and Zn B201 through NE2, so neither ring nitrogen keeps a
 proton: it must build as the imidazolate `HIS_DEP` coordinating at both.
+
+`repeated_packing_181l.cif.gz` retains the complete T4 lysozyme L99A entry.
+Building its protein hydrogens with OptH packs the polar hydrogens. The CPU
+annealer drew from C `rand()`, so a later build in the same process could
+move them by up to 1.455 Å. With `packer_seed`, repeated builds are identical.
+Waters, chloride, benzene and HED are excluded.

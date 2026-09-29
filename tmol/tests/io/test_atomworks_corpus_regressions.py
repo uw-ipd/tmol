@@ -1416,3 +1416,19 @@ def test_ester_and_thioester_contexts_survive_reuse_and_export(torch_device, tmp
     assert plm.conjugation_context == (("C1", "CYS", "SG"),)
     assert next(a.atom_type for a in plm.atoms if a.name == "O2") == "OG2"
     _score_and_minimize(reused, context)
+
+
+def test_seeded_hydrogen_packing_repeats_in_one_process(torch_device):
+    import ctypes
+
+    array = atom_array_from_cif(DATA / "repeated_packing_181l.cif.gz")
+    array = array[~np.isin(array.res_name, ["HOH", "CL", "BNZ", "HED"])]
+    ctypes.CDLL(None).srand(1)
+    first, *repeats = (
+        pose_stack_from_biotite(
+            array, torch_device, no_optH=False, packer_seed=0
+        ).coords
+        for _ in range(3)
+    )
+    for coords in repeats:
+        torch.testing.assert_close(coords, first, equal_nan=True)
