@@ -3,6 +3,7 @@ import hashlib
 import json
 from collections import Counter
 from pathlib import Path
+import zstandard
 
 NCAA_FIXTURE_CLASS = {
     "6dmz_mod_d.cif": "mirror_image_control",
@@ -32,7 +33,7 @@ def test_atomworks_regression_manifest_matches_fixture_bytes() -> None:
     manifest_names = [row["fixture"] for row in provenance]
     directory_names = {
         path.name
-        for pattern in ("*.cif", "*.cif.gz")
+        for pattern in ("*.cif", "*.cif.gz", "*.cif.zst")
         for path in fixture_dir.glob(pattern)
     }
 
@@ -43,7 +44,8 @@ def test_atomworks_regression_manifest_matches_fixture_bytes() -> None:
         contents = (fixture_dir / row["fixture"]).read_bytes()
         if "compressed_sha256" in row:
             assert hashlib.sha256(contents).hexdigest() == row["compressed_sha256"]
-            contents = gzip.decompress(contents)
+            zst = row["fixture"].endswith(".zst")
+            contents = (zstandard if zst else gzip).decompress(contents)
         assert hashlib.sha256(contents).hexdigest() == row["sha256"]
         assert len(contents) == row["bytes"]
 

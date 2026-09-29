@@ -830,7 +830,7 @@ def test_conflicting_myristate_connections_are_reported(torch_device):
 
 
 def test_a_histidine_bridging_two_zinc_is_the_imidazolate(torch_device):
-    array = atom_array_from_cif(DATA / "bridging_histidine_6iu8.cif.gz")
+    array = atom_array_from_cif(DATA / "bridging_histidine_6iu8.cif.zst")
     pose_stack = pose_stack_from_biotite(array, torch_device)
     block_types = pose_stack.packed_block_types.active_block_types
     names = [
