@@ -567,7 +567,6 @@ def prepare_polymer_residue(
     ph: float = 7.4,
     profile=None,
     connection_atoms=None,
-    use_ccd: bool = True,
     seed: int | None = None,
 ) -> LigandPreparation:
     """Prepare one polymer residue: cap it, run the ligand pipeline, restore the
@@ -629,9 +628,7 @@ def prepare_polymer_residue(
         )
 
     # CCD geometry uses source names before backbone renaming or cap donation.
-    resolved = with_resolved_coordinates(
-        atom_array, str(atom_array.res_name[0]), use_ccd
-    )
+    resolved = with_resolved_coordinates(atom_array, str(atom_array.res_name[0]))
     atom_array = atom_array if resolved is None else resolved
 
     # Scoring and reference completion use canonical backbone names. Preserve
@@ -655,9 +652,7 @@ def prepare_polymer_residue(
 
     # an atom the structure did not resolve arrives at NaN; the molecule has to
     #    be readable before it can be typed
-    resolved = with_resolved_coordinates(
-        atom_array, str(atom_array.res_name[0]), use_ccd
-    )
+    resolved = with_resolved_coordinates(atom_array, str(atom_array.res_name[0]))
     if resolved is None:
         unresolved = sorted(
             str(n)
@@ -1681,19 +1676,16 @@ def _placeholder_coords(array: struc.AtomArray) -> np.ndarray:
     return coord
 
 
-def _as_free_molecule(lig, ph, *, use_ccd):
+def _as_free_molecule(lig, ph):
     """``lig`` with the hydrogens AtomWorks gives it as a free molecule at ``ph``.
 
-    Unresolved atoms take hydrogens too, at unresolved coordinates. Without
-    ``use_ccd`` AtomWorks sees the molecule under a name no dictionary has.
+    Unresolved atoms take hydrogens too, at unresolved coordinates.
     """
     is_h = np.isin(lig.atom_array.element, ("H", "D"))
     heavy = lig.atom_array[~is_h]
     unresolved = ~np.isfinite(heavy.coord).all(axis=-1)
     stand_in = heavy.copy()
     stand_in.coord = _placeholder_coords(lig.atom_array)[~is_h]
-    if not use_ccd:
-        stand_in.res_name[:] = unused_ligand_name(set())
     protonated = with_atomworks_hydrogens(stand_in, ph=ph)
     protonated.res_name[:] = heavy.res_name[0]
     names = {str(n) for n in heavy.atom_name[unresolved]}
@@ -1781,7 +1773,6 @@ def prepare_ligands(  # noqa: C901
     return_fragment_definitions: bool = False,
     return_cut_partners: bool = False,
     chem_comp_types: dict[str, str] | None = None,
-    use_ccd: bool = True,
     seed: int | None = None,
     coordinating_atoms: dict[str, frozenset[str]] | None = None,
 ) -> tuple:
@@ -1830,11 +1821,6 @@ def prepare_ligands(  # noqa: C901
             polymer-linking type routes the residue to
             :func:`prepare_polymer_residue` instead of the free-molecule
             ligand path.
-        use_ccd: Whether a residue the input declares no chemistry for may be
-            completed from the component dictionary by its code. Pass False for
-            a source that supplies whole molecules under codes of its own, such
-            as a mol2 or a ligand file naming its residue LG1; the dictionary
-            defines those codes as unrelated molecules.
         seed: Fixed RNG seed for the 3D conformer each residue is built from.
             ``None`` is random, which makes the prepared residue types differ
             between runs.
@@ -2048,7 +2034,7 @@ def prepare_ligands(  # noqa: C901
             ):
                 raise ValueError(
                     f"{lig.res_name}: parameter generation requires chemical bond orders. "
-                    "Supply a typed CIF/MOL2, enable use_ccd for a CCD component, "
+                    "Supply a typed CIF/MOL2 or a CCD component code, "
                     "or load its prepared .tmol parameters with params_files."
                 )
             if is_polymer:
@@ -2064,7 +2050,6 @@ def prepare_ligands(  # noqa: C901
                         if lig.connection_atom_names is not None
                         else None
                     ),
-                    use_ccd=use_ccd,
                     seed=seed,
                 )
             else:
@@ -2079,7 +2064,7 @@ def prepare_ligands(  # noqa: C901
                         | (coordinating_atoms or {}).get(lig.res_name, frozenset()),
                     )
                 ):
-                    lig = _as_free_molecule(lig, ph, use_ccd=use_ccd)
+                    lig = _as_free_molecule(lig, ph)
                 prep = _prepare_ligand_via_smiles(
                     lig,
                     ph=ph,
@@ -2284,12 +2269,12 @@ def prepare_ligands(  # noqa: C901
 
 
 def _ligand_info_from_cif(
-    cif_path: str, res_name: str | None, *, use_ccd: bool = False
+    cif_path: str, res_name: str | None
 ) -> NonStandardResidueInfo:
     """Read one ligand through the shared format, identity and completion path."""
     from tmol.io import atom_array_from_cif
 
-    arr = atom_array_from_cif(cif_path, use_ccd=use_ccd)
+    arr = atom_array_from_cif(cif_path)
     if struc.get_residue_count(arr) != 1:
         raise ValueError("Single-ligand preparation requires exactly one residue")
     resolved = (res_name or str(arr.res_name[0])).strip()
@@ -2333,13 +2318,12 @@ def prepare_ligand_from_cif(
     seed: int | None = None,
     strict_atom_types: bool = False,
     res_name: str | None = None,
-    use_ccd: bool = False,
 ) -> tuple[ParameterDatabase, CanonicalOrdering]:
     """Prepare a single ligand from a CIF file and inject it into a database.
 
     Runs the same full pipeline as :func:`prepare_ligand_from_smiles`; the only
     CIF-specific step is the front end. A SMILES is derived from the CIF ligand's
-    bond table (optionally supplemented from CCD, never geometry perception) and run
+    bond table (supplemented from the CCD, never geometry perception) and run
     through the SMILES -> mol2 -> params path (protonation, 3D conformer, MMFF94
     charges). The prepared residue's heavy-atom names are then mapped back to the
     CIF atom names via the atom-order map carried through the round-trip.
@@ -2353,13 +2337,11 @@ def prepare_ligand_from_cif(
         seed: Reproducible conformer seed, shared with the MOL2/SMILES entry paths.
         strict_atom_types: Fail on unknown atom-type element mappings.
         res_name: Optional residue name override.
-        use_ccd: Allow dictionary supplementation for a recognized component code.
-            False (default) requires authored bonds and permits custom residue codes.
 
     Returns:
         A ``(ParameterDatabase, CanonicalOrdering)`` with the ligand injected.
     """
-    lig = _ligand_info_from_cif(cif_path, res_name, use_ccd=use_ccd)
+    lig = _ligand_info_from_cif(cif_path, res_name)
     prep = _prepare_ligand_via_smiles(lig, ph=ph, seed=seed)
     return _inject_single(prep, param_db, strict_atom_types)
 
