@@ -1,4 +1,5 @@
 import os
+from contextlib import nullcontext
 from types import SimpleNamespace
 
 import pytest
@@ -10,6 +11,7 @@ from tmol.database.chemical import (
     Connection,
     MetalSite,
     is_metal_cluster,
+    metal_table,
 )
 from tmol.database._patched_chemdb import _validate_raw_residue_metal_sites
 
@@ -106,53 +108,34 @@ def test_sulfur_donates_to_metals_without_accepting_hydrogen_bonds(
         )
 
 
-def test_only_deprotonated_histidine_nitrogens_donate(
-    default_database: tmol.database.ParameterDatabase,
+@pytest.mark.parametrize(
+    "atom_type, donates",
+    [
+        # a protonated ring nitrogen has no lone pair to give
+        ("NhisDDepro", True),
+        ("NhisEDepro", True),
+        ("NhisD", False),
+        ("NhisE", False),
+        # the thiolate and phenolate coordinate, the thiol and phenol do not
+        ("Sthio", True),
+        ("OOC", True),
+        ("SH1", False),
+        ("OHphenol", False),
+        # nucleic acid phosphate, guanine O6 and base ring nitrogens
+        ("OOP", True),
+        ("Oet2", True),
+        ("ObaccG", True),
+        ("Obacc", True),
+        ("Nbacc", True),
+        ("OCbb", True),
+        # structure input drops HOH; the flag is for paths that keep waters
+        ("Owat", True),
+    ],
+)
+def test_metal_donor_atom_types(
+    default_database: tmol.database.ParameterDatabase, atom_type, donates
 ):
-    # a protonated ring nitrogen has no lone pair to give; tautomer resolution
-    # chooses which of the two faces the metal sees
-    donors = donor_names(default_database)
-    assert "NhisDDepro" in donors
-    assert "NhisEDepro" in donors
-    assert "NhisD" not in donors
-    assert "NhisE" not in donors
-
-
-def test_only_deprotonated_thiol_and_phenol_donate(
-    default_database: tmol.database.ParameterDatabase,
-):
-    # the thiolate and phenolate coordinate; the protonated forms do not, so a
-    # coordinating cysteine or tyrosine is built as CYS_DEP or TYR_DEP
-    donors = donor_names(default_database)
-    assert "Sthio" in donors and "OOC" in donors
-    assert "SH1" not in donors
-    assert "OHphenol" not in donors
-
-
-def test_nucleic_acid_donors_are_declared(
-    default_database: tmol.database.ParameterDatabase,
-):
-    # phosphate, guanine O6 and base ring nitrogens are what the alkali and
-    # alkaline-earth sites in nucleic acids actually coordinate
-    donors = donor_names(default_database)
-    for name in ("OOP", "Oet2", "ObaccG", "Obacc", "Nbacc"):
-        assert name in donors, f"{name} should donate to metals"
-
-
-def test_backbone_carbonyl_donates(default_database: tmol.database.ParameterDatabase):
-    assert "OCbb" in donor_names(default_database), (
-        "backbone carbonyl coordination is common and is why donors are declared "
-        "per atom type rather than per residue"
-    )
-
-
-def test_water_donates_when_it_is_present(
-    default_database: tmol.database.ParameterDatabase,
-):
-    # structure input filters HOH, so a site left open by a dropped water is
-    # carried by the implicit model rather than by this type. The flag is here
-    # for the paths that do retain waters, not for the common one.
-    assert "Owat" in donor_names(default_database)
+    assert (atom_type in donor_names(default_database)) == donates
 
 
 def test_metal_donors_are_plausible_elements(
@@ -218,89 +201,40 @@ def fake_residue(
     )
 
 
-def validate(res):
-    _validate_raw_residue_metal_sites(res, {a.name for a in res.atoms})
+LINKED = dict(geometry="linear", site_virts=("V1",), site_connections=("site1",))
 
 
-def test_metal_site_naming_a_missing_atom_is_rejected():
-    res = fake_residue(
-        [MetalSite(metal_atom="FE", geometry="octahedral", internal_satisfiers=("NZ",))]
-    )
-    with pytest.raises(RuntimeError, match="does not have"):
-        validate(res)
-
-
-def test_free_site_virt_must_be_virtual():
-    res = fake_residue(
-        [MetalSite(metal_atom="FE", geometry="octahedral", site_virts=("NA",))]
-    )
-    with pytest.raises(RuntimeError, match="not virtual"):
-        validate(res)
-
-
-def test_site_connection_must_be_non_kinematic_on_the_metal():
-    for conn in (
-        Connection(name="site1", atom="FE"),
-        Connection(name="site1", atom="NA", kinematic=False),
-    ):
-        res = fake_residue(
-            [
-                MetalSite(
-                    metal_atom="FE",
-                    geometry="linear",
-                    site_virts=("V1",),
-                    site_connections=("site1",),
-                )
-            ],
-            connections=[conn],
-        )
-        with pytest.raises(RuntimeError, match="non-kinematic connection on FE"):
-            validate(res)
-
-
-def test_each_free_site_virt_has_a_connection():
-    res = fake_residue(
-        [MetalSite(metal_atom="FE", geometry="linear", site_virts=("V1",))]
-    )
-    with pytest.raises(RuntimeError, match="site connection"):
-        validate(res)
-
-
-def test_oversubscribed_geometry_is_rejected():
-    res = fake_residue(
-        [
-            MetalSite(
-                metal_atom="FE",
-                geometry="linear",
-                internal_satisfiers=("NA", "FE"),
-                site_virts=("V1",),
-            )
-        ],
-    )
-    with pytest.raises(RuntimeError, match="but names"):
-        validate(res)
-
-
-def test_untemplated_geometry_is_not_budget_checked():
-    # many donors on an irregular ion is the normal case, not an error
-    res = fake_residue(
-        [
-            MetalSite(
-                metal_atom="FE",
-                geometry="irregular",
-                internal_satisfiers=("NA", "V1"),
-            )
-        ]
-    )
-    validate(res)
-
-
-def geometry_table():
-    path = os.path.join(
-        os.path.dirname(tmol.database.__file__), "default", "chemical", "metals.yaml"
-    )
-    with open(path) as infile:
-        return safe_load(infile)
+@pytest.mark.parametrize(
+    "site, connections, match",
+    [
+        (dict(geometry="octahedral", internal_satisfiers=("NZ",)), (), "does not have"),
+        (dict(geometry="octahedral", site_virts=("NA",)), (), "not virtual"),
+        (
+            LINKED,
+            (Connection(name="site1", atom="FE"),),
+            "non-kinematic connection on FE",
+        ),
+        (
+            LINKED,
+            (Connection(name="site1", atom="NA", kinematic=False),),
+            "non-kinematic connection on FE",
+        ),
+        (dict(geometry="linear", site_virts=("V1",)), (), "site connection"),
+        (
+            dict(
+                geometry="linear", internal_satisfiers=("NA", "FE"), site_virts=("V1",)
+            ),
+            (),
+            "but names",
+        ),
+        # many donors on an irregular ion is the normal case, not an error
+        (dict(geometry="irregular", internal_satisfiers=("NA", "V1")), (), None),
+    ],
+)
+def test_metal_site_validation(site, connections, match):
+    res = fake_residue([MetalSite(metal_atom="FE", **site)], connections=connections)
+    with pytest.raises(RuntimeError, match=match) if match else nullcontext():
+        _validate_raw_residue_metal_sites(res, {a.name for a in res.atoms})
 
 
 def pairwise_angles(vectors):
@@ -327,7 +261,7 @@ def test_metal_ion_ideal_coords_rebuild_their_polyhedra(default_restype_set):
     """
     import numpy
 
-    vertices = {g["name"]: g["vertices"] for g in geometry_table()["geometries"]}
+    vertices = {g["name"]: g["vertices"] for g in metal_table()["geometries"]}
     checked = 0
     for restype in default_restype_set.residue_types:
         if not restype.metal_sites or not restype.metal_sites[0].site_virts:
@@ -346,10 +280,9 @@ def test_metal_ion_ideal_coords_rebuild_their_polyhedra(default_restype_set):
         assert all(
             length == pytest.approx(lengths[0], abs=1e-3) for length in lengths
         ), f"{restype.name}: sites sit at different distances"
-        for got, want in zip(pairwise_angles(built), pairwise_angles(target)):
-            assert got == pytest.approx(
-                want, abs=1e-2
-            ), f"{restype.name}: rebuilt geometry does not match its vertices"
+        assert pairwise_angles(built) == pytest.approx(
+            pairwise_angles(target), abs=1e-2
+        ), f"{restype.name}: rebuilt geometry does not match its vertices"
         checked += 1
     assert checked, "no templated metal types were checked"
 
@@ -357,7 +290,7 @@ def test_metal_ion_ideal_coords_rebuild_their_polyhedra(default_restype_set):
 def test_metal_ion_block_types_are_loaded(
     default_database: tmol.database.ParameterDatabase,
 ):
-    metal_types = {at.name for at in metal_types_list(default_database)}
+    metal_names = {at.name for at in metal_types(default_database)}
     by_name = {r.name: r for r in default_database.chemical.residues}
     ions = generated_ion_names()
     generated = [r for r in default_database.chemical.residues if r.name in ions]
@@ -367,7 +300,7 @@ def test_metal_ion_block_types_are_loaded(
         assert len(res.metal_sites) == 1
         site = res.metal_sites[0]
         assert res.atoms[0].name == site.metal_atom, "the metal must be atom 0"
-        assert res.atoms[0].atom_type in metal_types
+        assert res.atoms[0].atom_type in metal_names
         assert site.internal_satisfiers == (), "a free ion satisfies nothing itself"
         # every templated site is marked, so detection can fill all of them
         if site.n_free_sites is not None:
@@ -384,14 +317,8 @@ def test_metal_ion_block_types_are_loaded(
     assert "CA_irregular" in by_name
 
 
-def metal_types_list(db):
-    return [at for at in db.chemical.atom_types if at.is_metal]
-
-
 def generated_ion_names():
-    return {
-        f"{i['name3']}_{g}" for i in geometry_table()["ions"] for g in i["geometries"]
-    }
+    return {f"{i['name3']}_{g}" for i in metal_table()["ions"] for g in i["geometries"]}
 
 
 def generated_cluster_names():
@@ -409,18 +336,15 @@ def test_metal_cluster_block_types_are_loaded(
     default_database: tmol.database.ParameterDatabase,
 ):
     # each metal's own atoms and its free sites together fill its geometry
-    metal_types = {at.name for at in metal_types_list(default_database)}
-    clusters = [
-        r
-        for r in default_database.chemical.residues
-        if r.name in generated_cluster_names()
-    ]
+    metal_names = {at.name for at in metal_types(default_database)}
+    names = generated_cluster_names()
+    clusters = [r for r in default_database.chemical.residues if r.name in names]
     assert {"SF4", "FES", "F3S"} <= {r.name for r in clusters}
     for res in clusters:
         types = {a.name: a.atom_type for a in res.atoms}
         connections = {c.name: c for c in res.connections}
         for site in res.metal_sites:
-            assert types[site.metal_atom] in metal_types
+            assert types[site.metal_atom] in metal_names
             assert len(site.site_virts) == site.n_free_sites
             assert len(site.site_connections) == site.n_free_sites
             for name in site.site_connections:
@@ -446,10 +370,7 @@ def test_every_metal_atom_has_a_zero_elec_charge(
 def test_existing_residues_declare_no_metal_sites(
     default_database: tmol.database.ParameterDatabase,
 ):
-    # regression guard for the schema addition: the field is optional, and
-    # nothing in the hand-maintained database has gained one by accident. The
-    # generated ion and cluster types are the only residues that may declare
-    # sites.
+    # only the generated ion and cluster types may declare sites
     generated = generated_ion_names() | generated_cluster_names()
     for res in default_database.chemical.residues:
         if res.name in generated:

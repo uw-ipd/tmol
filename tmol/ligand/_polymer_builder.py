@@ -601,14 +601,14 @@ def _computed_icoors(order, frames, coords):
     return [
         Icoor(
             name=name,
-            phi=geom.phi,
-            theta=geom.theta,
-            d=geom.d,
+            phi=phi,
+            theta=theta,
+            d=d,
             parent=frames[name][0],
             grand_parent=frames[name][1],
             great_grand_parent=frames[name][2],
         )
-        for name, geom in zip(order, geometry)
+        for name, (d, theta, phi) in zip(order, geometry.tolist())
     ]
 
 

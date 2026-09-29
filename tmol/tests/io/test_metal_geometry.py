@@ -2,9 +2,8 @@ import math
 
 import numpy
 import pytest
-from yaml import safe_load
 
-import tmol.database
+from tmol.database.chemical import metal_table
 from tmol.io.details._metal_geometry import (
     choose_geometry,
     fit_geometry,
@@ -12,18 +11,8 @@ from tmol.io.details._metal_geometry import (
 )
 
 
-def geometry_table():
-    import os
-
-    path = os.path.join(
-        os.path.dirname(tmol.database.__file__), "default", "chemical", "metals.yaml"
-    )
-    with open(path) as infile:
-        return safe_load(infile)
-
-
 def vertices_for():
-    return {g["name"]: g["vertices"] for g in geometry_table()["geometries"]}
+    return {g["name"]: g["vertices"] for g in metal_table()["geometries"]}
 
 
 def rotate(vectors, axis, degrees):
@@ -80,42 +69,48 @@ def test_tetrahedral_and_square_planar_are_told_apart():
     assert fit_geometry(sqp, tet).rms_angle > 20.0
 
 
-def test_choose_prefers_the_geometry_the_directions_support():
-    v = vertices_for()
-    allowed = ["tetrahedral", "square_planar", "octahedral"]
-    chosen, why = choose_geometry(numpy.asarray(v["tetrahedral"]), allowed, v)
-    assert chosen.geometry == "tetrahedral"
-    assert why == "directions"
+TWO_AT_90 = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]
 
 
-def test_a_nested_tie_falls_to_preference_order_not_to_the_smaller_polyhedron():
-    # two donors at 90 degrees fit square planar and octahedral equally well,
-    # since the smaller polyhedron's vertices are a subset of the larger's.
-    # Whichever the ion lists first wins -- empty sites are not evidence,
-    # because input drops the waters that would have filled them
-    v = vertices_for()
-    donors = numpy.asarray([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
-    for allowed in (["square_planar", "octahedral"], ["octahedral", "square_planar"]):
-        chosen, why = choose_geometry(donors, allowed, v)
-        assert chosen.geometry == allowed[0]
-        assert why == "preference order"
-
-
-def test_untemplated_geometry_declines_to_choose():
-    v = vertices_for()
-    donors = numpy.asarray([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
-    chosen, why = choose_geometry(donors, ["irregular"], v)
-    assert chosen is None
-    assert why == "untemplated"
+@pytest.mark.parametrize(
+    "donors, allowed, expected, why",
+    [
+        (
+            vertices_for()["tetrahedral"],
+            ["tetrahedral", "square_planar", "octahedral"],
+            "tetrahedral",
+            "directions",
+        ),
+        # a nested tie (square planar's vertices are a subset of octahedral's) goes
+        #    to the ion's first listed geometry; empty sites are not evidence
+        (
+            TWO_AT_90,
+            ["square_planar", "octahedral"],
+            "square_planar",
+            "preference order",
+        ),
+        (TWO_AT_90, ["octahedral", "square_planar"], "octahedral", "preference order"),
+        (TWO_AT_90, ["irregular"], None, "untemplated"),
+    ],
+    ids=[
+        "directions",
+        "nested_tie_square_planar_first",
+        "nested_tie_octahedral_first",
+        "untemplated",
+    ],
+)
+def test_choose_geometry(donors, allowed, expected, why):
+    chosen, reason = choose_geometry(numpy.asarray(donors), allowed, vertices_for())
+    assert (None if chosen is None else chosen.geometry) == expected
+    assert reason == why
 
 
 def test_every_ion_can_be_fitted_from_a_single_donor():
     # the worst real case: a magnesium whose five waters were dropped. No fit
     # can discriminate, so the ion's first listed geometry must carry it
-    table = geometry_table()
     v = vertices_for()
     donors = numpy.asarray([[0.0, 0.0, 1.0]])
-    for ion in table["ions"]:
+    for ion in metal_table()["ions"]:
         chosen, why = choose_geometry(donors, ion["geometries"], v)
         if ion["geometries"] == ["irregular"]:
             assert chosen is None

@@ -74,23 +74,26 @@
     "bytes": 125361
   },
   {
-    "fixture": "conflicting_myristate_1aym.cif.gz",
+    "fixture": "conflicting_myristate_1aym.cif.zst",
     "source": "https://files.rcsb.org/download/1AYM.cif.gz",
     "source_repository": "RCSB PDB; used by AtomWorks IO tests",
     "retrieved": "2026-09-12",
-    "transformation": "none; complete compressed source",
-    "sha256": "99861fb9f6556f4b19f68787df1c5078414308c45d911b80496edc62b6dedac9",
-    "bytes": 195275
+    "transformation": "none; complete source",
+    "source_sha256": "99861fb9f6556f4b19f68787df1c5078414308c45d911b80496edc62b6dedac9",
+    "sha256": "5deefb8486f36ecdcd48a250a8548c66e7841fe9799e7738380ef798278a8a63",
+    "bytes": 786630,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "826340b17eb006b269ceb0c6a3a2960fdf9f4e23964a3a852759b3327432db38"
   },
   {
-    "fixture": "repeated_glycans_6mub.cif.gz",
+    "fixture": "repeated_glycans_6mub.cif.zst",
     "source": "tests/io/test_outputs/6mub_new.cif",
     "source_repository": "atomworks-dev",
     "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
     "sha256": "228b05365bd69fabe8eb511c36919b1fd871c636ce533dccda5aad62485fff17",
     "bytes": 606589,
-    "compression": "gzip; decompressed bytes identical to source",
-    "compressed_sha256": "a4e8d178eeddcd0d5f3edaf67d9dcfa80ebdadd5789651f4e80b218ccf6cf30b"
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "a4afcc1662f9094fbb5827c9f22c558fe8bf1077170c829bb613b106d94bd76e"
   },
   {
     "fixture": "generated_amine_attachment.cif",
@@ -110,11 +113,14 @@
     "bytes": 11360
   },
   {
-    "fixture": "chromophore_3nez.cif.gz",
+    "fixture": "chromophore_3nez.cif.zst",
     "source": "https://files.rcsb.org/download/3NEZ.cif.gz",
     "source_repository": "RCSB PDB; used by AtomWorks IO test mirror",
-    "sha256": "fc34c9039913cd42dfa967152d022c86457b2c8e9cab7cbd0f1c79138c2d8caf",
-    "bytes": 388601
+    "source_sha256": "fc34c9039913cd42dfa967152d022c86457b2c8e9cab7cbd0f1c79138c2d8caf",
+    "sha256": "ca7d96831d0e1ab77e18d6321c3dac9a50ef3d8054e8b558d445f918e8c21434",
+    "bytes": 1469802,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "f826006b3c0dad86b2ae9d57f3471b6da911b0664432360c6deb5be3795a046c"
   },
   {
     "fixture": "generated_imine_attachment.cif",
@@ -125,168 +131,228 @@
     "bytes": 3229
   },
   {
-    "fixture": "plp_cap_5t4j.cif.gz",
+    "fixture": "plp_cap_5t4j.cif.zst",
     "source": "https://files.rcsb.org/download/5T4J.cif.gz",
     "source_repository": "RCSB PDB; used by AtomWorks IO tests",
     "retrieved": "2026-09-12",
-    "transformation": "none; complete compressed mirror entry",
-    "sha256": "ed5c4b6396f73df96ae4c8dbed47c3fd18f79e89e1e35d2fbfdce7a6e73f2c10",
-    "bytes": 169385
+    "transformation": "none; complete mirror entry",
+    "source_sha256": "ed5c4b6396f73df96ae4c8dbed47c3fd18f79e89e1e35d2fbfdce7a6e73f2c10",
+    "sha256": "fac8f3f794df9eb4c8d485ef6de34864aa4e9e1c130573f2280733126f77fa23",
+    "bytes": 624992,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "f0fb4f43c89dad39117f761595ed5367244f00badf855578579f3b427d45cacd"
   },
   {
-    "fixture": "missing_ligand_carbon_5hs6.cif.gz",
+    "fixture": "missing_ligand_carbon_5hs6.cif.zst",
     "source": "https://files.rcsb.org/download/5HS6.cif.gz",
     "source_repository": "RCSB PDB; used by AtomWorks IO tests",
-    "transformation": "none; complete compressed mirror entry",
-    "sha256": "7d5fd61372fc37d081e6283716325a2ddb02185ada6feb76ce2bc00970620fe6",
-    "bytes": 116464
+    "transformation": "none; complete mirror entry",
+    "source_sha256": "7d5fd61372fc37d081e6283716325a2ddb02185ada6feb76ce2bc00970620fe6",
+    "sha256": "2ad8513e31ef6d0e32df5c137c2935d1e3c2f3d4c06f1ffc270beedbe07d50eb",
+    "bytes": 443826,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "c4a4f62f9285e006b433116206ddd79ad22ae8aacc464ce4784ae884a250fb5e"
   },
   {
-    "fixture": "free_and_attached_solutes_5xag.cif.gz",
+    "fixture": "free_and_attached_solutes_5xag.cif.zst",
     "source": "https://files.rcsb.org/download/5XAG.cif.gz",
     "source_repository": "RCSB PDB; used by AtomWorks IO tests",
-    "transformation": "none; complete compressed mirror entry",
-    "sha256": "908e190519baab5f1245a6e01901d4f551b32e885ec1f46d58acf813f3c73342",
-    "bytes": 472608
+    "transformation": "none; complete mirror entry",
+    "source_sha256": "908e190519baab5f1245a6e01901d4f551b32e885ec1f46d58acf813f3c73342",
+    "sha256": "2b614324bc7af6535f375b505b1ed381c27f31a959bb46b0b2e2dc10900f2281",
+    "bytes": 2006340,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "b92927ef7b7685f148c793dc06a64b5afe7628290d1d201844fb9f6b14411330"
   },
   {
-    "fixture": "decreasing_water_author_ids_5xnl.cif.gz",
+    "fixture": "decreasing_water_author_ids_5xnl.cif.zst",
     "source": "https://files.rcsb.org/download/5XNL.cif.gz",
     "source_repository": "RCSB PDB; used by AtomWorks IO tests",
-    "transformation": "none; complete compressed mirror entry",
-    "sha256": "2bbdcb66fa073d57cc1b3a292ce1a14736dc925a6d49e2196045dcfc45e311bf",
-    "bytes": 2528970
+    "transformation": "none; complete mirror entry",
+    "source_sha256": "2bbdcb66fa073d57cc1b3a292ce1a14736dc925a6d49e2196045dcfc45e311bf",
+    "sha256": "b75e5bde2bc507d2431b4954819f77dbf83652e18cae49c706e4ef0f10ab2c44",
+    "bytes": 11379880,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "901abcbb82f77a766cccdf7aeda3a1df3c9c4e5330ec9f5b1d928ca78e9e9301"
   },
   {
-    "fixture": "repeated_partner_glycans_1ivo.cif.gz",
+    "fixture": "repeated_partner_glycans_1ivo.cif.zst",
     "source": "https://files.rcsb.org/download/1IVO.cif.gz",
     "source_repository": "RCSB PDB; used by AtomWorks IO tests",
-    "transformation": "none; complete compressed mirror entry",
-    "sha256": "01ae9b0d1d000f1e444e6fc8f190d746fa9716fb75fe511a60a2025b7396fd11",
-    "bytes": 242336
+    "transformation": "none; complete mirror entry",
+    "source_sha256": "01ae9b0d1d000f1e444e6fc8f190d746fa9716fb75fe511a60a2025b7396fd11",
+    "sha256": "94f12100ac93956c99cec9d71d6662d80612cbe452b730069ad0f3b28ad01705",
+    "bytes": 958585,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "91ee244e2cca6de234309f281543e3a680ee446e9baf1342d9ca82778e4e0bbe"
   },
   {
-    "fixture": "repeated_partner_glycans_1hge.cif.gz",
+    "fixture": "repeated_partner_glycans_1hge.cif.zst",
     "source": "https://files.rcsb.org/download/1HGE.cif.gz",
     "source_repository": "RCSB PDB; used by AtomWorks IO tests",
-    "transformation": "none; complete compressed mirror entry",
-    "sha256": "d86092cfb011f2fe4a38753ef51a8b1ddc9ba79195f2b94e66df8e6a8b96421d",
-    "bytes": 384172
+    "transformation": "none; complete mirror entry",
+    "source_sha256": "d86092cfb011f2fe4a38753ef51a8b1ddc9ba79195f2b94e66df8e6a8b96421d",
+    "sha256": "11e4c5cc24c63d3781a5e45097a0f381fd727b6e72fa67b4128e595cf2adad9a",
+    "bytes": 1614264,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "8a9c273272e6fa96f99ef4e1bd20bf5b3615827e93da9d99ac3407d22d2bf7b4"
   },
   {
-    "fixture": "terminal_asj_glycans_1iau.cif.gz",
+    "fixture": "terminal_asj_glycans_1iau.cif.zst",
     "source": "https://files.rcsb.org/download/1IAU.cif.gz",
     "source_repository": "RCSB PDB; used by AtomWorks IO tests",
-    "transformation": "none; complete compressed mirror entry",
-    "sha256": "cee5648f5407953574da42242e9eb3a49270f0426561e45f3834c3c9713e883d",
-    "bytes": 69238
+    "transformation": "none; complete mirror entry",
+    "source_sha256": "cee5648f5407953574da42242e9eb3a49270f0426561e45f3834c3c9713e883d",
+    "sha256": "0d567e359e13b0481e0117450b599175c20c9e68144bceb2ae7624ed444ccdf1",
+    "bytes": 271437,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "37ff5e5844cb9a279cf2a810720a7bcf0aa8a16dde42454094e0aee23aeb828c"
   },
   {
-    "fixture": "partial_sugar_rings_2msb.cif.gz",
+    "fixture": "partial_sugar_rings_2msb.cif.zst",
     "source": "https://files.rcsb.org/download/2MSB.cif.gz",
     "source_repository": "RCSB PDB; used by AtomWorks IO tests",
-    "transformation": "none; complete compressed mirror entry",
-    "sha256": "b633ee769469c230f28e63691a196ab79e71728d4975f4378e8e182b4dd63331",
-    "bytes": 69717
+    "transformation": "none; complete mirror entry",
+    "source_sha256": "b633ee769469c230f28e63691a196ab79e71728d4975f4378e8e182b4dd63331",
+    "sha256": "afc97828021135fa0240c934442dd768b6b75ed5733b2eff837843f8cfe74ac0",
+    "bytes": 294447,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "38c1824fe4d308aee133e57b395da72334e2d95ae738ae920499aa7b920bd111"
   },
   {
-    "fixture": "modified_nucleotide_aliases_1d9d.cif.gz",
+    "fixture": "modified_nucleotide_aliases_1d9d.cif.zst",
     "source": "https://files.rcsb.org/download/1D9D.cif.gz",
     "source_repository": "RCSB PDB; used by AtomWorks IO tests",
     "retrieved": "2026-09-12",
-    "transformation": "none; complete compressed source",
-    "sha256": "5671f72a9e2b26f1526678479c179305a4c7c08c5372b6a693946045e81ea1a2",
-    "bytes": 148933
+    "transformation": "none; complete source",
+    "source_sha256": "5671f72a9e2b26f1526678479c179305a4c7c08c5372b6a693946045e81ea1a2",
+    "sha256": "fce303a4b1ce193341c582480e1aba1726276598ffac3aca20d81493fea026e3",
+    "bytes": 610538,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "ee91c812add46e3cbeb2f60a26bc22790314f03faf1e58341383d7cb18c2a257"
   },
   {
-    "fixture": "terminal_and_linked_glycans_1en2.cif.gz",
+    "fixture": "terminal_and_linked_glycans_1en2.cif.zst",
     "source": "https://files.rcsb.org/download/1EN2.cif.gz",
     "source_repository": "RCSB PDB; used by AtomWorks IO tests",
     "retrieved": "2026-09-12",
-    "transformation": "none; complete compressed source",
-    "sha256": "60fd2c80acbbb32271204496765a6e52dd9b5289ee3c12123b8350c818cce98d",
-    "bytes": 36783
+    "transformation": "none; complete source",
+    "source_sha256": "60fd2c80acbbb32271204496765a6e52dd9b5289ee3c12123b8350c818cce98d",
+    "sha256": "7930310926d99fe39eec1f77811718b01ba2ad33cf4378f7743c82f820a8351a",
+    "bytes": 147479,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "9383a17892586adf5912cfe982ce7e9dd27c0906d70a4d69ee006f9bb29cf32e"
   },
   {
-    "fixture": "terminal_and_linked_glycans_4ndz.cif.gz",
+    "fixture": "terminal_and_linked_glycans_4ndz.cif.zst",
     "source": "https://files.rcsb.org/download/4NDZ.cif.gz",
     "source_repository": "RCSB PDB; used by AtomWorks IO tests",
     "retrieved": "2026-09-12",
-    "transformation": "none; complete compressed source",
-    "sha256": "50224a3e2fa5e1845b0386e8db9387f1bebad1b27ad998e8262a5d7ea43d4221",
-    "bytes": 1514078
+    "transformation": "none; complete source",
+    "source_sha256": "50224a3e2fa5e1845b0386e8db9387f1bebad1b27ad998e8262a5d7ea43d4221",
+    "sha256": "3c86357cb63fcfd34efe300f21cd929332c823b2038aa4c2b91de8bd013d70ab",
+    "bytes": 5699616,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "14796a04401a801b69576bf368dac69416d020b4525bad88ccf995fd0a539c20"
   },
   {
-    "fixture": "hydrolase_intermediate_1tqh.cif.gz",
+    "fixture": "hydrolase_intermediate_1tqh.cif.zst",
     "source": "https://files.rcsb.org/download/1TQH.cif.gz",
     "source_repository": "RCSB PDB; used by AtomWorks parse-invariant tests",
-    "transformation": "none; complete compressed source",
-    "sha256": "0086cf08b16f27d42223d0bf42ed9848b46662acc223e68d0dc90bfdbcd53632",
-    "bytes": 121703
+    "transformation": "none; complete source",
+    "source_sha256": "0086cf08b16f27d42223d0bf42ed9848b46662acc223e68d0dc90bfdbcd53632",
+    "sha256": "76292bc108d7cb9bfe8ddbcd796da261c373b42208a058b165e48b34a691a060",
+    "bytes": 454249,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "cf3f832c1e976e33fa0ebfd7b09562460b6c68e627612891a2cc2a492d11286f"
   },
   {
-    "fixture": "phosphate_charge_4js1.cif.gz",
+    "fixture": "phosphate_charge_4js1.cif.zst",
     "source": "https://files.rcsb.org/download/4JS1.cif.gz",
     "source_repository": "RCSB PDB; used by AtomWorks IO tests",
-    "transformation": "none; complete compressed source",
-    "sha256": "d0871eca33d5a59ed3678b35bc2ea682ced5bf08c8fa15482ac3ffea4422d934",
-    "bytes": 161575
+    "transformation": "none; complete source",
+    "source_sha256": "d0871eca33d5a59ed3678b35bc2ea682ced5bf08c8fa15482ac3ffea4422d934",
+    "sha256": "23cb612e153e8aeb771d5e483c8acaa89037c091334b003008a43413f6158fa0",
+    "bytes": 598236,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "a7b61790f2b75023f9bc381f3bfdcde7092fd64c01b834311c888c039562518e"
   },
   {
-    "fixture": "chloride_complex_4hbt.cif.gz",
+    "fixture": "chloride_complex_4hbt.cif.zst",
     "source": "https://files.rcsb.org/download/4HBT.cif.gz",
     "source_repository": "RCSB PDB; used by AtomWorks IO tests",
-    "transformation": "none; complete compressed source",
-    "sha256": "0d2b96c17d114da4d7b149203003fb68843e44c6304ad1ed5377c0f59377aeaa",
-    "bytes": 128420
+    "transformation": "none; complete source",
+    "source_sha256": "0d2b96c17d114da4d7b149203003fb68843e44c6304ad1ed5377c0f59377aeaa",
+    "sha256": "430e514278382042ca0030ebc31400a57e654df69a663f18dbf6179df3f51a72",
+    "bytes": 492371,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "a8dafce79b3e090591ee891b70b18708489d2daeb296256ce12aca32c4f0fb14"
   },
   {
-    "fixture": "sulfur_attachments_3t14.cif.gz",
+    "fixture": "sulfur_attachments_3t14.cif.zst",
     "source": "https://files.rcsb.org/download/3T14.cif.gz",
     "source_repository": "RCSB PDB; seeded local CIF audit",
-    "transformation": "none; complete compressed source",
-    "sha256": "7785272d8622437b7004ef6a1342f96fe192a330e7ba66d295e47174c57386d7",
-    "bytes": 187664
+    "transformation": "none; complete source",
+    "source_sha256": "7785272d8622437b7004ef6a1342f96fe192a330e7ba66d295e47174c57386d7",
+    "sha256": "025f99b88ec61969b092bd21657fb137090b0afafbf210eb9f8139eb81c39870",
+    "bytes": 701279,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "a62901ebc24ee0bd79c763ef58a067f3b845d85a990db221dbb908dbea6c1981"
   },
   {
-    "fixture": "phosphate_attachment_8ch1.cif.gz",
+    "fixture": "phosphate_attachment_8ch1.cif.zst",
     "source": "https://files.rcsb.org/download/8CH1.cif.gz",
     "source_repository": "RCSB PDB; seeded local CIF audit",
-    "transformation": "none; complete compressed source",
-    "sha256": "02ecfef5ba6dd1c61971efc237529523f9942eca4043a96fb2c178ae7cc6340a",
-    "bytes": 304458
+    "transformation": "none; complete source",
+    "source_sha256": "02ecfef5ba6dd1c61971efc237529523f9942eca4043a96fb2c178ae7cc6340a",
+    "sha256": "f703dfce44e7a86c5232915481306ba8b440dbb7623cf701943992fe5fdd4403",
+    "bytes": 1208231,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "ba97b647aa239e849f67a34bb642c6ed85574946a6b0e4b76fafad82e562d7e2"
   },
   {
-    "fixture": "isopeptide_2rm9.cif.gz",
+    "fixture": "isopeptide_2rm9.cif.zst",
     "source": "https://files.rcsb.org/download/2RM9.cif.gz",
     "source_repository": "RCSB PDB; seeded local CIF audit",
-    "transformation": "none; complete compressed source",
-    "sha256": "e27da9f0f6308d4150add947c320ee7a49bd1288f0247720a8eeb100cf48d217",
-    "bytes": 223009
+    "transformation": "none; complete source",
+    "source_sha256": "e27da9f0f6308d4150add947c320ee7a49bd1288f0247720a8eeb100cf48d217",
+    "sha256": "a43c93462617e94af28dda318e38049d9c6a4a52373f7efe685e52e3d7cee71b",
+    "bytes": 1005747,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "984e3d5225f326204986e37d607e07a2b24bb91631db46a4cef7faa4ec2e10f0"
   },
   {
-    "fixture": "isopeptide_6n0a.cif.gz",
+    "fixture": "isopeptide_6n0a.cif.zst",
     "source": "https://files.rcsb.org/download/6N0A.cif.gz",
     "source_repository": "RCSB PDB; seeded local CIF audit",
-    "transformation": "none; complete compressed source",
-    "sha256": "d64a9583994e849a6cee4c415061d1082e0eb7821f67f048a460f56f2ef05cab",
-    "bytes": 128703
+    "transformation": "none; complete source",
+    "source_sha256": "d64a9583994e849a6cee4c415061d1082e0eb7821f67f048a460f56f2ef05cab",
+    "sha256": "7feadea9413453b568a3dc26714867b8583eb6a9d1782a9bf70d629a05176048",
+    "bytes": 525365,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "534d6f11e95159837f263630c69bb1b080a2c48d9db8ccf1fbc3b416963e1e35"
   },
   {
-    "fixture": "phosphohistidine_1hxq.cif.gz",
+    "fixture": "phosphohistidine_1hxq.cif.zst",
     "source": "https://files.rcsb.org/download/1HXQ.cif.gz",
     "source_repository": "RCSB PDB; seeded local CIF audit",
-    "transformation": "none; complete compressed source",
-    "sha256": "03d52afb3494933381a067fcbdbbc93a0dece56524e4ff203d8e56ca8f878ac7",
-    "bytes": 170065
+    "transformation": "none; complete source",
+    "source_sha256": "03d52afb3494933381a067fcbdbbc93a0dece56524e4ff203d8e56ca8f878ac7",
+    "sha256": "774f0f5aea882616892ed75f4e6fb11e9d4d0dc5fbb782bd5e060b0009f08853",
+    "bytes": 705378,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "30930c4e7026c9a50ce0cd5a7cd1c91399084482c61578eb56bc51519ebfcbce"
   },
   {
-    "fixture": "attachment_contexts_8trb.cif.gz",
+    "fixture": "attachment_contexts_8trb.cif.zst",
     "source": "https://files.rcsb.org/download/8TRB.cif.gz",
     "source_repository": "RCSB PDB; seeded local CIF audit",
-    "transformation": "none; complete compressed source",
-    "sha256": "9fd03fd55d9bde0c9dddcbe220cc33713bfce961ffb5bd12a8b70558bd3f20ca",
-    "bytes": 590330
+    "transformation": "none; complete source",
+    "source_sha256": "9fd03fd55d9bde0c9dddcbe220cc33713bfce961ffb5bd12a8b70558bd3f20ca",
+    "sha256": "7567c37c56a107386f75e982d9224adacc03d08778da465b410aee0d08351f23",
+    "bytes": 2893405,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "4c288ddd34d319cb541170d3493065f561886ca723abca200463c6249f80b346"
   },
   {
     "fixture": "missing_phosphate_rna_5w1i.cif",
@@ -359,30 +425,38 @@
     "bytes": 21738
   },
   {
-    "fixture": "unresolved_modified_polymer_1xj9.cif.gz",
+    "fixture": "unresolved_modified_polymer_1xj9.cif.zst",
     "source": "tests/data/pdb/xj/1xj9.cif.gz",
     "source_repository": "atomworks-dev",
     "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
     "source_sha256": "c234491ca94ea51211977b86c347408bc507ff57edf89da9c7d690f9d4e2e361",
-    "transformation": "none; byte-identical compressed source",
-    "sha256": "c234491ca94ea51211977b86c347408bc507ff57edf89da9c7d690f9d4e2e361",
-    "bytes": 20296
+    "transformation": "none; complete source",
+    "sha256": "235a7d0cfbd9f3f1ed1ad80058540104aa28860649728e22b9f428f953e7c815",
+    "bytes": 84777,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "8a21d68727dea91a52fe982d8c56d178585fab7e884856f9e010e7423feca095"
   },
   {
-    "fixture": "full_conjugate_9ewf.cif.gz",
+    "fixture": "full_conjugate_9ewf.cif.zst",
     "source": "https://files.rcsb.org/download/9EWF.cif.gz",
     "source_repository": "RCSB PDB; frozen random-PDB corpus",
-    "transformation": "none; complete compressed source",
-    "sha256": "cb2da935e8bd1907195886980051cf5c822ba7e6a72a8e2c7fa5a662b13cfe37",
-    "bytes": 777721
+    "transformation": "none; complete source",
+    "source_sha256": "cb2da935e8bd1907195886980051cf5c822ba7e6a72a8e2c7fa5a662b13cfe37",
+    "sha256": "9f08e109c0f3814a4cfb27cd14607d8ff9c7e5732ffd10e33655915346ce2918",
+    "bytes": 2830576,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "dfa08c6c5bb5e4a6ebeb328cbc31f3ee40a511bd337a244f49e5df152508d492"
   },
   {
-    "fixture": "bridging_histidine_6iu8.cif.gz",
+    "fixture": "bridging_histidine_6iu8.cif.zst",
     "source": "https://files.rcsb.org/download/6IU8.cif.gz",
     "source_repository": "RCSB PDB; local 2026-01-06 PDB mirror",
-    "transformation": "none; complete compressed source",
-    "sha256": "c5912ed603d0099da2eaad1c5f84d0e44d1aedd8c0f7711d860dcfa8c0353ecf",
-    "bytes": 138874
+    "transformation": "none; complete source",
+    "source_sha256": "c5912ed603d0099da2eaad1c5f84d0e44d1aedd8c0f7711d860dcfa8c0353ecf",
+    "sha256": "e5865eb4d26cdb9aba47caa7b7abb454b3260c53d16435fef7b48ae4b91f27ca",
+    "bytes": 581356,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "931c1fb6a96941c91a3c04d7794553aa1ce792c7adcaa1466926ce5acf5c706e"
   },
   {
     "fixture": "repeated_packing_181l.cif.gz",

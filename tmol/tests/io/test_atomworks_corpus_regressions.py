@@ -35,14 +35,13 @@ def test_partial_sugar_rings_construct_score_and_minimize(torch_device, monkeypa
     from rdkit import Chem
     from tmol.ligand._conjugate_model import capped_conjugate_models
 
-    array = atom_array_from_cif(DATA / "partial_sugar_rings_2msb.cif.gz")
+    array = atom_array_from_cif(DATA / "partial_sugar_rings_2msb.cif.zst")
     sugars = [
         r for r in struc.residue_iter(array) if r.res_name[0] in ("NAG", "BMA", "MAN")
     ]
     partial = sugars[-1]
     assert partial.res_name[0] == "MAN"
     assert set(partial.atom_name) == set("C1 C2 C3 C4 C5 C6 O2 O3 O4 O5 O6".split())
-    assert {"C1", "C2", "C3", "C4", "C5", "O5"} <= set(partial.atom_name)
     assert set(partial.atom_name[np.isfinite(partial.coord).all(axis=-1)]) == {"C1"}
     bonds = {
         frozenset((str(partial.atom_name[a]), str(partial.atom_name[b])))
@@ -95,11 +94,13 @@ def test_partial_sugar_rings_construct_score_and_minimize(torch_device, monkeypa
     pose = pose_stack_from_biotite(array, torch_device, context=context, no_optH=True)
     np.testing.assert_array_equal(array.coord, supplied)
     # the heavy atoms, grown before any hydrogen
-    (pbt, coords, missing, targets, offsets, types, connections), kwargs, result = next(
-        c for c in calls if c[1].get("heavy_only", True)
+    assert len(calls) == 1
+    (pbt, coords, missing, targets, offsets, types, connections), kwargs, result = (
+        calls[0]
     )
+    assert kwargs.get("heavy_only", True)
     completed, built = result
-    assert bool(targets.any())
+    assert int(targets.sum()) == 23
     torch.testing.assert_close(built, targets, rtol=0, atol=0)
     changed = built
     finite = ~missing
@@ -195,7 +196,7 @@ def test_terminal_and_linked_glycans_construct_score_and_minimize(
     from tmol.io import build_context_from_biotite
     from tmol.tests.ligand.test_local_conjugate_params import _charges
 
-    array = atom_array_from_cif(DATA / f"terminal_and_linked_glycans_{pdb}.cif.gz")
+    array = atom_array_from_cif(DATA / f"terminal_and_linked_glycans_{pdb}.cif.zst")
     metal = np.isin(np.char.upper(array.element), ("ZN", "NA", "MG", "CA"))
     assert_metal_bonds_are_coordination(array, metal)
     array = array[~metal & (array.res_name != "HOH")]
@@ -310,7 +311,7 @@ def test_terminal_and_linked_glycans_construct_score_and_minimize(
 def test_decreasing_water_author_ids_preserve_full_input(torch_device):
     from tmol.io import build_context_from_biotite
 
-    array = atom_array_from_cif(DATA / "decreasing_water_author_ids_5xnl.cif.gz")
+    array = atom_array_from_cif(DATA / "decreasing_water_author_ids_5xnl.cif.zst")
     assert int(np.isfinite(array.coord).all(axis=-1).sum()) == 98986
     waters = array[array.res_name == "HOH"]
     assert len(waters) == struc.get_residue_count(waters) == 1076
@@ -329,7 +330,7 @@ def test_a_ligand_whose_only_hydrogens_a_metal_displaces_is_prepared_without_the
     """5XNL's BCT D 401 binds the non-heme Fe through O2 and O3: a carbonate."""
     from tmol.io import build_context_from_biotite
 
-    array = atom_array_from_cif(DATA / "decreasing_water_author_ids_5xnl.cif.gz")
+    array = atom_array_from_cif(DATA / "decreasing_water_author_ids_5xnl.cif.zst")
     iron = np.flatnonzero((array.res_name == "FE2") & (array.chain_id == "A"))
     near = np.linalg.norm(array.coord - array.coord[iron], axis=1) < 3.0
     residue = struc.get_all_residue_positions(array)
@@ -590,7 +591,7 @@ def test_repeated_glycans_share_transferable_attachment_targets(
     from tmol.io import build_context_from_biotite
     from tmol.ligand._connection_params import generate_conjugate_connection_params
 
-    array = atom_array_from_cif(DATA / f"{fixture}.cif.gz")
+    array = atom_array_from_cif(DATA / f"{fixture}.cif.zst")
     array = array[array.res_name != "HOH"]
     metals = np.isin(np.char.upper(array.element), ("ZN", "NA", "MG", "CA"))
     assert_metal_bonds_are_coordination(array, metals)
@@ -812,7 +813,7 @@ def test_schiff_base_reports_missing_covalent_partner_backbone():
 
 
 def test_conflicting_myristate_connections_are_reported(torch_device):
-    array = atom_array_from_cif(DATA / "conflicting_myristate_1aym.cif.gz")
+    array = atom_array_from_cif(DATA / "conflicting_myristate_1aym.cif.zst")
     # The complete source has a free zinc ion; metal parameters are out of scope.
     array = array[array.res_name != "ZN"]
     before = array.bonds.as_array().copy()
@@ -829,7 +830,7 @@ def test_conflicting_myristate_connections_are_reported(torch_device):
 
 
 def test_a_histidine_bridging_two_zinc_is_the_imidazolate(torch_device):
-    array = atom_array_from_cif(DATA / "bridging_histidine_6iu8.cif.gz")
+    array = atom_array_from_cif(DATA / "bridging_histidine_6iu8.cif.zst")
     pose_stack = pose_stack_from_biotite(array, torch_device)
     block_types = pose_stack.packed_block_types.active_block_types
     names = [
@@ -845,7 +846,7 @@ def test_an_ester_oxygen_and_a_metal_bound_oxygen_keep_their_own_forms(torch_dev
     """In each of three chains PLM esterifies SER 360 OG and SER 342 OG binds Na."""
     from tmol.io import build_context_from_biotite
 
-    array = atom_array_from_cif(DATA / "attachment_contexts_8trb.cif.gz")
+    array = atom_array_from_cif(DATA / "attachment_contexts_8trb.cif.zst")
     array = array[np.char.upper(array.element) != "H"]
     context = build_context_from_biotite(
         array, torch_device, prepare_ligands=True, ligand_seed=20260928
@@ -1070,7 +1071,7 @@ def test_full_9ewf_conjugate_survives_export_and_minimization(torch_device, tmp_
     from tmol.io import build_context_from_biotite
     from tmol.ligand import prepare_ligands
 
-    array = atom_array_from_cif(DATA / "full_conjugate_9ewf.cif.gz")
+    array = atom_array_from_cif(DATA / "full_conjugate_9ewf.cif.zst")
     array = array[array.res_name != "HOH"]
     source_coords = array.coord.copy()
     source_bonds = array.bonds.as_array().copy()
@@ -1141,7 +1142,7 @@ def test_small_attachment_frames_and_minimization(fixture, components, torch_dev
     from tmol.io import build_context_from_biotite
     from tmol.ligand._fragmentation import _full_ideal_coords
 
-    array = atom_array_from_cif(DATA / f"{fixture}.cif.gz")
+    array = atom_array_from_cif(DATA / f"{fixture}.cif.zst")
     if "VDF" in components:
         # Exercise the generator length fallback when the attachment is unresolved.
         array.coord[(array.res_name == "VDF") & (array.atom_name == "OP3")] = np.nan
@@ -1218,7 +1219,7 @@ def test_sidechain_substitutions_retain_chemistry(
     from tmol.tests.ligand.test_local_conjugate_params import _charges
 
     prefix = "phosphohistidine" if code == "1hxq" else "isopeptide"
-    array = atom_array_from_cif(DATA / f"{prefix}_{code}.cif.gz")
+    array = atom_array_from_cif(DATA / f"{prefix}_{code}.cif.zst")
     metals = np.isin(np.char.upper(array.element), ("CA", "ZN", "FE"))
     assert_metal_bonds_are_coordination(array, metals)
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)
@@ -1292,7 +1293,7 @@ def test_ester_and_thioester_contexts_survive_reuse_and_export(torch_device, tmp
     from tmol.ligand import prepare_ligands
     from tmol.pack._packer_task import PackerPalette
 
-    array = atom_array_from_cif(DATA / "attachment_contexts_8trb.cif.gz")
+    array = atom_array_from_cif(DATA / "attachment_contexts_8trb.cif.zst")
     metals = np.isin(np.char.upper(array.element), ("NA", "ZN"))
     assert_metal_bonds_are_coordination(array, metals)
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)

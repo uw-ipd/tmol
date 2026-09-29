@@ -13,8 +13,14 @@ from tmol.io import (
     pose_stack_from_biotite,
     pose_stack_from_cif,
     biotite_from_pose_stack,
+    pose_stack_from_canonical_form,
 )
-from tmol.io._pose_stack_from_biotite import RESIDUE_ANNOTATIONS, _renumbered_for_cif
+from tmol.io._pose_stack_from_biotite import (
+    RESIDUE_ANNOTATIONS,
+    _renumbered_for_cif,
+    canonical_ordering_for_biotite,
+    packed_block_types_for_biotite_with_metals,
+)
 from tmol.pose import PoseStackBuilder
 from tmol.tests.data import data_path, load_cif
 
@@ -400,7 +406,8 @@ def test_ligand_proton_chi_samples_build_finite_coords(torch_device):
     import pathlib
 
     import biotite.structure
-    import biotite.structure.io
+    import biotite.structure.io.pdbx
+    from atomworks.io.utils.io_utils import read_any
 
     from tmol.database import ParameterDatabase
 
@@ -409,10 +416,10 @@ def test_ligand_proton_chi_samples_build_finite_coords(torch_device):
         / "data"
         / "protein_ligand_test"
         / "cif_inputs"
-        / "ace.ligand.cif"
+        / "ace.ligand.cif.zst"
     )
-    bt_struct = biotite.structure.io.load_structure(
-        str(cif_path), model=1, include_bonds=True, extra_fields=["partial_charge"]
+    bt_struct = biotite.structure.io.pdbx.get_structure(
+        read_any(cif_path), model=1, include_bonds=True, extra_fields=["partial_charge"]
     )
     if isinstance(bt_struct, biotite.structure.AtomArrayStack):
         bt_struct = bt_struct[0]
@@ -470,7 +477,7 @@ def test_ligand_proton_chi_samples_build_finite_coords(torch_device):
 def test_ligand_build_from_mol2_bond_orders(torch_device):
     # Parallel to the CIF-source test above, but sources LG1 from the Tripos
     # mol2 (ace.lig.mol2). The mol2 encodes the carboxylates correctly (O.co2 /
-    # C.2 sybyl types => C(=O)[O-]), whereas ace.ligand.cif declares those C-O
+    # C.2 sybyl types => C(=O)[O-]), whereas ace.ligand.cif.zst declares those C-O
     # bonds as SING/SING and over-protonates the carboxyls. Both go through the
     # same unified build; the mol2's correct bonds must not yield hydroxyl H on
     # the carboxylate oxygens.
@@ -655,10 +662,10 @@ def test_partly_absent_mainchain_triplets_are_still_missing():
 @pytest.mark.parametrize(
     "path",
     [
-        ("metal_fixtures", "zn_tetrahedral_3ks3.cif.gz"),
+        ("metal_fixtures", "zn_tetrahedral_3ks3.cif.zst"),
         ("atomworks_regressions", "plp_enzyme_7mkv.cif"),
-        ("atomworks_regressions", "isopeptide_2rm9.cif.gz"),
-        ("atomworks_regressions", "repeated_glycans_6mub.cif.gz"),
+        ("atomworks_regressions", "isopeptide_2rm9.cif.zst"),
+        ("atomworks_regressions", "repeated_glycans_6mub.cif.zst"),
     ],
     ids=lambda p: p[1].split(".")[0],
 )
@@ -680,14 +687,18 @@ def test_export_rebuilds_the_pose_exactly(path):
     torch.testing.assert_close(rebuilt.coords, pose_stack.coords, equal_nan=True)
 
 
-@pytest.mark.parametrize(
+ANNOTATED_INPUTS = pytest.mark.parametrize(
     "path",
-    [
-        ("cif", "1BL8.cif"),
-        ("cif", "155c__1__1.A__1.B.cif"),
-    ],
+    [("cif", "1BL8.cif"), ("cif", "155c__1__1.A__1.B.cif")],
     ids=["1bl8_ions", "155c_heme"],
 )
+
+
+def _residue_key(array, i):
+    return (array.chain_id[i], array.res_id[i], array.ins_code[i])
+
+
+@ANNOTATED_INPUTS
 def test_export_keeps_the_input_residue_annotations(path):
     """Exported atoms carry their input residue's annotations through batching."""
     structure = atom_array_from_cif(data_path(*path))
@@ -698,17 +709,14 @@ def test_export_keeps_the_input_residue_annotations(path):
     batch = PoseStackBuilder.from_poses([pose_stack, pose_stack], device)
     exported = biotite_from_pose_stack(batch, context.canonical_ordering)
 
-    def key(array, i):
-        return (array.chain_id[i], array.res_id[i], array.ins_code[i])
-
     expected = {
-        key(structure, i): tuple(
+        _residue_key(structure, i): tuple(
             structure.get_annotation(name)[i] for name in RESIDUE_ANNOTATIONS
         )
         for i in range(structure.array_length())
     }
     for i in range(exported.array_length()):
-        assert expected[key(exported, i)] == tuple(
+        assert expected[_residue_key(exported, i)] == tuple(
             exported.get_annotation(name)[i] for name in RESIDUE_ANNOTATIONS
         )
     assert exported.is_polymer.any() and not exported.is_polymer.all()
@@ -718,21 +726,43 @@ def test_export_keeps_the_input_residue_annotations(path):
 @pytest.mark.parametrize(
     "path",
     [
-        ("cif", "1BL8.cif"),
+        ("metal_fixtures", "zn_tetrahedral_3ks3.cif.zst"),
         ("cif", "155c__1__1.A__1.B.cif"),
     ],
-    ids=["1bl8_ions", "155c_heme"],
+    ids=["3ks3_zinc", "155c_heme"],
 )
+def test_an_excised_residue_leaves_the_others_their_residue_metadata(path):
+    """Residue annotations and metal origins shift left with their residues."""
+    structure = atom_array_from_cif(data_path(*path))
+    structure = structure[structure.res_name != "HOH"]
+    device = torch.device("cpu")
+    co = canonical_ordering_for_biotite()
+    cf = canonical_form_from_biotite(structure, device, co=co)
+    labels = list(zip(cf.chain_labels[0], cf.res_labels[0]))
+    by_label = {
+        name: dict(zip(labels, getattr(cf, name)[0].tolist()))
+        for name in ("residue_annotations", "metal_origins")
+        if getattr(cf, name) is not None
+    }
+    cf.res_types[0, 5] = -1
+    cf.covalent_bonds = cf.covalent_bonds[(cf.covalent_bonds[:, [1, 3]] != 5).all(1)]
+    pbt = packed_block_types_for_biotite_with_metals(device)
+    info = pose_stack_from_canonical_form(co, pbt, *cf).pdb_info
+
+    n = len(labels) - 1
+    kept = list(zip(info.chain_labels[0, :n], info.residue_labels[0, :n]))
+    for name, expected in by_label.items():
+        assert getattr(info, name)[0, :n].tolist() == [expected[k] for k in kept]
+
+
+@ANNOTATED_INPUTS
 def test_export_without_is_polymer_takes_it_from_block_types(path):
     """An input without is_polymer exports each atom's from its block type."""
     structure = atom_array_from_cif(data_path(*path))
 
-    def key(array, i):
-        return (array.chain_id[i], array.res_id[i], array.ins_code[i])
-
     # a HETATM cap such as ACE is a polymer entity's residue but a ligand block type
     expected = {
-        key(structure, i): structure.is_polymer[i] and not structure.hetero[i]
+        _residue_key(structure, i): structure.is_polymer[i] and not structure.hetero[i]
         for i in range(structure.array_length())
     }
     structure.del_annotation("is_polymer")
@@ -748,7 +778,7 @@ def test_export_without_is_polymer_takes_it_from_block_types(path):
 
     assert "chain_type" not in exported.get_annotation_categories()
     for i in range(exported.array_length()):
-        assert exported.is_polymer[i] == expected[key(exported, i)]
+        assert exported.is_polymer[i] == expected[_residue_key(exported, i)]
     assert exported.is_polymer.any() and not exported.is_polymer.all()
 
 
@@ -803,16 +833,16 @@ def _heavy_atom_mask(pose_stack):
 @pytest.mark.parametrize(
     "path",
     [
-        ("atomworks_regressions", "isopeptide_2rm9.cif.gz"),
-        ("atomworks_regressions", "repeated_glycans_6mub.cif.gz"),
+        ("atomworks_regressions", "isopeptide_2rm9.cif.zst"),
+        ("atomworks_regressions", "repeated_glycans_6mub.cif.zst"),
         ("atomworks_regressions", "plp_enzyme_7mkv.cif"),
         ("atomworks_regressions", "retinyl_lysine_4xxj.cif"),
-        ("metal_fixtures", "mg_rna_aptamer_7eoh.cif.gz"),
-        ("metal_fixtures", "fe_rubredoxin_30oh.cif.gz"),
-        ("metal_fixtures", "heme_myoglobin_5yce.cif.gz"),
-        ("metal_fixtures", "sf4_ferredoxin_2fdn.cif.gz"),
-        ("metal_fixtures", "sf4_ferredoxin_1fdn.cif.gz"),
-        ("covalent_fixtures", "lactam_cyclic_7ag5.cif.gz"),
+        ("metal_fixtures", "mg_rna_aptamer_7eoh.cif.zst"),
+        ("metal_fixtures", "fe_rubredoxin_30oh.cif.zst"),
+        ("metal_fixtures", "heme_myoglobin_5yce.cif.zst"),
+        ("metal_fixtures", "sf4_ferredoxin_2fdn.cif.zst"),
+        ("metal_fixtures", "sf4_ferredoxin_1fdn.cif.zst"),
+        ("covalent_fixtures", "lactam_cyclic_7ag5.cif.zst"),
     ],
     ids=lambda p: p[1].split(".")[0],
 )
