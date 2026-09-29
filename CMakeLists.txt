@@ -416,9 +416,6 @@ set(_C_SOURCES
   # pack/rotamer/dunbrack
   tmol/pack/rotamer/dunbrack/compiled.ops.cpp
   tmol/pack/rotamer/dunbrack/compiled.cpu.cpp
-  # pose/compiled/apsp
-  tmol/pose/compiled/apsp_vestibule.ops.cpp
-  tmol/pose/compiled/apsp.cpu.cpp
   # score/backbone_torsion
   tmol/score/backbone_torsion/potentials/compiled.ops.cpp
   tmol/score/backbone_torsion/potentials/backbone_torsion_pose_score.cpu.cpp
@@ -468,7 +465,6 @@ if(TMOL_HAS_CUDA)
     tmol/kinematics/compiled/compiled.cuda.cu
     tmol/pack/compiled/compiled.cuda.cu
     tmol/pack/rotamer/dunbrack/compiled.cuda.cu
-    tmol/pose/compiled/apsp.cuda.cu
     tmol/score/backbone_torsion/potentials/backbone_torsion_pose_score.cuda.cu
     tmol/score/cartbonded/potentials/cartbonded_pose_score.cuda.cu
     tmol/score/genbonded/potentials/genbonded_pose_score.cuda.cu

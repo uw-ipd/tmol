@@ -127,68 +127,6 @@ class InterBlockBondsep:
         return result
 
     @classmethod
-    def from_connectivity(
-        cls,
-        distances: Tensor[torch.int32][:, :, :],
-        offsets: Tensor[torch.int64][:, :],
-        counts: Tensor[torch.int32][:, :],
-        max_n_conn: int,
-    ) -> "InterBlockBondsep":
-        """Map shortest paths between pose connections onto block pairs.
-
-        Args:
-            distances: ``[pose, pconn, pconn]`` shortest paths between the
-                pose's connections.
-            offsets: ``[pose, block]`` first pose-connection index of each block.
-            counts: ``[pose, block]`` number of connections of each block.
-            max_n_conn: Width of the connection axes.
-        """
-        n_poses, max_n_blocks = counts.shape
-        n_nodes = distances.shape[1]
-        device = distances.device
-
-        block_counts = counts.flatten().to(torch.int64).clamp(0, max_n_conn)
-        node_row = torch.repeat_interleave(
-            torch.arange(block_counts.shape[0], dtype=torch.int64, device=device),
-            block_counts,
-        )
-        row_start = torch.cumsum(block_counts, 0) - block_counts
-        node_conn = (
-            torch.arange(node_row.shape[0], dtype=torch.int64, device=device)
-            - row_start[node_row]
-        )
-        node = offsets.flatten()[node_row] + node_conn
-        node_pose = torch.div(node_row, max_n_blocks, rounding_mode="floor")
-        in_range = (node >= 0) & (node < n_nodes)
-        block_of_node = torch.full(
-            (n_poses, n_nodes), -1, dtype=torch.int64, device=device
-        )
-        conn_of_node = torch.zeros_like(block_of_node)
-        block_of_node[node_pose[in_range], node[in_range]] = (
-            node_row[in_range] % max_n_blocks
-        )
-        conn_of_node[node_pose[in_range], node[in_range]] = node_conn[in_range]
-
-        pose, node1, node2 = torch.nonzero(
-            distances < MAX_SIG_BOND_SEPARATION, as_tuple=True
-        )
-        block1 = block_of_node[pose, node1]
-        block2 = block_of_node[pose, node2]
-        real = (block1 >= 0) & (block2 >= 0)
-        pose, node1, node2 = pose[real], node1[real], node2[real]
-        return cls.from_entries(
-            pose,
-            block1[real],
-            block2[real],
-            conn_of_node[pose, node1],
-            conn_of_node[pose, node2],
-            distances[pose, node1, node2],
-            n_poses,
-            max_n_blocks,
-            max_n_conn,
-        )
-
-    @classmethod
     def from_bonded_graph(
         cls,
         counts: Tensor[torch.int32][:, :],
