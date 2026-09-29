@@ -6,7 +6,6 @@ import torch
 
 import tmol.database
 from tmol.database.chemical import (
-    geometry_for_metal_variant_index,
     is_metal_cluster,
     metal_geometry_variant_index,
     metal_table,
@@ -286,7 +285,7 @@ def test_geometry_is_carried_as_a_res_type_variant(
     assert variants[0, 1] == 0, "a non-metal keeps the default variant"
     ((_, got),) = assignments
     assert got.n_donors == 2, "both carboxylate oxygens are in range"
-    assert geometry_for_metal_variant_index(int(variants[0, 0])) == got.geometry
+    assert int(variants[0, 0]) == metal_geometry_variant_index(got.geometry)
     assert got.geometry in ion_named("Zn", 2)["geometries"]
 
 
