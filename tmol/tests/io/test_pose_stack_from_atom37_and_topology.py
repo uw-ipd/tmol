@@ -272,7 +272,6 @@ def test_prepared_atom37_builder_is_reusable_and_differentiable(
         "inter_residue_connections",
         "inter_residue_connections64",
         "inter_block_bondsep",
-        "inter_block_bondsep64",
         "block_type_ind",
         "block_type_ind64",
         "chain_id",
