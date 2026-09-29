@@ -60,6 +60,25 @@ MAX_HIER_DEPTH = 5
 _INTER_TABLE_CACHE = WeakIdentityLRU()
 
 
+def _linear_centers(block_type: RefinedResidueType) -> frozenset:
+    """Acyclic two-coordinate atoms with a triple bond or two double bonds.
+
+    Ring atoms are excluded: they cannot be linear, and aromatic rings may be
+    written with every bond DOUBLE.
+    """
+    orders = {}
+    for (a, b), order in block_type.bond_to_type.items():
+        ring = block_type.bond_to_ringness.get((a, b), False)
+        orders.setdefault(int(a), []).append(None if ring else int(order))
+    return frozenset(
+        a
+        for a, o in orders.items()
+        if len(o) == 2
+        and None not in o
+        and (BondType.TRIPLE in o or o.count(BondType.DOUBLE) == 2)
+    )
+
+
 _PACKED_FIELDS = (
     "genbonded_intra_subgraphs",
     "genbonded_intra_subgraph_offsets",
@@ -226,7 +245,8 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         that every movable torsion is constrained exactly once.  Atom types do
         not settle every case: na_torsion claims its torsions by name, and the
         glycosidic bond of a modified nucleotide is mixed-typed, so the bonds it
-        scores are skipped too.
+        scores are skipped too, as are torsions through an sp centre, whose
+        dihedral is undefined at a linear angle.
 
         Torsions with no matching database entry are dropped from the output.
         The central bond (j,k) bond type is looked up from block_type.bond_to_type
@@ -237,8 +257,12 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
         cache = self._torsion_params_cache
         rosetta_typed = self.gen_database.rosetta_typed
         na_bonds = scored_torsion_bonds(block_type, self._element_for_atom_type)
+        linear = _linear_centers(block_type)
 
         for i, j, k, last in torsions:
+            # a dihedral through an sp centre is undefined, with a singular gradient
+            if int(j) in linear or int(k) in linear:
+                continue
             t1 = self.get_atom_chem_type(block_type, i)
             t2 = self.get_atom_chem_type(block_type, j)
             t3 = self.get_atom_chem_type(block_type, k)
