@@ -4,6 +4,7 @@ import warnings
 
 import biotite.structure as struc
 import numpy as np
+from biotite.structure.io import pdbx
 
 from atomworks.io import load_pdb
 from atomworks.io.config import ParseConfig
@@ -13,7 +14,6 @@ from atomworks.io.utils.assembly import build_assemblies_from_asym_unit
 from atomworks.io.utils.atom_array_plus import as_atom_array_plus
 from atomworks.io.utils.bonds import get_struct_conn_bonds
 from atomworks.io.utils.ccd import (
-    bond_dict_from_cif_block,
     build_ccd_entries_from_cif_block,
     get_polymerization_atoms,
 )
@@ -74,7 +74,10 @@ def _read_declared(path, model, assembly_id):
         array = get_structure(file, model=model, extra_fields=_FIELDS)
         entries = build_ccd_entries_from_cif_block(block, use_ccd=False)
         bonds = {name: {} for name in np.unique(array.res_name)}
-        bonds.update(bond_dict_from_cif_block(block))
+        if "chem_comp_bond" in block:
+            bonds.update(
+                pdbx.convert._parse_intra_residue_bonds(block["chem_comp_bond"])
+            )
         array.bonds = struc.connect_via_residue_names(
             array, inter_residue=False, custom_bond_dict=bonds
         )
