@@ -1598,7 +1598,7 @@ def _with_peptide_tautomers(structure):
     on X is dropped.
     """
     template = _template_array(structure)
-    if template.bonds is None:
+    if template.bonds is None or template.array_length() == 0:
         return structure
     bonds = template.bonds.as_array()
     elements = numpy.char.upper(template.element.astype(str))
@@ -2010,6 +2010,7 @@ def _filter_supported_atoms_and_connectivity(  # noqa: C901
     # Only atoms present in every variant count as required, so an atom a terminus
     # patch removes (the DNA 5' phosphate) does not disqualify the residue.
     # Residues with no mainchain definition (non-polymer) are skipped.
+    n_missing_mainchain = 0
     if filter_missing_mainchain:
         atom_names = biotite_structure.atom_name
         if isinstance(biotite_structure, biotite.structure.AtomArrayStack):
@@ -2044,6 +2045,14 @@ def _filter_supported_atoms_and_connectivity(  # noqa: C901
                     sorted(missing),
                 )
                 valid_res[i] = False
+                n_missing_mainchain += 1
+    if n_missing_mainchain and not valid_res.any():
+        raise ValueError(
+            f"No residue remains: {n_missing_mainchain} polymer residues lack "
+            "mainchain atoms (a CA-only or P-only trace model?) and were dropped. "
+            "A PoseStack needs resolved backbones; rebuild them first or pass "
+            "complete coordinates."
+        )
 
     atom_res = get_all_residue_positions(biotite_structure)
     _validate_filtered_covalent_partners(
