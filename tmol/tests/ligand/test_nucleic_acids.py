@@ -405,3 +405,15 @@ def test_a_substituted_five_prime_oxygen_leaves_no_five_prime_port() -> None:
     assert "P" not in {a.name for a in types["MMT"].atoms}
     assert {c.name for c in types["MMT"].connections} == {"up"}
     assert "MMT:conj_C3X" in types
+
+
+def test_the_component_definition_breaks_a_leaving_oxygen_tie(torch_device) -> None:
+    """LCC's 5'-terminal copy is completed with the definition's O1P and OXT.
+
+    Both are terminal hydroxyls on P; the definition declares OXT as leaving,
+    so O1P stays, as in the copies inside the chain.
+    """
+    structure = _sweep_structure("lcc_leaving_atoms_6c8d")
+    names, _chemdb = _block_type_names(structure, torch_device)
+
+    assert names == ["LCC:na5prime", "LCC", "LCC", "LCG", "RA:na3prime"]

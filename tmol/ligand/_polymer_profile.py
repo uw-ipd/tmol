@@ -19,6 +19,7 @@ import biotite.structure as struc
 from rdkit import Chem
 from rdkit.Chem import rdFMCS
 from atomworks.io.utils.atom_array_plus import concatenate_atom_array_plus
+from atomworks.io.utils.leaving_atoms import get_leaving_atom_groups
 
 from tmol.utility.weak_identity_cache import WeakIdentityLRU
 
@@ -1505,6 +1506,18 @@ def resolve_cap_names(profile: PolymerProfile, existing):
     return resolved
 
 
+def _declared_if_tied(atom_array, anchor, leaving):
+    """Tied leaving candidates narrowed to the one the component definition declares."""
+    template = getattr(atom_array, "_custom_ccd_registry", {}).get(
+        str(atom_array.res_name[0])
+    )
+    if len(leaving) < 2 or template is None:
+        return leaving
+    groups = get_leaving_atom_groups(template).get(anchor, ())
+    declared = [n for n in leaving if any(n in group for group in groups)]
+    return declared if len(declared) == 1 else leaving
+
+
 def cap_residue(atom_array, profile: PolymerProfile, *, include_coordinates=True):
     """Return (capped heavy-atom AtomArray, cap name mapping).
 
@@ -1554,6 +1567,7 @@ def cap_residue(atom_array, profile: PolymerProfile, *, include_coordinates=True
             and n not in double.get(anchor, ())
             and (carbonyl or n not in retained_backbone)
         ]
+        leaving = _declared_if_tied(atom_array, anchor, leaving)
         if len(leaving) > 1:
             raise ValueError(
                 f"Ambiguous leaving atoms at polymer connection {anchor}: {leaving}"
