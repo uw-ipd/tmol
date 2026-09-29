@@ -374,3 +374,34 @@ def test_every_variant_builds_finite_ideal_coordinates(stem: str) -> None:
         if not np.isfinite(refined.compute_ideal_coords()).all():
             bad.append(restype.name)
     assert bad == []
+
+
+def _sweep_structure(stem: str):
+    from tmol.io import atom_array_from_cif
+
+    return atom_array_from_cif(data_path("sweep_regressions", f"{stem}.cif.zst"))
+
+
+def _block_type_names(structure, device):
+    from tmol.io import pose_stack_from_biotite
+
+    pose = pose_stack_from_biotite(
+        structure, device, prepare_ligands=True, ligand_seed=0, no_optH=True
+    )
+    types = pose.packed_block_types.active_block_types
+    names = [types[i].name for i in pose.block_type_ind64[0].tolist() if i >= 0]
+    return names, pose.packed_block_types.chem_db
+
+
+def test_a_substituted_five_prime_oxygen_leaves_no_five_prime_port() -> None:
+    """MMT's 5' oxygen bonds the methylimino link to the previous residue.
+
+    No phosphate is grafted onto that ether: the type keeps only its 3' port,
+    and the link at C3X is a conjugation.
+    """
+    prepared, _known, _co = _prepared(_sweep_structure("mmt_5prime_ether_1cx5"))
+    types = {r.name: r for r in prepared.chemical.residues if r.base_name == "MMT"}
+
+    assert "P" not in {a.name for a in types["MMT"].atoms}
+    assert {c.name for c in types["MMT"].connections} == {"up"}
+    assert "MMT:conj_C3X" in types

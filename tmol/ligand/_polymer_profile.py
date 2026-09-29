@@ -1239,8 +1239,9 @@ def profile_for_atom_array(
 def _na_profile_for_structure(atom_array, connection_atoms, profile):
     """Drop a polymer port the structure cannot use.
 
-    A phosphate with a retained ester substituent has no free 5' port, and a
-    3'-deoxy sugar has no 3' one.
+    A phosphate with a retained ester substituent has no free 5' port, nor has
+    a 5' oxygen that already carries another substituent, and a 3'-deoxy sugar
+    has no 3' one.
     """
     if profile is None:
         return profile
@@ -1251,6 +1252,17 @@ def _na_profile_for_structure(atom_array, connection_atoms, profile):
     if profile.up is not None and elements.get(path[-1]) != "O":
         # no 3' oxygen: the backbone ends at C3', so nothing may graft one on
         profile = _without_atom(_without_connection(profile, "up"), profile.up[1])
+    if (
+        profile.down is not None
+        and elements.get(path[0]) == "O"
+        and adjacency[path[0]] - {path[1]}
+    ):
+        # a 5'-O ether (e.g. MMT's O5'-N) leaves no room to graft a phosphate on
+        profile = _without_connection(profile, "down")
+        for atom, _type in tuple(profile.backbone_types):
+            if atom not in elements:
+                profile = _without_atom(profile, atom)
+        return profile
     if (
         profile.down is None
         or elements.get(path[0]) != "P"
@@ -1655,6 +1667,8 @@ def sugar_backbone(residue, mainchain, element):
         adjacency[a].add(b)
         adjacency[b].add(a)
     types = {a.name: a.atom_type for a in residue.atoms}
+    if not set(mainchain) <= types.keys():
+        return None
 
     ring = _smallest_ring_through(adjacency, mainchain[-2], mainchain[-3])
     if ring is None or len(ring) != 5:
