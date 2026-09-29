@@ -1061,6 +1061,41 @@ class ResidueKinforestData:
     dof_type: NDArray[numpy.int64][:]  # NodeType per atom in TO
 
 
+def _tree_bond_indices(bt):
+    """The block type's bonds plus one tree-only edge into each unbonded fragment.
+
+    A block type may hold several molecules, such as a ligand and a counter-ion.
+    Its icoors place each further fragment from an atom of another; that pair is
+    the edge the kinematic tree follows, though it is not a bond.
+    """
+    bonds = numpy.asarray(bt.bond_indices, dtype=numpy.int64).reshape(-1, 2)
+
+    def components(edges):
+        graph = sparse.csr_matrix(
+            (numpy.ones(len(edges)), (edges[:, 0], edges[:, 1])),
+            shape=(bt.n_atoms, bt.n_atoms),
+        )
+        return csgraph.connected_components(graph, directed=False)
+
+    n_fragments, fragment = components(bonds)
+    if n_fragments == 1:
+        return bonds
+    joins = []
+    for i in range(bt.n_atoms):
+        parent_icoor = bt.icoors_ancestors[bt.at_to_icoor_ind[i], 0]
+        parent = bt.atom_to_idx.get(bt.icoors[parent_icoor].name)
+        if parent is not None and fragment[parent] != fragment[i]:
+            joins += [(i, parent), (parent, i)]
+    edges = numpy.concatenate([bonds, numpy.array(joins, dtype=numpy.int64)])
+    if components(edges)[0] != 1:
+        raise ValueError(
+            f"{bt.name}: its atoms form {n_fragments} unbonded fragments and its "
+            "icoors do not place each one from another, so no kinematic tree "
+            "reaches them all"
+        )
+    return edges
+
+
 def block_group_kinforest_data(block_types, links, anchor: int = 0):
     """Spanning tree over a group of blocks joined by inter-block bonds.
 
@@ -1090,7 +1125,7 @@ def block_group_kinforest_data(block_types, links, anchor: int = 0):
     all_bonds, tor_bonds = [], []
     for i, bt in enumerate(block_types):
         off = int(offsets[i])
-        all_bonds.append(numpy.asarray(bt.bond_indices) + off)
+        all_bonds.append(_tree_bond_indices(bt) + off)
         tor_bonds.extend(
             (uaids[1][0] + off, uaids[2][0] + off)
             for uaids in bt.torsion_to_uaids.values()
@@ -1160,7 +1195,7 @@ def annotate_block_type_with_residue_kinforest_data(bt):
             shape=(bt.n_atoms, bt.n_atoms),
         )
 
-    potential_bonds = _bonds_to_csgraph(bt.bond_indices, -1)
+    potential_bonds = _bonds_to_csgraph(_tree_bond_indices(bt), -1)
     tor_atoms = [
         (uaids[1][0], uaids[2][0])
         for tor, uaids in bt.torsion_to_uaids.items()

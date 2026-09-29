@@ -782,9 +782,13 @@ def test_prepare_ligands_with_params_files_skips_reprep(tmp_path) -> None:
     assert any(r.name == "LG1" for r in param_db.chemical.residues)
 
 
-def test_a_component_of_unbonded_fragments_builds_and_scores(torch_device):
+def test_a_component_of_unbonded_fragments_builds_scores_packs_and_minimizes(
+    torch_device,
+):
     import biotite.structure as struc
     import numpy as np
+    import torch
+    from tmol import FoldForest, MoveMap, beta2016_score_function, run_kin_min
     from tmol.io import pose_stack_from_biotite
 
     # ethanol and a hydroxide that is not bonded to it, both in residue ZZF
@@ -838,3 +842,23 @@ def test_a_component_of_unbonded_fragments_builds_and_scores(torch_device):
     observed = pose.coords[0, [block_type.atom_to_idx[n] for n in heavy]]
     np.testing.assert_allclose(observed.cpu(), array.coord[:4], atol=1e-4)
     _score_and_minimize_ligand(pose, database)
+
+    # the packer's rotamer tree and the torsion-space minimizer reach both
+    #    fragments through the same tree-only edge
+    packed = pose_stack_from_biotite(
+        array, torch_device, param_db=database, no_optH=False
+    )
+    assert torch.isfinite(packed.coords[packed.real_atoms]).all()
+
+    sfxn = beta2016_score_function(pose.device, param_db=database)
+    move_map = MoveMap.from_pose_stack(pose)
+    move_map.move_all_jumps = True
+    move_map.move_all_named_torsions = True
+    minimized = run_kin_min(
+        pose, sfxn, FoldForest.reasonable_fold_forest(pose), move_map
+    )
+    energy = sfxn.render_whole_pose_scoring_module(pose)
+    assert torch.isfinite(minimized.coords[minimized.real_atoms]).all()
+    assert (
+        float(energy(minimized.coords).sum()) <= float(energy(pose.coords).sum()) + 1e-3
+    )
