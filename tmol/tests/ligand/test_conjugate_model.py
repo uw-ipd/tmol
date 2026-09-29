@@ -375,3 +375,14 @@ def test_a_polymer_port_links_only_to_the_complementary_port(
     types = pose.packed_block_types.active_block_types
     blocks = pose.block_type_ind64[0].tolist()
     assert [types[i].name for i in blocks if i >= 0] == expected
+
+
+def test_incompatible_attachment_chemistry_names_both_sites():
+    """KIK alkylates one lysine NZ (2 H kept) and is an enamine on another (1 H)."""
+    array = atom_array_from_cif(
+        data_path("sweep_regressions", "kik_lysine_crosslink_5lnu.cif.zst")
+    )
+    with pytest.raises(ValueError, match="Incompatible conjugate chemistry") as exc:
+        prepare_ligands(array, seed=0)
+    assert "A:98 NZ bonded to KIK C1 keeps 2 H" in str(exc.value)
+    assert "A:166 NZ bonded to KIK C5 keeps 1 H" in str(exc.value)

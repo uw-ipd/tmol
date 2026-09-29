@@ -1305,7 +1305,7 @@ def _conjugation_chemistry(atom_array, chemical_database, ph):
 
     if atom_array.bonds is None:
         return {}, {}, {}
-    counts, bond_types, open_geometries, seen = {}, {}, {}, set()
+    counts, bond_types, open_geometries, seen, sites = {}, {}, {}, set(), {}
     free_types = {
         rt.io_equiv_class: rt
         for rt in chemical_database.residues
@@ -1334,13 +1334,21 @@ def _conjugation_chemistry(atom_array, chemical_database, ph):
                 )
                 atom = mol.GetAtomWithIdx(mapping[local_by_source[source]])
                 count = sum(n.GetAtomicNum() == 1 for n in atom.GetNeighbors())
+                site = (
+                    f"{atom_array.chain_id[source]}:{atom_array.res_id[source]}"
+                    f"{atom_array.ins_code[source]} {key[1]} bonded to "
+                    f"{atom_array.res_name[partner]} {atom_array.atom_name[partner]}"
+                )
                 previous = counts.setdefault(key, count)
                 previous_order = bond_types.setdefault(key, order)
+                previous_site = sites.setdefault(key, site)
                 if (previous, previous_order) != (count, order):
                     raise ValueError(
                         f"Incompatible conjugate chemistry for {key}: "
-                        f"{previous} H/{previous_order} and {count} H/{order}; "
-                        "distinct chemistry needs distinct residue identities"
+                        f"{previous_site} keeps {previous} H with a "
+                        f"{previous_order} attachment, {site} keeps {count} H with "
+                        f"a {order} attachment; distinct chemistry needs distinct "
+                        "residue identities"
                     )
                 if atom.GetAtomicNum() == 8 and atom.GetDegree() == 2 and count == 0:
                     restype = free_types.get(key[0])
