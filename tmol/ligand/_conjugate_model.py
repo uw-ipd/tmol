@@ -37,6 +37,11 @@ class CappedConjugateModel:
     connection_names: tuple[tuple[str, str], ...]
 
 
+def is_polymer_link(first, second):
+    """A bond links two polymer residues only from one's up port to the other's down port."""
+    return {first, second} == {"up", "down"}
+
+
 def _polymer_connection(residue, atom):
     if not residue.properties.polymer.is_polymer:
         return None
@@ -58,19 +63,15 @@ def attachment_connection_name(
     A polymer nitrogen's ``down`` connection means an incoming carbonyl or
     thiocarbonyl, not every possible bond at that atom. Alkyl carbon and phosphorus partners are
     ordinary conjugations, including when the nitrogen is at a chain end.
-    Likewise an ``up`` atom bonded to a known polymer residue anywhere but its
-    ``down`` atom (a sidechain amine) is a conjugation.
+    With the partner's definition known, a port links only to the partner's
+    complementary port, as in the pose; any other bond at it is a conjugation.
     """
     atom = str(atom_array.atom_name[index])
     declared = _polymer_connection(residue, atom)
-    if (
-        declared == "up"
-        and partner_residue is not None
-        and partner_residue.properties.polymer.is_polymer
-        and _polymer_connection(partner_residue, str(atom_array.atom_name[partner]))
-        != "down"
-    ):
-        return connection_name(atom)
+    if declared is not None and partner_residue is not None:
+        other = _polymer_connection(partner_residue, str(atom_array.atom_name[partner]))
+        if not is_polymer_link(declared, other):
+            return connection_name(atom)
     if declared != "down" or str(atom_array.element[index]).strip().upper() != "N":
         return declared or connection_name(atom)
     if str(atom_array.element[partner]).strip().upper() != "C":
@@ -215,7 +216,7 @@ def iter_capped_conjugate_models(atom_array, chemical_database):
         cj = attachment_connection_name(
             atom_array, second, first, definition(rj), partner_definition(first)
         )
-        if {ci, cj} == {"up", "down"}:
+        if is_polymer_link(ci, cj):
             polymer_attached.update(
                 (
                     (ri, str(atom_array.atom_name[first])),

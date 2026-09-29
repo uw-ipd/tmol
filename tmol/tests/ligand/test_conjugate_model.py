@@ -341,3 +341,37 @@ def test_cutting_an_unprepared_partner_keeps_its_own_bonds():
     boron = int(np.flatnonzero(array.element == "B")[0])
     assert pairs(array) - pairs(trimmed) == {frozenset((og, boron))}
     assert len(array) == len(trimmed)
+
+
+@pytest.mark.parametrize(
+    "stem, expected",
+    [
+        # TYZ caps Arg1's N in one copy and acylates Lys21's NZ in another
+        (
+            "tyz_cap_and_conjugate_3w93",
+            ["ARG:cterm", "LYS:cterm:nterm:conj_NZ", "TYZ:nterm", "TYZ:nterm:conj_C7"],
+        ),
+        # PYR, with no polymer port, acylates Ser69's backbone N
+        (
+            "pyr_serine_amide_1i72",
+            ["PYR:conj_C:conj_CA", "SER:cterm:conj_N", "MAO:conj_N"],
+        ),
+    ],
+)
+def test_a_polymer_port_links_only_to_the_complementary_port(
+    stem, expected, torch_device
+):
+    """Preparation and pose construction agree on which bonds are polymer links.
+
+    A bond links two residues only from one's up port to the other's down port;
+    anywhere else both ends are conjugation sites, in every copy.
+    """
+    from tmol.io import pose_stack_from_biotite
+
+    array = atom_array_from_cif(data_path("sweep_regressions", stem + ".cif.zst"))
+    pose = pose_stack_from_biotite(
+        array, torch_device, prepare_ligands=True, ligand_seed=0, no_optH=True
+    )
+    types = pose.packed_block_types.active_block_types
+    blocks = pose.block_type_ind64[0].tolist()
+    assert [types[i].name for i in blocks if i >= 0] == expected

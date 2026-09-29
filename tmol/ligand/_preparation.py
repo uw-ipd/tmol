@@ -1051,7 +1051,7 @@ def _supported_elements(param_db: ParameterDatabase) -> set[str]:
 
 
 def _polymer_connection_atoms(res_name, lig, canonical_ordering, chemdb):
-    """The atoms of a residue where a polymer chain attaches, or an empty set.
+    """{atom: "down" or "up"} where a polymer chain attaches to a residue.
 
     A canonical residue reports its own down and up connections; anything else
     is asked for its backbone, which a sugar or a free ligand does not have.
@@ -1066,16 +1066,16 @@ def _polymer_connection_atoms(res_name, lig, canonical_ordering, chemdb):
         conn_inds = canonical_ordering.polymer_conn_inds
         equiv_ind = classes.index(res_name)
         names = canonical_ordering.restypes_ordered_atom_names[res_name]
-        return frozenset(
-            names[atom_ind]
-            for atom_ind in (
-                conn_inds.down_atom_for_co_restype[equiv_ind],
-                conn_inds.up_atom_for_co_restype[equiv_ind],
+        return {
+            names[atom_ind]: name
+            for name, atom_ind in (
+                ("down", conn_inds.down_atom_for_co_restype[equiv_ind]),
+                ("up", conn_inds.up_atom_for_co_restype[equiv_ind]),
             )
             if atom_ind >= 0
-        )
+        }
     if lig is None:
-        return frozenset()
+        return {}
     profile = profile_for_atom_array(lig.atom_array, lig.connection_atom_names, chemdb)
     if profile is None and len(lig.connection_atom_names or ()) > 2:
         elements = dict(zip(lig.atom_array.atom_name, lig.atom_array.element))
@@ -1098,25 +1098,33 @@ def _polymer_connection_atoms(res_name, lig, canonical_ordering, chemdb):
         if len(best) == 1:
             profile = best[0]
     if profile is None:
-        return frozenset()
-    return frozenset(atom for _, atom in profile.connections)
+        return {}
+    return {atom: name for name, atom in profile.connections}
 
 
-def conjugation_atoms(lig, polymer_ports):
+def conjugation_atoms(lig, polymer_ports, any_instance=False):
     """Sites outside an ordinary connection between two polymer ports.
 
-    Both endpoints matter: an acyl cap's inferred polymer port does not turn
-    a glycan amine or a polymer sidechain into a backbone connection.
+    A bond is a polymer link only from one residue's up port to the other's
+    down port, as in the pose; an acyl cap's inferred port does not turn a
+    glycan amine or a polymer sidechain into a backbone connection. With
+    ``any_instance``, a port that some copy bonds otherwise is a site too.
     """
+    from tmol.ligand._conjugate_model import is_polymer_link
+
     partners = lig.connection_partners
     if not partners:
         return frozenset()
+    own = polymer_ports.get(lig.res_name, {})
     conjugations = set()
     for atom, far_side in partners.items():
-        if atom not in polymer_ports.get(lig.res_name, ()) or not any(
-            partner_atom in polymer_ports[partner_name]
+        links = [
+            is_polymer_link(
+                own.get(atom), polymer_ports[partner_name].get(partner_atom)
+            )
             for partner_name, partner_atom in far_side
-        ):
+        ]
+        if not (all(links) if any_instance else any(links)):
             conjugations.add(atom)
     return frozenset(conjugations)
 
@@ -1150,9 +1158,7 @@ def _retain_polymer_connected_ports(ports, ligands):
         for partner in neighbors[pending.pop()] - members:
             members.add(partner)
             pending.append(partner)
-    return {
-        name: atoms if name in members else frozenset() for name, atoms in ports.items()
-    }
+    return {name: atoms if name in members else {} for name, atoms in ports.items()}
 
 
 def _bond_lengths_by_site(atom_array):
@@ -2180,7 +2186,9 @@ def prepare_ligands(  # noqa: C901
         for prep in preparations:
             # a deprotonated variant is looked up as the residue it varies
             name = prep.residue_type.io_equiv_class
-            atoms = conjugation_atoms(ligands_by_name[name], polymer_ports)
+            atoms = conjugation_atoms(
+                ligands_by_name[name], polymer_ports, any_instance=True
+            )
             prepared_by_name[prep.residue_type.name] = _with_conjugation(
                 prep,
                 atoms,

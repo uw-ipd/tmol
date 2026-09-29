@@ -1223,6 +1223,8 @@ def _apply_conjugated_variants(  # noqa: C901
     Which form a residue takes depends on the sites *that instance* is attached
     at, so two copies of one sugar in a glycan can differ.
     """
+    from tmol.ligand._conjugate_model import is_polymer_link
+
     if covalent_bonds64 is None or covalent_bonds64.shape[0] == 0:
         return []
     _annotate_packed_block_types_w_conjugations(pbt)
@@ -1248,7 +1250,7 @@ def _apply_conjugated_variants(  # noqa: C901
                 }
             )
         return any(
-            {first, second} == {"up", "down"}
+            is_polymer_link(first, second)
             for first in endpoints[0]
             for second in endpoints[1]
         )
