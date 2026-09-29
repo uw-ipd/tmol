@@ -5,8 +5,12 @@ which is how the terminal OXT / H1-H3 geometry went unscored. These tests pin th
 resolution rules so a stranded param is a test failure rather than a zero.
 """
 
+import torch
+
 from tmol.database import ParameterDatabase
-from tmol.score.cartbonded import CROSS_RES_PREFIX
+from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+from tmol.score.cartbonded import CROSS_RES_PREFIX, CartBondedEnergyTerm
+from tmol.tests.data import data_path
 
 GROUPS = [
     ("length_parameters", 2),
@@ -148,3 +152,38 @@ def test_cross_rows_are_not_realizable_intra(default_database):
             assert not (
                 is_path(bare, bs) or is_path(bare[::-1], bs)
             ), f"{res} {group} {atoms} is also an intra path in {name}"
+
+
+def test_real_pose_bonds_and_angles_are_parameterized():
+    """Every non-virtual intra-block length and angle of a built pose resolves to a
+    parameter; an unparameterized one leaves its atoms free to fly apart in min.
+    The 9CF0 sample starts a DNA and an RNA chain with a 5'-phosphate."""
+    device = torch.device("cpu")
+    structure = atom_array_from_cif(
+        data_path("sweep_regressions", "five_prime_phosphate_9cf0.cif.zst")
+    )
+    pose_stack, context = pose_stack_from_biotite(
+        structure, device, return_context=True
+    )
+    term = CartBondedEnergyTerm(param_db=context.parameter_database, device=device)
+    pbt = pose_stack.packed_block_types
+    ann = term.setup_packed_block_types(pbt)
+    subgraphs = ann.cartbonded_subgraphs.cpu().numpy()
+    offsets = ann.cartbonded_subgraph_offsets.cpu().numpy()
+    counts = ann.cartbonded_subgraph_type_counts.cpu().numpy()
+    type_offsets = ann.cartbonded_subgraph_type_offsets.cpu().numpy()
+    param_indices = ann.cartbonded_subgraph_param_indices.cpu().numpy()
+
+    used = {int(i) for i in pose_stack.block_type_ind.flatten() if i >= 0}
+    names = {pbt.active_block_types[i].name for i in used}
+    assert {"DA:na5primephos", "RU:na5primephos"} <= names
+    missing = []
+    for i in sorted(used):
+        block_type = pbt.active_block_types[i]
+        virtual = set(block_type.properties.virtual)
+        start = offsets[i] + type_offsets[i][0]
+        for j in range(start, start + counts[i][0] + counts[i][1]):
+            atoms = [block_type.atoms[a].name for a in subgraphs[j] if a >= 0]
+            if param_indices[j] < 0 and not virtual & set(atoms):
+                missing.append(f"{block_type.name} {'-'.join(atoms)}")
+    assert not missing, f"unparameterized lengths/angles: {missing}"

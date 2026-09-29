@@ -2084,6 +2084,7 @@ residue_params:
     - {atm1: O3', atm2: +P, x0: 1.608, K: 300}
     - {atm1: O3', atm2: HO3', x0: 1.000437, K: 300}
     - {atm1: O5', atm2: HO5', x0: 1.000437, K: 300}
+    - {atm1: P, atm2: OP3, x0: 1.51, K: 300}
     angle_parameters:
     - {atm1: H1, atm2: N, atm3: H2, x0: 1.91013, K: 88}
     - {atm1: H1, atm2: N, atm3: H3, x0: 1.91013, K: 88}
@@ -2104,6 +2105,10 @@ residue_params:
     - {atm1: O5', atm2: P, atm3: +O3', x0: 1.809906, K: 80}
     - {atm1: C3', atm2: O3', atm3: HO3', x0: 1.911485, K: 80}
     - {atm1: C5', atm2: O5', atm3: HO5', x0: 1.911485, K: 80}
+    # 5'-phosphate (na5primephos) terminal oxygen
+    - {atm1: O5', atm2: P, atm3: OP3, x0: 1.8326, K: 80}
+    - {atm1: OP1, atm2: P, atm3: OP3, x0: 1.9373, K: 80}
+    - {atm1: OP2, atm2: P, atm3: OP3, x0: 1.9373, K: 80}
     torsion_parameters: []
     improper_parameters:
     - {atm1: CA, atm2: +C, atm3: N, atm4: H, k2: 20.0, phi2: 3.141592653589793}
