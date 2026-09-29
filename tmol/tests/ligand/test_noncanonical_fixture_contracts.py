@@ -1,31 +1,21 @@
 """Contracts every noncanonical fixture must satisfy.
 
-Two properties, checked across the whole noncanonical corpus rather than on one
-hand-picked structure:
-
-a. Parameters prepared from a CIF make a *coordinate-only* PDB sufficient. A
-   caller who prepares chemistry once must be able to load plain coordinates
-   afterwards and get the same complete structure back, with no dictionary
-   lookup.
-
-b. A component's name does not change its chemistry. Once the atoms and bonds
-   are in hand, renaming a residue to something no dictionary knows must
-   produce the same structure -- otherwise a name is silently supplying
-   chemistry the file was supposed to carry.
+Checked across the whole noncanonical corpus rather than on one hand-picked
+structure: a component's name does not change its chemistry. Once the atoms and
+bonds are in hand, renaming a residue to something no dictionary knows must
+produce the same structure -- otherwise a name is silently supplying chemistry
+the file was supposed to carry.
 """
 
 import biotite.structure as struc
 import numpy as np
 import pytest
 import torch
-from biotite.structure.io import pdb
 
 from tmol.io import (
     atom_array_from_cif,
     canonical_ordering_for_biotite,
     pose_stack_from_biotite,
-    pose_stack_from_cif,
-    pose_stack_from_file,
 )
 from tmol.tests.data import data_path
 
@@ -79,17 +69,6 @@ def _described_from_an_unplaced_copy(array, names):
     return False
 
 
-def _unresolved_atom_names(array):
-    """Atoms the file declares but never places.
-
-    ``atom_array_from_cif`` leaves a declared heavy atom at NaN when the
-    structure resolves no position for it. A PDB record *is* a position, so
-    these are exactly the atoms no coordinate-only file can carry.
-    """
-    absent = ~np.isfinite(array.coord).all(axis=-1)
-    return sorted({str(name) for name in array.atom_name[absent]})
-
-
 def _noncanonical_names(array):
     """Residue names the default ordering does not already describe."""
     known = set(canonical_ordering_for_biotite().restype_io_equiv_classes)
@@ -130,108 +109,6 @@ def _heavy_atoms(pose):
     return heavy
 
 
-@pytest.mark.parametrize("fixture", RESIDUE_FIXTURES)
-def test_prepared_parameters_make_coordinate_only_pdb_complete(
-    fixture, tmp_path, torch_device
-):
-    """Parameters prepared from the CIF load a bare PDB without a dictionary."""
-    cif = data_path(*fixture.split("/"))
-    prepared, context = pose_stack_from_cif(
-        cif,
-        torch_device,
-        prepare_ligands=True,
-        ligand_seed=SEED,
-        no_optH=True,
-        return_context=True,
-    )
-    assert torch.isfinite(prepared.coords[prepared.real_atoms]).all()
-
-    # A PDB with coordinates only: no CONECT records, no component blocks.
-    source = atom_array_from_cif(cif)
-    unresolved = _unresolved_atom_names(source)
-    source.bonds = None
-    pdb_path = tmp_path / "coordinates.pdb"
-    written = pdb.PDBFile()
-    if unresolved:
-        # This file declares atoms it never places, and a PDB record is a
-        # position -- there is no way to write them. Replaying it from
-        # coordinates alone is not something the format can express, and
-        # placing them would assert geometry nothing observed. Assert that
-        # boundary rather than a round trip that cannot happen.
-        with pytest.raises(struc.BadStructureError):
-            written.set_structure(source)
-            written.write(pdb_path)
-        return
-    written.set_structure(source)
-    written.write(pdb_path)
-
-    reloaded = pose_stack_from_file(
-        pdb_path,
-        torch_device,
-        param_db=context.parameter_database,
-        use_ccd=False,
-        no_optH=True,
-    )
-
-    assert torch.isfinite(reloaded.coords[reloaded.real_atoms]).all()
-    assert reloaded.n_poses == prepared.n_poses
-    assert _pose_atom_composition(reloaded) == _pose_atom_composition(prepared)
-    assert int(reloaded.real_atoms.sum()) == int(prepared.real_atoms.sum())
-
-
-@pytest.mark.parametrize("fixture", LINKED_FIXTURES)
-def test_coordinate_only_pdb_cannot_carry_cross_residue_links(
-    fixture, tmp_path, torch_device
-):
-    """Parameters carry residue chemistry; they do not carry a structure's links.
-
-    An attachment that is neither a polymer backbone bond nor a disulfide lives
-    in the CIF's connection records. A coordinate-only PDB has nowhere to put
-    it, so the components come back in their free forms -- the attachment site
-    regains the hydrogens the bond displaced. That is the correct outcome:
-    inventing the link from proximity would be a guess. Callers who need it
-    must declare the connectivity.
-    """
-    cif = data_path(*fixture.split("/"))
-    prepared, context = pose_stack_from_cif(
-        cif,
-        torch_device,
-        prepare_ligands=True,
-        ligand_seed=SEED,
-        no_optH=True,
-        return_context=True,
-    )
-
-    source = atom_array_from_cif(cif)
-    unresolved = _unresolved_atom_names(source)
-    source.bonds = None
-    pdb_path = tmp_path / "coordinates.pdb"
-    written = pdb.PDBFile()
-    if unresolved:
-        # Declared-but-unplaced atoms have no PDB representation; see the
-        # residue-fixture contract above.
-        with pytest.raises(struc.BadStructureError):
-            written.set_structure(source)
-            written.write(pdb_path)
-        return
-    written.set_structure(source)
-    written.write(pdb_path)
-
-    reloaded = pose_stack_from_file(
-        pdb_path,
-        torch_device,
-        param_db=context.parameter_database,
-        use_ccd=False,
-        no_optH=True,
-    )
-
-    # The chemistry still loads with no dictionary, which is the point of
-    # injecting parameters; only the structure's own connectivity is missing.
-    assert torch.isfinite(reloaded.coords[reloaded.real_atoms]).all()
-    assert int(reloaded.real_atoms.sum()) > int(prepared.real_atoms.sum())
-    assert _pose_atom_composition(reloaded) != _pose_atom_composition(prepared)
-
-
 @pytest.mark.parametrize("fixture", FIXTURES)
 def test_renamed_components_process_identically(fixture, torch_device):
     """A component renamed beyond any dictionary keeps its chemistry."""
@@ -267,7 +144,6 @@ def test_renamed_components_process_identically(fixture, torch_device):
                 prepare_ligands=True,
                 ligand_seed=SEED,
                 no_optH=True,
-                use_ccd=False,
                 return_context=True,
             )
         del named_context
@@ -279,7 +155,6 @@ def test_renamed_components_process_identically(fixture, torch_device):
         prepare_ligands=True,
         ligand_seed=SEED,
         no_optH=True,
-        use_ccd=False,
         return_context=True,
     )
 

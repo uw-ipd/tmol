@@ -793,7 +793,7 @@ def test_b3k_endpoint_inference_uses_complete_template_before_restoration(
     monkeypatch.setattr(
         _polymer_profile, "completed_connection_atoms", record_inference_source
     )
-    restored = _cif.with_unresolved_atoms(structure, {"B3K": template}, use_ccd=False)
+    restored = _cif.with_unresolved_atoms(structure, {"B3K": template})
 
     assert inferred_from and "NZ" in inferred_from[0]
     b3k = restored[restored.res_name == "B3K"]
@@ -856,7 +856,7 @@ def test_declared_geometry_requires_observed_placement_anchors() -> None:
     partial = template.copy()
     partial._custom_ccd_registry = {code: template}
     partial.coord[-1] = numpy.nan
-    resolved = with_resolved_coordinates(partial, code, use_ccd=True)
+    resolved = with_resolved_coordinates(partial, code)
     assert resolved is not None
     assert numpy.isfinite(resolved.coord).all()
     numpy.testing.assert_array_equal(resolved.coord[:-1], partial.coord[:-1])
@@ -864,7 +864,7 @@ def test_declared_geometry_requires_observed_placement_anchors() -> None:
     unresolved = template.copy()
     unresolved._custom_ccd_registry = {code: template}
     unresolved.coord[:] = numpy.nan
-    assert with_resolved_coordinates(unresolved, code, use_ccd=True) is None
+    assert with_resolved_coordinates(unresolved, code) is None
 
 
 def test_the_component_dictionary_completes_what_the_file_does_not_declare(
@@ -905,7 +905,7 @@ def test_a_dictionary_entry_for_a_different_molecule_is_not_used(caplog) -> None
     structure.res_name[structure.res_name == _TRUNCATED[0]] = "X3K"
 
     with caplog.at_level(logging.WARNING, logger="tmol.io._cif"):
-        taken_as_is = with_unresolved_atoms(structure, {}, use_ccd=True)
+        taken_as_is = with_unresolved_atoms(structure, {})
 
     assert taken_as_is.array_length() == structure.array_length()
     assert any("does not account for" in r.message for r in caplog.records)
@@ -921,7 +921,7 @@ def test_a_residue_nothing_describes_is_assumed_complete() -> None:
     structure.res_name[structure.res_name == "MLE"] = "QXJ"
 
     supplied = structure.copy()
-    structure = with_unresolved_atoms(structure, {}, use_ccd=True)
+    structure = with_unresolved_atoms(structure, {})
     numpy.testing.assert_array_equal(structure.atom_name, supplied.atom_name)
     numpy.testing.assert_array_equal(structure.coord, supplied.coord)
     numpy.testing.assert_array_equal(

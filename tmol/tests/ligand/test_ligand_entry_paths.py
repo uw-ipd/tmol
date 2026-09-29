@@ -220,7 +220,6 @@ def test_partially_protonated_atom_array_builds_complete_ligand(torch_device):
         prepare_ligands=True,
         param_db=ParameterDatabase.get_default(),
         return_context=True,
-        use_ccd=False,
         ligand_seed=17,
     )
     residue = next(
@@ -587,8 +586,7 @@ _CIF_LIGANDS = ["ada", "cdk2", "cox2", "hivrt", "src", "egfr"]
 def _load_full_array(cif_path: Path):
     from tmol.io import atom_array_from_cif
 
-    # a single-ligand file supplying a whole molecule under a code of its own
-    return atom_array_from_cif(cif_path, use_ccd=False)
+    return atom_array_from_cif(cif_path)
 
 
 @pytest.mark.parametrize("name", _CIF_LIGANDS)
@@ -618,8 +616,6 @@ def test_prepare_ligands_writes_params_output(tmp_path) -> None:
         arr,
         param_db=ParameterDatabase.get_default(),
         params_output=str(out),
-        # a ligand file supplying a whole molecule under a code of its own
-        use_ccd=False,
     )
     assert out.exists() and out.stat().st_size > 0
     assert ordering is not None
@@ -638,8 +634,7 @@ def test_prepare_ligands_accepts_single_model_stack() -> None:
         stack = struc.stack([stack])
     assert len(stack) == 1
     # No param_db passed -> default resolved internally.
-    # a ligand file supplying a whole molecule under a code of its own
-    param_db, _ = prepare_ligands(stack, use_ccd=False)
+    param_db, _ = prepare_ligands(stack)
     assert param_db is not None
 
 
@@ -746,13 +741,11 @@ def test_prepare_ligands_rejects_incomplete_generated_chemistry(
 
     if strict_ligands:
         with pytest.raises(LigandPreparationError, match=r"LG1.*C1"):
-            prepare_ligands(
-                arr, param_db=base, strict_ligands=True, use_ccd=False, seed=1234
-            )
+            prepare_ligands(arr, param_db=base, strict_ligands=True, seed=1234)
     else:
         with caplog.at_level(logging.WARNING, logger=_preparation.__name__):
             prepared, _ = prepare_ligands(
-                arr, param_db=base, strict_ligands=False, use_ccd=False, seed=1234
+                arr, param_db=base, strict_ligands=False, seed=1234
             )
         assert prepared is base
         assert "Skipping LG1" in caplog.text
