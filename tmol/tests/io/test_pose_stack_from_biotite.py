@@ -668,14 +668,18 @@ def test_export_rebuilds_the_pose_exactly(path):
     torch.testing.assert_close(rebuilt.coords, pose_stack.coords, equal_nan=True)
 
 
-@pytest.mark.parametrize(
+ANNOTATED_INPUTS = pytest.mark.parametrize(
     "path",
-    [
-        ("cif", "1BL8.cif"),
-        ("cif", "155c__1__1.A__1.B.cif"),
-    ],
+    [("cif", "1BL8.cif"), ("cif", "155c__1__1.A__1.B.cif")],
     ids=["1bl8_ions", "155c_heme"],
 )
+
+
+def _residue_key(array, i):
+    return (array.chain_id[i], array.res_id[i], array.ins_code[i])
+
+
+@ANNOTATED_INPUTS
 def test_export_keeps_the_input_residue_annotations(path):
     """Exported atoms carry their input residue's annotations through batching."""
     structure = atom_array_from_cif(data_path(*path))
@@ -686,17 +690,14 @@ def test_export_keeps_the_input_residue_annotations(path):
     batch = PoseStackBuilder.from_poses([pose_stack, pose_stack], device)
     exported = biotite_from_pose_stack(batch, context.canonical_ordering)
 
-    def key(array, i):
-        return (array.chain_id[i], array.res_id[i], array.ins_code[i])
-
     expected = {
-        key(structure, i): tuple(
+        _residue_key(structure, i): tuple(
             structure.get_annotation(name)[i] for name in RESIDUE_ANNOTATIONS
         )
         for i in range(structure.array_length())
     }
     for i in range(exported.array_length()):
-        assert expected[key(exported, i)] == tuple(
+        assert expected[_residue_key(exported, i)] == tuple(
             exported.get_annotation(name)[i] for name in RESIDUE_ANNOTATIONS
         )
     assert exported.is_polymer.any() and not exported.is_polymer.all()
@@ -735,24 +736,14 @@ def test_an_excised_residue_leaves_the_others_their_residue_metadata(path):
         assert getattr(info, name)[0, :n].tolist() == [expected[k] for k in kept]
 
 
-@pytest.mark.parametrize(
-    "path",
-    [
-        ("cif", "1BL8.cif"),
-        ("cif", "155c__1__1.A__1.B.cif"),
-    ],
-    ids=["1bl8_ions", "155c_heme"],
-)
+@ANNOTATED_INPUTS
 def test_export_without_is_polymer_takes_it_from_block_types(path):
     """An input without is_polymer exports each atom's from its block type."""
     structure = atom_array_from_cif(data_path(*path))
 
-    def key(array, i):
-        return (array.chain_id[i], array.res_id[i], array.ins_code[i])
-
     # a HETATM cap such as ACE is a polymer entity's residue but a ligand block type
     expected = {
-        key(structure, i): structure.is_polymer[i] and not structure.hetero[i]
+        _residue_key(structure, i): structure.is_polymer[i] and not structure.hetero[i]
         for i in range(structure.array_length())
     }
     structure.del_annotation("is_polymer")
@@ -768,7 +759,7 @@ def test_export_without_is_polymer_takes_it_from_block_types(path):
 
     assert "chain_type" not in exported.get_annotation_categories()
     for i in range(exported.array_length()):
-        assert exported.is_polymer[i] == expected[key(exported, i)]
+        assert exported.is_polymer[i] == expected[_residue_key(exported, i)]
     assert exported.is_polymer.any() and not exported.is_polymer.all()
 
 
