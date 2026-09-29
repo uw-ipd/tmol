@@ -1460,8 +1460,7 @@ def _metal_coordination_bond_mask(structure):
     if not len(bonds):
         return bonds, numpy.zeros(0, dtype=bool)
     template = _template_array(structure)
-    metals = [ion["element"].upper() for ion in metal_table()["ions"]]
-    is_metal = numpy.isin(numpy.char.upper(template.element.astype(str)), metals)
+    is_metal = _is_metal(template)
     residue = biotite.structure.get_residue_positions(
         template, numpy.arange(template.array_length())
     )
@@ -1478,8 +1477,7 @@ def _metal_bound_atoms(structure):
         return {}
     bonds, coordination = _metal_coordination_bond_mask(structure)
     template = _template_array(structure)
-    metals = [ion["element"].upper() for ion in metal_table()["ions"]]
-    is_metal = numpy.isin(numpy.char.upper(template.element.astype(str)), metals)
+    is_metal = _is_metal(template)
     out = defaultdict(set)
     for i in bonds[coordination, :2].ravel():
         if not is_metal[i]:
@@ -1809,8 +1807,7 @@ def _metal_coordination_from_biotite(
         return numpy.zeros((0, 4), dtype=numpy.int64)
     atom_canonical_ind = numpy.full(array.array_length(), -1, dtype=numpy.int64)
     atom_canonical_ind[valid_atom_mask] = valid_atom_inds
-    metals = [ion["element"].upper() for ion in metal_table()["ions"]]
-    is_metal = numpy.isin(numpy.char.upper(array.element.astype(str)), metals)
+    is_metal = _is_metal(array)
     rows = []
     for atom1, atom2, _ in declared:
         if is_metal[atom2] and not is_metal[atom1]:
@@ -2993,18 +2990,19 @@ def packed_block_types_for_biotite_with_metals(
     )
 
 
-def _carries_a_metal(structure) -> bool:
-    """Whether the structure has an atom of an element that coordinates."""
+def _is_metal(structure) -> numpy.ndarray:
+    """Per atom, whether its element is one the metal table coordinates."""
     metals = [ion["element"].upper() for ion in metal_table()["ions"]]
-    elements = numpy.char.upper(numpy.asarray(structure.element, dtype=str))
-    return bool(numpy.isin(elements, metals).any())
+    return numpy.isin(
+        numpy.char.upper(numpy.asarray(structure.element, dtype=str)), metals
+    )
 
 
 def _default_pose_build_context_for(
     structure, device: torch.device
 ) -> PoseBuildContext:
     """The process-wide context, packed wide enough for what this structure holds."""
-    return _default_pose_build_context(device, _carries_a_metal(structure))
+    return _default_pose_build_context(device, bool(_is_metal(structure).any()))
 
 
 @validate_args
