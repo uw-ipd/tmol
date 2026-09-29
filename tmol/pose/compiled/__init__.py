@@ -1,3 +1,3 @@
 """Compiled pose topology operations."""
 
-from ._apsp_ops import stacked_apsp  # noqa: F401
+from ._apsp_ops import stacked_apsp, block_bondsep  # noqa: F401
