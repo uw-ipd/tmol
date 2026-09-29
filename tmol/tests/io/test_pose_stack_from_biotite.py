@@ -412,15 +412,12 @@ def test_ligand_proton_chi_samples_build_finite_coords(torch_device):
     assert "QZ" not in bt_struct.atom_name
     bt_struct.atom_name[carbon] = "QZ"
 
-    # This file supplies the whole molecule under a code of its own, which the
-    # component dictionary defines as an unrelated one, so it is taken as given.
     pose_stack, context = pose_stack_from_biotite(
         bt_struct,
         torch_device,
         prepare_ligands=True,
         param_db=ParameterDatabase.get_default(),
         return_context=True,
-        use_ccd=False,
     )
     assert torch.isfinite(pose_stack.coords[pose_stack.real_atoms]).all()
     lg1 = next(
@@ -486,9 +483,6 @@ def test_ligand_build_from_mol2_bond_orders(torch_device):
         prepare_ligands=True,
         param_db=ParameterDatabase.get_default(),
         return_context=True,
-        # a mol2 supplies the whole molecule; its residue code means nothing
-        # outside the file, so the component dictionary must not be consulted
-        use_ccd=False,
     )
     assert torch.isfinite(pose_on.coords[pose_on.real_atoms]).all()
 

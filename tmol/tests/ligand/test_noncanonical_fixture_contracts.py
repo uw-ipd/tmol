@@ -169,7 +169,6 @@ def test_prepared_parameters_make_coordinate_only_pdb_complete(
         pdb_path,
         torch_device,
         param_db=context.parameter_database,
-        use_ccd=False,
         no_optH=True,
     )
 
@@ -221,7 +220,6 @@ def test_coordinate_only_pdb_cannot_carry_cross_residue_links(
         pdb_path,
         torch_device,
         param_db=context.parameter_database,
-        use_ccd=False,
         no_optH=True,
     )
 
@@ -267,7 +265,6 @@ def test_renamed_components_process_identically(fixture, torch_device):
                 prepare_ligands=True,
                 ligand_seed=SEED,
                 no_optH=True,
-                use_ccd=False,
                 return_context=True,
             )
         del named_context
@@ -279,7 +276,6 @@ def test_renamed_components_process_identically(fixture, torch_device):
         prepare_ligands=True,
         ligand_seed=SEED,
         no_optH=True,
-        use_ccd=False,
         return_context=True,
     )
 

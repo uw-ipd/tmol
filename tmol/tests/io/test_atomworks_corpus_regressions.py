@@ -435,7 +435,7 @@ def test_terminal_nucleoside_keeps_its_backbone_and_minimizes(
     array = array[array.res_name != "HOH"]
     _assert_all_source_connections(pose, array)
     if assembly_id == "copies":
-        declared = atom_array_from_cif(path, assembly_id=assembly_id, use_ccd=False)
+        declared = atom_array_from_cif(path, assembly_id=assembly_id)
         known = pose_stack_from_biotite(
             declared, torch_device, context=context, no_optH=True
         )
