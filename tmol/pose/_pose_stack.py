@@ -128,16 +128,6 @@ class PoseStack:
         return self.coords.shape[0]
 
     @property
-    def inter_block_bondsep64(self) -> Tensor[torch.int64][:, :, :, :, :]:
-        """``inter_block_bondsep`` widened for use as a torch index.
-
-        Derived rather than stored: it is the largest tensor a pose would carry,
-        growing with the square of both the residue count and the connection
-        count, and nothing reads it that cannot widen it on the spot.
-        """
-        return self.inter_block_bondsep.to(torch.int64)
-
-    @property
     def n_poses(self) -> int:
         """Return the number of poses in the stack."""
         return self.coords.shape[0]

@@ -5,10 +5,19 @@ import warnings
 import biotite.structure as struc
 import numpy as np
 
+from atomworks.io import load_pdb
 from atomworks.io.config import ParseConfig
-from atomworks.io.parser import parse
+from atomworks.io.parser import parse, prepare_atom_array
 from atomworks.io.transforms.categories import category_to_dict
+from atomworks.io.utils.assembly import build_assemblies_from_asym_unit
+from atomworks.io.utils.atom_array_plus import as_atom_array_plus
 from atomworks.io.utils.bonds import get_struct_conn_bonds
+from atomworks.io.utils.ccd import (
+    bond_dict_from_cif_block,
+    build_ccd_entries_from_cif_block,
+    get_polymerization_atoms,
+)
+from atomworks.io.utils.io_utils import get_structure, read_any
 
 _AUTHOR_FIELDS = {
     "atom_name": "auth_atom_id",
@@ -30,8 +39,6 @@ def _polymer_from_backbone_bonds(array):
 
     A PDB writes a modified residue in a chain as HETATM, as it writes a free ligand.
     """
-    from atomworks.io.utils.ccd import get_polymerization_atoms
-
     residue_of = struc.get_all_residue_positions(array)
     polymer = ~array.hetero[struc.get_residue_starts(array)]
 
@@ -57,14 +64,6 @@ def _polymer_from_backbone_bonds(array):
 
 def _read_declared(path, model, assembly_id):
     """Read authored atoms and bonds without any dictionary supplementation."""
-    from atomworks.io import load_pdb
-    from atomworks.io.utils.atom_array_plus import as_atom_array_plus
-    from atomworks.io.utils.ccd import (
-        bond_dict_from_cif_block,
-        build_ccd_entries_from_cif_block,
-    )
-    from atomworks.io.utils.io_utils import get_structure, read_any
-
     file = read_any(path)
     block = getattr(file, "block", None)
     if block is None:
@@ -92,8 +91,6 @@ def _read_declared(path, model, assembly_id):
     array = as_atom_array_plus(array)
     array._custom_ccd_registry = entries
     if assembly_id is not None:
-        from atomworks.io.utils.assembly import build_assemblies_from_asym_unit
-
         if block is None or "pdbx_struct_assembly_gen" not in block:
             raise ValueError(f"Structure does not declare assembly {assembly_id!r}")
         array = build_assemblies_from_asym_unit(
@@ -170,10 +167,6 @@ def _parse_repairing_author_numbering(path, config, model, assembly_id):
 
     An assembly that needs renumbering is refused with AtomWorks' own message.
     """
-    from atomworks.io import load_pdb
-    from atomworks.io.parser import prepare_atom_array
-    from atomworks.io.utils.io_utils import get_structure, read_any
-
     try:
         return parse(path, config=config)
     except ValueError as refused:

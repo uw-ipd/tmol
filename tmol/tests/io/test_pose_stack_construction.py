@@ -23,7 +23,6 @@ def test_build_pose_stack_from_canonical_form_ubq(torch_device, ubq_pdb):
     assert pose_stack.inter_residue_connections.device == torch_device
     assert pose_stack.inter_residue_connections64.device == torch_device
     assert pose_stack.inter_block_bondsep.device == torch_device
-    assert pose_stack.inter_block_bondsep64.device == torch_device
     assert pose_stack.block_type_ind.device == torch_device
     assert pose_stack.block_type_ind64.device == torch_device
     assert pose_stack.pdb_info.chain_labels.dtype.type is numpy.object_
@@ -54,7 +53,6 @@ def test_build_pose_stack_from_canonical_form_ubq(torch_device, ubq_pdb):
 #     assert pose_stack.inter_residue_connections.device == torch_device
 #     assert pose_stack.inter_residue_connections64.device == torch_device
 #     assert pose_stack.inter_block_bondsep.device == torch_device
-#     assert pose_stack.inter_block_bondsep64.device == torch_device
 #     assert pose_stack.block_type_ind.device == torch_device
 #     assert pose_stack.block_type_ind64.device == torch_device
 #     assert pose_stack.device == torch_device
@@ -75,7 +73,6 @@ def test_build_pose_stack_from_canonical_form_pert(torch_device, pertuzumab_pdb)
     assert pose_stack.inter_residue_connections.device == torch_device
     assert pose_stack.inter_residue_connections64.device == torch_device
     assert pose_stack.inter_block_bondsep.device == torch_device
-    assert pose_stack.inter_block_bondsep64.device == torch_device
     assert pose_stack.block_type_ind.device == torch_device
     assert pose_stack.block_type_ind64.device == torch_device
     assert pose_stack.device == torch_device
@@ -101,7 +98,6 @@ def test_build_pose_stack_from_canonical_form_pert_w_dslf(torch_device, pertuzum
     assert pose_stack.inter_residue_connections.device == torch_device
     assert pose_stack.inter_residue_connections64.device == torch_device
     assert pose_stack.inter_block_bondsep.device == torch_device
-    assert pose_stack.inter_block_bondsep64.device == torch_device
     assert pose_stack.block_type_ind.device == torch_device
     assert pose_stack.block_type_ind64.device == torch_device
     assert pose_stack.device == torch_device
@@ -121,7 +117,6 @@ def test_build_pose_stack_from_canonical_form_1r21(torch_device, pdb_1r21):
     assert pose_stack.inter_residue_connections.device == torch_device
     assert pose_stack.inter_residue_connections64.device == torch_device
     assert pose_stack.inter_block_bondsep.device == torch_device
-    assert pose_stack.inter_block_bondsep64.device == torch_device
     assert pose_stack.block_type_ind.device == torch_device
     assert pose_stack.block_type_ind64.device == torch_device
     assert pose_stack.device == torch_device
@@ -162,7 +157,6 @@ def test_build_pose_stack_w_disconn_segs(
     assert pose_stack.inter_residue_connections.device == torch_device
     assert pose_stack.inter_residue_connections64.device == torch_device
     assert pose_stack.inter_block_bondsep.device == torch_device
-    assert pose_stack.inter_block_bondsep64.device == torch_device
     assert pose_stack.block_type_ind.device == torch_device
     assert pose_stack.block_type_ind64.device == torch_device
     assert pose_stack.device == torch_device
@@ -251,7 +245,6 @@ def test_build_pose_stack_w_disconn_segs_and_insertions(
     assert pose_stack.inter_residue_connections.device == torch_device
     assert pose_stack.inter_residue_connections64.device == torch_device
     assert pose_stack.inter_block_bondsep.device == torch_device
-    assert pose_stack.inter_block_bondsep64.device == torch_device
     assert pose_stack.block_type_ind.device == torch_device
     assert pose_stack.block_type_ind64.device == torch_device
     assert pose_stack.device == torch_device
@@ -300,7 +293,6 @@ def test_build_pose_stack_with_masked_residues(torch_device, ubq_pdb):
     assert pose_stack.inter_residue_connections.device == torch_device
     assert pose_stack.inter_residue_connections64.device == torch_device
     assert pose_stack.inter_block_bondsep.device == torch_device
-    assert pose_stack.inter_block_bondsep64.device == torch_device
     assert pose_stack.block_type_ind.device == torch_device
     assert pose_stack.block_type_ind64.device == torch_device
     assert pose_stack.device == torch_device

@@ -146,12 +146,6 @@ def test_round_trip_irregular_pose_stack_and_split(
             i_pose.inter_block_bondsep,
         )
         torch.testing.assert_close(
-            split_pose_stack.inter_block_bondsep64[
-                :, : i_pose.max_n_blocks, : i_pose.max_n_blocks
-            ],
-            i_pose.inter_block_bondsep64,
-        )
-        torch.testing.assert_close(
             split_pose_stack.block_type_ind[:, : i_pose.max_n_blocks],
             i_pose.block_type_ind,
         )
