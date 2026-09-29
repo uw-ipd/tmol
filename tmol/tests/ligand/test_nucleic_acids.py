@@ -417,3 +417,19 @@ def test_the_component_definition_breaks_a_leaving_oxygen_tie(torch_device) -> N
     names, _chemdb = _block_type_names(structure, torch_device)
 
     assert names == ["LCC:na5prime", "LCC", "LCC", "LCG", "RA:na3prime"]
+
+
+def test_a_patch_removes_the_hydrogens_of_the_atoms_it_removes() -> None:
+    """XY7's phosphate carries hydroxyl hydrogens a canonical nucleotide lacks.
+
+    The 5'-terminal patches remove OP1 and OP2, and with them HOP1 and HOP2.
+    """
+    prepared, _known, _co = _prepared(_sweep_structure("xy7_phosphate_hydrogens_7kw4"))
+    atoms = {
+        r.name: {a.name for a in r.atoms}
+        for r in prepared.chemical.residues
+        if r.base_name == "XY7"
+    }
+
+    assert {"HOP1", "HOP2"} <= atoms["XY7"]
+    assert not {"HOP1", "HOP2"} & (atoms["XY7:na5prime"] | atoms["XY7:na5primephos"])
