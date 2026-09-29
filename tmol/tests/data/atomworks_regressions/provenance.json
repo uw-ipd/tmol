@@ -459,12 +459,15 @@
     "compressed_sha256": "931c1fb6a96941c91a3c04d7794553aa1ce792c7adcaa1466926ce5acf5c706e"
   },
   {
-    "fixture": "repeated_packing_181l.cif.gz",
+    "fixture": "repeated_packing_181l.cif.zst",
     "source": "https://files.rcsb.org/download/181L.cif.gz",
     "source_repository": "RCSB PDB",
     "retrieved": "2026-09-29",
-    "transformation": "none; complete compressed source",
-    "sha256": "8d41763bf1d8327a8c1d6390c68580129acf9f2b9fa9322b20a7710db1f3946e",
-    "bytes": 48786
+    "transformation": "none; complete source",
+    "source_sha256": "8d41763bf1d8327a8c1d6390c68580129acf9f2b9fa9322b20a7710db1f3946e",
+    "sha256": "7ef097473b7f0c906f10e4016e4b6e5973abf4e47bf910699912913404dbb671",
+    "bytes": 195587,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "25c527da6c14f4413184297a3b227d22407dbb6e7834117aba8c52108257c288"
   }
 ]

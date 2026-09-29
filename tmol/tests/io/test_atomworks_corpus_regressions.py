@@ -1422,7 +1422,7 @@ def test_ester_and_thioester_contexts_survive_reuse_and_export(torch_device, tmp
 def test_seeded_hydrogen_packing_repeats_in_one_process(torch_device):
     import ctypes
 
-    array = atom_array_from_cif(DATA / "repeated_packing_181l.cif.gz")
+    array = atom_array_from_cif(DATA / "repeated_packing_181l.cif.zst")
     array = array[~np.isin(array.res_name, ["HOH", "CL", "BNZ", "HED"])]
     ctypes.CDLL(None).srand(1)
     first, *repeats = (
