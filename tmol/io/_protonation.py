@@ -8,9 +8,9 @@ import numpy
 from atomworks.experimental.protonation import (
     assign_hydrogens,
     hydrogen_plan,
-    names_from_parent,
     place_hydrogens,
 )
+from atomworks.experimental.protonation.geometry import names_from_parent
 from atomworks.io.utils.atom_array_plus import concatenate_any
 from atomworks.io.utils.bonds import find_disulfides
 from atomworks.io.utils.ccd import add_annotations_from_ccd, custom_ccd_residues

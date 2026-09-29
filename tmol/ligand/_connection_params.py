@@ -9,10 +9,7 @@ from collections import defaultdict
 import json
 import math
 
-from atomworks.experimental.protonation.external.dimorphite_dl.dimorphite_dl import (
-    ProtSubstructFuncs,
-    protonate_mol_variants,
-)
+from atomworks.experimental.protonation.dimorphite import protonate_at_ph, site_rules
 from attr import evolve
 import numpy as np
 from rdkit import Chem, rdBase
@@ -36,12 +33,10 @@ def _protonated_model(model, ph):
         raise ValueError("Conjugate conversion changed the heavy-atom inventory")
     for i, atom in enumerate(mol.GetAtoms()):
         atom.SetAtomMapNum(i + 1)
-    variants = protonate_mol_variants(
-        mol, min_ph=ph, max_ph=ph, pka_precision=0.1, max_variants=128, silent=True
-    )
-    if not variants:
+    protonated = protonate_at_ph(mol, ph)
+    if protonated is None:
         raise ValueError("Conjugate protonation produced no chemical state")
-    mol = Chem.AddHs(variants[0])
+    mol = Chem.AddHs(protonated)
     mapping = {
         a.GetAtomMapNum() - 1: a.GetIdx()
         for a in mol.GetAtoms()
@@ -514,12 +509,7 @@ def generate_conjugate_connection_params(
         "max_variants": 128,
         # Hash the actual compiled rule records, not a potentially edited
         # on-disk file or query-object addresses.
-        "rules_sha256": content_hash(
-            tuple(
-                (name, smart, sites)
-                for name, smart, _, sites in ProtSubstructFuncs._compiled_substructures()
-            )
-        ),
+        "rules_sha256": content_hash(site_rules()),
     }
 
     if parameter_source == "generator-ideals":
