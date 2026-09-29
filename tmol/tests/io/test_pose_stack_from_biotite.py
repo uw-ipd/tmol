@@ -13,8 +13,14 @@ from tmol.io import (
     pose_stack_from_biotite,
     pose_stack_from_cif,
     biotite_from_pose_stack,
+    pose_stack_from_canonical_form,
 )
-from tmol.io._pose_stack_from_biotite import RESIDUE_ANNOTATIONS, _renumbered_for_cif
+from tmol.io._pose_stack_from_biotite import (
+    RESIDUE_ANNOTATIONS,
+    _renumbered_for_cif,
+    canonical_ordering_for_biotite,
+    packed_block_types_for_biotite_with_metals,
+)
 from tmol.pose import PoseStackBuilder
 from tmol.tests.data import data_path, load_cif
 
@@ -695,6 +701,38 @@ def test_export_keeps_the_input_residue_annotations(path):
         )
     assert exported.is_polymer.any() and not exported.is_polymer.all()
     assert (exported.hetero[~exported.is_polymer]).all()
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        ("metal_fixtures", "zn_tetrahedral_3ks3.cif.gz"),
+        ("cif", "155c__1__1.A__1.B.cif"),
+    ],
+    ids=["3ks3_zinc", "155c_heme"],
+)
+def test_an_excised_residue_leaves_the_others_their_residue_metadata(path):
+    """Residue annotations and metal origins shift left with their residues."""
+    structure = atom_array_from_cif(data_path(*path))
+    structure = structure[structure.res_name != "HOH"]
+    device = torch.device("cpu")
+    co = canonical_ordering_for_biotite()
+    cf = canonical_form_from_biotite(structure, device, co=co)
+    labels = list(zip(cf.chain_labels[0], cf.res_labels[0]))
+    by_label = {
+        name: dict(zip(labels, getattr(cf, name)[0].tolist()))
+        for name in ("residue_annotations", "metal_origins")
+        if getattr(cf, name) is not None
+    }
+    cf.res_types[0, 5] = -1
+    cf.covalent_bonds = cf.covalent_bonds[(cf.covalent_bonds[:, [1, 3]] != 5).all(1)]
+    pbt = packed_block_types_for_biotite_with_metals(device)
+    info = pose_stack_from_canonical_form(co, pbt, *cf).pdb_info
+
+    n = len(labels) - 1
+    kept = list(zip(info.chain_labels[0, :n], info.residue_labels[0, :n]))
+    for name, expected in by_label.items():
+        assert getattr(info, name)[0, :n].tolist() == [expected[k] for k in kept]
 
 
 @pytest.mark.parametrize(
