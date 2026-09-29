@@ -51,7 +51,7 @@ def built():
 
         metal_detection.find_metal_geometries = recording
         try:
-            structure = atom_array_from_cif(os.path.join(FIXTURE_DIR, stem + ".cif.gz"))
+            structure = atom_array_from_cif(FIXTURE_DIR / f"{stem}.cif.zst")
             pose_stack = pose_stack_from_biotite(
                 structure, torch.device("cpu"), prepare_ligands=True
             )
@@ -259,7 +259,7 @@ def test_donor_forms_accumulate_and_stack():
     # built from the default context, the second structure's donors extend
     #    the first's packed set rather than starting a new one
     def build(stem):
-        structure = atom_array_from_cif(os.path.join(FIXTURE_DIR, stem + ".cif.gz"))
+        structure = atom_array_from_cif(FIXTURE_DIR / f"{stem}.cif.zst")
         return pose_stack_from_biotite(structure, torch.device("cpu"))
 
     zinc = build("zn_tetrahedral_3ks3")
@@ -280,9 +280,7 @@ def test_donor_forms_accumulate_and_stack():
 
 
 def test_a_stated_thiol_hydrogen_keeps_the_cysteine_off_the_metal():
-    structure = atom_array_from_cif(
-        os.path.join(FIXTURE_DIR, "fe_rubredoxin_30oh.cif.gz")
-    )
+    structure = atom_array_from_cif(FIXTURE_DIR / "fe_rubredoxin_30oh.cif.zst")
     structure = structure[structure.element != "H"]
     residue = (structure.res_id == 6) & (structure.chain_id == "A")
     sg, cb, ca = (
@@ -378,9 +376,7 @@ def test_exported_structure_rebuilds_the_same_coordination(built, tmp_path):
 
 def zinc_with_declared_bonds(donors, bond_type):
     """3KS3, with the zinc declared bonded to (res_id, res_name, atom) donors."""
-    structure = atom_array_from_cif(
-        os.path.join(FIXTURE_DIR, "zn_tetrahedral_3ks3.cif.gz")
-    )
+    structure = atom_array_from_cif(FIXTURE_DIR / "zn_tetrahedral_3ks3.cif.zst")
     (zinc,) = numpy.flatnonzero(structure.res_name == "ZN")
     # replace the file's own metalc declarations
     kept = structure.bonds.as_array()
@@ -429,7 +425,7 @@ def test_declared_metal_bonds_are_coordination(built, bond_type):
     ],
 )
 def test_metalc_naming_an_alternate_location_is_read(stem, metal, donors):
-    structure = atom_array_from_cif(os.path.join(FIXTURE_DIR, stem + ".cif.gz"))
+    structure = atom_array_from_cif(FIXTURE_DIR / f"{stem}.cif.zst")
     bonds = structure.bonds.as_array()
     bonds = bonds[bonds[:, 2] == struc.BondType.COORDINATION, :2]
     at = numpy.flatnonzero(

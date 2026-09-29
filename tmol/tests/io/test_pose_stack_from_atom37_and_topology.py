@@ -457,7 +457,7 @@ def test_prepared_atom37_builder_falls_back_for_ambiguous_histidine_hydrogen(
 
 @pytest.mark.parametrize("prebuilt", [True, False])
 def test_atom37_pose_uses_ligand_context(torch_device, prebuilt):
-    cif_path = data_path("protein_ligand_test", "cif_inputs", "ace.ligand.cif")
+    cif_path = data_path("protein_ligand_test", "cif_inputs", "ace.ligand.cif.zst")
     params_path = data_path("protein_ligand_test", "ace.xtal-lig.mmff94.tmol")
     from tmol.io import atom_array_from_cif
 

@@ -16,8 +16,8 @@ from tmol.tests.data import data_path
     "path",
     [
         ("cif", "3N0I.cif"),
-        ("metal_fixtures", "zn_tetrahedral_3ks3.cif.gz"),
-        ("metal_fixtures", "cua_ba3_2cua.cif.gz"),
+        ("metal_fixtures", "zn_tetrahedral_3ks3.cif.zst"),
+        ("metal_fixtures", "cua_ba3_2cua.cif.zst"),
     ],
     ids=["3n0i", "3ks3_zinc", "2cua_copper"],
 )

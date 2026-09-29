@@ -388,7 +388,8 @@ def test_ligand_proton_chi_samples_build_finite_coords(torch_device):
     import pathlib
 
     import biotite.structure
-    import biotite.structure.io
+    import biotite.structure.io.pdbx
+    from atomworks.io.utils.io_utils import read_any
 
     from tmol.database import ParameterDatabase
 
@@ -397,10 +398,10 @@ def test_ligand_proton_chi_samples_build_finite_coords(torch_device):
         / "data"
         / "protein_ligand_test"
         / "cif_inputs"
-        / "ace.ligand.cif"
+        / "ace.ligand.cif.zst"
     )
-    bt_struct = biotite.structure.io.load_structure(
-        str(cif_path), model=1, include_bonds=True, extra_fields=["partial_charge"]
+    bt_struct = biotite.structure.io.pdbx.get_structure(
+        read_any(cif_path), model=1, include_bonds=True, extra_fields=["partial_charge"]
     )
     if isinstance(bt_struct, biotite.structure.AtomArrayStack):
         bt_struct = bt_struct[0]
@@ -458,7 +459,7 @@ def test_ligand_proton_chi_samples_build_finite_coords(torch_device):
 def test_ligand_build_from_mol2_bond_orders(torch_device):
     # Parallel to the CIF-source test above, but sources LG1 from the Tripos
     # mol2 (ace.lig.mol2). The mol2 encodes the carboxylates correctly (O.co2 /
-    # C.2 sybyl types => C(=O)[O-]), whereas ace.ligand.cif declares those C-O
+    # C.2 sybyl types => C(=O)[O-]), whereas ace.ligand.cif.zst declares those C-O
     # bonds as SING/SING and over-protonates the carboxyls. Both go through the
     # same unified build; the mol2's correct bonds must not yield hydroxyl H on
     # the carboxylate oxygens.
@@ -643,7 +644,7 @@ def test_partly_absent_mainchain_triplets_are_still_missing():
 @pytest.mark.parametrize(
     "path",
     [
-        ("metal_fixtures", "zn_tetrahedral_3ks3.cif.gz"),
+        ("metal_fixtures", "zn_tetrahedral_3ks3.cif.zst"),
         ("atomworks_regressions", "plp_enzyme_7mkv.cif"),
         ("atomworks_regressions", "isopeptide_2rm9.cif.gz"),
         ("atomworks_regressions", "repeated_glycans_6mub.cif.gz"),
@@ -818,12 +819,12 @@ def _heavy_atom_mask(pose_stack):
         ("atomworks_regressions", "repeated_glycans_6mub.cif.gz"),
         ("atomworks_regressions", "plp_enzyme_7mkv.cif"),
         ("atomworks_regressions", "retinyl_lysine_4xxj.cif"),
-        ("metal_fixtures", "mg_rna_aptamer_7eoh.cif.gz"),
-        ("metal_fixtures", "fe_rubredoxin_30oh.cif.gz"),
-        ("metal_fixtures", "heme_myoglobin_5yce.cif.gz"),
-        ("metal_fixtures", "sf4_ferredoxin_2fdn.cif.gz"),
-        ("metal_fixtures", "sf4_ferredoxin_1fdn.cif.gz"),
-        ("covalent_fixtures", "lactam_cyclic_7ag5.cif.gz"),
+        ("metal_fixtures", "mg_rna_aptamer_7eoh.cif.zst"),
+        ("metal_fixtures", "fe_rubredoxin_30oh.cif.zst"),
+        ("metal_fixtures", "heme_myoglobin_5yce.cif.zst"),
+        ("metal_fixtures", "sf4_ferredoxin_2fdn.cif.zst"),
+        ("metal_fixtures", "sf4_ferredoxin_1fdn.cif.zst"),
+        ("covalent_fixtures", "lactam_cyclic_7ag5.cif.zst"),
     ],
     ids=lambda p: p[1].split(".")[0],
 )

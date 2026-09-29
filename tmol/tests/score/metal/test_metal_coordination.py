@@ -34,7 +34,7 @@ def built():
 
     def build(stem, device=torch.device("cpu")):
         if (stem, device) not in cache:
-            structure = atom_array_from_cif(os.path.join(FIXTURE_DIR, stem + ".cif.gz"))
+            structure = atom_array_from_cif(FIXTURE_DIR / f"{stem}.cif.zst")
             cache[stem, device] = pose_stack_from_biotite(
                 structure, device, prepare_ligands=True
             )
@@ -308,7 +308,7 @@ def metal_atom(pose_stack, block):
 
 def bridged_sod(device):
     """3F7L with His61 ND1 bonded to both its zinc and the copper."""
-    structure = atom_array_from_cif(os.path.join(FIXTURE_DIR, "cu_zn_sod_3f7l.cif.gz"))
+    structure = atom_array_from_cif(FIXTURE_DIR / "cu_zn_sod_3f7l.cif.zst")
     pose_stack, context = pose_stack_from_biotite(
         structure, device, prepare_ligands=True, return_context=True
     )
