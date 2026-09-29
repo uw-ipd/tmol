@@ -96,6 +96,47 @@ def _with_metal_coordination(array, block):
     )
 
 
+def _one_disulfide_per_sulfur(array):
+    """The bond table keeping, of the S-S bonds between residues, one per sulfur.
+
+    A deposit can declare one cysteine in two disulfides (6CNB) or a Zn(Cys)4
+    site as a ring of them (5N5Y). The bonds nearest 2.04 A are kept.
+    """
+    bonds = array.bonds.as_array()
+    sulfur = np.char.upper(array.element.astype(str)) == "S"
+    residue = struc.get_all_residue_positions(array)
+    i, j = bonds[:, 0], bonds[:, 1]
+    rows = np.flatnonzero(sulfur[i] & sulfur[j] & (residue[i] != residue[j]))
+    ends = bonds[rows, :2].ravel()
+    if len(np.unique(ends)) == len(ends):
+        return array.bonds
+    length = np.linalg.norm(array.coord[i[rows]] - array.coord[j[rows]], axis=-1)
+    bonded, dropped = set(), []
+    for k in np.argsort(
+        np.nan_to_num(np.abs(length - 2.04), nan=np.inf), kind="stable"
+    ):
+        pair = {int(i[rows[k]]), int(j[rows[k]])}
+        if pair & bonded:
+            dropped.append(k)
+        else:
+            bonded |= pair
+    warnings.warn(
+        "Dropping disulfides that share a sulfur with one nearer 2.04 A: "
+        + ", ".join(
+            "{}:{}-{}:{} ({:.2f} A)".format(
+                array.chain_id[i[rows[k]]],
+                array.res_id[i[rows[k]]],
+                array.chain_id[j[rows[k]]],
+                array.res_id[j[rows[k]]],
+                length[k],
+            )
+            for k in dropped
+        ),
+        stacklevel=2,
+    )
+    return struc.BondList(len(array), np.delete(bonds, rows[dropped], axis=0))
+
+
 def _renumber_decreasing_author_ids(array):
     """Renumber, in file order, any chain whose author numbering decreases.
 
@@ -305,6 +346,8 @@ def read_structure(path, *, model=1, assembly_id=None):
             unknown = np.isin(array.res_name, list(unknown_names))
             bonds[unknown[i] & (residue[i] == residue[j]), 2] = struc.BondType.ANY
             array.bonds = struc.BondList(len(array), bonds)
+    if array.bonds is not None:
+        array.bonds = _one_disulfide_per_sulfur(array)
     if block is None:
         # A PDB, where the loader has moved off whatever its records called non-polymer.
         array = _polymer_from_backbone_bonds(array)

@@ -223,6 +223,23 @@ def test_deposited_charge_its_bonded_atom_cannot_carry_is_ignored(
     assert torch.isfinite(pose.coords).all()
 
 
+def test_declared_disulfides_sharing_a_sulfur_keep_the_nearest(torch_device, recwarn):
+    """6CNB declares CYS L:51 in disulfides to L:34 (2.90 A) and L:48 (2.48 A)."""
+    path = DATA / "sweep_regressions" / "shared_disulfide_sulfur_6cnb.cif.zst"
+    array = atom_array_from_cif(path)
+    sulfur = np.flatnonzero(array.atom_name == "SG")
+    pairs = {
+        tuple(sorted(int(array.res_id[a]) for a in bond[:2]))
+        for bond in array.bonds.as_array()
+        if bond[0] in sulfur and bond[1] in sulfur
+    }
+
+    assert pairs == {(48, 51)}
+    assert any("L:34-L:51" in str(w.message) for w in recwarn)
+    pose = pose_stack_from_cif(path, torch_device, no_optH=True)
+    assert torch.isfinite(pose.coords).all()
+
+
 @pytest.mark.parametrize(
     "fixture",
     [
