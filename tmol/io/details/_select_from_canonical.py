@@ -272,12 +272,11 @@ def assign_block_types(
         pbt, block_type_ind64, inter_residue_connections64
     )
 
-    # the pose stack's inter_block_bondsep
-    ibb64 = PoseStackBuilder._inter_block_bondsep_from_connections(
+    inter_block_bondsep = PoseStackBuilder._inter_block_bondsep_from_connections(
         pbt, block_type_ind64, is_real_res, inter_residue_connections64
     )
 
-    return (block_type_ind64, inter_residue_connections64, ibb64)
+    return (block_type_ind64, inter_residue_connections64, inter_block_bondsep)
 
 
 def _assert_connections_are_well_formed(
