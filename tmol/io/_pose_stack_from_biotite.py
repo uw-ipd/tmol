@@ -485,7 +485,6 @@ def build_context_from_biotite(
     strict_ligands: bool = True,
     ligand_params_files: list[str] | None = None,
     chem_comp_types: dict | None = None,
-    use_ccd: bool = True,
     ligand_seed: int | None = None,
 ) -> PoseBuildContext:
     """Build the structure-independent construction context.
@@ -523,10 +522,6 @@ def build_context_from_biotite(
             ``tmol.ligand.chem_comp_types_from_cif``), which says whether a
             residue belongs to a polymer where the file does not number it
             along a sequence. Only used when prepare_ligands=True.
-        use_ccd: Whether a residue the input declares no chemistry for may be
-            completed from the component dictionary by its code. Pass False for
-            a source that supplies whole molecules under codes of its own, such
-            as a mol2. Only used when prepare_ligands=True.
         ligand_seed: Fixed RNG seed for the conformer each prepared residue
             is built from, making preparation reproducible. Only used when
             prepare_ligands=True.
@@ -581,7 +576,6 @@ def build_context_from_biotite(
             return_fragment_definitions=True,
             return_cut_partners=True,
             chem_comp_types=chem_comp_types,
-            use_ccd=use_ccd,
             seed=ligand_seed,
             coordinating_atoms=coordinating_atoms,
         )
@@ -631,7 +625,6 @@ def pose_stack_from_biotite(  # noqa: C901
     strict_ligands: bool = True,
     ligand_params_files: list[str] | None = None,
     chem_comp_types: dict | None = None,
-    use_ccd: bool = True,
     ligand_seed: int | None = None,
     return_context: bool = False,
     context: PoseBuildContext | None = None,
@@ -694,10 +687,6 @@ def pose_stack_from_biotite(  # noqa: C901
             ``_chem_comp`` table, which says whether a residue belongs to a
             polymer where the file does not number it along a sequence. Only
             used when prepare_ligands=True.
-        use_ccd: Whether a residue the input declares no chemistry for may be
-            completed from the component dictionary by its code. Pass False for
-            a source that supplies whole molecules under codes of its own, such
-            as a mol2. Only used when prepare_ligands=True.
         ligand_seed: Fixed RNG seed for the conformer each prepared residue
             is built from, making preparation reproducible. Only used when
             prepare_ligands=True.
@@ -771,7 +760,6 @@ def pose_stack_from_biotite(  # noqa: C901
             strict_ligands=strict_ligands,
             ligand_params_files=ligand_params_files,
             chem_comp_types=chem_comp_types,
-            use_ccd=use_ccd,
             ligand_seed=ligand_seed,
         )
     if atom37_coords is None:
@@ -1468,8 +1456,7 @@ def _metal_coordination_bond_mask(structure):
     if not len(bonds):
         return bonds, numpy.zeros(0, dtype=bool)
     template = _template_array(structure)
-    metals = [ion["element"].upper() for ion in metal_table()["ions"]]
-    is_metal = numpy.isin(numpy.char.upper(template.element.astype(str)), metals)
+    is_metal = _is_metal(template)
     residue = biotite.structure.get_residue_positions(
         template, numpy.arange(template.array_length())
     )
@@ -1486,8 +1473,7 @@ def _metal_bound_atoms(structure):
         return {}
     bonds, coordination = _metal_coordination_bond_mask(structure)
     template = _template_array(structure)
-    metals = [ion["element"].upper() for ion in metal_table()["ions"]]
-    is_metal = numpy.isin(numpy.char.upper(template.element.astype(str)), metals)
+    is_metal = _is_metal(template)
     out = defaultdict(set)
     for i in bonds[coordination, :2].ravel():
         if not is_metal[i]:
@@ -1820,8 +1806,7 @@ def _metal_coordination_from_biotite(
         return numpy.zeros((0, 4), dtype=numpy.int64)
     atom_canonical_ind = numpy.full(array.array_length(), -1, dtype=numpy.int64)
     atom_canonical_ind[valid_atom_mask] = valid_atom_inds
-    metals = [ion["element"].upper() for ion in metal_table()["ions"]]
-    is_metal = numpy.isin(numpy.char.upper(array.element.astype(str)), metals)
+    is_metal = _is_metal(array)
     rows = []
     for atom1, atom2, _ in declared:
         if is_metal[atom2] and not is_metal[atom1]:
@@ -3008,18 +2993,19 @@ def packed_block_types_for_biotite_with_metals(
     )
 
 
-def _carries_a_metal(structure) -> bool:
-    """Whether the structure has an atom of an element that coordinates."""
+def _is_metal(structure) -> numpy.ndarray:
+    """Per atom, whether its element is one the metal table coordinates."""
     metals = [ion["element"].upper() for ion in metal_table()["ions"]]
-    elements = numpy.char.upper(numpy.asarray(structure.element, dtype=str))
-    return bool(numpy.isin(elements, metals).any())
+    return numpy.isin(
+        numpy.char.upper(numpy.asarray(structure.element, dtype=str)), metals
+    )
 
 
 def _default_pose_build_context_for(
     structure, device: torch.device
 ) -> PoseBuildContext:
     """The process-wide context, packed wide enough for what this structure holds."""
-    return _default_pose_build_context(device, _carries_a_metal(structure))
+    return _default_pose_build_context(device, bool(_is_metal(structure).any()))
 
 
 @validate_args

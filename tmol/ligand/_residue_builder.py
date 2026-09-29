@@ -12,7 +12,7 @@ so a structure keeps the same geometry whichever library placed it.
 import logging
 
 import numpy as np
-from atomworks.experimental.protonation import (
+from atomworks.experimental.protonation.geometry import (
     build_atom_tree,
     find_root_atom,
     icoor_geometry_from_coords,
@@ -236,14 +236,14 @@ def build_residue_type(  # noqa: C901
     icoors = [
         Icoor(
             name=atom_names[idx],
-            phi=geom.phi,
-            theta=geom.theta,
-            d=geom.d,
+            phi=phi,
+            theta=theta,
+            d=d,
             parent=atom_names[parent[idx]],
             grand_parent=atom_names[grandparents[idx][0]],
             great_grand_parent=atom_names[grandparents[idx][1]],
         )
-        for idx, geom in zip(order, geometry)
+        for idx, (d, theta, phi) in zip(order, geometry.tolist())
     ]
 
     # Rotatable-bond (CHI / PROTON_CHI) topology, classified against the

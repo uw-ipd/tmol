@@ -13,15 +13,13 @@ import biotite.structure as struc
 import numpy as np
 import pytest
 import torch
-from atomworks.experimental.protonation.external.dimorphite_dl import (
-    protonate_mol_variants,
-)
 
 from tmol.tests.data import data_path
 from tmol.io import canonical_ordering_for_biotite
 from tmol.ligand import (
     chem_comp_types_from_cif,
     prepare_ligands,
+    _dimorphite_protonate_smiles,
     _prepare_ligand_via_smiles,
     _residue_names_with_cross_residue_bonds,
     detect_nonstandard_residues,
@@ -256,24 +254,20 @@ def test_collect_new_atom_types_strict_mode_errors(default_database) -> None:
         )
 
 
-def test_protonate_mol_variants_produces_valid_mol() -> None:
-    """Protonating a molecule yields RDKit-parseable variant SMILES."""
-    from rdkit import Chem
-
-    input_smiles = "CC(=O)ON"
-    mol = Chem.MolFromSmiles(input_smiles)
-    assert mol is not None
-    mol_variants = protonate_mol_variants(
-        mol,
-        min_ph=7.4,
-        max_ph=7.4,
-        pka_precision=0.1,
-        max_variants=128,
-        silent=True,
-    )
-    assert mol_variants
-    result_smi = Chem.MolToSmiles(mol_variants[0], isomericSmiles=True)
-    assert Chem.MolFromSmiles(result_smi) is not None
+@pytest.mark.parametrize(
+    ("smiles", "expected"),
+    [
+        ("CC(=O)ON", "CC(=O)ON"),
+        # the cases Frank added to the rule inventory
+        ("CN(C)C=C", "C=CN(C)C"),
+        ("CN(C)N=O", "CN(C)N=O"),
+        ("COP(=O)(S)OC", "COP(=O)([S-])OC"),
+        ("[O-]S([O-])(=O)=O", "O=S(=O)([O-])[O-]"),
+        ("OP(O)(O)=O", "O=P([O-])([O-])O"),
+    ],
+)
+def test_ligand_smiles_are_protonated_at_ph_7_4(smiles, expected) -> None:
+    assert _dimorphite_protonate_smiles(smiles, ph=7.4) == expected
 
 
 def test_prepare_ligand_from_cif_helper_loads_reference_fixture() -> None:

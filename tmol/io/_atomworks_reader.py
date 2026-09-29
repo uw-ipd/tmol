@@ -5,10 +5,13 @@ import warnings
 import biotite.structure as struc
 import numpy as np
 
+from atomworks.io import load_pdb
 from atomworks.io.config import ParseConfig
-from atomworks.io.parser import parse
+from atomworks.io.parser import parse, prepare_atom_array
 from atomworks.io.transforms.categories import category_to_dict
 from atomworks.io.utils.bonds import get_struct_conn_bonds
+from atomworks.io.utils.ccd import get_polymerization_atoms
+from atomworks.io.utils.io_utils import get_structure, read_any
 
 _AUTHOR_FIELDS = {
     "atom_name": "auth_atom_id",
@@ -30,8 +33,6 @@ def _polymer_from_backbone_bonds(array):
 
     A PDB writes a modified residue in a chain as HETATM, as it writes a free ligand.
     """
-    from atomworks.io.utils.ccd import get_polymerization_atoms
-
     residue_of = struc.get_all_residue_positions(array)
     polymer = ~array.hetero[struc.get_residue_starts(array)]
 
@@ -55,57 +56,19 @@ def _polymer_from_backbone_bonds(array):
     return array
 
 
-def _read_declared(path, model, assembly_id):
-    """Read authored atoms and bonds without any dictionary supplementation."""
-    from atomworks.io import load_pdb
-    from atomworks.io.utils.atom_array_plus import as_atom_array_plus
-    from atomworks.io.utils.ccd import (
-        bond_dict_from_cif_block,
-        build_ccd_entries_from_cif_block,
+def _with_pdb_author_chains(array, path, model):
+    """Each atom's chain as its PDB record names it, as ``auth_asym_id``.
+
+    The loader moves the HETATM residues of a chain that also has polymer ones to a new chain.
+    """
+    authored = read_any(path).get_structure(
+        model=model, altloc="first", extra_fields=["atom_id"]
     )
-    from atomworks.io.utils.io_utils import get_structure, read_any
-
-    file = read_any(path)
-    block = getattr(file, "block", None)
-    if block is None:
-        # The shared PDB loader retains CONECT and TER chain boundaries.
-        array, _ = load_pdb(path, model=model)
-        entries = {}
-    else:
-        array = get_structure(file, model=model, extra_fields=_FIELDS)
-        entries = build_ccd_entries_from_cif_block(block, use_ccd=False)
-        bonds = {name: {} for name in np.unique(array.res_name)}
-        bonds.update(bond_dict_from_cif_block(block))
-        array.bonds = struc.connect_via_residue_names(
-            array, inter_residue=False, custom_bond_dict=bonds
-        )
-        if "struct_conn" in block:
-            array.bonds = array.bonds.merge(
-                get_struct_conn_bonds(
-                    array,
-                    category_to_dict(block, "struct_conn"),
-                    add_bond_types=("covale", "disulf"),
-                    distance_policy="keep",
-                    use_ccd=False,
-                )
-            )
-    array = as_atom_array_plus(array)
-    array._custom_ccd_registry = entries
-    if assembly_id is not None:
-        from atomworks.io.utils.assembly import build_assemblies_from_asym_unit
-
-        if block is None or "pdbx_struct_assembly_gen" not in block:
-            raise ValueError(f"Structure does not declare assembly {assembly_id!r}")
-        array = build_assemblies_from_asym_unit(
-            block["pdbx_struct_assembly_gen"],
-            block["pdbx_struct_oper_list"],
-            struc.stack([array]),
-            fix_symmetry_centers=False,
-            build_assembly=[assembly_id],
-        )[assembly_id][0]
-        array = as_atom_array_plus(array)
-        array._custom_ccd_registry = entries
-    return array, block
+    chain_of = dict(zip(authored.atom_id.tolist(), authored.chain_id.tolist()))
+    array.set_annotation(
+        "auth_asym_id", np.array([chain_of[i] for i in array.atom_id.tolist()])
+    )
+    return array
 
 
 def _with_metal_coordination(array, block):
@@ -123,7 +86,6 @@ def _with_metal_coordination(array, block):
             struct_conn,
             add_bond_types=("metalc",),
             distance_policy="keep",
-            use_ccd=False,
         )
     )
 
@@ -170,10 +132,6 @@ def _parse_repairing_author_numbering(path, config, model, assembly_id):
 
     An assembly that needs renumbering is refused with AtomWorks' own message.
     """
-    from atomworks.io import load_pdb
-    from atomworks.io.parser import prepare_atom_array
-    from atomworks.io.utils.io_utils import get_structure, read_any
-
     try:
         return parse(path, config=config)
     except ValueError as refused:
@@ -194,64 +152,61 @@ def _parse_repairing_author_numbering(path, config, model, assembly_id):
         return {"asym_unit": atoms, "cif_block": block}
 
 
-def read_structure(path, *, model=1, assembly_id=None, use_ccd=True):
-    """Read PDB/CIF atoms and available bonds, optionally supplemented from CCD."""
+def read_structure(path, *, model=1, assembly_id=None):
+    """Read PDB/CIF atoms and available bonds, supplemented from the CCD."""
     if model is None or model < 1:
         raise ValueError("The structure reader requires a positive model number")
-    if use_ccd:
-        config = ParseConfig(
-            model=model,
-            add_missing_atoms=False,
-            build_assembly=None if assembly_id is None else [assembly_id],
-            extra_fields=_FIELDS,
-            remove_ccds=[],
-            remove_waters=False,
-            fix_arginines=False,
-            fix_ligands_at_symmetry_centers=False,
-            add_bond_types_from_struct_conn=["covale", "disulf"],
-            hydrogen_policy="keep",
-            ccd_mirror_path=None,
-            cif_ccd_on_mismatch="ignore",
-            add_id_and_entity_annotations=False,
-            keep_cif_block=True,
-            return_atom_array_plus=True,
-            long_bond_policy="keep",
-            struct_conn_distance_policy="keep",
-        )
-        result = _parse_repairing_author_numbering(path, config, model, assembly_id)
-        array = (
-            result["asym_unit"]
-            if assembly_id is None
-            else result["assemblies"][assembly_id]
-        )
-        if array.coord.ndim == 3:
-            array = array[0]
-        block = result.get("cif_block")
-        if block is None and array.bonds is not None:
-            from tmol.io._cif import _component_dictionary_template
+    config = ParseConfig(
+        model=model,
+        add_missing_atoms=False,
+        build_assembly=None if assembly_id is None else [assembly_id],
+        extra_fields=_FIELDS,
+        remove_ccds=[],
+        remove_waters=False,
+        fix_arginines=False,
+        fix_ligands_at_symmetry_centers=False,
+        add_bond_types_from_struct_conn=["covale", "disulf"],
+        hydrogen_policy="keep",
+        ccd_mirror_path=None,
+        cif_ccd_on_mismatch="ignore",
+        add_id_and_entity_annotations=False,
+        keep_cif_block=True,
+        return_atom_array_plus=True,
+        long_bond_policy="keep",
+        struct_conn_distance_policy="keep",
+    )
+    result = _parse_repairing_author_numbering(path, config, model, assembly_id)
+    array = (
+        result["asym_unit"]
+        if assembly_id is None
+        else result["assemblies"][assembly_id]
+    )
+    if array.coord.ndim == 3:
+        array = array[0]
+    block = result.get("cif_block")
+    if block is None and array.bonds is not None:
+        from tmol.io._cif import _component_dictionary_template
 
-            # CONECT gives orders only when a compatible component template supplies them.
-            unknown_names = set()
-            heavy = ~np.isin(array.element, ["H", "D"])
-            for name in np.unique(array.res_name):
-                template = _component_dictionary_template(str(name))
-                observed = set(array.atom_name[heavy & (array.res_name == name)])
-                if template is None or not observed <= set(template.atom_name):
-                    unknown_names.add(name)
-            if unknown_names:
-                residue = struc.spread_residue_wise(
-                    array, np.arange(struc.get_residue_count(array))
-                )
-                bonds = array.bonds.as_array()
-                i, j = bonds[:, 0], bonds[:, 1]
-                unknown = np.isin(array.res_name, list(unknown_names))
-                bonds[unknown[i] & (residue[i] == residue[j]), 2] = struc.BondType.ANY
-                array.bonds = struc.BondList(len(array), bonds)
-
-    else:
-        array, block = _read_declared(path, model, assembly_id)
+        # CONECT gives orders only when a compatible component template supplies them.
+        unknown_names = set()
+        heavy = ~np.isin(array.element, ["H", "D"])
+        for name in np.unique(array.res_name):
+            template = _component_dictionary_template(str(name))
+            observed = set(array.atom_name[heavy & (array.res_name == name)])
+            if template is None or not observed <= set(template.atom_name):
+                unknown_names.add(name)
+        if unknown_names:
+            residue = struc.spread_residue_wise(
+                array, np.arange(struc.get_residue_count(array))
+            )
+            bonds = array.bonds.as_array()
+            i, j = bonds[:, 0], bonds[:, 1]
+            unknown = np.isin(array.res_name, list(unknown_names))
+            bonds[unknown[i] & (residue[i] == residue[j]), 2] = struc.BondType.ANY
+            array.bonds = struc.BondList(len(array), bonds)
     if block is None:
         # A PDB, where the loader has moved off whatever its records called non-polymer.
+        array = _with_pdb_author_chains(array, path, model)
         array = _polymer_from_backbone_bonds(array)
     elif assembly_id is None and "struct_conn" in block:
         array.bonds = _with_metal_coordination(array, block)

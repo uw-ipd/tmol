@@ -10,7 +10,7 @@ from collections import deque
 
 import numpy
 
-from atomworks.experimental.protonation import icoor_geometry_from_coords
+from atomworks.experimental.protonation.geometry import icoor_geometry_from_coords
 
 from tmol.database.chemical import (
     ChemicalProperties,
@@ -601,14 +601,14 @@ def _computed_icoors(order, frames, coords):
     return [
         Icoor(
             name=name,
-            phi=geom.phi,
-            theta=geom.theta,
-            d=geom.d,
+            phi=phi,
+            theta=theta,
+            d=d,
             parent=frames[name][0],
             grand_parent=frames[name][1],
             great_grand_parent=frames[name][2],
         )
-        for name, geom in zip(order, geometry)
+        for name, (d, theta, phi) in zip(order, geometry.tolist())
     ]
 
 

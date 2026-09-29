@@ -13,6 +13,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
+from atomworks.experimental.protonation.dimorphite import protonate_at_ph
 import attr
 import biotite.structure as struc
 import numpy as np
@@ -145,8 +146,8 @@ def _isolated_atom_charge_problem(
         return (
             f"{res_name}: formal charge is unspecified for isolated {element} atom "
             f"{atom_name}; no bond or hydrogen valence can establish its charge. "
-            "Supply _atom_site.pdbx_formal_charge or _chem_comp_atom.charge, enable "
-            "use_ccd for a CCD component, or load its prepared .tmol parameters"
+            "Supply _atom_site.pdbx_formal_charge or _chem_comp_atom.charge, use a "
+            "CCD component code, or load its prepared .tmol parameters"
         )
 
     if element not in _HALOGEN_ELEMENTS or _formal_charge(residue) != 0:
@@ -912,39 +913,26 @@ def _normalize_radical_oxygens(smiles: str) -> str:
     return smiles if fixed is mol else Chem.MolToSmiles(fixed)
 
 
-def _dimorphite_protonate_smiles(
-    smiles: str, ph: float = 7.4, precision: float = 0.1
-) -> str:
+def _dimorphite_protonate_smiles(smiles: str, ph: float = 7.4) -> str:
     """Return the SMILES pKa-protonated at ``ph`` via Dimorphite-DL.
 
     Takes the first protonation variant (matching the reference ligand-prep
     protocol). Falls back to the input SMILES if RDKit cannot parse it or
     Dimorphite produces no variant.
     """
-    from atomworks.experimental.protonation.external.dimorphite_dl import (
-        protonate_mol_variants,
-    )
-
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return smiles
     try:
-        variants = protonate_mol_variants(
-            mol,
-            min_ph=ph,
-            max_ph=ph,
-            pka_precision=precision,
-            max_variants=128,
-            silent=True,
-        )
+        protonated = protonate_at_ph(mol, ph)
     except Exception:
         logger.warning(
             "Dimorphite protonation failed for SMILES %r; using input", smiles
         )
         return smiles
-    if not variants:
+    if protonated is None:
         return smiles
-    return Chem.MolToSmiles(variants[0])
+    return Chem.MolToSmiles(protonated)
 
 
 def nonstandard_residue_info_from_smiles_via_mol2(
@@ -1199,7 +1187,7 @@ def _representative_instance(
     return atom_array[start : ends[np.searchsorted(residue_starts, start)]].copy()
 
 
-def with_resolved_coordinates(atom_array, res_name: str, use_ccd: bool):
+def with_resolved_coordinates(atom_array, res_name: str):
     """Resolve scratch geometry for parameter generation from declared chemistry.
 
     Input-scoped AtomWorks templates take precedence over the bundled CCD.
@@ -1210,7 +1198,7 @@ def with_resolved_coordinates(atom_array, res_name: str, use_ccd: bool):
     unresolved = np.isnan(atom_array.coord).any(axis=-1)
     if not unresolved.any():
         return atom_array
-    if unresolved.all() or not use_ccd:
+    if unresolved.all():
         return None
     template = getattr(atom_array, "_custom_ccd_registry", {}).get(res_name.upper())
     from atomworks.io.utils.ccd import atom_array_from_ccd_code, custom_ccd_residues

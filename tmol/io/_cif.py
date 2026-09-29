@@ -49,11 +49,11 @@ def component_chemistry_from_cif(cif_path) -> dict:
     return entries
 
 
-def component_chemistry_from_block(block, *, use_ccd=False) -> dict:
-    """Read authored chemistry, optionally supplementing missing annotations."""
+def component_chemistry_from_block(block) -> dict:
+    """Read authored chemistry, supplementing name-compatible CCD components."""
     from atomworks.io.utils.ccd import build_ccd_entries_from_cif_block
 
-    entries = build_ccd_entries_from_cif_block(block, use_ccd=use_ccd)
+    entries = build_ccd_entries_from_cif_block(block, on_mismatch="ignore")
     return _completion_templates(entries)
 
 
@@ -124,14 +124,12 @@ def atom_array_from_cif(
     *,
     model: int = 1,
     assembly_id: str | None = None,
-    use_ccd: bool = True,
 ):
     """Read a PDB, CIF, compressed CIF or binary CIF into an AtomArray.
 
     Preserve supplied names, coordinates, hydrogens and covalent connections.
-    Declared unresolved heavy atoms have NaN coordinates. ``use_ccd`` controls
-    whether missing chemistry may be supplemented from the component dictionary;
-    False never consults it, including for PDB input and custom residue codes.
+    Declared unresolved heavy atoms have NaN coordinates. Chemistry the file
+    leaves out is supplemented from the component dictionary.
 
     Missing chemical metadata is allowed here. Pose construction uses existing
     parameters for known residues and requires additional chemistry only when
@@ -144,9 +142,7 @@ def atom_array_from_cif(
         not isinstance(assembly_id, str) or not assembly_id
     ):
         raise ValueError("assembly_id must be a nonempty string or None")
-    array, block = read_structure(
-        cif_path, model=model, assembly_id=assembly_id, use_ccd=use_ccd
-    )
+    array, block = read_structure(cif_path, model=model, assembly_id=assembly_id)
     array = _with_polymer_entity_flag(array, block)
     array = _with_component_type_annotation(array, block)
     templates = _completion_templates(
@@ -160,7 +156,7 @@ def atom_array_from_cif(
     from atomworks.io.utils.leaving_atoms import resolve_leaving_atoms
 
     authored_charges = _component_formal_charges(block)
-    available_ccds = get_available_ccd_codes("") if use_ccd else ()
+    available_ccds = get_available_ccd_codes("")
     authoritative_charges = set(authored_charges)
     for template in templates.values():
         charge_specified = np.array(
@@ -204,14 +200,13 @@ def atom_array_from_cif(
             array.res_name, list(array._custom_ccd_registry)
         )
         if missing.any():
-            if use_ccd:
-                supplement = add_annotations_from_ccd(
-                    array[missing],
-                    annotations=["charge"],
-                    overwrite=True,
-                    ccd_mirror_path=None,
-                )
-                array.charge[missing] = supplement.charge
+            supplement = add_annotations_from_ccd(
+                array[missing],
+                annotations=["charge"],
+                overwrite=True,
+                ccd_mirror_path=None,
+            )
+            array.charge[missing] = supplement.charge
             for index in np.flatnonzero(missing):
                 key = (
                     str(array.res_name[index]).strip().upper(),
@@ -225,8 +220,8 @@ def atom_array_from_cif(
         array.set_annotation(_FORMAL_CHARGE_SPECIFIED, charge_specified)
         if hasattr(array, "pdbx_formal_charge"):
             array.del_annotation("pdbx_formal_charge")
-        array = with_unresolved_atoms(array, templates, use_ccd=use_ccd)
-        return resolve_leaving_atoms(array)[0] if use_ccd else array
+        array = with_unresolved_atoms(array, templates)
+        return resolve_leaving_atoms(array)[0]
 
 
 def _component_formal_charges(block) -> dict[tuple[str, str], int]:
@@ -308,7 +303,7 @@ def _with_polymer_entity_flag(atom_array, block):
     return atom_array
 
 
-def with_unresolved_atoms(atom_array, declared: dict, *, use_ccd: bool = True):
+def with_unresolved_atoms(atom_array, declared: dict):
     """``atom_array`` plus the declared atoms it does not resolve, at NaN.
 
     Declared leaving groups and unobserved carbonyl/phosphoryl substitution branches are
@@ -329,7 +324,7 @@ def with_unresolved_atoms(atom_array, declared: dict, *, use_ccd: bool = True):
     finite = np.isfinite(atom_array.coord).all(axis=-1)
     for ri, (start, stop) in enumerate(zip(starts, boundaries[1:])):
         res_name = str(atom_array.res_name[start]).strip()
-        if res_name not in templates and use_ccd:
+        if res_name not in templates:
             templates[res_name] = _component_dictionary_template(res_name)
         template = templates.get(res_name)
         if template is None:
@@ -515,7 +510,6 @@ def pose_stack_from_cif(
     *,
     model: int = 1,
     assembly_id: str | None = None,
-    use_ccd: bool = True,
     residue_start: int | None = None,
     residue_end: int | None = None,
     **kwargs,
@@ -529,22 +523,12 @@ def pose_stack_from_cif(
     """
     from tmol.io._pose_stack_from_biotite import pose_stack_from_biotite
 
-    array = atom_array_from_cif(
-        cif_path,
-        model=model,
-        assembly_id=assembly_id,
-        use_ccd=use_ccd,
-    )
+    array = atom_array_from_cif(cif_path, model=model, assembly_id=assembly_id)
     if residue_start is not None or residue_end is not None:
         boundaries = struc.get_residue_starts(array, add_exclusive_stop=True)
         start, stop, _ = slice(residue_start, residue_end).indices(len(boundaries) - 1)
         array = array[boundaries[start] : boundaries[stop]]
-    return pose_stack_from_biotite(
-        array,
-        device,
-        use_ccd=use_ccd,
-        **kwargs,
-    )
+    return pose_stack_from_biotite(array, device, **kwargs)
 
 
 atom_array_from_file = atom_array_from_cif

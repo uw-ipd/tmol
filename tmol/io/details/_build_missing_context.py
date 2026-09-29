@@ -19,6 +19,10 @@ from typing import Dict, List, Tuple
 
 import numpy
 import torch
+from atomworks.experimental.protonation.geometry import (
+    signed_dihedral_angle,
+    vertex_angle,
+)
 from scipy.spatial import cKDTree
 
 from tmol.chemical._restypes import BondType
@@ -41,16 +45,9 @@ def _unit(v):
     return v / n if n > 1e-12 else v
 
 
-def _angle(a, b, c):
-    u, v = _unit(a - b), _unit(c - b)
-    return math.acos(max(-1.0, min(1.0, float(u @ v))))
-
-
 def _dihedral(a, b, c, d):
-    b0, b1, b2 = a - b, _unit(c - b), d - c
-    v = b0 - (b0 @ b1) * b1
-    w = b2 - (b2 @ b1) * b1
-    return math.atan2(float(numpy.cross(b1, v) @ w), float(v @ w))
+    """The IUPAC dihedral a-b-c-d, which ``signed_dihedral_angle`` negates."""
+    return -signed_dihedral_angle(a, b, c, d)
 
 
 def _cross(u, v):
@@ -258,7 +255,7 @@ def _plan(geom, known, targets, conn_nodes, ideal_of):
         ia = ideal_of(a)
         ip, ig, igg = ideal_of(p), _ideal_ref(ideal_of, g), _ideal_ref(ideal_of, gg)
         dist = float(numpy.linalg.norm(ia - ip))
-        theta = _angle(ig, ip, ia)
+        theta = vertex_angle(ig, ip, ia)
         phi = _dihedral(igg, ig, ip, ia)
         steps.append(_Step(a, refs, dist, theta, phi, axis))
         if axis is not None and axis not in axis_candidates:
