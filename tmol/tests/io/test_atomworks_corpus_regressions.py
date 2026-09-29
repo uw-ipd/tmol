@@ -42,7 +42,6 @@ def test_partial_sugar_rings_construct_score_and_minimize(torch_device, monkeypa
     partial = sugars[-1]
     assert partial.res_name[0] == "MAN"
     assert set(partial.atom_name) == set("C1 C2 C3 C4 C5 C6 O2 O3 O4 O5 O6".split())
-    assert {"C1", "C2", "C3", "C4", "C5", "O5"} <= set(partial.atom_name)
     assert set(partial.atom_name[np.isfinite(partial.coord).all(axis=-1)]) == {"C1"}
     bonds = {
         frozenset((str(partial.atom_name[a]), str(partial.atom_name[b])))
@@ -95,11 +94,13 @@ def test_partial_sugar_rings_construct_score_and_minimize(torch_device, monkeypa
     pose = pose_stack_from_biotite(array, torch_device, context=context, no_optH=True)
     np.testing.assert_array_equal(array.coord, supplied)
     # the heavy atoms, grown before any hydrogen
-    (pbt, coords, missing, targets, offsets, types, connections), kwargs, result = next(
-        c for c in calls if c[1].get("heavy_only", True)
+    assert len(calls) == 1
+    (pbt, coords, missing, targets, offsets, types, connections), kwargs, result = (
+        calls[0]
     )
+    assert kwargs.get("heavy_only", True)
     completed, built = result
-    assert bool(targets.any())
+    assert int(targets.sum()) == 23
     torch.testing.assert_close(built, targets, rtol=0, atol=0)
     changed = built
     finite = ~missing
