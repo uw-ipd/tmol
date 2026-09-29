@@ -358,7 +358,7 @@ def test_a_twelve_connection_cluster_keeps_one_byte_per_bond_separation(
     from tmol.chemical import MAX_SIG_BOND_SEPARATION
     from tmol.io import build_context_from_biotite
 
-    array = atom_array_from_cif(DATA / "decreasing_water_author_ids_5xnl.cif.gz")
+    array = atom_array_from_cif(DATA / "decreasing_water_author_ids_5xnl.cif.zst")
     cluster = array.coord[(array.res_name == "OEX") & (array.chain_id == "A")]
     distance = np.linalg.norm(array.coord[:, None] - cluster[None], axis=-1)
     residue = struc.get_all_residue_positions(array)
