@@ -26,8 +26,7 @@ them with `tmol.io.atom_array_from_cif`.
 | `clf_nitrogenase_7adr.cif.gz` | 7ADR vanadium nitrogenase | 1.00 | P-cluster, Cys bridging two Fe |
 
 Crystallographic waters are stripped by structure input, so the expected
-donors are what remains without them. The waters each metal coordinates are
-listed separately as reference positions for open coordination sites.
+donors are what remains without them.
 
 Other ions in these entries (Na in 2OV0, 30OH and 3F7L) are incidental and
 carry no expectations.

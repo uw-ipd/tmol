@@ -27,8 +27,6 @@ FIXTURE_DIR = data_path("metal_fixtures")
 with open(os.path.join(FIXTURE_DIR, "expected.yaml")) as infile:
     EXPECTED = safe_load(infile)["fixtures"]
 
-LOADABLE = [stem for stem, spec in EXPECTED.items() if "xfail" not in spec]
-
 
 @pytest.fixture(scope="module")
 def built():
@@ -208,7 +206,7 @@ def with_well_depth(param_db, atom_type, donor, depth):
     return attr.evolve(param_db, scoring=scoring)
 
 
-@pytest.mark.parametrize("stem", LOADABLE)
+@pytest.mark.parametrize("stem", EXPECTED)
 def test_site_pairing_matches_detection(built, stem, default_database):
     pose_stack = built(stem)
     site_rows, _, _, _ = metal_oracle.restraints(default_database, pose_stack)
@@ -237,7 +235,7 @@ def test_site_pairing_matches_detection(built, stem, default_database):
         assert found.get((metal["chain"], metal["res"]), set()) == expected
 
 
-@pytest.mark.parametrize("stem", LOADABLE)
+@pytest.mark.parametrize("stem", EXPECTED)
 def test_kernel_matches_oracle(built, stem, default_database, torch_device):
     pose_stack = built(stem, torch_device)
     term = MetalCoordinationEnergyTerm(default_database, torch_device)
@@ -266,7 +264,7 @@ def test_kernel_matches_oracle(built, stem, default_database, torch_device):
     torch.testing.assert_close(gradient(pairs), expected_grad)
 
 
-@pytest.mark.parametrize("stem", LOADABLE)
+@pytest.mark.parametrize("stem", EXPECTED)
 def test_ideal_sites_score_zero(built, stem, default_database, torch_device):
     """Every restraint one atom can satisfy on its own is at rest.
 
