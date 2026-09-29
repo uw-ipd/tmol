@@ -764,7 +764,7 @@ def test_optH_flips_the_ring_of_doubly_protonated_his15_6lyz(torch_device):
         with_his_ring_hydrogens,
     )
 
-    array = atom_array_from_cif(DATA / "his_pos_ring_6lyz.cif.gz")
+    array = atom_array_from_cif(DATA / "his_pos_ring_6lyz.cif.zst")
     array = with_his_ring_hydrogens(array[array.res_name != "HOH"], 15)
     (name, ring), (_, flipped) = (
         his_ring_after_optH(a, 15, torch_device)

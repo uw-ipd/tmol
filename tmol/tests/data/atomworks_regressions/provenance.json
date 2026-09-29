@@ -459,12 +459,15 @@
     "compressed_sha256": "931c1fb6a96941c91a3c04d7794553aa1ce792c7adcaa1466926ce5acf5c706e"
   },
   {
-    "fixture": "his_pos_ring_6lyz.cif.gz",
+    "fixture": "his_pos_ring_6lyz.cif.zst",
     "source": "https://files.rcsb.org/download/6LYZ.cif.gz",
     "source_repository": "RCSB PDB",
     "retrieved": "2026-09-29",
-    "transformation": "none; complete compressed source",
-    "sha256": "a8ddc0e851adf3cebe34c1cd574fc933074d54068f431ff4aff370ff5e48f11e",
-    "bytes": 42592
+    "transformation": "none; complete source",
+    "source_sha256": "a8ddc0e851adf3cebe34c1cd574fc933074d54068f431ff4aff370ff5e48f11e",
+    "sha256": "bc2805c8a580889a8ffa88c95245400b9c05f476496af4e04f87ff87f74e1a4d",
+    "bytes": 176834,
+    "compression": "zstd; decompressed bytes identical to source",
+    "compressed_sha256": "f79a5f1171d680f9fdd6c4e6a61020b3b6674f3df6a366ae4560dd8293318957"
   }
 ]

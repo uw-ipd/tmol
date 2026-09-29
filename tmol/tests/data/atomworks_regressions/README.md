@@ -245,7 +245,7 @@ types, context-specific packing choices, residue reversal, parameter export
 and reload, scores/gradients and minimization. Free Zn/Na, waters and residues
 with unresolved required backbone atoms are explicitly excluded.
 
-`his_pos_ring_6lyz.cif.gz` retains the complete hen lysozyme entry. The
+`his_pos_ring_6lyz.cif.zst` retains the complete hen lysozyme entry. The
 regression adds HD1 and HE2 to His15, making it `HIS_POS`, and turns its ring
 180 degrees. OptH must place ND1 and NE2 the same way from either ring
 orientation, as it does for neutral histidine. Waters are excluded.
