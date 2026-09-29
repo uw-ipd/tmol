@@ -1,4 +1,3 @@
-import gzip
 import hashlib
 import json
 from collections import Counter
@@ -31,11 +30,7 @@ def test_atomworks_regression_manifest_matches_fixture_bytes() -> None:
     fixture_dir = DATA / "atomworks_regressions"
     provenance = json.loads((fixture_dir / "provenance.json").read_text())
     manifest_names = [row["fixture"] for row in provenance]
-    directory_names = {
-        path.name
-        for pattern in ("*.cif", "*.cif.gz", "*.cif.zst")
-        for path in fixture_dir.glob(pattern)
-    }
+    directory_names = {path.name for path in fixture_dir.glob("*.cif*")}
 
     assert len(manifest_names) == len(set(manifest_names))
     assert set(manifest_names) == directory_names
@@ -44,8 +39,7 @@ def test_atomworks_regression_manifest_matches_fixture_bytes() -> None:
         contents = (fixture_dir / row["fixture"]).read_bytes()
         if "compressed_sha256" in row:
             assert hashlib.sha256(contents).hexdigest() == row["compressed_sha256"]
-            zst = row["fixture"].endswith(".zst")
-            contents = (zstandard if zst else gzip).decompress(contents)
+            contents = zstandard.decompress(contents)
         assert hashlib.sha256(contents).hexdigest() == row["sha256"]
         assert len(contents) == row["bytes"]
 

@@ -89,7 +89,7 @@ def test_a_cached_state_follows_the_metal_bond_length(lengths):
 def test_a_ligand_numbered_after_its_chain_is_not_bonded_to_it():
     """3T14 FAD 500 follows MET 418 in chain A; its pyrophosphate stays a dianion."""
     structure = atom_array_from_cif(
-        data_path("atomworks_regressions", "sulfur_attachments_3t14.cif.gz")
+        data_path("atomworks_regressions", "sulfur_attachments_3t14.cif.zst")
     )
     heavy = structure[(structure.element != "H") & (structure.res_name != "HOH")]
     protonated = protonation.with_atomworks_hydrogens(heavy)

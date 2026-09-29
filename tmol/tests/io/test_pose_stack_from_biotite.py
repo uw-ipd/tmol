@@ -646,8 +646,8 @@ def test_partly_absent_mainchain_triplets_are_still_missing():
     [
         ("metal_fixtures", "zn_tetrahedral_3ks3.cif.zst"),
         ("atomworks_regressions", "plp_enzyme_7mkv.cif"),
-        ("atomworks_regressions", "isopeptide_2rm9.cif.gz"),
-        ("atomworks_regressions", "repeated_glycans_6mub.cif.gz"),
+        ("atomworks_regressions", "isopeptide_2rm9.cif.zst"),
+        ("atomworks_regressions", "repeated_glycans_6mub.cif.zst"),
     ],
     ids=lambda p: p[1].split(".")[0],
 )
@@ -708,7 +708,7 @@ def test_export_keeps_the_input_residue_annotations(path):
 @pytest.mark.parametrize(
     "path",
     [
-        ("metal_fixtures", "zn_tetrahedral_3ks3.cif.gz"),
+        ("metal_fixtures", "zn_tetrahedral_3ks3.cif.zst"),
         ("cif", "155c__1__1.A__1.B.cif"),
     ],
     ids=["3ks3_zinc", "155c_heme"],
@@ -815,8 +815,8 @@ def _heavy_atom_mask(pose_stack):
 @pytest.mark.parametrize(
     "path",
     [
-        ("atomworks_regressions", "isopeptide_2rm9.cif.gz"),
-        ("atomworks_regressions", "repeated_glycans_6mub.cif.gz"),
+        ("atomworks_regressions", "isopeptide_2rm9.cif.zst"),
+        ("atomworks_regressions", "repeated_glycans_6mub.cif.zst"),
         ("atomworks_regressions", "plp_enzyme_7mkv.cif"),
         ("atomworks_regressions", "retinyl_lysine_4xxj.cif"),
         ("metal_fixtures", "mg_rna_aptamer_7eoh.cif.zst"),
