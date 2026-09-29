@@ -299,11 +299,17 @@ def _build_canonical_metal_tables(
                     # water is typed apart from other oxygens: it is what an
                     # open site is assumed to hold, so it has its own distance
                     donor_element[i, j] = "Owat" if at.name == "Owat" else at.element
-        # a donor's hydrogens come from every type, also those it cannot donate in
+        # a hydrogen marks its atom as non-donating only in a type where that
+        #    atom cannot donate (thiol, phenol, N-H); a hydroxyl donates with its H
         for res in members.get(equiv_class, ()):
             element_of = {
                 a.name: getattr(atom_type.get(a.atom_type), "element", "")
                 for a in res.atoms
+            }
+            donates = {
+                a.name
+                for a in res.atoms
+                if getattr(atom_type.get(a.atom_type), "is_metal_donor", False)
             }
             for a, b, *_ in res.bonds:
                 for heavy, h in ((a, b), (b, a)):
@@ -312,6 +318,7 @@ def _build_canonical_metal_tables(
                         and heavy in index_of
                         and h in index_of
                         and donor_element[i, index_of[heavy]]
+                        and heavy not in donates
                     ):
                         hydrogens_on[i, index_of[heavy]].add(index_of[h])
         if equiv_class in ion_for_name3:
