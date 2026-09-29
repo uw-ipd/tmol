@@ -13,6 +13,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
+from atomworks.experimental.protonation.dimorphite import protonate_at_ph
 import attr
 import biotite.structure as struc
 import numpy as np
@@ -912,39 +913,26 @@ def _normalize_radical_oxygens(smiles: str) -> str:
     return smiles if fixed is mol else Chem.MolToSmiles(fixed)
 
 
-def _dimorphite_protonate_smiles(
-    smiles: str, ph: float = 7.4, precision: float = 0.1
-) -> str:
+def _dimorphite_protonate_smiles(smiles: str, ph: float = 7.4) -> str:
     """Return the SMILES pKa-protonated at ``ph`` via Dimorphite-DL.
 
     Takes the first protonation variant (matching the reference ligand-prep
     protocol). Falls back to the input SMILES if RDKit cannot parse it or
     Dimorphite produces no variant.
     """
-    from atomworks.experimental.protonation.external.dimorphite_dl import (
-        protonate_mol_variants,
-    )
-
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return smiles
     try:
-        variants = protonate_mol_variants(
-            mol,
-            min_ph=ph,
-            max_ph=ph,
-            pka_precision=precision,
-            max_variants=128,
-            silent=True,
-        )
+        protonated = protonate_at_ph(mol, ph)
     except Exception:
         logger.warning(
             "Dimorphite protonation failed for SMILES %r; using input", smiles
         )
         return smiles
-    if not variants:
+    if protonated is None:
         return smiles
-    return Chem.MolToSmiles(variants[0])
+    return Chem.MolToSmiles(protonated)
 
 
 def nonstandard_residue_info_from_smiles_via_mol2(

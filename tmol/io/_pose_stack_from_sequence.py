@@ -4,7 +4,7 @@ import attr
 import math
 
 import numpy
-from atomworks.experimental.protonation import build_coordinate, vertex_angle
+from atomworks.experimental.protonation.geometry import build_coordinate, vertex_angle
 import torch
 
 from tmol.chemical import ResidueTypeSet
