@@ -771,8 +771,17 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
         # 2. add atoms
         newres.atoms = (*newres.atoms, *variant.add_atoms)
 
-        # 2b. add atom alias
-        newres.atom_aliases = (*newres.atom_aliases, *variant.add_atom_aliases)
+        # 2b. add atom alias; a source name the base residue already aliases keeps
+        #     that meaning, since input names are read per name3
+        claimed = {a.alt_name: a.name for a in res.atom_aliases}
+        newres.atom_aliases = (
+            *newres.atom_aliases,
+            *(
+                a
+                for a in variant.add_atom_aliases
+                if claimed.get(a.alt_name, a.name) == a.name
+            ),
+        )
 
         # 3. add connections
         newconnections = []

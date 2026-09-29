@@ -433,3 +433,16 @@ def test_a_patch_removes_the_hydrogens_of_the_atoms_it_removes() -> None:
 
     assert {"HOP1", "HOP2"} <= atoms["XY7"]
     assert not {"HOP1", "HOP2"} & (atoms["XY7:na5prime"] | atoms["XY7:na5primephos"])
+
+
+def test_a_variant_keeps_the_phosphate_alias_of_its_residue(torch_device) -> None:
+    """AAB reads its deposited O3P as OP2; so do its variants, na5primephos too."""
+    structure = _sweep_structure("aab_phosphate_alias_1mwi")
+    names, chemdb = _block_type_names(structure, torch_device)
+
+    assert names == ["DG:na5primephos", "AAB", "DT:na3prime"]
+    aab = [r for r in chemdb.residues if r.base_name == "AAB"]
+    assert len(aab) > 1
+    for restype in aab:
+        aliases = {a.alt_name: a.name for a in restype.atom_aliases}
+        assert aliases["O3P"] == "OP2", restype.name
