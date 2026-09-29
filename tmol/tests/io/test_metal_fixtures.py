@@ -469,3 +469,24 @@ def test_only_declared_bonds_without_detection(built):
     )
     donors = {(donor[1], atom) for _, donor, atom in labeled_metal_bonds(rebuilt)}
     assert donors == {(res, atom) for res, _, atom in EXPECTED_ZINC_DONORS[:2]}
+
+
+def test_a_donor_whose_given_state_cannot_coordinate_is_left_uncoordinated(caplog):
+    # 6yv5: Na binds SER 24 O/OG and TYR 45 OH, and AtomWorks keeps TYR 45
+    #    neutral; only its phenolate can donate, so that bond is dropped
+    structure = atom_array_from_cif(
+        data_path("sweep_regressions", "metal_tyr_6yv5.cif.zst")
+    )
+    with caplog.at_level("WARNING"):
+        pose_stack = pose_stack_from_biotite(structure, torch.device("cpu"))
+    types = pose_stack.packed_block_types.active_block_types
+    assert [types[i].name for i in pose_stack.block_type_ind64[0]] == [
+        "SER:nterm:metal_O:metal_OG",
+        "TYR:cterm",
+        "NA_irregular",
+    ]
+    assert labeled_metal_bonds(pose_stack) == {
+        (("A", 301), ("A", 24), "O"),
+        (("A", 301), ("A", 24), "OG"),
+    }
+    assert "cannot coordinate a metal at ['OH']" in caplog.text

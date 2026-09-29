@@ -1415,17 +1415,26 @@ def _apply_metal_connections(
     donated = defaultdict(list)
     for pose, _, _, res, atom in rows:
         donated[(pose, res)].append(atom_name(pose, res, atom))
+    uncoordinated = set()
     for (pose, res), atoms in donated.items():
         bt_ind = block_types[pose][res]
         attached = (*pbt.conjugation_atoms_for_bt[bt_ind], *((True, a) for a in atoms))
         key = (pbt.conjugation_base_for_bt[bt_ind], tuple(sorted(attached)))
         coordinating = pbt.conjugated_bt_for_base_and_atoms.get(key)
         if coordinating is None:
-            raise ValueError(
-                f"no residue type for {pbt.active_block_types[bt_ind].name} "
-                f"coordinating a metal at {sorted(atoms)}"
+            # the given protonation state wins: a neutral TYR or CYS has no donor form
+            logger.warning(
+                "pose %d: %s %d cannot coordinate a metal at %s in its given "
+                "protonation state; left uncoordinated",
+                pose,
+                pbt.active_block_types[bt_ind].name,
+                res,
+                sorted(atoms),
             )
+            uncoordinated.add((pose, res))
+            continue
         block_types[pose][res] = coordinating
+    rows = [row for row in rows if (row[0], row[3]) not in uncoordinated]
 
     connections, filled = [], set()
     for pose, metal, site, res, atom in rows:
