@@ -892,6 +892,9 @@ def pose_stack_from_canonical_form_and_context(
         # input coordinates can be restored afterward without name matching.
         kwargs["return_atom_mapping"] = True
 
+    return_block_has_missing_atoms = bool(
+        kwargs.pop("return_block_has_missing_atoms", False)
+    )
     result = pose_stack_from_canonical_form(
         context.canonical_ordering,
         context.packed_block_types,
@@ -960,11 +963,6 @@ def pose_stack_from_canonical_form_and_context(
     # This code tries to faithfully return what the caller expects based on the optional
     # return values that they requested. Since we override the return_block_has_missing_atoms
     # bool to True, we cannot just count on the existence or absence of optional returned vals
-    return_block_has_missing_atoms = (
-        kwargs.get("return_block_has_missing_atoms")
-        if ("return_block_has_missing_atoms" in kwargs)
-        else False
-    )
     if return_context:
         return pose_stack, context
     if len(opt_return_vals) > (0 if return_block_has_missing_atoms else 1):

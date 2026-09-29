@@ -860,3 +860,14 @@ def test_nothing_buildable_is_refused_with_the_reason():
     with pytest.raises(ValueError, match="no recognized residues"):
         pose_stack_from_biotite(trace[:0], torch.device("cpu"), prepare_ligands=True)
 
+
+def test_return_block_has_missing_atoms_is_honoured(biotite_1ubq, torch_device):
+    pose_stack, extra = pose_stack_from_biotite(
+        biotite_1ubq, torch_device, return_block_has_missing_atoms=True
+    )
+    assert list(extra) == ["block_has_missing_atoms"]
+    assert extra["block_has_missing_atoms"].shape == pose_stack.block_type_ind.shape
+    alone = pose_stack_from_biotite(
+        biotite_1ubq, torch_device, return_block_has_missing_atoms=False
+    )
+    assert isinstance(alone, type(pose_stack))
