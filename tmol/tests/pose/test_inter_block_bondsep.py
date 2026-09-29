@@ -12,10 +12,61 @@ from tmol.io import (
     pose_stack_from_pdb,
 )
 from tmol.pose import InterBlockBondsep, PoseStackBuilder
-from tmol.pose.compiled import block_bondsep, stacked_apsp
-from tmol.tests.pose.compiled.test_block_bondsep import random_case
+from tmol.pose.compiled import stacked_apsp
 
 DATA = Path(__file__).parents[1] / "data"
+
+
+def gather_with_torch(pconn_matrix, pconn_offsets, block_n_conn, max_n_conn):
+    """The dense ``[pose, block1, block2, conn1, conn2]`` table, by plain indexing."""
+    n_poses, max_n_blocks = block_n_conn.shape
+    max_n_pconn = pconn_matrix.shape[1]
+
+    bconn_ind = torch.arange(max_n_conn, dtype=torch.int64, device=pconn_matrix.device)
+    real_bconn = bconn_ind[None, None, :] < block_n_conn[:, :, None]
+    pconn_for_bconn = torch.where(
+        real_bconn,
+        pconn_offsets[:, :, None] + bconn_ind,
+        0,
+    ).flatten(1)
+
+    n_padded_bconn = pconn_for_bconn.shape[1]
+    pconn_rows = torch.gather(
+        pconn_matrix,
+        1,
+        pconn_for_bconn[:, :, None].expand(n_poses, n_padded_bconn, max_n_pconn),
+    )
+    out = torch.gather(
+        pconn_rows,
+        2,
+        pconn_for_bconn[:, None, :].expand(n_poses, n_padded_bconn, n_padded_bconn),
+    ).reshape(n_poses, max_n_blocks, max_n_conn, max_n_blocks, max_n_conn)
+    out = out.permute(0, 1, 3, 2, 4).clamp(max=MAX_SIG_BOND_SEPARATION)
+    out.masked_fill_(~real_bconn[:, :, None, :, None], MAX_SIG_BOND_SEPARATION)
+    out.masked_fill_(~real_bconn[:, None, :, None, :], MAX_SIG_BOND_SEPARATION)
+    return out.to(torch.int8).contiguous()
+
+
+def random_case(n_poses, max_n_blocks, max_n_conn, device, seed):
+    generator = torch.Generator(device="cpu").manual_seed(seed)
+    block_n_conn = torch.randint(
+        0, max_n_conn + 1, (n_poses, max_n_blocks), generator=generator
+    ).to(torch.int32)
+    counts = block_n_conn.to(torch.int64)
+    offsets = torch.zeros_like(counts)
+    offsets[:, 1:] = counts.cumsum(1)[:, :-1]
+    max_n_pconn = max(int(counts.sum(1).max()), 1)
+    pconn_matrix = torch.randint(
+        0,
+        MAX_SIG_BOND_SEPARATION + 1,
+        (n_poses, max_n_pconn, max_n_pconn),
+        generator=generator,
+    ).to(torch.int32)
+    return (
+        pconn_matrix.to(device).contiguous(),
+        offsets.to(device).contiguous(),
+        block_n_conn.to(device).contiguous(),
+    )
 
 
 def near_block_slot(row, block2):
@@ -69,9 +120,7 @@ def test_the_sparse_table_holds_the_dense_ops_separations(
     pconn_matrix, offsets, block_n_conn = random_case(
         n_poses, max_n_blocks, max_n_conn, torch_device, seed=n_poses + max_n_blocks
     )
-    dense = block_bondsep(
-        pconn_matrix, offsets, block_n_conn, max_n_conn, MAX_SIG_BOND_SEPARATION
-    )
+    dense = gather_with_torch(pconn_matrix, offsets, block_n_conn, max_n_conn)
     ibb = InterBlockBondsep.from_connectivity(
         pconn_matrix, offsets, block_n_conn, max_n_conn
     )
@@ -81,25 +130,47 @@ def test_the_sparse_table_holds_the_dense_ops_separations(
     assert_well_formed(ibb)
     torch.testing.assert_close(ibb.to_dense(), dense)
     assert_lookup_reads_dense(ibb, dense)
-    torch.testing.assert_close(
-        InterBlockBondsep.from_dense(dense).to_dense(), ibb.to_dense()
-    )
 
 
-def test_a_graph_without_short_paths_stores_only_empty_slots(torch_device):
+@pytest.mark.parametrize(
+    "distance,offsets,block_n_conn,max_n_conn",
+    [
+        (MAX_SIG_BOND_SEPARATION, [[0, 2], [0, 1]], [[2, 2], [1, 3]], 3),
+        (0, [[0, 0, 0]], [[0, 0, 0]], 2),
+        (0, [[0, 0]], [[0, 0]], 0),
+    ],
+)
+def test_a_graph_without_short_paths_stores_only_empty_slots(
+    distance, offsets, block_n_conn, max_n_conn, torch_device
+):
+    offsets = torch.tensor(offsets, dtype=torch.int64, device=torch_device)
+    block_n_conn = torch.tensor(block_n_conn, dtype=torch.int32, device=torch_device)
     pconn_matrix = torch.full(
-        (2, 4, 4), MAX_SIG_BOND_SEPARATION, dtype=torch.int32, device=torch_device
-    )
-    offsets = torch.tensor([[0, 2], [0, 1]], dtype=torch.int64, device=torch_device)
-    block_n_conn = torch.tensor(
-        [[2, 2], [1, 3]], dtype=torch.int32, device=torch_device
+        (offsets.shape[0], 4, 4), distance, dtype=torch.int32, device=torch_device
     )
 
-    ibb = InterBlockBondsep.from_connectivity(pconn_matrix, offsets, block_n_conn, 3)
+    ibb = InterBlockBondsep.from_connectivity(
+        pconn_matrix, offsets, block_n_conn, max_n_conn
+    )
 
+    n_poses, n_blocks = offsets.shape
+    assert ibb.shape == (n_poses, n_blocks, n_blocks, max_n_conn, max_n_conn)
     assert ibb.n_slots == 1
     assert_well_formed(ibb)
     assert (ibb.to_dense() == MAX_SIG_BOND_SEPARATION).all()
+
+
+def test_separations_are_one_byte_and_saturate_at_the_cap(torch_device):
+    pconn_matrix = torch.tensor(
+        [[[0, 9], [300, 3]]], dtype=torch.int32, device=torch_device
+    )
+    offsets = torch.zeros((1, 1), dtype=torch.int64, device=torch_device)
+    block_n_conn = torch.full((1, 1), 2, dtype=torch.int32, device=torch_device)
+
+    ibb = InterBlockBondsep.from_connectivity(pconn_matrix, offsets, block_n_conn, 3)
+
+    assert ibb.bondsep.dtype == torch.int8
+    assert ibb.to_dense().tolist() == [[[[[0, 6, 6], [6, 3, 6], [6, 6, 6]]]]]
 
 
 def test_concatenate_pads_and_select_poses_recovers_each_part(torch_device):
@@ -204,10 +275,7 @@ def test_the_bounded_search_matches_all_pairs_shortest_paths(seed, torch_device)
 
     assert_well_formed(ibb)
     torch.testing.assert_close(
-        ibb.to_dense(),
-        InterBlockBondsep.from_connectivity(
-            distances, offsets, counts, intra.shape[2]
-        ).to_dense(),
+        ibb.to_dense(), gather_with_torch(distances, offsets, counts, intra.shape[2])
     )
 
 

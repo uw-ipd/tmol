@@ -373,7 +373,7 @@ def test_a_twelve_connection_cluster_keeps_one_byte_per_bond_separation(
     bondsep = pose.inter_block_bondsep
     n_blocks = pose.block_type_ind.shape[1]
     assert bondsep.shape == (1, n_blocks, n_blocks, 12, 12)
-    assert bondsep.dtype == torch.int8
+    assert bondsep.bondsep.dtype == torch.int8
     assert bondsep.bondsep.shape == (1, n_blocks, bondsep.n_slots, 12, 12)
     dense = bondsep.to_dense()
     assert int(dense.max()) == MAX_SIG_BOND_SEPARATION

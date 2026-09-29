@@ -54,16 +54,8 @@ class InterBlockBondsep:
         return (n, b, b, m, m)
 
     @property
-    def dtype(self) -> torch.dtype:
-        return self.bondsep.dtype
-
-    @property
     def device(self) -> torch.device:
         return self.bondsep.device
-
-    @property
-    def nbytes(self) -> int:
-        return self.near_blocks.nbytes + self.bondsep.nbytes
 
     @classmethod
     def empty(
@@ -303,17 +295,6 @@ class InterBlockBondsep:
             n_poses,
             max_n_blocks,
             max_n_conn,
-        )
-
-    @classmethod
-    def from_dense(
-        cls, dense: Tensor[torch.int8][:, :, :, :, :]
-    ) -> "InterBlockBondsep":
-        """Store a dense table; entries above the cap saturate to it."""
-        n_poses, max_n_blocks, _, max_n_conn, _ = dense.shape
-        index = torch.nonzero(dense < MAX_SIG_BOND_SEPARATION, as_tuple=True)
-        return cls.from_entries(
-            *index, dense[index].to(torch.int32), n_poses, max_n_blocks, max_n_conn
         )
 
     @classmethod
