@@ -62,6 +62,21 @@ def _polymer_from_backbone_bonds(array):
     return array
 
 
+def _with_pdb_author_chains(array, path, model):
+    """Each atom's chain as its PDB record names it, as ``auth_asym_id``.
+
+    The loader moves the HETATM residues of a chain that also has polymer ones to a new chain.
+    """
+    authored = read_any(path).get_structure(
+        model=model, altloc="first", extra_fields=["atom_id"]
+    )
+    chain_of = dict(zip(authored.atom_id.tolist(), authored.chain_id.tolist()))
+    array.set_annotation(
+        "auth_asym_id", np.array([chain_of[i] for i in array.atom_id.tolist()])
+    )
+    return array
+
+
 def _read_declared(path, model, assembly_id):
     """Read authored atoms and bonds without any dictionary supplementation."""
     file = read_any(path)
@@ -248,6 +263,7 @@ def read_structure(path, *, model=1, assembly_id=None, use_ccd=True):
         array, block = _read_declared(path, model, assembly_id)
     if block is None:
         # A PDB, where the loader has moved off whatever its records called non-polymer.
+        array = _with_pdb_author_chains(array, path, model)
         array = _polymer_from_backbone_bonds(array)
     elif assembly_id is None and "struct_conn" in block:
         array.bonds = _with_metal_coordination(array, block)
