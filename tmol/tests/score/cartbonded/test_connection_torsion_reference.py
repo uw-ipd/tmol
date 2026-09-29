@@ -1,4 +1,4 @@
-"""Independent Cartesian reference for ordinary and proline peptide impropers."""
+"""Independent Cartesian reference for the peptide-bond torsions."""
 
 import pytest
 import torch
@@ -8,7 +8,7 @@ from tmol.tests.score.common import pose_stack_from_pdb_and_resnums
 
 
 @pytest.mark.parametrize("resnums", [[(0, 4)], [(17, 20)]])
-def test_connection_improper_energy_and_gradient(
+def test_peptide_bond_torsion_energy_and_gradient(
     ubq_pdb, default_database, torch_device, resnums
 ):
     pose = pose_stack_from_pdb_and_resnums(ubq_pdb, torch_device, resnums)
@@ -20,8 +20,8 @@ def test_connection_improper_energy_and_gradient(
     term.setup_poses(pose)
     module = term.render_block_pair_scoring_module(pose)
     coords = pose.coords.double().clone()
-    # Move away from planarity, where both a missing term and a correct term
-    # would have near-zero gradients.
+    # Twist the peptide bonds away from planarity, where the energy and its
+    # gradient would be near zero whether or not the terms are scored.
     coords += 0.17 * torch.sin(
         torch.arange(coords.numel(), device=torch_device)
     ).reshape_as(coords)
@@ -31,33 +31,30 @@ def test_connection_improper_energy_and_gradient(
         n_blocks, n_blocks
     )
     weights.fill_diagonal_(0)
-    actual = (module(coords)[3, 0] * weights).sum()
+    actual = (module(coords)[2, 0] * weights).sum()
 
     def xyz(block, name):
         bt = pbt.active_block_types[int(pose.block_type_ind[0, block])]
         return coords[0, int(pose.block_coord_offset[0, block]) + bt.atom_to_idx[name]]
 
-    def improper(a, b, c, d):
-        # The database's k2=20, phi2=pi potential is 40*sin(phi)^2.
-        # Plane normals avoid using tmol's dihedral or derivative routines.
+    def torsion(k2, a, b, c, d):
+        # k2 * (cos(2 phi - pi) + 1), the wildcard rows' potential, is
+        # 2 k2 sin(phi)^2. Plane normals avoid tmol's dihedral routines.
         first = torch.linalg.cross(b - a, c - b)
         second = torch.linalg.cross(c - b, d - c)
         cosine = first.dot(second) / (first.norm() * second.norm())
-        return 40 * (1 - cosine.square())
+        return 2 * k2 * (1 - cosine.square())
 
     expected = coords.new_zeros(())
     for left in range(n_blocks - 1):
         right = left + 1
         bt = pbt.active_block_types[int(pose.block_type_ind[0, right])]
-        nitrogen_quad = (
-            (xyz(right, "CD"), xyz(left, "C"), xyz(right, "N"), xyz(right, "CA"))
-            if bt.base_name == "PRO"
-            else (xyz(right, "CA"), xyz(left, "C"), xyz(right, "N"), xyz(right, "H"))
-        )
-        carbon_quad = (xyz(left, "CA"), xyz(right, "N"), xyz(left, "C"), xyz(left, "O"))
-        expected += weights[left, right] * (
-            improper(*nitrogen_quad) + improper(*carbon_quad)
-        )
+        c, n = xyz(left, "C"), xyz(right, "N")
+        energy = torsion(9.667, xyz(left, "O"), c, n, xyz(right, "CA"))
+        if bt.base_name != "PRO":
+            energy = energy + torsion(10.458, xyz(left, "CA"), c, n, xyz(right, "H"))
+            energy = energy + torsion(10.992, xyz(left, "O"), c, n, xyz(right, "H"))
+        expected += weights[left, right] * energy
     assert float(expected.detach()) > 0.01
     torch.testing.assert_close(actual, expected, atol=2e-6, rtol=2e-6)
     actual_grad = torch.autograd.grad(actual, coords, retain_graph=True)[0]
