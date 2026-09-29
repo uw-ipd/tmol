@@ -293,7 +293,7 @@ def test_the_bounded_search_matches_all_pairs_shortest_paths(seed, torch_device)
 
 
 def heavy_pose_stack(name, device):
-    array = atom_array_from_cif(DATA / "metal_fixtures" / f"{name}.cif.gz")
+    array = atom_array_from_cif(DATA / "metal_fixtures" / f"{name}.cif.zst")
     array = array[np.char.upper(array.element.astype(str)) != "H"]
     context = build_context_from_biotite(array, device)
     return pose_stack_from_biotite(array, device, context=context, no_optH=True)
