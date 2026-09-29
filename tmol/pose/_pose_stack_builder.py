@@ -704,18 +704,19 @@ class PoseStackBuilder:
             cls._annotate_bt_w_intraresidue_connection_atom_distances(bt)
 
         max_n_conn = pbt.max_n_conn
-        conn_at_intrablock_bond_sep = torch.full(
-            (pbt.n_types, max_n_conn, max_n_conn),
-            -1,
-            dtype=torch.int32,
-            device=pbt.device,
+        conn_at_intrablock_bond_sep = numpy.full(
+            (pbt.n_types, max_n_conn, max_n_conn), -1, dtype=numpy.int32
         )
         for i, bt in enumerate(pbt.active_block_types):
             i_n_conn = len(bt.connections)
-            conn_at_intrablock_bond_sep[i, :i_n_conn, :i_n_conn] = torch.tensor(
-                bt.conn_at_intrablock_bond_sep, device=pbt.device
+            conn_at_intrablock_bond_sep[i, :i_n_conn, :i_n_conn] = (
+                bt.conn_at_intrablock_bond_sep
             )
-        setattr(pbt, "conn_at_intrablock_bond_sep", conn_at_intrablock_bond_sep)
+        setattr(
+            pbt,
+            "conn_at_intrablock_bond_sep",
+            torch.from_numpy(conn_at_intrablock_bond_sep).to(pbt.device),
+        )
 
     @classmethod
     @validate_args
