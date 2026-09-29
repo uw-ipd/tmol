@@ -179,16 +179,44 @@ def _link_bonds(array, lines):
     return struc.BondList(len(array), np.array(bonds, dtype=np.int64).reshape(-1, 3))
 
 
+def _extends_polymer(array, starts, anchor, residue, step):
+    """Whether *residue* bonds to the polymer atom of its neighbour *anchor*."""
+    port = get_polymerization_atoms(str(array.res_name[starts[anchor]]))[step < 0]
+    at = starts[anchor] + np.flatnonzero(
+        array.atom_name[starts[anchor] : starts[anchor + 1]] == port
+    )
+    atoms = array.coord[starts[residue] : starts[residue + 1]]
+    distance = np.linalg.norm(atoms[:, None] - array.coord[at], axis=-1)
+    return bool((distance <= BOND_DISTANCE_THRESHOLD_CHNO).any())
+
+
 def _read_pdb(path, model):
     """A PDB's atoms with its LINK records as bonds, HETATM chains in residue-number order.
 
-    PDB files may list a chain's HETATM residues out of number order (1HZY).
+    The loader moves a chain's HETATM residues off it; those within its ATOM residues, or
+    bonded at its ends (caps), rejoin it. PDB files may list the rest out of order (1HZY).
     """
     array, _ = load_pdb(path, model=model)
     if array.coord.ndim == 3:
         array = array[0]
     array = _with_pdb_author_chains(array, path, model)
     array.bonds = array.bonds.merge(_link_bonds(array, read_any(path).lines))
+    starts = struc.get_residue_starts(array, add_exclusive_stop=True)
+    author = array.auth_asym_id[starts[:-1]]
+    for chain in np.unique(author[~array.hetero[starts[:-1]]]):
+        records = np.flatnonzero((author == chain) & ~array.hetero[starts[:-1]])
+        joined = list(range(records[0] + 1, records[-1]))
+        for anchor, step in ((records[0], -1), (records[-1], 1)):
+            while (
+                0 <= anchor + step < len(author)
+                and author[anchor + step] == chain
+                and _extends_polymer(array, starts, anchor, anchor + step, step)
+            ):
+                anchor += step
+                joined.append(anchor)
+        for residue in joined:
+            if author[residue] == chain:
+                array.chain_id[starts[residue] : starts[residue + 1]] = chain
     order = np.arange(len(array))
     for chain in np.unique(array.chain_id[array.hetero]):
         in_chain = np.flatnonzero(array.chain_id == chain)
