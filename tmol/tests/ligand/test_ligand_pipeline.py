@@ -13,9 +13,7 @@ import biotite.structure as struc
 import numpy as np
 import pytest
 import torch
-from atomworks.experimental.protonation.external.dimorphite_dl import (
-    protonate_mol_variants,
-)
+from atomworks.experimental.protonation.dimorphite import protonate_at_ph
 
 from tmol.tests.data import data_path
 from tmol.io import canonical_ordering_for_biotite
@@ -256,23 +254,16 @@ def test_collect_new_atom_types_strict_mode_errors(default_database) -> None:
         )
 
 
-def test_protonate_mol_variants_produces_valid_mol() -> None:
-    """Protonating a molecule yields RDKit-parseable variant SMILES."""
+def test_protonate_at_ph_produces_valid_mol() -> None:
+    """Protonating a molecule yields an RDKit-parseable SMILES."""
     from rdkit import Chem
 
     input_smiles = "CC(=O)ON"
     mol = Chem.MolFromSmiles(input_smiles)
     assert mol is not None
-    mol_variants = protonate_mol_variants(
-        mol,
-        min_ph=7.4,
-        max_ph=7.4,
-        pka_precision=0.1,
-        max_variants=128,
-        silent=True,
-    )
-    assert mol_variants
-    result_smi = Chem.MolToSmiles(mol_variants[0], isomericSmiles=True)
+    protonated = protonate_at_ph(mol, 7.4)
+    assert protonated is not None
+    result_smi = Chem.MolToSmiles(protonated, isomericSmiles=True)
     assert Chem.MolFromSmiles(result_smi) is not None
 
 
