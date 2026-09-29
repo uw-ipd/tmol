@@ -61,11 +61,6 @@ def metal_geometry_variant_index(geometry: str) -> int:
     return METAL_GEOMETRY_VAR_BASE + GEOMETRY_NAMES.index(geometry)
 
 
-def geometry_for_metal_variant_index(index: int) -> str:
-    """The geometry a res_type_variant index selects; inverse of the above."""
-    return GEOMETRY_NAMES[index - METAL_GEOMETRY_VAR_BASE]
-
-
 _METAL_TABLE = None
 
 

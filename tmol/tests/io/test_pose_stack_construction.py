@@ -54,7 +54,6 @@ def test_build_pose_stack_from_canonical_form_ubq(torch_device, ubq_pdb):
 #     assert pose_stack.inter_residue_connections.device == torch_device
 #     assert pose_stack.inter_residue_connections64.device == torch_device
 #     assert pose_stack.inter_block_bondsep.device == torch_device
-#     assert pose_stack.inter_block_bondsep.near_blocks.device == torch_device
 #     assert pose_stack.block_type_ind.device == torch_device
 #     assert pose_stack.block_type_ind64.device == torch_device
 #     assert pose_stack.device == torch_device
