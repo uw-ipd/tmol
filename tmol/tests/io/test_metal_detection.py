@@ -1,36 +1,39 @@
+import types
+
 import numpy
 import pytest
-from yaml import safe_load
+import torch
 
 import tmol.database
-from tmol.database.chemical import is_metal_cluster
+from tmol.database.chemical import (
+    geometry_for_metal_variant_index,
+    is_metal_cluster,
+    metal_geometry_variant_index,
+    metal_table,
+    special_case_variant_index,
+)
+from tmol.io import CanonicalOrdering
 from tmol.io.details._metal_detection import (
     MetalSiteAssignment,
     assign_one,
+    build_canonical_metal_tables,
+    find_metal_geometries,
     gather_candidates,
     ideal_distances,
+    place_site_virtuals,
 )
-
-
-def table():
-    import os
-
-    path = os.path.join(
-        os.path.dirname(tmol.database.__file__), "default", "chemical", "metals.yaml"
-    )
-    with open(path) as infile:
-        return safe_load(infile)
+from tmol.io.details._protonation_variants import select_protonation_variants
 
 
 def ion_named(element, ox):
-    for ion in table()["ions"]:
+    for ion in metal_table()["ions"]:
         if ion["element"] == element and ion["oxidation_state"] == ox:
             return ion
     raise KeyError(f"{element}{ox}")
 
 
 def vertices(name):
-    for g in table()["geometries"]:
+    for g in metal_table()["geometries"]:
         if g["name"] == name:
             return numpy.asarray(g["vertices"])
     raise KeyError(name)
@@ -43,7 +46,7 @@ def place(directions, distance):
 
 
 def test_missing_donor_element_falls_back_rather_than_raising():
-    dists = ideal_distances(ion_named("Zn", 2), table()["donor_radii"])
+    dists = ideal_distances(ion_named("Zn", 2), metal_table()["donor_radii"])
     keep, _ = gather_candidates(
         numpy.zeros(3), place([[1, 0, 0]], 2.0), ["Se"], dists, 0.55
     )
@@ -52,7 +55,7 @@ def test_missing_donor_element_falls_back_rather_than_raising():
 
 def test_derived_distances_fill_only_what_was_not_measured():
     ion = ion_named("Ca", 2)
-    dists = ideal_distances(ion, table()["donor_radii"])
+    dists = ideal_distances(ion, metal_table()["donor_radii"])
     assert dists["O"] == ion["distances"]["O"], "a measured value must survive"
     assert "S" not in ion["distances"], "calcium-sulfur was not measured"
     assert dists["S"] == pytest.approx(ion["ionic_radius"] + 1.549, abs=1e-3)
@@ -60,7 +63,7 @@ def test_derived_distances_fill_only_what_was_not_measured():
 
 def test_candidates_are_gathered_without_reference_to_geometry():
     # the cutoff scales with the donor element, not with any polyhedron
-    dists = ideal_distances(ion_named("Zn", 2), table()["donor_radii"])
+    dists = ideal_distances(ion_named("Zn", 2), metal_table()["donor_radii"])
     # zinc-oxygen is 2.033 measured, so 0.55 A past it admits out to 2.58
     xyz = numpy.array([[2.03, 0, 0], [2.45, 0, 0], [2.70, 0, 0], [4.0, 0, 0]])
     keep, excess = gather_candidates(numpy.zeros(3), xyz, ["O"] * 4, dists, 0.55)
@@ -68,89 +71,126 @@ def test_candidates_are_gathered_without_reference_to_geometry():
     assert excess[0] < excess[1]
 
 
-def test_a_clean_tetrahedral_zinc_is_recovered():
-    ion = ion_named("Zn", 2)
-    donors = place(vertices("tetrahedral"), 2.03)
-    got = assign_one(numpy.zeros(3), ion, donors, ["N"] * 4, table())
-    assert got.geometry == "tetrahedral"
-    assert got.n_donors == 4
-    assert got.n_open_sites == 0
-    assert sorted(got.vertex_for_donor) == [0, 1, 2, 3], "each site takes one donor"
-
-
-def test_a_magnesium_with_one_donor_still_gets_its_octahedron():
-    # five waters dropped on input; the geometry has to come from the table
-    ion = ion_named("Mg", 2)
-    donors = place([[0, 0, 1]], 2.07)
-    got = assign_one(numpy.zeros(3), ion, donors, ["O"], table())
-    assert got.geometry == "octahedral"
-    assert got.n_donors == 1
-    assert got.n_open_sites == 5, "the empty sites are real and must be counted"
-
-
-def test_untemplated_ions_report_donors_but_no_geometry():
-    ion = ion_named("Ca", 2)
-    donors = place([[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 0], [0, 1, 1]], 2.34)
-    got = assign_one(numpy.zeros(3), ion, donors, ["O"] * 5, table())
-    assert got.geometry is None
-    assert got.how_chosen == "untemplated"
-    assert got.n_donors == 5, "every contact coordinates; none is dropped"
-    assert got.n_open_sites is None
-
-
-def test_a_fifth_donor_promotes_zinc_rather_than_being_discarded():
-    # zinc allows trigonal bipyramidal, so five donors are accommodated by
-    # choosing a larger geometry instead of throwing one away
-    ion = ion_named("Zn", 2)
-    donors = place(vertices("trigonal_bipyramidal"), 2.03)
-    got = assign_one(numpy.zeros(3), ion, donors, ["N"] * 5, table())
-    assert got.geometry == "trigonal_bipyramidal"
-    assert got.n_donors == 5
-    assert got.rejected == ()
-
-
-def test_more_donors_than_any_geometry_holds_drops_the_weakest():
-    # the case that hard-exits in Rosetta. Zinc tops out at six sites, so a
-    # seventh contact has to go, and it should be the one furthest past ideal
-    ion = ion_named("Zn", 2)
-    directions = list(vertices("octahedral")) + [[1.0, 1.0, 1.0]]
-    donors = place(directions, 2.03)
+def _seven_zinc_contacts():
+    # the case that hard-exits in Rosetta: zinc tops out at six sites, so the
+    #    contact furthest past ideal has to go
+    donors = place(list(vertices("octahedral")) + [[1.0, 1.0, 1.0]], 2.03)
     donors[6] *= 1.2
-    got = assign_one(numpy.zeros(3), ion, donors, ["N"] * 7, table())
-    assert got.geometry == "octahedral"
-    assert got.n_donors == 6
-    assert got.rejected == (6,), "the weakest contact is the one dropped"
-    assert len(set(got.vertex_for_donor)) == 6, "no site takes two donors"
+    return donors
 
 
-def test_a_declared_geometry_overrides_inference():
-    ion = ion_named("Zn", 2)
-    donors = place(vertices("tetrahedral"), 2.03)
+@pytest.mark.parametrize(
+    "ion, donors, element, geometry, expected",
+    [
+        pytest.param(
+            ("Zn", 2),
+            place(vertices("tetrahedral"), 2.03),
+            "N",
+            None,
+            dict(geometry="tetrahedral", n_donors=4, n_open_sites=0),
+            id="clean_tetrahedral_zinc",
+        ),
+        # five waters dropped on input; the geometry has to come from the table
+        pytest.param(
+            ("Mg", 2),
+            place([[0, 0, 1]], 2.07),
+            "O",
+            None,
+            dict(geometry="octahedral", n_donors=1, n_open_sites=5),
+            id="magnesium_with_one_donor",
+        ),
+        # every contact coordinates; none is dropped
+        pytest.param(
+            ("Ca", 2),
+            place([[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 0], [0, 1, 1]], 2.34),
+            "O",
+            None,
+            dict(
+                geometry=None, how_chosen="untemplated", n_donors=5, n_open_sites=None
+            ),
+            id="untemplated_calcium",
+        ),
+        # a fifth donor promotes zinc to a larger geometry instead of being dropped
+        pytest.param(
+            ("Zn", 2),
+            place(vertices("trigonal_bipyramidal"), 2.03),
+            "N",
+            None,
+            dict(geometry="trigonal_bipyramidal", n_donors=5, rejected=()),
+            id="fifth_donor_promotes_zinc",
+        ),
+        pytest.param(
+            ("Zn", 2),
+            _seven_zinc_contacts(),
+            "N",
+            None,
+            dict(geometry="octahedral", n_donors=6, rejected=(6,)),
+            id="seventh_donor_drops_the_weakest",
+        ),
+        pytest.param(
+            ("Zn", 2),
+            place(vertices("tetrahedral"), 2.03),
+            "N",
+            "octahedral",
+            dict(geometry="octahedral", how_chosen="declared", n_open_sites=2),
+            id="declared_geometry_overrides_inference",
+        ),
+        pytest.param(
+            ("Cu", 2),
+            place(vertices("square_planar"), 1.99),
+            "N",
+            None,
+            dict(geometry="square_planar"),
+            id="square_planar_copper_is_not_tetrahedral",
+        ),
+        # nothing to fit means nothing to claim
+        pytest.param(
+            ("Zn", 2),
+            numpy.zeros((0, 3)),
+            "N",
+            None,
+            dict(geometry=None, n_donors=0),
+            id="isolated_metal",
+        ),
+    ],
+)
+def test_assign_one(ion, donors, element, geometry, expected):
     got = assign_one(
-        numpy.zeros(3), ion, donors, ["N"] * 4, table(), geometry="octahedral"
+        numpy.zeros(3),
+        ion_named(*ion),
+        donors,
+        [element] * len(donors),
+        metal_table(),
+        geometry=geometry,
     )
-    assert got.geometry == "octahedral"
-    assert got.how_chosen == "declared"
-    assert got.n_open_sites == 2
-
-
-def test_square_planar_copper_is_not_called_tetrahedral():
-    ion = ion_named("Cu", 2)
-    donors = place(vertices("square_planar"), 1.99)
-    got = assign_one(numpy.zeros(3), ion, donors, ["N"] * 4, table())
-    assert got.geometry == "square_planar"
+    assert isinstance(got, MetalSiteAssignment)
+    assert {name: getattr(got, name) for name in expected} == expected
+    if got.geometry is not None:
+        sites = got.vertex_for_donor
+        assert len(set(sites)) == len(sites) == got.n_donors, "one donor per site"
+        assert set(sites) <= set(range(len(vertices(got.geometry))))
 
 
 def canonical_ordering(db):
-    from tmol.io import CanonicalOrdering
-
     return CanonicalOrdering.from_chemdb(db.chemical)
 
 
 def metal_tables(db):
-    from tmol.io.details._metal_detection import build_canonical_metal_tables
+    return build_canonical_metal_tables(
+        canonical_ordering(db), db.chemical, metal_table()
+    )
 
-    return build_canonical_metal_tables(canonical_ordering(db), db.chemical, table())
+
+def find(db, residues, **kwargs):
+    """find_metal_geometries on one pose of ``(name3, {atom: xyz})`` residues."""
+    co = canonical_ordering(db)
+    index_of = {c: i for i, c in enumerate(co.restype_io_equiv_classes)}
+    res_types = torch.tensor([[index_of[n] for n, _ in residues]], dtype=torch.int32)
+    coords = torch.full((1, len(residues), co.max_n_canonical_atoms, 3), numpy.nan)
+    for i, (name, atoms) in enumerate(residues):
+        for atom, xyz in atoms.items():
+            coords[0, i, co.restypes_atom_index_mapping[name][atom]] = torch.tensor(xyz)
+    return find_metal_geometries(co, db.chemical, res_types, coords, **kwargs)
 
 
 def test_every_supported_ion_is_found_in_the_canonical_ordering(
@@ -159,7 +199,7 @@ def test_every_supported_ion_is_found_in_the_canonical_ordering(
     co = canonical_ordering(default_database)
     tables = metal_tables(default_database)
     found = {co.restype_io_equiv_classes[i] for i in tables.ion_for_class}
-    expected = {ion["name3"] for ion in table()["ions"]}
+    expected = {ion["name3"] for ion in metal_table()["ions"]}
     assert found == expected, "every ion in the table must be selectable on input"
 
 
@@ -192,27 +232,30 @@ def test_the_metal_atom_is_named_by_element_not_component(
             assert site.metal_atom == element_of[type_of[site.metal_atom]].upper()
 
 
-def test_donors_are_tabulated_for_protein_and_nucleic_acid(
-    default_database: tmol.database.ParameterDatabase,
+@pytest.mark.parametrize(
+    "res, atom, element",
+    [
+        ("ASP", "OD1", "O"),
+        # either tautomer nitrogen may donate
+        ("HIS", "ND1", "N"),
+        ("HIS", "NE2", "N"),
+        # the thiolate and phenolate forms donate
+        ("CYS", "SG", "S"),
+        ("TYR", "OH", "O"),
+        ("ALA", "O", "O"),
+        ("ALA", "CB", ""),
+        ("G", "OP1", "O"),
+        ("HOH", "O", "Owat"),
+    ],
+)
+def test_donor_elements_are_tabulated(
+    default_database: tmol.database.ParameterDatabase, res, atom, element
 ):
     co = canonical_ordering(default_database)
     tables = metal_tables(default_database)
-    index_of = {c: i for i, c in enumerate(co.restype_io_equiv_classes)}
-
-    def donor(res, atom):
-        return tables.donor_element[
-            index_of[res], co.restypes_atom_index_mapping[res][atom]
-        ]
-
-    assert donor("ASP", "OD1") == "O"
-    assert donor("HIS", "ND1") == "N", "either tautomer nitrogen may donate"
-    assert donor("HIS", "NE2") == "N", "either tautomer nitrogen may donate"
-    assert donor("CYS", "SG") == "S", "the thiolate form donates"
-    assert donor("TYR", "OH") == "O", "the phenolate form donates"
-    assert donor("ALA", "O") == "O", "backbone carbonyls coordinate"
-    assert donor("ALA", "CB") == "", "carbon never donates"
-    if "RG" in index_of:
-        assert donor("RG", "OP1") == "O", "nucleic acid phosphate donates"
+    row = co.restype_io_equiv_classes.index(res)
+    column = co.restypes_atom_index_mapping[res][atom]
+    assert tables.donor_element[row, column] == element
 
 
 @pytest.mark.parametrize(
@@ -231,109 +274,39 @@ def test_a_donor_holding_its_hydrogen_is_known_by_that_hydrogen(
     assert {names[h] for h in row.tolist() if h >= 0} == hydrogens
 
 
-def test_water_is_tabulated_apart_from_other_oxygens(
-    default_database: tmol.database.ParameterDatabase,
-):
-    co = canonical_ordering(default_database)
-    tables = metal_tables(default_database)
-    index_of = {c: i for i, c in enumerate(co.restype_io_equiv_classes)}
-    if "HOH" not in index_of:
-        pytest.skip("water is not in this chemical database")
-    j = co.restypes_atom_index_mapping["HOH"]["O"]
-    assert tables.donor_element[index_of["HOH"], j] == "Owat"
-
-
 def test_geometry_is_carried_as_a_res_type_variant(
     default_database: tmol.database.ParameterDatabase,
 ):
     """The index find_metal_geometries emits must select the matching block type."""
-    import torch
-
-    from tmol.database.chemical import geometry_for_metal_variant_index
-    from tmol.io.details._metal_detection import find_metal_geometries
-
-    co = canonical_ordering(default_database)
-    index_of = {c: i for i, c in enumerate(co.restype_io_equiv_classes)}
-    n_atoms = co.max_n_canonical_atoms
-
-    # one zinc, and one aspartate placed so both carboxylate oxygens sit at a
-    # coordinating distance
-    res_types = torch.tensor([[index_of["ZN"], index_of["ASP"]]], dtype=torch.int32)
-    coords = torch.full((1, 2, n_atoms, 3), float("nan"), dtype=torch.float32)
-    coords[0, 0, co.restypes_atom_index_mapping["ZN"]["ZN"]] = torch.tensor(
-        [0.0, 0.0, 0.0]
-    )
-    for atom, xyz in (("OD1", [2.03, 0.0, 0.0]), ("OD2", [0.0, 2.03, 0.0])):
-        coords[0, 1, co.restypes_atom_index_mapping["ASP"][atom]] = torch.tensor(xyz)
-
-    variants, assignments = find_metal_geometries(
-        co, default_database.chemical, res_types, coords, table()
+    # both carboxylate oxygens of one aspartate at a coordinating distance
+    asp = {"OD1": [2.03, 0.0, 0.0], "OD2": [0.0, 2.03, 0.0]}
+    variants, assignments = find(
+        default_database, [("ZN", {"ZN": [0.0, 0.0, 0.0]}), ("ASP", asp)]
     )
     assert variants[0, 1] == 0, "a non-metal keeps the default variant"
-    geometry = geometry_for_metal_variant_index(int(variants[0, 0]))
-    assert geometry in table()["ions"][0]["geometries"] or geometry in (
-        "tetrahedral",
-        "trigonal_bipyramidal",
-        "octahedral",
-    )
-    assert len(assignments) == 1
     ((_, got),) = assignments
     assert got.n_donors == 2, "both carboxylate oxygens are in range"
+    assert geometry_for_metal_variant_index(int(variants[0, 0])) == got.geometry
+    assert got.geometry in ion_named("Zn", 2)["geometries"]
 
 
-def test_a_declared_geometry_reaches_the_variant_index(
-    default_database: tmol.database.ParameterDatabase,
+@pytest.mark.parametrize(
+    "metal, geometries, expected",
+    [
+        ("ZN", {(0, 0): "octahedral"}, "octahedral"),
+        # it must still resolve to a block type, or pose construction has
+        #    nothing to build
+        ("MG", None, "octahedral"),
+    ],
+    ids=["declared_geometry", "nothing_nearby"],
+)
+def test_a_lone_metal_takes_its_declared_or_default_geometry(
+    default_database: tmol.database.ParameterDatabase, metal, geometries, expected
 ):
-    import torch
-
-    from tmol.database.chemical import metal_geometry_variant_index
-    from tmol.io.details._metal_detection import find_metal_geometries
-
-    co = canonical_ordering(default_database)
-    index_of = {c: i for i, c in enumerate(co.restype_io_equiv_classes)}
-    res_types = torch.tensor([[index_of["ZN"]]], dtype=torch.int32)
-    coords = torch.full((1, 1, co.max_n_canonical_atoms, 3), float("nan"))
-    coords[0, 0, co.restypes_atom_index_mapping["ZN"]["ZN"]] = torch.zeros(3)
-
-    variants, _ = find_metal_geometries(
-        co,
-        default_database.chemical,
-        res_types,
-        coords.to(torch.float32),
-        table(),
-        geometries={(0, 0): "octahedral"},
+    variants, _ = find(
+        default_database, [(metal, {metal: [0.0, 0.0, 0.0]})], geometries=geometries
     )
-    assert int(variants[0, 0]) == metal_geometry_variant_index("octahedral")
-
-
-def test_a_metal_with_nothing_nearby_still_gets_its_default_geometry(
-    default_database: tmol.database.ParameterDatabase,
-):
-    # it must still resolve to a block type, or pose construction has nothing
-    # to build
-    import torch
-
-    from tmol.database.chemical import geometry_for_metal_variant_index
-    from tmol.io.details._metal_detection import find_metal_geometries
-
-    co = canonical_ordering(default_database)
-    index_of = {c: i for i, c in enumerate(co.restype_io_equiv_classes)}
-    res_types = torch.tensor([[index_of["MG"]]], dtype=torch.int32)
-    coords = torch.full((1, 1, co.max_n_canonical_atoms, 3), float("nan"))
-    coords[0, 0, co.restypes_atom_index_mapping["MG"]["MG"]] = torch.zeros(3)
-
-    variants, _ = find_metal_geometries(
-        co, default_database.chemical, res_types, coords.to(torch.float32), table()
-    )
-    assert geometry_for_metal_variant_index(int(variants[0, 0])) == "octahedral"
-
-
-def test_an_isolated_metal_coordinates_nothing():
-    ion = ion_named("Zn", 2)
-    got = assign_one(numpy.zeros(3), ion, numpy.zeros((0, 3)), [], table())
-    assert isinstance(got, MetalSiteAssignment)
-    assert got.n_donors == 0
-    assert got.geometry is None, "nothing to fit means nothing to claim"
+    assert int(variants[0, 0]) == metal_geometry_variant_index(expected)
 
 
 def _assignment_with_donors(donor_atoms):
@@ -350,51 +323,8 @@ def _assignment_with_donors(donor_atoms):
     )
 
 
-@pytest.mark.parametrize(
-    "res, atom, expected_base",
-    [
-        ("HIS", "NE2", "HIS_D"),
-        ("HIS", "ND1", "HIS"),
-        ("CYS", "SG", "CYS_DEP"),
-        ("TYR", "OH", "TYR_DEP"),
-        ("SER", "OG", "SER"),
-        ("ASP", "OD1", "ASP"),
-    ],
-)
-def test_coordination_selects_the_form_that_can_donate(
-    default_database: tmol.database.ParameterDatabase, res, atom, expected_base
-):
-    # heavy atoms only, as from coordinates without hydrogens
-    import torch
-
-    from tmol.database.chemical import special_case_variant_index
-    from tmol.io.details._protonation_variants import select_protonation_variants
-
-    co = canonical_ordering(default_database)
-    index_of = {c: i for i, c in enumerate(co.restype_io_equiv_classes)}
-    res_types = torch.tensor([[index_of["ZN"], index_of[res]]], dtype=torch.int32)
-    variants = torch.zeros_like(res_types)
-    j = co.restypes_atom_index_mapping[res][atom]
-
-    got = select_protonation_variants(
-        co,
-        default_database.chemical,
-        res_types,
-        variants,
-        _present(co, default_database, [("ZN", ()), (res, ())]),
-        [((0, 0), _assignment_with_donors([(1, j)]))],
-    )
-    expected = next(
-        r for r in default_database.chemical.residues if r.name == expected_base
-    )
-    assert int(got[0, 1]) == special_case_variant_index(expected)
-    assert int(variants[0, 1]) == 0, "the input variants are not modified"
-
-
 def _present(co, database, residues):
     """[1, n, A] presence of each residue's heavy atoms and the named hydrogens."""
-    import torch
-
     elements = {at.name: at.element for at in database.chemical.atom_types}
     present = torch.zeros(
         (1, len(residues), co.max_n_canonical_atoms), dtype=torch.bool
@@ -413,37 +343,48 @@ def _present(co, database, residues):
 
 
 @pytest.mark.parametrize(
-    "res, hydrogens, coordinating, expected_base",
+    "res, hydrogens, coordinating, preset, expected_base",
     [
-        ("CYS", ("H", "HA", "HB2", "HB3"), None, "CYS_DEP"),
-        ("CYS", ("H", "HA", "HB2", "HB3", "HG"), "SG", "CYS"),
-        ("TYR", ("H", "HA", "HB2", "HB3", "HD1", "HD2", "HE1", "HE2"), None, "TYR_DEP"),
-        ("HIS", ("H", "HA", "HB2", "HB3", "HD1", "HD2", "HE1"), "NE2", "HIS_D"),
-        ("HIS", ("H", "HA", "HB2", "HB3", "HD2", "HE1", "HE2"), None, "HIS"),
+        # heavy atoms only, as from coordinates without hydrogens
+        ("HIS", (), "NE2", False, "HIS_D"),
+        ("HIS", (), "ND1", False, "HIS"),
+        ("CYS", (), "SG", False, "CYS_DEP"),
+        ("TYR", (), "OH", False, "TYR_DEP"),
+        ("SER", (), "OG", False, "SER"),
+        ("ASP", (), "OD1", False, "ASP"),
+        # the hydrogens presented decide; for HIS the kernel has already chosen
+        #    the tautomer the ring hydrogens show
+        ("CYS", ("H", "HA", "HB2", "HB3"), None, False, "CYS_DEP"),
+        ("CYS", ("H", "HA", "HB2", "HB3", "HG"), "SG", False, "CYS"),
+        (
+            "TYR",
+            ("H", "HA", "HB2", "HB3", "HD1", "HD2", "HE1", "HE2"),
+            None,
+            False,
+            "TYR_DEP",
+        ),
+        ("HIS", ("H", "HA", "HB2", "HB3", "HD1", "HD2", "HE1"), "NE2", True, "HIS_D"),
+        ("HIS", ("H", "HA", "HB2", "HB3", "HD2", "HE1", "HE2"), None, True, "HIS"),
     ],
 )
-def test_protonation_variant_follows_the_hydrogens_presented(
+def test_protonation_variant_follows_coordination_and_hydrogens(
     default_database: tmol.database.ParameterDatabase,
     res,
     hydrogens,
     coordinating,
+    preset,
     expected_base,
 ):
-    import torch
-
-    from tmol.database.chemical import special_case_variant_index
-    from tmol.io.details._protonation_variants import select_protonation_variants
-
     co = canonical_ordering(default_database)
     index_of = {c: i for i, c in enumerate(co.restype_io_equiv_classes)}
     res_types = torch.tensor([[index_of["ZN"], index_of[res]]], dtype=torch.int32)
     expected = next(
         r for r in default_database.chemical.residues if r.name == expected_base
     )
-    # the HIS kernel has already chosen the tautomer the ring hydrogens show
     variants = torch.zeros_like(res_types)
-    if res == "HIS":
+    if preset:
         variants[0, 1] = special_case_variant_index(expected)
+    given = variants.clone()
     assignments = []
     if coordinating is not None:
         j = co.restypes_atom_index_mapping[res][coordinating]
@@ -458,6 +399,7 @@ def test_protonation_variant_follows_the_hydrogens_presented(
         assignments,
     )
     assert int(got[0, 1]) == special_case_variant_index(expected)
+    assert torch.equal(variants, given), "the input variants are not modified"
 
 
 def test_deprotonated_forms_are_never_the_default_variant(
@@ -465,8 +407,6 @@ def test_deprotonated_forms_are_never_the_default_variant(
 ):
     # structure input picks among a class by variant index first; sharing index
     # 0 with CYS or TYR would let a hydrogen-free input fall into the thiolate
-    from tmol.database.chemical import special_case_variant_index
-
     for res in default_database.chemical.residues:
         if res.base_name in ("CYS_DEP", "TYR_DEP", "DCYS_DEP", "DTYR_DEP"):
             assert special_case_variant_index(res) != 0, res.name
@@ -475,32 +415,16 @@ def test_deprotonated_forms_are_never_the_default_variant(
 def test_a_disulfide_cysteine_is_not_a_donor_candidate(
     default_database: tmol.database.ParameterDatabase,
 ):
-    import torch
-
-    from tmol.io.details._metal_detection import find_metal_geometries
-
     co = canonical_ordering(default_database)
-    index_of = {c: i for i, c in enumerate(co.restype_io_equiv_classes)}
-    res_types = torch.tensor([[index_of["ZN"], index_of["CYS"]]], dtype=torch.int32)
-    coords = torch.full((1, 2, co.max_n_canonical_atoms, 3), float("nan"))
-    coords[0, 0, co.restypes_atom_index_mapping["ZN"]["ZN"]] = torch.zeros(3)
-    coords[0, 1, co.restypes_atom_index_mapping["CYS"]["SG"]] = torch.tensor(
-        [2.3, 0.0, 0.0]
-    )
-    coords = coords.to(torch.float32)
+    residues = [("ZN", {"ZN": [0.0, 0.0, 0.0]}), ("CYS", {"SG": [2.3, 0.0, 0.0]})]
 
-    _, free = find_metal_geometries(
-        co, default_database.chemical, res_types, coords, table()
-    )
+    _, free = find(default_database, residues)
     ((_, got),) = free
     assert got.donor_atoms == ((1, co.restypes_atom_index_mapping["CYS"]["SG"]),)
 
-    _, bonded = find_metal_geometries(
-        co,
-        default_database.chemical,
-        res_types,
-        coords,
-        table(),
+    _, bonded = find(
+        default_database,
+        residues,
         excluded_donor_residues=torch.tensor([[False, True]]),
     )
     ((_, got),) = bonded
@@ -510,12 +434,6 @@ def test_a_disulfide_cysteine_is_not_a_donor_candidate(
 def test_site_virtuals_point_at_the_donors_that_took_their_vertices(
     default_restype_set,
 ):
-    import types
-
-    import torch
-
-    from tmol.io.details._metal_detection import place_site_virtuals
-
     (zinc,) = [
         rt for rt in default_restype_set.residue_types if rt.name == "ZN_tetrahedral"
     ]
@@ -536,7 +454,12 @@ def test_site_virtuals_point_at_the_donors_that_took_their_vertices(
     directions = vertices("tetrahedral")[:3] @ turn.T
     donors = metal + place(directions, 2.03)
     got = assign_one(
-        metal, ion_named("Zn", 2), donors, ["N"] * 3, table(), geometry="tetrahedral"
+        metal,
+        ion_named("Zn", 2),
+        donors,
+        ["N"] * 3,
+        metal_table(),
+        geometry="tetrahedral",
     )
 
     n_atoms = len(zinc.atoms)
