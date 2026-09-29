@@ -452,6 +452,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.experimental.protonation.dimorphite</span><span class="w"> </span><span class="kn">import</span> <span class="n">protonate_at_ph</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">struc</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -1363,39 +1364,26 @@
     <span class="k">return</span> <span class="n">smiles</span> <span class="k">if</span> <span class="n">fixed</span> <span class="ow">is</span> <span class="n">mol</span> <span class="k">else</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolToSmiles</span><span class="p">(</span><span class="n">fixed</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_dimorphite_protonate_smiles</span><span class="p">(</span>
-    <span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ph</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">7.4</span><span class="p">,</span> <span class="n">precision</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_dimorphite_protonate_smiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ph</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">7.4</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Return the SMILES pKa-protonated at ``ph`` via Dimorphite-DL.</span>
 
 <span class="sd">    Takes the first protonation variant (matching the reference ligand-prep</span>
 <span class="sd">    protocol). Falls back to the input SMILES if RDKit cannot parse it or</span>
 <span class="sd">    Dimorphite produces no variant.</span>
 <span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.experimental.protonation.external.dimorphite_dl</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-        <span class="n">protonate_mol_variants</span><span class="p">,</span>
-    <span class="p">)</span>
-
     <span class="n">mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">smiles</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">variants</span> <span class="o">=</span> <span class="n">protonate_mol_variants</span><span class="p">(</span>
-            <span class="n">mol</span><span class="p">,</span>
-            <span class="n">min_ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span>
-            <span class="n">max_ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span>
-            <span class="n">pka_precision</span><span class="o">=</span><span class="n">precision</span><span class="p">,</span>
-            <span class="n">max_variants</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
-            <span class="n">silent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">protonated</span> <span class="o">=</span> <span class="n">protonate_at_ph</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">ph</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
             <span class="s2">"Dimorphite protonation failed for SMILES </span><span class="si">%r</span><span class="s2">; using input"</span><span class="p">,</span> <span class="n">smiles</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">smiles</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">variants</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">protonated</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">smiles</span>
-    <span class="k">return</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolToSmiles</span><span class="p">(</span><span class="n">variants</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolToSmiles</span><span class="p">(</span><span class="n">protonated</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="nonstandard_residue_info_from_smiles_via_mol2">
