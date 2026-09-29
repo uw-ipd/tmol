@@ -11,7 +11,7 @@ The structure files retain their original experimental/generated metadata.
 | `unknown_heavy_atom_1a8o.cif` | Distinguish the conflicting author CG / label XYZ identities; retain the author coordinate and reject unknown label atoms or parser deletion. |
 | `unresolved_unl.cif` | Retain all 28 unresolved ligand heavy atoms at NaN; explicitly reject unanchored ligand placement. |
 | `modified_components_6q9t.cif` | Traverse the whole aromatic 4SO–A1IJ4 cap. A full-input workflow also preserves internal/terminal QUK oxygen names and exact coordinates through missing-sidechain packing, then scores/minimizes both residue orders. Free metals and entirely unresolved protein residues are excluded. |
-| `modified_nucleotide_aliases_1d9d.cif.gz` | Complete RCSB entry from AtomWorks IO tests. Resolve declared U31/C31 phosphate aliases before reference completion, avoiding duplicate phosphate oxygens; retain observed coordinates and score/minimize through both readers. Free zinc/magnesium are excluded; AtomWorks additionally retains entirely unresolved residues that construction excludes. |
+| `modified_nucleotide_aliases_1d9d.cif.zst` | Complete RCSB entry from AtomWorks IO tests. Resolve declared U31/C31 phosphate aliases before reference completion, avoiding duplicate phosphate oxygens; retain observed coordinates and score/minimize through both readers. Free zinc/magnesium are excluded; AtomWorks additionally retains entirely unresolved residues that construction excludes. |
 | `plp_enzyme_7mkv.cif` | Match LLP terminal patches by scope and suffix, and supply finite charge coverage for every LLP variant. |
 | `acetylated_peptide_1j8z.cif` | Recognize the BCX backbone separately from its disulfide attachment; retain the peptide connections and score it. |
 | `conditional_generation.cif` | Rebuild missing sidechains and alpha hydrogens from valid backbone coordinates; check finite scores and gradients. |
@@ -21,7 +21,7 @@ Tests live in `tmol/tests/io/test_atomworks_corpus_regressions.py`,
 `tmol/tests/ligand/test_atomworks_modified_components.py`.
 Successful numerical checks do not independently validate the force field.
 
-`plp_cap_5t4j.cif.gz` retains the complete RCSB entry referenced by the AtomWorks
+`plp_cap_5t4j.cif.zst` retains the complete RCSB entry referenced by the AtomWorks
 IO suite. Its PLP C4A=N ABU external aldimine is a conjugate attachment, not a
 peptide bond: C4A keeps one hydrogen, N none, and the link its imine length.
 Rebuilding unresolved sidechains triggers packing. The integrated test checks
@@ -36,9 +36,9 @@ construction explicitly excludes; it is a partial-input success.
 
 `terminal_nucleotide_145d.cif` is the complete RCSB entry used by that suite. Its first MCY must retain a DNA backbone and 5-prime patch, without proximity-inferred conjugations. The asymmetric unit contains two overlapping alternative duplexes. Both readers retain all 24 nucleotide blocks by default; explicitly selecting assembly `"1"` or `"2"` through AtomWorks gives the corresponding 12-residue duplex. The regression checks every phosphodiester link, finite scores/gradients and minimization, and intact bond lengths after relaxing each selected assembly. A temporary translated-copy assembly also checks coordinate transforms, copy identities, and equivalent direct AtomArray construction. Synthetic parameter-generation caps must inherit the source residue's transformation identity.
 
-`conflicting_myristate_1aym.cif.gz` preserves the complete compressed entry. Its `struct_conn` category declares MYR C1 bonded to both GLY N and CA. After explicit free-zinc exclusion, construction must report both partners rather than overwrite the one MYR port. This is an input-conflict regression, not a successful whole-complex minimization.
+`conflicting_myristate_1aym.cif.zst` preserves the complete entry. Its `struct_conn` category declares MYR C1 bonded to both GLY N and CA. After explicit free-zinc exclusion, construction must report both partners rather than overwrite the one MYR port. This is an input-conflict regression, not a successful whole-complex minimization.
 
-`repeated_glycans_6mub.cif.gz` is losslessly compressed from the complete authored
+`repeated_glycans_6mub.cif.zst` is losslessly compressed from the complete authored
 AtomWorks fixture. Two MAN–MAN links share a patched type pair but have different
 geometry in one generated conformer. Their transferable bond/angle targets must
 come from the conformer generator's ideals, not individual strained sites. Both
@@ -71,21 +71,21 @@ Both readers construct the eight-residue cycle, remove its polymerization leavin
 atoms, retain every other observed coordinate, and score/minimize. AtomWorks
 continues to reject unknown atom names and preserve retained phosphate oxygens.
 
-`chromophore_3nez.cif.gz` is the complete RCSB entry used by the AtomWorks IO
+`chromophore_3nez.cif.zst` is the complete RCSB entry used by the AtomWorks IO
 suite. NRQ supports a C-terminal patch but no N-terminal patch. Canonical ordering
 must register that available end without requiring both patches. Both readers
 retain all four connected chromophores and score/minimize the constructed pose;
 the AtomWorks route also retains unresolved residues in its input array, which
 the constructor excludes when their required backbone coordinates are absent.
 
-`missing_ligand_carbon_5hs6.cif.gz` preserves the complete RCSB entry, including
+`missing_ligand_carbon_5hs6.cif.zst` preserves the complete RCSB entry, including
 the unresolved J3Z carbon C6. Both readers retain its chemical identity. The
 regression excludes sodium and water, constructs the missing carbon and dependent
 hydrogens using prepared internal coordinates, preserves observed ligand atoms,
 and scores/minimizes the protein–ligand complex. The isolated ligand also checks
 gradients through reconstruction against finite differences.
 
-`free_and_attached_solutes_5xag.cif.gz` retains the full RCSB structure. It
+`free_and_attached_solutes_5xag.cif.zst` retains the full RCSB structure. It
 contains both free glycerol/imidazole and one declared GOL O3–IMD N3 bond.
 The test excludes free magnesium/calcium and waters, constructs the complex
 with ordinary solutes plus connected variants, then scores/minimizes it.
@@ -93,7 +93,7 @@ Imidazole N3 has no departing hydrogen; its attachment frame comes from its
 prepared neighbor geometry and receives the connected generator targets.
 Reusing the full preparation for the free solutes must match fresh preparation.
 
-`decreasing_water_author_ids_5xnl.cif.gz` retains the complete 5XNL entry.
+`decreasing_water_author_ids_5xnl.cif.zst` retains the complete 5XNL entry.
 Its water chains have undefined label sequence numbers and decreasing author
 numbers; fallback IDs must keep these residues distinct. The regression parses
 all atoms through both readers, preserves all 98,986 observed atoms and 1,076
@@ -101,21 +101,21 @@ waters, then scores/minimizes protein chain A. Scoring that selected chain does
 not validate the complete photosystem's metal-bound cofactors; metals remain
 outside this regression's scoring scope.
 
-`repeated_partner_glycans_1ivo.cif.gz` and `repeated_partner_glycans_1hge.cif.gz`
+`repeated_partner_glycans_1ivo.cif.zst` and `repeated_partner_glycans_1hge.cif.zst`
 retain their complete entries. One NAG connection pattern occurs with chemically
 different partners: its shared local residue frame cannot own the different
 junction bond lengths/angles. The connection-pair records retain those generator
 targets with K300/K80. The regression excludes waters and explicitly unbonded
 metals, verifies distinct pair-specific targets, and reconstructs/scores/minimizes
 both residue orders through both readers without dropping glycans or their bonds.
-`terminal_asj_glycans_1iau.cif.gz` retains the complete 1IAU input. The repeated
+`terminal_asj_glycans_1iau.cif.zst` retains the complete 1IAU input. The repeated
 glycan workflow excludes water and only unbonded metals, then constructs, scores
 and minimizes both residue orders through both readers. It also checks that the
 ASJ terminal oxygens keep their supplied names and that their patch scope does
 not change ASP sidechain atom classification. All observed atom coordinates must
 survive construction, including residues distinguished by author insertion codes.
 
-`partial_sugar_rings_2msb.cif.gz` is the complete 2MSB mirror entry. The parser
+`partial_sugar_rings_2msb.cif.zst` is the complete 2MSB mirror entry. The parser
 regression compares both readers' sugar inventories and verifies the complete
 ring and NaN mask of a MAN residue with only C1 resolved. Both readers now
 construct, score and minimize the full organic structure for 100 iterations.
@@ -124,8 +124,8 @@ coordinates, and finite-difference gradients through the construction anchors.
 A singly anchored attachment uses its first declared linkage torsion sample as
 a starting conformer; insufficient or degenerate references stay unresolved.
 
-`terminal_and_linked_glycans_1en2.cif.gz` and
-`terminal_and_linked_glycans_4ndz.cif.gz` retain their complete entries. Terminal
+`terminal_and_linked_glycans_1en2.cif.zst` and
+`terminal_and_linked_glycans_4ndz.cif.zst` retain their complete entries. Terminal
 NAG/GLC copies retain O1 (unresolved in 1EN2), while linked copies lose that
 declared leaving group. Both readers must retain the full base identity, remove
 O1 only from the linked variants, keep construction references on retained atoms,
@@ -136,20 +136,20 @@ and water are filtered. Entirely unresolved protein residues and five partially
 resolved 4NDZ termini lacking backbone C are explicit constructor exclusions;
 these remain partial-input workflows, not successful modeling of those residues.
 
-`hydrolase_intermediate_1tqh.cif.gz` is the complete, unmodified source used by
+`hydrolase_intermediate_1tqh.cif.zst` is the complete, unmodified source used by
 AtomWorks' parse-invariant tests. The shared input workflow checks its tetrahedral
 SER–4PA intermediate (four single bonds at CAI, OAD charge −1), declared
 connections, supplied ligand coordinates and 100-step minimization through both
 readers. The label reader additionally restores five entirely unresolved protein
 residues; the regression explicitly accounts for their construction exclusion.
 
-`phosphate_charge_4js1.cif.gz` retains the complete source with its inconsistent
+`phosphate_charge_4js1.cif.zst` retains the complete source with its inconsistent
 formal charge on a double-bonded phosphate oxygen. The shared workflow checks
 phosphate charge conservation, observed coordinates, complete construction,
 scoring, gradients and 100-step minimization through both readers. The input
 reads as PO4(3-); ligand preparation at pH 7.4 builds it as HPO4(2-).
 
-`chloride_complex_4hbt.cif.gz` is the complete structure, including its bound
+`chloride_complex_4hbt.cif.zst` is the complete structure, including its bound
 ligand and chloride ion. Both readers construct, score and minimize the full
 organic/halide complex, preserving chloride charge, atom count and coordinates.
 No dummy atoms or bonds are introduced for the monatomic ion.
@@ -165,7 +165,7 @@ the occupied 5′ end, source-name aliases, observed coordinates, reconstruction
 scoring and minimization. The complete source is assessed separately in the
 external corpus audit; this fragment is not an all-input pass for that source.
 
-`unresolved_modified_polymer_1xj9.cif.gz` is the byte-identical AtomWorks 1XJ9
+`unresolved_modified_polymer_1xj9.cif.zst` is the byte-identical AtomWorks 1XJ9
 source (SHA256 `c234491ca94ea51211977b86c347408bc507ff57edf89da9c7d690f9d4e2e361`).
 The label reader restores two wholly unresolved GPN and two TPN residues;
 both readers also contain two lysines with incomplete backbones. The workflow
@@ -211,11 +211,11 @@ Source compressed-file SHA256 values, respectively:
 N-terminal H2/H3, whose input construction frames depend on unresolved CD.
 Compressed-source SHA256: `0e6dce4376d7c106ec80cc48f485bfe09c5619cec477dfaba95d2140cf30b98d`.
 
-`sulfur_attachments_3t14.cif.gz` preserves the complete deposited structure.
+`sulfur_attachments_3t14.cif.zst` preserves the complete deposited structure.
 Attached H2S and S2H exercise small-component coordinate frames and retained
 hydrogen references after a conjugation patch displaces a hydrogen.
 
-`phosphate_attachment_8ch1.cif.gz` retains the complete compressed RCSB entry.
+`phosphate_attachment_8ch1.cif.zst` retains the complete RCSB entry.
 The VDF phosphate attachment oxygen has no departing H after free-component
 protonation. Its construction frame must use the complete conjugate's angle
 target and a stable local plane. Both readers retain every resolved non-water
@@ -224,20 +224,20 @@ hide the attachment oxygen to exercise missing-coordinate construction, and veri
 its bonded inventory, finite frames, generator length/angle targets, scoring,
 gradients and minimization. Entirely unresolved residues are excluded explicitly.
 
-`isopeptide_2rm9.cif.gz` and `isopeptide_6n0a.cif.gz` preserve complete entries.
+`isopeptide_2rm9.cif.zst` and `isopeptide_6n0a.cif.zst` preserve complete entries.
 Their GLU–LYS and ASN–LYS sidechain amides must displace absent OE2/ND2, retain
 the carbonyl double bond, and leave one lysine amide H. Tests retain every
 resolved non-water residue, explicitly exclude free calcium and unresolved
 residues, and verify both readers, all links, scoring, gradients and minimization.
 
-`phosphohistidine_1hxq.cif.gz` retains the complete nucleotidylated GALT structure.
+`phosphohistidine_1hxq.cif.zst` retains the complete nucleotidylated GALT structure.
 The shared sidechain-substitution workflow excludes free zinc/iron and water,
 checks both HIS NE2–U5P P bonds, removal of absent O3P, retained P=O,
 and a substituted histidine nitrogen with no hydrogen or donor/acceptor role.
 It then checks conserved residue charge, parameter export/reload, scoring,
 gradients and minimization. This does not validate metal coordination.
 
-`attachment_contexts_8trb.cif.gz` retains the complete structure containing both
+`attachment_contexts_8trb.cif.zst` retains the complete structure containing both
 PLM C1–SER OG esters and PLM C1–CYS SG thioesters. Their carbonyl oxygen
 uses different generated physical types despite sharing the PLM input name.
 The integrated workflow checks the departed O1, retained C1=O2, both oxygen
@@ -251,13 +251,13 @@ regeneration removes isolated hydrogens before deriving the heavy-atom SMILES,
 then rebuilds connected hydrogens. The integrated workflow checks heavy-atom
 identity/coordinates, connected generated atoms, scoring, gradients and relax.
 
-`full_conjugate_9ewf.cif.gz` is the complete frozen corpus entry. Its A1H7V
+`full_conjugate_9ewf.cif.zst` is the complete frozen corpus entry. Its A1H7V
 ligands belong to branched SIA-containing conjugates, exposing an inconsistent
 carboxylate resonance charge that the isolated ligand cannot exercise. The
 full non-water workflow preserves input atoms, coordinates, bonds, and orphan
 hydrogens; checks preparation, parameter export/reload, pose construction,
 Frank scoring and gradients; and runs focused Cartesian minimization.
 
-`bridging_histidine_6iu8.cif.gz` retains the complete entry. HIS C89 binds
+`bridging_histidine_6iu8.cif.zst` retains the complete entry. HIS C89 binds
 Zn C201 through ND1 and Zn B201 through NE2, so neither ring nitrogen keeps a
 proton: it must build as the imidazolate `HIS_DEP` coordinating at both.

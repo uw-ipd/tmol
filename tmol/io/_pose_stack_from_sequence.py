@@ -4,7 +4,7 @@ import attr
 import math
 
 import numpy
-from atomworks.experimental.protonation.geometry import build_coordinate, vertex_angle
+from atomworks.experimental.protonation.geometry import build_coordinates, vertex_angle
 import torch
 
 from tmol.chemical import ResidueTypeSet
@@ -304,7 +304,7 @@ def _junction_transform(pose_stack, pose, block, bt, local, prev, placed):
         [
             anchor,
             hinge,
-            build_coordinate(hinge, anchor, ref, dist, math.pi - angle, torsion),
+            build_coordinates(hinge, anchor, ref, (dist, math.pi - angle, torsion)),
         ]
     )
     return _rigid_transform(src, dst)

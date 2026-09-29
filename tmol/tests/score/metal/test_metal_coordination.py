@@ -27,8 +27,6 @@ FIXTURE_DIR = data_path("metal_fixtures")
 with open(os.path.join(FIXTURE_DIR, "expected.yaml")) as infile:
     EXPECTED = safe_load(infile)["fixtures"]
 
-LOADABLE = [stem for stem, spec in EXPECTED.items() if "xfail" not in spec]
-
 
 @pytest.fixture(scope="module")
 def built():
@@ -36,7 +34,7 @@ def built():
 
     def build(stem, device=torch.device("cpu")):
         if (stem, device) not in cache:
-            structure = atom_array_from_cif(os.path.join(FIXTURE_DIR, stem + ".cif.gz"))
+            structure = atom_array_from_cif(FIXTURE_DIR / f"{stem}.cif.zst")
             cache[stem, device] = pose_stack_from_biotite(
                 structure, device, prepare_ligands=True
             )
@@ -208,7 +206,7 @@ def with_well_depth(param_db, atom_type, donor, depth):
     return attr.evolve(param_db, scoring=scoring)
 
 
-@pytest.mark.parametrize("stem", LOADABLE)
+@pytest.mark.parametrize("stem", EXPECTED)
 def test_site_pairing_matches_detection(built, stem, default_database):
     pose_stack = built(stem)
     site_rows, _, _, _ = metal_oracle.restraints(default_database, pose_stack)
@@ -237,7 +235,7 @@ def test_site_pairing_matches_detection(built, stem, default_database):
         assert found.get((metal["chain"], metal["res"]), set()) == expected
 
 
-@pytest.mark.parametrize("stem", LOADABLE)
+@pytest.mark.parametrize("stem", EXPECTED)
 def test_kernel_matches_oracle(built, stem, default_database, torch_device):
     pose_stack = built(stem, torch_device)
     term = MetalCoordinationEnergyTerm(default_database, torch_device)
@@ -266,7 +264,7 @@ def test_kernel_matches_oracle(built, stem, default_database, torch_device):
     torch.testing.assert_close(gradient(pairs), expected_grad)
 
 
-@pytest.mark.parametrize("stem", LOADABLE)
+@pytest.mark.parametrize("stem", EXPECTED)
 def test_ideal_sites_score_zero(built, stem, default_database, torch_device):
     """Every restraint one atom can satisfy on its own is at rest.
 
@@ -310,7 +308,7 @@ def metal_atom(pose_stack, block):
 
 def bridged_sod(device):
     """3F7L with His61 ND1 bonded to both its zinc and the copper."""
-    structure = atom_array_from_cif(os.path.join(FIXTURE_DIR, "cu_zn_sod_3f7l.cif.gz"))
+    structure = atom_array_from_cif(FIXTURE_DIR / "cu_zn_sod_3f7l.cif.zst")
     pose_stack, context = pose_stack_from_biotite(
         structure, device, prepare_ligands=True, return_context=True
     )

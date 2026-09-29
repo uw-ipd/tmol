@@ -5,14 +5,15 @@ from typing import Collection, Mapping
 
 import biotite.structure as struc
 import numpy
+from atomworks.constants import METAL_ELEMENTS
 from atomworks.experimental.protonation import (
     assign_hydrogens,
+    find_disulfides,
     hydrogen_plan,
     place_hydrogens,
 )
 from atomworks.experimental.protonation.geometry import names_from_parent
 from atomworks.io.utils.atom_array_plus import concatenate_any
-from atomworks.io.utils.bonds import find_disulfides
 from atomworks.io.utils.ccd import add_annotations_from_ccd, custom_ccd_residues
 from rdkit import Chem
 from scipy.sparse import coo_matrix
@@ -306,12 +307,16 @@ def _contexts(template, starts, residue_of, bonds, residues, ph) -> list[str]:
     """A key per residue of ``residues`` for everything AtomWorks decides its state from.
 
     That is the pH, its name, its resolved heavy atoms' charges, and the element,
-    charge and bond type met by each of its bonds to other residues.
+    charge and bond type met by each of its bonds to other residues, with the
+    length of each bond to a metal.
     """
     mine = numpy.zeros(len(starts) - 1, dtype=bool)
     mine[residues] = True
     name = template.atom_name.tolist()
     element = template.element.tolist()
+    metal = numpy.isin(
+        numpy.char.upper(template.element.astype(str)), sorted(METAL_ELEMENTS)
+    )
     categories = template.get_annotation_categories()
     charge = template.charge.tolist() if "charge" in categories else [0] * len(name)
     tokens = defaultdict(list)
@@ -321,7 +326,11 @@ def _contexts(template, starts, residue_of, bonds, residues, ph) -> list[str]:
     across = bonds[residue_of[bonds[:, 0]] != residue_of[bonds[:, 1]]]
     for i, j, k in numpy.r_[across, across[:, [1, 0, 2]]].tolist():
         if mine[residue_of[i]]:
-            tokens[residue_of[i]].append(f"{name[i]}>{element[j]}{charge[j]}:{k}")
+            token = f"{name[i]}>{element[j]}{charge[j]}:{k}"
+            if metal[j]:
+                length = numpy.linalg.norm(template.coord[i] - template.coord[j])
+                token += f"@{float(length)!r}"
+            tokens[residue_of[i]].append(token)
     return [
         f"{ph}|{template.res_name[starts[r]]}|{'|'.join(sorted(tokens[r]))}"
         for r in residues
