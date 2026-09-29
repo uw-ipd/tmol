@@ -19,7 +19,7 @@ from typing import Dict, List, Tuple
 
 import numpy
 import torch
-from atomworks.experimental.protonation.geometry import (
+from tmol.ligand._icoor_tree import (
     signed_dihedral_angle,
     vertex_angle,
 )

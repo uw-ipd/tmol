@@ -12,7 +12,7 @@ so a structure keeps the same geometry whichever library placed it.
 import logging
 
 import numpy as np
-from atomworks.experimental.protonation.geometry import (
+from tmol.ligand._icoor_tree import (
     build_atom_tree,
     find_root_atom,
     icoor_geometry_from_coords,
