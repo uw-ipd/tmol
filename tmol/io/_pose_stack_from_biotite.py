@@ -632,6 +632,7 @@ def pose_stack_from_biotite(  # noqa: C901
     chem_comp_types: dict | None = None,
     use_ccd: bool = True,
     ligand_seed: int | None = None,
+    packer_seed: int | None = None,
     return_context: bool = False,
     context: PoseBuildContext | None = None,
     atom37_coords: torch.Tensor | None = None,
@@ -699,6 +700,10 @@ def pose_stack_from_biotite(  # noqa: C901
         ligand_seed: Fixed RNG seed for the conformer each prepared residue
             is built from, making preparation reproducible. Only used when
             prepare_ligands=True.
+        packer_seed: Seed of the packer that optimizes hydrogens (``no_optH``
+            False) and builds missing side chains, making the pose the same
+            in every call. Unseeded, the packer continues torch's global
+            random state.
         return_context: If True, return ``(pose_stack, PoseBuildContext)``.
         context: Reusable context from ``build_context_from_biotite``. It must
             be on ``torch_device`` and is mutually exclusive with ``param_db``
@@ -827,6 +832,7 @@ def pose_stack_from_biotite(  # noqa: C901
         atom37_coords=atom37_coords,
         fragment_mapping=fragment_mapping,
         return_context=return_context,
+        packer_seed=packer_seed,
         **kwargs,
     )
 
@@ -839,6 +845,7 @@ def pose_stack_from_canonical_form_and_context(
     atom37_coords: torch.Tensor | None,
     fragment_mapping=None,
     return_context: bool = False,
+    packer_seed: int | None = None,
     **kwargs: object,
 ) -> PoseStack | tuple[PoseStack, dict] | tuple[PoseStack, PoseBuildContext]:
     """Build a pose from a canonical form and a reusable build context.
@@ -866,6 +873,7 @@ def pose_stack_from_canonical_form_and_context(
         coordinates; retained so gradients survive hydrogen rebuilding.
       fragment_mapping: Mapping produced when fragmented ligands were expanded.
       return_context: Also return the context used.
+      packer_seed: Seed of the packer, as for ``pose_stack_from_biotite``.
 
     Returns:
       The constructed pose, optionally with atom mappings or the context.
@@ -952,6 +960,7 @@ def pose_stack_from_canonical_form_and_context(
             no_optH=no_optH,
             na_sampler=na_sampler,
             has_missing_atoms=has_missing_atoms,
+            seed=packer_seed,
         )
 
     if atom37_coords is not None and needs_packing:

@@ -194,6 +194,24 @@ def test_default_pose_builds_reuse_packing_setup(biotite_1ubq, torch_device):
     assert torch.equal(first.coords[finite], second.coords[finite])
 
 
+def test_packer_seed_reaches_the_packer(biotite_1ubq, torch_device, monkeypatch):
+    import tmol.pack._build_missing_sidechains as build_module
+
+    pack_rotamers = build_module.pack_rotamers
+    seeds = []
+
+    def recording_pack_rotamers(*args, seed=None, **kwargs):
+        seeds.append(seed)
+        return pack_rotamers(*args, seed=seed, **kwargs)
+
+    monkeypatch.setattr(build_module, "pack_rotamers", recording_pack_rotamers)
+    for seed in (5, None):
+        pose_stack_from_biotite(
+            biotite_1ubq, torch_device=torch_device, no_optH=False, packer_seed=seed
+        )
+    assert seeds == [5, None]
+
+
 def test_standard_only_ligand_preparation_reuses_default_context(
     biotite_1ubq, torch_device
 ):

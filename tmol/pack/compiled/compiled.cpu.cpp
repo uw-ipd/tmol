@@ -8,18 +8,37 @@
 #include "compiled.impl.hh"
 #include "streaming_interaction_graph.impl.hh"
 
-#include <ctime>
+#include <ATen/CPUGeneratorImpl.h>
+
+#include <mutex>
+#include <random>
 #include <vector>
 
 namespace tmol {
 namespace pack {
 namespace compiled {
 
+namespace {
+// Seeded from torch's default CPU generator, as the CUDA annealer draws from
+// torch's CUDA generator, so torch.manual_seed makes either reproducible.
+std::mt19937_64 annealer_rng() {
+  auto gen = at::get_generator_or_default<at::CPUGeneratorImpl>(
+      std::nullopt, at::detail::getDefaultCPUGenerator());
+  std::lock_guard<std::mutex> lock(gen->mutex_);
+  return std::mt19937_64(gen->random64());
+}
+
+int random_below(std::mt19937_64& rng, int n) {
+  return static_cast<int>(rng() % static_cast<uint64_t>(n));
+}
+}  // namespace
+
 template <tmol::Device D>
 void set_quench_order(
     TView<int, 1, D> quench_order,
     int const n_rots,
-    int const pose_rotamer_offset) {
+    int const pose_rotamer_offset,
+    std::mt19937_64& rng) {
   // Create a random permutation of all the rotamers
   // and visit them in this order to ensure all of them
   // are seen during the quench step
@@ -27,7 +46,7 @@ void set_quench_order(
     quench_order[i] = i + pose_rotamer_offset;
   }
   for (int i = 0; i <= n_rots - 2; ++i) {
-    int j = i + rand() % (n_rots - i);
+    int j = i + random_below(rng, n_rots - i);
     // swap i and j;
     int jval = quench_order[j];
     quench_order[j] = quench_order[i];
@@ -82,6 +101,9 @@ auto AnnealerDispatch<D>::forward(
     int64_t chunk_offset_offset;
   };
 
+  auto rng = annealer_rng();
+  std::uniform_real_distribution<float> uniform(0.0f, 1.0f);
+
   for (int pose = 0; pose < n_poses; ++pose) {
     int const n_res = pose_n_res[pose];
     int const pose_n_rotamers = n_rotamers_for_pose[pose];
@@ -120,7 +142,7 @@ auto AnnealerDispatch<D>::forward(
           current_rotamer_assignments[pose][traj][i] = -1;
           best_rotamer_assignments[pose][traj][i] = -1;
         } else {
-          int rand_rot = rand() % i_n_rots;
+          int rand_rot = random_below(rng, i_n_rots);
           current_rotamer_assignments[pose][traj][i] = rand_rot;
           best_rotamer_assignments[pose][traj][i] = rand_rot;
         }
@@ -175,11 +197,12 @@ auto AnnealerDispatch<D>::forward(
               // random order before starting over with a different
               // random order.
               set_quench_order(
-                  quench_order, pose_n_rotamers, pose_rotamer_offset);
+                  quench_order, pose_n_rotamers, pose_rotamer_offset, rng);
             }
             global_ran_rot = quench_order[j % pose_n_rotamers];
           } else {
-            global_ran_rot = rand() % pose_n_rotamers + pose_rotamer_offset;
+            global_ran_rot =
+                random_below(rng, pose_n_rotamers) + pose_rotamer_offset;
           }
 
           int const ran_res = res_for_rot[global_ran_rot];
@@ -239,7 +262,7 @@ auto AnnealerDispatch<D>::forward(
             prev_e += k_prev_e;
           }
 
-          float const uniform_random = float(rand()) / RAND_MAX;
+          float const uniform_random = uniform(rng);
 
           if (pass_metropolis(
                   temperature, uniform_random, deltaE, prev_e, quench)) {
