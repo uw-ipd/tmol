@@ -716,7 +716,8 @@ def test_export_keeps_the_input_residue_annotations(path):
 def test_an_excised_residue_leaves_the_others_their_residue_metadata(path):
     """Residue annotations and metal origins shift left with their residues."""
     structure = atom_array_from_cif(data_path(*path))
-    structure = structure[structure.res_name != "HOH"]
+    # without ligand preparation the bonded ACE cap can be neither built nor dropped
+    structure = structure[~numpy.isin(structure.res_name, ("HOH", "ACE"))]
     device = torch.device("cpu")
     co = canonical_ordering_for_biotite()
     cf = canonical_form_from_biotite(structure, device, co=co)
@@ -742,9 +743,9 @@ def test_export_without_is_polymer_takes_it_from_block_types(path):
     """An input without is_polymer exports each atom's from its block type."""
     structure = atom_array_from_cif(data_path(*path))
 
-    # a HETATM cap such as ACE is a polymer entity's residue but a ligand block type
+    # a HETATM cap bonded into its chain, such as ACE, is a polymer block type
     expected = {
-        _residue_key(structure, i): structure.is_polymer[i] and not structure.hetero[i]
+        _residue_key(structure, i): structure.is_polymer[i]
         for i in range(structure.array_length())
     }
     structure.del_annotation("is_polymer")
