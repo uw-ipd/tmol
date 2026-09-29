@@ -122,50 +122,62 @@ def test_optH_rotamer_sampler_flipNHQ(ubq_pdb, torch_device):
             assert cache.n_proton_samples == 0 or n_rots == cache.n_proton_samples + 1
 
 
-def _with_his68_hd1(ubq):
-    """1UBQ with HD1 added to His68 (which has HE2), making it HIS_POS."""
-    his = ubq.res_id == 68
+def with_his_ring_hydrogens(array, res_id):
+    """Protonate both ring nitrogens of histidine `res_id`, making it HIS_POS."""
+    his = array.res_id == res_id
 
     def xyz(name):
-        return ubq.coord[his & (ubq.atom_name == name)][0]
+        return array.coord[his & (array.atom_name == name)][0]
 
-    outward = xyz("ND1") - 0.5 * (xyz("CG") + xyz("CE1"))
-    hd1 = ubq[his & (ubq.atom_name == "ND1")][0].copy()
-    hd1.atom_name, hd1.element = "HD1", "H"
-    hd1.coord = xyz("ND1") + 1.01 * outward / numpy.linalg.norm(outward)
     end = numpy.flatnonzero(his)[-1] + 1
-    return ubq[:end] + biotite.structure.array([hd1]) + ubq[end:]
+    protonated = array[:end]
+    for n, a, b, h in (("ND1", "CG", "CE1", "HD1"), ("NE2", "CE1", "CD2", "HE2")):
+        if h in array.atom_name[his]:
+            continue
+        outward = xyz(n) - 0.5 * (xyz(a) + xyz(b))
+        atom = array[his & (array.atom_name == n)].copy()
+        atom.atom_name[:], atom.element[:] = h, "H"
+        atom.coord[:] = xyz(n) + 1.01 * outward / numpy.linalg.norm(outward)
+        protonated = protonated + atom
+    return protonated + array[end:]
 
 
-def _his68_ring_flipped(ubq):
-    """His68 with its ring atoms turned 180 degrees about CB-CG."""
-    his = ubq.res_id == 68
+def his_ring_flipped(array, res_id):
+    """Histidine `res_id` with its ring atoms turned 180 degrees about CB-CG."""
+    his = array.res_id == res_id
     fixed = ["N", "CA", "C", "O", "CB", "CG", "H", "HA", "HB2", "HB3", "1HB", "2HB"]
-    ring = his & ~numpy.isin(ubq.atom_name, fixed)
-    cb, cg = (ubq.coord[his & (ubq.atom_name == name)][0] for name in ("CB", "CG"))
+    ring = his & ~numpy.isin(array.atom_name, fixed)
+    cb, cg = (array.coord[his & (array.atom_name == n)][0] for n in ("CB", "CG"))
     axis = (cg - cb) / numpy.linalg.norm(cg - cb)
-    offset = ubq.coord[ring] - cg
-    flipped = ubq.copy()
+    offset = array.coord[ring] - cg
+    flipped = array.copy()
     flipped.coord[ring] = cg + 2 * numpy.outer(offset @ axis, axis) - offset
     return flipped
+
+
+def his_ring_after_optH(array, res_id, torch_device):
+    """Block type name and ND1/NE2 coordinates of histidine `res_id` after OptH."""
+    pose = pose_stack_from_biotite(array, torch_device, no_optH=False)
+    index = int(
+        numpy.flatnonzero(biotite.structure.get_residues(array)[0] == res_id)[0]
+    )
+    bt = pose.packed_block_types.active_block_types[int(pose.block_type_ind[0, index])]
+    offset = int(pose.block_coord_offset[0, index])
+    ring = pose.coords[0, [offset + bt.atom_to_idx[n] for n in ("ND1", "NE2")]]
+    return bt.name, ring
 
 
 @pytest.mark.parametrize("his_type", ["HIS", "HIS_POS"])
 def test_optH_flips_a_histidine_ring_back(biotite_1ubq, torch_device, his_type):
     ubq = biotite_1ubq[~biotite_1ubq.hetero]
     if his_type == "HIS_POS":
-        ubq = _with_his68_hd1(ubq)
-    rings = []
-    for array in (ubq, _his68_ring_flipped(ubq)):
-        pose = pose_stack_from_biotite(array, torch_device, no_optH=False)
-        pbt = pose.packed_block_types
-        bt = pbt.active_block_types[int(pose.block_type_ind[0, 67])]
-        assert bt.name == his_type
-        offset = int(pose.block_coord_offset[0, 67])
-        rings.append(
-            pose.coords[0, [offset + bt.atom_to_idx[n] for n in ("ND1", "NE2")]]
-        )
-    torch.testing.assert_close(rings[0], rings[1], atol=0.1, rtol=0)
+        ubq = with_his_ring_hydrogens(ubq, 68)
+    (name, ring), (_, flipped) = (
+        his_ring_after_optH(array, 68, torch_device)
+        for array in (ubq, his_ring_flipped(ubq, 68))
+    )
+    assert name == his_type
+    torch.testing.assert_close(ring, flipped, atol=0.1, rtol=0)
 
 
 def test_optH_rotamer_sampler_no_flipNHQ(ubq_pdb, torch_device):

@@ -756,6 +756,23 @@ def test_unrecognized_hydrogen_names_can_be_rebuilt(element):
     assert len(atoms) == len(residues) == 1
 
 
+def test_optH_flips_the_ring_of_doubly_protonated_his15_6lyz(torch_device):
+    from tmol.tests.pack.rotamer.test_opth_sampler import (
+        his_ring_after_optH,
+        his_ring_flipped,
+        with_his_ring_hydrogens,
+    )
+
+    array = atom_array_from_cif(DATA / "his_pos_ring_6lyz.cif.gz")
+    array = with_his_ring_hydrogens(array[array.res_name != "HOH"], 15)
+    (name, ring), (_, flipped) = (
+        his_ring_after_optH(a, 15, torch_device)
+        for a in (array, his_ring_flipped(array, 15))
+    )
+    assert name == "HIS_POS"
+    torch.testing.assert_close(ring, flipped, atol=0.1, rtol=0)
+
+
 @pytest.mark.parametrize(
     "kind,n_hydrogens,bond_type", [("amine", 1, "SINGLE"), ("imine", 0, "DOUBLE")]
 )
