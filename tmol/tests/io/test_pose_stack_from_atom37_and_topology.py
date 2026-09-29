@@ -469,6 +469,7 @@ def test_atom37_pose_uses_ligand_context(torch_device, prebuilt):
         torch_device,
         prepare_ligands=True,
         ligand_params_files=[str(params_path)] if prebuilt else None,
+        ligand_seed=20260909,
     )
 
     pose = pose_stack_from_atom37_and_topology(atom37, structure, context)
