@@ -14,7 +14,7 @@ from typing import Mapping, Sequence
 
 import biotite.structure as struc
 import numpy as np
-from atomworks.experimental.protonation.geometry import (
+from tmol.ligand._icoor_tree import (
     signed_dihedral_angle,
     vertex_angle,
 )
