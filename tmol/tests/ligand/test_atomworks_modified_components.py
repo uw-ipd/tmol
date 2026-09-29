@@ -15,16 +15,12 @@ from tmol.io import (
 from tmol.ligand import chem_comp_types_from_cif
 from tmol.ligand._registry import _applied_patch
 from tmol.score.elec._params import ElecParamResolver
-from tmol.tests.io.test_atomworks_corpus_regressions import _score_and_minimize
+from tmol.tests.io.test_atomworks_corpus_regressions import (
+    _score_and_minimize,
+    assert_metal_bonds_are_coordination,
+)
 
 DATA = Path(__file__).parents[1] / "data" / "atomworks_regressions"
-
-
-def assert_metal_bonds_are_coordination(array, metal):
-    """A metal is declared bonded only by coordination, never covalently."""
-    bonds = array.bonds.as_array()
-    touches = metal[bonds[:, :2]].any(axis=1)
-    assert (bonds[touches, 2] == struc.BondType.COORDINATION).all()
 
 
 def test_free_and_attached_solutes_keep_distinct_chemistry(torch_device):
@@ -344,12 +340,7 @@ def test_single_atom_plp_backbone_preserves_chirality(monkeypatch):
     construct_single_residue_kinforest(plp)
     original = create_mainchain_fingerprint(plp, (), chemical)[1]
     assert len(set(original)) == plp.n_atoms
-    mainchain_hydrogens = [
-        other
-        for a, b, *_ in plp.bonds
-        for atom, other in ((a, b), (b, a))
-        if atom == "C4A" and other.startswith("H")
-    ]
+    mainchain_hydrogens = _hydrogens_on(plp, "C4A")
     assert len(mainchain_hydrogens) == 2
     assert {
         original[plp.atom_to_idx[name]].chirality for name in mainchain_hydrogens
