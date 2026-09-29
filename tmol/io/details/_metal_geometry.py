@@ -51,6 +51,7 @@ def best_rotation(donors: numpy.ndarray, targets: numpy.ndarray) -> numpy.ndarra
 # Wider than arccos amplification near cos=1, narrower than any angle that means
 # something: two assignments this close are the same fit, differently rounded.
 _FIT_TIE_DEG = 1e-4
+_GEOMETRY_TIE_DEG = 5.0
 
 
 def _best_rotations(donors: numpy.ndarray, targets: numpy.ndarray) -> numpy.ndarray:
@@ -73,7 +74,7 @@ def _rotation_group(verts: numpy.ndarray) -> numpy.ndarray:
     group = []
     for candidate in permutations(range(len(verts))):
         image = verts[list(candidate)]
-        rotation = _best_rotations(verts, image[numpy.newaxis])[0]
+        rotation = best_rotation(verts, image)
         if numpy.allclose(verts @ rotation, image, atol=1e-6):
             group.append(candidate)
     return numpy.array(group, dtype=int)
@@ -123,10 +124,8 @@ def fit_geometry(
     rotated = numpy.einsum("ki,nij->nkj", donors, rotations)
     cosines = numpy.clip(numpy.sum(rotated * targets, axis=2), -1.0, 1.0)
     rms = numpy.sqrt(numpy.mean(numpy.degrees(numpy.arccos(cosines)) ** 2, axis=1))
-    # Assignments that fit equally well each go through their own SVD, and arccos
-    # near one amplifies the last bits into about 1e-6 degrees. A strict minimum
-    # would let that decide between assignments pointing free sites different ways,
-    # so take the first inside a window above the noise and below anything real.
+    # Equal fits differ by ~1e-6 degrees of SVD and arccos rounding, so take the
+    # first assignment inside a window above that noise and below anything real.
     best = int(numpy.flatnonzero(rms <= rms.min() + _FIT_TIE_DEG)[0])
     return GeometryFit(
         geometry="",
@@ -142,13 +141,12 @@ def choose_geometry(
     donor_directions: numpy.ndarray,
     allowed: Sequence[str],
     vertices_for: dict,
-    tolerance_deg: float = 5.0,
 ) -> Tuple[Optional[GeometryFit], str]:
     """Pick the geometry that best explains the donors, and say how it was picked.
 
     Preference order in the ion's table is most-common first, and it decides
-    every case the directions cannot: geometries fitting equally well within
-    ``tolerance_deg``, and nested candidates where a larger polyhedron always
+    every case the directions cannot: geometries fitting within
+    ``_GEOMETRY_TIE_DEG`` of the best, and nested candidates where a larger polyhedron always
     fits at least as well as the smaller one it contains.
 
     Deliberately *not* biased toward the geometry positing fewest empty sites.
@@ -158,22 +156,18 @@ def choose_geometry(
     one aspartate and five dropped waters come out tetrahedral.
     """
     fits = []
-    for rank, name in enumerate(allowed):
+    for name in allowed:
         verts = vertices_for[name]
         if not verts:  # untemplated: nothing to fit, and nothing to choose
             return None, "untemplated"
         fit = fit_geometry(donor_directions, numpy.asarray(verts))
         if fit is not None:
-            fits.append(
-                attr.evolve(fit, geometry=name),
-            )
+            fits.append(attr.evolve(fit, geometry=name))
     if not fits:
         if len(donor_directions) == 0:
             return None, "no donors in range"
         return None, "no candidate geometry can hold this many donors"
 
     best_rms = min(f.rms_angle for f in fits)
-    tied = [f for f in fits if f.rms_angle <= best_rms + tolerance_deg]
-    if len(tied) == 1:
-        return tied[0], "directions"
-    return min(tied, key=lambda f: allowed.index(f.geometry)), "preference order"
+    tied = [f for f in fits if f.rms_angle <= best_rms + _GEOMETRY_TIE_DEG]
+    return tied[0], "directions" if len(tied) == 1 else "preference order"

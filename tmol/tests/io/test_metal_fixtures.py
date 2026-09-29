@@ -31,14 +31,6 @@ with open(os.path.join(FIXTURE_DIR, "expected.yaml")) as infile:
     EXPECTED = safe_load(infile)["fixtures"]
 
 
-def fixture_params():
-    for stem, spec in EXPECTED.items():
-        marks = []
-        if "xfail" in spec:
-            marks.append(pytest.mark.xfail(reason=spec["xfail"], strict=True))
-        yield pytest.param(stem, marks=marks, id=stem)
-
-
 @pytest.fixture(scope="module")
 def built():
     """Build each fixture once, keeping what metal detection decided."""
@@ -59,7 +51,7 @@ def built():
 
         metal_detection.find_metal_geometries = recording
         try:
-            structure = atom_array_from_cif(os.path.join(FIXTURE_DIR, stem + ".cif.gz"))
+            structure = atom_array_from_cif(FIXTURE_DIR / f"{stem}.cif.zst")
             pose_stack = pose_stack_from_biotite(
                 structure, torch.device("cpu"), prepare_ligands=True
             )
@@ -76,7 +68,7 @@ def residue_key(pose_stack, pose, res):
     return (str(info.chain_labels[pose, res]), int(info.residue_labels[pose, res]))
 
 
-@pytest.mark.parametrize("stem", fixture_params())
+@pytest.mark.parametrize("stem", EXPECTED)
 def test_metal_geometry_selects_the_block_type(built, stem):
     pose_stack, _ = built(stem)
     spec = EXPECTED[stem]
@@ -92,7 +84,7 @@ def test_metal_geometry_selects_the_block_type(built, stem):
         assert names[(metal["chain"], metal["res"])] == expected
 
 
-@pytest.mark.parametrize("stem", fixture_params())
+@pytest.mark.parametrize("stem", EXPECTED)
 def test_detected_donors_match_expected(built, stem):
     pose_stack, (co, res_types, assignments) = built(stem)
     spec = EXPECTED[stem]
@@ -117,7 +109,7 @@ def test_detected_donors_match_expected(built, stem):
             assert got.n_open_sites == metal["n_open_sites"], key
 
 
-@pytest.mark.parametrize("stem", fixture_params())
+@pytest.mark.parametrize("stem", EXPECTED)
 def test_every_donor_is_built_in_a_form_that_can_donate(built, stem, default_database):
     # a histidine coordinating through NE2 must be HIS_D, a cysteine CYS_DEP
     pose_stack, (co, res_types, assignments) = built(stem)
@@ -134,14 +126,14 @@ def test_every_donor_is_built_in_a_form_that_can_donate(built, stem, default_dat
             assert atom_type in donor_type, (bt.name, atom_name)
 
 
-@pytest.mark.parametrize("stem", fixture_params())
+@pytest.mark.parametrize("stem", EXPECTED)
 def test_every_atom_is_built(built, stem):
     # site virtuals have no frame of their own; they must still be placed
     pose_stack, _ = built(stem)
     assert numpy.isfinite(pose_stack.coords.numpy()).all()
 
 
-@pytest.mark.parametrize("stem", fixture_params())
+@pytest.mark.parametrize("stem", EXPECTED)
 def test_every_donor_is_connected_to_its_metal(built, stem):
     pose_stack, (co, res_types, assignments) = built(stem)
     pbt = pose_stack.packed_block_types
@@ -161,7 +153,7 @@ def test_every_donor_is_connected_to_its_metal(built, stem):
         assert partners == expected, metal_bt.name
 
 
-@pytest.mark.parametrize("stem", fixture_params())
+@pytest.mark.parametrize("stem", EXPECTED)
 def test_metal_is_reached_by_a_jump(built, stem):
     # metal bonds close on the tree instead of building it, so the ion keeps
     #    its rigid-body freedom
@@ -207,7 +199,7 @@ def metal_bonds(pose_stack):
     return out
 
 
-@pytest.mark.parametrize("stem", fixture_params())
+@pytest.mark.parametrize("stem", EXPECTED)
 def test_round_trip_keeps_metal_coordination(built, stem):
     pose_stack, (co, _, _) = built(stem)
     cf = canonical_form_from_pose_stack(co, pose_stack)
@@ -267,7 +259,7 @@ def test_donor_forms_accumulate_and_stack():
     # built from the default context, the second structure's donors extend
     #    the first's packed set rather than starting a new one
     def build(stem):
-        structure = atom_array_from_cif(os.path.join(FIXTURE_DIR, stem + ".cif.gz"))
+        structure = atom_array_from_cif(FIXTURE_DIR / f"{stem}.cif.zst")
         return pose_stack_from_biotite(structure, torch.device("cpu"))
 
     zinc = build("zn_tetrahedral_3ks3")
@@ -288,9 +280,7 @@ def test_donor_forms_accumulate_and_stack():
 
 
 def test_a_stated_thiol_hydrogen_keeps_the_cysteine_off_the_metal():
-    structure = atom_array_from_cif(
-        os.path.join(FIXTURE_DIR, "fe_rubredoxin_30oh.cif.gz")
-    )
+    structure = atom_array_from_cif(FIXTURE_DIR / "fe_rubredoxin_30oh.cif.zst")
     structure = structure[structure.element != "H"]
     residue = (structure.res_id == 6) & (structure.chain_id == "A")
     sg, cb, ca = (
@@ -386,9 +376,7 @@ def test_exported_structure_rebuilds_the_same_coordination(built, tmp_path):
 
 def zinc_with_declared_bonds(donors, bond_type):
     """3KS3, with the zinc declared bonded to (res_id, res_name, atom) donors."""
-    structure = atom_array_from_cif(
-        os.path.join(FIXTURE_DIR, "zn_tetrahedral_3ks3.cif.gz")
-    )
+    structure = atom_array_from_cif(FIXTURE_DIR / "zn_tetrahedral_3ks3.cif.zst")
     (zinc,) = numpy.flatnonzero(structure.res_name == "ZN")
     # replace the file's own metalc declarations
     kept = structure.bonds.as_array()
@@ -437,7 +425,7 @@ def test_declared_metal_bonds_are_coordination(built, bond_type):
     ],
 )
 def test_metalc_naming_an_alternate_location_is_read(stem, metal, donors):
-    structure = atom_array_from_cif(os.path.join(FIXTURE_DIR, stem + ".cif.gz"))
+    structure = atom_array_from_cif(FIXTURE_DIR / f"{stem}.cif.zst")
     bonds = structure.bonds.as_array()
     bonds = bonds[bonds[:, 2] == struc.BondType.COORDINATION, :2]
     at = numpy.flatnonzero(

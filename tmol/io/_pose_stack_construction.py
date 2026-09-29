@@ -177,13 +177,24 @@ def pose_stack_from_canonical_form(  # noqa: C901
     # downstream will work properly. This effectively means "shifting left"
     # all the other residues in the Pose to fill the vacated slots.
     # Single-slot poses are already left-justified.
+    real = res_types != -1
+    order = torch.argsort((~real).to(torch.int8), dim=1, stable=True)
+    kept = torch.gather(real, 1, order)
     if protonation_variants is not None:
-        real = res_types != -1
-        order = torch.argsort((~real).to(torch.int8), dim=1, stable=True)
         protonation_variants = torch.where(
-            torch.gather(real, 1, order),
+            kept,
             torch.gather(protonation_variants.to(res_types.device), 1, order),
             -1,
+        )
+    if metal_origins is not None:
+        metal_origins = numpy.where(
+            kept.cpu().numpy(),
+            numpy.take_along_axis(metal_origins, order.cpu().numpy(), 1),
+            None,
+        )
+    if residue_annotations is not None:
+        residue_annotations = numpy.take_along_axis(
+            residue_annotations, order.cpu().numpy(), 1
         )
     if res_types.shape[1] != 1:
         (
