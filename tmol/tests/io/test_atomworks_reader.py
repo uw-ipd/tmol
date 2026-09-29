@@ -201,6 +201,29 @@ def test_ccd_isolated_atom_charge_provenance(
 
 
 @pytest.mark.parametrize(
+    "fixture,atom",
+    [
+        ("bonded_bromide_1mhk", ("BR", "BR")),
+        ("unsigned_carboxylate_charge_3zlp", ("GLU", "OE1")),
+        ("oxygen_charge_seven_7tjm", ("GLU", "OE2")),
+    ],
+)
+def test_deposited_charge_its_bonded_atom_cannot_carry_is_ignored(
+    fixture, atom, torch_device
+):
+    """1MHK states a bromide's -1 on a Br bonded to a uridine C5, 3ZLP a
+    carboxylate's -1 as +1 and 7TJM +7 on a carboxylate O; the pH decides them."""
+    path = DATA / "sweep_regressions" / f"{fixture}.cif.zst"
+    array = atom_array_from_cif(path)
+    site = (array.res_name == atom[0]) & (array.atom_name == atom[1])
+
+    assert array.charge[site].tolist() == [0]
+    assert array.tmol_formal_charge_specified[site].tolist() == [False]
+    pose = pose_stack_from_cif(path, torch_device, prepare_ligands=True, no_optH=True)
+    assert torch.isfinite(pose.coords).all()
+
+
+@pytest.mark.parametrize(
     "fixture",
     [
         "ncaa_fixtures/capped_peptide_ace_nh2.cif",
