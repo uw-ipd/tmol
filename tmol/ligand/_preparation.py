@@ -221,6 +221,39 @@ def _assert_fragment_names_available(param_db, fragment_preparations) -> None:
             )
 
 
+def _assert_prepared_names_cover(atom_array, param_db) -> None:
+    """Raise if a residue whose name ``param_db`` prepared has heavy atoms its
+    types lack.
+
+    A prepared name is not prepared again, so a type made from copies missing an
+    atom (a glycan's leaving O1) cannot describe a copy that has it.
+    """
+    prepared = {r.io_equiv_class for r in param_db.chemical.residues} - {
+        r.io_equiv_class for r in ParameterDatabase.get_default().chemical.residues
+    }
+    if prepared.isdisjoint(np.char.strip(atom_array.res_name.astype(str))):
+        return
+    known = rebuild_canonical_ordering(param_db).restypes_atom_index_mapping
+    heavy = ~np.isin(np.char.upper(atom_array.element.astype(str)), ("H", "D"))
+    starts = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
+    uncovered: dict[str, set[str]] = {}
+    for start, stop in zip(starts[:-1], starts[1:]):
+        name = str(atom_array.res_name[start]).strip()
+        if name not in prepared:
+            continue
+        names = set(map(str, atom_array.atom_name[start:stop][heavy[start:stop]]))
+        if names - set(known[name]):
+            uncovered.setdefault(name, set()).update(names - set(known[name]))
+    if uncovered:
+        listing = "; ".join(f"{n}: {sorted(a)}" for n, a in sorted(uncovered.items()))
+        raise LigandPreparationError(
+            "The parameter database already prepared residue types that lack heavy "
+            f"atoms this input has ({listing}); a prepared name is not prepared "
+            "again. Build this structure's context from a database that does not "
+            "define them."
+        )
+
+
 def _kekule_bond_orders(mol: Chem.Mol) -> dict[frozenset, str]:
     """Bond orders of one Lewis structure of ``mol``, by atom index pair."""
     kekule = Chem.Mol(mol)
@@ -1856,6 +1889,7 @@ def prepare_ligands(  # noqa: C901
         atom_array = with_atomworks_hydrogens(
             atom_array, ph=ph, forms=database_forms(param_db.chemical)
         )
+    _assert_prepared_names_cover(atom_array, param_db)
 
     from tmol.ligand._fragmentation import (
         FRAGMENT_ID_ANNOTATION,
