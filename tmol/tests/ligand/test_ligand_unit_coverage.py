@@ -516,8 +516,7 @@ class TestStructureToSmiles:
         from tmol.io import atom_array_from_cif
 
         fixture = DATA / "ligand_cif_fixtures" / "vww.bonds_present.cif"
-        # a single-ligand file supplying a whole molecule under a code of its own
-        return atom_array_from_cif(fixture, use_ccd=False)
+        return atom_array_from_cif(fixture)
 
     def test_mol_to_smiles_returns_none_on_failure(self, monkeypatch) -> None:
         import tmol.ligand._structure_to_smiles as mod
