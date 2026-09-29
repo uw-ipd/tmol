@@ -2,6 +2,9 @@
 import math
 from types import SimpleNamespace
 
+import biotite.structure
+import numpy
+import pytest
 import torch
 from tmol.pose import PoseStackBuilder
 
@@ -13,7 +16,7 @@ from tmol.pack.rotamer import (
     IncludeCurrentSampler,
     OptHSampler,
 )
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_biotite, pose_stack_from_pdb
 
 
 def test_opth_builds_cartesian_product_for_multiple_proton_chis():
@@ -117,6 +120,52 @@ def test_optH_rotamer_sampler_flipNHQ(ubq_pdb, torch_device):
             n_rots = int(rotamer_set.n_rots_for_block[pose_i, block_i].item())
             # n_proton_chi_samples + 1 for include current
             assert cache.n_proton_samples == 0 or n_rots == cache.n_proton_samples + 1
+
+
+def _with_his68_hd1(ubq):
+    """1UBQ with HD1 added to His68 (which has HE2), making it HIS_POS."""
+    his = ubq.res_id == 68
+
+    def xyz(name):
+        return ubq.coord[his & (ubq.atom_name == name)][0]
+
+    outward = xyz("ND1") - 0.5 * (xyz("CG") + xyz("CE1"))
+    hd1 = ubq[his & (ubq.atom_name == "ND1")][0].copy()
+    hd1.atom_name, hd1.element = "HD1", "H"
+    hd1.coord = xyz("ND1") + 1.01 * outward / numpy.linalg.norm(outward)
+    end = numpy.flatnonzero(his)[-1] + 1
+    return ubq[:end] + biotite.structure.array([hd1]) + ubq[end:]
+
+
+def _his68_ring_flipped(ubq):
+    """His68 with its ring atoms turned 180 degrees about CB-CG."""
+    his = ubq.res_id == 68
+    fixed = ["N", "CA", "C", "O", "CB", "CG", "H", "HA", "HB2", "HB3", "1HB", "2HB"]
+    ring = his & ~numpy.isin(ubq.atom_name, fixed)
+    cb, cg = (ubq.coord[his & (ubq.atom_name == name)][0] for name in ("CB", "CG"))
+    axis = (cg - cb) / numpy.linalg.norm(cg - cb)
+    offset = ubq.coord[ring] - cg
+    flipped = ubq.copy()
+    flipped.coord[ring] = cg + 2 * numpy.outer(offset @ axis, axis) - offset
+    return flipped
+
+
+@pytest.mark.parametrize("his_type", ["HIS", "HIS_POS"])
+def test_optH_flips_a_histidine_ring_back(biotite_1ubq, torch_device, his_type):
+    ubq = biotite_1ubq[~biotite_1ubq.hetero]
+    if his_type == "HIS_POS":
+        ubq = _with_his68_hd1(ubq)
+    rings = []
+    for array in (ubq, _his68_ring_flipped(ubq)):
+        pose = pose_stack_from_biotite(array, torch_device, no_optH=False)
+        pbt = pose.packed_block_types
+        bt = pbt.active_block_types[int(pose.block_type_ind[0, 67])]
+        assert bt.name == his_type
+        offset = int(pose.block_coord_offset[0, 67])
+        rings.append(
+            pose.coords[0, [offset + bt.atom_to_idx[n] for n in ("ND1", "NE2")]]
+        )
+    torch.testing.assert_close(rings[0], rings[1], atol=0.1, rtol=0)
 
 
 def test_optH_rotamer_sampler_no_flipNHQ(ubq_pdb, torch_device):
