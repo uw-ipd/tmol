@@ -165,7 +165,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       shared_mem_union& shared) {                                  \
     elec_load_tile_invariant_interres_data<DeviceDispatch, D, nt>( \
         rot_coord_offset,                                          \
-        pose_stack_min_bond_separation,                            \
+        pose_stack_near_blocks,                                    \
         block_type_n_interblock_bonds,                             \
         block_type_atoms_forming_chemical_bonds,                   \
         pose_stack_inter_block_bondsep,                            \
@@ -407,11 +407,11 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     // logic for deciding whether two atoms in those blocks should have their
     // interaction energies calculated: all should. intentionally small to
     // (possibly) fit in constant cache
-    TView<Int, 3, D> pose_stack_min_bond_separation,
+    TView<Int, 4, D> pose_stack_near_blocks,
 
     // dims: n-poses x max-n-blocks x max-n-blocks x
     // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, D> pose_stack_inter_block_bondsep,
+    TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
 
     //////////////////////
     // Chemical properties
@@ -484,13 +484,14 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   assert(rot_offset_for_block.size(0) == n_poses);
   assert(rot_offset_for_block.size(1) == max_n_blocks);
 
-  assert(pose_stack_min_bond_separation.size(0) == n_poses);
-  assert(pose_stack_min_bond_separation.size(1) == max_n_blocks);
-  assert(pose_stack_min_bond_separation.size(2) == max_n_blocks);
+  assert(pose_stack_near_blocks.size(0) == n_poses);
+  assert(pose_stack_near_blocks.size(1) == max_n_blocks);
+  assert(pose_stack_near_blocks.size(3) == 2);
 
   assert(pose_stack_inter_block_bondsep.size(0) == n_poses);
   assert(pose_stack_inter_block_bondsep.size(1) == max_n_blocks);
-  assert(pose_stack_inter_block_bondsep.size(2) == max_n_blocks);
+  assert(
+      pose_stack_inter_block_bondsep.size(2) == pose_stack_near_blocks.size(2));
   assert(pose_stack_inter_block_bondsep.size(3) == max_n_interblock_bonds);
   assert(pose_stack_inter_block_bondsep.size(4) == max_n_interblock_bonds);
 
@@ -944,11 +945,11 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     // logic for deciding whether two atoms in those blocks should have their
     // interaction energies calculated: all should. intentionally small to
     // (possibly) fit in constant cache
-    TView<Int, 3, D> pose_stack_min_bond_separation,
+    TView<Int, 4, D> pose_stack_near_blocks,
 
     // dims: n-poses x max-n-blocks x max-n-blocks x
     // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, D> pose_stack_inter_block_bondsep,
+    TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
 
     //////////////////////
     // Chemical properties
@@ -1019,13 +1020,14 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
 
   assert(max_n_interblock_bonds <= MAX_N_CONN);
 
-  assert(pose_stack_min_bond_separation.size(0) == n_poses);
-  assert(pose_stack_min_bond_separation.size(1) == max_n_blocks);
-  assert(pose_stack_min_bond_separation.size(2) == max_n_blocks);
+  assert(pose_stack_near_blocks.size(0) == n_poses);
+  assert(pose_stack_near_blocks.size(1) == max_n_blocks);
+  assert(pose_stack_near_blocks.size(3) == 2);
 
   assert(pose_stack_inter_block_bondsep.size(0) == n_poses);
   assert(pose_stack_inter_block_bondsep.size(1) == max_n_blocks);
-  assert(pose_stack_inter_block_bondsep.size(2) == max_n_blocks);
+  assert(
+      pose_stack_inter_block_bondsep.size(2) == pose_stack_near_blocks.size(2));
   assert(pose_stack_inter_block_bondsep.size(3) == max_n_interblock_bonds);
   assert(pose_stack_inter_block_bondsep.size(4) == max_n_interblock_bonds);
 
@@ -1221,11 +1223,11 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     // logic for deciding whether two atoms in those blocks should have their
     // interaction energies calculated: all should. intentionally small to
     // (possibly) fit in constant cache
-    TView<Int, 3, D> pose_stack_min_bond_separation,
+    TView<Int, 4, D> pose_stack_near_blocks,
 
     // dims: n-poses x max-n-blocks x max-n-blocks x
     // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, D> pose_stack_inter_block_bondsep,
+    TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
 
     //////////////////////
     // Chemical properties
@@ -1297,13 +1299,14 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   assert(rot_offset_for_block.size(0) == n_poses);
   assert(rot_offset_for_block.size(1) == max_n_blocks);
 
-  assert(pose_stack_min_bond_separation.size(0) == n_poses);
-  assert(pose_stack_min_bond_separation.size(1) == max_n_blocks);
-  assert(pose_stack_min_bond_separation.size(2) == max_n_blocks);
+  assert(pose_stack_near_blocks.size(0) == n_poses);
+  assert(pose_stack_near_blocks.size(1) == max_n_blocks);
+  assert(pose_stack_near_blocks.size(3) == 2);
 
   assert(pose_stack_inter_block_bondsep.size(0) == n_poses);
   assert(pose_stack_inter_block_bondsep.size(1) == max_n_blocks);
-  assert(pose_stack_inter_block_bondsep.size(2) == max_n_blocks);
+  assert(
+      pose_stack_inter_block_bondsep.size(2) == pose_stack_near_blocks.size(2));
   assert(pose_stack_inter_block_bondsep.size(3) == max_n_interblock_bonds);
   assert(pose_stack_inter_block_bondsep.size(4) == max_n_interblock_bonds);
 
@@ -1526,11 +1529,11 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     // logic for deciding whether two atoms in those blocks should have their
     // interaction energies calculated: all should. intentionally small to
     // (possibly) fit in constant cache
-    TView<Int, 3, D> pose_stack_min_bond_separation,
+    TView<Int, 4, D> pose_stack_near_blocks,
 
     // dims: n-poses x max-n-blocks x max-n-blocks x
     // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, D> pose_stack_inter_block_bondsep,
+    TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
 
     //////////////////////
     // Chemical properties
@@ -1601,13 +1604,14 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
 
   assert(max_n_interblock_bonds <= MAX_N_CONN);
 
-  assert(pose_stack_min_bond_separation.size(0) == n_poses);
-  assert(pose_stack_min_bond_separation.size(1) == max_n_blocks);
-  assert(pose_stack_min_bond_separation.size(2) == max_n_blocks);
+  assert(pose_stack_near_blocks.size(0) == n_poses);
+  assert(pose_stack_near_blocks.size(1) == max_n_blocks);
+  assert(pose_stack_near_blocks.size(3) == 2);
 
   assert(pose_stack_inter_block_bondsep.size(0) == n_poses);
   assert(pose_stack_inter_block_bondsep.size(1) == max_n_blocks);
-  assert(pose_stack_inter_block_bondsep.size(2) == max_n_blocks);
+  assert(
+      pose_stack_inter_block_bondsep.size(2) == pose_stack_near_blocks.size(2));
   assert(pose_stack_inter_block_bondsep.size(3) == max_n_interblock_bonds);
   assert(pose_stack_inter_block_bondsep.size(4) == max_n_interblock_bonds);
 

@@ -8,10 +8,7 @@ from tmol.chemical import (
     MAX_SIG_BOND_SEPARATION,
     RefinedResidueType,
 )
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.pose import PackedBlockTypes
 from tmol.score import (
     EnergyTerm,
     IndexedBonds,
@@ -27,7 +24,6 @@ class BondDependentTerm(EnergyTerm):
         self.device = device
         self._bond_block_key = AnnotationKey.from_sources()
         self._bond_packed_key = AnnotationKey.from_sources(settings=(self.device,))
-        self._bond_pose_key = AnnotationKey.from_sources(settings=(self.device,))
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(BondDependentTerm, self).setup_block_type(block_type)
@@ -131,25 +127,4 @@ class BondDependentTerm(EnergyTerm):
                 "all_bonds",
                 "atom_all_bond_ranges",
             ),
-        )
-
-    def setup_poses(self, pose_stack: PoseStack):
-        super(BondDependentTerm, self).setup_poses(pose_stack)
-
-        cached = cached_annotation(
-            pose_stack, "_bond_dependent_annotation", self._bond_pose_key
-        )
-        if cached is not None:
-            return cached
-
-        min_block_bondsep, _ = torch.min(pose_stack.inter_block_bondsep, dim=4)
-        min_block_bondsep, _ = torch.min(min_block_bondsep, dim=3)
-
-        setattr(pose_stack, "min_block_bondsep", min_block_bondsep)
-        return store_annotation(
-            pose_stack,
-            "_bond_dependent_annotation",
-            self._bond_pose_key,
-            min_block_bondsep,
-            fields=("min_block_bondsep",),
         )

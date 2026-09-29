@@ -59,11 +59,11 @@ struct LKBallPoseScoreDispatch {
       // logic for deciding whether two atoms in those blocks should have their
       // interaction energies calculated: all should. intentionally small to
       // (possibly) fit in constant cache
-      TView<Int, 3, Dev> pose_stack_min_bond_separation,
+      TView<Int, 4, Dev> pose_stack_near_blocks,
 
       // dims: n-poses x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
-      TView<Int, 5, Dev> pose_stack_inter_block_bondsep,
+      TView<int8_t, 5, Dev> pose_stack_inter_block_bondsep,
 
       //////////////////////
       // Chemical properties
@@ -129,11 +129,11 @@ struct LKBallPoseScoreDispatch {
       // logic for deciding whether two atoms in those blocks should have their
       // interaction energies calculated: all should. intentionally small to
       // (possibly) fit in constant cache
-      TView<Int, 3, Dev> pose_stack_min_bond_separation,
+      TView<Int, 4, Dev> pose_stack_near_blocks,
 
       // dims: n-poses x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
-      TView<Int, 5, Dev> pose_stack_inter_block_bondsep,
+      TView<int8_t, 5, Dev> pose_stack_inter_block_bondsep,
 
       //////////////////////
       // Chemical properties
@@ -208,11 +208,11 @@ struct LKBallRotamerScoreDispatch {
       // logic for deciding whether two atoms in those blocks should have their
       // interaction energies calculated: all should. intentionally small to
       // (possibly) fit in constant cache
-      TView<Int, 3, Dev> pose_stack_min_bond_separation,
+      TView<Int, 4, Dev> pose_stack_near_blocks,
 
       // dims: n-poses x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
-      TView<Int, 5, Dev> pose_stack_inter_block_bondsep,
+      TView<int8_t, 5, Dev> pose_stack_inter_block_bondsep,
 
       //////////////////////
       // Chemical properties
@@ -278,11 +278,11 @@ struct LKBallRotamerScoreDispatch {
       // logic for deciding whether two atoms in those blocks should have their
       // interaction energies calculated: all should. intentionally small to
       // (possibly) fit in constant cache
-      TView<Int, 3, Dev> pose_stack_min_bond_separation,
+      TView<Int, 4, Dev> pose_stack_near_blocks,
 
       // dims: n-poses x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
-      TView<Int, 5, Dev> pose_stack_inter_block_bondsep,
+      TView<int8_t, 5, Dev> pose_stack_inter_block_bondsep,
 
       //////////////////////
       // Chemical properties
