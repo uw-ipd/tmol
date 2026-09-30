@@ -553,8 +553,9 @@ def build_context_from_biotite(
         biotite_structure = _with_input_hydrogens(
             biotite_structure, ligand_ph, None, chemdb, True
         )
-    coordinating_atoms = _metal_bound_atoms(biotite_structure)
-    biotite_structure = _without_metal_coordination_bonds(biotite_structure)
+    biotite_structure, coordinating_atoms = _without_metal_coordination_bonds(
+        biotite_structure
+    )
     if prepare_ligands:
         from tmol.ligand import prepare_ligands as _prepare_ligands
 
@@ -1433,32 +1434,25 @@ def _metal_coordination_bond_mask(structure):
     return bonds, coordination
 
 
-def _metal_bound_atoms(structure):
-    """{residue name: names of its atoms with a declared metal bond}."""
-    if structure.bonds is None:
-        return {}
-    bonds, coordination = _metal_coordination_bond_mask(structure)
-    template = _template_array(structure)
-    is_metal = _is_metal(template)
-    out = defaultdict(set)
-    for i in bonds[coordination, :2].ravel():
-        if not is_metal[i]:
-            out[str(template.res_name[i])].add(str(template.atom_name[i]))
-    return {name: frozenset(atoms) for name, atoms in out.items()}
-
-
 def _without_metal_coordination_bonds(structure):
-    """Drop metal coordination bonds, which ligand preparation does not read."""
+    """(structure without its metal coordination bonds, which ligand preparation does
+    not read, {residue name: its atoms with a declared metal bond})."""
     if structure.bonds is None:
-        return structure
+        return structure, {}
     bonds, coordination = _metal_coordination_bond_mask(structure)
     if not coordination.any():
-        return structure
+        return structure, {}
+    template = _template_array(structure)
+    is_metal = _is_metal(template)
+    bound = defaultdict(set)
+    for i in bonds[coordination, :2].ravel():
+        if not is_metal[i]:
+            bound[str(template.res_name[i])].add(str(template.atom_name[i]))
     structure = structure.copy()
     structure.bonds = biotite.structure.BondList(
-        _template_array(structure).array_length(), bonds[~coordination]
+        template.array_length(), bonds[~coordination]
     )
-    return structure
+    return structure, {name: frozenset(atoms) for name, atoms in bound.items()}
 
 
 def _metal_atom_names(chemdb=None, co=None):
