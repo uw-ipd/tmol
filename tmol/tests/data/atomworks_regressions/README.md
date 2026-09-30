@@ -267,3 +267,6 @@ Building its protein hydrogens with OptH packs the polar hydrogens. The CPU
 annealer drew from C `rand()`, so a later build in the same process could
 move them by up to 1.455 Å. With `packer_seed`, repeated builds are identical.
 Waters, chloride, benzene and HED are excluded.
+
+`thioglycine_1mro.cif.zst` keeps 1MRO chain A TYR 444–GL3 445–TYR 446. GL3's
+thioamide link reads as C=N with a thiol; it must build as the amide tautomer.

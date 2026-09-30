@@ -842,6 +842,20 @@ def test_a_histidine_bridging_two_zinc_is_the_imidazolate(torch_device):
     assert bridging == [("HIS_DEP", ["metal_ND1", "metal_NE2"])]
 
 
+def test_a_thioglycine_link_read_as_an_iminothiol_builds_as_the_thioamide(
+    torch_device,
+):
+    """1MRO GL3 445 reads C=N to TYR 446 with an SH; it is the C=S thioamide."""
+    array = atom_array_from_cif(DATA / "thioglycine_1mro.cif.zst")
+    pose = pose_stack_from_biotite(
+        array, torch_device, prepare_ligands=True, ligand_seed=20260928
+    )
+    types = pose.packed_block_types.active_block_types
+    (gl3,) = [types[i] for i in pose.block_type_ind64[0] if types[i].name == "GL3"]
+    orders = {frozenset((str(a), str(b))): str(o) for a, b, o, *_ in gl3.bonds}
+    assert orders[frozenset(("C", "S"))] == "DOUBLE"
+
+
 def test_an_ester_oxygen_and_a_metal_bound_oxygen_keep_their_own_forms(torch_device):
     """In each of three chains PLM esterifies SER 360 OG and SER 342 OG binds Na."""
     from tmol.io import build_context_from_biotite

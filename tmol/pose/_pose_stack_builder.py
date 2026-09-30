@@ -38,12 +38,9 @@ from tmol.utility.tensor import (
 from tmol.utility._device import resolve_device
 
 
-def _is_leading_run(block_types, pbt) -> bool:
-    """Whether block_types begin pbt's active block types, as the same objects."""
-    active = pbt.active_block_types
-    return len(block_types) <= len(active) and all(
-        a is b for a, b in zip(block_types, active)
-    )
+def _is_leading_run(items, of) -> bool:
+    """Whether ``items`` begin ``of``, as the same objects."""
+    return len(items) <= len(of) and all(a is b for a, b in zip(items, of))
 
 
 class PoseStackBuilder:
@@ -53,24 +50,15 @@ class PoseStackBuilder:
     def _widest_packed_block_types(pose_stacks):
         """The packed block types over the largest chemical database.
 
-        Databases only grow by appending residues, whether ligands or metal
-        donor forms, so a database whose residues are a leading run of
-        another's, as the same objects, names nothing the larger one does not
-        mean identically. Any other pair was built from unrelated sources.
+        Databases grow only by appending residues; each must be a leading run of it.
         """
         widest = max(
             (ps.packed_block_types for ps in pose_stacks),
             key=lambda pbt: (len(pbt.chem_db.residues), pbt.n_types),
         )
-        residues = widest.chem_db.residues
         for ps in pose_stacks:
-            chem_db = ps.packed_block_types.chem_db
-            if chem_db is widest.chem_db:
-                continue
-            shared = residues[: len(chem_db.residues)]
-            if len(shared) != len(chem_db.residues) or any(
-                a is not b for a, b in zip(shared, chem_db.residues)
-            ):
+            residues = ps.packed_block_types.chem_db.residues
+            if not _is_leading_run(residues, widest.chem_db.residues):
                 raise ValueError(
                     "pose stacks were built from chemical databases neither of "
                     "which extends the other; build them from one context"
@@ -97,7 +85,9 @@ class PoseStackBuilder:
         pbt0 = cls._widest_packed_block_types(pose_stacks)
         # a grown generation keeps every earlier block type at its index
         reuse_pbt = all(
-            _is_leading_run(ps.packed_block_types.active_block_types, pbt0)
+            _is_leading_run(
+                ps.packed_block_types.active_block_types, pbt0.active_block_types
+            )
             for ps in pose_stacks
         )
         if reuse_pbt:
