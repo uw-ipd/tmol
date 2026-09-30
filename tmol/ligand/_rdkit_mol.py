@@ -456,8 +456,8 @@ def transfer_tetrahedral_stereochemistry(
     *,
     replaced_atoms: Collection[int] = (),
 ) -> int:
-    """Copy ``reference``'s tetrahedral centres onto ``mol``'s undefined ones by neighbour
-    parity through ``atom_mapping``; ``replaced_atoms`` may change element. Returns the count.
+    """Copy ``reference``'s tetrahedral centres to ``mol``'s undefined ones by neighbour
+    parity via ``atom_mapping`` (``replaced_atoms`` may differ); returns the count.
     """
     if (
         not set(replaced_atoms) <= atom_mapping.keys()

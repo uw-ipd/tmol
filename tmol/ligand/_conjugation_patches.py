@@ -100,9 +100,8 @@ def leaving_atoms(residue_type, atom: str, chemdb, n_leaving: int = 1):
 
 
 def declared_heavy_leaving_groups(atom_array, chemdb):
-    """Absent heavy leaving groups at connected sites, by (residue name, atom).
-    Database types (a file tmol wrote) lose terminal heavy atoms; others follow templates.
-    """
+    """Absent heavy leaving groups at connected sites, by (residue name, atom): a
+    database type's (tmol's own files) are lone heavy atoms, others' are templated."""
     if atom_array.bonds is None:
         return {}
     types = {rt.name: rt for rt in chemdb.residues if rt.name == rt.base_name}

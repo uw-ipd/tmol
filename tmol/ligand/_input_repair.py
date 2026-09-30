@@ -79,7 +79,7 @@ def _infer_carboxylate_bonds(rw: Chem.RWMol, conf: Chem.Conformer) -> int:
 
 
 def correct_carboxylate_bond_orders(mol: Chem.Mol) -> Chem.Mol:
-    """A sanitized copy with geometry-repaired carboxylates (see above), else ``mol``."""
+    """A sanitized copy with geometry-repaired carboxylates, else ``mol``."""
     if mol.GetNumConformers() == 0:
         return mol
     rw = Chem.RWMol(mol)

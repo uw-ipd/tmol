@@ -1683,7 +1683,7 @@ def _as_free_molecule(lig, ph):
 
 
 def _copy_without_donor_hydrogens(lig, donors, atom_array):
-    """A copy of ``lig`` in ``atom_array`` lacking only hydrogens on metal ``donors``."""
+    """A copy of ``lig`` in ``atom_array`` lacking only hydrogens on ``donors``."""
     names = set(map(str, lig.atom_array.atom_name))
     is_h = np.isin(lig.atom_array.element, ("H", "D"))
     on_donor = set()

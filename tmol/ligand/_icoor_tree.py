@@ -1,4 +1,4 @@
-"""Atom trees and internal coordinates for building residue types, in the Rosetta convention."""
+"""Atom trees and Rosetta-convention internal coordinates for building residue types."""
 
 import math
 from collections import deque
@@ -61,7 +61,7 @@ def build_atom_tree(
     frame_excluded_indices: Iterable[int] = (),
 ) -> tuple[list[int], dict[int, int], dict[int, tuple[int, int]]]:
     """``(order, parent, grandparents)``: heavy atoms breadth-first from ``root``, then
-    hydrogens; siblings stand in for missing ancestors, ``frame_excluded_indices`` go last.
+    hydrogens; siblings stand in for missing ancestors, frame-excluded atoms go last.
     """
     adjacency: dict[int, list[int]] = {i: [] for i in range(n_atoms)}
     for i, j in bonds:
@@ -95,7 +95,7 @@ def build_atom_tree(
     position = {index: i for i, index in enumerate(order)}
 
     def pick(of: int, exclude: set[int], heavy_only: bool, before: int) -> int | None:
-        """The earliest-placed neighbour of ``of`` before ``before``, heavy first if asked."""
+        """The earliest-placed neighbour of ``of`` before ``before``."""
         candidates = [
             n
             for n in adjacency[of]
