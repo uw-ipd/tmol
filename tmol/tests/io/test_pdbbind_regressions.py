@@ -8,6 +8,7 @@ import zstandard
 from tmol.io import (
     atom_array_from_file,
     atom_array_from_mol2,
+    cif_from_atom_array,
     pose_stack_from_biotite,
 )
 from tmol.tests.data import data_path
@@ -187,3 +188,13 @@ def test_a_ligand_named_by_another_component_has_only_its_own_atoms_and_bonds(
     pairs = array.bonds.as_array()
     assert mine.sum() == atoms and np.isfinite(array.coord[mine]).all()
     assert (mine[pairs[:, 0]] & mine[pairs[:, 1]]).sum() == bonds
+
+
+def test_a_mol2_ligand_is_a_non_polymer_whatever_its_name(tmp_path):
+    """3URI's ligand, named PRO, reads and writes back as a non-polymer, not as the
+    peptide-linking amino acid of that CCD entry."""
+    ligand = atom_array_from_mol2(
+        _unpacked(tmp_path, "ligand_named_pro_3uri.mol2.zst"), res_name="PRO"
+    )
+    back = atom_array_from_file(cif_from_atom_array(ligand, path=tmp_path / "l.cif"))
+    assert set(ligand.chem_comp_type) == set(back.chem_comp_type) == {"NON-POLYMER"}

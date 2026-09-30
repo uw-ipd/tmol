@@ -142,5 +142,14 @@
   "sha256": "1cdd43a959db96e69b9f655a5ded69dad2c49cd0839f1e853fbdae02e2aaddf0",
   "bytes": 13717,
   "compressed_sha256": "430667c0078c08066a2e1e174c3ea32c9c90c0168da36155b86748166ae70c5a"
+ },
+ {
+  "fixture": "ligand_named_pro_3uri.mol2.zst",
+  "source": "PDBbind v2013-core 3uri/3uri_ligand.mol2 (copy /mnt/data/kdidi/pdbbind/v2013-core/3uri/3uri_ligand.mol2)",
+  "source_sha256": "1788d7d8dedfc01117e9947c21c34391ee62ac2fb15632437aa8dccbc425abf4",
+  "transformation": "3uri_ligand.mol2 (PDBbind v2013-core) unchanged; zstd -19",
+  "sha256": "1788d7d8dedfc01117e9947c21c34391ee62ac2fb15632437aa8dccbc425abf4",
+  "bytes": 13144,
+  "compressed_sha256": "ee4f9f4a2f7e593c748f98fff811cf6fbe4f80d62c5808365e6037d9eda98409"
  }
 ]
