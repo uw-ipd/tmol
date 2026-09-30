@@ -53,8 +53,8 @@ def _polymer_connection(residue, atom):
 def attachment_connection_name(
     atom_array, index, partner, residue, partner_residue=None
 ):
-    """A polymer ``down`` N takes only an incoming (thio)carbonyl and an ``up`` atom only a
-    polymer ``down`` atom (7AG5's Pro C on DNP NG); other bonds are conjugations."""
+    """A polymer ``down`` N takes only an incoming (thio)carbonyl, an ``up`` atom only
+    a polymer ``down`` atom (7AG5: Pro C on DNP NG); other bonds are conjugations."""
     atom = str(atom_array.atom_name[index])
     declared = _polymer_connection(residue, atom)
     if (
