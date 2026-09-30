@@ -1555,7 +1555,7 @@ def _metal_origins(structure):
 
 def _with_peptide_tautomers(structure):
     """Rewrite an inter-residue C=N link whose C carries a single-bonded, uncharged
-    terminal O/S as the amide (C=X, hydrogens on X dropped)."""
+    terminal O/S as the amide (C=X, hydrogens on X dropped), as 1MRO's GL3 reads."""
     template = _template_array(structure)
     if template.bonds is None:
         return structure
