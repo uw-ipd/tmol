@@ -457,5 +457,17 @@
     "bytes": 581356,
     "compression": "zstd; decompressed bytes identical to source",
     "compressed_sha256": "931c1fb6a96941c91a3c04d7794553aa1ce792c7adcaa1466926ce5acf5c706e"
+  },
+  {
+    "fixture": "thioglycine_1mro.cif.zst",
+    "source": "https://files.rcsb.org/download/1MRO.cif.gz",
+    "source_repository": "RCSB PDB",
+    "retrieved": "2026-09-30",
+    "source_sha256": "700dc8080bf6895fe77f7cb91462fe8b8a332f04fa5ab048261925338869b5c0",
+    "transformation": "model 1 atom_site cropped to label chain A residues 443-445 (TYR-GL3-TYR); other categories kept",
+    "sha256": "7783e0c85879a0c22856946fcfd31cad1d084cff9af228dba175175a5a06f243",
+    "bytes": 154099,
+    "compression": "zstd",
+    "compressed_sha256": "34db8e3566bdce279bdfc0857745777a5a2522254ede4a7b45c09be6920dcf32"
   }
 ]

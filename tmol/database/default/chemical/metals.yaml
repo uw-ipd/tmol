@@ -1,17 +1,7 @@
-# Metal coordination reference data.
-#
-# Distances are median metal-ligand separations measured from annotated
-#    coordination in high-resolution PDB entries; only cells with enough
-#    observations are listed. Some are shifted so that relaxed structures,
-#    under the full score function, center on the measured median. Anything
-#    absent is filled by the generator as ionic_radius + donor_radius.
-# Geometry vertices are unit vectors; a geometry with none is untemplated,
-#    meaning metal-ligand distances are restrained but site geometry is not.
-# Each ion's geometries are listed most-common first, from observed
-#    coordination numbers in high-resolution entries; the first is the
-#    default when nothing else decides. Those counts include waters, which
-#    structure input drops, so detection will usually see fewer donors than
-#    the geometry has sites -- the list is what supplies the rest.
+# Distances: median metal-ligand separations in high-resolution PDB entries (some shifted
+#    so relaxed structures center on them); absent ones are ionic_radius + donor_radius.
+# Vertices are unit vectors (none: untemplated, distances only). Each ion's geometries are
+#    most-common first, waters included; the first is the default.
 
 donor_radii:
   O: 1.396
