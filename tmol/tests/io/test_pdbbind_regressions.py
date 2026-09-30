@@ -190,6 +190,12 @@ def test_a_ligand_named_by_another_component_has_only_its_own_atoms_and_bonds(
     assert (mine[pairs[:, 0]] & mine[pairs[:, 1]]).sum() == bonds
 
 
+def test_a_free_amino_acid_beside_its_chain_keeps_its_name(tmp_path):
+    """3B3S's ligand is leucine, its hydrogens named apart from the CCD's: it stays LEU."""
+    array = atom_array_from_file(_unpacked(tmp_path, "free_leucine_3b3s.pdb.zst"))
+    assert set(array.res_name) == {"LEU"}
+
+
 def test_a_mol2_ligand_is_a_non_polymer_whatever_its_name(tmp_path):
     """3URI's ligand, named PRO, reads and writes back as a non-polymer, not as the
     peptide-linking amino acid of that CCD entry."""

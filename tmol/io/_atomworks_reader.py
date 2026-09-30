@@ -329,9 +329,10 @@ def _bond_table(array, rows=slice(None)):
 
 
 def _own_template(residue, entry):
-    """``residue`` as its own component; the entry's where its heavy atoms are the entry's.
+    """``residue`` as its own component, and whether its heavy atoms are the entry's.
 
-    Then only the bonds it states to its hydrogens are its own (1E66 HUX names them apart).
+    Then the component is the entry's but for the bonds it states to its hydrogens
+    (1E66 HUX names them apart).
     """
     from tmol.io._assemble import _component_template
 
@@ -356,7 +357,7 @@ def _own_template(residue, entry):
         template.bonds = struc.BondList(len(template), bonds.astype(np.uint32))
         charge = dict(zip(entry.atom_name.tolist(), entry.charge.tolist()))
         template.charge[heavy] = [charge[n] for n in template.atom_name[heavy]]
-    return template
+    return template, fits
 
 
 def _own_components(array, names=None):
@@ -386,8 +387,11 @@ def _own_components(array, names=None):
         ):
             continue
         r = max(np.unique(residue[mine]), key=lambda r: bounds[r + 1] - bounds[r])
-        template = _own_template(array[bounds[r] : bounds[r + 1]], entry)
+        template, fits = _own_template(array[bounds[r] : bounds[r + 1]], entry)
         if names is None and name in array.res_name[~array.hetero]:
+            if fits:
+                # 3B3S: a free leucine beside the chain's is the CCD's LEU
+                continue
             from tmol.ligand._preparation import unused_ligand_name
 
             name = unused_ligand_name(set(array.res_name.tolist()))

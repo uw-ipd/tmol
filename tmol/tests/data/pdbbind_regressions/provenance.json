@@ -151,5 +151,14 @@
   "sha256": "1788d7d8dedfc01117e9947c21c34391ee62ac2fb15632437aa8dccbc425abf4",
   "bytes": 13144,
   "compressed_sha256": "ee4f9f4a2f7e593c748f98fff811cf6fbe4f80d62c5808365e6037d9eda98409"
+ },
+ {
+  "fixture": "free_leucine_3b3s.pdb.zst",
+  "source": "PDBbind v2013-core 3b3s/3b3s_complex.pdb (copy /mnt/data/kdidi/pdbbind/v2013-core/3b3s/3b3s_complex.pdb)",
+  "source_sha256": "c6f70b3d3c5f5c1e29879e39864bd848f41adbc4203dbd44bd094f1ec57691ed",
+  "transformation": "HETATM LEU records of 3b3s_complex.pdb (PDBbind v2013-core) and their CONECT records among them, plus the ATOM records of chain A residue 14 (LEU), END appended; zstd -19",
+  "sha256": "435df7d5dce6222d27839bbfe448652dc1e684df5f1a2a71a32fca32f2dbc85c",
+  "bytes": 2927,
+  "compressed_sha256": "ea12dbfca9b15ff368b9defd7e9e93b37ca0a2c041cf2d760e8d26034fde7418"
  }
 ]

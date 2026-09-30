@@ -18,3 +18,4 @@ exercised by `tmol/tests/io/test_pdbbind_regressions.py`, whose tests fail witho
 | `own_ligand_mol_3udh.pdb.zst`, `own_ligand_dgx_1igj.pdb.zst` | A ligand named with the CCD code of another molecule (MOL, DGX) keeps its own atoms and CONECT bonds: no CCD atom at NaN, no CCD bond. |
 | `hydrogens_named_apart_hux_1e66.pdb.zst` | A CCD ligand (HUX) whose CONECT records bond hydrogens the CCD names apart keeps the CCD's heavy-atom bonds and its own hydrogen bonds. |
 | `ligand_named_pro_3uri.pdb.zst`, `ligand_named_pro_3uri.mol2.zst` | A 65-atom ligand named PRO beside prolines is renamed `L_1` with only its CONECT bonds; read from MOL2 it is a non-polymer. |
+| `free_leucine_3b3s.pdb.zst` | A free leucine ligand beside the chain's leucines, its hydrogens named apart from the CCD's, keeps its name and the CCD's LEU. |
