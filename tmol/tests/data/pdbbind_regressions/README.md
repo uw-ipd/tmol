@@ -15,3 +15,6 @@ exercised by `tmol/tests/io/test_pdbbind_regressions.py`, whose tests fail witho
 | `heavy_atom_imidazole_6t88.sdf.zst`, `heavy_atom_indazole_6tw5.sdf.zst` | Heavy-atom SDF ligands (PoseBusters) keep their Kekule tautomer, and aromatic bond orders keep their atoms aromatic. |
 | `capped_break_1err.pdb.zst` | Atoms a mid-chain residue cannot hold (PrepWizard's H1, H2 at 1ERR's break) make the residue after a gap a terminus. |
 | `single_bonded_carboxyl_2xej.mol2.zst` | A carboxyl written C.3 with two single C-O bonds (PrepWizard 2XEJ, ligand C-terminus) is read as the planar carboxylate it is, by the shared delocalized-group routine. |
+| `own_ligand_mol_3udh.pdb.zst`, `own_ligand_dgx_1igj.pdb.zst` | A ligand named with the CCD code of another molecule (MOL, DGX) keeps its own atoms and CONECT bonds: no CCD atom at NaN, no CCD bond. |
+| `hydrogens_named_apart_hux_1e66.pdb.zst` | A CCD ligand (HUX) whose CONECT records bond hydrogens the CCD names apart keeps the CCD's heavy-atom bonds and its own hydrogen bonds. |
+| `ligand_named_pro_3uri.pdb.zst`, `ligand_named_pro_3uri.mol2.zst` | A 65-atom ligand named PRO beside prolines is renamed `L_1` with only its CONECT bonds; read from MOL2 it is a non-polymer. |

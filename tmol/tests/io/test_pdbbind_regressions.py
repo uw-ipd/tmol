@@ -1,9 +1,15 @@
 """Regressions found reading PDBbind v2013-core complexes (PDB, MOL2 and SDF files)."""
 
+import numpy as np
+import pytest
 import torch
 import zstandard
 
-from tmol.io import atom_array_from_file, atom_array_from_mol2, pose_stack_from_biotite
+from tmol.io import (
+    atom_array_from_file,
+    atom_array_from_mol2,
+    pose_stack_from_biotite,
+)
 from tmol.tests.data import data_path
 
 
@@ -154,3 +160,30 @@ def test_numbered_bond_across_a_gap_is_not_kept():
             missing_density_distance_threshold=threshold,
         )
         assert _bonded(pose, 37, 38) == bonded
+
+
+@pytest.mark.parametrize(
+    "name, ligand, atoms, bonds",
+    [
+        ("own_ligand_mol_3udh.pdb.zst", "MOL", 27, 29),
+        ("own_ligand_dgx_1igj.pdb.zst", "DGX", 81, 86),
+        ("hydrogens_named_apart_hux_1e66.pdb.zst", "HUX", 40, 43),
+        ("ligand_named_pro_3uri.pdb.zst", "L_1", 130, 133),
+        ("hivrt_lg1.bond_table_only.cif", "LG1", 44, 45),
+    ],
+)
+def test_a_ligand_named_by_another_component_has_only_its_own_atoms_and_bonds(
+    tmp_path, name, ligand, atoms, bonds
+):
+    """A ligand whose file contradicts the CCD entry of its name gains no atom or bond
+    from it: 3UDH MOL, 1IGJ DGX, 1E66 HUX (hydrogens named apart), 3URI PRO (renamed,
+    beside prolines) and a CIF bonding LG1 in chem_comp_bond alone."""
+    if name.endswith(".cif"):
+        path = data_path("ligand_cif_fixtures", name)
+    else:
+        path = _unpacked(tmp_path, name)
+    array = atom_array_from_file(path)
+    mine = array.res_name == ligand
+    pairs = array.bonds.as_array()
+    assert mine.sum() == atoms and np.isfinite(array.coord[mine]).all()
+    assert (mine[pairs[:, 0]] & mine[pairs[:, 1]]).sum() == bonds
