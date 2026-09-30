@@ -271,7 +271,7 @@ def test_ligand_smiles_are_protonated_at_ph_7_4(smiles, expected) -> None:
 
 
 def test_prepare_ligand_from_cif_helper_loads_reference_fixture() -> None:
-    """The CIF helper prepares a ligand and registers it as LG1."""
+    """The CIF helper prepares a ligand and registers it under its CIF name, L_1."""
     from tmol.database import ParameterDatabase
     from tmol.ligand import prepare_ligand_from_cif
 
@@ -280,7 +280,7 @@ def test_prepare_ligand_from_cif_helper_loads_reference_fixture() -> None:
         str(cif_path),
         param_db=ParameterDatabase.get_default(),
     )
-    assert any(rt.name == "LG1" for rt in param_db.chemical.residues)
+    assert any(rt.name == "L_1" for rt in param_db.chemical.residues)
 
 
 def _residue_atoms(res_id, res_name, names_coords, chain_id="A"):
