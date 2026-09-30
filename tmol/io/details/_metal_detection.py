@@ -248,6 +248,7 @@ def _build_canonical_metal_tables(
     """Fold the chemical database down to what detection reads per atom."""
     atom_type = {at.name: at for at in chemical_db.atom_types}
     ion_for_name3 = {ion["name3"]: ion for ion in table["ions"]}
+    radii = table["donor_radii"]
 
     members = defaultdict(list)
     for res in chemical_db.residues:
@@ -270,9 +271,8 @@ def _build_canonical_metal_tables(
                     continue
                 j = index_of.get(atom.name)
                 if j is not None:
-                    # water is typed apart from other oxygens: it is what an
-                    # open site is assumed to hold, so it has its own distance
-                    donor_element[i, j] = "Owat" if at.name == "Owat" else at.element
+                    # the donor_radii key: the type's own (Owat), else its element
+                    donor_element[i, j] = at.name if at.name in radii else at.element
         # a donor's hydrogens come from every type, also those it cannot donate in
         for res in members.get(equiv_class, ()):
             element_of = {
