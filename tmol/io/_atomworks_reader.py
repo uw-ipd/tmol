@@ -90,32 +90,37 @@ def _with_metal_coordination(array, block):
     )
 
 
-def _renumber_decreasing_author_ids(array):
-    """Renumber, in file order, any chain whose author numbering decreases.
+def renumbered_decreasing_chains(array):
+    """(res_id, ins_code, chains): chains whose numbering decreases renumbered 1..N.
 
-    AtomWorks refuses such a chain (5XNL numbers its waters backwards); renumbering
-    keeps residue identity and order. Returns the array unchanged where none decreases.
+    Their insertion codes are cleared; other chains' are load-bearing (antibody CDRs).
     """
     res_id = array.res_id.copy()
     ins_code = array.ins_code.copy()
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)
-    repaired = []
+    chains = []
     for chain in dict.fromkeys(array.chain_id.tolist()):
         in_chain = array.chain_id == chain
         if not (np.diff(res_id[in_chain]) < 0).any():
             continue
         number = 0
-        for begin, end in zip(starts[:-1], starts[1:], strict=False):
+        for begin, end in zip(starts[:-1], starts[1:]):
             if array.chain_id[begin] == chain:
                 number += 1
                 res_id[begin:end] = number
-        # renumbering supersedes this chain's insertion codes and no others:
-        #    elsewhere they are load-bearing, as an antibody's CDRs are
         ins_code[in_chain] = ""
-        repaired.append(str(chain))
+        chains.append(str(chain))
+    return res_id, ins_code, chains
+
+
+def _renumber_decreasing_author_ids(array):
+    """Renumber, in file order, any chain whose author numbering decreases.
+
+    AtomWorks refuses such a chain (5XNL numbers its waters backwards).
+    """
+    res_id, ins_code, repaired = renumbered_decreasing_chains(array)
     if not repaired:
         return array
-
     warnings.warn(
         f"Renumbering chain(s) {', '.join(repaired)}: author numbering that decreases "
         "within a chain is not an ordering that can be relied on downstream.",

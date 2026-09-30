@@ -16,6 +16,7 @@ from tmol.chemical import ResidueTypeSet
 from tmol.chemical import BondType as ChemBondType
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import metal_table, site_connections
+from tmol.io._atomworks_reader import renumbered_decreasing_chains
 from tmol.io._canonical_ordering import _only_coordinates_a_metal
 from tmol.io._protonation import (
     PROTONATION_VARIANT,
@@ -1397,40 +1398,25 @@ def _map_atoms_to_canonical(co, atom_res_inds, res_names, atom_names, elements):
 
 
 def _renumbered_for_cif(structure):
-    """Renumber the chains a biotite CIF round trip cannot carry, with a warning.
+    """Renumber, with a warning, the chains biotite's CIF round trip cannot carry.
 
-    biotite writes res_id as both label_seq_id and auth_seq_id, and reads a
-    label_seq_id of -1 as missing; label-based readers such as atomworks also
-    reject numbering that decreases within a chain. A chain containing -1 is
-    shifted to start at 1; a chain whose numbering decreases is renumbered 1..N.
+    biotite reads a label_seq_id of -1 as missing, and atomworks rejects numbering
+    that decreases within a chain: the first is shifted to start at 1, the second 1..N.
     """
     template = _template_array(structure)
-    res_id = template.res_id.copy()
-    ins_code = template.ins_code.copy()
-    starts = biotite.structure.get_residue_starts(template, add_exclusive_stop=True)
-    changed = False
+    res_id, ins_code, decreasing = renumbered_decreasing_chains(template)
+    reasons = dict.fromkeys(decreasing, "numbering that decreases within a chain")
     for chain in dict.fromkeys(template.chain_id.tolist()):
         in_chain = template.chain_id == chain
-        ids = res_id[in_chain]
-        if (numpy.diff(ids) < 0).any():
-            reason = "numbering that decreases within a chain"
-            number = 0
-            for begin, end in zip(starts[:-1], starts[1:]):
-                if template.chain_id[begin] == chain:
-                    number += 1
-                    res_id[begin:end] = number
-            ins_code[in_chain] = ""
-        elif (ids == -1).any():
-            reason = "a residue id of -1"
-            res_id[in_chain] += 1 - ids.min()
-        else:
-            continue
+        if chain not in reasons and (res_id[in_chain] == -1).any():
+            reasons[chain] = "a residue id of -1"
+            res_id[in_chain] += 1 - res_id[in_chain].min()
+    for chain, reason in reasons.items():
         warnings.warn(
             f"Renumbering chain {chain} of the output AtomArray: biotite's CIF "
             f"writer does not support {reason}"
         )
-        changed = True
-    if not changed:
+    if not reasons:
         return structure
     structure = structure.copy()
     structure.res_id = res_id
