@@ -786,25 +786,6 @@ class PoseStackBuilder:
 
     @classmethod
     @validate_args
-    def _chain_labels_from_pose_stacks(
-        cls,
-        pose_stacks,  # : List["PoseStack"],
-        ps_offsets: Tensor[torch.int64][:],
-        max_n_blocks: int,
-        device: torch.device,
-    ) -> NDArray[object][:, :]:
-        n_poses = sum(len(ps) for ps in pose_stacks)
-        chain_labels = numpy.full((n_poses, max_n_blocks), "", dtype=object)
-        for i, pose_stack in enumerate(pose_stacks):
-            offset = ps_offsets[i]
-            i_nblocks = pose_stack.chain_labels.shape[1]
-            chain_labels[offset : (offset + len(pose_stack)), :i_nblocks] = (
-                pose_stack.chain_labels
-            )
-        return chain_labels
-
-    @classmethod
-    @validate_args
     def _annotate_pbt_w_canonical_aa1lc_lookup(cls, pbt: PackedBlockTypes):
         """Annotate the PBT with a pandas dictionary mapping the (unique!) names
         of each of the block types to their index in the active_block_types list,

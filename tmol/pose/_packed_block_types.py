@@ -21,14 +21,6 @@ from tmol.utility._device import resolve_device
 MAX_N_CONN = 12
 
 
-def residue_types_from_residues(residues):
-    rt_dict = {}
-    for res in residues:
-        if id(res.residue_type) not in rt_dict:
-            rt_dict[id(res.residue_type)] = res.residue_type
-    return [rt for addr, rt in rt_dict.items()]
-
-
 @attr.s(auto_attribs=True)
 class PackedBlockTypes:
     """A class to aggregate the properties for a collection of residue types.
