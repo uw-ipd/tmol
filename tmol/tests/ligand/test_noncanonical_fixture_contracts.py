@@ -26,13 +26,7 @@ def _fixtures(directory):
     return sorted(f"{directory}/{p.name}" for p in data_path(directory).glob("*.cif*"))
 
 
-# The two directories separate noncanonical *residues* from components joined
-# by a bond that crosses a residue boundary. That distinction matters below:
-# parameters describe a residue's chemistry, not which residues a particular
-# structure links together.
-RESIDUE_FIXTURES = _fixtures("ncaa_fixtures")
-LINKED_FIXTURES = _fixtures("covalent_fixtures")
-FIXTURES = sorted(RESIDUE_FIXTURES + LINKED_FIXTURES)
+FIXTURES = sorted(_fixtures("ncaa_fixtures") + _fixtures("covalent_fixtures"))
 
 
 def _described_from_an_unplaced_copy(array, names):
