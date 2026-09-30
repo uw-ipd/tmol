@@ -2482,11 +2482,11 @@ def prepare_ligands_from_smiles(
 
 
 def _prepare_mol2(mol2_path, res_name=None, *, ph=7.4, mode="auto", seed=None):
-    from tmol.ligand._detect import nonstandard_residue_info_from_mol2
+    from tmol.ligand._detect import nonstandard_residue_info_from_file
 
     if mode not in ("keep", "auto", "regenerate"):
         raise ValueError("MOL2 mode must be keep, auto, or regenerate")
-    lig = nonstandard_residue_info_from_mol2(mol2_path, res_name=res_name)
+    lig = nonstandard_residue_info_from_file(mol2_path, res_name=res_name)
     try:
         return (
             prepare_single_ligand(lig)
@@ -2514,7 +2514,7 @@ def prepare_ligand_from_mol2(
     to apply the requested pH even to a neutralized, fully hydrogenated input.
 
     Args:
-        mol2_path: Path to the ligand mol2 file.
+        mol2_path: Path to the ligand MOL2 or SDF file.
         param_db: Base database (not modified); defaults to the tmol default.
         ph: Target pH for protonation.
         mode: ``"keep"`` requires prepared input and retains its protonation and

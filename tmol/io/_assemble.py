@@ -38,7 +38,7 @@ def atom_array_from_mol2(
     in a CIF rather than depend on a dictionary entry that does not exist.
 
     Args:
-        mol2_path: Path to the MOL2 file.
+        mol2_path: Path to the MOL2, SDF or MOL file.
         res_name: Component code to give the ligand. Taken from the file's
             substructure record when None.
         chain_id: Chain to place the ligand on.
@@ -53,16 +53,9 @@ def atom_array_from_mol2(
         True
     """
     # Imported here because tmol.ligand imports tmol.io, as elsewhere in this package.
-    from tmol.ligand._detect import (
-        nonstandard_residue_info_from_mol2,
-        nonstandard_residue_info_from_sdf,
-    )
+    from tmol.ligand._detect import nonstandard_residue_info_from_file
 
-    sdf = Path(mol2_path).suffix.lower() in (".sdf", ".mol")
-    read = (
-        nonstandard_residue_info_from_sdf if sdf else nonstandard_residue_info_from_mol2
-    )
-    info = read(mol2_path, res_name=res_name)
+    info = nonstandard_residue_info_from_file(mol2_path, res_name=res_name)
     atom_array = as_atom_array_plus(info.atom_array.copy())
     atom_array.chain_id[:] = chain_id
     atom_array.res_id[:] = res_id

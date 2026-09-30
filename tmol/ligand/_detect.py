@@ -449,6 +449,17 @@ def nonstandard_residue_info_from_mol2(
         raise ValueError(f"{mol2_path}: {error}") from error
 
 
+def nonstandard_residue_info_from_file(
+    path: str | Path, res_name: str | None = None
+) -> NonStandardResidueInfo:
+    """``NonStandardResidueInfo`` from a MOL2 or an SDF/MOL file, by suffix."""
+    sdf = Path(path).suffix.lower() in (".sdf", ".mol")
+    read = (
+        nonstandard_residue_info_from_sdf if sdf else nonstandard_residue_info_from_mol2
+    )
+    return read(path, res_name=res_name)
+
+
 def nonstandard_residue_info_from_sdf(
     sdf_path: str | Path,
     res_name: str | None = None,
