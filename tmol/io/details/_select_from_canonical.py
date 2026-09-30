@@ -174,35 +174,19 @@ def assign_block_types(
         nz_res_is_poly_and_conn_to_next_res_ind,
     ) = torch.nonzero(res_is_polymeric_and_conn_to_next, as_tuple=True)
 
-    # now let's mark for each upper-connect the residue and
-    # connection id it's connected to
-    inter_residue_connections64[
-        nz_res_is_poly_and_conn_to_next_pose_ind,
-        nz_res_is_poly_and_conn_to_next_res_ind,
-        connected_up_conn_inds,
-        0,  # residue id
-    ] = nz_res_is_poly_and_conn_to_prev_res_ind
-    inter_residue_connections64[
-        nz_res_is_poly_and_conn_to_next_pose_ind,
-        nz_res_is_poly_and_conn_to_next_res_ind,
-        connected_up_conn_inds,
-        1,  # connection id
-    ] = connected_down_conn_inds
+    # mark each connection with the residue and connection on its other side
+    def join(pose1, res1, conn1, pose2, res2, conn2):
+        inter_residue_connections64[pose1, res1, conn1] = torch.stack((res2, conn2), -1)
+        inter_residue_connections64[pose2, res2, conn2] = torch.stack((res1, conn1), -1)
 
-    # now let's mark for each lower-connect the residue and
-    # connection id it's connected to
-    inter_residue_connections64[
+    join(
+        nz_res_is_poly_and_conn_to_next_pose_ind,
+        nz_res_is_poly_and_conn_to_next_res_ind,
+        connected_up_conn_inds,
         nz_res_is_poly_and_conn_to_prev_pose_ind,
         nz_res_is_poly_and_conn_to_prev_res_ind,
         connected_down_conn_inds,
-        0,  # residue id
-    ] = nz_res_is_poly_and_conn_to_next_res_ind
-    inter_residue_connections64[
-        nz_res_is_poly_and_conn_to_prev_pose_ind,
-        nz_res_is_poly_and_conn_to_prev_res_ind,
-        connected_down_conn_inds,
-        1,  # connection id
-    ] = connected_up_conn_inds
+    )
 
     # if we have any disulfides, then we need to also mark those
     # connections in the inter_residue_connections64 map
@@ -222,19 +206,14 @@ def assign_block_types(
         cyd2_dslf_conn64 = pbt.canonical_dslf_conn_ind[cyd2_block_type64].to(
             torch.int64
         )
-
-        inter_residue_connections64[
-            found_disulfides64[:, 0], found_disulfides64[:, 1], cyd1_dslf_conn64, 0
-        ] = found_disulfides64[:, 2]
-        inter_residue_connections64[
-            found_disulfides64[:, 0], found_disulfides64[:, 1], cyd1_dslf_conn64, 1
-        ] = cyd2_dslf_conn64
-        inter_residue_connections64[
-            found_disulfides64[:, 0], found_disulfides64[:, 2], cyd2_dslf_conn64, 0
-        ] = found_disulfides64[:, 1]
-        inter_residue_connections64[
-            found_disulfides64[:, 0], found_disulfides64[:, 2], cyd2_dslf_conn64, 1
-        ] = cyd1_dslf_conn64
+        join(
+            found_disulfides64[:, 0],
+            found_disulfides64[:, 1],
+            cyd1_dslf_conn64,
+            found_disulfides64[:, 0],
+            found_disulfides64[:, 2],
+            cyd2_dslf_conn64,
+        )
 
     # a cyclic chain's closing bond joins two residues the sequential logic
     # above deliberately skipped, so write it from the explicit pair list
@@ -248,18 +227,8 @@ def assign_block_types(
         cyc_down_conn64 = pbt.down_conn_inds[
             block_type_ind64[cyc_pose, cyc_down_res]
         ].to(torch.int64)
-
-        inter_residue_connections64[cyc_pose, cyc_up_res, cyc_up_conn64, 0] = (
-            cyc_down_res
-        )
-        inter_residue_connections64[cyc_pose, cyc_up_res, cyc_up_conn64, 1] = (
-            cyc_down_conn64
-        )
-        inter_residue_connections64[cyc_pose, cyc_down_res, cyc_down_conn64, 0] = (
-            cyc_up_res
-        )
-        inter_residue_connections64[cyc_pose, cyc_down_res, cyc_down_conn64, 1] = (
-            cyc_up_conn64
+        join(
+            cyc_pose, cyc_up_res, cyc_up_conn64, cyc_pose, cyc_down_res, cyc_down_conn64
         )
 
     # a conjugation joins two residues through connections neither of them
