@@ -129,8 +129,10 @@ class PoseStackBuilder:
         inter_residue_connections = cls._inter_residue_connections_from_pose_stacks(
             packed_block_types, pose_stacks, n_poses, ps_offset, max_n_blocks, device
         )
-        inter_block_bondsep = cls._interblock_bondsep_from_pose_stacks(
-            packed_block_types, pose_stacks, n_poses, ps_offset, max_n_blocks, device
+        inter_block_bondsep = InterBlockBondsep.concatenate(
+            [ps.inter_block_bondsep.to(device) for ps in pose_stacks],
+            max_n_blocks,
+            packed_block_types.max_n_conn,
         )
         block_type_ind = cls._resolve_block_type_ind(
             packed_block_types, pose_stacks, n_poses, ps_offset, max_n_blocks, device
@@ -467,26 +469,6 @@ class PoseStackBuilder:
                 : pose_stack.inter_residue_connections.shape[2],
             ] = pose_stack.inter_residue_connections
         return inter_residue_connections
-
-    @classmethod
-    @validate_args
-    def _interblock_bondsep_from_pose_stacks(
-        cls,
-        packed_block_types: PackedBlockTypes,
-        pose_stacks,  # : List["PoseStack"],
-        n_poses: int,
-        ps_offsets: Tensor[torch.int64][:],
-        max_n_blocks: int,
-        device: torch.device,
-    ) -> InterBlockBondsep:
-        max_n_conn = max(
-            len(rt.connections) for rt in packed_block_types.active_block_types
-        )
-        return InterBlockBondsep.concatenate(
-            [pose_stack.inter_block_bondsep.to(device) for pose_stack in pose_stacks],
-            max_n_blocks,
-            max_n_conn,
-        )
 
     @classmethod
     @validate_args
