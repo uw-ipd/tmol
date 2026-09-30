@@ -1188,7 +1188,7 @@
         <span class="n">newres</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">":"</span> <span class="o">+</span> <span class="n">variant</span><span class="o">.</span><span class="n">display_name</span><span class="p">)</span>
 
         <span class="c1"># hydrogens on removed atoms go with them; a prepared residue can carry</span>
-        <span class="c1">#    some (a protonated phosphate) where canonical ones do not</span>
+        <span class="c1">#    some where canonical ones do not (7KW4 A:2 XY7's HOP1/HOP2)</span>
         <span class="n">removed</span> <span class="o">=</span> <span class="p">{</span><span class="n">namemap</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">variant</span><span class="o">.</span><span class="n">remove_atoms</span> <span class="k">if</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">namemap</span><span class="p">}</span>
         <span class="n">stranded</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
             <span class="n">name</span>
@@ -1214,7 +1214,7 @@
         <span class="n">newres</span><span class="o">.</span><span class="n">atoms</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">newres</span><span class="o">.</span><span class="n">atoms</span><span class="p">,</span> <span class="o">*</span><span class="n">variant</span><span class="o">.</span><span class="n">add_atoms</span><span class="p">)</span>
 
         <span class="c1"># 2b. add atom alias; a source name the base residue already aliases keeps</span>
-        <span class="c1">#     that meaning, since input names are read per name3</span>
+        <span class="c1">#     that meaning, since input names are read per name3 (1MWI D:7 AAB O3P)</span>
         <span class="n">claimed</span> <span class="o">=</span> <span class="p">{</span><span class="n">a</span><span class="o">.</span><span class="n">alt_name</span><span class="p">:</span> <span class="n">a</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">atom_aliases</span><span class="p">}</span>
         <span class="n">newres</span><span class="o">.</span><span class="n">atom_aliases</span> <span class="o">=</span> <span class="p">(</span>
             <span class="o">*</span><span class="n">newres</span><span class="o">.</span><span class="n">atom_aliases</span><span class="p">,</span>

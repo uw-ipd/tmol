@@ -668,7 +668,8 @@
 <span class="sd">    types lack.</span>
 
 <span class="sd">    A prepared name is not prepared again, so a type made from copies missing an</span>
-<span class="sd">    atom (a glycan's leaving O1) cannot describe a copy that has it.</span>
+<span class="sd">    atom (2YOR: linked NAGs lack the leaving O1) cannot describe a copy that has</span>
+<span class="sd">    it (the free NAG B:511).</span>
 <span class="sd">    """</span>
     <span class="n">prepared</span> <span class="o">=</span> <span class="p">{</span><span class="n">r</span><span class="o">.</span><span class="n">io_equiv_class</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="o">.</span><span class="n">residues</span><span class="p">}</span> <span class="o">-</span> <span class="p">{</span>
         <span class="n">r</span><span class="o">.</span><span class="n">io_equiv_class</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span><span class="o">.</span><span class="n">chemical</span><span class="o">.</span><span class="n">residues</span>
@@ -1556,7 +1557,8 @@
 <span class="sd">    A bond is a polymer link only from one residue's up port to the other's</span>
 <span class="sd">    down port, as in the pose; an acyl cap's inferred port does not turn a</span>
 <span class="sd">    glycan amine or a polymer sidechain into a backbone connection. With</span>
-<span class="sd">    ``any_instance``, a port that some copy bonds otherwise is a site too.</span>
+<span class="sd">    ``any_instance``, a port that some copy bonds otherwise is a site too (3W93</span>
+<span class="sd">    TYZ caps ARG A:1 N and acylates LYS B:21 NZ).</span>
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._conjugate_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">is_polymer_link</span>
 
