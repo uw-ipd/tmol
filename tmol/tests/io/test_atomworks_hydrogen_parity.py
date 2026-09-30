@@ -53,9 +53,7 @@ def test_tmol_keeps_the_hydrogens_atomworks_placed(res_name, torch_device):
     assert len(placed) > 0, f"AtomWorks placed no hydrogen on {res_name}"
 
     pose_stack = pose_stack_from_biotite(protonated, torch_device=torch_device)
-    rebuilt = biotite_from_pose_stack(pose_stack)
-    rebuilt = rebuilt[0] if isinstance(rebuilt, (list, tuple)) else rebuilt
-    kept = _hydrogens(rebuilt, 2)
+    kept = _hydrogens(biotite_from_pose_stack(pose_stack), 2)
 
     # Each hydrogen AtomWorks placed has one of tmol's on top of it.
     for position in placed:

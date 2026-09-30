@@ -2524,7 +2524,7 @@ def _with_input_hydrogens(biotite_structure, ph, co, chemdb, find_metal_coordina
     return with_atomworks_hydrogens(
         biotite_structure,
         ph=ph,
-        residue_names=None if co is None else set(co.restype_io_equiv_classes),
+        residue_names=names,
         coordination=coordination,
         backbone=backbone,
         forms=database_forms(chemdb),
