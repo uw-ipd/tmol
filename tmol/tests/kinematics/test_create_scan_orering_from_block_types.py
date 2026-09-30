@@ -21,12 +21,8 @@ from tmol.pose import PackedBlockTypes
 
 @pytest.fixture
 def two_six_res_ubqs_own_types(stack_of_two_six_res_ubqs_no_term):
-    """The two-ubq stack, packed with only the block types it uses.
-
-    Generation depths are maxed over every packed block type, so packing the
-    default set would tie these golds to the deepest residue type in the
-    database, and adding a default residue type would change them.
-    """
+    """The two-ubq stack packed with only its own block types, so the golds do not
+    depend on the deepest type in the default database."""
     pose_stack = stack_of_two_six_res_ubqs_no_term
     pbt = pose_stack.packed_block_types
     used = sorted(

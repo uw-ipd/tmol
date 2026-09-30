@@ -1224,13 +1224,8 @@ def _order_name(order):
 
 
 def _chemical_bond_orders(bt, element_of):
-    """One Lewis structure for a block type's bonds, by atom-name pair.
-
-    io_bond_orders restore the orders a prepared ligand's typing promoted. What
-    remains of tmol's delocalized convention, AROMATIC outside a ring, is
-    resolved by rule: at an atom whose delocalized bonds reach terminal
-    heteroatoms (carboxylate, guanidinium, phosphate), the first by name is
-    double unless the atom already has one, and every other such bond is single.
+    """One Lewis structure for a block type's bonds, by atom-name pair: io_bond_orders,
+    then non-ring AROMATIC: one double to a terminal heteroatom per atom, rest single.
     """
     order_of, in_ring = {}, {}
     for a, b, order, *rest in bt.bonds:
@@ -1275,12 +1270,8 @@ def _chemical_bond_orders(bt, element_of):
 
 
 def _bonds_from_pose_stack(pose_stack, structure, block_for_atom):
-    """The bond table of an exported structure, from the pose's residue types.
-
-    Bond orders are one Lewis structure: see _chemical_bond_orders. Every pose of
-    a stack shares one bond table, so their residue types and connections must
-    agree. Bonds to atoms the export left out are dropped.
-    """
+    """The bond table of an exported structure, from the pose's residue types, which
+    every pose of the stack must share; bonds to atoms left out are dropped."""
     block_types = pose_stack.block_type_ind64
     connections = pose_stack.inter_residue_connections64
     if not (
@@ -1425,11 +1416,8 @@ def _renumbered_for_cif(structure):
 
 
 def _metal_coordination_bond_mask(structure):
-    """Which rows of the bond table are metal coordination.
-
-    These are bonds typed COORDINATION (a CIF's metalc) and bonds from a metal
-    to another residue, as a PDB's CONECT lists them.
-    """
+    """Which bond rows are metal coordination: typed COORDINATION (CIF metalc), or from
+    a metal to another residue (PDB CONECT)."""
     bonds = structure.bonds.as_array()
     if not len(bonds):
         return bonds, numpy.zeros(0, dtype=bool)
@@ -1491,12 +1479,8 @@ def _metal_atom_names(chemdb=None, co=None):
 
 
 def _chelated_metals(template, metal_atom):
-    """Metal atoms to move out of their components, with the ion each becomes.
-
-    A metal leaves its component when it is a supported ion, bonds only to N, O
-    or S of that component, and what remains is one carbon-containing molecule:
-    a tetrapyrrole's iron or magnesium, not an inorganic cluster. One with no
-    coordinates stays: it was not observed, so it is no ion.
+    """{atom: (ion, atom name)} for resolved supported metals bonded only to N/O/S of a
+    component that stays one organic molecule without them (a heme's Fe, not a cluster).
     """
     ion_for_element = {}
     for ion in metal_table()["ions"]:
@@ -1576,13 +1560,8 @@ def _metal_origins(structure):
 
 
 def _with_peptide_tautomers(structure):
-    """Rewrite an iminol or iminothiol peptide link as the amide it stands for.
-
-    Where a link between residues is drawn C=N and the carbon also carries a
-    singly bonded, uncharged terminal X (X = O, S), as a thioamide read with its
-    leaving oxygen gone comes out, the double bond moves to X and any hydrogen
-    on X is dropped.
-    """
+    """Rewrite an inter-residue C=N link whose C carries a single-bonded, uncharged
+    terminal O/S as the amide (C=X, hydrogens on X dropped)."""
     template = _template_array(structure)
     if template.bonds is None:
         return structure
@@ -1640,12 +1619,8 @@ def _with_input_chemistry_normalized(structure, metal_atom):
 
 
 def _with_chelated_metals_split(structure, metal_atom):
-    """Move each chelated metal into an ion residue of its own.
-
-    Its bonds to the component become metal coordination, so the component is
-    prepared as an organic molecule and the metal is an ordinary ion. Where it
-    sat is kept in the METAL_ORIGIN annotation, for export to put it back.
-    """
+    """Move each chelated metal into an ion residue of its own, bonded by coordination;
+    METAL_ORIGIN keeps where it sat, for export to put it back."""
     template = _template_array(structure)
     if template.bonds is None:
         return structure
@@ -1722,11 +1697,8 @@ def _ion_elements(metal_atom):
 
 
 def _without_chelated_metals(registry, components, elements):
-    """Component templates as their split residues are: no metal, no metal stereo.
-
-    An atom a metal made a stereocenter, such as a heme pyrrole nitrogen, is
-    planar once the metal is gone, so its declared configuration is dropped.
-    """
+    """Component templates as their split residues are: no metal, and no declared
+    stereo on its partners (a heme pyrrole N is planar without it)."""
     out = dict(registry)
     for name in components:
         template = registry.get(name)
@@ -1773,9 +1745,6 @@ def _metal_coordination_from_biotite(
     if array.bonds is None:
         return numpy.zeros((0, 4), dtype=numpy.int64)
     bonds = array.bonds.as_array()
-    # Almost every bond in a structure is an ordinary one, and a structure with no
-    # metal has none of these at all; finding that out should not cost a pass over
-    # the whole table in Python.
     declared = bonds[bonds[:, 2] == biotite.structure.BondType.COORDINATION]
     if not len(declared):
         return numpy.zeros((0, 4), dtype=numpy.int64)
@@ -2539,14 +2508,8 @@ def _normalize_input_identifiers(biotite_structure, name3_aliases):
 
 
 def _with_input_hydrogens(biotite_structure, ph, co, chemdb, find_metal_coordination):
-    """The input with AtomWorks' protonation of the residues tmol reads that lack hydrogens.
-
-    With ``co`` only its residues are read; without it every residue is, as
-    when ligands are being prepared. An input already protonated here is
-    returned as it is. AtomWorks sees the metal bonds detection would add as
-    coordination, and consecutive residues of a chain bonded through the up
-    and down connections of their ``chemdb`` types.
-    """
+    """The input with AtomWorks' protonation of residues lacking hydrogens (only
+    ``co``'s if given), seeing detected metal bonds and ``chemdb`` backbone links."""
     aliases = {a.name3: a.read_as for a in chemdb.name3_aliases}
     names = None
     if co is not None:
@@ -2934,9 +2897,7 @@ def packed_block_types_for_biotite(device: torch.device) -> PackedBlockTypes:
 
     restype_set = _restype_set_for_biotite()
 
-    # A twelve-site cluster makes every pose packed beside it as wide as itself --
-    # the bond-separation table by the square of that, the cartbonded dispatch by
-    # it directly -- so a structure with no metal in it is not packed with them.
+    # metal-only types widen every pose packed with them; see default_packed_block_types
     active = [
         rt for rt in restype_set.residue_types if not _only_coordinates_a_metal(rt)
     ]
@@ -2951,12 +2912,8 @@ def packed_block_types_for_biotite(device: torch.device) -> PackedBlockTypes:
 def packed_block_types_for_biotite_with_metals(
     device: torch.device,
 ) -> PackedBlockTypes:
-    """The Biotite packed block types, plus the ions and clusters.
-
-    A metal the structure carries needs its block type here whether or not
-    anything coordinates it: a coordinated one arrives with the donor patches, an
-    uncoordinated one has nothing to bring it.
-    """
+    """The Biotite packed block types, plus the ions and clusters a structure's
+    metals need whether or not anything coordinates them."""
     restype_set = _restype_set_for_biotite()
 
     return PackedBlockTypes.from_restype_list(

@@ -1,16 +1,5 @@
-"""Build missing heavy atoms outward from observed ones, choosing torsions that do not clash.
-
-Each block's missing atoms are placed along a tree grown from its observed atoms (and
-its connection partners): every atom takes its distance, angle and dihedral from the
-block type's ideal coordinates against three already-placed references, so bonded
-geometry, rings and chirality are ideal. A rotation left free by the observed atoms
--- about a rotatable bond whose far side is entirely missing, or the spin of a
-fragment anchored by fewer than three atoms -- is chosen greedily in tree order: each
-candidate is scored by building everything still missing, later rotations at their
-ideal values, against a heavy-atom clash penalty. Observed atoms that only the
-missing atoms would tell apart (a phosphate's oxygens) may trade labels, where that
-lowers the penalty.
-"""
+"""Build missing atoms outward from observed ones with ideal internal geometry, choosing
+each free rotation (and interchangeable anchor labels) greedily to minimize clashes."""
 
 import itertools
 import math
@@ -181,11 +170,8 @@ class _Step:
 
 
 def _plan(geom, known, targets, conn_nodes, ideal_of):
-    """Order the missing atoms and pick each one's three placed references.
-
-    known: nodes already placed (local atoms, and n + k for connection k).
-    Returns the steps in build order and, per rotation axis, its candidates in
-    radians as offsets from the ideal dihedral of the axis's first step.
+    """Build-ordered steps for the missing atoms from ``known`` nodes (n + k: connection
+    k), and per rotation axis its candidate offsets (radians) from the ideal dihedral.
     """
     n = geom.n
     neighbors = {i: list(geom.neighbors[i]) for i in range(n)}
@@ -352,12 +338,8 @@ def _overlap(d, a, b, atoms_a, atoms_b):
 
 
 def _clash(moved, points, others, other_xyz, geom, env, excluded):
-    """Per-candidate overlap of the moved atoms with the environment and the block.
-
-    moved: local atoms; points: [C, m, 3] their positions for each candidate;
-    others: local atoms at other_xyz, placed and not moved. Pairs within
-    EXCLUDED_BONDS bonds, and hydrogens, are skipped.
-    """
+    """Per-candidate heavy-atom overlap of ``moved`` at ``points`` [C, m, 3] with the
+    environment and the block's unmoved ``others``, beyond EXCLUDED_BONDS."""
     n_cand = points.shape[0]
     moved = numpy.asarray(moved)
     scorable = geom.heavy[moved]
@@ -404,13 +386,8 @@ def build_missing_by_context(
     connections,
     heavy_only=True,
 ):
-    """Place each block's missing target atoms (only heavy ones, by default).
-
-    pose_coords: [n_poses, n_atoms, 3]; missing and targets: [n_poses, n_atoms], the
-    atoms without coordinates and those of them to build. Blocks grow together,
-    each rotation seeing every block's current build. Returns the new coordinates and the mask
-    of atoms built; a target no placed reference reaches is left unbuilt.
-    """
+    """(coords, built mask): the ``targets`` among ``missing`` pose atoms (heavy only by
+    default) placed; a target no placed reference reaches is left unbuilt."""
     atom_types = {at.name: at for at in pbt.chem_db.atom_types}
     out = pose_coords.clone()
     xyz_all = pose_coords.detach().cpu().double().numpy().copy()
@@ -508,11 +485,8 @@ def _waits_on(pose, b, geom, pending, conn_all, conn_atom, types_all):
 
 
 def _build_together(builds, xyz, out, env):
-    """Grow blocks at once: each rotation, shallowest first, sees every block's build.
-
-    Each block starts at its ideal build; interchangeable anchors are settled per
-    block against the others' ideal builds.
-    """
+    """Grow blocks together from their ideal builds, settling anchor swaps per block,
+    then each rotation (shallowest first) against every block's current build."""
     for build in builds:
         build.start(xyz)
         build.write(xyz, env)
@@ -553,12 +527,8 @@ def _build_together(builds, xyz, out, env):
 def _connection_nodes(
     pose, b, n, geom, xyz, conn_all, conn_atom, off_all, types_all, geoms
 ):
-    """Placed connection partners as extra nodes n + k, and atoms to leave unscored.
-
-    Returns {k: (local atom, node)}, node positions, node ideal positions, node pose
-    indices, and the pose atoms not to score against (this block, and the partners'
-    atoms within reach of the bond).
-    """
+    """Placed partners as nodes n + k: ({k: (atom, node)}, node xyz, node ideal, node
+    pose index), and the partners' atoms near the bond, left unscored."""
     nodes, node_xyz, node_ideal, node_global = {}, {}, {}, {}
     excluded = set()
     for k, atom in enumerate(geom.conn_atom):
@@ -741,13 +711,8 @@ def _total_clash(built, positions, geom, env, excluded):
 
 
 def _anchor_swaps(geom, known_atoms, targets, conn_atoms):
-    """Relabelings of observed atoms the observed atoms alone cannot tell apart.
-
-    Observed heavy atoms of one element bonded only to the same observed atom
-    (e.g. a phosphate's oxygens) are interchangeable when a missing branch grows
-    from one of them. Returns, per such group, its relabelings as
-    {atom: atom whose coordinates it takes}, the identity first.
-    """
+    """Per group of same-element observed atoms on one observed atom (a phosphate's
+    oxygens) a missing branch grows from: relabelings {atom: source}, identity first."""
     known = set(known_atoms)
     groups: Dict[tuple, List[int]] = {}
     for a in known_atoms:

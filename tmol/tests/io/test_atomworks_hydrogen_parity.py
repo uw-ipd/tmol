@@ -1,10 +1,5 @@
-"""Where AtomWorks puts a hydrogen, tmol keeps it.
-
-Both libraries build hydrogens from internal coordinates against the same ideal
-geometry, so a structure protonated by one and read by the other should not move
-a hydrogen. A hydrogen tmol cannot account for is one it rebuilds from its own
-table, and this is what notices when the two tables drift apart.
-"""
+"""Where AtomWorks puts a hydrogen, tmol keeps it: this notices when their ideal
+hydrogen geometries drift apart."""
 
 import biotite.structure as struc
 import biotite.structure.info as info
