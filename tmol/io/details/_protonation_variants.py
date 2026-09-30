@@ -19,20 +19,11 @@ def select_protonation_variants(
     metal_assignments,
     covalent_bonds=None,
 ):
-    """The protonation variant of each residue, read from its hydrogens.
+    """Each residue's variant from its hydrogens: one presenting hydrogens but no
+    titratable one is deprotonated, unless bonded there (8TRB PLM-SER OG ester).
 
-    A titratable hydrogen is one some form of the class has and no
-    deprotonated form does: a thiol's HG, a phenol's HH, either imidazole NH.
-    A residue presenting some hydrogen, in a variant expecting a titratable
-    one, is deprotonated when it presents none. Variants that expect none,
-    such as a disulfide, never change, and neither does a residue whose
-    titratable hydrogen's parent is bonded to another residue in
-    ``covalent_bonds`` (``[pose, res1, atom1, res2, atom2]`` rows): the bond
-    replaces that hydrogen.
-
-    A residue presenting no hydrogen at all, as from coordinates without
-    hydrogens, says nothing about its state. It keeps its variant unless it
-    coordinates a metal, which takes the first form whose atoms donate.
+    A residue with no hydrogens keeps its variant, unless it coordinates a metal:
+    then it takes the first form whose atoms donate.
     """
     classes = canonical_ordering.restype_io_equiv_classes
     hydrogens, donates, parent = _variant_atoms(

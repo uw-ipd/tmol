@@ -8,6 +8,7 @@ so this module does not protonate or recompute chemistry.
 """
 
 import logging
+from collections.abc import Collection, Mapping
 
 import biotite.structure as struc
 import numpy as np
@@ -17,11 +18,6 @@ from atomworks.io.tools.rdkit import (
     fix_charge_based_on_valence,
 )
 from atomworks.io.utils.ccd import get_custom_ccd_entries
-from biotite.structure import AtomArray
-from rdkit.Chem.rdchem import Mol
-from collections.abc import Collection, Mapping
-from typing import Literal
-
 from rdkit import Chem
 
 from tmol.ligand._detect import NonStandardResidueInfo, _strip_metals
@@ -460,24 +456,8 @@ def transfer_tetrahedral_stereochemistry(
     *,
     replaced_atoms: Collection[int] = (),
 ) -> int:
-    """Fill undefined tetrahedral centers using an explicit structural correspondence.
-
-    ``atom_mapping`` maps reference indices to molecule indices, including any
-    explicitly chosen replacement for a displaced neighbor. The caller owns that
-    chemical correspondence. Reference indices in ``replaced_atoms`` explicitly
-    identify displaced neighbors, whose replacements may have different elements.
-    Other mapped atoms must have matching elements/isotopes;
-    a center is transferred only if all neighbors, bond orders and hydrogen counts
-    match. Existing chirality and coordinates are unchanged. Neighbor-order parity,
-    rather than the reference's R/S label, preserves handedness when an attachment
-    changes CIP priorities.
-
-    Returns:
-        Number of centers assigned.
-
-    Raises:
-        ValueError: If the mapping repeats a destination, has invalid indices, or
-            maps different elements/isotopes.
+    """Copy ``reference``'s tetrahedral centres to ``mol``'s undefined ones by neighbour
+    parity via ``atom_mapping`` (``replaced_atoms`` may differ); returns the count.
     """
     if (
         not set(replaced_atoms) <= atom_mapping.keys()
@@ -535,20 +515,16 @@ def transfer_tetrahedral_stereochemistry(
     )
 
 
-# Template and stereochemistry helpers: read a component template into RDKit
-# and infer stereo from geometry.
-
-
-def _double_bond_ends(mol: Mol):
+def _double_bond_ends(mol: Chem.Mol):
     for bond in mol.GetBonds():
         if bond.GetBondType() == Chem.BondType.DOUBLE and not bond.GetIsAromatic():
             i, j = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
             yield bond, ((i, j), (j, i))
 
 
-def _impute_double_bond_substituents(mol: Mol, coords, finite):
-    """Coordinates with an unresolved second substituent on a resolved double bond
-    end placed opposite the resolved one, in the bond's plane."""
+def _impute_double_bond_substituents(mol: Chem.Mol, coords, finite):
+    """Coordinates with an unresolved second substituent of a resolved double-bond end
+    mirrored from the resolved one across the bond axis."""
     coords = coords.copy()
     for _, ends in _double_bond_ends(mol):
         for end, other in ends:
@@ -569,7 +545,7 @@ def _impute_double_bond_substituents(mol: Mol, coords, finite):
     return coords
 
 
-def _clear_undetermined_double_bond_stereo(mol: Mol, finite) -> None:
+def _clear_undetermined_double_bond_stereo(mol: Chem.Mol, finite) -> None:
     """Drop cis/trans that rests on an unresolved atom, with its bond directions."""
     for bond, ((i, j), _) in _double_bond_ends(mol):
         if bond.GetStereo() == Chem.BondStereo.STEREONONE:
@@ -582,14 +558,9 @@ def _clear_undetermined_double_bond_stereo(mol: Mol, finite) -> None:
                 adjacent.SetBondDir(Chem.BondDir.NONE)
 
 
-def assign_stereochemistry_from_3d(mol: Mol) -> None:
-    """Assign geometry-derived stereo while preserving unresolved coordinates.
-
-    Three resolved neighbors determine a tetrahedral center's orientation even
-    when its fourth neighbor is unresolved. Use a temporary conformer for that
-    inference; centers with insufficient geometry remain unspecified. A double
-    bond's cis/trans is read from one resolved substituent on each end.
-    """
+def assign_stereochemistry_from_3d(mol: Chem.Mol) -> None:
+    """Assign stereo from resolved geometry, leaving coordinates unchanged: three placed
+    neighbours fix a centre, one placed substituent per end fixes a double bond."""
     conf = mol.GetConformer()
     coords = conf.GetPositions()
     finite = np.isfinite(coords).all(axis=1)
@@ -634,32 +605,16 @@ def assign_stereochemistry_from_3d(mol: Mol) -> None:
     Chem.AssignStereochemistry(mol, cleanIt=True, force=True)
 
 
-def ccd_template_to_rdkit(
-    atom_array: AtomArray,
-    *,
-    hydrogen_policy: Literal["infer", "remove", "keep"] = "keep",
-    **atom_array_to_rdkit_kwargs,
-) -> Mol:
-    """Convert a complete component template, without consulting the dictionary.
-
-    Resolved geometry determines chirality first. Undefined tetrahedral centers
-    use the template's declared R/S labels, which are verified against its graph.
-    Coordinates, including NaNs, remain unchanged. The caller must supply the
-    complete component: isolated-component R/S labels cannot be applied directly
-    to a residue with covalent attachments or missing chemical atoms.
-
-    Raises:
-        ValueError: If the template is empty or an unresolved declared R/S center
-            is incompatible with its graph.
-    """
+def ccd_template_to_rdkit(atom_array: struc.AtomArray) -> Chem.Mol:
+    """A complete component template, hydrogens removed, with stereo from its geometry
+    and then its declared R/S labels; raises if a declared label cannot be met."""
     if len(atom_array) == 0:
         raise ValueError("A CCD template must contain atoms")
     ccd_code = str(atom_array.res_name[0])
     mol = atom_array_to_rdkit(
         atom_array,
-        set_coord=True,  # ... coordinate needed for stereochemistry assignment
-        hydrogen_policy=hydrogen_policy,  # ... hydrogens needed for stereochemistry assignment
-        **atom_array_to_rdkit_kwargs,
+        set_coord=True,
+        hydrogen_policy="remove",
     )
 
     try:

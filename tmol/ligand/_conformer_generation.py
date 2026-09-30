@@ -335,10 +335,8 @@ def _planar_systems(rd: Chem.Mol, bonds):  # noqa: C901
 
 
 def _double_bond_stereo(smiles: str, rd: Chem.Mol) -> dict:
-    """Cis/trans read from the SMILES: {(i, j): (a, d, is_cis)}, a on i and d on j.
-
-    rd lost this in the coordinate-free round trip; its atoms follow the SMILES order.
-    """
+    """Cis/trans the SMILES declares, which ``rd`` (same atom order) lost:
+    {(i, j): (a, d, is_cis)}, a on i and d on j."""
     source = Chem.MolFromSmiles(smiles, sanitize=False)
     if source is None:
         return {}
@@ -361,11 +359,8 @@ def _double_bond_stereo(smiles: str, rd: Chem.Mol) -> dict:
 
 
 def _double_bond_torsions(rd: Chem.Mol, stereo: dict):
-    """(a, i, j, d, is_cis) for every substituent pair across an acyclic C=C-like bond.
-
-    Bonds in rings of up to 7 atoms are left to the ring. Unspecified bonds put
-    each side's bulkiest substituent trans.
-    """
+    """(a, i, j, d, is_cis) per substituent pair across a double bond outside rings of
+    up to 7 atoms; unspecified bonds put each side's bulkiest substituent trans."""
     ring_info = rd.GetRingInfo()
 
     def bulk(x, center):

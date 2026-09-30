@@ -353,10 +353,7 @@ def _unresolved_heavy_atoms(
     res_name: str, residue, template, linked: frozenset, chemistry: dict, warned: set
 ) -> list[str] | None:
     """Sorted heavy template atoms ``residue`` lacks; ``None`` if taken as resolved.
-
-    ``chemistry`` caches each component's heavy atoms and leaving groups, and
-    ``warned`` holds the components already reported as unaccounted for.
-    """
+    ``chemistry`` caches heavy atoms and leaving groups; ``warned``, reported names."""
     from atomworks.io.utils.leaving_atoms import get_leaving_atom_groups
 
     from tmol.ligand._input_repair import get_absent_substitution_leaving_groups

@@ -1,4 +1,4 @@
-"""The atom tree and internal coordinates TMol builds residue types from (moved from AtomWorks)."""
+"""The atom tree and internal coordinates TMol builds residue types from."""
 
 import biotite.structure.info as info
 import numpy as np
