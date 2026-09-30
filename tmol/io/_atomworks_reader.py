@@ -1,5 +1,6 @@
 """Read supplied structure information before tmol validates parameter requirements."""
 
+import io
 import warnings
 from string import ascii_uppercase
 
@@ -11,6 +12,7 @@ from atomworks.constants import (
     BOND_DISTANCE_THRESHOLD_CHNO,
     BOND_DISTANCE_THRESHOLD_CHNOPS,
     BOND_DISTANCE_THRESHOLD_OTHER,
+    CCD_MIRROR_PATH,
     METAL_ELEMENTS,
 )
 from atomworks.io import load_pdb
@@ -18,8 +20,17 @@ from atomworks.io.config import ParseConfig
 from atomworks.io.parser import parse, parse_atom_array, prepare_atom_array
 from atomworks.io.transforms.categories import category_to_dict
 from atomworks.io.utils.bonds import get_struct_conn_bonds
-from atomworks.io.utils.ccd import get_polymerization_atoms
+from atomworks.io.utils.ccd import (
+    get_atom_names_for_residue,
+    get_polymerization_atoms,
+)
 from atomworks.io.utils.io_utils import get_structure, infer_pdb_file_type, read_any
+
+from tmol.io._alternates import (
+    NO_ALTERNATE,
+    one_alternate_per_group,
+    selected_residue_names,
+)
 
 _AUTHOR_FIELDS = {
     "atom_name": "auth_atom_id",
@@ -322,6 +333,83 @@ def _extends_polymer(array, starts, anchor, residue, step):
     return bool((distance <= BOND_DISTANCE_THRESHOLD_CHNO).any())
 
 
+def _pdb_lines_with_one_alternate(path, model):
+    """The PDB's lines keeping one alternate per linked group, altloc columns blank.
+
+    Atoms without a letter at a microheterogeneity site are named after the kept
+    residue, or dropped where it lacks them, as AtomWorks does for mmCIF. LINK
+    records naming an alternate that is not kept are dropped. None when the file
+    has no alternates.
+    """
+    lines = list(read_any(path).lines)
+    records = [
+        i for i, line in enumerate(lines) if line.startswith(("ATOM  ", "HETATM"))
+    ]
+    if all(len(lines[i]) < 17 or lines[i][16] in NO_ALTERNATE for i in records):
+        return None
+    pdb_file = read_any(path)
+    atoms = pdb_file.get_structure(model=model, altloc="all")
+    if atoms.coord.ndim == 3:
+        atoms = atoms[0]
+    in_model, current = [], 0
+    for i, line in enumerate(lines):
+        if line.startswith("MODEL "):
+            current += 1
+        elif line.startswith(("ATOM  ", "HETATM")) and max(current, 1) == model:
+            in_model.append(i)
+    residue = np.char.add(
+        np.char.add(atoms.chain_id.astype(str), "|"),
+        np.char.add(atoms.res_id.astype(str), atoms.ins_code.astype(str)),
+    )
+    heavy = ~np.isin(np.char.upper(atoms.element.astype(str)), ("H", "D", "T"))
+    keep = one_alternate_per_group(
+        residue, atoms.chain_id, atoms.altloc_id, heavy, atoms.coord
+    )
+    name = selected_residue_names(residue, atoms.res_name, atoms.altloc_id, keep)
+    kept_alt = keep & ~np.isin(atoms.altloc_id, NO_ALTERNATE)
+    letters = {
+        r: set(atoms.altloc_id[kept_alt & (residue == r)]) for r in residue[kept_alt]
+    }
+    for k in np.flatnonzero(keep & (name != atoms.res_name)):
+        taken = (
+            keep
+            & (residue == residue[k])
+            & (atoms.res_name == name[k])
+            & (atoms.atom_name == atoms.atom_name[k])
+        )
+        standard, alternative, _ = get_atom_names_for_residue(
+            str(name[k]), str(CCD_MIRROR_PATH or "")
+        )
+        keep[k] = not taken.any() and atoms.atom_name[k] in standard | alternative
+    edited = {
+        i: (line[:16] + " " + f"{name[k]:>3}" + line[20:]).rstrip() if keep[k] else None
+        for k, (i, line) in enumerate((i, lines[i].ljust(80)) for i in in_model)
+    }
+    out, previous = [], None
+    for i, line in enumerate(lines):
+        if i in edited:
+            previous = edited[i]
+            if previous is not None:
+                out.append(previous)
+        elif line.startswith("ANISOU"):
+            if previous is not None:
+                out.append(line[:16] + " " + line[17:])
+        elif line.startswith("LINK  "):
+            line = line.ljust(80)
+            partners = [
+                (f"{line[at + 9]}|{line[at + 10 : at + 15].strip()}", line[at + 4])
+                for at in (12, 42)
+            ]
+            if all(
+                alt in NO_ALTERNATE or alt in letters.get(key, {alt})
+                for key, alt in partners
+            ):
+                out.append((line[:16] + " " + line[17:46] + " " + line[47:]).rstrip())
+        else:
+            out.append(line)
+    return out
+
+
 def _read_pdb(path, model):
     """A PDB's atoms with its LINK records as bonds, HETATM chains in residue-number order.
 
@@ -331,9 +419,15 @@ def _read_pdb(path, model):
     """
     from tmol.ligand._mol2_names import disambiguated_atom_names
 
+    lines = _pdb_lines_with_one_alternate(path, model)
+    if lines is not None:
+        text = "\n".join(lines) + "\n"
+        path = io.StringIO(text)
     array, _ = load_pdb(path, model=model)
     if array.coord.ndim == 3:
         array = array[0]
+    if lines is not None:
+        path = io.StringIO(text)
     array = _with_pdb_author_chains(array, path, model)
     array.bonds = array.bonds.merge(_link_bonds(array, read_any(path).lines))
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)

@@ -700,6 +700,20 @@ def test_pdb_link_records_reach_the_pose(tmp_path, torch_device):
     }
 
 
+def test_pdb_keeps_one_alternate_per_linked_group(torch_device):
+    """1I54 writes its heme (altloc A) and Zn-porphyrin (altloc B) as HEC A:1104
+    and ZNH A:1105, both bonded to CYS A:14 and A:17; one of them is read."""
+    from tmol.io import atom_array_from_file, pose_stack_from_file
+
+    fixture = DATA / "sweep_regressions" / "heme_alternates_1i54.pdb.zst"
+    array = atom_array_from_file(fixture)
+    assert set(array.res_name[np.isin(array.res_id, [1104, 1105])]) == {"HEC"}
+    pose = pose_stack_from_file(
+        fixture, torch_device, prepare_ligands=True, ligand_seed=0, no_optH=True
+    )
+    assert torch.isfinite(pose.coords).all()
+
+
 def test_coordinate_only_pdb_keeps_its_caps_in_the_chain(torch_device):
     """1COI with its coordinates only, no LINK or CONECT records: the HETATM caps
     ACE A:0 and NH2 A:30 bond to GLU A:1 N and GLY A:29 C, so they stay in chain A."""

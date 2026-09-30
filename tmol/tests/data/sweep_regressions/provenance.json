@@ -235,5 +235,14 @@
   "sha256": "f452ec68152fd53ab8edeba1bcdeee6905cb5c05ea60af7d8c496f18b3aa9d45",
   "bytes": 48927,
   "compressed_sha256": "f389a99fd3c6623d9f0e6d03f7b08d0a1dc4adbf1207edf32f9577922415ae53"
+ },
+ {
+  "fixture": "heme_alternates_1i54.pdb.zst",
+  "source": "https://files.rcsb.org/download/1I54.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/i5/1i54.cif.gz)",
+  "source_sha256": "c98a1951b419da95b2abf0952bd0ce6c132ce827399b47bcc810f02805d2f538",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/i5/1i54.cif.gz heme_alternates_1i54.cif 5 C:.; python /mnt/home/kdidi/scratch/protofix/altloc_tmol/scripts/cif2pdb.py heme_alternates_1i54.cif heme_alternates_1i54.pdb (PDB-format records with author ids, altloc column and LINK records from struct_conn covale/metalc rows); zstd -19 heme_alternates_1i54.pdb",
+  "sha256": "386bc2900046e1d48a0a9cf72956d8da1376606342adbf41e07cdb6b1ebd3696",
+  "bytes": 30182,
+  "compressed_sha256": "91f161d421c83c52032e4d80b3f549d234c52ce64e0e5646786d506c2f0a1606"
  }
 ]
