@@ -13,6 +13,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
+from atomworks.constants import METAL_ELEMENTS
 from atomworks.experimental.protonation.dimorphite import protonate_at_ph
 import attr
 import biotite.structure as struc
@@ -21,7 +22,7 @@ from rdkit import Chem
 from rdkit.Chem import RWMol
 
 from tmol.io import CanonicalOrdering
-from tmol.ligand._input_repair import normalize_radical_oxygens
+from tmol.ligand._input_repair import _infer_oxyacid_bonds, normalize_radical_oxygens
 from tmol.ligand._mol2_names import apply_disambiguated_mol2_names
 
 logger = logging.getLogger(__name__)
@@ -30,13 +31,6 @@ SKIP_RESIDUES = frozenset({"HOH", "WAT", "DOD", "VRT"})
 _HALOGEN_ELEMENTS = frozenset({"F", "Cl", "Br", "I", "At", "Ts"})
 _SOURCE_FORMAL_CHARGE_ANNOTATION = "tmol_source_formal_charge"
 _FORMAL_CHARGE_SPECIFIED_ANNOTATION = "tmol_formal_charge_specified"
-# Valence a delocalized-oxyacid or amidine center fills, and the charge its
-# singly-bonded, unprotonated neighbors carry.
-_DELOCALIZED_VALENCE = {"P": 5, "S": 6, "C": 4, "N": 4}
-_DELOCALIZED_ANION = {"O": -1, "S": -1, "N": 0}
-# Bonds a neutral atom of each element carries, for setting a charge from what
-# the rewritten bonds actually use and for asking what a neighbour has room for.
-_NEUTRAL_VALENCE = {"N": 3, "O": 2, "P": 5, "S": 6, "C": 4}
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -231,39 +225,15 @@ def chem_comp_types_from_cif(cif_path) -> dict:
     return types
 
 
-_METAL_SYMBOLS = frozenset(
-    {
-        "Fe",
-        "Zn",
-        "Cu",
-        "Mn",
-        "Co",
-        "Ni",
-        "Mg",
-        "Ca",
-        "Na",
-        "K",
-        "Cr",
-        "Mo",
-        "W",
-        "V",
-        "Pt",
-        "Pd",
-        "Ru",
-        "Rh",
-        "Ir",
-        "Os",
-    }
-)
-
-
 def _strip_metals(mol: Chem.Mol) -> Chem.Mol:
     """Remove metal atoms from an RDKit Mol.
 
     OpenBabel downstream cannot parse coordination-bond SMILES, and metals
-    are dropped during ligand preparation anyway.
+    are dropped during ligand preparation anyway (CCD EMC's Hg too).
     """
-    metals = [a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() in _METAL_SYMBOLS]
+    metals = [
+        a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol().upper() in METAL_ELEMENTS
+    ]
     if metals:
         em = RWMol(mol)
         for idx in sorted(metals, reverse=True):
@@ -437,214 +407,6 @@ def _apply_mol2_metadata(mol, text):
     return declared_charges, synthesized_charges
 
 
-def _delocalized_neighbors(mol, center, delocalized_bonds):
-    """Neighbors sharing a source ``ar`` bond with ``center`` only, in a ring too (3GE7)."""
-    neighbors = []
-    for atom in center.GetNeighbors():
-        pair = frozenset((center.GetIdx(), atom.GetIdx()))
-        if pair not in delocalized_bonds:
-            continue
-        if any(
-            frozenset((bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()))
-            in delocalized_bonds
-            and center.GetIdx() not in (bond.GetBeginAtomIdx(), bond.GetEndAtomIdx())
-            for bond in atom.GetBonds()
-        ):
-            return []
-        neighbors.append(atom)
-    return neighbors
-
-
-def _localize(center, neighbors, n_double, conformer, charge, charges, synthesized):
-    """Write one X=Y plus single bonds, charging the unprotonated remainder.
-
-    ``charges`` is the declared-charge map, read and written. A center the file
-    charged keeps that charge -- zeroing a declared quaternary nitrogen turns a
-    +1 amidinium into a -1 and fails sanitization -- and every charge written
-    here is recorded, so the net the caller compares against still describes the
-    molecule this leaves behind. Without that, localizing an undeclared
-    phosphonate moves the net away from the declared sum and sends every such
-    ligand down the OpenBabel fallback.
-    """
-    if conformer is not None:
-        origin = np.asarray(conformer.GetAtomPosition(center.GetIdx()))
-        neighbors = sorted(
-            neighbors,
-            key=lambda a: float(
-                np.linalg.norm(
-                    np.asarray(conformer.GetAtomPosition(a.GetIdx())) - origin
-                )
-            ),
-        )
-    center.SetIsAromatic(False)
-
-    def protonated(atom):
-        """Whether the file wrote a hydrogen of this neighbour's own.
-
-        Only an explicit one counts. ``GetTotalNumHs`` also reports the implicit
-        hydrogens RDKit fills in from the delocalized bonds still on the atom --
-        the very bonds this routine is replacing -- so believing it makes a
-        heavy-atom-only file look protonated and charges it as if it were.
-        """
-        return any(n.GetAtomicNum() == 1 for n in atom.GetNeighbors())
-
-    def terminal(atom):
-        """Whether this neighbour hangs off the center by its only heavy bond."""
-        return sum(1 for n in atom.GetNeighbors() if n.GetAtomicNum() != 1) <= 1
-
-    def demanded_charge(atom, order):
-        """The charge this neighbour's bonds demand at that order to the center.
-
-        Counts what the file drew -- explicit hydrogens included, since they are
-        bonds. Exact for a protonated neighbour; for a heavy-atom-only one the
-        missing hydrogens make it a lower bound, which is all the caller asks of
-        it there.
-        """
-        neutral = _NEUTRAL_VALENCE.get(atom.GetSymbol())
-        if neutral is None:
-            return 0
-        used = order + sum(
-            bond.GetBondTypeAsDouble()
-            for bond in atom.GetBonds()
-            if bond.GetOtherAtomIdx(atom.GetIdx()) != center.GetIdx()
-            and bond.GetBondType() != Chem.BondType.AROMATIC
-        )
-        return int(used - neutral)
-
-    def wants_double(atom):
-        """Whether the double bond belongs on this neighbour.
-
-        A neighbour the file charged wants it exactly when the double bond is
-        what that charge describes: a guanidinium's +1 nitrogen is the one
-        holding the double bond, while a carboxylate's -1 oxygen is the one
-        that is not. An uncharged neighbour wants it when taking it leaves it
-        neutral -- a carbonyl oxygen or an amidine's N-H would be, a hydroxyl
-        and a phosphodiester's bridging oxygen would have to become cations.
-        """
-        declared = charges.get(atom.GetIdx())
-        if declared is not None:
-            return declared == demanded_charge(atom, 2)
-        return demanded_charge(atom, 2) <= 0
-
-    # Fall back by degrees. A guanidinium the file left uncharged has no
-    # neutral option at all -- every nitrogen is the cation in some Kekule form
-    # -- so there the geometry decides among the undeclared, as it did before
-    # any of this was filtered. Falling back further, to a neighbour whose
-    # declared charge contradicts the bond it is being handed, leaves a
-    # molecule that will not sanitize: that input describes no arrangement, and
-    # failing there sends it to the fallback reader instead of quietly
-    # inventing a carbanion that balances the books.
-    undeclared = [atom for atom in neighbors if atom.GetIdx() not in charges]
-    eligible = [a for a in neighbors if wants_double(a)] or undeclared or neighbors
-    n_double = min(n_double, len(eligible))
-    doubled = set(atom.GetIdx() for atom in eligible[:n_double])
-
-    for atom in neighbors:
-        bond = center.GetOwningMol().GetBondBetweenAtoms(center.GetIdx(), atom.GetIdx())
-        bond.SetIsAromatic(False)
-        atom.SetIsAromatic(False)
-        double = atom.GetIdx() in doubled
-        bond.SetBondType(Chem.BondType.DOUBLE if double else Chem.BondType.SINGLE)
-        if atom.GetIdx() in charges:
-            # The file said what this one is; recording it again as synthesized
-            # would double it in the net the caller checks against.
-            continue
-        if protonated(atom):
-            # Its hydrogens are on the page, so its bonds settle its charge:
-            # neutral for a hydroxyl or an amide nitrogen, +1 for the nitrogen
-            # a guanidinium's double bond lands on.
-            assigned = demanded_charge(atom, 2 if double else 1)
-        elif double or not terminal(atom):
-            # A bridging neighbour is an ordinary two-bonded atom once the bond
-            # orders are explicit. Whatever charge aromatic perception guessed
-            # for it -- RDKit warns it is guessing when the file has no explicit
-            # hydrogens -- describes a molecule that no longer exists.
-            assigned = 0
-        else:
-            assigned = charge
-        atom.SetFormalCharge(assigned)
-        synthesized[atom.GetIdx()] = assigned
-
-    if center.GetIdx() not in charges:
-        # The center is left holding whatever its bonds now demand. Forcing 0
-        # gives a four-bonded nitro nitrogen no valence for its fourth bond, and
-        # the molecule stops sanitizing; P, S and C come out at 0 either way.
-        used = (
-            sum(bond.GetBondTypeAsDouble() for bond in center.GetBonds())
-            + center.GetTotalNumHs()
-        )
-        neutral = _NEUTRAL_VALENCE.get(center.GetSymbol())
-        assigned = int(used - neutral) if neutral is not None else 0
-        center.SetFormalCharge(assigned)
-        if assigned:
-            synthesized[center.GetIdx()] = assigned
-
-
-def _infer_oxyacid_bonds(mol, charges, delocalized_bonds, synthesized=None):
-    """Localize delocalized bonds the source writes as Tripos ``ar``.
-
-    ``ar`` bonds joining a center to neighbors with no other ``ar`` bond mean
-    delocalization, not aromaticity: a phosphonate, sulfonate, carboxylate or
-    (cyclic) amidine or guanidine drawn this way has no Kekule structure and
-    cannot be sanitized. Rewrite each such center as one
-    double bond plus charged single bonds. Explicit oxygen charges decide when
-    the file supplies them; otherwise the double bond is the shortest bond and
-    the count comes from the center's valence, which keeps an ester or other
-    substituent on the center accounted for. A neighbor holding a hydrogen is a
-    real hydroxyl and keeps its bond and charge.
-    """
-    if synthesized is None:
-        # A caller that does not ask for the synthesized charges still needs
-        # somewhere for them to go.
-        synthesized = {}
-    mol.UpdatePropertyCache(strict=False)
-    for center in mol.GetAtoms():
-        neighbors = _delocalized_neighbors(mol, center, delocalized_bonds)
-        if len(neighbors) < 2 or len({a.GetSymbol() for a in neighbors}) != 1:
-            continue
-        anion = _DELOCALIZED_ANION.get(neighbors[0].GetSymbol())
-        if anion is None:
-            continue
-
-        # Charges the file declares settle the arrangement when they describe a
-        # complete one. Most mol2 files in practice declare none at all, so the
-        # geometry-and-atom-type path below is the ordinary one, and a partial
-        # or unrepresentable declaration -- one oxygen of a mesylate marked, or
-        # an amidinium's +1, which no arrangement of one double bond and charged
-        # singles describes -- falls through to it rather than abandoning the
-        # centre unlocalized.
-        # Only an anionic center can be read off the declared charges: where the
-        # anion is zero -- nitrogen -- "neutral" and "negative" name the same
-        # atoms, so the partition below cannot describe anything and the
-        # geometry path, which reads declared charges directly, is the one that
-        # can.
-        declared = [a for a in neighbors if a.GetIdx() in charges] if anion else []
-        if declared:
-            neutral = [a for a in neighbors if a.GetFormalCharge() == 0]
-            negative = [a for a in neighbors if a.GetFormalCharge() == anion]
-            if len(neutral) == 1 and len(negative) + 1 == len(neighbors):
-                _localize(
-                    center, neutral + negative, 1, None, anion, charges, synthesized
-                )
-                continue
-
-        valence = _DELOCALIZED_VALENCE.get(center.GetSymbol())
-        if valence is None:
-            continue
-        spent = sum(
-            bond.GetBondTypeAsDouble()
-            for bond in center.GetBonds()
-            if frozenset((bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()))
-            not in delocalized_bonds
-        )
-        n_double = int(valence - spent - len(neighbors))
-        if not 0 < n_double <= len(neighbors):
-            continue
-        conformer = mol.GetConformer() if mol.GetNumConformers() else None
-        _localize(center, neighbors, n_double, conformer, anion, charges, synthesized)
-    mol.UpdatePropertyCache(strict=False)
-
-
 def nonstandard_residue_info_from_mol2(
     mol2_path: str | Path,
     res_name: str | None = None,
@@ -664,38 +426,41 @@ def nonstandard_residue_info_from_mol2(
         raise ValueError(f"{mol2_path}: {error}") from error
 
 
+def nonstandard_residue_info_from_file(
+    path: str | Path, res_name: str | None = None
+) -> NonStandardResidueInfo:
+    """``NonStandardResidueInfo`` from a MOL2 or an SDF/MOL file (PDBbind 3GE7)."""
+    sdf = Path(path).suffix.lower() in (".sdf", ".mol")
+    read = (
+        nonstandard_residue_info_from_sdf if sdf else nonstandard_residue_info_from_mol2
+    )
+    return read(path, res_name=res_name)
+
+
 def nonstandard_residue_info_from_sdf(
     sdf_path: str | Path,
     res_name: str | None = None,
 ) -> NonStandardResidueInfo:
     """Construct ``NonStandardResidueInfo`` from the first molecule of an MDL SDF/MOL file.
 
-    A file with hydrogens states all of them. An aromatic bond in no aromatic
-    ring is single, and a charge its atom's bonds cannot carry (the Sybyl C.cat
-    carbon's in PDBbind 3GE7) goes where the valences put it.
+    A file with hydrogens states all of them. Aromatic bonds are read as from any
+    source, and a charge its atom's bonds cannot carry (the Sybyl C.cat carbon's
+    in PDBbind 3GE7) goes where the valences put it.
     """
     from atomworks.io.tools.rdkit import fix_charge_based_on_valence
 
-    from tmol.ligand._rdkit_mol import _SOURCE_KEKULE_PROP
+    from tmol.ligand._rdkit_mol import (
+        _SOURCE_KEKULE_PROP,
+        normalize_non_ring_aromatic_bonds,
+    )
 
     mol = next(iter(Chem.SDMolSupplier(str(sdf_path), sanitize=False, removeHs=False)))
     if mol is None:
         raise ValueError(f"{sdf_path}: no readable molecule")
     explicit_h = any(atom.GetAtomicNum() == 1 for atom in mol.GetAtoms())
-    rings = [
-        [mol.GetBondBetweenAtoms(r[i - 1], r[i]) for i in range(len(r))]
-        for r in Chem.GetSymmSSSR(mol)
-    ]
-    aromatic = {
-        b.GetIdx() for r in rings if all(b.GetIsAromatic() for b in r) for b in r
-    }
-    for bond in mol.GetBonds():
-        if bond.GetIsAromatic() and bond.GetIdx() not in aromatic:
-            bond.SetBondType(Chem.BondType.SINGLE)
-            bond.SetIsAromatic(False)
+    normalize_non_ring_aromatic_bonds(mol)
     for atom in mol.GetAtoms():
         atom.SetNoImplicit(explicit_h)
-        atom.SetIsAromatic(any(b.GetIsAromatic() for b in atom.GetBonds()))
     mol.UpdatePropertyCache(strict=False)
     fix_charge_based_on_valence(mol)
     if not any(bond.GetIsAromatic() for bond in mol.GetBonds()):
