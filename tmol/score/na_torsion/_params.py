@@ -185,8 +185,6 @@ class NaTorsionParams(ValidateAttrs):
     def from_database(cls, database: NaTorsionDatabase, device: torch.device):
         # score functions built from one database share its tables
         device = resolve_device(device)
-        if device.type == "cpu":
-            device = torch.device("cpu")
         return cls._from_db_cache.get_or_create(
             database, (cls, device), lambda: cls._from_database(database, device)
         )
