@@ -40,25 +40,9 @@ FREE_SPINS = tuple(float(x) for x in range(0, 360, 30))
 UNSATURATED = (int(BondType.DOUBLE), int(BondType.TRIPLE), int(BondType.AROMATIC))
 
 
-def _unit(v):
-    n = numpy.linalg.norm(v)
-    return v / n if n > 1e-12 else v
-
-
 def _dihedral(a, b, c, d):
     """The IUPAC dihedral a-b-c-d, which ``signed_dihedral_angle`` negates."""
     return -signed_dihedral_angle(a, b, c, d)
-
-
-def _cross(u, v):
-    return numpy.stack(
-        (
-            u[..., 1] * v[..., 2] - u[..., 2] * v[..., 1],
-            u[..., 2] * v[..., 0] - u[..., 0] * v[..., 2],
-            u[..., 0] * v[..., 1] - u[..., 1] * v[..., 0],
-        ),
-        axis=-1,
-    )
 
 
 def _normalize(v):
@@ -66,10 +50,10 @@ def _normalize(v):
 
 
 def _place_batch(a, b, c, dist, theta, phi):
-    """_place over candidates: references [..., 3] (broadcast), phi [C]."""
+    """Place one atom per candidate: references [..., 3] (broadcast), phi [C]."""
     bc = _normalize(c - b)
-    n = _normalize(_cross(b - a, bc))
-    m = _cross(n, bc)
+    n = _normalize(numpy.cross(b - a, bc))
+    m = numpy.cross(n, bc)
     phi = numpy.asarray(phi)[..., None]
     return c + dist * (
         -math.cos(theta) * bc
@@ -91,7 +75,7 @@ def _place_torch(a, b, c, dist, theta, phi):
 
 def _perpendicular_point(origin, through):
     """A point off the origin-through axis, fixed relative to it."""
-    axis = _unit(through - origin)
+    axis = _normalize(through - origin)
     other = numpy.eye(3)[int(numpy.argmin(numpy.abs(axis)))]
     return origin + numpy.cross(axis, other)
 
@@ -253,7 +237,7 @@ def _plan(geom, known, targets, conn_nodes, ideal_of):
             axis = ("free", p)
         refs = (gg, g, p)
         ia = ideal_of(a)
-        ip, ig, igg = ideal_of(p), _ideal_ref(ideal_of, g), _ideal_ref(ideal_of, gg)
+        ip, ig, igg = ideal_of(p), _resolve(g, ideal_of), _resolve(gg, ideal_of)
         dist = float(numpy.linalg.norm(ia - ip))
         theta = vertex_angle(ig, ip, ia)
         phi = _dihedral(igg, ig, ip, ia)
@@ -262,18 +246,6 @@ def _plan(geom, known, targets, conn_nodes, ideal_of):
             axis_candidates[axis] = _candidates(geom, axis, phi, ideal_of, n)
         ready.add(a)
     return steps, axis_candidates
-
-
-def _ideal_ref(ideal_of, ref):
-    if isinstance(ref, tuple):
-        kind, origin, through = ref
-        o = ideal_of(origin)
-        if kind == "perp":
-            if through is None:
-                return o + numpy.array([1.0, 0.0, 0.0])
-            return _perpendicular_point(o, ideal_of(through))
-        return o + numpy.array([0.0, 1.0, 0.0])
-    return ideal_of(ref)
 
 
 def _rotatable(geom, g, p, n):
@@ -288,7 +260,7 @@ def _rotatable(geom, g, p, n):
 
 def _candidates(geom, axis, phi0, ideal_of, n):
     """Offsets from the axis's ideal dihedral, radians."""
-    if axis[0] == "free" or not isinstance(axis[0], int) or not _is_bond_axis(axis, n):
+    if axis[0] == "free":
         return [0.0] + [math.radians(x) for x in FREE_SPINS[1:]]
     g, p = axis
     offsets = [0.0]
@@ -311,15 +283,11 @@ def _candidates(geom, axis, phi0, ideal_of, n):
     return offsets
 
 
-def _is_bond_axis(axis, n):
-    return all(isinstance(x, int) for x in axis)
-
-
 class _Environment:
     """Heavy atoms a block's rebuilt atoms may clash with, outside that block."""
 
-    def __init__(self, xyz, block_of, donor, acceptor, metal, metal_donor, usable):
-        self.xyz, self.block_of = xyz, block_of
+    def __init__(self, xyz, donor, acceptor, metal, metal_donor, usable):
+        self.xyz = xyz
         self.donor, self.acceptor = donor, acceptor
         self.metal, self.metal_donor = metal, metal_donor
         idx = numpy.flatnonzero(usable)
@@ -459,7 +427,6 @@ def build_missing_by_context(
             continue
         xyz = xyz_all[pose]
         n_pose_atoms = xyz.shape[0]
-        block_of = numpy.full(n_pose_atoms, -1, dtype=numpy.int64)
         donor = numpy.zeros(n_pose_atoms, dtype=bool)
         acceptor = numpy.zeros(n_pose_atoms, dtype=bool)
         metal = numpy.zeros(n_pose_atoms, dtype=bool)
@@ -471,16 +438,13 @@ def build_missing_by_context(
                 continue
             geom = geoms[b] = _geometry(bts[t], atom_types)
             s = int(off_all[pose, b])
-            block_of[s : s + geom.n] = b
             donor[s : s + geom.n] = geom.donor
             acceptor[s : s + geom.n] = geom.acceptor
             metal[s : s + geom.n] = geom.metal
             metal_donor[s : s + geom.n] = geom.metal_donor
             heavy[s : s + geom.n] = geom.heavy
         finite = numpy.isfinite(xyz).all(axis=-1)
-        env = _Environment(
-            xyz, block_of, donor, acceptor, metal, metal_donor, heavy & finite
-        )
+        env = _Environment(xyz, donor, acceptor, metal, metal_donor, heavy & finite)
         pending = {}
 
         for b, t in enumerate(types_all[pose].tolist()):
@@ -617,14 +581,14 @@ def _connection_nodes(
     return nodes, node_xyz, node_ideal, node_global, excluded
 
 
-def _resolve(ref, positions, offset_point):
+def _resolve(ref, position_of):
     """A reference's position: a node, or a point built off one to fix a free spin."""
     if not isinstance(ref, tuple):
-        return positions[ref]
+        return position_of(ref)
     kind, origin, through = ref
-    o = positions[origin]
+    o = position_of(origin)
     if kind == "perp" and through is not None:
-        return offset_point(o, positions[through])
+        return _perpendicular_point(o, position_of(through))
     return o + (
         numpy.array([1.0, 0.0, 0.0]) if kind == "perp" else numpy.array([0.0, 1.0, 0.0])
     )
@@ -695,7 +659,7 @@ class _BlockBuild:
         positions = {a: xyz[self.s + self.relabel.get(a, a)] for a in self.known_atoms}
         positions.update(self.node_xyz)
         for step in self.steps:
-            gg, g, p = (_resolve(r, positions, _perpendicular_point) for r in step.refs)
+            gg, g, p = (_resolve(r, positions.__getitem__) for r in step.refs)
             positions[step.atom] = _place_batch(
                 gg, g, p, step.dist, step.theta, numpy.array([step.phi])
             )[0]
@@ -717,7 +681,7 @@ class _BlockBuild:
         offsets = numpy.asarray(self.axis_candidates[axis])
         # a rotation turns everything it moves rigidly about its bond
         first = self.steps[which[0]]
-        gg, g, p = (_resolve(r, positions, _perpendicular_point) for r in first.refs)
+        gg, g, p = (_resolve(r, positions.__getitem__) for r in first.refs)
         sign = _rotation_sign(gg, g, p, first, positions[first.atom])
         xyz = numpy.array([positions[a] for a in moved])
         points = _rotate_about(xyz, g, p, sign * offsets)
@@ -816,7 +780,7 @@ def _rotate_about(xyz, origin, through, angles):
     v = xyz - through
     c, s = numpy.cos(angles)[:, None, None], numpy.sin(angles)[:, None, None]
     kv = v @ k
-    return through + v * c + _cross(k, v) * s + k * kv[:, None] * (1 - c)
+    return through + v * c + numpy.cross(k, v) * s + k * kv[:, None] * (1 - c)
 
 
 def _rotation_sign(gg, g, p, step, at):
