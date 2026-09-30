@@ -585,8 +585,8 @@
         <span class="k">return</span> <span class="p">(</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">res_name</span><span class="si">}</span><span class="s2">: formal charge is unspecified for isolated </span><span class="si">{</span><span class="n">element</span><span class="si">}</span><span class="s2"> atom "</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">atom_name</span><span class="si">}</span><span class="s2">; no bond or hydrogen valence can establish its charge. "</span>
-            <span class="s2">"Supply _atom_site.pdbx_formal_charge or _chem_comp_atom.charge, enable "</span>
-            <span class="s2">"use_ccd for a CCD component, or load its prepared .tmol parameters"</span>
+            <span class="s2">"Supply _atom_site.pdbx_formal_charge or _chem_comp_atom.charge, use a "</span>
+            <span class="s2">"CCD component code, or load its prepared .tmol parameters"</span>
         <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">element</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_HALOGEN_ELEMENTS</span> <span class="ow">or</span> <span class="n">_formal_charge</span><span class="p">(</span><span class="n">residue</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
@@ -1644,7 +1644,7 @@
     <span class="k">return</span> <span class="n">atom_array</span><span class="p">[</span><span class="n">start</span> <span class="p">:</span> <span class="n">ends</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">residue_starts</span><span class="p">,</span> <span class="n">start</span><span class="p">)]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">with_resolved_coordinates</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">use_ccd</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">with_resolved_coordinates</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Resolve scratch geometry for parameter generation from declared chemistry.</span>
 
 <span class="sd">    Input-scoped AtomWorks templates take precedence over the bundled CCD.</span>
@@ -1655,7 +1655,7 @@
     <span class="n">unresolved</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">coord</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">unresolved</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
         <span class="k">return</span> <span class="n">atom_array</span>
-    <span class="k">if</span> <span class="n">unresolved</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">use_ccd</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">unresolved</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
         <span class="k">return</span> <span class="kc">None</span>
     <span class="n">template</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="s2">"_custom_ccd_registry"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">res_name</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.ccd</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_ccd_code</span><span class="p">,</span> <span class="n">custom_ccd_residues</span>
