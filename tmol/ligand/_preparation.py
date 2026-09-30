@@ -228,17 +228,25 @@ def _kekule_bond_orders(mol: Chem.Mol) -> dict[frozenset, str]:
         Chem.Kekulize(kekule, clearAromaticFlags=True)
     except Exception:
         logger.debug("kekulization failed; keeping aromatic orders", exc_info=True)
-    names = {
-        Chem.BondType.SINGLE: "SINGLE",
-        Chem.BondType.DOUBLE: "DOUBLE",
-        Chem.BondType.TRIPLE: "TRIPLE",
-        Chem.BondType.AROMATIC: "AROMATIC",
-    }
+    named = ("SINGLE", "DOUBLE", "TRIPLE", "AROMATIC")
     return {
-        frozenset((b.GetBeginAtomIdx(), b.GetEndAtomIdx())): names.get(
-            b.GetBondType(), "SINGLE"
+        frozenset((b.GetBeginAtomIdx(), b.GetEndAtomIdx())): (
+            str(b.GetBondType()) if str(b.GetBondType()) in named else "SINGLE"
         )
         for b in kekule.GetBonds()
+    }
+
+
+def _hydrogen_parents(mol: Chem.Mol, atom_types) -> dict[int, list[int]]:
+    """Each hydrogen's heavy neighbours, by atom index."""
+    return {
+        at.index: [
+            n.GetIdx()
+            for n in mol.GetAtomWithIdx(at.index).GetNeighbors()
+            if n.GetAtomicNum() != 1
+        ]
+        for at in atom_types
+        if at.element == "H"
     }
 
 
@@ -251,16 +259,9 @@ def _name_hydrogens_by_parent(
     """
     name_by_index = {at.index: at.atom_name for at in atom_types}
     hydrogens_of: dict[int, list[int]] = {}
-    for at in atom_types:
-        if at.element != "H":
-            continue
-        heavy = [
-            n.GetIdx()
-            for n in mol.GetAtomWithIdx(at.index).GetNeighbors()
-            if n.GetAtomicNum() != 1
-        ]
+    for h, heavy in _hydrogen_parents(mol, atom_types).items():
         if heavy:
-            hydrogens_of.setdefault(heavy[0], []).append(at.index)
+            hydrogens_of.setdefault(heavy[0], []).append(h)
     parents = sorted(hydrogens_of)
     given = hydrogen_names_by_parent(
         [
@@ -297,7 +298,7 @@ def _name_hydrogens_from_source(
     is_h = np.isin(array.element.astype(str), ("H", "D"))
     if not is_h.any() or array.bonds is None:
         return None
-    source_names: dict[str, list[str]] = {}
+    source_names: dict[str, list[tuple[int, str]]] = {}
     for a, b, _ in array.bonds.as_array():
         for h, heavy in ((a, b), (b, a)):
             if is_h[h] and not is_h[heavy]:
@@ -308,17 +309,10 @@ def _name_hydrogens_from_source(
         return None
     name_by_index = {at.index: at.atom_name for at in atom_types}
     prepared: dict[str, list[int]] = {}
-    for at in atom_types:
-        if at.element != "H":
-            continue
-        heavy = [
-            n.GetIdx()
-            for n in mol.GetAtomWithIdx(at.index).GetNeighbors()
-            if n.GetAtomicNum() != 1
-        ]
+    for h, heavy in _hydrogen_parents(mol, atom_types).items():
         if len(heavy) != 1:
             return None
-        prepared.setdefault(name_by_index[heavy[0]], []).append(at.index)
+        prepared.setdefault(name_by_index[heavy[0]], []).append(h)
     if {k: len(v) for k, v in prepared.items()} != {
         k: len(v) for k, v in source_names.items()
     }:
@@ -1592,13 +1586,8 @@ _BOND_ORDERS = {
 
 
 def _has_open_valence(array: struc.AtomArray, bonded_out=frozenset()) -> bool:
-    """Whether a heavy atom of ``array`` has fewer hydrogens than its charge asks.
-
-    Each atom's declared formal charge and bonds set how many hydrogens it
-    carries. Atoms without a declared charge or named in ``bonded_out``
-    (bonded outside ``array``, metals included), bonds without orders, and
-    aromatic bonds with no Kekulé structure cannot tell and count as closed.
-    """
+    """Whether an atom with a declared charge, not in ``bonded_out``, lacks hydrogens.
+    Unordered bonds and aromatic rings with no Kekulé structure count as closed."""
     categories = array.get_annotation_categories()
     if array.bonds is None or "charge" not in categories:
         return False
@@ -1641,12 +1630,8 @@ def _has_open_valence(array: struc.AtomArray, bonded_out=frozenset()) -> bool:
 
 
 def _placeholder_coords(array: struc.AtomArray) -> np.ndarray:
-    """Coordinates with each unresolved atom set 1.4 A out from a placed neighbor.
-
-    It points away from that neighbor's other placed atoms, hydrogens included,
-    so a stereocentre missing one substituent keeps the handedness its hydrogen
-    gives it. AtomWorks protonates only atoms it can place; the positions only
-    stand in for the chemistry and are discarded.
+    """Unresolved atoms 1.4 A from a placed neighbour, away from its placed atoms.
+    Hydrogens count, so a stereocentre keeps its handedness (1en2 NAG, O1 unresolved).
     """
     coord = array.coord.copy()
     placed = np.isfinite(coord).all(axis=-1)
@@ -1678,9 +1663,7 @@ def _placeholder_coords(array: struc.AtomArray) -> np.ndarray:
 
 def _as_free_molecule(lig, ph):
     """``lig`` with the hydrogens AtomWorks gives it as a free molecule at ``ph``.
-
-    Unresolved atoms take hydrogens too, at unresolved coordinates.
-    """
+    Hydrogens on unresolved atoms are unresolved too."""
     is_h = np.isin(lig.atom_array.element, ("H", "D"))
     heavy = lig.atom_array[~is_h]
     unresolved = ~np.isfinite(heavy.coord).all(axis=-1)
@@ -1700,10 +1683,7 @@ def _as_free_molecule(lig, ph):
 
 
 def _copy_without_donor_hydrogens(lig, donors, atom_array):
-    """A copy of ``lig`` in ``atom_array`` missing hydrogens ``lig`` has on ``donors``.
-
-    Every hydrogen it lacks sits on a metal donor, and it has all other atoms.
-    """
+    """A copy of ``lig`` in ``atom_array`` lacking only hydrogens on metal ``donors``."""
     names = set(map(str, lig.atom_array.atom_name))
     is_h = np.isin(lig.atom_array.element, ("H", "D"))
     on_donor = set()
@@ -1727,12 +1707,8 @@ def _copy_without_donor_hydrogens(lig, donors, atom_array):
 def _deprotonated_variant(
     lig, base, donors, atom_array, ph, seed, generate_heavy_chi_samples
 ):
-    """The ligand as a copy coordinating a metal presents it, or None if unchanged.
-
-    The copy is one whose metal donors carry fewer hydrogens than ``lig``'s.
-    The type shares the base type's equivalence class and is marked
-    deprotonated, so detection selects it for copies presenting that state.
-    """
+    """A deprotonated type, in the base type's equivalence class, for a copy whose
+    metal ``donors`` lost hydrogens; None if no copy differs."""
     copy = _copy_without_donor_hydrogens(lig, donors, atom_array)
     if copy is None:
         return None
@@ -1851,7 +1827,7 @@ def prepare_ligands(  # noqa: C901
             )
     if param_db is None:
         param_db = ParameterDatabase.get_default()
-    # an input protonated in context (with its metal bonds) keeps that state
+    # an input protonated in context (with its metal bonds) keeps that state (5XNL)
     if PROTONATION_VARIANT not in atom_array.get_annotation_categories():
         atom_array = with_atomworks_hydrogens(
             atom_array, ph=ph, forms=database_forms(param_db.chemical)
