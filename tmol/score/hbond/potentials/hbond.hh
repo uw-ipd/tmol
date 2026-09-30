@@ -660,6 +660,12 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_full(
         don_dat.rot_coord_offset + don_start + don_h_atom_tile_ind;
     int const A_pose_atom_ind =
         acc_dat.rot_coord_offset + acc_start + acc_atom_tile_ind;
+    // An undefined donor or acceptor base (index -1) leaves NaN derived
+    // coordinates; the pair scores 0 but its gradient would be NaN * 0.
+    if (respair_dat.derived_atom_inds[H_pose_atom_ind][0] < 0
+        || respair_dat.derived_atom_inds[A_pose_atom_ind][1] < 0) {
+      return 0;
+    }
 
     Real3 Dxyz = respair_dat.derived_coords[H_pose_atom_ind][0];
     Real3 Bxyz = respair_dat.derived_coords[A_pose_atom_ind][1];
@@ -707,6 +713,12 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
         don_dat.rot_coord_offset + don_start + don_h_atom_tile_ind;
     int const A_pose_atom_ind =
         acc_dat.rot_coord_offset + acc_start + acc_atom_tile_ind;
+    // An undefined donor or acceptor base (index -1) leaves NaN derived
+    // coordinates; the pair scores 0 but its gradient would be NaN * 0.
+    if (respair_dat.derived_atom_inds[H_pose_atom_ind][0] < 0
+        || respair_dat.derived_atom_inds[A_pose_atom_ind][1] < 0) {
+      return 0;
+    }
 
     Real3 Dxyz = respair_dat.derived_coords[H_pose_atom_ind][0];
     Real3 Bxyz = respair_dat.derived_coords[A_pose_atom_ind][1];
@@ -779,6 +791,12 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
         don_dat.rot_coord_offset + don_start + don_h_atom_tile_ind;
     int const A_pose_atom_ind =
         acc_dat.rot_coord_offset + acc_start + acc_atom_tile_ind;
+    // An undefined donor or acceptor base (index -1) leaves NaN derived
+    // coordinates; the pair scores 0 but its gradient would be NaN * 0.
+    if (respair_dat.derived_atom_inds[H_pose_atom_ind][0] < 0
+        || respair_dat.derived_atom_inds[A_pose_atom_ind][1] < 0) {
+      return 0;
+    }
 
     Real3 Dxyz = respair_dat.derived_coords[H_pose_atom_ind][0];
     Real3 Bxyz = respair_dat.derived_coords[A_pose_atom_ind][1];
