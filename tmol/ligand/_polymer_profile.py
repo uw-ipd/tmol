@@ -1258,7 +1258,7 @@ def _na_profile_for_structure(atom_array, connection_atoms, profile):
         and elements.get(path[0]) == "O"
         and adjacency[path[0]] - {path[1]}
     ):
-        # a 5'-O ether (e.g. MMT's O5'-N) leaves no room to graft a phosphate on
+        # a 5'-O ether (1CX5 A:7 MMT's O5'-N) leaves no room to graft a phosphate on
         profile = _without_connection(profile, "down")
         for atom, _type in tuple(profile.backbone_types):
             if atom not in elements:
@@ -1507,7 +1507,10 @@ def resolve_cap_names(profile: PolymerProfile, existing):
 
 
 def _declared_if_tied(atom_array, anchor, leaving):
-    """Tied leaving candidates narrowed to the one the component definition declares."""
+    """Tied leaving candidates narrowed to the one the component definition declares.
+
+    6C8D A:1 LCC: O1P and OXT tie at P; the definition declares OXT as leaving.
+    """
     template = getattr(atom_array, "_custom_ccd_registry", {}).get(
         str(atom_array.res_name[0])
     )

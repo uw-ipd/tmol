@@ -1424,7 +1424,8 @@ def _apply_metal_connections(
         key = (pbt.conjugation_base_for_bt[bt_ind], tuple(sorted(attached)))
         coordinating = pbt.conjugated_bt_for_base_and_atoms.get(key)
         if coordinating is None:
-            # the given protonation state wins: a neutral TYR or CYS has no donor form
+            # 6YV5 A:45: the given protonation state wins; a neutral TYR's OH has no
+            #    donor form (TYR_DEP has), so its metal bond is dropped
             logger.warning(
                 "pose %d: %s %d cannot coordinate a metal at %s in its given "
                 "protonation state; left uncoordinated",

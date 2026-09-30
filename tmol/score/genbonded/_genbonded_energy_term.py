@@ -61,10 +61,11 @@ _INTER_TABLE_CACHE = WeakIdentityLRU()
 
 
 def _linear_centers(block_type: RefinedResidueType) -> frozenset:
-    """Acyclic two-coordinate atoms with a triple bond or two double bonds.
+    """Acyclic two-coordinate atoms with a triple bond or two double bonds (the
+    terminal alkyne of 7E9I A:101 J0C).
 
     Ring atoms are excluded: they cannot be linear, and aromatic rings may be
-    written with every bond DOUBLE.
+    written with every bond DOUBLE (MOL2 input: DUD ada ZINC02169852).
     """
     orders = {}
     for (a, b), order in block_type.bond_to_type.items():
