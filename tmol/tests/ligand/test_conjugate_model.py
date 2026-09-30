@@ -387,3 +387,19 @@ def test_incompatible_attachment_chemistry_names_both_sites():
         prepare_ligands(array, seed=0)
     assert "A:98 NZ bonded to KIK C1 keeps 2 H" in str(exc.value)
     assert "A:166 NZ bonded to KIK C5 keeps 1 H" in str(exc.value)
+
+
+def test_a_ligand_holding_mercury_is_refused_as_a_metal_ligand():
+    """CCD EMC (ethylmercury, found bonded to cysteines) holds Hg, which is a metal
+    like any other, so its ligand is refused as one holding a metal."""
+    import torch
+    from atomworks.io.utils.ccd import atom_array_from_ccd_code
+
+    from tmol.io import pose_stack_from_biotite
+    from tmol.ligand._preparation import LigandPreparationError
+
+    ligand = atom_array_from_ccd_code("EMC")
+    with pytest.raises(LigandPreparationError, match="metal atoms"):
+        pose_stack_from_biotite(
+            ligand[ligand.element != "H"], torch.device("cpu"), prepare_ligands=True
+        )

@@ -54,7 +54,6 @@ from ._conformer_generation import (  # noqa: F401
 from ._detect import (  # noqa: F401
     NonStandardResidueInfo,
     SKIP_RESIDUES,
-    _METAL_SYMBOLS,
     _charge_model_is_authoritative,
     _dimorphite_protonate_smiles,
     _infer_res_name_from_mol2,

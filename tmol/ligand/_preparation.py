@@ -10,6 +10,7 @@ from dataclasses import replace
 from typing import Optional
 
 import attr
+from atomworks.constants import METAL_ELEMENTS
 
 import biotite.structure as struc
 import numpy as np
@@ -28,7 +29,6 @@ from tmol.ligand._atom_typing import AtomTypeAssignment, assign_tmol_atom_types
 from tmol.ligand._detect import (
     NonStandardResidueInfo,
     _FORMAL_CHARGE_SPECIFIED_ANNOTATION,
-    _METAL_SYMBOLS,
     detect_nonstandard_residues,
     is_polymer_linking_component_type,
     with_resolved_coordinates,
@@ -1571,7 +1571,7 @@ def _ligand_unsupported_reason(
         {
             e.strip().capitalize()
             for e in lig.elements
-            if e.strip().capitalize() in _METAL_SYMBOLS
+            if e.strip().upper() in METAL_ELEMENTS
         }
     )
     if metals_present:
@@ -1624,7 +1624,7 @@ def _covalently_bonded_copy(lig, atom_array) -> bool:
     element = np.char.capitalize(atom_array.element[far].astype(str))
     return bool(
         np.any(
-            ~np.isin(element, list(_METAL_SYMBOLS))
+            ~np.isin(np.char.upper(element), sorted(METAL_ELEMENTS))
             & (kind[across] != int(struc.BondType.COORDINATION))
         )
     )

@@ -13,6 +13,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
+from atomworks.constants import METAL_ELEMENTS
 from atomworks.experimental.protonation.dimorphite import protonate_at_ph
 import attr
 import biotite.structure as struc
@@ -224,39 +225,15 @@ def chem_comp_types_from_cif(cif_path) -> dict:
     return types
 
 
-_METAL_SYMBOLS = frozenset(
-    {
-        "Fe",
-        "Zn",
-        "Cu",
-        "Mn",
-        "Co",
-        "Ni",
-        "Mg",
-        "Ca",
-        "Na",
-        "K",
-        "Cr",
-        "Mo",
-        "W",
-        "V",
-        "Pt",
-        "Pd",
-        "Ru",
-        "Rh",
-        "Ir",
-        "Os",
-    }
-)
-
-
 def _strip_metals(mol: Chem.Mol) -> Chem.Mol:
     """Remove metal atoms from an RDKit Mol.
 
     OpenBabel downstream cannot parse coordination-bond SMILES, and metals
     are dropped during ligand preparation anyway.
     """
-    metals = [a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol() in _METAL_SYMBOLS]
+    metals = [
+        a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol().upper() in METAL_ELEMENTS
+    ]
     if metals:
         em = RWMol(mol)
         for idx in sorted(metals, reverse=True):
