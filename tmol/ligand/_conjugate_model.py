@@ -184,19 +184,12 @@ def iter_capped_conjugate_models(atom_array, chemical_database):
         ri, name = port(index, partner)
         return f"residue {ri} {atom_array.res_name[index]}.{atom_array.atom_name[index]} ({name})"
 
-    def slot(index, partner):
-        # an up carbonyl has room for one partner, whichever connection it takes;
-        #    a down nitrogen may carry an alkyl conjugation beside its link
-        ri, name = port(index, partner)
-        atom = str(atom_array.atom_name[index])
-        return ri, "up" if _polymer_connection(definition(ri), atom) == "up" else name
-
     polymer_attached = set()
     for first, second, order in cross:
         first, second = int(first), int(second)
         ri, rj = int(indices[first]), int(indices[second])
         for endpoint, partner in ((first, second), (second, first)):
-            previous = occupied.setdefault(slot(endpoint, partner), partner)
+            previous = occupied.setdefault(port(endpoint, partner), partner)
             if previous != partner:
                 raise ValueError(
                     f"{label(endpoint, partner)} has multiple declared partners: "
