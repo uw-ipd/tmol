@@ -676,6 +676,8 @@ def nonstandard_residue_info_from_sdf(
     """
     from atomworks.io.tools.rdkit import fix_charge_based_on_valence
 
+    from tmol.ligand._rdkit_mol import _SOURCE_KEKULE_PROP
+
     mol = next(iter(Chem.SDMolSupplier(str(sdf_path), sanitize=False, removeHs=False)))
     if mol is None:
         raise ValueError(f"{sdf_path}: no readable molecule")
@@ -696,6 +698,9 @@ def nonstandard_residue_info_from_sdf(
         atom.SetIsAromatic(any(b.GetIsAromatic() for b in atom.GetBonds()))
     mol.UpdatePropertyCache(strict=False)
     fix_charge_based_on_valence(mol)
+    if not any(bond.GetIsAromatic() for bond in mol.GetBonds()):
+        # the Kekule bonds state the tautomer a heavy-atom file leaves implicit
+        mol.SetProp(_SOURCE_KEKULE_PROP, "1")
     return _nonstandard_residue_info_from_mol2_mol(
         mol, "", res_name, source=str(sdf_path)
     )

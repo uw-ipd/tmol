@@ -62,6 +62,20 @@ def test_pdb_charge_column_states_an_ion_charge():
     assert int((pose.block_type_ind >= 0).sum()) == 1
 
 
+def test_heavy_atom_sdf_ligands_are_prepared(tmp_path):
+    """PoseBusters SDFs have no hydrogens: their Kekule bonds say which ring N
+    carries one (6T88 imidazole)."""
+    for name in (
+        "heavy_atom_imidazole_6t88.sdf.zst",
+        "heavy_atom_indazole_6tw5.sdf.zst",
+    ):
+        ligand = atom_array_from_file(_unpacked(tmp_path, name))
+        pose = pose_stack_from_biotite(
+            ligand, torch.device("cpu"), prepare_ligands=True
+        )
+        assert int((pose.block_type_ind >= 0).sum()) == 1
+
+
 def _bonded(pose, first, second):
     labels = pose.pdb_info.residue_labels[0].tolist()
     partners = pose.inter_residue_connections[0, labels.index(first), :, 0]

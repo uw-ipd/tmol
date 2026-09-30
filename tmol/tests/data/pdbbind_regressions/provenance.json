@@ -36,6 +36,15 @@
   "compressed_sha256": "f2de6930986af7e70d487431b1cb7c3838ccb8e88b7da9daa59e78a44a24fe87"
  },
  {
+  "fixture": "heavy_atom_imidazole_6t88.sdf.zst",
+  "source": "PoseBusters benchmark set (CC-BY 4.0) 6T88_MWQ/6T88_MWQ_ligand.sdf (copy /mnt/data/kdidi/pdbbind/posebusters/posebusters_benchmark_set/6T88_MWQ/6T88_MWQ_ligand.sdf)",
+  "source_sha256": "42791e5be6dd6c60bc8e5a04af5ff1a6c3ef5938140497d72f05996cfdc94f15",
+  "transformation": "6T88_MWQ_ligand.sdf (PoseBusters benchmark set) unchanged; zstd -19",
+  "sha256": "42791e5be6dd6c60bc8e5a04af5ff1a6c3ef5938140497d72f05996cfdc94f15",
+  "bytes": 921,
+  "compressed_sha256": "1cdcf24a0c66ea7489fdd9712409982bdb3c40cd71744a853e5d7396b79cdcf8"
+ },
+ {
   "fixture": "cyclic_acylguanidinium_3ge7.mol2.zst",
   "source": "PDBbind v2013-core 3ge7/3ge7_ligand.mol2 (copy /mnt/data/kdidi/pdbbind/v2013-core/3ge7/3ge7_ligand.mol2)",
   "source_sha256": "7c20af4017925861e0e48d3352fe1e7d89c54067d6313df5b638ec2bcbfe4e8d",
