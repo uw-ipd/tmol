@@ -1241,8 +1241,8 @@ def _na_profile_for_structure(atom_array, connection_atoms, profile):
     """Drop a polymer port the structure cannot use.
 
     A phosphate with a retained ester substituent has no free 5' port, nor has
-    a 5' oxygen that already carries another substituent, and a 3'-deoxy sugar
-    has no 3' one.
+    a 5' oxygen that already carries another substituent; a 3'-deoxy sugar or
+    a substituted 3' oxygen has no 3' one.
     """
     if profile is None:
         return profile
@@ -1253,6 +1253,9 @@ def _na_profile_for_structure(atom_array, connection_atoms, profile):
     if profile.up is not None and elements.get(path[-1]) != "O":
         # no 3' oxygen: the backbone ends at C3', so nothing may graft one on
         profile = _without_atom(_without_connection(profile, "up"), profile.up[1])
+    elif profile.up is not None and adjacency[path[-1]] - {path[-2]}:
+        # a substituted 3' oxygen (a 2',3'-cyclic phosphate) has no free port
+        profile = _without_connection(profile, "up")
     if (
         profile.down is not None
         and elements.get(path[0]) == "O"

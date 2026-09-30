@@ -407,6 +407,18 @@ def test_a_substituted_five_prime_oxygen_leaves_no_five_prime_port() -> None:
     assert "MMT:conj_C3X" in types
 
 
+def test_a_substituted_three_prime_oxygen_leaves_no_three_prime_port(
+    torch_device,
+) -> None:
+    """CCC's 3' oxygen closes its 2',3'-cyclic phosphate (1hq1 B178), so the
+    chain-end copy is no 3' terminus: nothing puts a hydrogen on that O3'."""
+    names, _chemdb = _block_type_names(
+        _sweep_structure("cyclic_phosphate_3prime_1hq1"), torch_device
+    )
+
+    assert names == ["RC:na5primephos", "CCC"]
+
+
 def test_the_component_definition_breaks_a_leaving_oxygen_tie(torch_device) -> None:
     """LCC's 5'-terminal copy is completed with the definition's O1P and OXT.
 

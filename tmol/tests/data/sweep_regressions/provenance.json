@@ -190,5 +190,14 @@
   "sha256": "271f6fdc882eb91d9a556b98c81c5410fd74f8a3b2f519df8623ab0be14979cd",
   "bytes": 82024,
   "compressed_sha256": "d5e7b8ad3d5a49ada775fb13e1c45a32c014e22a9b0a3c9acaa5624cc6e6f737"
+ },
+ {
+  "fixture": "cyclic_phosphate_3prime_1hq1.cif.zst",
+  "source": "https://files.rcsb.org/download/1HQ1.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/hq/1hq1.cif.gz)",
+  "source_sha256": "4ae72a693b11ebaa33d6a5248c6f02f5f50e3e1a17169c1fec105670c855a4af",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/hq/1hq1.cif.gz cyclic_phosphate_3prime_1hq1.cif 2.0 CCC; zstd -19 cyclic_phosphate_3prime_1hq1.cif",
+  "sha256": "39fca583efa112b2f47e474c2d04779aa6506376abe5663690192714223a7b82",
+  "bytes": 52915,
+  "compressed_sha256": "a943627b247bd1a6075d4ee50e5cb0f55cc1b3ec08ded964c1a7cfafdc27087c"
  }
 ]
