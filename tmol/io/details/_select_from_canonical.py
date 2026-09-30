@@ -921,8 +921,6 @@ class CanonicalOrderingAnnotation:
     # n-co-equiv-class
     co_equiv_class_is_polymeric: Tensor[torch.bool][:]
     co_polymer_connection_atoms: Tensor[torch.int64][:, 2]
-    # n-co-equiv-class x n-term-opts x n-spcase-var
-    var_combo_n_candidates: Tensor[torch.int64][:, :, :]
     # n-co-equiv-class x n-term-opts x n-spcase-var x max-n-candidates
     var_combo_is_real_candidate: Tensor[torch.bool][:, :, :, :]
     # n-co-equiv-class x n-term-opts x n-spcase-var x max-n-candidates
@@ -1027,34 +1025,18 @@ def _collect_var_combo_candidates(
         dtype=torch.bool,
         device=torch.device("cpu"),
     )
-    var_combo_n_candidates = torch.zeros(
-        (
-            n_co_io_equiv_classes,
-            max_n_termini_types,
-            max_n_special_case_aa_variant_types,
-        ),
-        dtype=torch.int64,
-        device=torch.device("cpu"),
-    )
 
     for i, bt_name3 in enumerate(co.restype_io_equiv_classes):
         if bt_name3 not in pbt_io_equiv_class_candidates:
             continue
         for j in range(max_n_termini_types):
             for k in range(max_n_special_case_aa_variant_types):
-                var_combo_n_candidates[i, j, k] = len(
-                    pbt_io_equiv_class_candidates[bt_name3][j][k]
-                )
                 for candidate, (bt, bt_ind) in enumerate(
                     pbt_io_equiv_class_candidates[bt_name3][j][k]
                 ):
                     var_combo_candidate_bt_index[i, j, k, candidate] = bt_ind
                     var_combo_is_real_candidate[i, j, k, candidate] = True
-    return (
-        var_combo_candidate_bt_index,
-        var_combo_is_real_candidate,
-        var_combo_n_candidates,
-    )
+    return var_combo_candidate_bt_index, var_combo_is_real_candidate
 
 
 def _note_atoms_present_and_absent_from_variants(co, pbt: PackedBlockTypes):
@@ -1194,16 +1176,14 @@ def _annotate_packed_block_types_w_canonical_res_order(
         co, n_co_io_equiv_classes, bts_for_equiv_class
     )
 
-    (
-        var_combo_candidate_bt_index,
-        var_combo_is_real_candidate,
-        var_combo_n_candidates,
-    ) = _collect_var_combo_candidates(
-        co,
-        max_n_termini_types,
-        max_n_special_case_aa_variant_types,
-        max_n_candidates_for_var_combo,
-        pbt_io_equiv_class_candidates,
+    var_combo_candidate_bt_index, var_combo_is_real_candidate = (
+        _collect_var_combo_candidates(
+            co,
+            max_n_termini_types,
+            max_n_special_case_aa_variant_types,
+            max_n_candidates_for_var_combo,
+            pbt_io_equiv_class_candidates,
+        )
     )
 
     bt_canonical_atom_is_absent, bt_non_term_patch_added_canonical_atom_is_present = (
@@ -1230,7 +1210,6 @@ def _annotate_packed_block_types_w_canonical_res_order(
             dtype=torch.int64,
             device=pbt.device,
         ),
-        var_combo_n_candidates=_d(var_combo_n_candidates),
         var_combo_is_real_candidate=_d(var_combo_is_real_candidate),
         var_combo_candidate_bt_index=_d(var_combo_candidate_bt_index),
         bt_canonical_atom_is_absent=_d(bt_canonical_atom_is_absent),
