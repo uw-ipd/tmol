@@ -3001,10 +3001,8 @@ def _default_pose_build_context_for(
 
 
 def _restype_set_sharing_default(chemical_db) -> ResidueTypeSet:
-    """Residue types of chemical_db that keep the default set's objects where it extends it.
-
-    Shared objects keep their cached score and packing annotations across databases.
-    """
+    """chemical_db's residue types, reusing the default set's objects (and their
+    cached annotations) where chemical_db extends the default database."""
     try:
         return _restype_set_for_biotite().extended(chemical_db)
     except ValueError:
