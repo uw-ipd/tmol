@@ -132,10 +132,11 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         rosetta_typed = self.rosetta_typed
         ljlk_bond_separation = packed_block_types.bond_separation.clone()
         ligand = numpy.zeros(ljlk_bond_separation.shape[:2], dtype=bool)
+        all_ligand = numpy.zeros(len(ligand), dtype=numpy.int32)
         for i, bt in enumerate(packed_block_types.active_block_types):
-            ligand[i, : len(bt.atoms)] = [
-                a.atom_type not in rosetta_typed for a in bt.atoms
-            ]
+            typed = [a.atom_type not in rosetta_typed for a in bt.atoms]
+            ligand[i, : len(typed)] = typed
+            all_ligand[i] = all(typed)
         ligand = torch.from_numpy(ligand).to(ljlk_bond_separation.device)
         both = ligand.unsqueeze(2) & ligand.unsqueeze(1)
         ljlk_bond_separation[
@@ -145,14 +146,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         setattr(
             packed_block_types,
             "ljlk_all_atoms_ligand_typed",
-            torch.tensor(
-                [
-                    all(a.atom_type not in self.rosetta_typed for a in bt.atoms)
-                    for bt in packed_block_types.active_block_types
-                ],
-                dtype=torch.int32,
-                device=self.device,
-            ),
+            torch.from_numpy(all_ligand).to(self.device),
         )
         return store_annotation(
             packed_block_types,
