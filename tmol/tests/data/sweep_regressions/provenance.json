@@ -10,6 +10,15 @@
   "compressed_sha256": "2e607b3abdc5e426531797298cffe414a9eb8937c2dd84534d1b50b15ec55b0f"
  },
  {
+  "fixture": "capped_peptide_1coi.pdb.zst",
+  "source": "https://files.rcsb.org/download/1COI.pdb",
+  "source_sha256": "685390d4f6144f9a007a85d045fedb8b2e8a930ccf02222d6a29a95e6f2d6088",
+  "transformation": "grep -E '^(ATOM|HETATM|TER|END)' 1COI.pdb > capped_peptide_1coi.pdb && python -c \"import zstandard; open('capped_peptide_1coi.pdb.zst', 'wb').write(zstandard.ZstdCompressor(level=19).compress(open('capped_peptide_1coi.pdb', 'rb').read()))\"",
+  "sha256": "8c00a92891628ab476b7f7b1a6e84b1755fdc015858671126b161157cb9990c5",
+  "bytes": 20331,
+  "compressed_sha256": "f8bf3bca1c90a9efe1590d98aadadcba4c2a3ece999ca797a284587f5597fb85"
+ },
+ {
   "fixture": "bonded_bromide_1mhk.cif.zst",
   "source": "https://files.rcsb.org/download/1MHK.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/mh/1mhk.cif.gz)",
   "source_sha256": "1b2f79a23d109ff0cc8bb64f05dd3efa58ee1b584b926360d012fc63f9757bb0",

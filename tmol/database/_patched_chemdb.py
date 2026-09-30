@@ -746,7 +746,7 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
         newres = attr.evolve(res, name=res.name + ":" + variant.display_name)
 
         # hydrogens on removed atoms go with them; a prepared residue can carry
-        #    some (a protonated phosphate) where canonical ones do not
+        #    some where canonical ones do not (7KW4 A:2 XY7's HOP1/HOP2)
         removed = {namemap[a] for a in variant.remove_atoms if a in namemap}
         stranded = sorted(
             name
@@ -772,7 +772,7 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
         newres.atoms = (*newres.atoms, *variant.add_atoms)
 
         # 2b. add atom alias; a source name the base residue already aliases keeps
-        #     that meaning, since input names are read per name3
+        #     that meaning, since input names are read per name3 (1MWI D:7 AAB O3P)
         claimed = {a.alt_name: a.name for a in res.atom_aliases}
         newres.atom_aliases = (
             *newres.atom_aliases,

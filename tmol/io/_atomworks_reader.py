@@ -100,7 +100,7 @@ def _with_metal_coordination(array, block):
 def _one_disulfide_per_sulfur(array):
     """The bond table keeping, of the S-S bonds between residues, one per sulfur.
 
-    A deposit can declare one cysteine in two disulfides (6CNB) or a Zn(Cys)4
+    A deposit can declare one cysteine in two disulfides (6CNB L:51) or a Zn(Cys)4
     site as a ring of them (5N5Y). The bonds nearest 2.04 A are kept.
     """
     bonds = array.bonds.as_array()
@@ -178,7 +178,8 @@ def _renumber_decreasing_author_ids(array):
 def _link_bonds(array, lines):
     """The LINK records as bonds, skipping symmetry mates and links longer than a covalent bond.
 
-    A link to a metal is a coordination bond.
+    A link to a metal is a coordination bond (1HZY A:401 ZN), as in the mmCIF
+    struct_conn path, whose distance limits these are.
     """
     index = {}
     for i, key in enumerate(
@@ -235,8 +236,9 @@ def _extends_polymer(array, starts, anchor, residue, step):
 def _read_pdb(path, model):
     """A PDB's atoms with its LINK records as bonds, HETATM chains in residue-number order.
 
-    The loader moves a chain's HETATM residues off it; those within its ATOM residues, or
-    bonded at its ends (caps), rejoin it. PDB files may list the rest out of order (1HZY).
+    The loader moves a chain's HETATM residues off it; those within its ATOM residues
+    (3SVU A:63 NRQ), or bonded at its ends (caps: 1COI A:0 ACE, A:30 NH2), rejoin it.
+    PDB files may list the rest out of order (1HZY A:369 FMT after A:401 ZN).
     """
     from tmol.ligand._mol2_names import disambiguated_atom_names
 

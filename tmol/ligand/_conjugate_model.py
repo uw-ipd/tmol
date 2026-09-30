@@ -64,7 +64,8 @@ def attachment_connection_name(
     thiocarbonyl, not every possible bond at that atom. Alkyl carbon and phosphorus partners are
     ordinary conjugations, including when the nitrogen is at a chain end.
     With the partner's definition known, a port links only to the partner's
-    complementary port, as in the pose; any other bond at it is a conjugation.
+    complementary port, as in the pose; any other bond at it is a conjugation
+    (3W93 LYS B:21 NZ acylated by TYZ B:401; 1I72 SER A:69 N by PYR A:68).
     """
     atom = str(atom_array.atom_name[index])
     declared = _polymer_connection(residue, atom)

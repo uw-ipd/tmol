@@ -2045,6 +2045,7 @@ def _filter_supported_atoms_and_connectivity(  # noqa: C901
                 valid_res[i] = False
                 n_missing_mainchain += 1
     if n_missing_mainchain and not valid_res.any():
+        # 1A1D: a CA-only trace leaves no residue with its mainchain
         raise ValueError(
             f"No residue remains: {n_missing_mainchain} polymer residues lack "
             "mainchain atoms (a CA-only or P-only trace model?) and were dropped. "

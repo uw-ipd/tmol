@@ -676,3 +676,18 @@ def test_pdb_link_records_reach_the_pose(tmp_path, torch_device):
         for pair in links
         if not pair[0].startswith("HOH")
     }
+
+
+def test_coordinate_only_pdb_keeps_its_caps_in_the_chain(torch_device):
+    """1COI with its coordinates only, no LINK or CONECT records: the HETATM caps
+    ACE A:0 and NH2 A:30 bond to GLU A:1 N and GLY A:29 C, so they stay in chain A."""
+    from tmol.io import pose_stack_from_file
+
+    fixture = DATA / "sweep_regressions" / "capped_peptide_1coi.pdb.zst"
+    pose = pose_stack_from_file(
+        fixture, torch_device, prepare_ligands=True, ligand_seed=0, no_optH=True
+    )
+    types = pose.packed_block_types.active_block_types
+    names = [types[i].name for i in pose.block_type_ind64[0].tolist() if i >= 0]
+    assert names[:2] == ["ACE", "GLU"]
+    assert names[-3:] == ["GLY", "NH2", "SO4"]

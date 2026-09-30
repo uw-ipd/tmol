@@ -226,7 +226,8 @@ def _assert_prepared_names_cover(atom_array, param_db) -> None:
     types lack.
 
     A prepared name is not prepared again, so a type made from copies missing an
-    atom (a glycan's leaving O1) cannot describe a copy that has it.
+    atom (2YOR: linked NAGs lack the leaving O1) cannot describe a copy that has
+    it (the free NAG B:511).
     """
     prepared = {r.io_equiv_class for r in param_db.chemical.residues} - {
         r.io_equiv_class for r in ParameterDatabase.get_default().chemical.residues
@@ -1108,7 +1109,8 @@ def conjugation_atoms(lig, polymer_ports, any_instance=False):
     A bond is a polymer link only from one residue's up port to the other's
     down port, as in the pose; an acyl cap's inferred port does not turn a
     glycan amine or a polymer sidechain into a backbone connection. With
-    ``any_instance``, a port that some copy bonds otherwise is a site too.
+    ``any_instance``, a port that some copy bonds otherwise is a site too (3W93
+    TYZ caps ARG A:1 N and acylates LYS B:21 NZ).
     """
     from tmol.ligand._conjugate_model import is_polymer_link
 

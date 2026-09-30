@@ -378,7 +378,8 @@ def test_a_polymer_port_links_only_to_the_complementary_port(
 
 
 def test_incompatible_attachment_chemistry_names_both_sites():
-    """KIK alkylates one lysine NZ (2 H kept) and is an enamine on another (1 H)."""
+    """5LNU A:403 KIK alkylates one lysine NZ (2 H kept) and is an enamine on
+    another (1 H)."""
     array = atom_array_from_cif(
         data_path("sweep_regressions", "kik_lysine_crosslink_5lnu.cif.zst")
     )

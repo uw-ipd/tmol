@@ -394,7 +394,7 @@ def _block_type_names(structure, device):
 
 
 def test_a_substituted_five_prime_oxygen_leaves_no_five_prime_port() -> None:
-    """MMT's 5' oxygen bonds the methylimino link to the previous residue.
+    """1CX5 A:7 MMT's 5' oxygen bonds the methylimino link to the previous residue.
 
     No phosphate is grafted onto that ether: the type keeps only its 3' port,
     and the link at C3X is a conjugation.
@@ -423,7 +423,7 @@ def test_the_component_definition_breaks_a_leaving_oxygen_tie(torch_device) -> N
     """LCC's 5'-terminal copy is completed with the definition's O1P and OXT.
 
     Both are terminal hydroxyls on P; the definition declares OXT as leaving,
-    so O1P stays, as in the copies inside the chain.
+    so O1P stays, as in the copies inside the chain (6C8D A:1-A:3).
     """
     structure = _sweep_structure("lcc_leaving_atoms_6c8d")
     names, _chemdb = _block_type_names(structure, torch_device)
@@ -434,7 +434,8 @@ def test_the_component_definition_breaks_a_leaving_oxygen_tie(torch_device) -> N
 def test_a_patch_removes_the_hydrogens_of_the_atoms_it_removes() -> None:
     """XY7's phosphate carries hydroxyl hydrogens a canonical nucleotide lacks.
 
-    The 5'-terminal patches remove OP1 and OP2, and with them HOP1 and HOP2.
+    The 5'-terminal patches remove OP1 and OP2, and with them HOP1 and HOP2 (7KW4
+    A:2).
     """
     prepared, _known, _co = _prepared(_sweep_structure("xy7_phosphate_hydrogens_7kw4"))
     atoms = {
@@ -448,7 +449,8 @@ def test_a_patch_removes_the_hydrogens_of_the_atoms_it_removes() -> None:
 
 
 def test_a_variant_keeps_the_phosphate_alias_of_its_residue(torch_device) -> None:
-    """AAB reads its deposited O3P as OP2; so do its variants, na5primephos too."""
+    """1MWI D:7 AAB reads its deposited O3P as OP2; so do its variants, na5primephos
+    too."""
     structure = _sweep_structure("aab_phosphate_alias_1mwi")
     names, chemdb = _block_type_names(structure, torch_device)
 

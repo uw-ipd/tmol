@@ -246,11 +246,11 @@ def atom_array_from_cif(
 def _without_misstated_charges(array, templates):
     """``array`` with the charges its bonded C, N, O and halogen atoms cannot carry set to 0.
 
-    Off a metal, such a charge leaves too little room for the atom's bonds (a
-    bromide bonded to a base, -1 on a C=O oxygen, +8 on a CB), is two or more
-    where the bonds need none and the dictionary states none (+7 on a
-    carboxylate O), or is +1 on an oxygen with fewer than three bonds (a
-    carboxylate's -1 deposited unsigned). The pH then decides the atom.
+    Off a metal, such a charge leaves too little room for the atom's bonds (1MHK
+    S:13 BR -1 bonded to a uridine C5), or the dictionary does not state it and it
+    is two or more where the bonds need none (7TJM 7:103 GLU OE2 +7) or +1 on an
+    oxygen with fewer than three bonds (3ZLP n:107 GLU OE1, a carboxylate's -1
+    deposited unsigned). The pH then decides the atom.
     """
     from atomworks.constants import METAL_ELEMENTS
 
@@ -270,21 +270,20 @@ def _without_misstated_charges(array, templates):
     by_metal[bonds[metal[bonds[:, 1]], 0]] = True
     by_metal[bonds[metal[bonds[:, 0]], 1]] = True
     room = np.where(element == "C", valence - np.abs(charge), valence + charge)
-    multiple = (np.abs(charge) > 1) & (fewest <= valence) & (valence > 0)
-    for index in np.flatnonzero(multiple):
+    unstated = (valence > 0) & (
+        ((np.abs(charge) > 1) & (fewest <= valence))
+        | ((element == "O") & (charge == 1) & (most < room))
+    )
+    for index in np.flatnonzero(unstated):
         name = str(array.res_name[index])
         template = templates.get(name)
         if template is None:
             template = _component_dictionary_template(name)
-        multiple[index] = template is None or charge[index] not in (
+        unstated[index] = template is None or charge[index] not in (
             template.charge[template.atom_name == array.atom_name[index]]
         )
     misstated = (valence > 0) & (fewest > 0) & ~by_metal
-    misstated &= (
-        ((room < valence) & (fewest > room))
-        | multiple
-        | ((element == "O") & (charge == 1) & (most < room))
-    )
+    misstated &= ((room < valence) & (fewest > room)) | unstated
     # ligands are prepared by name, so a charge another copy of the atom keeps stays
     named = np.char.add(np.char.add(array.res_name.astype(str), "/"), array.atom_name)
     named = np.char.add(np.char.add(named, "/"), charge.astype(str))
