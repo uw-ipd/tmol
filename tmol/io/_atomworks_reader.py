@@ -74,7 +74,7 @@ def _with_pdb_author_chains(array, path, model):
 def _with_metal_coordination(array, block):
     """The bond table plus the file's metalc bonds, typed COORDINATION.
 
-    The reader has kept one conformer, so a row's alternate locations all name it.
+    The reader kept one conformer, so a row's alternate locations name it (3F7L, 7ADR).
     """
     struct_conn = category_to_dict(block, "struct_conn")
     for partner in (1, 2):
