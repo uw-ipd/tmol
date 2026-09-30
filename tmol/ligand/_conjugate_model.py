@@ -53,14 +53,8 @@ def _polymer_connection(residue, atom):
 def attachment_connection_name(
     atom_array, index, partner, residue, partner_residue=None
 ):
-    """Classify a cross-residue endpoint from both atoms' chemistry.
-
-    A polymer nitrogen's ``down`` connection means an incoming carbonyl or
-    thiocarbonyl, not every possible bond at that atom. Alkyl carbon and phosphorus partners are
-    ordinary conjugations, including when the nitrogen is at a chain end.
-    Likewise an ``up`` atom bonded to a known polymer residue anywhere but its
-    ``down`` atom (a sidechain amine) is a conjugation.
-    """
+    """A polymer ``down`` N takes only an incoming (thio)carbonyl and an ``up`` atom only a
+    polymer ``down`` atom (7AG5's Pro C on DNP NG); other bonds are conjugations."""
     atom = str(atom_array.atom_name[index])
     declared = _polymer_connection(residue, atom)
     if (

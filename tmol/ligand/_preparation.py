@@ -1047,9 +1047,8 @@ def _polymer_connection_atoms(res_name, lig, canonical_ordering, chemdb):
             for carbonyl in (_chain_end_candidates(lig.atom_array, nitrogen) or ())
             if carbonyl in lig.connection_atom_names
         }
-        # Sidechain crosslinks do not erase a peptide backbone. Resolve every
-        # partner from its chemistry, independently of loop order; where two
-        # amines could each start one, the shortest mainchain (alpha) wins.
+        # Sidechain crosslinks do not erase a peptide backbone; where two amines
+        # could each start one, the shortest (alpha) mainchain wins (7AG5 DNP).
         candidates = (
             profile_for_atom_array(lig.atom_array, pair, chemdb) for pair in pairs
         )
@@ -2108,7 +2107,7 @@ def prepare_ligands(  # noqa: C901
         )
         cut_partners |= cut
         # a database residue bonded to a prepared residue's sidechain is only
-        # classified once that residue's definition exists
+        # classified once that residue's definition exists (7AG5 PRO on DNP)
         known = {
             n for r in param_db.chemical.residues for n in (r.name, r.io_equiv_class)
         }

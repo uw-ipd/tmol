@@ -522,13 +522,8 @@ def _heavy_adjacency(atom_array):
 
 
 def _can_cap_through(atom_array, atom: str) -> bool:
-    """Whether a terminating residue's only bond can be a peptide bond.
-
-    A carbon makes one only as an acyl carbon. Without its C=O or C=S (a
-    Schiff-base carbon whose carbonyl oxygen left, or an alkyl carbon) the
-    bond is an attachment, whose order the conjugate path keeps. Untyped
-    bonds say nothing either way and leave the cap in place.
-    """
+    """Whether a terminating residue's only bond can be a peptide bond: through a carbon
+    only with its C=O/C=S (not 5T4J's PLP C4A aldimine); untyped bonds keep the cap."""
     _adj, double, element = _heavy_adjacency(atom_array)
     if element.get(atom, "").strip().upper() != "C":
         return True
@@ -1201,10 +1196,8 @@ def profile_for_atom_array(
         from tmol.database import ParameterDatabase
 
         chemdb = ParameterDatabase.get_default().chemical
-    # Recognize the sugar before peptide end completion: a terminal nucleotide
-    # can carry a base amine that is unrelated to its polymer backbone. An
-    # abasic nucleotide's C1' hydroxyl makes it look like a sugar, so this
-    # comes first.
+    # Recognize the nucleotide before sugars (AAB's C1' hydroxyl) and peptide ends
+    # (a terminal nucleotide's base amine is not its backbone).
     kind = na_backbone_kind(atom_array, connection_atoms)
     if kind is not None:
         return _na_profile_for_structure(
@@ -1231,11 +1224,8 @@ def profile_for_atom_array(
 
 
 def _na_profile_for_structure(atom_array, connection_atoms, profile):
-    """Drop a polymer port the structure cannot use.
-
-    A phosphate with a retained ester substituent has no free 5' port, and a
-    3'-deoxy sugar has no 3' one.
-    """
+    """Drop a polymer port the structure cannot use: the 5' one of a phosphate with a
+    retained ester substituent, the 3' one of a 3'-deoxy sugar (DDG, DOC)."""
     if profile is None:
         return profile
     adjacency, _, elements = _heavy_adjacency(atom_array)
@@ -1301,7 +1291,7 @@ def na_sugar_mainchain(adjacency, element):
 
     Returns (path, ring) with the path running 5' to 3' -- P-O5'-C5'-C4'-C3'-O3',
     or the same without the phosphate, which a residue seen only at a 5'
-    terminus does not have, or without O3', which a 3'-deoxy sugar does not.
+    terminus does not have, or without O3', which a 3'-deoxy sugar (DDG) lacks.
     Derived from the ring rather than from the connections, since a residue at
     a chain end has only one of those and the missing one is exactly what has
     to be worked out.
@@ -1847,8 +1837,8 @@ def _na_backbone_torsions(residues, backbone, mainchain, element):
 
     Everything but the glycosidic one: alpha through zeta and the sugar
     puckers are the same four atoms in every nucleotide, while chi runs into
-    the base and is named per residue. A proton chi, such as the 2'-hydroxyl's,
-    belongs to the residue and is found with its other chi.
+    the base and is named per residue. Proton chis (1BZT PSU's 2'-hydroxyl) stay
+    with the residue's own chi.
     """
 
     def spec(atom):
