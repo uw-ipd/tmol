@@ -19,7 +19,6 @@ import attr
 import numpy
 import torch
 
-from tmol.chemical._ideal_coords import build_coords_from_icoors
 from tmol.database.chemical import (
     Connection,
     VariantScope,
@@ -338,27 +337,14 @@ def _build_canonical_metal_tables(
     )
 
 
-def _raw_ideal_coords(res):
-    """{atom name: ideal position} built from a raw residue's icoors."""
-    names = [ic.name for ic in res.icoors]
-    index = {n: i for i, n in enumerate(names)}
-    ancestors = numpy.array(
-        [
-            [index[ic.parent], index[ic.grand_parent], index[ic.great_grand_parent]]
-            for ic in res.icoors
-        ],
-        dtype=numpy.int32,
-    )
-    geom = numpy.array([[ic.phi, ic.theta, ic.d] for ic in res.icoors])
-    coords = build_coords_from_icoors(ancestors, geom).astype(numpy.float64)
-    return dict(zip(names, coords))
-
-
 def _cluster_sites(res, index_of, atom_type, table):
     """Detection's view of a cluster: each metal, its satisfiers and free sites."""
+    # tmol.ligand imports tmol.io
+    from tmol.ligand._fragmentation import _full_ideal_coords
+
     ion_for_atom_type = {ion["atom_type"]: ion for ion in table["ions"]}
     types = {a.name: a.atom_type for a in res.atoms}
-    ideal = _raw_ideal_coords(res)
+    ideal = _full_ideal_coords(res)
     metals, first = [], 0
     for site in res.metal_sites:
         names = (site.metal_atom, *site.internal_satisfiers, *site.site_virts)

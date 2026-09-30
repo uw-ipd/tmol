@@ -5,7 +5,6 @@ from itertools import combinations
 import numpy
 import torch
 
-from tmol.chemical import RefinedResidueType
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import ideal_distances, metal_table
 from tmol.pose import PackedBlockTypes, PoseStack
@@ -62,9 +61,6 @@ class MetalCoordinationEnergyTerm(EnergyTerm):
 
     def n_bodies(self):
         return 2
-
-    def setup_block_type(self, block_type: RefinedResidueType):
-        super().setup_block_type(block_type)
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super().setup_packed_block_types(packed_block_types)

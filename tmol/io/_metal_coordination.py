@@ -10,6 +10,7 @@ from tmol.database.chemical import site_connections, site_metal
 from tmol.io import CanonicalOrdering
 from tmol.io._pose_stack_construction import pose_stack_from_canonical_form
 from tmol.io._pose_stack_deconstruction import canonical_form_from_pose_stack
+from tmol.io.details._metal_geometry import unit
 from tmol.pose import PoseStack
 
 
@@ -108,10 +109,7 @@ def _closest_open_site(pose_stack, pose, metal, donor, atom, open_sites):
         site, local = site_metal(metal_bt, k)
         metal_xyz = xyz[offset + metal_bt.atom_to_idx[site.metal_atom]]
         ray = xyz[offset + metal_bt.atom_to_idx[site.site_virts[local]]] - metal_xyz
-        direction = donor_xyz - metal_xyz
-        return numpy.dot(ray, direction) / (
-            numpy.linalg.norm(ray) * numpy.linalg.norm(direction)
-        )
+        return unit(ray) @ unit(donor_xyz - metal_xyz)
 
     return max(open_sites, key=alignment)
 

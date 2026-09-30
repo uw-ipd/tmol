@@ -19,6 +19,9 @@ import numpy
 import yaml
 from yaml import safe_load
 
+from tmol.chemical._ideal_coords import normalize
+from tmol.database.chemical import ideal_distances
+
 CHEM_DIR = os.path.join(
     os.path.dirname(__file__), "..", "..", "database", "default", "chemical"
 )
@@ -28,18 +31,6 @@ SCORING_DIR = os.path.join(
 
 # donors we place virtuals for; the site marks where a water would sit
 SITE_DONOR = "Owat"
-
-
-def fill_distances(ion, donor_radii):
-    """Measured distances, completed by ionic_radius + donor_radius."""
-    out = dict(ion["distances"])
-    for donor, radius in donor_radii.items():
-        out.setdefault(donor, round(ion["ionic_radius"] + radius, 3))
-    return out
-
-
-def normalize(v):
-    return v / numpy.linalg.norm(v)
 
 
 def frame_from_coords(p1, p2, p3):
@@ -175,7 +166,7 @@ def main():
 
     residues, charges = [], []
     for ion in table["ions"]:
-        distances = fill_distances(ion, table["donor_radii"])
+        distances = ideal_distances(ion, table["donor_radii"])
         for geometry in ion["geometries"]:
             res = residue_for(
                 ion, geometry, vertices_for[geometry], distances, n_sites_for[geometry]
