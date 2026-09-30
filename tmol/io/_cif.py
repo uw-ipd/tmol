@@ -202,7 +202,10 @@ def atom_array_from_cif(
     # AtomWorks skips sanitation when its own completion is disabled. Repair
     # the final author-view graph with the same shared attachment chemistry.
     with custom_ccd_residues(array._custom_ccd_registry):
-        specified = getattr(array, "pdbx_formal_charge", np.full(len(array), "?"))
+        # a PDB states charges in its charge column, where blank reads as 0
+        stated = np.where(array.charge != 0, array.charge.astype(str), "?")
+        stated = stated if block is None else np.full(len(array), "?")
+        specified = getattr(array, "pdbx_formal_charge", stated)
         charge_specified = ~np.isin(specified, _MISSING_CIF_VALUE)
         for index in np.flatnonzero(charge_specified):
             array.charge[index] = int(specified[index])

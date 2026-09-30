@@ -27,6 +27,15 @@
   "compressed_sha256": "458d944192a11ec660090c43bf2a988fcd1a1fe9decfd673f4729e1e378a32a9"
  },
  {
+  "fixture": "chloride_charge_column_6tw5.pdb.zst",
+  "source": "PoseBusters benchmark set (CC-BY 4.0) 6TW5_9M2/6TW5_9M2_protein.pdb (copy /mnt/data/kdidi/pdbbind/posebusters/posebusters_benchmark_set/6TW5_9M2/6TW5_9M2_protein.pdb)",
+  "source_sha256": "58103cb1cdd29cab8e80892d6800e8395268e33697ce9401342107e2220c1243",
+  "transformation": "the chain A CL HETATM record of 6TW5_9M2_protein.pdb (PoseBusters benchmark set), END appended; zstd -19",
+  "sha256": "b391b4c942c81d7c7c67a4babde1d3e299c63c78415eb0f750975ce7f1e7a06a",
+  "bytes": 85,
+  "compressed_sha256": "f2de6930986af7e70d487431b1cb7c3838ccb8e88b7da9daa59e78a44a24fe87"
+ },
+ {
   "fixture": "cyclic_acylguanidinium_3ge7.mol2.zst",
   "source": "PDBbind v2013-core 3ge7/3ge7_ligand.mol2 (copy /mnt/data/kdidi/pdbbind/v2013-core/3ge7/3ge7_ligand.mol2)",
   "source_sha256": "7c20af4017925861e0e48d3352fe1e7d89c54067d6313df5b638ec2bcbfe4e8d",

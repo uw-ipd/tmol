@@ -52,6 +52,16 @@ def test_repeated_pdb_atom_names_take_the_mol2_names(tmp_path):
     assert list(pdb.atom_name) == list(mol2.atom_name)
 
 
+def test_pdb_charge_column_states_an_ion_charge():
+    """PoseBusters' 6TW5 writes its chloride as Cl1- in the PDB charge column, so
+    the lone ion is prepared as the anion the file states."""
+    ion = atom_array_from_file(
+        data_path("pdbbind_regressions", "chloride_charge_column_6tw5.pdb.zst")
+    )
+    pose = pose_stack_from_biotite(ion, torch.device("cpu"), prepare_ligands=True)
+    assert int((pose.block_type_ind >= 0).sum()) == 1
+
+
 def _bonded(pose, first, second):
     labels = pose.pdb_info.residue_labels[0].tolist()
     partners = pose.inter_residue_connections[0, labels.index(first), :, 0]
