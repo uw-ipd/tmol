@@ -9,6 +9,15 @@
   "compressed_sha256": "0fb0df8b5da51706b8195fa77409db95cc8a3744d9f4e22268229b703605ea5e"
  },
  {
+  "fixture": "pocket_1gpk.pdb.zst",
+  "source": "PDBbind v2013-core 1gpk/1gpk_pocket.pdb (copy /mnt/data/kdidi/pdbbind/v2013-core/1gpk/1gpk_pocket.pdb)",
+  "source_sha256": "8530a1e106983a61b79e22368692f6ee29b9a4e3055a9f288ac3bd45d500e435",
+  "transformation": "ATOM records of the first six residues (84, 116-119, 121) of 1gpk_pocket.pdb (PDBbind v2013-core, blank chain ID), END appended; zstd -19",
+  "sha256": "3a808791ec8ab2cf133f5e6935742366cc0492263b633a90380ce9fd243fa178",
+  "bytes": 4665,
+  "compressed_sha256": "e25fd5d1580ceb3737e76a78b58090cdfcb0d5e6123939d2ae3a22dc1a9d225f"
+ },
+ {
   "fixture": "cyclic_acylguanidinium_3ge7.mol2.zst",
   "source": "PDBbind v2013-core 3ge7/3ge7_ligand.mol2 (copy /mnt/data/kdidi/pdbbind/v2013-core/3ge7/3ge7_ligand.mol2)",
   "source_sha256": "7c20af4017925861e0e48d3352fe1e7d89c54067d6313df5b638ec2bcbfe4e8d",

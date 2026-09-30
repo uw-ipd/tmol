@@ -1,6 +1,7 @@
 """Read supplied structure information before tmol validates parameter requirements."""
 
 import warnings
+from string import ascii_uppercase
 
 import biotite.structure as struc
 import numpy as np
@@ -264,6 +265,11 @@ def _read_pdb(path, model):
         if array.hetero[in_chain].all():
             by_number = np.argsort(array.res_id[in_chain], kind="stable")
             order[in_chain] = in_chain[by_number]
+    # a blank chain ID is valid in a PDB file but names no chain for AtomWorks
+    blank = array.auth_asym_id == ""
+    if blank.any():
+        free = next(c for c in ascii_uppercase if c not in array.auth_asym_id)
+        array.chain_id[blank] = array.auth_asym_id[blank] = free
     return array[order]
 
 

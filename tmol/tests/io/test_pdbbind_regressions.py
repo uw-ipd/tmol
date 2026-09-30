@@ -46,6 +46,17 @@ def _bonded(pose, first, second):
     return labels.index(second) in partners.tolist()
 
 
+def test_pocket_is_one_chain_broken_at_its_gaps():
+    """A pocket PDB with a blank chain ID reads as one chain, and GLY 119 and
+    TYR 121, 3 A apart across the missing residue 120, are not bonded."""
+    pocket = atom_array_from_file(
+        data_path("pdbbind_regressions", "pocket_1gpk.pdb.zst")
+    )
+    assert set(pocket.chain_id) == {"A"}
+    pose = pose_stack_from_biotite(pocket, torch.device("cpu"))
+    assert _bonded(pose, 118, 119) and not _bonded(pose, 119, 121)
+
+
 def test_numbered_bond_across_a_gap_is_not_kept():
     """Residues numbered 37 and 38 but 5.6 A apart are bonded only when asked."""
     structure = atom_array_from_file(
