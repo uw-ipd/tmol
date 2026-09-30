@@ -39,9 +39,7 @@ def pack_rotamers(
         sfxn: Score function used to rank rotamer assignments.
         task: Allowed block types, conformers, and packing positions.
         verbose: Print synchronized stage timings when true.
-        seed: Seed the generator for this call only, leaving torch's global
-            random state as it was, so the same inputs pack the same way
-            however many packing runs came before.
+        seed: Seed for this call only, leaving torch's global random state unchanged.
 
     Returns:
         A new pose stack containing the lowest-ranked assignment per pose.

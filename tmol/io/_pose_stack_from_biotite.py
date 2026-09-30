@@ -689,10 +689,8 @@ def pose_stack_from_biotite(  # noqa: C901
         ligand_seed: Fixed RNG seed for the conformer each prepared residue
             is built from, making preparation reproducible. Only used when
             prepare_ligands=True.
-        packer_seed: Seed of the packer that optimizes hydrogens (``no_optH``
-            False) and builds missing side chains, making the pose the same
-            in every call. Unseeded, the packer continues torch's global
-            random state.
+        packer_seed: Seed of the packer that places hydrogens and builds missing
+            side chains; unseeded, it continues torch's global random state.
         return_context: If True, return ``(pose_stack, PoseBuildContext)``.
         context: Reusable context from ``build_context_from_biotite``. It must
             be on ``torch_device`` and is mutually exclusive with ``param_db``
