@@ -142,15 +142,13 @@ write_params_from_mol2(
 pose_stack, context = pose_stack_from_file(
     "complex.pdb", device,
     ligand_params_files=["ligand.tmol"],
-    use_ccd=False,
     return_context=True,
 )
 ```
 
 Use the complex's ligand residue name and matching atom names. Alternatively,
 pass the database returned by `prepare_ligand_from_mol2()` as `param_db=`.
-Neither route regenerates known ligand parameters. `use_ccd=False` reads only
-supplied information; the default `True` permits CCD completion.
+Neither route regenerates known ligand parameters.
 
 For mixtures of known and unknown components, add `prepare_ligands=True`: saved
 parameters are reused, and only unknown chemistry enters preparation. Unknown
