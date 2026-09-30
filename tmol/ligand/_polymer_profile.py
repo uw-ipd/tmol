@@ -1254,7 +1254,7 @@ def _na_profile_for_structure(atom_array, connection_atoms, profile):
         # no 3' oxygen: the backbone ends at C3', so nothing may graft one on
         profile = _without_atom(_without_connection(profile, "up"), profile.up[1])
     elif profile.up is not None and adjacency[path[-1]] - {path[-2]}:
-        # a substituted 3' oxygen (a 2',3'-cyclic phosphate) has no free port
+        # 1HQ1 B:178 CCC: a substituted 3' oxygen (2',3'-cyclic phosphate) has no port
         profile = _without_connection(profile, "up")
     if (
         profile.down is not None

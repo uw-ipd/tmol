@@ -202,7 +202,8 @@ def atom_array_from_cif(
     # AtomWorks skips sanitation when its own completion is disabled. Repair
     # the final author-view graph with the same shared attachment chemistry.
     with custom_ccd_residues(array._custom_ccd_registry):
-        # a PDB states charges in its charge column, where blank reads as 0
+        # PoseBusters 6TW5 (Cl1-): a PDB states charges in its charge column,
+        # where blank reads as 0
         stated = np.where(array.charge != 0, array.charge.astype(str), "?")
         stated = stated if block is None else np.full(len(array), "?")
         specified = getattr(array, "pdbx_formal_charge", stated)

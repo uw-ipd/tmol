@@ -424,6 +424,7 @@ def _polymer_gap_links(
     gap = same_chain & (u >= 0) & (d >= 0)
     gap &= ~linked[u] & ~linked[d]
     if "is_polymer" in template.get_annotation_categories():
+        # 8GPB AMP A930/A940: free nucleotides of one chain are no neighbours
         polymer = template.is_polymer[starts[:-1]].astype(bool)
         gap &= polymer[:-1] & polymer[1:]
     return numpy.column_stack(

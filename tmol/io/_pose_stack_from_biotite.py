@@ -2086,8 +2086,9 @@ def _break_polymer_gaps(not_connected, bonds, coords, restypes, chain_id, co, cu
     """Disconnect polymer residues of a chain whose connection atoms are apart.
 
     Consecutive residues are apart when those atoms, either way round, are
-    farther than ``cut`` in every pose; unresolved ones count as joined.
-    Returns ``bonds`` without a polymer bond declared across such a gap.
+    farther than ``cut`` in every pose (1GPK pocket 119/121, 3.0 A); unresolved
+    ones count as joined. Returns ``bonds`` without a polymer bond declared
+    across such a gap (3KGP 37/38, bonded from their numbering).
     """
     ports = co.polymer_conn_inds
     up = numpy.asarray(ports.up_atom_for_co_restype)[restypes]

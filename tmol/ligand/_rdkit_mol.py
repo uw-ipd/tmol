@@ -129,8 +129,8 @@ def _apply_atom_array_annotations(
     flags = atom_array.tmol_aromatic
     for mol_idx, arr_idx in enumerate(arr_indices):
         a = mol.GetAtomWithIdx(mol_idx)
-        # a flag adds aromaticity; an aromatic bond order is not overruled by a
-        # default False (a part joined to a MOL2 ligand carries no flags of its own)
+        # PoseBusters 6TW5: a flag adds aromaticity; an aromatic bond order is not
+        # overruled by a default False (6T88's FAD joined to an SDF ligand)
         aromatic_bond = any(
             b.GetBondType() == Chem.BondType.AROMATIC for b in a.GetBonds()
         )

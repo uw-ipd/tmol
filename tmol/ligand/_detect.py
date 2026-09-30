@@ -438,7 +438,7 @@ def _apply_mol2_metadata(mol, text):
 
 
 def _delocalized_neighbors(mol, center, delocalized_bonds):
-    """Neighbors sharing a source ``ar`` bond with ``center`` only, ring or not."""
+    """Neighbors sharing a source ``ar`` bond with ``center`` only, in a ring too (3GE7)."""
     neighbors = []
     for atom in center.GetNeighbors():
         pair = frozenset((center.GetIdx(), atom.GetIdx()))
@@ -671,8 +671,8 @@ def nonstandard_residue_info_from_sdf(
     """Construct ``NonStandardResidueInfo`` from the first molecule of an MDL SDF/MOL file.
 
     A file with hydrogens states all of them. An aromatic bond in no aromatic
-    ring is single, and a charge its atom's bonds cannot carry (a Sybyl C.cat
-    carbon's, say) goes where the valences put it.
+    ring is single, and a charge its atom's bonds cannot carry (the Sybyl C.cat
+    carbon's in PDBbind 3GE7) goes where the valences put it.
     """
     from atomworks.io.tools.rdkit import fix_charge_based_on_valence
 
@@ -699,7 +699,7 @@ def nonstandard_residue_info_from_sdf(
     mol.UpdatePropertyCache(strict=False)
     fix_charge_based_on_valence(mol)
     if not any(bond.GetIsAromatic() for bond in mol.GetBonds()):
-        # the Kekule bonds state the tautomer a heavy-atom file leaves implicit
+        # PoseBusters 6T88: Kekule bonds state the tautomer a heavy-atom file implies
         mol.SetProp(_SOURCE_KEKULE_PROP, "1")
     return _nonstandard_residue_info_from_mol2_mol(
         mol, "", res_name, source=str(sdf_path)
