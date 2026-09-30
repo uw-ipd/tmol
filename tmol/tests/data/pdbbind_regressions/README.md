@@ -8,3 +8,4 @@ exercised by `tmol/tests/io/test_pdbbind_regressions.py`, whose tests fail witho
 |---|---|
 | `cyclic_acylguanidinium_3ge7.mol2.zst`, `iminohydantoin_4djv.mol2.zst` | Tripos `ar` bonds of a C.cat inside a ring localize to one double bond and an N cation (+2, +1). |
 | `cyclic_acylguanidinium_3ge7.sdf.zst` | An SDF reads like its MOL2: the charge written on the C.cat carbon goes to N, a stray aromatic bond is single. |
+| `numbered_gap_3kgp.pdb.zst` | Residues 37 and 38, numbered consecutively but 5.6 A apart, are not bonded (unless the threshold is 0). |

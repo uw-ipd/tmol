@@ -1,5 +1,14 @@
 [
  {
+  "fixture": "numbered_gap_3kgp.pdb.zst",
+  "source": "PDBbind v2013-core 3kgp/3kgp_protein.pdb (copy /mnt/data/kdidi/pdbbind/v2013-core/3kgp/3kgp_protein.pdb)",
+  "source_sha256": "9303531c3de6547a39db0131bef5a2fe0c88d2427c17bdeb68cc903f20a2ba4a",
+  "transformation": "ATOM/HETATM records of chain A residues 33-42 of 3kgp_protein.pdb (PDBbind v2013-core), END appended; zstd -19",
+  "sha256": "345d09623b918c7affec9426522fbef051a2ca742bc8e120ee89eef8929a1de9",
+  "bytes": 9168,
+  "compressed_sha256": "0fb0df8b5da51706b8195fa77409db95cc8a3744d9f4e22268229b703605ea5e"
+ },
+ {
   "fixture": "cyclic_acylguanidinium_3ge7.mol2.zst",
   "source": "PDBbind v2013-core 3ge7/3ge7_ligand.mol2 (copy /mnt/data/kdidi/pdbbind/v2013-core/3ge7/3ge7_ligand.mol2)",
   "source_sha256": "7c20af4017925861e0e48d3352fe1e7d89c54067d6313df5b638ec2bcbfe4e8d",
