@@ -418,23 +418,25 @@ def test_declared_metal_bonds_are_coordination(built, bond_type):
 
 
 @pytest.mark.parametrize(
-    "stem, metal, donors",
+    "path, metal, read, not_read",
     [
-        ("cu_zn_sod_3f7l", (201, "CU"), {(44, "ND1"), (46, "NE2"), (118, "NE2")}),
-        ("clf_nitrogenase_7adr", (501, "FE6"), {(115, "SG")}),
+        ("metal_fixtures/cu_zn_sod_3f7l", (201, "CU"), {44, 46, 118}, set()),
+        ("metal_fixtures/clf_nitrogenase_7adr", (501, "FE6"), {115}, set()),
+        ("sweep_regressions/metalc_alternate_3p1o", (237, "MG"), {89}, {86}),
     ],
 )
-def test_metalc_naming_an_alternate_location_is_read(stem, metal, donors):
-    structure = atom_array_from_cif(FIXTURE_DIR / f"{stem}.cif.zst")
+def test_metalc_rows_bind_the_conformer_they_name(path, metal, read, not_read):
+    """A metalc row naming a conformer is read where the reader kept it (or the
+    atom has none), not where it kept another (3P1O GLU A:86 names B, keeps A)."""
+    structure = atom_array_from_cif(data_path(f"{path}.cif.zst"))
     bonds = structure.bonds.as_array()
     bonds = bonds[bonds[:, 2] == struc.BondType.COORDINATION, :2]
     at = numpy.flatnonzero(
         (structure.res_id == metal[0]) & (structure.atom_name == metal[1])
     )
     partners = bonds[numpy.isin(bonds, at).any(axis=1)].ravel()
-    partners = partners[~numpy.isin(partners, at)]
-    read = {(int(structure.res_id[p]), str(structure.atom_name[p])) for p in partners}
-    assert donors <= read
+    donors = {int(structure.res_id[p]) for p in partners[~numpy.isin(partners, at)]}
+    assert read <= donors and not not_read & donors
 
 
 def test_declared_bond_beyond_cutoff_is_kept(built):
@@ -472,8 +474,10 @@ def test_only_declared_bonds_without_detection(built):
 
 
 def test_a_donor_whose_given_state_cannot_coordinate_is_left_uncoordinated(caplog):
-    # 6yv5: Na binds SER 24 O/OG and TYR 45 OH, and AtomWorks keeps TYR 45
-    #    neutral; only its phenolate can donate, so that bond is dropped
+    # 6yv5: Na binds SER 24 O (conformer A) and OG (conformer B) and TYR 45 OH;
+    #    the reader keeps conformer A, whose OG is 3.75 A away, so only O is
+    #    bound. AtomWorks keeps TYR 45 neutral; only its phenolate can donate,
+    #    so that bond is dropped
     structure = atom_array_from_cif(
         data_path("sweep_regressions", "metal_tyr_6yv5.cif.zst")
     )
@@ -481,12 +485,9 @@ def test_a_donor_whose_given_state_cannot_coordinate_is_left_uncoordinated(caplo
         pose_stack = pose_stack_from_biotite(structure, torch.device("cpu"))
     types = pose_stack.packed_block_types.active_block_types
     assert [types[i].name for i in pose_stack.block_type_ind64[0]] == [
-        "SER:nterm:metal_O:metal_OG",
+        "SER:nterm:metal_O",
         "TYR:cterm",
         "NA_irregular",
     ]
-    assert labeled_metal_bonds(pose_stack) == {
-        (("A", 301), ("A", 24), "O"),
-        (("A", 301), ("A", 24), "OG"),
-    }
+    assert labeled_metal_bonds(pose_stack) == {(("A", 301), ("A", 24), "O")}
     assert "cannot coordinate a metal at ['OH']" in caplog.text

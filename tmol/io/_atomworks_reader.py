@@ -81,11 +81,14 @@ def _with_pdb_author_chains(array, path, model):
 def _with_metal_coordination(array, block):
     """The bond table plus the file's metalc bonds, typed COORDINATION.
 
-    The reader has kept one conformer, so a row's alternate locations all name it.
+    A row naming an alternate location binds that conformer: it is dropped where
+    the reader kept another conformer of the atom (3P1O names GLU A:86 conformer
+    B for MG A:237; the kept conformer A is 6 A away), and read where the atom
+    has no alternates.
     """
-    struct_conn = category_to_dict(block, "struct_conn")
-    for partner in (1, 2):
-        struct_conn.pop(f"pdbx_ptnr{partner}_label_alt_id", None)
+    struct_conn = _rows_binding_kept_conformers(
+        array, category_to_dict(block, "struct_conn")
+    )
     bonds = array.bonds if array.bonds is not None else struc.BondList(len(array))
     return bonds.merge(
         get_struct_conn_bonds(
@@ -95,6 +98,43 @@ def _with_metal_coordination(array, block):
             distance_policy="keep",
         )
     )
+
+
+def _rows_binding_kept_conformers(array, struct_conn):
+    """struct_conn without its alt ids, less the rows naming a conformer not kept."""
+    named = [struct_conn.pop(f"pdbx_ptnr{p}_label_alt_id", None) for p in (1, 2)]
+    if "label_alt_id" not in array.get_annotation_categories() or all(
+        n is None for n in named
+    ):
+        return struct_conn
+    alt = array.label_alt_id
+    lettered = np.flatnonzero(~np.isin(alt, (".", "?", " ", "")))
+    kept = {
+        (str(array.chain_id[i]), str(array.res_id[i]), str(array.res_name[i]))
+        + (str(array.atom_name[i]),): str(alt[i])
+        for i in lettered
+    }
+    keep = np.ones(len(struct_conn["conn_type_id"]), dtype=bool)
+    for partner, letters in zip((1, 2), named):
+        if letters is None:
+            continue
+        seq = struct_conn[f"ptnr{partner}_label_seq_id"]
+        seq = np.where(
+            seq == ".", struct_conn.get(f"ptnr{partner}_auth_seq_id", seq), seq
+        )
+        for row, key in enumerate(
+            zip(
+                struct_conn[f"ptnr{partner}_label_asym_id"],
+                seq,
+                struct_conn[f"ptnr{partner}_label_comp_id"],
+                struct_conn[f"ptnr{partner}_label_atom_id"],
+                strict=True,
+            )
+        ):
+            letter = str(letters[row])
+            if letter not in (".", "?", " ", ""):
+                keep[row] &= kept.get(tuple(str(k) for k in key), letter) == letter
+    return {name: column[keep] for name, column in struct_conn.items()}
 
 
 def _one_disulfide_per_sulfur(array):

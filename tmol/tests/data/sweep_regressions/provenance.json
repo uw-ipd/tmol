@@ -208,5 +208,14 @@
   "sha256": "39fca583efa112b2f47e474c2d04779aa6506376abe5663690192714223a7b82",
   "bytes": 52915,
   "compressed_sha256": "a943627b247bd1a6075d4ee50e5cb0f55cc1b3ec08ded964c1a7cfafdc27087c"
+ },
+ {
+  "fixture": "metalc_alternate_3p1o.cif.zst",
+  "source": "https://files.rcsb.org/download/3P1O.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/p1/3p1o.cif.gz)",
+  "source_sha256": "f9736f2ad281d02ebc3b8cd63e3a63d09945974cc5fe0920020bbe46592dd322",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/p1/3p1o.cif.gz metalc_alternate_3p1o.cif 7 H:.; zstd -19 metalc_alternate_3p1o.cif",
+  "sha256": "ef6e1f02dd8d82a95bfcc3c0952bd391c5795fc6568d94e091c5fe03ba804be4",
+  "bytes": 59867,
+  "compressed_sha256": "13ee004203bd356433c178c4e9b8839a023dae0d2c93d2ad87ea255544ac45a2"
  }
 ]
