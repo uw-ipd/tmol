@@ -66,70 +66,43 @@ ResName3 = typing.NewType("ResName3", str)
 IcoorIndex = NewType("AtomIndex", int)
 
 
+_ONE_LETTER_CODE = {
+    "ALA": "A",
+    "CYS": "C",
+    "ASP": "D",
+    "GLU": "E",
+    "PHE": "F",
+    "GLY": "G",
+    "HIS": "H",
+    "ILE": "I",
+    "LYS": "K",
+    "LEU": "L",
+    "MET": "M",
+    "ASN": "N",
+    "PRO": "P",
+    "GLN": "Q",
+    "ARG": "R",
+    "SER": "S",
+    "THR": "T",
+    "VAL": "V",
+    "TRP": "W",
+    "TYR": "Y",
+}
+_THREE_LETTER_CODE = {one: three for three, one in _ONE_LETTER_CODE.items()}
+
+
 def three2one(three: str) -> Union[str, None]:
     """Return the one-letter amino acid code given its three letter code,
     or None if not a valid three-letter code
     """
-    # 'static'
-    if not hasattr(three2one, "_mapping"):
-        three2one._mapping = {
-            "ALA": "A",
-            "CYS": "C",
-            "ASP": "D",
-            "GLU": "E",
-            "PHE": "F",
-            "GLY": "G",
-            "HIS": "H",
-            "ILE": "I",
-            "LYS": "K",
-            "LEU": "L",
-            "MET": "M",
-            "ASN": "N",
-            "PRO": "P",
-            "GLN": "Q",
-            "ARG": "R",
-            "SER": "S",
-            "THR": "T",
-            "VAL": "V",
-            "TRP": "W",
-            "TYR": "Y",
-        }
-    if three in three2one._mapping:
-        return three2one._mapping[three]
-    return None
+    return _ONE_LETTER_CODE.get(three)
 
 
 def one2three(one: str) -> Union[str, None]:
     """Return the three-letter amino acid code given its one-letter code,
     or None if not a valid one-letter code.
     """
-    # 'static'
-    if not hasattr(one2three, "_mapping"):
-        one2three._mapping = {
-            "A": "ALA",
-            "C": "CYS",
-            "D": "ASP",
-            "E": "GLU",
-            "F": "PHE",
-            "G": "GLY",
-            "H": "HIS",
-            "I": "ILE",
-            "K": "LYS",
-            "L": "LEU",
-            "M": "MET",
-            "N": "ASN",
-            "P": "PRO",
-            "Q": "GLN",
-            "R": "ARG",
-            "S": "SER",
-            "T": "THR",
-            "V": "VAL",
-            "W": "TRP",
-            "Y": "TYR",
-        }
-    if one in one2three._mapping:
-        return one2three._mapping[one]
-    return None
+    return _THREE_LETTER_CODE.get(one)
 
 
 def get_element_from_atom_name(atom_name: str) -> str:
