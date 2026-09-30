@@ -100,6 +100,15 @@ def assign_block_types(
         explicit_polymer_connections,
     )
 
+    termini_variants = _termini_the_atoms_state(
+        pbt,
+        atom_is_present,
+        res_types64,
+        res_type_variants64,
+        termini_variants,
+        res_not_connected & is_polymeric[..., None],
+        is_real_res,
+    )
     block_type_ind64 = select_best_block_type_candidate(
         canonical_ordering,
         pbt,
@@ -503,6 +512,29 @@ def determine_chain_ending_status(
         is_actual_last_chain_res,
         is_polymeric,
     )
+
+
+def _termini_the_atoms_state(pbt, present, restypes, variants, termini, broken, real):
+    """Termini with a gap side made a terminus where only that fits the given atoms.
+
+    PDBbind v2020 1ERR A:74 (PrepWizard) caps its chain break with H1 and H2,
+    which no mid-chain ALA holds; a heavy-atom input still fits mid-chain.
+    """
+    can_ann = pbt.canonical_ordering_annotation
+    down = (termini == 0) | (termini == 3) | broken[..., 0]
+    up = (termini == 2) | (termini == 3) | broken[..., 1]
+    alt = torch.where(down & up, 3, torch.where(down, 0, torch.where(up, 2, 1)))
+    restypes, variants = restypes.clamp(min=0), variants.clamp(min=0)
+
+    def unfit(t):
+        cands = can_ann.var_combo_candidate_bt_index[restypes, t, variants]
+        real_cand = can_ann.var_combo_is_real_candidate[restypes, t, variants]
+        absent = can_ann.bt_canonical_atom_is_absent[cands.clamp(min=0)]
+        absent |= ~real_cand[..., None]
+        return (present[:, :, None] & absent).any(-1).all(-1)
+
+    switch = real & (alt != termini) & unfit(termini) & ~unfit(alt)
+    return torch.where(switch, alt, termini)
 
 
 @validate_args

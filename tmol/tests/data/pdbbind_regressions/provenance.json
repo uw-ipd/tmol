@@ -18,6 +18,15 @@
   "compressed_sha256": "e25fd5d1580ceb3737e76a78b58090cdfcb0d5e6123939d2ae3a22dc1a9d225f"
  },
  {
+  "fixture": "capped_break_1err.pdb.zst",
+  "source": "PDBbind v2020 prepared (zenodo 7014096) v2020-other-PL_5/1err/1err_prot/1err_p.pdb (copy /mnt/data/kdidi/pdbbind/v2020_partial/v2020-other-PL_5/1err/1err_prot/1err_p.pdb)",
+  "source_sha256": "18df5b34c751036cbeeeb570dcfd3f5eb3fbefd89c18f5f45b33d1a49a16ee6f",
+  "transformation": "ATOM records of chain A residues 377-385 (381 missing) of 1err_prot/1err_p.pdb (PDBbind v2020, zenodo 7014096, Schrodinger-prepared), END appended; zstd -19",
+  "sha256": "bc043dfeddf970cdad9a20e0f3007b406ded35a2e338d9f1944b149a329f4f43",
+  "bytes": 11344,
+  "compressed_sha256": "b448abbf65e9c0ab12a55240eae73ad14a6b749ab4895b136b6b9fc36313eb9d"
+ },
+ {
   "fixture": "repeated_names_ligand_10gs.pdb.zst",
   "source": "PDBbind v2013-core 10gs/10gs_complex.pdb (copy /mnt/data/kdidi/pdbbind/v2013-core/10gs/10gs_complex.pdb)",
   "source_sha256": "19dfaa6ec42849b395f1770aa7efc12ac9df691745a98ae9f43066143b13b8d7",

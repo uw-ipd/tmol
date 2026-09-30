@@ -1,6 +1,6 @@
 # PDBbind regression files
 
-Trimmed PDBbind v2013-core and PoseBusters inputs (protein/pocket PDB, ligand MOL2/SDF) that failed or were misread by TMol's
+Trimmed PDBbind (v2013-core, v2020 prepared) and PoseBusters inputs (protein/pocket PDB, ligand MOL2/SDF) that failed or were misread by TMol's
 readers; `provenance.json` records the source file, its hash, the trim and the hashes of the files here. Each is
 exercised by `tmol/tests/io/test_pdbbind_regressions.py`, whose tests fail without their fix.
 
@@ -13,3 +13,4 @@ exercised by `tmol/tests/io/test_pdbbind_regressions.py`, whose tests fail witho
 | `repeated_names_ligand_10gs.pdb.zst`, `repeated_names_ligand_10gs.mol2.zst` | Repeated atom names in one PDB residue (a peptidic ligand written as one) take the MOL2 reader's names. |
 | `chloride_charge_column_6tw5.pdb.zst` | A charge in the PDB charge column (PoseBusters 6TW5 `Cl1-`) is the stated formal charge. |
 | `heavy_atom_imidazole_6t88.sdf.zst`, `heavy_atom_indazole_6tw5.sdf.zst` | Heavy-atom SDF ligands (PoseBusters) keep their Kekule tautomer, and aromatic bond orders keep their atoms aromatic. |
+| `capped_break_1err.pdb.zst` | Atoms a mid-chain residue cannot hold (PrepWizard's H1, H2 at 1ERR's break) make the residue after a gap a terminus. |

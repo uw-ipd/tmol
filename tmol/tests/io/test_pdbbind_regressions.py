@@ -77,6 +77,19 @@ def test_heavy_atom_sdf_ligands_are_prepared(tmp_path):
         assert int((pose.block_type_ind >= 0).sum()) == 1
 
 
+def test_a_capped_chain_break_is_a_terminus():
+    """PrepWizard caps 1ERR's break after A 380 with H1 and H2 on ALA 382, which
+    no mid-chain ALA holds, so ALA 382 is an N-terminus."""
+    protein = atom_array_from_file(
+        data_path("pdbbind_regressions", "capped_break_1err.pdb.zst")
+    )
+    pose = pose_stack_from_biotite(protein, torch.device("cpu"))
+    bts = pose.packed_block_types.active_block_types
+    labels = pose.pdb_info.residue_labels[0].tolist()
+    block = pose.block_type_ind[0, labels.index(382)]
+    assert bts[block].name == "ALA:nterm"
+
+
 def _bonded(pose, first, second):
     labels = pose.pdb_info.residue_labels[0].tolist()
     partners = pose.inter_residue_connections[0, labels.index(first), :, 0]
