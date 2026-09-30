@@ -1414,7 +1414,7 @@ def na_backbone_kind(atom_array, connection_atoms) -> Optional[str]:
     Standard means a five-membered sugar with the phosphate-to-3'-oxygen path
     closed on it. What hangs off the sugar is not looked at, so a modified base
     or a substituted 2' position is still standard; RNA is told from DNA by an
-    oxygen on C2', which is where a ribose differs from a deoxyribose.
+    oxygen on a sugar ring carbon off the backbone path.
     """
     if not connection_atoms:
         return None
@@ -1426,13 +1426,12 @@ def na_backbone_kind(atom_array, connection_atoms) -> Optional[str]:
     if not set(connection_atoms) <= {path[0], path[-1]}:
         return None
 
-    # C2' is the ring carbon past C3', the last ring atom on the path
-    c4, c3 = [atom for atom in path if atom in ring][-2:]
-    c2 = next(atom for atom in adjacency[c3] & set(ring) if atom != c4)
     exocyclic_oxygen = any(
         element.get(other_atom) == "O"
-        for other_atom in adjacency[c2]
-        if other_atom not in ring
+        for atom in ring
+        if atom not in path
+        for other_atom in adjacency[atom]
+        if other_atom not in ring and other_atom not in path
     )
     return "rna" if exocyclic_oxygen else "dna"
 
