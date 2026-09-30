@@ -23,3 +23,5 @@ compressed file) and exercises one failure class; each test fails without its fi
 | `terminal_alkyne_7e9i.cif.zst` | gen_torsions skip dihedrals through an acyclic sp centre; analytic and numeric gradients agree. |
 | `free_nucleotides_8gpb.cif.zst` | Free nucleotides sharing a chain and entity (AMP A930, A940) are not linked O3'-P for protonation. |
 | `cyclic_phosphate_3prime_1hq1.cif.zst` | A nucleotide whose 3' oxygen is in a 2',3'-cyclic phosphate (CCC) has no 3' port, so no 3' terminus adds HO3'. |
+| `his_pos_nmr_2lny.cif.zst` | HIS_POS (both ring protons) has cart_bonded parameters: minimization keeps its bonds; a type without parameters is reported. |
+| `oxygen_acceptor_1mbo.cif.zst` | An acceptor without a base (haem-bound O2, OXY) scores hbond with finite gradients. |
