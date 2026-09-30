@@ -65,11 +65,11 @@ dna:
   rama: 0.0
   ref: 0.0
 nonstandard_aa:
-  cart_angles: 67.4757
+  cart_angles: 68.561
   cart_hxltorsions: 1.3347
-  cart_impropers: 6.9254
-  cart_lengths: 247.6195
-  cart_torsions: 3.798
+  cart_impropers: 7.0947
+  cart_lengths: 262.8278
+  cart_torsions: 3.8264
   disulfide: 0.0
   dunbrack_rot: 22.7186
   dunbrack_rotdev: 24.3836

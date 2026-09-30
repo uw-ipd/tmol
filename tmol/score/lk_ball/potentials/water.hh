@@ -303,6 +303,38 @@ void TMOL_DEVICE_FUNC water_gen_load_tile_invariant_data(
       block_type_atom_is_hydrogen;
 }
 
+// The rot_coords offset of the copy of bcat's block that goes with this
+// rotamer: its own, the matching conformer of a lockstep group, or else the
+// block's first rotamer in this pose. Coordinates and derivatives both use it.
+template <tmol::Device Dev, typename Real, typename Int>
+TMOL_DEVICE_FUNC int rot_coord_offset_for(
+    bonded_atom::BlockCentricAtom<Int> bcat,
+    WaterGenSingleResData<Real> const& single_res_dat,
+    WaterGenPoseContextData<Dev, Real, Int> const& context_dat) {
+  if (bcat.block == single_res_dat.block_ind) {
+    return single_res_dat.rot_coord_offset;
+  }
+  int const pose_ind = context_dat.pose_ind;
+  int const my_group =
+      context_dat.lockstep_group_for_block[pose_ind][single_res_dat.block_ind];
+  int const other_group =
+      context_dat.lockstep_group_for_block[pose_ind][bcat.block];
+  int other_rot;
+  if (my_group >= 0 && my_group == other_group) {
+    // the neighbour moves with this block; take the copy that goes with
+    // this rotamer rather than the block's first, which is a different
+    // conformer of the same group
+    int const k =
+        single_res_dat.rot_ind
+        - context_dat.rot_offset_for_block[pose_ind][single_res_dat.block_ind];
+    other_rot = context_dat.rot_offset_for_block[pose_ind][bcat.block] + k;
+  } else {
+    // every rotamer of the neighbour presents the same atoms here
+    other_rot = context_dat.first_rot_for_block[pose_ind][bcat.block];
+  }
+  return context_dat.rot_coord_offset[other_rot];
+}
+
 // Some coordinates are available in shared memory, some we will
 // have to go out to global memory for.
 template <int TILE_SIZE, typename Real, typename Int, tmol::Device Dev>
@@ -329,34 +361,9 @@ TMOL_DEVICE_FUNC Eigen::Matrix<Real, 3, 1> load_coord(
   }
   if (!in_smem) {
     // outside of tile or on other res, retrieve from global coords
-    int coord_offset;
-    if (bcat.block == single_res_dat.block_ind) {
-      coord_offset = single_res_dat.rot_coord_offset;
-    } else {
-      int const pose_ind = context_dat.pose_ind;
-      int const my_group =
-          context_dat
-              .lockstep_group_for_block[pose_ind][single_res_dat.block_ind];
-      int const other_group =
-          context_dat.lockstep_group_for_block[pose_ind][bcat.block];
-      int other_rot;
-      if (my_group >= 0 && my_group == other_group) {
-        // the neighbour moves with this block; take the copy that goes with
-        // this rotamer rather than the block's first, which is a different
-        // conformer of the same group
-        int const k =
-            single_res_dat.rot_ind
-            - context_dat
-                  .rot_offset_for_block[pose_ind][single_res_dat.block_ind];
-        other_rot = context_dat.rot_offset_for_block[pose_ind][bcat.block] + k;
-      } else {
-        // every rotamer of the neighbour presents the same atoms here
-        other_rot = context_dat.first_rot_for_block[pose_ind][bcat.block];
-      }
-      coord_offset = context_dat.rot_coord_offset[other_rot];
-    }
-
-    xyz = context_dat.rot_coords[bcat.atom + coord_offset];
+    xyz = context_dat.rot_coords
+              [bcat.atom
+               + rot_coord_offset_for(bcat, single_res_dat, context_dat)];
   }
   return xyz;
 }
@@ -596,15 +603,13 @@ void TMOL_DEVICE_FUNC d_build_water_for_acc(
   int const pose_ind = context_dat.pose_ind;
   // int const offset =
   int const A_atom_pose_ind = res_dat.rot_coord_offset + A.atom;
+  // A base across a connection is in this pose's copy of its block, where
+  // load_coord read it; indexing rot_coord_offset by block took pose 0's.
   int const B_atom_pose_ind =
-      (acc_bases.B.block == A.block
-           ? res_dat.rot_coord_offset
-           : context_dat.rot_coord_offset[acc_bases.B.block])  // TODO:
+      rot_coord_offset_for(acc_bases.B, res_dat, context_dat)
       + acc_bases.B.atom;
   int const B0_atom_pose_ind =
-      (acc_bases.B0.block == A.block
-           ? res_dat.rot_coord_offset
-           : context_dat.rot_coord_offset[acc_bases.B0.block])  // TODO:
+      rot_coord_offset_for(acc_bases.B0, res_dat, context_dat)
       + acc_bases.B0.atom;
 
   Real3 dE_dW = dE_dWxyz[A_atom_pose_ind][water_ind + water_offset];

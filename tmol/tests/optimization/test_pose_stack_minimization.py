@@ -1,5 +1,6 @@
 """Minimizing a stack of distinct poses should match minimizing them one-by-one."""
 
+import attr
 import pytest
 import torch
 
@@ -11,9 +12,11 @@ from tmol import (
     FoldForest,
     MoveMap,
 )
+from tmol.io import atom_array_from_cif, pose_stack_from_biotite
 from tmol.pose import PoseStackBuilder
 from tmol.optimization import CartesianSfxnNetwork, KinForestSfxnNetwork
 from tmol.kinematics import PoseStackKinematicsModule
+from tmol.tests.data import data_path
 
 
 def _score_per_pose(pose_stack: PoseStack, sfxn):
@@ -171,3 +174,88 @@ def test_cart_min_stack_of_identical_poses(distinct_pose_stacks, torch_device):
     poses = [distinct_pose_stacks[0]] * 3
     stack = PoseStackBuilder.from_poses(poses, torch_device)
     _compare("cart, identical poses", poses, stack, sfxn, _cart_min_per_pose)
+
+
+def _sweep_regression_poses(device):
+    """2LNY holds a HIS_POS; in 1MBO the O2 on the haem iron is an acceptor
+    without a base, and lk_ball bases cross its metal connection; 1COI is a
+    plain capped peptide. Built on one database lineage so they stack."""
+    database = None
+    poses = []
+    for name in (
+        "his_pos_nmr_2lny.cif.zst",
+        "oxygen_acceptor_1mbo.cif.zst",
+        "capped_peptide_1coi.pdb.zst",
+    ):
+        pose, context = pose_stack_from_biotite(
+            atom_array_from_cif(data_path("sweep_regressions", name)),
+            device,
+            prepare_ligands=True,
+            ligand_seed=0,
+            param_db=database,
+            return_context=True,
+        )
+        database = context.parameter_database
+        # metal donor forms extend the database per pose
+        if pose.packed_block_types.chem_db is not database.chemical:
+            database = attr.evolve(database, chemical=pose.packed_block_types.chem_db)
+        poses.append(pose)
+    return poses, beta2016_score_function(device, param_db=database)
+
+
+def _score_and_grad(pose_stack, sfxn, coords=None):
+    coords = pose_stack.coords if coords is None else coords
+    coords = coords.detach().clone().requires_grad_(True)
+    energies = sfxn.render_whole_pose_scoring_module(pose_stack)(coords)
+    (grad,) = torch.autograd.grad(energies.sum(), coords)
+    return energies.detach(), grad
+
+
+def _assert_scored_as_alone(poses, sfxn, energies, grads, which):
+    for i in which:
+        energy, grad = _score_and_grad(poses[i], sfxn)
+        n_atoms = poses[i].coords.shape[1]
+        assert torch.isfinite(grads[i, :n_atoms]).all(), f"pose {i}"
+        torch.testing.assert_close(
+            energies[i], energy[0], rtol=1e-4, atol=1e-3, msg=f"pose {i}"
+        )
+        torch.testing.assert_close(
+            grads[i, :n_atoms], grad[0], rtol=1e-4, atol=1e-3, msg=f"pose {i}"
+        )
+
+
+def test_stack_of_sweep_regressions_matches_individual(torch_device):
+    """Each pose of a heterogeneous stack has the energy and gradient it has
+    alone. lk_ball sent the gradient of an acceptor base across a connection to
+    the first pose's copy of that block, and an acceptor without a base gave NaN
+    gradients."""
+    poses, sfxn = _sweep_regression_poses(torch_device)
+    stack = PoseStackBuilder.from_poses(poses, torch_device)
+    energies, grads = _score_and_grad(stack, sfxn)
+    _assert_scored_as_alone(poses, sfxn, energies, grads, range(len(poses)))
+    if torch_device.type == "cpu":
+        _compare("cart, sweep regressions", poses, stack, sfxn, _cart_min_per_pose)
+    else:
+        # CUDA reductions are not deterministic, and repeated minimizations of
+        # 1MBO alone end in its haem pocket up to 7 REU apart.
+        minimized = _cart_min_per_pose(stack, sfxn)
+        assert torch.isfinite(minimized).all()
+        assert torch.all(minimized < energies)
+
+
+def test_nan_in_one_pose_stays_in_that_pose(torch_device):
+    """A pose with a NaN coordinate scores NaN; its neighbours in the stack score
+    and minimize as they would without it."""
+    poses, sfxn = _sweep_regression_poses(torch_device)
+    stack = PoseStackBuilder.from_poses(poses, torch_device)
+    coords = stack.coords.clone()
+    coords[1, 0] = float("nan")
+    stack = attr.evolve(stack, coords=coords)
+    energies, grads = _score_and_grad(stack, sfxn)
+    assert torch.isnan(energies[1])
+    _assert_scored_as_alone(poses, sfxn, energies, grads, (0, 2))
+
+    minimized = _cart_min_per_pose(stack, sfxn)
+    one_by_one = torch.cat([_cart_min_per_pose(poses[i], sfxn) for i in (0, 2)])
+    assert torch.isfinite(minimized[[0, 2]]).all()
+    assert torch.all(torch.abs(minimized[[0, 2]] - one_by_one) < 5.0)
