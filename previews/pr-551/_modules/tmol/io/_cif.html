@@ -456,6 +456,7 @@
 <span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">struc</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -579,7 +580,7 @@
     <span class="n">model</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">assembly_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Read a PDB, CIF, compressed CIF or binary CIF into an AtomArray.</span>
+<span class="w">    </span><span class="sd">"""Read a PDB, CIF, compressed CIF, binary CIF, MOL2 or SDF into an AtomArray.</span>
 
 <span class="sd">    Preserve supplied names, coordinates, hydrogens and covalent connections.</span>
 <span class="sd">    Declared unresolved heavy atoms have NaN coordinates. Chemistry the file</span>
@@ -592,6 +593,14 @@
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._atomworks_reader</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_structure</span>
 
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cif_path</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">))</span> <span class="ow">and</span> <span class="n">Path</span><span class="p">(</span><span class="n">cif_path</span><span class="p">)</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span>
+        <span class="s2">".mol2"</span><span class="p">,</span>
+        <span class="s2">".sdf"</span><span class="p">,</span>
+        <span class="s2">".mol"</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._assemble</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_mol2</span>
+
+        <span class="k">return</span> <span class="n">atom_array_from_mol2</span><span class="p">(</span><span class="n">cif_path</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">assembly_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
         <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">assembly_id</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">assembly_id</span>
     <span class="p">):</span>
@@ -640,7 +649,11 @@
     <span class="c1"># AtomWorks skips sanitation when its own completion is disabled. Repair</span>
     <span class="c1"># the final author-view graph with the same shared attachment chemistry.</span>
     <span class="k">with</span> <span class="n">custom_ccd_residues</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">_custom_ccd_registry</span><span class="p">):</span>
-        <span class="n">specified</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="s2">"pdbx_formal_charge"</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">array</span><span class="p">),</span> <span class="s2">"?"</span><span class="p">))</span>
+        <span class="c1"># PoseBusters 6TW5 (Cl1-): a PDB states charges in its charge column,</span>
+        <span class="c1"># where blank reads as 0</span>
+        <span class="n">stated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">charge</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">array</span><span class="o">.</span><span class="n">charge</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">),</span> <span class="s2">"?"</span><span class="p">)</span>
+        <span class="n">stated</span> <span class="o">=</span> <span class="n">stated</span> <span class="k">if</span> <span class="n">block</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">array</span><span class="p">),</span> <span class="s2">"?"</span><span class="p">)</span>
+        <span class="n">specified</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="s2">"pdbx_formal_charge"</span><span class="p">,</span> <span class="n">stated</span><span class="p">)</span>
         <span class="n">charge_specified</span> <span class="o">=</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">specified</span><span class="p">,</span> <span class="n">_MISSING_CIF_VALUE</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">charge_specified</span><span class="p">):</span>
             <span class="n">array</span><span class="o">.</span><span class="n">charge</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">specified</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>

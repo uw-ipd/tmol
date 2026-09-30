@@ -475,7 +475,7 @@
     <span class="n">chain_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"L"</span><span class="p">,</span>
     <span class="n">res_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Read a Tripos MOL2 ligand as an AtomArray with its chemistry intact.</span>
+<span class="w">    </span><span class="sd">"""Read a Tripos MOL2 (or MDL SDF/MOL) ligand as an AtomArray with its chemistry intact.</span>
 
 <span class="sd">    The returned array carries explicit bond orders, formal charges and</span>
 <span class="sd">    aromatic flags from the file, which is what lets the ligand describe itself</span>
@@ -497,9 +497,16 @@
 <span class="sd">        True</span>
 <span class="sd">    """</span>
     <span class="c1"># Imported here because tmol.ligand imports tmol.io, as elsewhere in this package.</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._detect</span><span class="w"> </span><span class="kn">import</span> <span class="n">nonstandard_residue_info_from_mol2</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._detect</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">nonstandard_residue_info_from_mol2</span><span class="p">,</span>
+        <span class="n">nonstandard_residue_info_from_sdf</span><span class="p">,</span>
+    <span class="p">)</span>
 
-    <span class="n">info</span> <span class="o">=</span> <span class="n">nonstandard_residue_info_from_mol2</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span><span class="p">)</span>
+    <span class="n">sdf</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">)</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">".sdf"</span><span class="p">,</span> <span class="s2">".mol"</span><span class="p">)</span>
+    <span class="n">read</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">nonstandard_residue_info_from_sdf</span> <span class="k">if</span> <span class="n">sdf</span> <span class="k">else</span> <span class="n">nonstandard_residue_info_from_mol2</span>
+    <span class="p">)</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span><span class="p">)</span>
     <span class="n">atom_array</span> <span class="o">=</span> <span class="n">as_atom_array_plus</span><span class="p">(</span><span class="n">info</span><span class="o">.</span><span class="n">atom_array</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">chain_id</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">chain_id</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">res_id</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">res_id</span>
