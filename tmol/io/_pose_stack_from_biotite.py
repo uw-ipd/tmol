@@ -1172,11 +1172,6 @@ def biotite_from_pose_stack(
 def _with_metals_rejoined(structure, block_for_atom, origins):
     """Put each split-out metal back in the component it came from."""
     block_for_atom = numpy.asarray(block_for_atom)
-    ins = (
-        structure.ins_code
-        if "ins_code" in structure.get_annotation_categories()
-        else numpy.full(structure.array_length(), "")
-    )
     after = {}
     for block in numpy.flatnonzero([o is not None for o in origins]):
         res_id, ins_code, res_name, atom_name = origins[block]
@@ -1187,7 +1182,7 @@ def _with_metals_rejoined(structure, block_for_atom, origins):
         component = numpy.flatnonzero(
             (structure.chain_id == structure.chain_id[metal])
             & (structure.res_id == res_id)
-            & (ins == ins_code)
+            & (structure.ins_code == ins_code)
             & (structure.res_name == res_name)
         )
         if not len(component):
@@ -1195,10 +1190,8 @@ def _with_metals_rejoined(structure, block_for_atom, origins):
         structure.res_id[metal] = res_id
         structure.res_name[metal] = res_name
         structure.atom_name[metal] = atom_name
-        if "ins_code" in structure.get_annotation_categories():
-            structure.ins_code[metal] = ins_code
-        if "hetero" in structure.get_annotation_categories():
-            structure.hetero[metal] = structure.hetero[component[0]]
+        structure.ins_code[metal] = ins_code
+        structure.hetero[metal] = structure.hetero[component[0]]
         after[metal] = int(component[-1])
         # within a residue CIF has no coordination order; the split retypes them
         bonds = structure.bonds.as_array()
@@ -1637,18 +1630,14 @@ def _with_chelated_metals_split(structure, metal_atom):
     origin = numpy.full(template.array_length(), "", dtype=object)
     if METAL_ORIGIN in structure.get_annotation_categories():
         origin[:] = structure.get_annotation(METAL_ORIGIN)
-    ins = (
-        structure.ins_code
-        if "ins_code" in structure.get_annotation_categories()
-        else numpy.full(template.array_length(), "")
-    )
     for i, (name3, atom_name) in sorted(moved.items()):
         origin[i] = "\t".join(
-            (
-                str(structure.res_id[i]),
-                str(ins[i]),
-                str(structure.res_name[i]),
-                str(structure.atom_name[i]),
+            str(a[i])
+            for a in (
+                structure.res_id,
+                structure.ins_code,
+                structure.res_name,
+                structure.atom_name,
             )
         )
         chain = structure.chain_id[i]
@@ -1656,8 +1645,7 @@ def _with_chelated_metals_split(structure, metal_atom):
         structure.atom_name[i] = atom_name
         structure.res_id[i] = next_id[chain]
         next_id[chain] += 1
-        if "hetero" in structure.get_annotation_categories():
-            structure.hetero[i] = True
+        structure.hetero[i] = True
     structure.bonds = bond_list
     structure.set_annotation(METAL_ORIGIN, origin.astype(str))
     # each ion follows the component it came from, so residues stay contiguous
@@ -2577,11 +2565,7 @@ def _detected_metal_bonds(biotite_structure, co, chemdb):
         find_additional=True,
         required_donors=required,
     )
-    ins = (
-        template.ins_code
-        if "ins_code" in template.get_annotation_categories()
-        else numpy.full(len(template), "")
-    )
+    ins = template.ins_code
     index = {
         key: i
         for i, key in enumerate(

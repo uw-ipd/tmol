@@ -414,11 +414,7 @@ def _with_chelates_covalent(
     origin = sub.get_annotation(METAL_ORIGIN).astype(str)
     if not numpy.char.str_len(origin).any():
         return sub, none
-    ins = (
-        sub.ins_code.astype(str)
-        if "ins_code" in sub.get_annotation_categories()
-        else numpy.full(len(sub), "")
-    )
+    ins = sub.ins_code.astype(str)
     residue = numpy.char.add(
         numpy.char.add(numpy.char.add(sub.res_id.astype(str), "\t"), ins),
         numpy.char.add("\t", sub.res_name.astype(str)),
