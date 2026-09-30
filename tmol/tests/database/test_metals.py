@@ -96,9 +96,8 @@ def donor_names(db):
 def test_sulfur_donates_to_metals_without_accepting_hydrogen_bonds(
     default_database: tmol.database.ParameterDatabase,
 ):
-    # the reason is_metal_donor is not just is_acceptor: cysteine thiolate and
-    # methionine thioether are the defining soft-metal ligands and neither is
-    # an hbond acceptor in Rosetta's typing
+    # why is_metal_donor is not is_acceptor: thiolate and thioether sulfur donate
+    #    to metals but are not hbond acceptors in Rosetta's typing
     by_name = {at.name: at for at in default_database.chemical.atom_types}
     for name in ("Sthio", "S"):
         assert by_name[name].is_metal_donor, f"{name} should donate to metals"
@@ -253,11 +252,8 @@ def pairwise_angles(vectors):
 
 
 def test_metal_ion_ideal_coords_rebuild_their_polyhedra(default_restype_set):
-    """Each templated metal type's icoors must rebuild its geometry's vertices.
-
-    Guards the icoor convention, where theta is the supplement of the bond
-    angle and a wrong convention still yields plausible numbers. Compared as a
-    set of pairwise angles, because the fan is free to be rotated as a whole.
+    """Each templated metal type's icoors rebuild its geometry's vertices (theta is the
+    supplement of the bond angle), compared as pairwise angles since the fan may rotate.
     """
     import numpy
 

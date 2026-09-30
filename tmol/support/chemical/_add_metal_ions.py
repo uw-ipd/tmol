@@ -1,15 +1,5 @@
-"""Generate the free metal-ion residue types and their electrostatic charges.
-
-Reads ``chemical/metals.yaml`` and writes ``chemical/metal_ions.yaml`` plus
-``scoring/elec_metal_ions.yaml``. One residue type per realised (element,
-oxidation state, coordination geometry) triple: the metal atom, and one virtual
-atom marking each vertex of the geometry.
-
-The virtuals sit at the ion's measured metal-water distance, because an
-unoccupied site is taken to hold a water and that is where lk_ball builds it.
-An untemplated geometry has no vertices, so those ions get no virtuals and no
-site waters -- their metal-ligand distances are restrained but their geometry
-is not.
+"""Generate chemical/metal_ions.yaml and scoring/elec_metal_ions.yaml from metals.yaml:
+a residue type per (ion, geometry), a virtual per vertex at the metal-water distance.
 """
 
 import math
@@ -43,11 +33,8 @@ def frame_from_coords(p1, p2, p3):
 
 
 def icoors_for_sites(vertices, dist):
-    """Internal coordinates placing the metal at the origin and one virtual per vertex.
-
-    Inverts tmol.chemical._ideal_coords.build_coords_from_icoors, whose theta is
-    the supplement of the conventional bond angle: an atom is placed by rotating
-    phi about the frame's z, then -theta about x, then stepping d along z.
+    """Icoors for the metal at the origin and a virtual per vertex, inverting
+    build_coords_from_icoors (whose theta is the supplement of the bond angle).
     """
     sites = [numpy.array(v, dtype=numpy.float64) * dist for v in vertices]
     rows = []

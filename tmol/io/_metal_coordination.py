@@ -23,13 +23,8 @@ def add_metal_coordination(
     atom: str,
     site: Optional[int] = None,
 ) -> PoseStack:
-    """Bond a donor atom to one of a metal's open sites.
-
-    ``site`` defaults to the open site whose virtual points closest to the
-    donor, or the first open site of an untemplated ion. The donor atom loses
-    any hydrogen on it, so a thiol or phenol becomes its anion and a
-    protonated imidazole nitrogen leaves the ring deprotonated. Everything
-    else about the stack is rebuilt as it was.
+    """Bond ``atom`` of ``donor`` to an open site of ``metal`` (by default the one whose
+    virtual faces it best); the donor atom loses its hydrogens.
     """
     cf = canonical_form_from_pose_stack(canonical_ordering, pose_stack)
     rows = _rows(cf.metal_coordination)
