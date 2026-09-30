@@ -217,5 +217,23 @@
   "sha256": "ef6e1f02dd8d82a95bfcc3c0952bd391c5795fc6568d94e091c5fe03ba804be4",
   "bytes": 59867,
   "compressed_sha256": "13ee004203bd356433c178c4e9b8839a023dae0d2c93d2ad87ea255544ac45a2"
+ },
+ {
+  "fixture": "ion_alternates_8a7k.cif.zst",
+  "source": "https://files.rcsb.org/download/8A7K.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/a7/8a7k.cif.gz)",
+  "source_sha256": "1e79aff7a4d09ac09aabf1f670f1211319da618a6c76ed080443dd9b236478d8",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/a7/8a7k.cif.gz ion_alternates_8a7k.cif 5 L:.; zstd -19 ion_alternates_8a7k.cif",
+  "sha256": "2e69db5d383115d6b940d14b55d289d00cee393ea5df5fb9cd7e97b8cb9f18e4",
+  "bytes": 99356,
+  "compressed_sha256": "a5f4578fd1ec0a492b4f30e24f38d803c45c16dcf30ace8d58d282f6a82c8f47"
+ },
+ {
+  "fixture": "ion_alternates_3f7l.cif.zst",
+  "source": "https://files.rcsb.org/download/3F7L.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/f7/3f7l.cif.gz)",
+  "source_sha256": "c44e1113b8dd2db4475494a22daa4fade4d36dc28ae923649650f90830ffd656",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/f7/3f7l.cif.gz ion_alternates_3f7l.cif 5 B:. C:.; zstd -19 ion_alternates_3f7l.cif",
+  "sha256": "f452ec68152fd53ab8edeba1bcdeee6905cb5c05ea60af7d8c496f18b3aa9d45",
+  "bytes": 48927,
+  "compressed_sha256": "f389a99fd3c6623d9f0e6d03f7b08d0a1dc4adbf1207edf32f9577922415ae53"
  }
 ]

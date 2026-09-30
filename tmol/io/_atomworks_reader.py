@@ -5,6 +5,7 @@ from string import ascii_uppercase
 
 import biotite.structure as struc
 import numpy as np
+from scipy.spatial import cKDTree
 
 from atomworks.constants import (
     BOND_DISTANCE_THRESHOLD_CHNO,
@@ -176,6 +177,54 @@ def _one_disulfide_per_sulfur(array):
         stacklevel=2,
     )
     return struc.BondList(len(array), np.delete(bonds, rows[dropped], axis=0))
+
+
+# closer than the shortest metal-metal contact of any site (Cu-Cu in CuA, 2.4 A)
+_ION_SITE = 2.0
+
+
+def _one_ion_per_site(array):
+    """The array keeping, of metal ions closer than ``_ION_SITE``, the more occupied.
+
+    Two ions that close are alternates of one site the file does not label as
+    such: 8A7K models Mn and Mg at half occupancy on each of its sites, 3F7L puts
+    the two conformers of a Cu in two chains. Ties keep the first in the file.
+    """
+    elements = np.char.upper(array.element.astype(str))
+    residue = struc.get_all_residue_positions(array)
+    heavy = ~np.isin(elements, ("H", "D", "T"))
+    n_heavy = np.bincount(residue[heavy], minlength=residue.max() + 1)
+    ion = np.flatnonzero(
+        heavy
+        & np.isin(elements, list(METAL_ELEMENTS))
+        & (n_heavy[residue] == 1)
+        & np.isfinite(array.coord).all(axis=-1)
+    )
+    if len(ion) < 2:
+        return array
+    near = cKDTree(array.coord[ion]).query_ball_point(array.coord[ion], _ION_SITE)
+    if all(len(n) == 1 for n in near):
+        return array
+    occupancy = (
+        array.occupancy[ion]
+        if "occupancy" in array.get_annotation_categories()
+        else np.ones(len(ion))
+    )
+    kept, dropped = set(), []
+    for k in np.lexsort((ion, -occupancy)):
+        if kept.isdisjoint(near[k]):
+            kept.add(k)
+        else:
+            dropped.append(ion[k])
+    warnings.warn(
+        "Keeping one metal ion per site: dropping "
+        + ", ".join(
+            f"{array.chain_id[i]}:{array.res_id[i]} {array.res_name[i]}"
+            for i in sorted(dropped)
+        ),
+        stacklevel=2,
+    )
+    return array[~np.isin(residue, residue[dropped])]
 
 
 def _renumber_decreasing_author_ids(array):
@@ -423,6 +472,7 @@ def read_structure(path, *, model=1, assembly_id=None):
         if source in array.get_annotation_categories():
             array.set_annotation(target, array.get_annotation(source).copy())
     array.ins_code[np.isin(array.ins_code, (".", "?"))] = ""
+    array = _one_ion_per_site(array)
     retained = {
         "chain_id",
         "res_id",

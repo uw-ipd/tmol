@@ -241,6 +241,28 @@ def test_declared_disulfides_sharing_a_sulfur_keep_the_nearest(torch_device, rec
 
 
 @pytest.mark.parametrize(
+    "fixture, kept, dropped",
+    [
+        ("ion_alternates_8a7k", {501, 502, 503}, {504, 505, 506}),
+        ("ion_alternates_3f7l", {201}, {202}),
+    ],
+)
+def test_metal_ions_closer_than_any_site_are_one_site(
+    fixture, kept, dropped, torch_device
+):
+    """8A7K models Mn and Mg at half occupancy on each site (unlabelled); 3F7L
+    puts the conformers of a Cu, 0.8 and 0.2 occupied, in two chains."""
+    path = DATA / "sweep_regressions" / f"{fixture}.cif.zst"
+    with pytest.warns(UserWarning, match="one metal ion per site"):
+        array = atom_array_from_cif(path)
+    ions = set(array.res_id[np.isin(array.element, ["MN", "MG", "CU"])].tolist())
+
+    assert kept <= ions and not dropped & ions
+    pose = pose_stack_from_cif(path, torch_device, prepare_ligands=True, no_optH=True)
+    assert torch.isfinite(pose.coords).all()
+
+
+@pytest.mark.parametrize(
     "fixture",
     [
         "ncaa_fixtures/capped_peptide_ace_nh2.cif",
