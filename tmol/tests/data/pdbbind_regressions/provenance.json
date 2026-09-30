@@ -97,5 +97,14 @@
   "sha256": "814a10dc0ece922d669bcbb8dfc1817d122ab4cbee0813ae37076635a8447f0b",
   "bytes": 6073,
   "compressed_sha256": "68c16f9130dd19e5d686825588b56cfd426d096edf037a241a2c44c737aeddff"
+ },
+ {
+  "fixture": "single_bonded_carboxyl_2xej.mol2.zst",
+  "source": "PDBbind v2020 prepared (zenodo 7014096) v2020-refined_4/2xej/2xej_prot/2xej_l.mol2 (copy /mnt/data/kdidi/pdbbind/v2020_partial/v2020-refined_4/2xej/2xej_prot/2xej_l.mol2)",
+  "source_sha256": "88e45f11528ff30da286297fb9e3eaf22f6db6e2450f7e84d598570b731aa6af",
+  "transformation": "whole file, unchanged; zstd -19",
+  "sha256": "88e45f11528ff30da286297fb9e3eaf22f6db6e2450f7e84d598570b731aa6af",
+  "bytes": 8589,
+  "compressed_sha256": "9fdffb42ad295cdd5df2a3ad85813cfbbec07204d082fa31799c269634f16755"
  }
 ]

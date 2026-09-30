@@ -189,8 +189,8 @@ def _infer_carboxylate_bonds(rw: Chem.RWMol, conf: Chem.Conformer) -> int:
 
     A carbon bonded to exactly two terminal oxygens whose geometry is planar
     with short C-O bonds is a delocalized carboxylate, not a diol, whatever
-    orders the input gives them (CIF SING/SING C-O). Its bonds are localized
-    as every delocalized group's are.
+    orders the input gives them (PDBbind v2020 2XEJ: a C.3 carboxyl with single
+    C-O and C-OXT). Its bonds are localized as every delocalized group's are.
     """
     delocalized = set()
     for atom in rw.GetAtoms():

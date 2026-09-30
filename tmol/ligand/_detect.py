@@ -229,7 +229,7 @@ def _strip_metals(mol: Chem.Mol) -> Chem.Mol:
     """Remove metal atoms from an RDKit Mol.
 
     OpenBabel downstream cannot parse coordination-bond SMILES, and metals
-    are dropped during ligand preparation anyway.
+    are dropped during ligand preparation anyway (CCD EMC's Hg too).
     """
     metals = [
         a.GetIdx() for a in mol.GetAtoms() if a.GetSymbol().upper() in METAL_ELEMENTS
@@ -429,7 +429,7 @@ def nonstandard_residue_info_from_mol2(
 def nonstandard_residue_info_from_file(
     path: str | Path, res_name: str | None = None
 ) -> NonStandardResidueInfo:
-    """``NonStandardResidueInfo`` from a MOL2 or an SDF/MOL file, by suffix."""
+    """``NonStandardResidueInfo`` from a MOL2 or an SDF/MOL file (PDBbind 3GE7)."""
     sdf = Path(path).suffix.lower() in (".sdf", ".mol")
     read = (
         nonstandard_residue_info_from_sdf if sdf else nonstandard_residue_info_from_mol2

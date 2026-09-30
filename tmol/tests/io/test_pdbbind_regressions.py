@@ -59,6 +59,22 @@ def test_sdf_ligand_writes_params_like_its_mol2(tmp_path):
     assert int(sdf.charge.sum()) == int(mol2.charge.sum())
 
 
+def test_a_carboxyl_written_with_single_bonds_reads_as_a_carboxylate(tmp_path):
+    """2XEJ's PrepWizard MOL2 types its ligand's C-terminal carbon C.3 with single
+    bonds to O and OXT; the planar group is a carboxylate, not a geminal diol."""
+    from rdkit import Chem
+
+    from tmol.ligand._structure_to_smiles import ligand_smiles_from_atom_array
+
+    ligand = atom_array_from_mol2(
+        _unpacked(tmp_path, "single_bonded_carboxyl_2xej.mol2.zst")
+    )
+    carbon = int(list(ligand.atom_name).index("C")) + 1
+    mol = Chem.MolFromSmiles(ligand_smiles_from_atom_array(ligand, with_atom_map=True))
+    (atom,) = [a for a in mol.GetAtoms() if a.GetAtomMapNum() == carbon]
+    assert sorted(b.GetBondTypeAsDouble() for b in atom.GetBonds()) == [1, 1, 2]
+
+
 def test_repeated_pdb_atom_names_take_the_mol2_names(tmp_path):
     """PDBbind writes 10gs' glutathione conjugate as one MOL residue whose atom
     names repeat; they read as the MOL2 reader names them, so its parameters fit."""
