@@ -6,7 +6,7 @@ import time
 import attr
 import torch
 
-from tmol.pose import PDBInfo, PoseStack, PoseStackBuilder
+from tmol.pose import PoseStack, PoseStackBuilder
 from tmol.score import ScoreFunction
 
 from tmol.pack import (
@@ -252,26 +252,7 @@ def _slice_pose_stack_for_packing(
             constraint_unique_blocks=chunk_unique_blocks,
         )
 
-    pdb_info = pose_stack.pdb_info
-    chunk_pdb_info = PDBInfo(
-        residue_labels=pdb_info.residue_labels[first_pose:last_pose].copy(),
-        residue_insertion_codes=pdb_info.residue_insertion_codes[
-            first_pose:last_pose
-        ].copy(),
-        chain_labels=pdb_info.chain_labels[first_pose:last_pose].copy(),
-        atom_occupancy=pdb_info.atom_occupancy[first_pose:last_pose].copy(),
-        atom_b_factor=pdb_info.atom_b_factor[first_pose:last_pose].copy(),
-        metal_origins=(
-            None
-            if pdb_info.metal_origins is None
-            else pdb_info.metal_origins[first_pose:last_pose].copy()
-        ),
-        residue_annotations=(
-            None
-            if pdb_info.residue_annotations is None
-            else pdb_info.residue_annotations[first_pose:last_pose].copy()
-        ),
-    )
+    chunk_pdb_info = pose_stack.pdb_info.sliced(first_pose, last_pose)
 
     def view(tensor):
         return tensor[first_pose:last_pose].detach()

@@ -53,14 +53,8 @@ def _polymer_connection(residue, atom):
 def attachment_connection_name(
     atom_array, index, partner, residue, partner_residue=None
 ):
-    """Classify a cross-residue endpoint from both atoms' chemistry.
-
-    A polymer nitrogen's ``down`` connection means an incoming carbonyl or
-    thiocarbonyl, not every possible bond at that atom. Alkyl carbon and phosphorus partners are
-    ordinary conjugations, including when the nitrogen is at a chain end.
-    Likewise an ``up`` atom bonded to a known polymer residue anywhere but its
-    ``down`` atom (a sidechain amine) is a conjugation.
-    """
+    """A polymer ``down`` N takes only an incoming (thio)carbonyl, an ``up`` atom only
+    a polymer ``down`` atom (7AG5: Pro C on DNP NG); other bonds are conjugations."""
     atom = str(atom_array.atom_name[index])
     declared = _polymer_connection(residue, atom)
     if (
@@ -209,12 +203,7 @@ def iter_capped_conjugate_models(atom_array, chemical_database):
                     f"{label(previous, endpoint)} and {label(partner, endpoint)}. "
                     "Each connection accepts one partner; resolve the input bond graph."
                 )
-        ci = attachment_connection_name(
-            atom_array, first, second, definition(ri), partner_definition(second)
-        )
-        cj = attachment_connection_name(
-            atom_array, second, first, definition(rj), partner_definition(first)
-        )
+        ci, cj = port(first, second)[1], port(second, first)[1]
         if {ci, cj} == {"up", "down"}:
             polymer_attached.update(
                 (
@@ -358,7 +347,7 @@ def _restore_template_stereochemistry(
         if template is None:
             continue
         if name not in references:
-            reference = ccd_template_to_rdkit(template, hydrogen_policy="remove")
+            reference = ccd_template_to_rdkit(template)
             references[name] = (
                 reference,
                 {

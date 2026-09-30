@@ -261,3 +261,6 @@ Frank scoring and gradients; and runs focused Cartesian minimization.
 `bridging_histidine_6iu8.cif.zst` retains the complete entry. HIS C89 binds
 Zn C201 through ND1 and Zn B201 through NE2, so neither ring nitrogen keeps a
 proton: it must build as the imidazolate `HIS_DEP` coordinating at both.
+
+`thioglycine_1mro.cif.zst` keeps 1MRO chain A TYR 444–GL3 445–TYR 446. GL3's
+thioamide link reads as C=N with a thiol; it must build as the amide tautomer.

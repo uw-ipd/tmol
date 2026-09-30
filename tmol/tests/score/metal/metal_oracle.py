@@ -9,11 +9,8 @@ from tmol.database.chemical import ideal_distances, metal_table
 
 
 def restraints(param_db, pose_stack):
-    """Site and fan rows for every metal in the stack.
-
-    Site rows are (pose, metal block, metal atom, virtual atom or -1, donor
-    block, donor atom) with (d0, well depth, radial sd, lateral sd); fan rows
-    are (pose, block, atom, atom) with (l0, sd).
+    """Site rows (pose, metal block, metal, virtual or -1, donor block, donor) with
+    (d0, depth, radial sd, lateral sd); fan rows (pose, block, atom, atom), (l0, sd).
     """
     params = param_db.scoring.metal_coordination
     table = metal_table()
@@ -120,13 +117,8 @@ def fan_energies(a, b, params):
 
 
 def bridges(param_db, pose_stack):
-    """Bridge rows for every pair of metals in different blocks sharing a donor.
-
-    Rows are (pose, block, metal atom, block, metal atom) with (d1, d2, floor,
-    width): each metal's ideal distance to the shared donor, and the donor's
-    floor angle and the wall width in radians. A metal reaches the donor
-    through a filled site, or holds it as an internal satisfier in the donor's
-    own block.
+    """Rows (pose, block, metal, block, metal) with (d1, d2, floor, width) for metals in
+    different blocks sharing a donor through a filled site or an internal satisfier.
     """
     params = param_db.scoring.metal_coordination
     donor_radii = metal_table()["donor_radii"]

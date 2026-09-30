@@ -914,12 +914,8 @@ def _normalize_radical_oxygens(smiles: str) -> str:
 
 
 def _dimorphite_protonate_smiles(smiles: str, ph: float = 7.4) -> str:
-    """Return the SMILES pKa-protonated at ``ph`` via Dimorphite-DL.
-
-    Takes the first protonation variant (matching the reference ligand-prep
-    protocol). Falls back to the input SMILES if RDKit cannot parse it or
-    Dimorphite produces no variant.
-    """
+    """The SMILES protonated at ``ph`` by AtomWorks' Dimorphite-DL, or the input
+    SMILES if RDKit cannot parse it or Dimorphite gives no state."""
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return smiles
@@ -1154,8 +1150,7 @@ def _representative_instance(
     inventory, then the fuller hydrogen inventory, then resolved coordinates.
     A fully observed internal sugar has lost its anomeric leaving oxygen; using
     it ahead of a fuller terminal copy would omit an atom the shared base type
-    must describe. A copy whose donors gave up a proton to a metal is described
-    by a deprotonated variant of the fuller copy's type.
+    must describe.
     """
     wanted = set(connection_atoms)
 

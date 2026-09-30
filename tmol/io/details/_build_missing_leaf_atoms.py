@@ -57,9 +57,8 @@ def build_missing_leaf_atoms(
         inter_residue_connections,
     )
 
-    # Missing heavy atoms of non-canonical blocks are grown from their observed
-    # atoms with clash-aware torsions; hydrogens and canonical leaves follow from
-    # icoors. Canonical protein blocks retain leaf-only completion.
+    # non-canonical blocks grow missing heavy atoms by context; hydrogens and
+    # canonical leaves follow from icoors
     conformer_blocks = None
     targets = block_leaf_atom_is_missing
     if packed_block_types.has_conformer_frames:
