@@ -17,7 +17,7 @@ def vertex_angle(a: np.ndarray, b: np.ndarray, c: np.ndarray) -> float:
 def signed_dihedral_angle(
     a: np.ndarray, b: np.ndarray, c: np.ndarray, d: np.ndarray
 ) -> float:
-    """The dihedral ``a-b-c-d`` in radians, signed opposite to IUPAC's, so ``phi`` is its negative."""
+    """The dihedral ``a-b-c-d`` in radians, signed opposite to IUPAC's."""
     b1, b2, b3 = b - a, c - b, d - c
     n1, n2 = np.cross(b1, b2), np.cross(b2, b3)
     n1 = n1 / (np.linalg.norm(n1) + 1e-12)
@@ -32,16 +32,8 @@ def icoor_geometry_from_coords(
     parent: dict[int, int],
     grandparents: dict[int, tuple[int, int]],
 ) -> np.ndarray:
-    """Read ``(d, theta, phi)`` off a conformer in *order*, as :func:`build_coordinates` takes them.
-
-    The root is all zeros; the next two atoms take ``theta = pi`` and ``phi = 0``.
-
-    Args:
-        coords: ``(N, 3)`` positions.
-        order: Traversal order; a parent precedes its children.
-        parent: Each atom's parent (the root is its own).
-        grandparents: Each atom's ``(grandparent, great_grandparent)``.
-    """
+    """``(d, theta, phi)`` per atom of ``order``, measured from ``coords``; the root is
+    zeros and the next two atoms take ``theta = pi``, ``phi = 0``."""
     geometry = np.zeros((len(order), 3))
     for position, index in enumerate(order):
         atom, par = coords[index], coords[parent[index]]
@@ -68,20 +60,8 @@ def build_atom_tree(
     root: int,
     frame_excluded_indices: Iterable[int] = (),
 ) -> tuple[list[int], dict[int, int], dict[int, tuple[int, int]]]:
-    """Order atoms so each one can be placed against atoms already placed.
-
-    Heavy atoms go breadth-first from *root*, then each hydrogen on its heavy atom; a sibling stands
-    in for a missing ancestor.
-
-    Args:
-        n_atoms: Atom count.
-        bonds: ``(i, j)`` index pairs.
-        is_heavy: Per atom, whether it is not a hydrogen.
-        root: Index to start from.
-        frame_excluded_indices: Atoms visited last among their siblings, kept out of others' frames.
-
-    Returns:
-        ``(order, parent, grandparents)``; the root is its own parent.
+    """``(order, parent, grandparents)``: heavy atoms breadth-first from ``root``, then
+    hydrogens; siblings stand in for missing ancestors, ``frame_excluded_indices`` go last.
     """
     adjacency: dict[int, list[int]] = {i: [] for i in range(n_atoms)}
     for i, j in bonds:
@@ -115,7 +95,7 @@ def build_atom_tree(
     position = {index: i for i, index in enumerate(order)}
 
     def pick(of: int, exclude: set[int], heavy_only: bool, before: int) -> int | None:
-        """The earliest-placed neighbour of *of* placed before *before*, heavy ones first if *heavy_only*."""
+        """The earliest-placed neighbour of ``of`` before ``before``, heavy first if asked."""
         candidates = [
             n
             for n in adjacency[of]
@@ -158,17 +138,8 @@ def find_root_atom(
     is_heavy: Sequence[bool],
     skip_indices: set[int] | None = None,
 ) -> int:
-    """The heavy atom nearest the centre of mass with two heavy neighbours, else any heavy atom.
-
-    Args:
-        coords: ``(N, 3)`` positions.
-        bonds: Iterable of ``(i, j)`` index pairs.
-        is_heavy: Indexable of per-atom "is not a hydrogen".
-        skip_indices: Atom indices to exclude from the choice.
-
-    Raises:
-        ValueError: If no heavy atom is available.
-    """
+    """The heavy atom outside ``skip_indices`` nearest the centre with two heavy
+    neighbours, else the first such heavy atom."""
     skip_indices = skip_indices or set()
     n_atoms = len(is_heavy)
     heavy_degree = [0] * n_atoms
