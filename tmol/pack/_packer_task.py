@@ -199,8 +199,8 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
         or bt.properties.protonation.protonation_state == DEPROTONATED_STATE
         for bt in pbt.active_block_types
     ]
-    # only types that agree on these fields can pass the test below; comparing
-    #    within those groups keeps the pairs, and their order, of the full n^2 scan
+    # types can exchange only within a group that agrees on these fields; each
+    #    type's candidates keep the order of the full n^2 scan
     groups = {}
     for j, bt in enumerate(pbt.active_block_types):
         polymer = bt.properties.polymer
@@ -221,16 +221,9 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
                 continue
             j_allowed_for_restrict_to_repack = alt_bt.name3 == orig_bt.name3
             if (
-                alt_bt.properties.polymer.is_polymer
-                == orig_bt.properties.polymer.is_polymer
-                and alt_bt.properties.polymer.polymer_type
-                == orig_bt.properties.polymer.polymer_type
-                and alt_bt.properties.polymer.backbone_type
-                == orig_bt.properties.polymer.backbone_type
-                and alt_bt.connections
+                alt_bt.connections
                 == orig_bt.connections  # fd  use this instead of terminal variant check
                 and alt_bt.conjugation_context == orig_bt.conjugation_context
-                and mc_elements[i] == mc_elements[j]
                 and set_compare(
                     alt_bt.properties.chemical_modifications,
                     orig_bt.properties.chemical_modifications,
@@ -238,8 +231,6 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
                 and set_compare(
                     alt_bt.properties.connectivity, orig_bt.properties.connectivity
                 )
-                and alt_bt.properties.protonation.protonation_state
-                == orig_bt.properties.protonation.protonation_state
             ):
                 if (
                     alt_bt.properties.polymer.sidechain_chirality
