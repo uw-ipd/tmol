@@ -10,6 +10,7 @@ from dataclasses import replace
 from typing import Optional
 
 import attr
+from atomworks.constants import METAL_ELEMENTS
 
 import biotite.structure as struc
 import numpy as np
@@ -28,7 +29,6 @@ from tmol.ligand._atom_typing import AtomTypeAssignment, assign_tmol_atom_types
 from tmol.ligand._detect import (
     NonStandardResidueInfo,
     _FORMAL_CHARGE_SPECIFIED_ANNOTATION,
-    _METAL_SYMBOLS,
     detect_nonstandard_residues,
     is_polymer_linking_component_type,
     with_resolved_coordinates,
@@ -1559,7 +1559,7 @@ def _ligand_unsupported_reason(
         {
             e.strip().capitalize()
             for e in lig.elements
-            if e.strip().capitalize() in _METAL_SYMBOLS
+            if e.strip().upper() in METAL_ELEMENTS
         }
     )
     if metals_present:
@@ -1612,7 +1612,7 @@ def _covalently_bonded_copy(lig, atom_array) -> bool:
     element = np.char.capitalize(atom_array.element[far].astype(str))
     return bool(
         np.any(
-            ~np.isin(element, list(_METAL_SYMBOLS))
+            ~np.isin(np.char.upper(element), sorted(METAL_ELEMENTS))
             & (kind[across] != int(struc.BondType.COORDINATION))
         )
     )
@@ -2470,11 +2470,11 @@ def prepare_ligands_from_smiles(
 
 
 def _prepare_mol2(mol2_path, res_name=None, *, ph=7.4, mode="auto", seed=None):
-    from tmol.ligand._detect import nonstandard_residue_info_from_mol2
+    from tmol.ligand._detect import nonstandard_residue_info_from_file
 
     if mode not in ("keep", "auto", "regenerate"):
         raise ValueError("MOL2 mode must be keep, auto, or regenerate")
-    lig = nonstandard_residue_info_from_mol2(mol2_path, res_name=res_name)
+    lig = nonstandard_residue_info_from_file(mol2_path, res_name=res_name)
     try:
         return (
             prepare_single_ligand(lig)
@@ -2502,7 +2502,7 @@ def prepare_ligand_from_mol2(
     to apply the requested pH even to a neutralized, fully hydrogenated input.
 
     Args:
-        mol2_path: Path to the ligand mol2 file.
+        mol2_path: Path to the ligand MOL2 or SDF file.
         param_db: Base database (not modified); defaults to the tmol default.
         ph: Target pH for protonation.
         mode: ``"keep"`` requires prepared input and retains its protonation and

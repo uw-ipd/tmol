@@ -10,6 +10,7 @@ so this module does not protonate or recompute chemistry.
 import logging
 
 import biotite.structure as struc
+import networkx
 import numpy as np
 from atomworks.io.tools.rdkit import (
     BIOTITE_BOND_TYPE_TO_RDKIT,
@@ -25,7 +26,7 @@ from typing import Literal
 from rdkit import Chem
 
 from tmol.ligand._detect import NonStandardResidueInfo, _strip_metals
-from tmol.ligand._input_repair import correct_carboxylate_bond_orders
+from tmol.ligand._input_repair import localize_overvalent_centers
 
 logger = logging.getLogger(__name__)
 
@@ -54,53 +55,23 @@ def _apply_source_subtypes(mol: Chem.Mol, atom_array: struc.AtomArray) -> None:
             atom.SetProp(_SOURCE_SUBTYPE_PROP, sub)
 
 
-def _kekulize_non_ring_aromatic_bonds(mol: Chem.Mol) -> None:
-    """De-aromatize non-ring aromatic bonds to explicit singles.
-
-    Aromatic semantics are ring-based in RDKit/biotite. Non-ring aromatic
-    bonds are treated as delocalization placeholders and must be explicit
-    non-aromatic bonds for robust downstream handling.
-    """
-    changed = False
-    for bond in mol.GetBonds():
-        if bond.GetIsAromatic() and not bond.IsInRing():
-            bond.SetIsAromatic(False)
-            bond.SetBondType(Chem.BondType.SINGLE)
-            changed = True
-    if not changed:
-        return
-    for atom in mol.GetAtoms():
-        if atom.GetIsAromatic():
-            if not any(b.GetIsAromatic() for b in atom.GetBonds()):
-                atom.SetIsAromatic(False)
-
-
 def normalize_non_ring_aromatic_bonds(mol: Chem.Mol) -> None:
-    """Normalize non-ring aromatic placeholders before RDKit sanitize."""
-    _kekulize_non_ring_aromatic_bonds(mol)
+    """Make single each aromatic bond on no cycle of aromatic bonds.
 
-
-def normalize_cumulated_azide(mol: Chem.Mol) -> Chem.Mol:
-    """Strip a spurious H from a charge-separated azide/diazo terminus.
-
-    Convert N=N=N-H (which RDKit does not understand) to =[N+]=[N-]
-    Do nothing if this group is not found.
+    Aromaticity belongs to a ring; elsewhere the order only marks delocalization
+    (PDBbind 3GE7: an SDF's aromatic N-C in a ring of single bonds).
     """
-    h_idx = [
-        h.GetIdx()
-        for atom in mol.GetAtoms()
-        if atom.GetAtomicNum() == 7
-        and atom.GetFormalCharge() == -1
-        and any(b.GetBondType() == Chem.BondType.DOUBLE for b in atom.GetBonds())
-        for h in atom.GetNeighbors()
-        if h.GetAtomicNum() == 1
-    ]
-    if not h_idx:
-        return mol
-    rw = Chem.RWMol(mol)
-    for i in sorted(set(h_idx), reverse=True):
-        rw.RemoveAtom(i)
-    return rw.GetMol()
+    graph = networkx.Graph(
+        (b.GetBeginAtomIdx(), b.GetEndAtomIdx())
+        for b in mol.GetBonds()
+        if b.GetIsAromatic()
+    )
+    for i, j in networkx.bridges(graph):
+        bond = mol.GetBondBetweenAtoms(i, j)
+        bond.SetIsAromatic(False)
+        bond.SetBondType(Chem.BondType.SINGLE)
+    for atom in mol.GetAtoms():
+        atom.SetIsAromatic(any(b.GetIsAromatic() for b in atom.GetBonds()))
 
 
 def _apply_atom_array_annotations(
@@ -191,57 +162,6 @@ def _remove_hs_tolerant(mol: Chem.Mol) -> Chem.Mol:
         Chem.rdchem.AtomValenceException,
     ):
         return Chem.RemoveHs(mol, options, sanitize=False)
-
-
-def _normalize_nitro(mol: Chem.Mol) -> None:
-    """Rewrite pentavalent nitro N(=O)=O to [N+](=O)[O-].
-
-    Some inputs draw nitro with two N=O double bonds (valence-5 neutral N), which
-    RDKit rejects. Demote one N=O to a single bond and set the charges that make
-    it valid. Runs before formal-charge inference and sanitize.
-    """
-    for atom in mol.GetAtoms():
-        if atom.GetAtomicNum() != 7:
-            continue
-        dbl_term_o = [
-            b
-            for b in atom.GetBonds()
-            if b.GetBondType() == Chem.BondType.DOUBLE
-            and b.GetOtherAtom(atom).GetAtomicNum() == 8
-            and b.GetOtherAtom(atom).GetDegree() == 1
-        ]
-        if len(dbl_term_o) < 2:
-            continue
-        for bond in dbl_term_o[1:]:
-            bond.SetBondType(Chem.BondType.SINGLE)
-            bond.GetOtherAtom(atom).SetFormalCharge(-1)
-        atom.SetFormalCharge(1)
-
-
-def _normalize_carboxylate_formal_charges(mol: Chem.Mol) -> None:
-    """Place a carboxylate charge on its singly bonded oxygen."""
-    for carbon in mol.GetAtoms():
-        if carbon.GetAtomicNum() != 6:
-            continue
-        oxygen_bonds = [
-            bond
-            for bond in carbon.GetBonds()
-            if bond.GetOtherAtom(carbon).GetAtomicNum() == 8
-            and bond.GetOtherAtom(carbon).GetDegree() == 1
-        ]
-        singles = [
-            bond for bond in oxygen_bonds if bond.GetBondType() == Chem.BondType.SINGLE
-        ]
-        doubles = [
-            bond for bond in oxygen_bonds if bond.GetBondType() == Chem.BondType.DOUBLE
-        ]
-        if len(singles) != 1 or len(doubles) != 1:
-            continue
-        single = singles[0].GetOtherAtom(carbon)
-        double = doubles[0].GetOtherAtom(carbon)
-        if double.GetFormalCharge() == -1 and single.GetFormalCharge() == 0:
-            double.SetFormalCharge(0)
-            single.SetFormalCharge(-1)
 
 
 def _normalize_exocyclic_aromatic_imine(mol: Chem.Mol) -> None:
@@ -398,11 +318,9 @@ def rdkit_mol_from_ligand_atom_array(
         for t in raw_types
     ):
         mol.SetProp(_SOURCE_KEKULE_PROP, "1")
-    mol = normalize_cumulated_azide(mol)
     normalize_non_ring_aromatic_bonds(mol)
     _apply_source_subtypes(mol, atom_array)
-    _normalize_nitro(mol)
-    _normalize_carboxylate_formal_charges(mol)
+    localize_overvalent_centers(mol)
     if repair_chemistry:
         # Last-resort normalizations that rewrite source bond orders; only the
         # SMILES fallback path enables these (see docstring).
@@ -438,24 +356,11 @@ def ligand_atom_array_to_rdkit_mol(
 
     Thin wrapper over :func:`rdkit_mol_from_ligand_atom_array`.
     """
-    mol = rdkit_mol_from_ligand_atom_array(
+    return rdkit_mol_from_ligand_atom_array(
         ligand_info.atom_array,
         res_name=ligand_info.res_name,
         keep_hydrogens=keep_hydrogens,
     )
-    if ligand_info.skip_protonation and any(
-        source_subtype(atom) == "co2"
-        and atom.GetDegree() == 1
-        and all(
-            bond.GetBondType() == Chem.BondType.SINGLE
-            for bond in atom.GetNeighbors()[0].GetBonds()
-        )
-        for atom in mol.GetAtoms()
-    ):
-        # Tripos delocalized COO bonds become singles during normalization.
-        # Reuse the shared repair on the generated, finite mol2 geometry.
-        mol = correct_carboxylate_bond_orders(mol)
-    return mol
 
 
 def transfer_tetrahedral_stereochemistry(
