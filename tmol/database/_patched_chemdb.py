@@ -732,7 +732,8 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
         if set(modded) & blocking:
             continue
 
-        # a patch cannot delete an atom a connection it keeps sits on
+        # a patch cannot delete an atom a connection it keeps sits on (7EOH: the
+        #    phosphate oxygens its Mg ions bond)
         gone = set(deleted)
         if any(c.atom in gone and c.name not in gone for c in res.connections):
             continue
