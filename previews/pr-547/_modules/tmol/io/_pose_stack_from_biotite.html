@@ -937,7 +937,6 @@
     <span class="n">strict_ligands</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">ligand_params_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">chem_comp_types</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">use_ccd</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">ligand_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseBuildContext</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Build the structure-independent construction context.</span>
@@ -975,10 +974,6 @@
 <span class="sd">            ``tmol.ligand.chem_comp_types_from_cif``), which says whether a</span>
 <span class="sd">            residue belongs to a polymer where the file does not number it</span>
 <span class="sd">            along a sequence. Only used when prepare_ligands=True.</span>
-<span class="sd">        use_ccd: Whether a residue the input declares no chemistry for may be</span>
-<span class="sd">            completed from the component dictionary by its code. Pass False for</span>
-<span class="sd">            a source that supplies whole molecules under codes of its own, such</span>
-<span class="sd">            as a mol2. Only used when prepare_ligands=True.</span>
 <span class="sd">        ligand_seed: Fixed RNG seed for the conformer each prepared residue</span>
 <span class="sd">            is built from, making preparation reproducible. Only used when</span>
 <span class="sd">            prepare_ligands=True.</span>
@@ -1033,7 +1028,6 @@
             <span class="n">return_fragment_definitions</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">return_cut_partners</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">chem_comp_types</span><span class="o">=</span><span class="n">chem_comp_types</span><span class="p">,</span>
-            <span class="n">use_ccd</span><span class="o">=</span><span class="n">use_ccd</span><span class="p">,</span>
             <span class="n">seed</span><span class="o">=</span><span class="n">ligand_seed</span><span class="p">,</span>
             <span class="n">coordinating_atoms</span><span class="o">=</span><span class="n">coordinating_atoms</span><span class="p">,</span>
         <span class="p">)</span>
@@ -1086,7 +1080,6 @@
     <span class="n">strict_ligands</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">ligand_params_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">chem_comp_types</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">use_ccd</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">ligand_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">packer_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">return_context</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -1149,10 +1142,6 @@
 <span class="sd">            ``_chem_comp`` table, which says whether a residue belongs to a</span>
 <span class="sd">            polymer where the file does not number it along a sequence. Only</span>
 <span class="sd">            used when prepare_ligands=True.</span>
-<span class="sd">        use_ccd: Whether a residue the input declares no chemistry for may be</span>
-<span class="sd">            completed from the component dictionary by its code. Pass False for</span>
-<span class="sd">            a source that supplies whole molecules under codes of its own, such</span>
-<span class="sd">            as a mol2. Only used when prepare_ligands=True.</span>
 <span class="sd">        ligand_seed: Fixed RNG seed for the conformer each prepared residue</span>
 <span class="sd">            is built from, making preparation reproducible. Only used when</span>
 <span class="sd">            prepare_ligands=True.</span>
@@ -1225,7 +1214,6 @@
             <span class="n">strict_ligands</span><span class="o">=</span><span class="n">strict_ligands</span><span class="p">,</span>
             <span class="n">ligand_params_files</span><span class="o">=</span><span class="n">ligand_params_files</span><span class="p">,</span>
             <span class="n">chem_comp_types</span><span class="o">=</span><span class="n">chem_comp_types</span><span class="p">,</span>
-            <span class="n">use_ccd</span><span class="o">=</span><span class="n">use_ccd</span><span class="p">,</span>
             <span class="n">ligand_seed</span><span class="o">=</span><span class="n">ligand_seed</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">if</span> <span class="n">atom37_coords</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
