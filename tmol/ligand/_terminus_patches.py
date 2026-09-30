@@ -87,8 +87,6 @@ def _template_for(residue_type, connection_atom, candidates):
     amine's. The pattern is not matched here, so they are told apart by the
     same thing it tests: whether the connection carries a hydrogen.
     """
-    if not candidates:
-        return None
     if len(candidates) == 1:
         return candidates[0]
     hydrogens = {a.name for a in residue_type.atoms if a.atom_type.startswith("H")}
@@ -634,16 +632,6 @@ def terminus_patches(
         chemdb, profile
     ).items():
         template = _template_for(residue_type, connection[1], candidates)
-        if template is None:
-            logger.warning(
-                "%s %s patch: no template. The database describes no %s for a "
-                "connection at %s, so the residue cannot sit at that end.",
-                residue_type.name,
-                display_name,
-                display_name,
-                connection[1],
-            )
-            continue
         chemistry = None
         if atom_array is not None:
             try:
