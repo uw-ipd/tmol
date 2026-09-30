@@ -609,12 +609,6 @@ def select_best_block_type_candidate(  # noqa: C901
         dtype=torch.bool,
         device=device,
     )
-    block_type_candidates[is_real_res] = can_ann.var_combo_candidate_bt_index[
-        res_types64[is_real_res],
-        termini_variants[is_real_res],
-        res_type_variants64[is_real_res],
-    ]
-
     real_res_res_types64 = res_types64[is_real_res]
     real_res_termini_variants = termini_variants[is_real_res]
     real_res_res_type_variants64 = res_type_variants64[is_real_res]
@@ -622,15 +616,11 @@ def select_best_block_type_candidate(  # noqa: C901
     real_res_block_type_candidates = can_ann.var_combo_candidate_bt_index[
         real_res_res_types64, real_res_termini_variants, real_res_res_type_variants64
     ]
-
-    is_real_candidate[is_real_res] = can_ann.var_combo_is_real_candidate[
-        res_types64[is_real_res],
-        termini_variants[is_real_res],
-        res_type_variants64[is_real_res],
-    ]
     is_real_cand_for_real_res = can_ann.var_combo_is_real_candidate[
         real_res_res_types64, real_res_termini_variants, real_res_res_type_variants64
     ]
+    block_type_candidates[is_real_res] = real_res_block_type_candidates
+    is_real_candidate[is_real_res] = is_real_cand_for_real_res
     real_candidate_block_type = real_res_block_type_candidates[
         is_real_cand_for_real_res
     ]
@@ -920,12 +910,7 @@ def _map_term_to_int(is_down_term, is_up_term):
 
 
 def _term_and_spcase_var_candidate_lists(max_n_term, max_n_spcase):
-    candidates = []
-    for i in range(max_n_term):
-        candidates.append([])
-        for j in range(max_n_spcase):
-            candidates[i].append([])
-    return candidates
+    return [[[] for _ in range(max_n_spcase)] for _ in range(max_n_term)]
 
 
 def _assign_var_inds_for_bt(co, bt):
