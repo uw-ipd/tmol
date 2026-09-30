@@ -9,16 +9,10 @@ from tmol.types import Tensor
 
 @attr.s(auto_attribs=True, frozen=True)
 class InterBlockBondsep:
-    """Bond separations between the inter-block connections of nearby blocks.
+    """Connection bond separations below the cap, stored only for nearby block pairs.
 
-    The dense table ``[pose, block1, block2, conn1, conn2]`` holds
-    ``MAX_SIG_BOND_SEPARATION`` for almost every block pair, so only the pairs
-    that some connection pair brings closer than that are stored. Row
-    ``[pose, block1]`` lists those ``block2`` in ascending order, followed by at
-    least one empty slot whose block is ``-1`` and whose separations are all the
-    cap. Scanning a row up to the first slot that is ``block2`` or empty
-    (``near_block_slot`` in ``tmol/score/common/count_pair.hh``) therefore
-    finds the dense table's values for every block pair.
+    Row ``[pose, block1]`` lists its ``block2`` ascending, then at least one empty
+    slot (block ``-1``, all separations the cap) that ``near_block_slot`` finds.
 
     Attributes:
         near_blocks: ``[pose, block1, slot, 2]`` int32 holding ``block2`` and
@@ -133,13 +127,8 @@ class InterBlockBondsep:
         intra_separation: Tensor[torch.int32][:, :, :, :],
         connections: Tensor[torch.int64][:, :, :, 2],
     ) -> "InterBlockBondsep":
-        """Shortest paths below the cap over the graph of inter-block connections.
-
-        Each block's connections are joined by edges of their intra-block
-        separation, and bonded connections of two blocks by edges of one, which
-        replace an intra-block edge between the same connections. Only paths
-        shorter than the cap are explored, so the work grows with the number of
-        bonded neighbours rather than with the square of the connection count.
+        """Shortest paths below the cap between connections, joined within a block by
+        their intra-block separation and across an inter-block bond by one.
 
         Args:
             counts: ``[pose, block]`` number of connections of each block.
