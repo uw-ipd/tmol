@@ -27,3 +27,4 @@ compressed file) and exercises one failure class; each test fails without its fi
 | `ion_alternates_8a7k.cif.zst` | Mn and Mg modelled at half occupancy on each of three sites without altloc ids keep one ion per site (the site failed the 12-connection limit). |
 | `ion_alternates_3f7l.cif.zst` | The two conformers of a Cu (0.8/0.2), written in two chains, keep the more occupied one. |
 | `heme_alternates_1i54.pdb.zst` | A PDB whose heme (altloc A) and Zn-porphyrin (altloc B) are two residues bonded to the same cysteines keeps one alternate per linked group. |
+| `microheterogeneity_1ejg.pdb.zst` | PRO/SER A:22 and LEU/ILE A:25 are altlocs A/B of one position; the internal PDB parser keeps one alternate instead of overwriting atom by atom. |

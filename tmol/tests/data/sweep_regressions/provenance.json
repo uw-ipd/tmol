@@ -244,5 +244,14 @@
   "sha256": "386bc2900046e1d48a0a9cf72956d8da1376606342adbf41e07cdb6b1ebd3696",
   "bytes": 30182,
   "compressed_sha256": "91f161d421c83c52032e4d80b3f549d234c52ce64e0e5646786d506c2f0a1606"
+ },
+ {
+  "fixture": "microheterogeneity_1ejg.pdb.zst",
+  "source": "https://files.rcsb.org/download/1EJG.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/ej/1ejg.cif.gz)",
+  "source_sha256": "c59b29d7f079064d73667d3b510fdd9d39eb74e04cbd485022bcc9fc2383978d",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/altloc_tmol/scripts/cif2pdb.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/ej/1ejg.cif.gz microheterogeneity_1ejg.pdb (PDB-format records with author ids and altloc column, waters omitted); zstd -19 microheterogeneity_1ejg.pdb",
+  "sha256": "10e50f71ebd2d96c5bd24d84d820924962fc4dcc1d63b2f7a7abcd0c5d40fd71",
+  "bytes": 66601,
+  "compressed_sha256": "5dde4d3adf5d4d8ba14604a187daaeab260b977a887385bb8df31c86ee76b04a"
  }
 ]
