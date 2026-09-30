@@ -129,7 +129,12 @@ def _apply_atom_array_annotations(
     flags = atom_array.tmol_aromatic
     for mol_idx, arr_idx in enumerate(arr_indices):
         a = mol.GetAtomWithIdx(mol_idx)
-        a.SetIsAromatic(bool(flags[arr_idx]) and a.IsInRing())
+        # a flag adds aromaticity; an aromatic bond order is not overruled by a
+        # default False (a part joined to a MOL2 ligand carries no flags of its own)
+        aromatic_bond = any(
+            b.GetBondType() == Chem.BondType.AROMATIC for b in a.GetBonds()
+        )
+        a.SetIsAromatic((bool(flags[arr_idx]) or aromatic_bond) and a.IsInRing())
     for bond in mol.GetBonds():
         bond.SetIsAromatic(
             bond.IsInRing()

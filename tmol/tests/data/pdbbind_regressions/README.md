@@ -12,4 +12,4 @@ exercised by `tmol/tests/io/test_pdbbind_regressions.py`, whose tests fail witho
 | `numbered_gap_3kgp.pdb.zst` | Residues 37 and 38, numbered consecutively but 5.6 A apart, are not bonded (unless the threshold is 0). |
 | `repeated_names_ligand_10gs.pdb.zst`, `repeated_names_ligand_10gs.mol2.zst` | Repeated atom names in one PDB residue (a peptidic ligand written as one) take the MOL2 reader's names. |
 | `chloride_charge_column_6tw5.pdb.zst` | A charge in the PDB charge column (PoseBusters 6TW5 `Cl1-`) is the stated formal charge. |
-| `heavy_atom_imidazole_6t88.sdf.zst` | A heavy-atom SDF ligand (PoseBusters) keeps the tautomer its Kekule bonds state. |
+| `heavy_atom_imidazole_6t88.sdf.zst`, `heavy_atom_indazole_6tw5.sdf.zst` | Heavy-atom SDF ligands (PoseBusters) keep their Kekule tautomer, and aromatic bond orders keep their atoms aromatic. |

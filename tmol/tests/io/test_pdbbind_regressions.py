@@ -64,7 +64,8 @@ def test_pdb_charge_column_states_an_ion_charge():
 
 def test_heavy_atom_sdf_ligands_are_prepared(tmp_path):
     """PoseBusters SDFs have no hydrogens: their Kekule bonds say which ring N
-    carries one (6T88 imidazole)."""
+    carries one (6T88 imidazole), and the aromatic bonds AtomWorks' protonation
+    returns keep their atoms aromatic (6TW5 indazole)."""
     for name in (
         "heavy_atom_imidazole_6t88.sdf.zst",
         "heavy_atom_indazole_6tw5.sdf.zst",
