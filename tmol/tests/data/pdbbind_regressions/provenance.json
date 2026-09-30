@@ -18,6 +18,15 @@
   "compressed_sha256": "e25fd5d1580ceb3737e76a78b58090cdfcb0d5e6123939d2ae3a22dc1a9d225f"
  },
  {
+  "fixture": "repeated_names_ligand_10gs.pdb.zst",
+  "source": "PDBbind v2013-core 10gs/10gs_complex.pdb (copy /mnt/data/kdidi/pdbbind/v2013-core/10gs/10gs_complex.pdb)",
+  "source_sha256": "19dfaa6ec42849b395f1770aa7efc12ac9df691745a98ae9f43066143b13b8d7",
+  "transformation": "HETATM records (the MOL ligand) of 10gs_complex.pdb (PDBbind v2013-core), END appended; zstd -19",
+  "sha256": "ac515c67f1903c1c491b28e78931345a901d8d00f899b780a895bd3d46e7c018",
+  "bytes": 4665,
+  "compressed_sha256": "458d944192a11ec660090c43bf2a988fcd1a1fe9decfd673f4729e1e378a32a9"
+ },
+ {
   "fixture": "cyclic_acylguanidinium_3ge7.mol2.zst",
   "source": "PDBbind v2013-core 3ge7/3ge7_ligand.mol2 (copy /mnt/data/kdidi/pdbbind/v2013-core/3ge7/3ge7_ligand.mol2)",
   "source_sha256": "7c20af4017925861e0e48d3352fe1e7d89c54067d6313df5b638ec2bcbfe4e8d",
@@ -43,5 +52,14 @@
   "sha256": "04bcb11e0e40d24585e32b24bf361b24d6d0316162aa71f5f2ca76ccf7b875ef",
   "bytes": 3743,
   "compressed_sha256": "95d56e465a55802f10b79eadf52cf0013ce0c53c5fa0246369ee7fd8dbafdb68"
+ },
+ {
+  "fixture": "repeated_names_ligand_10gs.mol2.zst",
+  "source": "PDBbind v2013-core 10gs/10gs_ligand.mol2 (copy /mnt/data/kdidi/pdbbind/v2013-core/10gs/10gs_ligand.mol2)",
+  "source_sha256": "814a10dc0ece922d669bcbb8dfc1817d122ab4cbee0813ae37076635a8447f0b",
+  "transformation": "10gs_ligand.mol2 (PDBbind v2013-core) unchanged; zstd -19",
+  "sha256": "814a10dc0ece922d669bcbb8dfc1817d122ab4cbee0813ae37076635a8447f0b",
+  "bytes": 6073,
+  "compressed_sha256": "68c16f9130dd19e5d686825588b56cfd426d096edf037a241a2c44c737aeddff"
  }
 ]

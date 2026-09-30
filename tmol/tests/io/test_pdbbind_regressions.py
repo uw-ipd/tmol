@@ -40,6 +40,18 @@ def test_sdf_ligand_reads_like_its_mol2(tmp_path):
     assert set(sdf.element[sdf.charge != 0]) == {"N"}
 
 
+def test_repeated_pdb_atom_names_take_the_mol2_names(tmp_path):
+    """PDBbind writes 10gs' glutathione conjugate as one MOL residue whose atom
+    names repeat; they read as the MOL2 reader names them, so its parameters fit."""
+    pdb = atom_array_from_file(
+        data_path("pdbbind_regressions", "repeated_names_ligand_10gs.pdb.zst")
+    )
+    mol2 = atom_array_from_mol2(
+        _unpacked(tmp_path, "repeated_names_ligand_10gs.mol2.zst")
+    )
+    assert list(pdb.atom_name) == list(mol2.atom_name)
+
+
 def _bonded(pose, first, second):
     labels = pose.pdb_info.residue_labels[0].tolist()
     partners = pose.inter_residue_connections[0, labels.index(first), :, 0]

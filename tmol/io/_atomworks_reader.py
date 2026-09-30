@@ -238,6 +238,8 @@ def _read_pdb(path, model):
     The loader moves a chain's HETATM residues off it; those within its ATOM residues, or
     bonded at its ends (caps), rejoin it. PDB files may list the rest out of order (1HZY).
     """
+    from tmol.ligand._mol2_names import disambiguated_atom_names
+
     array, _ = load_pdb(path, model=model)
     if array.coord.ndim == 3:
         array = array[0]
@@ -265,6 +267,13 @@ def _read_pdb(path, model):
         if array.hetero[in_chain].all():
             by_number = np.argsort(array.res_id[in_chain], kind="stable")
             order[in_chain] = in_chain[by_number]
+    # a residue naming atoms alike (PDBbind writes a peptidic ligand as one) takes
+    # the MOL2 reader's names for them
+    starts = struc.get_residue_starts(array, add_exclusive_stop=True)
+    for begin, end in zip(starts[:-1], starts[1:]):
+        names = array.atom_name[begin:end]
+        if len(set(names)) < len(names):
+            array.atom_name[begin:end] = disambiguated_atom_names(names.tolist())
     # a blank chain ID is valid in a PDB file but names no chain for AtomWorks
     blank = array.auth_asym_id == ""
     if blank.any():
