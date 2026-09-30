@@ -2,6 +2,7 @@
 
 import io
 import warnings
+from collections import defaultdict
 from string import ascii_uppercase
 
 import biotite.structure as struc
@@ -192,50 +193,82 @@ def _one_disulfide_per_sulfur(array):
 
 # closer than the shortest metal-metal contact of any site (Cu-Cu in CuA, 2.4 A)
 _ION_SITE = 2.0
+_WATER = ("HOH", "DOD", "WAT")
 
 
-def _one_ion_per_site(array):
-    """The array keeping, of metal ions closer than ``_ION_SITE``, the more occupied.
+def _one_residue_per_site(array):
+    """The array keeping, of non-polymer residues occupying one site, the more occupied.
 
-    Two ions that close are alternates of one site the file does not label as
-    such: 8A7K models Mn and Mg at half occupancy on each of its sites, 3F7L puts
-    the two conformers of a Cu in two chains. Ties keep the first in the file.
+    Two residues occupy one site when half the heavy atoms of either lie within
+    ``OVERLAP_DISTANCE`` of the other's, or when both are metal ions closer than
+    ``_ION_SITE``. They are then alternates the file does not label as such:
+    8A7K models Mn and Mg at half occupancy on each of its sites, 3F7L writes the
+    two conformers of a Cu in two chains, and 1P4K two half-occupied GOL which
+    its struct_conn even bonds to each other. Of lettered copies the first letter
+    is kept, as AtomWorks keeps it for the chains around them (8CH1 writes
+    sucrose and LAO as altloc A, their alternates as B, in other chains);
+    otherwise the more occupied, then the first in the file. Waters are left
+    alone.
     """
     elements = np.char.upper(array.element.astype(str))
     residue = struc.get_all_residue_positions(array)
-    heavy = ~np.isin(elements, ("H", "D", "T"))
-    n_heavy = np.bincount(residue[heavy], minlength=residue.max() + 1)
-    ion = np.flatnonzero(
-        heavy
-        & np.isin(elements, list(METAL_ELEMENTS))
-        & (n_heavy[residue] == 1)
-        & np.isfinite(array.coord).all(axis=-1)
+    polymer = (
+        array.is_polymer
+        if "is_polymer" in array.get_annotation_categories()
+        else ~array.hetero
     )
-    if len(ion) < 2:
+    heavy = ~np.isin(elements, ("H", "D", "T")) & np.isfinite(array.coord).all(-1)
+    site = np.flatnonzero(heavy & ~polymer & ~np.isin(array.res_name, _WATER))
+    if len(site) < 2:
         return array
-    near = cKDTree(array.coord[ion]).query_ball_point(array.coord[ion], _ION_SITE)
-    if all(len(n) == 1 for n in near):
+    n_heavy = np.bincount(residue[heavy], minlength=residue.max() + 1)
+    ion = np.isin(elements[site], list(METAL_ELEMENTS)) & (n_heavy[residue[site]] == 1)
+    tree = cKDTree(array.coord[site])
+    near = tree.query_ball_point(array.coord[site], np.where(ion, _ION_SITE, 1.2))
+    covered = defaultdict(set)
+    for k, hits in enumerate(near):
+        for h in hits:
+            if residue[site[h]] != residue[site[k]] and (ion[h] or not ion[k]):
+                covered[residue[site[k]], residue[site[h]]].add(k)
+    overlapping = defaultdict(set)
+    for (a, b), atoms in covered.items():
+        if 2 * len(atoms) >= n_heavy[a]:
+            overlapping[a].add(b)
+            overlapping[b].add(a)
+    if not overlapping:
         return array
     occupancy = (
-        array.occupancy[ion]
+        array.occupancy
         if "occupancy" in array.get_annotation_categories()
-        else np.ones(len(ion))
+        else np.ones(len(array))
+    )
+    first = struc.get_residue_starts(array)
+    # the conformer AtomWorks keeps elsewhere (its first letter) wins, then
+    # the more occupied, then the first in the file
+    letter = (
+        np.where(np.isin(array.label_alt_id, NO_ALTERNATE), "", array.label_alt_id)
+        if "label_alt_id" in array.get_annotation_categories()
+        else np.full(len(array), "")
+    )
+    order = sorted(
+        overlapping, key=lambda r: (letter[first[r]], -occupancy[first[r]], first[r])
     )
     kept, dropped = set(), []
-    for k in np.lexsort((ion, -occupancy)):
-        if kept.isdisjoint(near[k]):
-            kept.add(k)
+    for r in order:
+        if overlapping[r] & kept:
+            dropped.append(r)
         else:
-            dropped.append(ion[k])
+            kept.add(r)
     warnings.warn(
-        "Keeping one metal ion per site: dropping "
+        "Keeping one residue per site: dropping "
         + ", ".join(
-            f"{array.chain_id[i]}:{array.res_id[i]} {array.res_name[i]}"
-            for i in sorted(dropped)
+            f"{array.chain_id[first[r]]}:{array.res_id[first[r]]} "
+            f"{array.res_name[first[r]]}"
+            for r in sorted(dropped)
         ),
         stacklevel=2,
     )
-    return array[~np.isin(residue, residue[dropped])]
+    return array[~np.isin(residue, dropped)]
 
 
 def _renumber_decreasing_author_ids(array):
@@ -566,7 +599,7 @@ def read_structure(path, *, model=1, assembly_id=None):
         if source in array.get_annotation_categories():
             array.set_annotation(target, array.get_annotation(source).copy())
     array.ins_code[np.isin(array.ins_code, (".", "?"))] = ""
-    array = _one_ion_per_site(array)
+    array = _one_residue_per_site(array)
     retained = {
         "chain_id",
         "res_id",

@@ -241,23 +241,25 @@ def test_declared_disulfides_sharing_a_sulfur_keep_the_nearest(torch_device, rec
 
 
 @pytest.mark.parametrize(
-    "fixture, kept, dropped",
+    "fixture, names, kept, dropped",
     [
-        ("ion_alternates_8a7k", {501, 502, 503}, {504, 505, 506}),
-        ("ion_alternates_3f7l", {201}, {202}),
+        ("ion_alternates_8a7k", ["MN", "MG"], {501, 502, 503}, {504, 505, 506}),
+        ("ion_alternates_3f7l", ["CU", "CU1"], {201}, {202}),
+        ("glycerol_alternates_1p4k", ["GOL"], {296}, {297}),
     ],
 )
-def test_metal_ions_closer_than_any_site_are_one_site(
-    fixture, kept, dropped, torch_device
+def test_residues_occupying_one_site_keep_one(
+    fixture, names, kept, dropped, torch_device
 ):
-    """8A7K models Mn and Mg at half occupancy on each site (unlabelled); 3F7L
-    puts the conformers of a Cu, 0.8 and 0.2 occupied, in two chains."""
+    """8A7K models Mn and Mg at half occupancy on each site, and 1P4K two
+    half-occupied GOL its struct_conn bonds to each other, without altloc ids;
+    3F7L writes the conformers of a Cu (0.8 and 0.2) in two chains."""
     path = DATA / "sweep_regressions" / f"{fixture}.cif.zst"
-    with pytest.warns(UserWarning, match="one metal ion per site"):
+    with pytest.warns(UserWarning, match="one residue per site"):
         array = atom_array_from_cif(path)
-    ions = set(array.res_id[np.isin(array.element, ["MN", "MG", "CU"])].tolist())
+    read = set(array.res_id[np.isin(array.res_name, names)].tolist())
 
-    assert kept <= ions and not dropped & ions
+    assert kept <= read and not dropped & read
     pose = pose_stack_from_cif(path, torch_device, prepare_ligands=True, no_optH=True)
     assert torch.isfinite(pose.coords).all()
 

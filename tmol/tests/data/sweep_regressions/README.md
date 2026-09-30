@@ -24,7 +24,8 @@ compressed file) and exercises one failure class; each test fails without its fi
 | `free_nucleotides_8gpb.cif.zst` | Free nucleotides sharing a chain and entity (AMP A930, A940) are not linked O3'-P for protonation. |
 | `cyclic_phosphate_3prime_1hq1.cif.zst` | A nucleotide whose 3' oxygen is in a 2',3'-cyclic phosphate (CCC) has no 3' port, so no 3' terminus adds HO3'. |
 | `metalc_alternate_3p1o.cif.zst` | A metalc row naming conformer B of GLU A:86 binds MG A:237 only if that conformer is kept (the kept conformer A is 6 A away). |
-| `ion_alternates_8a7k.cif.zst` | Mn and Mg modelled at half occupancy on each of three sites without altloc ids keep one ion per site (the site failed the 12-connection limit). |
-| `ion_alternates_3f7l.cif.zst` | The two conformers of a Cu (0.8/0.2), written in two chains, keep the more occupied one. |
+| `ion_alternates_8a7k.cif.zst` | Mn and Mg modelled at half occupancy on each of three sites without altloc ids keep one residue per site (the site failed the 12-connection limit). |
+| `ion_alternates_3f7l.cif.zst` | The two conformers of a Cu (0.8/0.2), written in two chains, keep the more occupied one (one residue per site). |
 | `heme_alternates_1i54.pdb.zst` | A PDB whose heme (altloc A) and Zn-porphyrin (altloc B) are two residues bonded to the same cysteines keeps one alternate per linked group. |
 | `microheterogeneity_1ejg.pdb.zst` | PRO/SER A:22 and LEU/ILE A:25 are altlocs A/B of one position; the internal PDB parser keeps one alternate instead of overwriting atom by atom. |
+| `glycerol_alternates_1p4k.cif.zst` | Two half-occupied GOL without altloc ids, which struct_conn bonds to each other, keep one residue per site (the pair failed with multiple declared partners). |

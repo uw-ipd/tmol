@@ -253,5 +253,14 @@
   "sha256": "10e50f71ebd2d96c5bd24d84d820924962fc4dcc1d63b2f7a7abcd0c5d40fd71",
   "bytes": 66601,
   "compressed_sha256": "5dde4d3adf5d4d8ba14604a187daaeab260b977a887385bb8df31c86ee76b04a"
+ },
+ {
+  "fixture": "glycerol_alternates_1p4k.cif.zst",
+  "source": "https://files.rcsb.org/download/1P4K.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/p4/1p4k.cif.gz)",
+  "source_sha256": "864e242cff8e19aae7e19f8d7c16d8dd04fad5266f38b40230892cb9855680d1",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/p4/1p4k.cif.gz glycerol_alternates_1p4k.cif 5 C:.; zstd -19 glycerol_alternates_1p4k.cif",
+  "sha256": "169f1cc56605b7e317c843a25894aaf6256b20a99784a418e4fc0f0bd16a1a93",
+  "bytes": 70401,
+  "compressed_sha256": "8a9027d353127c7013a9d4b3d89d5c45390e1c886cc49f8adef64e4e271005c6"
  }
 ]
