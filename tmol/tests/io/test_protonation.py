@@ -137,9 +137,11 @@ def _hydrogens_on(pose, chain, number):
         ("metal_amine_terminus_3ppd.cif.zst", [("A", 1)]),  # GLY 1 amine on Zn
         ("cysteine_heme_1cch.cif.zst", [("A", 83)]),  # pyrroles of a Cys-bonded heme
         ("metal_phosphate_7bad.cif.zst", [("A", 103)]),  # PO4 O2 on Mg
+        # a free PO4 and two on metals, each its own state
+        ("per_copy_phosphate_6m8q.cif.zst", [("A", 504), ("A", 505), ("B", 504)]),
         ("polar_hydrogens_10gs.pdb.zst", [("A", 47), ("A", 71), ("A", 101)]),
     ],
-    ids=["2r1w_lys_mg", "3ppd_nterm_zn", "1cch_heme", "7bad_po4_mg", "10gs_polar_h"],
+    ids=["2r1w_lys", "3ppd_nterm", "1cch_heme", "7bad_po4", "6m8q_po4s", "10gs_polar_h"],
 )
 def test_residue_types_take_the_atomworks_state(
     fixture, residues, monkeypatch, torch_device

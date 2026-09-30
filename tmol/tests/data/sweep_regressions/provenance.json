@@ -253,5 +253,14 @@
   "sha256": "4341bf4102e42cd025ecef8a80b3dd2194e658b3a3c67a96b2f53c078974f633",
   "bytes": 17147,
   "compressed_sha256": "22bb2f19d594593551842e86f5eb8865d78f48c061572b6f75a63d25a18f333d"
+ },
+ {
+  "fixture": "per_copy_phosphate_6m8q.cif.zst",
+  "source": "https://files.rcsb.org/download/6M8Q.cif.gz (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/m8/6m8q.cif.gz)",
+  "source_sha256": "c6a7b7bf1efe251aa49842326c8a07f87880bee83d96f9b1e95528b01e1d3231",
+  "transformation": "python3 /mnt/home/kdidi/scratch/protofix/crop.py 6m8q.cif.gz per_copy_phosphate_6m8q.cif 4 PO4 && python -c \"import zstandard; open('per_copy_phosphate_6m8q.cif.zst', 'wb').write(zstandard.ZstdCompressor(level=19).compress(open('per_copy_phosphate_6m8q.cif', 'rb').read()))\"",
+  "sha256": "5aafe36ea77f3feff4dce4ea375a9f75869649b843612d250ab72c3b3a16535e",
+  "bytes": 111358,
+  "compressed_sha256": "23976ffba621bf8ca54d47f78d3169cc8b938564c4443106884a3bec33028a1c"
  }
 ]
