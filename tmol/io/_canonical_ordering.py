@@ -18,7 +18,7 @@ from tmol.utility import resolve_device
 from typing import FrozenSet, List, Mapping, Optional, Tuple, Union
 from ._canonical_form import CanonicalForm
 from ._pdb_parsing import parse_pdb
-from ._alternates import one_alternate_per_group, selected_residue_names
+from ._alternates import records_with_one_alternate
 import toolz.functoolz
 
 
@@ -688,7 +688,7 @@ def canonical_form_from_pdb(
     a string representing a file
 
     """
-    atom_records = _one_alternate_per_group(parse_pdb(pdb_lines_or_fname))
+    atom_records = records_with_one_alternate(parse_pdb(pdb_lines_or_fname))
     if residue_start is not None or residue_end is not None:
         atom_records = select_atom_records_res_subset(
             atom_records, residue_start, residue_end
@@ -696,39 +696,6 @@ def canonical_form_from_pdb(
     return canonical_form_from_atom_records(
         canonical_ordering, atom_records, device, res_not_connected
     )
-
-
-def _one_alternate_per_group(atom_records: pandas.DataFrame) -> pandas.DataFrame:
-    """The records of one alternate per linked group of residues, in each model.
-
-    Without this, a later alternate overwrites an earlier one atom by atom: 1EJG
-    A:22 took PRO's residue type with SER's CA, C, O and CB.
-    """
-    if not (atom_records["location"] != "").any():
-        return atom_records
-    residue = (
-        atom_records["modeli"].astype(str)
-        + "|"
-        + atom_records["chain"]
-        + "|"
-        + atom_records["resi"].astype(str)
-        + atom_records["insert"]
-    ).to_numpy()
-    keep = one_alternate_per_group(
-        residue,
-        (atom_records["modeli"].astype(str) + "|" + atom_records["chain"]).to_numpy(),
-        atom_records["location"].to_numpy(),
-        ~atom_records["atomn"]
-        .str.lstrip("0123456789")
-        .str[0]
-        .isin(["H", "D"])
-        .to_numpy(),
-        atom_records[["x", "y", "z"]].to_numpy(dtype=float),
-    )
-    names = selected_residue_names(
-        residue, atom_records["resn"].to_numpy(), atom_records["location"], keep
-    )
-    return atom_records.assign(resn=names, location="")[keep].reset_index(drop=True)
 
 
 def select_atom_records_res_subset(

@@ -2,18 +2,15 @@
 
 import io
 import warnings
-from collections import defaultdict
 from string import ascii_uppercase
 
 import biotite.structure as struc
 import numpy as np
-from scipy.spatial import cKDTree
 
 from atomworks.constants import (
     BOND_DISTANCE_THRESHOLD_CHNO,
     BOND_DISTANCE_THRESHOLD_CHNOPS,
     BOND_DISTANCE_THRESHOLD_OTHER,
-    CCD_MIRROR_PATH,
     METAL_ELEMENTS,
 )
 from atomworks.io import load_pdb
@@ -21,17 +18,10 @@ from atomworks.io.config import ParseConfig
 from atomworks.io.parser import parse, parse_atom_array, prepare_atom_array
 from atomworks.io.transforms.categories import category_to_dict
 from atomworks.io.utils.bonds import get_struct_conn_bonds
-from atomworks.io.utils.ccd import (
-    get_atom_names_for_residue,
-    get_polymerization_atoms,
-)
+from atomworks.io.utils.ccd import get_polymerization_atoms
 from atomworks.io.utils.io_utils import get_structure, infer_pdb_file_type, read_any
 
-from tmol.io._alternates import (
-    NO_ALTERNATE,
-    one_alternate_per_group,
-    selected_residue_names,
-)
+from tmol.io._alternates import one_residue_per_site, pdb_lines_with_one_alternate
 
 _AUTHOR_FIELDS = {
     "atom_name": "auth_atom_id",
@@ -94,14 +84,32 @@ def _with_pdb_author_chains(array, path, model):
 def _with_metal_coordination(array, block):
     """The bond table plus the file's metalc bonds, typed COORDINATION.
 
-    A row naming an alternate location binds that conformer: it is dropped where
-    the reader kept another conformer of the atom (3P1O names GLU A:86 conformer
-    B for MG A:237; the kept conformer A is 6 A away), and read where the atom
-    has no alternates.
+    A row naming a conformer of an atom with alternates binds only that conformer
+    (3P1O: GLU A:86 conformer B to MG A:237; the kept A is 6 A away).
     """
-    struct_conn = _rows_binding_kept_conformers(
-        array, category_to_dict(block, "struct_conn")
-    )
+    struct_conn = category_to_dict(block, "struct_conn")
+    lettered = set()
+    if "label_alt_id" in array.get_annotation_categories():
+        at = ~np.isin(array.label_alt_id, (".", "?", " ", ""))
+        fields = (array.chain_id, array.res_id.astype(str), array.res_name)
+        lettered = set(zip(*(f[at] for f in fields), array.atom_name[at], strict=True))
+    for p in (1, 2):
+        if f"pdbx_ptnr{p}_label_alt_id" in struct_conn:
+            # AtomWorks matches the alt id; it names no conformer of an atom without any
+            seq = struct_conn[f"ptnr{p}_label_seq_id"]
+            seq = np.where(
+                seq == ".", struct_conn.get(f"ptnr{p}_auth_seq_id", seq), seq
+            )
+            named = zip(
+                struct_conn[f"ptnr{p}_label_asym_id"],
+                seq,
+                struct_conn[f"ptnr{p}_label_comp_id"],
+                struct_conn[f"ptnr{p}_label_atom_id"],
+                strict=True,
+            )
+            has = np.array([atom in lettered for atom in named], dtype=bool)
+            alt = struct_conn[f"pdbx_ptnr{p}_label_alt_id"]
+            struct_conn[f"pdbx_ptnr{p}_label_alt_id"] = np.where(has, alt, ".")
     bonds = array.bonds if array.bonds is not None else struc.BondList(len(array))
     return bonds.merge(
         get_struct_conn_bonds(
@@ -111,43 +119,6 @@ def _with_metal_coordination(array, block):
             distance_policy="keep",
         )
     )
-
-
-def _rows_binding_kept_conformers(array, struct_conn):
-    """struct_conn without its alt ids, less the rows naming a conformer not kept."""
-    named = [struct_conn.pop(f"pdbx_ptnr{p}_label_alt_id", None) for p in (1, 2)]
-    if "label_alt_id" not in array.get_annotation_categories() or all(
-        n is None for n in named
-    ):
-        return struct_conn
-    alt = array.label_alt_id
-    lettered = np.flatnonzero(~np.isin(alt, (".", "?", " ", "")))
-    kept = {
-        (str(array.chain_id[i]), str(array.res_id[i]), str(array.res_name[i]))
-        + (str(array.atom_name[i]),): str(alt[i])
-        for i in lettered
-    }
-    keep = np.ones(len(struct_conn["conn_type_id"]), dtype=bool)
-    for partner, letters in zip((1, 2), named):
-        if letters is None:
-            continue
-        seq = struct_conn[f"ptnr{partner}_label_seq_id"]
-        seq = np.where(
-            seq == ".", struct_conn.get(f"ptnr{partner}_auth_seq_id", seq), seq
-        )
-        for row, key in enumerate(
-            zip(
-                struct_conn[f"ptnr{partner}_label_asym_id"],
-                seq,
-                struct_conn[f"ptnr{partner}_label_comp_id"],
-                struct_conn[f"ptnr{partner}_label_atom_id"],
-                strict=True,
-            )
-        ):
-            letter = str(letters[row])
-            if letter not in (".", "?", " ", ""):
-                keep[row] &= kept.get(tuple(str(k) for k in key), letter) == letter
-    return {name: column[keep] for name, column in struct_conn.items()}
 
 
 def _one_disulfide_per_sulfur(array):
@@ -189,86 +160,6 @@ def _one_disulfide_per_sulfur(array):
         stacklevel=2,
     )
     return struc.BondList(len(array), np.delete(bonds, rows[dropped], axis=0))
-
-
-# closer than the shortest metal-metal contact of any site (Cu-Cu in CuA, 2.4 A)
-_ION_SITE = 2.0
-_WATER = ("HOH", "DOD", "WAT")
-
-
-def _one_residue_per_site(array):
-    """The array keeping, of non-polymer residues occupying one site, the more occupied.
-
-    Two residues occupy one site when half the heavy atoms of either lie within
-    ``OVERLAP_DISTANCE`` of the other's, or when both are metal ions closer than
-    ``_ION_SITE``. They are then alternates the file does not label as such:
-    8A7K models Mn and Mg at half occupancy on each of its sites, 3F7L writes the
-    two conformers of a Cu in two chains, and 1P4K two half-occupied GOL which
-    its struct_conn even bonds to each other. Of lettered copies the first letter
-    is kept, as AtomWorks keeps it for the chains around them (8CH1 writes
-    sucrose and LAO as altloc A, their alternates as B, in other chains);
-    otherwise the more occupied, then the first in the file. Waters are left
-    alone.
-    """
-    elements = np.char.upper(array.element.astype(str))
-    residue = struc.get_all_residue_positions(array)
-    polymer = (
-        array.is_polymer
-        if "is_polymer" in array.get_annotation_categories()
-        else ~array.hetero
-    )
-    heavy = ~np.isin(elements, ("H", "D", "T")) & np.isfinite(array.coord).all(-1)
-    site = np.flatnonzero(heavy & ~polymer & ~np.isin(array.res_name, _WATER))
-    if len(site) < 2:
-        return array
-    n_heavy = np.bincount(residue[heavy], minlength=residue.max() + 1)
-    ion = np.isin(elements[site], list(METAL_ELEMENTS)) & (n_heavy[residue[site]] == 1)
-    tree = cKDTree(array.coord[site])
-    near = tree.query_ball_point(array.coord[site], np.where(ion, _ION_SITE, 1.2))
-    covered = defaultdict(set)
-    for k, hits in enumerate(near):
-        for h in hits:
-            if residue[site[h]] != residue[site[k]] and (ion[h] or not ion[k]):
-                covered[residue[site[k]], residue[site[h]]].add(k)
-    overlapping = defaultdict(set)
-    for (a, b), atoms in covered.items():
-        if 2 * len(atoms) >= n_heavy[a]:
-            overlapping[a].add(b)
-            overlapping[b].add(a)
-    if not overlapping:
-        return array
-    occupancy = (
-        array.occupancy
-        if "occupancy" in array.get_annotation_categories()
-        else np.ones(len(array))
-    )
-    first = struc.get_residue_starts(array)
-    # the conformer AtomWorks keeps elsewhere (its first letter) wins, then
-    # the more occupied, then the first in the file
-    letter = (
-        np.where(np.isin(array.label_alt_id, NO_ALTERNATE), "", array.label_alt_id)
-        if "label_alt_id" in array.get_annotation_categories()
-        else np.full(len(array), "")
-    )
-    order = sorted(
-        overlapping, key=lambda r: (letter[first[r]], -occupancy[first[r]], first[r])
-    )
-    kept, dropped = set(), []
-    for r in order:
-        if overlapping[r] & kept:
-            dropped.append(r)
-        else:
-            kept.add(r)
-    warnings.warn(
-        "Keeping one residue per site: dropping "
-        + ", ".join(
-            f"{array.chain_id[first[r]]}:{array.res_id[first[r]]} "
-            f"{array.res_name[first[r]]}"
-            for r in sorted(dropped)
-        ),
-        stacklevel=2,
-    )
-    return array[~np.isin(residue, dropped)]
 
 
 def _renumber_decreasing_author_ids(array):
@@ -366,83 +257,6 @@ def _extends_polymer(array, starts, anchor, residue, step):
     return bool((distance <= BOND_DISTANCE_THRESHOLD_CHNO).any())
 
 
-def _pdb_lines_with_one_alternate(path, model):
-    """The PDB's lines keeping one alternate per linked group, altloc columns blank.
-
-    Atoms without a letter at a microheterogeneity site are named after the kept
-    residue, or dropped where it lacks them, as AtomWorks does for mmCIF. LINK
-    records naming an alternate that is not kept are dropped. None when the file
-    has no alternates.
-    """
-    lines = list(read_any(path).lines)
-    records = [
-        i for i, line in enumerate(lines) if line.startswith(("ATOM  ", "HETATM"))
-    ]
-    if all(len(lines[i]) < 17 or lines[i][16] in NO_ALTERNATE for i in records):
-        return None
-    pdb_file = read_any(path)
-    atoms = pdb_file.get_structure(model=model, altloc="all")
-    if atoms.coord.ndim == 3:
-        atoms = atoms[0]
-    in_model, current = [], 0
-    for i, line in enumerate(lines):
-        if line.startswith("MODEL "):
-            current += 1
-        elif line.startswith(("ATOM  ", "HETATM")) and max(current, 1) == model:
-            in_model.append(i)
-    residue = np.char.add(
-        np.char.add(atoms.chain_id.astype(str), "|"),
-        np.char.add(atoms.res_id.astype(str), atoms.ins_code.astype(str)),
-    )
-    heavy = ~np.isin(np.char.upper(atoms.element.astype(str)), ("H", "D", "T"))
-    keep = one_alternate_per_group(
-        residue, atoms.chain_id, atoms.altloc_id, heavy, atoms.coord
-    )
-    name = selected_residue_names(residue, atoms.res_name, atoms.altloc_id, keep)
-    kept_alt = keep & ~np.isin(atoms.altloc_id, NO_ALTERNATE)
-    letters = {
-        r: set(atoms.altloc_id[kept_alt & (residue == r)]) for r in residue[kept_alt]
-    }
-    for k in np.flatnonzero(keep & (name != atoms.res_name)):
-        taken = (
-            keep
-            & (residue == residue[k])
-            & (atoms.res_name == name[k])
-            & (atoms.atom_name == atoms.atom_name[k])
-        )
-        standard, alternative, _ = get_atom_names_for_residue(
-            str(name[k]), str(CCD_MIRROR_PATH or "")
-        )
-        keep[k] = not taken.any() and atoms.atom_name[k] in standard | alternative
-    edited = {
-        i: (line[:16] + " " + f"{name[k]:>3}" + line[20:]).rstrip() if keep[k] else None
-        for k, (i, line) in enumerate((i, lines[i].ljust(80)) for i in in_model)
-    }
-    out, previous = [], None
-    for i, line in enumerate(lines):
-        if i in edited:
-            previous = edited[i]
-            if previous is not None:
-                out.append(previous)
-        elif line.startswith("ANISOU"):
-            if previous is not None:
-                out.append(line[:16] + " " + line[17:])
-        elif line.startswith("LINK  "):
-            line = line.ljust(80)
-            partners = [
-                (f"{line[at + 9]}|{line[at + 10 : at + 15].strip()}", line[at + 4])
-                for at in (12, 42)
-            ]
-            if all(
-                alt in NO_ALTERNATE or alt in letters.get(key, {alt})
-                for key, alt in partners
-            ):
-                out.append((line[:16] + " " + line[17:46] + " " + line[47:]).rstrip())
-        else:
-            out.append(line)
-    return out
-
-
 def _read_pdb(path, model):
     """A PDB's atoms with its LINK records as bonds, HETATM chains in residue-number order.
 
@@ -452,17 +266,13 @@ def _read_pdb(path, model):
     """
     from tmol.ligand._mol2_names import disambiguated_atom_names
 
-    lines = _pdb_lines_with_one_alternate(path, model)
-    if lines is not None:
-        text = "\n".join(lines) + "\n"
-        path = io.StringIO(text)
-    array, _ = load_pdb(path, model=model)
+    lines = pdb_lines_with_one_alternate(read_any(path).lines, model)
+    text = "\n".join(lines) + "\n"
+    array, _ = load_pdb(io.StringIO(text), model=model)
     if array.coord.ndim == 3:
         array = array[0]
-    if lines is not None:
-        path = io.StringIO(text)
-    array = _with_pdb_author_chains(array, path, model)
-    array.bonds = array.bonds.merge(_link_bonds(array, read_any(path).lines))
+    array = _with_pdb_author_chains(array, io.StringIO(text), model)
+    array.bonds = array.bonds.merge(_link_bonds(array, lines))
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)
     author = array.auth_asym_id[starts[:-1]]
     for chain in np.unique(author[~array.hetero[starts[:-1]]]):
@@ -599,7 +409,7 @@ def read_structure(path, *, model=1, assembly_id=None):
         if source in array.get_annotation_categories():
             array.set_annotation(target, array.get_annotation(source).copy())
     array.ins_code[np.isin(array.ins_code, (".", "?"))] = ""
-    array = _one_residue_per_site(array)
+    array = one_residue_per_site(array)
     retained = {
         "chain_id",
         "res_id",
