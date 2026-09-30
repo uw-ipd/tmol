@@ -1,7 +1,6 @@
 """Build missing atoms outward from observed ones with ideal internal geometry, choosing
 each free rotation (and interchangeable anchor labels) greedily to minimize clashes."""
 
-import itertools
 import math
 from collections import deque
 from typing import Dict, List, Tuple
@@ -485,29 +484,12 @@ def _waits_on(pose, b, geom, pending, conn_all, conn_atom, types_all):
 
 
 def _build_together(builds, xyz, out, env):
-    """Grow blocks together from their ideal builds, settling anchor swaps per block,
-    then each rotation (shallowest first) against every block's current build."""
+    """Grow blocks together from their ideal builds, then choose each rotation
+    (shallowest first) against every block's current build."""
     for build in builds:
         build.start(xyz)
         build.write(xyz, env)
     env.add([build.s + a for build in builds for a in build.built])
-    for build in builds:
-        swaps = _anchor_swaps(
-            build.geom, build.known_atoms, build.targets, build.conn_atoms
-        )
-        if not swaps:
-            continue
-        score = build.greedy(xyz, env)
-        for options in swaps:
-            base = dict(build.relabel)
-            for option in options[1:]:
-                build.relabel = {**base, **option}
-                trial = build.greedy(xyz, env)
-                if trial < score - 1e-9:
-                    score, base = trial, dict(build.relabel)
-            build.relabel = base
-        build.start(xyz)
-        build.write(xyz, env)
     order = sorted(
         (
             (build.axis_depth[axis], k, i, axis)
@@ -581,7 +563,7 @@ class _BlockBuild:
         types_all,
         geoms,
     ):
-        self.pose, self.b, self.s, self.geom, self.targets = pose, b, s, geom, targets
+        self.pose, self.b, self.s, self.geom = pose, b, s, geom
         n = geom.n
         local_finite = numpy.isfinite(xyz[s : s + n]).all(axis=-1)
         self.known_atoms = [a for a in range(n) if local_finite[a] and a not in targets]
@@ -591,7 +573,6 @@ class _BlockBuild:
             )
         )
         self.excluded = numpy.array(sorted(excluded | set(range(s, s + n))), dtype=int)
-        self.conn_atoms = {atom for atom, _ in nodes.values()}
 
         def ideal_of(x):
             return node_ideal[x] if x >= n else geom.ideal[x]
@@ -622,11 +603,10 @@ class _BlockBuild:
         self.axis_depth = {
             axis: depth[self.steps[self.moved_by[axis][0]].atom] for axis in self.axes
         }
-        self.relabel = {}
 
     def start(self, xyz):
-        """Every step at its ideal, from the observed atoms as relabeled."""
-        positions = {a: xyz[self.s + self.relabel.get(a, a)] for a in self.known_atoms}
+        """Every step at its ideal, from the observed atoms."""
+        positions = {a: xyz[self.s + a] for a in self.known_atoms}
         positions.update(self.node_xyz)
         for step in self.steps:
             gg, g, p = (_resolve(r, positions.__getitem__) for r in step.refs)
@@ -661,82 +641,14 @@ class _BlockBuild:
         for a, x in zip(moved, points[best]):
             positions[a] = x
 
-    def score(self, env):
-        return _total_clash(self.built, self.positions, self.geom, env, self.excluded)
-
-    def greedy(self, xyz, env):
-        """Choose this block's rotations alone, in order; returns the clash score."""
-        self.start(xyz)
-        for axis in self.axes:
-            self.choose(axis, env)
-        return self.score(env)
-
     def place(self, xyz, out):
-        """Apply the relabeling and place the chosen build differentiably."""
+        """Place the chosen build differentiably."""
         pose, s = self.pose, self.s
-        if self.relabel:
-            atoms = list(self.relabel)
-            sources = [self.relabel[a] for a in atoms]
-            out[pose, [s + a for a in atoms]] = out[
-                pose, [s + a for a in sources]
-            ].clone()
-            xyz[[s + a for a in atoms]] = xyz[[s + a for a in sources]].copy()
-            self.relabel = {}
         placed = _place_differentiably(
             self.steps, self.chosen, out, pose, s, self.known_atoms, self.node_global
         )
         for a, x in placed.items():
             xyz[s + a] = x.detach().cpu().double().numpy()
-
-
-def _total_clash(built, positions, geom, env, excluded):
-    """Overlap of the built atoms with everything, each other included."""
-    n = geom.n
-    built_set = set(built)
-    others = [x for x in positions if x < n and x not in built_set]
-    other_xyz = numpy.array([positions[x] for x in others]).reshape(-1, 3)
-    xyz = numpy.array([positions[a] for a in built])
-    score = float(_clash(built, xyz[None], others, other_xyz, geom, env, excluded)[0])
-    built = numpy.asarray(built)
-    keep = geom.heavy[built]
-    built, xyz = built[keep], xyz[keep]
-    if len(built) > 1:
-        pairs = cKDTree(xyz).query_pairs(CONTACT, output_type="ndarray")
-        a, b = built[pairs[:, 0]], built[pairs[:, 1]]
-        far = geom.bonds_apart[a, b] > EXCLUDED_BONDS
-        if far.any():
-            d = numpy.linalg.norm(xyz[pairs[far, 0]] - xyz[pairs[far, 1]], axis=-1)
-            score += float(_overlap(d, geom, geom, a[far], b[far]).sum())
-    return score
-
-
-def _anchor_swaps(geom, known_atoms, targets, conn_atoms):
-    """Per group of same-element observed atoms on one observed atom (a phosphate's
-    oxygens) a missing branch grows from: relabelings {atom: source}, identity first."""
-    known = set(known_atoms)
-    groups: Dict[tuple, List[int]] = {}
-    for a in known_atoms:
-        if not geom.heavy[a] or a in conn_atoms:
-            continue
-        placed = [x for x in geom.neighbors[a] if x in known]
-        if len(placed) != 1:
-            continue
-        groups.setdefault((placed[0], geom.element[a]), []).append(a)
-    swaps = []
-    for members in groups.values():
-        roots = [a for a in members if any(x in targets for x in geom.neighbors[a])]
-        if len(members) < 2 or not roots:
-            continue
-        rest = [a for a in members if a not in roots]
-        options = [{}]
-        for sources in itertools.permutations(members, len(roots)):
-            remaining = [a for a in members if a not in sources]
-            relabel = dict(zip(roots + rest, list(sources) + remaining))
-            relabel = {a: x for a, x in relabel.items() if a != x}
-            if relabel not in options:
-                options.append(relabel)
-        swaps.append(options)
-    return swaps
 
 
 def _rotate_about(xyz, origin, through, angles):
