@@ -209,12 +209,7 @@ def iter_capped_conjugate_models(atom_array, chemical_database):
                     f"{label(previous, endpoint)} and {label(partner, endpoint)}. "
                     "Each connection accepts one partner; resolve the input bond graph."
                 )
-        ci = attachment_connection_name(
-            atom_array, first, second, definition(ri), partner_definition(second)
-        )
-        cj = attachment_connection_name(
-            atom_array, second, first, definition(rj), partner_definition(first)
-        )
+        ci, cj = port(first, second)[1], port(second, first)[1]
         if {ci, cj} == {"up", "down"}:
             polymer_attached.update(
                 (
@@ -358,7 +353,7 @@ def _restore_template_stereochemistry(
         if template is None:
             continue
         if name not in references:
-            reference = ccd_template_to_rdkit(template, hydrogen_policy="remove")
+            reference = ccd_template_to_rdkit(template)
             references[name] = (
                 reference,
                 {
