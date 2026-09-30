@@ -148,12 +148,11 @@ def polymer_index(base):
     return base.clamp_min(0) // N_BASE_PER_POLYMER
 
 
-_FROM_DB_CACHE = WeakIdentityLRU()
-
-
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class NaTorsionParams(ValidateAttrs):
     """Device-resident nucleic-acid torsion distributions and well energies."""
+
+    _from_db_cache = WeakIdentityLRU()
 
     # means in degrees; 3 bins for alpha/gamma, 2 for beta/epsilon/zeta
     backbone_means: Tensor[torch.float32][2, 6, 3]
@@ -188,7 +187,7 @@ class NaTorsionParams(ValidateAttrs):
         device = resolve_device(device)
         if device.type == "cpu":
             device = torch.device("cpu")
-        return _FROM_DB_CACHE.get_or_create(
+        return cls._from_db_cache.get_or_create(
             database, (cls, device), lambda: cls._from_database(database, device)
         )
 
