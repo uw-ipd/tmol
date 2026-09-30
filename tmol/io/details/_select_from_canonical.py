@@ -843,26 +843,24 @@ def take_block_type_atoms_from_canonical(
             & real_atoms
         )
 
-    canonical_atom_occupancy = None
-    if atom_occupancy is not None:
-        canonical_atom_occupancy = numpy.zeros(
-            (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=numpy.float32
-        )
-        canonical_atom_occupancy[real_atoms.cpu().numpy()] = atom_occupancy[
+    canonical_atom_occupancy = canonical_atom_b_factor = None
+    if atom_occupancy is not None or atom_b_factor is not None:
+        real_atoms_n = real_atoms.cpu().numpy()
+        source = (
             nz_real_pose_ind.cpu().numpy(),
             nz_real_block_ind.cpu().numpy(),
             real_canonical_atom_inds.cpu().numpy(),
-        ]
-    canonical_atom_b_factor = None
-    if atom_b_factor is not None:
-        canonical_atom_b_factor = numpy.zeros(
-            (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=numpy.float32
         )
-        canonical_atom_b_factor[real_atoms.cpu().numpy()] = atom_b_factor[
-            nz_real_pose_ind.cpu().numpy(),
-            nz_real_block_ind.cpu().numpy(),
-            real_canonical_atom_inds.cpu().numpy(),
-        ]
+
+        def block_layout(values):
+            if values is None:
+                return None
+            laid_out = numpy.zeros(real_atoms_n.shape, dtype=numpy.float32)
+            laid_out[real_atoms_n] = values[source]
+            return laid_out
+
+        canonical_atom_occupancy = block_layout(atom_occupancy)
+        canonical_atom_b_factor = block_layout(atom_b_factor)
 
     return (
         block_coords,
