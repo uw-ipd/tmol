@@ -367,6 +367,7 @@ def _polymer_gap_links(
     names = template.atom_name
     res_name = template.res_name[starts[:-1]]
     same_chain = numpy.ones(n_res - 1, dtype=bool)
+    # entity too: 3T14's FAD 500 follows MET 418 in chain A
     for key in ("chain_id", "label_entity_id", "sym_id"):
         if key in template.get_annotation_categories():
             values = template.get_annotation(key)[starts[:-1]]

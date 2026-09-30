@@ -31,7 +31,7 @@ _FIELDS = [
 def _polymer_from_backbone_bonds(array):
     """Mark as polymer the residues a polymer bond joins to a neighbour in their chain.
 
-    A PDB writes a modified residue in a chain as HETATM, as it writes a free ligand.
+    A PDB writes a modified residue in a chain as HETATM, as a free ligand (5EMA SEP).
     """
     residue_of = struc.get_all_residue_positions(array)
     polymer = ~array.hetero[struc.get_residue_starts(array)]
@@ -59,7 +59,7 @@ def _polymer_from_backbone_bonds(array):
 def _with_pdb_author_chains(array, path, model):
     """Each atom's chain as its PDB record names it, as ``auth_asym_id``.
 
-    The loader moves the HETATM residues of a chain that also has polymer ones to a new chain.
+    The loader moves a chain's HETATM residues to a new chain (5EMA SEP as PDB).
     """
     authored = read_any(path).get_structure(
         model=model, altloc="first", extra_fields=["atom_id"]
