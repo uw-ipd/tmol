@@ -457,5 +457,15 @@
     "bytes": 581356,
     "compression": "zstd; decompressed bytes identical to source",
     "compressed_sha256": "931c1fb6a96941c91a3c04d7794553aa1ce792c7adcaa1466926ce5acf5c706e"
+  },
+  {
+    "fixture": "vdf_attachment_8ch1_b.cif.zst",
+    "source": "https://files.rcsb.org/download/8CH1.cif.gz",
+    "source_repository": "RCSB PDB; derived from phosphate_attachment_8ch1.cif.zst",
+    "transformation": "python /mnt/home/kdidi/scratch/protofix/altloc_tmol/scripts/keep_conformer.py phosphate_attachment_8ch1.cif.zst conformer_b.cif B (default atoms and altloc B; struct_conn rows naming A dropped); python /mnt/home/kdidi/scratch/protofix/crop.py conformer_b.cif vdf_attachment_8ch1_b.cif 8 D:.; zstd -19",
+    "source_sha256": "02ecfef5ba6dd1c61971efc237529523f9942eca4043a96fb2c178ae7cc6340a",
+    "sha256": "f18ab095af8c2e76d3a8b9b00c8efaee595d497a4e48cf39877cb7c871a3809d",
+    "bytes": 145046,
+    "compressed_sha256": "22dcb8846a565670a37e0d1c862eb33c4de7c16267490a3006301de83c693ed4"
   }
 ]
