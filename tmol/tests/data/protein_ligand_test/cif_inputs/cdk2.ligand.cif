@@ -1,43 +1,58 @@
 data_structure
 #
+_entry.id       structure
+_entry.author   tmol
+_entry.date     2026-09-30
+_entry.time     00:00:00
+#
+_entity.id                 1
+_entity.type               non-polymer
+_entity.pdbx_description   .
+#
+_chem_comp.id                        L_1
+_chem_comp.name                      L_1
+_chem_comp.type                      NON-POLYMER
+_chem_comp.formula                   ?
+_chem_comp.mon_nstd_parent_comp_id   ?
+_chem_comp.pdbx_synonyms             ?
+_chem_comp.formula_weight            ?
+#
 loop_
-_chem_comp_bond.pdbx_ordinal 
 _chem_comp_bond.comp_id 
 _chem_comp_bond.atom_id_1 
 _chem_comp_bond.atom_id_2 
 _chem_comp_bond.value_order 
 _chem_comp_bond.pdbx_aromatic_flag 
-_chem_comp_bond.pdbx_stereo_config 
-1  LG1 C1   N2   SING N ?
-2  LG1 C4   N5   DOUB N ?
-3  LG1 N5   C7   SING N ?
-4  LG1 C11  Cl1  SING N ?
-5  LG1 C1   H1   SING N ?
-6  LG1 C1   H2   SING N ?
-7  LG1 C1   H3   SING N ?
-8  LG1 C3   H4   SING N ?
-9  LG1 C6   H5   SING N ?
-10 LG1 N5   H6   SING N ?
-11 LG1 C8   H7   SING N ?
-12 LG1 C9   H8   SING N ?
-13 LG1 C10  H9   SING N ?
-14 LG1 C12  H10  SING N ?
-15 LG1 N1   C3   AROM Y ?
-16 LG1 N1   C4   AROM Y ?
-17 LG1 N2   C6   AROM Y ?
-18 LG1 N2   C2   AROM Y ?
-19 LG1 C2   C5   AROM Y ?
-20 LG1 C2   N3   AROM Y ?
-21 LG1 N3   C3   AROM Y ?
-22 LG1 C4   C5   AROM Y ?
-23 LG1 C5   N4   AROM Y ?
-24 LG1 N4   C6   AROM Y ?
-25 LG1 C7   C8   AROM Y ?
-26 LG1 C7   C12  AROM Y ?
-27 LG1 C8   C9   AROM Y ?
-28 LG1 C9   C10  AROM Y ?
-29 LG1 C10  C11  AROM Y ?
-30 LG1 C11  C12  AROM Y ?
+L_1 C1  N2  SING N
+L_1 C4  N5  SING N
+L_1 N5  C7  SING N
+L_1 C11 Cl1 SING N
+L_1 C1  H1  SING N
+L_1 C1  H2  SING N
+L_1 C1  H3  SING N
+L_1 C3  H4  SING N
+L_1 C6  H5  SING N
+L_1 N5  H6  SING N
+L_1 C8  H7  SING N
+L_1 C9  H8  SING N
+L_1 C10 H9  SING N
+L_1 C12 H10 SING N
+L_1 N1  C3  AROM Y
+L_1 N1  C4  AROM Y
+L_1 N2  C6  AROM Y
+L_1 N2  C2  AROM Y
+L_1 C2  C5  AROM Y
+L_1 C2  N3  AROM Y
+L_1 N3  C3  AROM Y
+L_1 C4  C5  AROM Y
+L_1 C5  N4  AROM Y
+L_1 N4  C6  AROM Y
+L_1 C7  C8  AROM Y
+L_1 C7  C12 AROM Y
+L_1 C8  C9  AROM Y
+L_1 C9  C10 AROM Y
+L_1 C10 C11 AROM Y
+L_1 C11 C12 AROM Y
 #
 loop_
 _atom_site.group_PDB 
@@ -53,43 +68,81 @@ _atom_site.auth_seq_id
 _atom_site.auth_comp_id 
 _atom_site.auth_asym_id 
 _atom_site.auth_atom_id 
-_atom_site.B_iso_or_equiv 
-_atom_site.occupancy 
 _atom_site.pdbx_formal_charge 
+_atom_site.partial_charge 
+_atom_site.tmol_aromatic 
+_atom_site.tmol_source_subtype 
+_atom_site.atom_array_index 
 _atom_site.Cartn_x 
 _atom_site.Cartn_y 
 _atom_site.Cartn_z 
 _atom_site.pdbx_PDB_model_num 
 _atom_site.id 
-_atom_site.partial_charge 
-_atom_site.tmol_aromatic 
-_atom_site.tmol_source_subtype 
-HETATM N  N1   . LG1 A 1 1 . 1 LG1 A N1   nan 0.0 ? 24.7810 27.7440 28.1860 1 1 -0.620000 Y ar
-HETATM C  C1   . LG1 A 1 1 . 1 LG1 A C1   nan 0.0 ? 28.4790 31.4500 27.6600 1 2 +0.256000 N 3
-HETATM N  N2   . LG1 A 1 1 . 1 LG1 A N2   nan 0.0 ? 27.1430 31.0470 28.2300 1 3 +0.048000 Y am
-HETATM C  C2   . LG1 A 1 1 . 1 LG1 A C2   nan 0.0 ? 26.4690 29.8110 28.1300 1 4 +0.105000 Y ar
-HETATM N  N3   . LG1 A 1 1 . 1 LG1 A N3   nan 0.0 ? 26.8930 28.6810 27.4880 1 5 -0.567000 Y ar
-HETATM C  C3   . LG1 A 1 1 . 1 LG1 A C3   nan 0.0 ? 26.0150 27.6920 27.5540 1 6 +0.470000 Y ar
-HETATM C  C4   . LG1 A 1 1 . 1 LG1 A C4   nan 0.0 ? 24.3340 28.8830 28.8410 1 7 +0.410000 Y ar
-HETATM C  C5   . LG1 A 1 1 . 1 LG1 A C5   nan 0.0 ? 25.2540 30.0170 28.8170 1 8 +0.227000 Y ar
-HETATM N  N4   . LG1 A 1 1 . 1 LG1 A N4   nan 0.0 ? 25.1600 31.2710 29.3340 1 9 -0.565000 Y ar
-HETATM C  C6   . LG1 A 1 1 . 1 LG1 A C6   nan 0.0 ? 26.2870 31.8800 28.9750 1 10 +0.036000 Y ar
-HETATM N  N5   . LG1 A 1 1 . 1 LG1 A N5   nan 0.0 ? 23.0780 28.9110 29.4620 1 11 -0.600000 N ?
-HETATM C  C7   . LG1 A 1 1 . 1 LG1 A C7   nan 0.0 ? 22.3530 27.6590 29.6380 1 12 +0.100000 Y ar
-HETATM C  C8   . LG1 A 1 1 . 1 LG1 A C8   nan 0.0 ? 22.1060 27.1870 30.9280 1 13 -0.150000 Y ar
-HETATM C  C9   . LG1 A 1 1 . 1 LG1 A C9   nan 0.0 ? 21.4060 25.9960 31.1250 1 14 -0.150000 Y ar
-HETATM C  C10  . LG1 A 1 1 . 1 LG1 A C10  nan 0.0 ? 20.9450 25.2620 30.0290 1 15 -0.150000 Y ar
-HETATM C  C11  . LG1 A 1 1 . 1 LG1 A C11  nan 0.0 ? 21.1870 25.7260 28.7310 1 16 +0.177000 Y ar
-HETATM CL Cl1  . LG1 A 1 1 . 1 LG1 A Cl1  nan 0.0 ? 20.6210 24.8320 27.3770 1 17 -0.177000 N ?
-HETATM C  C12  . LG1 A 1 1 . 1 LG1 A C12  nan 0.0 ? 21.8890 26.9230 28.5360 1 18 -0.150000 Y ar
-HETATM H  H1   . LG1 A 1 1 . 1 LG1 A H1   nan 0.0 ? 28.6870 32.4930 27.9390 1 19 +0.000000 N ?
-HETATM H  H2   . LG1 A 1 1 . 1 LG1 A H2   nan 0.0 ? 29.2710 30.8050 28.0680 1 20 +0.000000 N ?
-HETATM H  H3   . LG1 A 1 1 . 1 LG1 A H3   nan 0.0 ? 28.4580 31.3700 26.5630 1 21 +0.000000 N ?
-HETATM H  H4   . LG1 A 1 1 . 1 LG1 A H4   nan 0.0 ? 26.2850 26.7550 27.0690 1 22 +0.150000 N ?
-HETATM H  H5   . LG1 A 1 1 . 1 LG1 A H5   nan 0.0 ? 26.5220 32.9120 29.2300 1 23 +0.150000 N ?
-HETATM H  H6   . LG1 A 1 1 . 1 LG1 A H6   nan 0.0 ? 22.6740 29.8010 29.7880 1 24 +0.400000 N ?
-HETATM H  H7   . LG1 A 1 1 . 1 LG1 A H7   nan 0.0 ? 22.4610 27.7500 31.7840 1 25 +0.150000 N ?
-HETATM H  H8   . LG1 A 1 1 . 1 LG1 A H8   nan 0.0 ? 21.2190 25.6390 32.1310 1 26 +0.150000 N ?
-HETATM H  H9   . LG1 A 1 1 . 1 LG1 A H9   nan 0.0 ? 20.4020 24.3370 30.1830 1 27 +0.150000 N ?
-HETATM H  H10  . LG1 A 1 1 . 1 LG1 A H10  nan 0.0 ? 22.0750 27.2820 27.5300 1 28 +0.150000 N ?
+HETATM N  N1  . L_1 A 1 1 . 1 L_1 A N1  ? -0.62  True  ar 0  24.781 27.744 28.186 1 1
+HETATM C  C1  . L_1 A 1 1 . 1 L_1 A C1  ? 0.256  False 3  1  28.479 31.45  27.66  1 2
+HETATM N  N2  . L_1 A 1 1 . 1 L_1 A N2  ? 0.048  True  am 2  27.143 31.047 28.23  1 3
+HETATM C  C2  . L_1 A 1 1 . 1 L_1 A C2  ? 0.105  True  ar 3  26.469 29.811 28.13  1 4
+HETATM N  N3  . L_1 A 1 1 . 1 L_1 A N3  ? -0.567 True  ar 4  26.893 28.681 27.488 1 5
+HETATM C  C3  . L_1 A 1 1 . 1 L_1 A C3  ? 0.47   True  ar 5  26.015 27.692 27.554 1 6
+HETATM C  C4  . L_1 A 1 1 . 1 L_1 A C4  ? 0.41   True  ar 6  24.334 28.883 28.841 1 7
+HETATM C  C5  . L_1 A 1 1 . 1 L_1 A C5  ? 0.227  True  ar 7  25.254 30.017 28.817 1 8
+HETATM N  N4  . L_1 A 1 1 . 1 L_1 A N4  ? -0.565 True  ar 8  25.16  31.271 29.334 1 9
+HETATM C  C6  . L_1 A 1 1 . 1 L_1 A C6  ? 0.036  True  ar 9  26.287 31.88  28.975 1 10
+HETATM N  N5  . L_1 A 1 1 . 1 L_1 A N5  ? -0.6   False ?  10 23.078 28.911 29.462 1 11
+HETATM C  C7  . L_1 A 1 1 . 1 L_1 A C7  ? 0.1    True  ar 11 22.353 27.659 29.638 1 12
+HETATM C  C8  . L_1 A 1 1 . 1 L_1 A C8  ? -0.15  True  ar 12 22.106 27.187 30.928 1 13
+HETATM C  C9  . L_1 A 1 1 . 1 L_1 A C9  ? -0.15  True  ar 13 21.406 25.996 31.125 1 14
+HETATM C  C10 . L_1 A 1 1 . 1 L_1 A C10 ? -0.15  True  ar 14 20.945 25.262 30.029 1 15
+HETATM C  C11 . L_1 A 1 1 . 1 L_1 A C11 ? 0.177  True  ar 15 21.187 25.726 28.731 1 16
+HETATM CL Cl1 . L_1 A 1 1 . 1 L_1 A Cl1 ? -0.177 False ?  16 20.621 24.832 27.377 1 17
+HETATM C  C12 . L_1 A 1 1 . 1 L_1 A C12 ? -0.15  True  ar 17 21.889 26.923 28.536 1 18
+HETATM H  H1  . L_1 A 1 1 . 1 L_1 A H1  ? 0.0    False ?  18 28.687 32.493 27.939 1 19
+HETATM H  H2  . L_1 A 1 1 . 1 L_1 A H2  ? 0.0    False ?  19 29.271 30.805 28.068 1 20
+HETATM H  H3  . L_1 A 1 1 . 1 L_1 A H3  ? 0.0    False ?  20 28.458 31.37  26.563 1 21
+HETATM H  H4  . L_1 A 1 1 . 1 L_1 A H4  ? 0.15   False ?  21 26.285 26.755 27.069 1 22
+HETATM H  H5  . L_1 A 1 1 . 1 L_1 A H5  ? 0.15   False ?  22 26.522 32.912 29.23  1 23
+HETATM H  H6  . L_1 A 1 1 . 1 L_1 A H6  ? 0.4    False ?  23 22.674 29.801 29.788 1 24
+HETATM H  H7  . L_1 A 1 1 . 1 L_1 A H7  ? 0.15   False ?  24 22.461 27.75  31.784 1 25
+HETATM H  H8  . L_1 A 1 1 . 1 L_1 A H8  ? 0.15   False ?  25 21.219 25.639 32.131 1 26
+HETATM H  H9  . L_1 A 1 1 . 1 L_1 A H9  ? 0.15   False ?  26 20.402 24.337 30.183 1 27
+HETATM H  H10 . L_1 A 1 1 . 1 L_1 A H10 ? 0.15   False ?  27 22.075 27.282 27.53  1 28
+#
+loop_
+_chem_comp_atom.comp_id 
+_chem_comp_atom.atom_id 
+_chem_comp_atom.type_symbol 
+_chem_comp_atom.charge 
+_chem_comp_atom.pdbx_aromatic_flag 
+_chem_comp_atom.pdbx_leaving_atom_flag 
+_chem_comp_atom.pdbx_model_Cartn_x_ideal 
+_chem_comp_atom.pdbx_model_Cartn_y_ideal 
+_chem_comp_atom.pdbx_model_Cartn_z_ideal 
+L_1 N1  N  0 N N 24.7810001373291   27.743999481201172 28.18600082397461
+L_1 C1  C  0 N N 28.479000091552734 31.450000762939453 27.65999984741211
+L_1 N2  N  0 N N 27.14299964904785  31.047000885009766 28.229999542236328
+L_1 C2  C  0 N N 26.4689998626709   29.81100082397461  28.1299991607666
+L_1 N3  N  0 N N 26.89299964904785  28.680999755859375 27.488000869750977
+L_1 C3  C  0 N N 26.014999389648438 27.691999435424805 27.554000854492188
+L_1 C4  C  0 N N 24.333999633789062 28.882999420166016 28.840999603271484
+L_1 C5  C  0 N N 25.253999710083008 30.017000198364258 28.816999435424805
+L_1 N4  N  0 N N 25.15999984741211  31.270999908447266 29.333999633789062
+L_1 C6  C  0 N N 26.28700065612793  31.8799991607666   28.975000381469727
+L_1 N5  N  0 N N 23.077999114990234 28.910999298095703 29.461999893188477
+L_1 C7  C  0 N N 22.35300064086914  27.659000396728516 29.63800048828125
+L_1 C8  C  0 N N 22.106000900268555 27.187000274658203 30.92799949645996
+L_1 C9  C  0 N N 21.4060001373291   25.996000289916992 31.125
+L_1 C10 C  0 N N 20.94499969482422  25.261999130249023 30.02899932861328
+L_1 C11 C  0 N N 21.187000274658203 25.72599983215332  28.731000900268555
+L_1 Cl1 CL 0 N N 20.621000289916992 24.832000732421875 27.37700080871582
+L_1 C12 C  0 N N 21.888999938964844 26.92300033569336  28.535999298095703
+L_1 H1  H  0 N N 28.687000274658203 32.49300003051758  27.93899917602539
+L_1 H2  H  0 N N 29.270999908447266 30.80500030517578  28.06800079345703
+L_1 H3  H  0 N N 28.45800018310547  31.3700008392334   26.562999725341797
+L_1 H4  H  0 N N 26.28499984741211  26.7549991607666   27.069000244140625
+L_1 H5  H  0 N N 26.52199935913086  32.9119987487793   29.229999542236328
+L_1 H6  H  0 N N 22.673999786376953 29.801000595092773 29.788000106811523
+L_1 H7  H  0 N N 22.461000442504883 27.75              31.784000396728516
+L_1 H8  H  0 N N 21.2189998626709   25.638999938964844 32.13100051879883
+L_1 H9  H  0 N N 20.402000427246094 24.336999893188477 30.183000564575195
+L_1 H10 H  0 N N 22.075000762939453 27.281999588012695 27.530000686645508
 #

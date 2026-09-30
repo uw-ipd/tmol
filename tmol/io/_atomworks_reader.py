@@ -5,6 +5,8 @@ import warnings
 from string import ascii_uppercase
 
 import biotite.structure as struc
+import biotite.structure.io.pdbx as pdbx
+from biotite.structure.io.pdb.hybrid36 import decode_hybrid36
 import numpy as np
 
 from atomworks.constants import (
@@ -18,7 +20,7 @@ from atomworks.io.config import ParseConfig
 from atomworks.io.parser import parse, parse_atom_array, prepare_atom_array
 from atomworks.io.transforms.categories import category_to_dict
 from atomworks.io.utils.bonds import get_struct_conn_bonds
-from atomworks.io.utils.ccd import get_polymerization_atoms
+from atomworks.io.utils.ccd import custom_ccd_residues, get_polymerization_atoms
 from atomworks.io.utils.io_utils import get_structure, infer_pdb_file_type, read_any
 
 from tmol.io._alternates import one_residue_per_site, pdb_lines_with_one_alternate
@@ -246,6 +248,31 @@ def _link_bonds(array, lines):
     return struc.BondList(len(array), np.array(bonds, dtype=np.int64).reshape(-1, 3))
 
 
+def _stated_hetero_bonds(array, lines):
+    """The bond table with only the CONECT bonds, of no stated order, within HETATM residues.
+
+    The loader also bonds a HETATM residue by the CCD entry of its name when an ATOM
+    residue shares it (3URI's 65-atom PRO ligand gains 179 bonds).
+    """
+    residue = struc.get_all_residue_positions(array)
+    shared = array.hetero & np.isin(array.res_name, array.res_name[~array.hetero])
+    bonds = array.bonds.as_array()
+    inside = shared[bonds[:, 0]] & (residue[bonds[:, 0]] == residue[bonds[:, 1]])
+    if not inside.any():
+        return array.bonds
+    index = {int(i): n for n, i in enumerate(array.atom_id.tolist())}
+    stated = set()
+    for line in lines:
+        if line.startswith("CONECT"):
+            ids = [line[k : k + 5] for k in range(6, 31, 5) if line[k : k + 5].strip()]
+            at = [index.get(decode_hybrid36(i), -1) for i in ids]
+            stated |= {frozenset((at[0], j)) for j in at[1:]}
+    kept = [frozenset((int(i), int(j))) in stated for i, j in bonds[inside, :2]]
+    bonds[np.flatnonzero(inside)[kept], 2] = struc.BondType.ANY
+    inside[np.flatnonzero(inside)[kept]] = False
+    return struc.BondList(len(array), bonds[~inside])
+
+
 def _extends_polymer(array, starts, anchor, residue, step):
     """Whether *residue* bonds to the polymer atom of its neighbour *anchor*."""
     port = get_polymerization_atoms(str(array.res_name[starts[anchor]]))[step < 0]
@@ -272,7 +299,7 @@ def _read_pdb(path, model):
     if array.coord.ndim == 3:
         array = array[0]
     array = _with_pdb_author_chains(array, io.StringIO(text), model)
-    array.bonds = array.bonds.merge(_link_bonds(array, lines))
+    array.bonds = _stated_hetero_bonds(array, lines).merge(_link_bonds(array, lines))
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)
     author = array.auth_asym_id[starts[:-1]]
     for chain in np.unique(author[~array.hetero[starts[:-1]]]):
@@ -310,31 +337,145 @@ def _read_pdb(path, model):
     return array[order]
 
 
+def _heavy(array):
+    return ~np.isin(np.char.upper(array.element.astype(str)), ("H", "D"))
+
+
+def _atoms(array):
+    """``(atom name, element)`` of each atom of ``array``."""
+    return set(zip(array.atom_name.tolist(), np.char.upper(array.element.astype(str))))
+
+
+def _bond_table(array, rows=slice(None)):
+    """``{atom-name pair: bond type}`` of the bonds ``rows`` of ``array``."""
+    names = array.atom_name.astype(str)
+    bonds = array.bonds.as_array()[rows]
+    return {frozenset((names[i], names[j])): int(t) for i, j, t in bonds}
+
+
+def _own_template(residue, entry):
+    """``residue`` as its own component, and whether its heavy atoms are the entry's.
+
+    Then the component is the entry's but for the bonds it states to its hydrogens
+    (1E66 HUX names them apart).
+    """
+    from tmol.io._assemble import _component_template
+
+    template = _component_template(residue)
+    heavy, pairs = _heavy(template), _bond_table(entry)
+    bonds = template.bonds.as_array()
+    to_h = ~(heavy[bonds[:, 0]] & heavy[bonds[:, 1]])
+    fits = _atoms(template[heavy]) <= _atoms(entry)
+    fits &= _bond_table(template, ~to_h).keys() <= pairs.keys()
+    kind = str(entry.chem_comp_type[0]) if fits else "NON-POLYMER"
+    template.set_annotation("chem_comp_type", np.full(len(template), kind))
+    if fits:
+        index = {n: i for i, n in enumerate(template.atom_name.tolist())}
+        stated = set(bonds[to_h, :2].ravel().tolist()) - set(np.flatnonzero(heavy))
+        known = [
+            (index[a], index[b], t)
+            for (a, b), t in ((tuple(p), t) for p, t in pairs.items())
+            if a in index and b in index and not {index[a], index[b]} & stated
+        ]
+        bonds[to_h, 2] = struc.BondType.SINGLE
+        bonds = np.concatenate([bonds[to_h], np.reshape(known, (-1, 3))])
+        template.bonds = struc.BondList(len(template), bonds.astype(np.uint32))
+        charge = dict(zip(entry.atom_name.tolist(), entry.charge.tolist()))
+        template.charge[heavy] = [charge[n] for n in template.atom_name[heavy]]
+    return template, fits
+
+
+def _own_components(array, names=None):
+    """``array`` and templates of residues whose heavy atoms or bonds the CCD entry of their name lacks.
+
+    PDBbind names ligands with codes of other molecules (3UDH MOL, 3OV1 ACT). ``names``
+    selects the components whose heavy atoms to check (default: hetero residues,
+    hydrogen bonds included); a PDB ligand whose name a polymer uses is renamed (3URI PRO).
+    """
+    from tmol.io._cif import _component_dictionary_template
+
+    bounds = struc.get_residue_starts(array, add_exclusive_stop=True)
+    residue = struc.get_all_residue_positions(array)
+    chosen = array.hetero if names is None else np.isin(array.res_name, list(names))
+    bonds = array.bonds.as_array()
+    within = residue[bonds[:, 0]] == residue[bonds[:, 1]]
+    if names is not None:
+        within &= _heavy(array)[bonds[:, 0]] & _heavy(array)[bonds[:, 1]]
+    templates = {}
+    for name in np.unique(array.res_name[chosen]).tolist():
+        entry = _component_dictionary_template(name)
+        mine = chosen & (array.res_name == name)
+        if entry is None or (
+            _atoms(array[mine & _heavy(array)]) <= _atoms(entry)
+            and _bond_table(array, within & mine[bonds[:, 0]]).keys()
+            <= _bond_table(entry).keys()
+        ):
+            continue
+        r = max(np.unique(residue[mine]), key=lambda r: bounds[r + 1] - bounds[r])
+        template, fits = _own_template(array[bounds[r] : bounds[r + 1]], entry)
+        if names is None and name in array.res_name[~array.hetero]:
+            if fits:
+                # 3B3S: a free leucine beside the chain's is the CCD's LEU
+                continue
+            from tmol.ligand._preparation import unused_ligand_name
+
+            name = unused_ligand_name(set(array.res_name.tolist()))
+            array.res_name[mine] = name
+            template.res_name[:] = name
+        templates[name] = template
+    return array, templates
+
+
+def _own_cif_components(block, model):
+    """Templates of the components a CIF bonds in ``chem_comp_bond`` without declaring their atoms."""
+    if block is None or "chem_comp_bond" not in block:
+        return {}
+    bonded = set(block["chem_comp_bond"]["comp_id"].as_array(str))
+    if "chem_comp_atom" in block:
+        bonded -= set(block["chem_comp_atom"]["comp_id"].as_array(str))
+    if not bonded:
+        return {}
+    atoms = pdbx.get_structure(
+        block, model=model, altloc="first", include_bonds=True, extra_fields=["charge"]
+    )
+    return _own_components(atoms, bonded)[1]
+
+
 def _parse_repairing_author_numbering(path, config, model, assembly_id):
     """``parse`` the file, renumbering refused author ids in the asymmetric unit first.
 
-    An assembly that needs renumbering is refused with AtomWorks' own message.
+    Also returns the templates of the residues parsed as their own components. An
+    assembly that needs renumbering is refused with AtomWorks' own message.
     """
     is_pdb = infer_pdb_file_type(path) == "pdb"
     try:
         if is_pdb:
-            return parse_atom_array(_read_pdb(path, model), config=config)
-        return parse(path, config=config)
+            array, templates = _own_components(_read_pdb(path, model))
+            with custom_ccd_residues(templates):
+                return parse_atom_array(array, config=config), templates
+        result = parse(path, config=config)
+        templates = _own_cif_components(result["cif_block"], model)
+        if templates:
+            with custom_ccd_residues(templates):
+                result = parse(path, config=config)
+        return result, templates
     except ValueError as refused:
         if assembly_id is not None or "non-decreasing order" not in str(refused):
             raise
         block = None
         if is_pdb:
-            array = _read_pdb(path, model)
+            array, templates = _own_components(_read_pdb(path, model))
         else:
             file = read_any(path)
             block = getattr(file, "block", None)
             array = get_structure(file, model=model, extra_fields=_FIELDS)
+            templates = _own_cif_components(block, model)
         repaired = _renumber_decreasing_author_ids(array)
         if repaired is array:
             raise
-        atoms = prepare_atom_array(repaired, config=config, cif_block=block)
-        return {"asym_unit": atoms, "cif_block": block}
+        with custom_ccd_residues(templates):
+            atoms = prepare_atom_array(repaired, config=config, cif_block=block)
+        return {"asym_unit": atoms, "cif_block": block}, templates
 
 
 def read_structure(path, *, model=1, assembly_id=None):
@@ -360,12 +501,18 @@ def read_structure(path, *, model=1, assembly_id=None):
         long_bond_policy="keep",
         struct_conn_distance_policy="keep",
     )
-    result = _parse_repairing_author_numbering(path, config, model, assembly_id)
+    result, templates = _parse_repairing_author_numbering(
+        path, config, model, assembly_id
+    )
     array = (
         result["asym_unit"]
         if assembly_id is None
         else result["assemblies"][assembly_id]
     )
+    array._custom_ccd_registry = {
+        **getattr(array, "_custom_ccd_registry", {}),
+        **templates,
+    }
     if array.coord.ndim == 3:
         array = array[0]
     block = result.get("cif_block")
