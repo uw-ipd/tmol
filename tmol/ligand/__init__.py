@@ -106,10 +106,7 @@ from ._openbabel_compat import (  # noqa: F401
     _import_openbabel,
     _obmol_to_rdkit_mol,
     normalize_azide,
-    obabel_read_mol2,
     obabel_read_mol2_block,
-    obabel_smiles_to_mol2,
-    obabel_smiles_to_mol2_block,
     strip_nontetrahedral_stereo,
 )  # noqa: F401
 from ._params_file import (  # noqa: F401
