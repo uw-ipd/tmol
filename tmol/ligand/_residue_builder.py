@@ -5,18 +5,12 @@ suitable for registration in tmol's ChemicalDatabase. Handles atom tree
 construction, internal coordinate computation, rotatable bond detection,
 and non-polymer property assignment.
 
-The atom tree and internal coordinates come from :mod:`atomworks.experimental.protonation`,
-so a structure keeps the same geometry whichever library placed it.
+The atom tree and internal coordinates come from :mod:`tmol.ligand._icoor_tree`.
 """
 
 import logging
 
 import numpy as np
-from tmol.ligand._icoor_tree import (
-    build_atom_tree,
-    find_root_atom,
-    icoor_geometry_from_coords,
-)
 from rdkit import Chem
 
 from tmol.database.chemical import (
@@ -29,6 +23,11 @@ from tmol.database.chemical import (
 )
 from tmol.ligand._atom_typing import AtomTypeAssignment, RosettaTypingState
 from tmol.ligand._chi_topology import build_chi_topology
+from tmol.ligand._icoor_tree import (
+    build_atom_tree,
+    find_root_atom,
+    icoor_geometry_from_coords,
+)
 
 logger = logging.getLogger(__name__)
 

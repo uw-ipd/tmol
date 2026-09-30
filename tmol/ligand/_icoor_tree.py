@@ -1,8 +1,4 @@
-"""Atom trees and internal coordinates for building residue types, in the Rosetta convention.
-
-Moved verbatim from ``atomworks.experimental.protonation.geometry``, which keeps only
-:func:`build_coordinates` and :func:`names_from_parent`.
-"""
+"""Atom trees and internal coordinates for building residue types, in the Rosetta convention."""
 
 import math
 from collections import deque

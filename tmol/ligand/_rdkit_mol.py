@@ -8,6 +8,8 @@ so this module does not protonate or recompute chemistry.
 """
 
 import logging
+from collections.abc import Collection, Mapping
+from typing import Literal
 
 import biotite.structure as struc
 import numpy as np
@@ -17,11 +19,6 @@ from atomworks.io.tools.rdkit import (
     fix_charge_based_on_valence,
 )
 from atomworks.io.utils.ccd import get_custom_ccd_entries
-from biotite.structure import AtomArray
-from rdkit.Chem.rdchem import Mol
-from collections.abc import Collection, Mapping
-from typing import Literal
-
 from rdkit import Chem
 
 from tmol.ligand._detect import NonStandardResidueInfo, _strip_metals
@@ -539,14 +536,14 @@ def transfer_tetrahedral_stereochemistry(
 # and infer stereo from geometry.
 
 
-def _double_bond_ends(mol: Mol):
+def _double_bond_ends(mol: Chem.Mol):
     for bond in mol.GetBonds():
         if bond.GetBondType() == Chem.BondType.DOUBLE and not bond.GetIsAromatic():
             i, j = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
             yield bond, ((i, j), (j, i))
 
 
-def _impute_double_bond_substituents(mol: Mol, coords, finite):
+def _impute_double_bond_substituents(mol: Chem.Mol, coords, finite):
     """Coordinates with an unresolved second substituent on a resolved double bond
     end placed opposite the resolved one, in the bond's plane."""
     coords = coords.copy()
@@ -569,7 +566,7 @@ def _impute_double_bond_substituents(mol: Mol, coords, finite):
     return coords
 
 
-def _clear_undetermined_double_bond_stereo(mol: Mol, finite) -> None:
+def _clear_undetermined_double_bond_stereo(mol: Chem.Mol, finite) -> None:
     """Drop cis/trans that rests on an unresolved atom, with its bond directions."""
     for bond, ((i, j), _) in _double_bond_ends(mol):
         if bond.GetStereo() == Chem.BondStereo.STEREONONE:
@@ -582,7 +579,7 @@ def _clear_undetermined_double_bond_stereo(mol: Mol, finite) -> None:
                 adjacent.SetBondDir(Chem.BondDir.NONE)
 
 
-def assign_stereochemistry_from_3d(mol: Mol) -> None:
+def assign_stereochemistry_from_3d(mol: Chem.Mol) -> None:
     """Assign geometry-derived stereo while preserving unresolved coordinates.
 
     Three resolved neighbors determine a tetrahedral center's orientation even
@@ -635,11 +632,11 @@ def assign_stereochemistry_from_3d(mol: Mol) -> None:
 
 
 def ccd_template_to_rdkit(
-    atom_array: AtomArray,
+    atom_array: struc.AtomArray,
     *,
     hydrogen_policy: Literal["infer", "remove", "keep"] = "keep",
     **atom_array_to_rdkit_kwargs,
-) -> Mol:
+) -> Chem.Mol:
     """Convert a complete component template, without consulting the dictionary.
 
     Resolved geometry determines chirality first. Undefined tetrahedral centers
