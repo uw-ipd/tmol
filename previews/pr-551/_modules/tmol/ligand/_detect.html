@@ -452,6 +452,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">METAL_ELEMENTS</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.experimental.protonation.dimorphite</span><span class="w"> </span><span class="kn">import</span> <span class="n">protonate_at_ph</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">struc</span>
@@ -460,7 +461,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">rdkit.Chem</span><span class="w"> </span><span class="kn">import</span> <span class="n">RWMol</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">CanonicalOrdering</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._input_repair</span><span class="w"> </span><span class="kn">import</span> <span class="n">normalize_radical_oxygens</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._input_repair</span><span class="w"> </span><span class="kn">import</span> <span class="n">_infer_oxyacid_bonds</span><span class="p">,</span> <span class="n">normalize_radical_oxygens</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._mol2_names</span><span class="w"> </span><span class="kn">import</span> <span class="n">apply_disambiguated_mol2_names</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
@@ -469,13 +470,6 @@
 <span class="n">_HALOGEN_ELEMENTS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">"F"</span><span class="p">,</span> <span class="s2">"Cl"</span><span class="p">,</span> <span class="s2">"Br"</span><span class="p">,</span> <span class="s2">"I"</span><span class="p">,</span> <span class="s2">"At"</span><span class="p">,</span> <span class="s2">"Ts"</span><span class="p">})</span>
 <span class="n">_SOURCE_FORMAL_CHARGE_ANNOTATION</span> <span class="o">=</span> <span class="s2">"tmol_source_formal_charge"</span>
 <span class="n">_FORMAL_CHARGE_SPECIFIED_ANNOTATION</span> <span class="o">=</span> <span class="s2">"tmol_formal_charge_specified"</span>
-<span class="c1"># Valence a delocalized-oxyacid or amidine center fills, and the charge its</span>
-<span class="c1"># singly-bonded, unprotonated neighbors carry.</span>
-<span class="n">_DELOCALIZED_VALENCE</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"P"</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s2">"S"</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">:</span> <span class="mi">4</span><span class="p">}</span>
-<span class="n">_DELOCALIZED_ANION</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"O"</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">"S"</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
-<span class="c1"># Bonds a neutral atom of each element carries, for setting a charge from what</span>
-<span class="c1"># the rewritten bonds actually use and for asking what a neighbour has room for.</span>
-<span class="n">_NEUTRAL_VALENCE</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"N"</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">"O"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">"P"</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s2">"S"</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="s2">"C"</span><span class="p">:</span> <span class="mi">4</span><span class="p">}</span>
 
 
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -676,39 +670,15 @@
 
 
 
-<span class="n">_METAL_SYMBOLS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span>
-    <span class="p">{</span>
-        <span class="s2">"Fe"</span><span class="p">,</span>
-        <span class="s2">"Zn"</span><span class="p">,</span>
-        <span class="s2">"Cu"</span><span class="p">,</span>
-        <span class="s2">"Mn"</span><span class="p">,</span>
-        <span class="s2">"Co"</span><span class="p">,</span>
-        <span class="s2">"Ni"</span><span class="p">,</span>
-        <span class="s2">"Mg"</span><span class="p">,</span>
-        <span class="s2">"Ca"</span><span class="p">,</span>
-        <span class="s2">"Na"</span><span class="p">,</span>
-        <span class="s2">"K"</span><span class="p">,</span>
-        <span class="s2">"Cr"</span><span class="p">,</span>
-        <span class="s2">"Mo"</span><span class="p">,</span>
-        <span class="s2">"W"</span><span class="p">,</span>
-        <span class="s2">"V"</span><span class="p">,</span>
-        <span class="s2">"Pt"</span><span class="p">,</span>
-        <span class="s2">"Pd"</span><span class="p">,</span>
-        <span class="s2">"Ru"</span><span class="p">,</span>
-        <span class="s2">"Rh"</span><span class="p">,</span>
-        <span class="s2">"Ir"</span><span class="p">,</span>
-        <span class="s2">"Os"</span><span class="p">,</span>
-    <span class="p">}</span>
-<span class="p">)</span>
-
-
 <span class="k">def</span><span class="w"> </span><span class="nf">_strip_metals</span><span class="p">(</span><span class="n">mol</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Remove metal atoms from an RDKit Mol.</span>
 
 <span class="sd">    OpenBabel downstream cannot parse coordination-bond SMILES, and metals</span>
-<span class="sd">    are dropped during ligand preparation anyway.</span>
+<span class="sd">    are dropped during ligand preparation anyway (CCD EMC's Hg too).</span>
 <span class="sd">    """</span>
-    <span class="n">metals</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">GetSymbol</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_METAL_SYMBOLS</span><span class="p">]</span>
+    <span class="n">metals</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">a</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">GetSymbol</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">METAL_ELEMENTS</span>
+    <span class="p">]</span>
     <span class="k">if</span> <span class="n">metals</span><span class="p">:</span>
         <span class="n">em</span> <span class="o">=</span> <span class="n">RWMol</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">metals</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
@@ -882,214 +852,6 @@
     <span class="k">return</span> <span class="n">declared_charges</span><span class="p">,</span> <span class="n">synthesized_charges</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_delocalized_neighbors</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">center</span><span class="p">,</span> <span class="n">delocalized_bonds</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Neighbors sharing a source ``ar`` bond with ``center`` only, in a ring too (3GE7)."""</span>
-    <span class="n">neighbors</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">center</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">():</span>
-        <span class="n">pair</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="n">center</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">(),</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()))</span>
-        <span class="k">if</span> <span class="n">pair</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">delocalized_bonds</span><span class="p">:</span>
-            <span class="k">continue</span>
-        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span>
-            <span class="nb">frozenset</span><span class="p">((</span><span class="n">bond</span><span class="o">.</span><span class="n">GetBeginAtomIdx</span><span class="p">(),</span> <span class="n">bond</span><span class="o">.</span><span class="n">GetEndAtomIdx</span><span class="p">()))</span>
-            <span class="ow">in</span> <span class="n">delocalized_bonds</span>
-            <span class="ow">and</span> <span class="n">center</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">bond</span><span class="o">.</span><span class="n">GetBeginAtomIdx</span><span class="p">(),</span> <span class="n">bond</span><span class="o">.</span><span class="n">GetEndAtomIdx</span><span class="p">())</span>
-            <span class="k">for</span> <span class="n">bond</span> <span class="ow">in</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">()</span>
-        <span class="p">):</span>
-            <span class="k">return</span> <span class="p">[]</span>
-        <span class="n">neighbors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">atom</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">neighbors</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_localize</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">,</span> <span class="n">n_double</span><span class="p">,</span> <span class="n">conformer</span><span class="p">,</span> <span class="n">charge</span><span class="p">,</span> <span class="n">charges</span><span class="p">,</span> <span class="n">synthesized</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Write one X=Y plus single bonds, charging the unprotonated remainder.</span>
-
-<span class="sd">    ``charges`` is the declared-charge map, read and written. A center the file</span>
-<span class="sd">    charged keeps that charge -- zeroing a declared quaternary nitrogen turns a</span>
-<span class="sd">    +1 amidinium into a -1 and fails sanitization -- and every charge written</span>
-<span class="sd">    here is recorded, so the net the caller compares against still describes the</span>
-<span class="sd">    molecule this leaves behind. Without that, localizing an undeclared</span>
-<span class="sd">    phosphonate moves the net away from the declared sum and sends every such</span>
-<span class="sd">    ligand down the OpenBabel fallback.</span>
-<span class="sd">    """</span>
-    <span class="k">if</span> <span class="n">conformer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">origin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">conformer</span><span class="o">.</span><span class="n">GetAtomPosition</span><span class="p">(</span><span class="n">center</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()))</span>
-        <span class="n">neighbors</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
-            <span class="n">neighbors</span><span class="p">,</span>
-            <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span>
-                <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span>
-                    <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">conformer</span><span class="o">.</span><span class="n">GetAtomPosition</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()))</span> <span class="o">-</span> <span class="n">origin</span>
-                <span class="p">)</span>
-            <span class="p">),</span>
-        <span class="p">)</span>
-    <span class="n">center</span><span class="o">.</span><span class="n">SetIsAromatic</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">protonated</span><span class="p">(</span><span class="n">atom</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Whether the file wrote a hydrogen of this neighbour's own.</span>
-
-<span class="sd">        Only an explicit one counts. ``GetTotalNumHs`` also reports the implicit</span>
-<span class="sd">        hydrogens RDKit fills in from the delocalized bonds still on the atom --</span>
-<span class="sd">        the very bonds this routine is replacing -- so believing it makes a</span>
-<span class="sd">        heavy-atom-only file look protonated and charges it as if it were.</span>
-<span class="sd">        """</span>
-        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">n</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">())</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">terminal</span><span class="p">(</span><span class="n">atom</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Whether this neighbour hangs off the center by its only heavy bond."""</span>
-        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">()</span> <span class="k">if</span> <span class="n">n</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">demanded_charge</span><span class="p">(</span><span class="n">atom</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""The charge this neighbour's bonds demand at that order to the center.</span>
-
-<span class="sd">        Counts what the file drew -- explicit hydrogens included, since they are</span>
-<span class="sd">        bonds. Exact for a protonated neighbour; for a heavy-atom-only one the</span>
-<span class="sd">        missing hydrogens make it a lower bound, which is all the caller asks of</span>
-<span class="sd">        it there.</span>
-<span class="sd">        """</span>
-        <span class="n">neutral</span> <span class="o">=</span> <span class="n">_NEUTRAL_VALENCE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">GetSymbol</span><span class="p">())</span>
-        <span class="k">if</span> <span class="n">neutral</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="mi">0</span>
-        <span class="n">used</span> <span class="o">=</span> <span class="n">order</span> <span class="o">+</span> <span class="nb">sum</span><span class="p">(</span>
-            <span class="n">bond</span><span class="o">.</span><span class="n">GetBondTypeAsDouble</span><span class="p">()</span>
-            <span class="k">for</span> <span class="n">bond</span> <span class="ow">in</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">()</span>
-            <span class="k">if</span> <span class="n">bond</span><span class="o">.</span><span class="n">GetOtherAtomIdx</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">())</span> <span class="o">!=</span> <span class="n">center</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span>
-            <span class="ow">and</span> <span class="n">bond</span><span class="o">.</span><span class="n">GetBondType</span><span class="p">()</span> <span class="o">!=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">AROMATIC</span>
-        <span class="p">)</span>
-        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">used</span> <span class="o">-</span> <span class="n">neutral</span><span class="p">)</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">wants_double</span><span class="p">(</span><span class="n">atom</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Whether the double bond belongs on this neighbour.</span>
-
-<span class="sd">        A neighbour the file charged wants it exactly when the double bond is</span>
-<span class="sd">        what that charge describes: a guanidinium's +1 nitrogen is the one</span>
-<span class="sd">        holding the double bond, while a carboxylate's -1 oxygen is the one</span>
-<span class="sd">        that is not. An uncharged neighbour wants it when taking it leaves it</span>
-<span class="sd">        neutral -- a carbonyl oxygen or an amidine's N-H would be, a hydroxyl</span>
-<span class="sd">        and a phosphodiester's bridging oxygen would have to become cations.</span>
-<span class="sd">        """</span>
-        <span class="n">declared</span> <span class="o">=</span> <span class="n">charges</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">())</span>
-        <span class="k">if</span> <span class="n">declared</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">declared</span> <span class="o">==</span> <span class="n">demanded_charge</span><span class="p">(</span><span class="n">atom</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">demanded_charge</span><span class="p">(</span><span class="n">atom</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">0</span>
-
-    <span class="c1"># Fall back by degrees. A guanidinium the file left uncharged has no</span>
-    <span class="c1"># neutral option at all -- every nitrogen is the cation in some Kekule form</span>
-    <span class="c1"># -- so there the geometry decides among the undeclared, as it did before</span>
-    <span class="c1"># any of this was filtered. Falling back further, to a neighbour whose</span>
-    <span class="c1"># declared charge contradicts the bond it is being handed, leaves a</span>
-    <span class="c1"># molecule that will not sanitize: that input describes no arrangement, and</span>
-    <span class="c1"># failing there sends it to the fallback reader instead of quietly</span>
-    <span class="c1"># inventing a carbanion that balances the books.</span>
-    <span class="n">undeclared</span> <span class="o">=</span> <span class="p">[</span><span class="n">atom</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">neighbors</span> <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">charges</span><span class="p">]</span>
-    <span class="n">eligible</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">neighbors</span> <span class="k">if</span> <span class="n">wants_double</span><span class="p">(</span><span class="n">a</span><span class="p">)]</span> <span class="ow">or</span> <span class="n">undeclared</span> <span class="ow">or</span> <span class="n">neighbors</span>
-    <span class="n">n_double</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">n_double</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">eligible</span><span class="p">))</span>
-    <span class="n">doubled</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">eligible</span><span class="p">[:</span><span class="n">n_double</span><span class="p">])</span>
-
-    <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">neighbors</span><span class="p">:</span>
-        <span class="n">bond</span> <span class="o">=</span> <span class="n">center</span><span class="o">.</span><span class="n">GetOwningMol</span><span class="p">()</span><span class="o">.</span><span class="n">GetBondBetweenAtoms</span><span class="p">(</span><span class="n">center</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">(),</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">())</span>
-        <span class="n">bond</span><span class="o">.</span><span class="n">SetIsAromatic</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
-        <span class="n">atom</span><span class="o">.</span><span class="n">SetIsAromatic</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
-        <span class="n">double</span> <span class="o">=</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="ow">in</span> <span class="n">doubled</span>
-        <span class="n">bond</span><span class="o">.</span><span class="n">SetBondType</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">DOUBLE</span> <span class="k">if</span> <span class="n">double</span> <span class="k">else</span> <span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">SINGLE</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="ow">in</span> <span class="n">charges</span><span class="p">:</span>
-            <span class="c1"># The file said what this one is; recording it again as synthesized</span>
-            <span class="c1"># would double it in the net the caller checks against.</span>
-            <span class="k">continue</span>
-        <span class="k">if</span> <span class="n">protonated</span><span class="p">(</span><span class="n">atom</span><span class="p">):</span>
-            <span class="c1"># Its hydrogens are on the page, so its bonds settle its charge:</span>
-            <span class="c1"># neutral for a hydroxyl or an amide nitrogen, +1 for the nitrogen</span>
-            <span class="c1"># a guanidinium's double bond lands on.</span>
-            <span class="n">assigned</span> <span class="o">=</span> <span class="n">demanded_charge</span><span class="p">(</span><span class="n">atom</span><span class="p">,</span> <span class="mi">2</span> <span class="k">if</span> <span class="n">double</span> <span class="k">else</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">double</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">terminal</span><span class="p">(</span><span class="n">atom</span><span class="p">):</span>
-            <span class="c1"># A bridging neighbour is an ordinary two-bonded atom once the bond</span>
-            <span class="c1"># orders are explicit. Whatever charge aromatic perception guessed</span>
-            <span class="c1"># for it -- RDKit warns it is guessing when the file has no explicit</span>
-            <span class="c1"># hydrogens -- describes a molecule that no longer exists.</span>
-            <span class="n">assigned</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">assigned</span> <span class="o">=</span> <span class="n">charge</span>
-        <span class="n">atom</span><span class="o">.</span><span class="n">SetFormalCharge</span><span class="p">(</span><span class="n">assigned</span><span class="p">)</span>
-        <span class="n">synthesized</span><span class="p">[</span><span class="n">atom</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()]</span> <span class="o">=</span> <span class="n">assigned</span>
-
-    <span class="k">if</span> <span class="n">center</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">charges</span><span class="p">:</span>
-        <span class="c1"># The center is left holding whatever its bonds now demand. Forcing 0</span>
-        <span class="c1"># gives a four-bonded nitro nitrogen no valence for its fourth bond, and</span>
-        <span class="c1"># the molecule stops sanitizing; P, S and C come out at 0 either way.</span>
-        <span class="n">used</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="nb">sum</span><span class="p">(</span><span class="n">bond</span><span class="o">.</span><span class="n">GetBondTypeAsDouble</span><span class="p">()</span> <span class="k">for</span> <span class="n">bond</span> <span class="ow">in</span> <span class="n">center</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">())</span>
-            <span class="o">+</span> <span class="n">center</span><span class="o">.</span><span class="n">GetTotalNumHs</span><span class="p">()</span>
-        <span class="p">)</span>
-        <span class="n">neutral</span> <span class="o">=</span> <span class="n">_NEUTRAL_VALENCE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">center</span><span class="o">.</span><span class="n">GetSymbol</span><span class="p">())</span>
-        <span class="n">assigned</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">used</span> <span class="o">-</span> <span class="n">neutral</span><span class="p">)</span> <span class="k">if</span> <span class="n">neutral</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span>
-        <span class="n">center</span><span class="o">.</span><span class="n">SetFormalCharge</span><span class="p">(</span><span class="n">assigned</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">assigned</span><span class="p">:</span>
-            <span class="n">synthesized</span><span class="p">[</span><span class="n">center</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()]</span> <span class="o">=</span> <span class="n">assigned</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_infer_oxyacid_bonds</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">charges</span><span class="p">,</span> <span class="n">delocalized_bonds</span><span class="p">,</span> <span class="n">synthesized</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Localize delocalized bonds the source writes as Tripos ``ar``.</span>
-
-<span class="sd">    ``ar`` bonds joining a center to neighbors with no other ``ar`` bond mean</span>
-<span class="sd">    delocalization, not aromaticity: a phosphonate, sulfonate, carboxylate or</span>
-<span class="sd">    (cyclic) amidine or guanidine drawn this way has no Kekule structure and</span>
-<span class="sd">    cannot be sanitized. Rewrite each such center as one</span>
-<span class="sd">    double bond plus charged single bonds. Explicit oxygen charges decide when</span>
-<span class="sd">    the file supplies them; otherwise the double bond is the shortest bond and</span>
-<span class="sd">    the count comes from the center's valence, which keeps an ester or other</span>
-<span class="sd">    substituent on the center accounted for. A neighbor holding a hydrogen is a</span>
-<span class="sd">    real hydroxyl and keeps its bond and charge.</span>
-<span class="sd">    """</span>
-    <span class="k">if</span> <span class="n">synthesized</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="c1"># A caller that does not ask for the synthesized charges still needs</span>
-        <span class="c1"># somewhere for them to go.</span>
-        <span class="n">synthesized</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="n">mol</span><span class="o">.</span><span class="n">UpdatePropertyCache</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">center</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">():</span>
-        <span class="n">neighbors</span> <span class="o">=</span> <span class="n">_delocalized_neighbors</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">center</span><span class="p">,</span> <span class="n">delocalized_bonds</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">neighbors</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">({</span><span class="n">a</span><span class="o">.</span><span class="n">GetSymbol</span><span class="p">()</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">neighbors</span><span class="p">})</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">continue</span>
-        <span class="n">anion</span> <span class="o">=</span> <span class="n">_DELOCALIZED_ANION</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">neighbors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">GetSymbol</span><span class="p">())</span>
-        <span class="k">if</span> <span class="n">anion</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">continue</span>
-
-        <span class="c1"># Charges the file declares settle the arrangement when they describe a</span>
-        <span class="c1"># complete one. Most mol2 files in practice declare none at all, so the</span>
-        <span class="c1"># geometry-and-atom-type path below is the ordinary one, and a partial</span>
-        <span class="c1"># or unrepresentable declaration -- one oxygen of a mesylate marked, or</span>
-        <span class="c1"># an amidinium's +1, which no arrangement of one double bond and charged</span>
-        <span class="c1"># singles describes -- falls through to it rather than abandoning the</span>
-        <span class="c1"># centre unlocalized.</span>
-        <span class="c1"># Only an anionic center can be read off the declared charges: where the</span>
-        <span class="c1"># anion is zero -- nitrogen -- "neutral" and "negative" name the same</span>
-        <span class="c1"># atoms, so the partition below cannot describe anything and the</span>
-        <span class="c1"># geometry path, which reads declared charges directly, is the one that</span>
-        <span class="c1"># can.</span>
-        <span class="n">declared</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">neighbors</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="ow">in</span> <span class="n">charges</span><span class="p">]</span> <span class="k">if</span> <span class="n">anion</span> <span class="k">else</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="n">declared</span><span class="p">:</span>
-            <span class="n">neutral</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">neighbors</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
-            <span class="n">negative</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">neighbors</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">()</span> <span class="o">==</span> <span class="n">anion</span><span class="p">]</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">neutral</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">negative</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">neighbors</span><span class="p">):</span>
-                <span class="n">_localize</span><span class="p">(</span>
-                    <span class="n">center</span><span class="p">,</span> <span class="n">neutral</span> <span class="o">+</span> <span class="n">negative</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">anion</span><span class="p">,</span> <span class="n">charges</span><span class="p">,</span> <span class="n">synthesized</span>
-                <span class="p">)</span>
-                <span class="k">continue</span>
-
-        <span class="n">valence</span> <span class="o">=</span> <span class="n">_DELOCALIZED_VALENCE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">center</span><span class="o">.</span><span class="n">GetSymbol</span><span class="p">())</span>
-        <span class="k">if</span> <span class="n">valence</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">continue</span>
-        <span class="n">spent</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
-            <span class="n">bond</span><span class="o">.</span><span class="n">GetBondTypeAsDouble</span><span class="p">()</span>
-            <span class="k">for</span> <span class="n">bond</span> <span class="ow">in</span> <span class="n">center</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">()</span>
-            <span class="k">if</span> <span class="nb">frozenset</span><span class="p">((</span><span class="n">bond</span><span class="o">.</span><span class="n">GetBeginAtomIdx</span><span class="p">(),</span> <span class="n">bond</span><span class="o">.</span><span class="n">GetEndAtomIdx</span><span class="p">()))</span>
-            <span class="ow">not</span> <span class="ow">in</span> <span class="n">delocalized_bonds</span>
-        <span class="p">)</span>
-        <span class="n">n_double</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">valence</span> <span class="o">-</span> <span class="n">spent</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">neighbors</span><span class="p">))</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">n_double</span> <span class="o">&lt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">neighbors</span><span class="p">):</span>
-            <span class="k">continue</span>
-        <span class="n">conformer</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetConformer</span><span class="p">()</span> <span class="k">if</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetNumConformers</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span>
-        <span class="n">_localize</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">,</span> <span class="n">n_double</span><span class="p">,</span> <span class="n">conformer</span><span class="p">,</span> <span class="n">anion</span><span class="p">,</span> <span class="n">charges</span><span class="p">,</span> <span class="n">synthesized</span><span class="p">)</span>
-    <span class="n">mol</span><span class="o">.</span><span class="n">UpdatePropertyCache</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
-
 <div class="viewcode-block" id="nonstandard_residue_info_from_mol2">
 <a class="viewcode-back" href="../../../api/ligand.html#tmol.ligand.nonstandard_residue_info_from_mol2">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">nonstandard_residue_info_from_mol2</span><span class="p">(</span>
@@ -1112,38 +874,41 @@
 
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">nonstandard_residue_info_from_file</span><span class="p">(</span>
+    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span> <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NonStandardResidueInfo</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""``NonStandardResidueInfo`` from a MOL2 or an SDF/MOL file (PDBbind 3GE7)."""</span>
+    <span class="n">sdf</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">".sdf"</span><span class="p">,</span> <span class="s2">".mol"</span><span class="p">)</span>
+    <span class="n">read</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">nonstandard_residue_info_from_sdf</span> <span class="k">if</span> <span class="n">sdf</span> <span class="k">else</span> <span class="n">nonstandard_residue_info_from_mol2</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">read</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span><span class="p">)</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">nonstandard_residue_info_from_sdf</span><span class="p">(</span>
     <span class="n">sdf_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
     <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NonStandardResidueInfo</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Construct ``NonStandardResidueInfo`` from the first molecule of an MDL SDF/MOL file.</span>
 
-<span class="sd">    A file with hydrogens states all of them. An aromatic bond in no aromatic</span>
-<span class="sd">    ring is single, and a charge its atom's bonds cannot carry (the Sybyl C.cat</span>
-<span class="sd">    carbon's in PDBbind 3GE7) goes where the valences put it.</span>
+<span class="sd">    A file with hydrogens states all of them. Aromatic bonds are read as from any</span>
+<span class="sd">    source, and a charge its atom's bonds cannot carry (the Sybyl C.cat carbon's</span>
+<span class="sd">    in PDBbind 3GE7) goes where the valences put it.</span>
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.tools.rdkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">fix_charge_based_on_valence</span>
 
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._rdkit_mol</span><span class="w"> </span><span class="kn">import</span> <span class="n">_SOURCE_KEKULE_PROP</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._rdkit_mol</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">_SOURCE_KEKULE_PROP</span><span class="p">,</span>
+        <span class="n">normalize_non_ring_aromatic_bonds</span><span class="p">,</span>
+    <span class="p">)</span>
 
     <span class="n">mol</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">SDMolSupplier</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">sdf_path</span><span class="p">),</span> <span class="n">sanitize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">removeHs</span><span class="o">=</span><span class="kc">False</span><span class="p">)))</span>
     <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">sdf_path</span><span class="si">}</span><span class="s2">: no readable molecule"</span><span class="p">)</span>
     <span class="n">explicit_h</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">())</span>
-    <span class="n">rings</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="p">[</span><span class="n">mol</span><span class="o">.</span><span class="n">GetBondBetweenAtoms</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">))]</span>
-        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">Chem</span><span class="o">.</span><span class="n">GetSymmSSSR</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
-    <span class="p">]</span>
-    <span class="n">aromatic</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="n">b</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rings</span> <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">GetIsAromatic</span><span class="p">()</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">r</span>
-    <span class="p">}</span>
-    <span class="k">for</span> <span class="n">bond</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">():</span>
-        <span class="k">if</span> <span class="n">bond</span><span class="o">.</span><span class="n">GetIsAromatic</span><span class="p">()</span> <span class="ow">and</span> <span class="n">bond</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">aromatic</span><span class="p">:</span>
-            <span class="n">bond</span><span class="o">.</span><span class="n">SetBondType</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">SINGLE</span><span class="p">)</span>
-            <span class="n">bond</span><span class="o">.</span><span class="n">SetIsAromatic</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">normalize_non_ring_aromatic_bonds</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">():</span>
         <span class="n">atom</span><span class="o">.</span><span class="n">SetNoImplicit</span><span class="p">(</span><span class="n">explicit_h</span><span class="p">)</span>
-        <span class="n">atom</span><span class="o">.</span><span class="n">SetIsAromatic</span><span class="p">(</span><span class="nb">any</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">GetIsAromatic</span><span class="p">()</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">()))</span>
     <span class="n">mol</span><span class="o">.</span><span class="n">UpdatePropertyCache</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">fix_charge_based_on_valence</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">bond</span><span class="o">.</span><span class="n">GetIsAromatic</span><span class="p">()</span> <span class="k">for</span> <span class="n">bond</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">()):</span>

@@ -482,7 +482,7 @@
 <span class="sd">    in a CIF rather than depend on a dictionary entry that does not exist.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        mol2_path: Path to the MOL2 file.</span>
+<span class="sd">        mol2_path: Path to the MOL2, SDF or MOL file.</span>
 <span class="sd">        res_name: Component code to give the ligand. Taken from the file's</span>
 <span class="sd">            substructure record when None.</span>
 <span class="sd">        chain_id: Chain to place the ligand on.</span>
@@ -497,16 +497,9 @@
 <span class="sd">        True</span>
 <span class="sd">    """</span>
     <span class="c1"># Imported here because tmol.ligand imports tmol.io, as elsewhere in this package.</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._detect</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-        <span class="n">nonstandard_residue_info_from_mol2</span><span class="p">,</span>
-        <span class="n">nonstandard_residue_info_from_sdf</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._detect</span><span class="w"> </span><span class="kn">import</span> <span class="n">nonstandard_residue_info_from_file</span>
 
-    <span class="n">sdf</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">)</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">".sdf"</span><span class="p">,</span> <span class="s2">".mol"</span><span class="p">)</span>
-    <span class="n">read</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">nonstandard_residue_info_from_sdf</span> <span class="k">if</span> <span class="n">sdf</span> <span class="k">else</span> <span class="n">nonstandard_residue_info_from_mol2</span>
-    <span class="p">)</span>
-    <span class="n">info</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span><span class="p">)</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">nonstandard_residue_info_from_file</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span><span class="p">)</span>
     <span class="n">atom_array</span> <span class="o">=</span> <span class="n">as_atom_array_plus</span><span class="p">(</span><span class="n">info</span><span class="o">.</span><span class="n">atom_array</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">chain_id</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">chain_id</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">res_id</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">res_id</span>
