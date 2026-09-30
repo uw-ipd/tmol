@@ -20,7 +20,7 @@ def select_protonation_variants(
     covalent_bonds=None,
 ):
     """Each residue's variant from its hydrogens: one presenting hydrogens but no
-    titratable one (unless covalently bonded there) is deprotonated.
+    titratable one is deprotonated, unless bonded there (8TRB PLM-SER OG ester).
 
     A residue with no hydrogens keeps its variant, unless it coordinates a metal:
     then it takes the first form whose atoms donate.
