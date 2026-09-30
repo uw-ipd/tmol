@@ -721,7 +721,7 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
                 modded.append(i)
 
         # 0. check if we've already modified any of these atoms; a patch only adding
-        #    connections may attach to an atom another patch created or anchored
+        #    connections may attach to an atom another created (1YJO) or anchored (2G8F)
         blocking = {
             x.lstrip(CREATED + ANCHORED)
             for x in newmark
