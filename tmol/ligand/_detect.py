@@ -664,6 +664,43 @@ def nonstandard_residue_info_from_mol2(
         raise ValueError(f"{mol2_path}: {error}") from error
 
 
+def nonstandard_residue_info_from_sdf(
+    sdf_path: str | Path,
+    res_name: str | None = None,
+) -> NonStandardResidueInfo:
+    """Construct ``NonStandardResidueInfo`` from the first molecule of an MDL SDF/MOL file.
+
+    A file with hydrogens states all of them. An aromatic bond in no aromatic
+    ring is single, and a charge its atom's bonds cannot carry (a Sybyl C.cat
+    carbon's, say) goes where the valences put it.
+    """
+    from atomworks.io.tools.rdkit import fix_charge_based_on_valence
+
+    mol = next(iter(Chem.SDMolSupplier(str(sdf_path), sanitize=False, removeHs=False)))
+    if mol is None:
+        raise ValueError(f"{sdf_path}: no readable molecule")
+    explicit_h = any(atom.GetAtomicNum() == 1 for atom in mol.GetAtoms())
+    rings = [
+        [mol.GetBondBetweenAtoms(r[i - 1], r[i]) for i in range(len(r))]
+        for r in Chem.GetSymmSSSR(mol)
+    ]
+    aromatic = {
+        b.GetIdx() for r in rings if all(b.GetIsAromatic() for b in r) for b in r
+    }
+    for bond in mol.GetBonds():
+        if bond.GetIsAromatic() and bond.GetIdx() not in aromatic:
+            bond.SetBondType(Chem.BondType.SINGLE)
+            bond.SetIsAromatic(False)
+    for atom in mol.GetAtoms():
+        atom.SetNoImplicit(explicit_h)
+        atom.SetIsAromatic(any(b.GetIsAromatic() for b in atom.GetBonds()))
+    mol.UpdatePropertyCache(strict=False)
+    fix_charge_based_on_valence(mol)
+    return _nonstandard_residue_info_from_mol2_mol(
+        mol, "", res_name, source=str(sdf_path)
+    )
+
+
 def nonstandard_residue_info_from_mol2_block(
     mol2_block: str,
     res_name: str | None = None,

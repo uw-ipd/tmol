@@ -14,6 +14,7 @@ through the usual sidechain path rather than through anything new.
 """
 
 import logging
+from pathlib import Path
 
 import biotite.structure as struc
 import numpy as np
@@ -132,7 +133,7 @@ def atom_array_from_cif(
     model: int = 1,
     assembly_id: str | None = None,
 ):
-    """Read a PDB, CIF, compressed CIF or binary CIF into an AtomArray.
+    """Read a PDB, CIF, compressed CIF, binary CIF, MOL2 or SDF into an AtomArray.
 
     Preserve supplied names, coordinates, hydrogens and covalent connections.
     Declared unresolved heavy atoms have NaN coordinates. Chemistry the file
@@ -145,6 +146,14 @@ def atom_array_from_cif(
     """
     from tmol.io._atomworks_reader import read_structure
 
+    if isinstance(cif_path, (str, Path)) and Path(cif_path).suffix.lower() in (
+        ".mol2",
+        ".sdf",
+        ".mol",
+    ):
+        from tmol.io._assemble import atom_array_from_mol2
+
+        return atom_array_from_mol2(cif_path)
     if assembly_id is not None and (
         not isinstance(assembly_id, str) or not assembly_id
     ):

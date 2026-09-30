@@ -16,5 +16,14 @@
   "sha256": "e3fd4763e28ca9ae6aef9639c9fa57dd69facf76ae386c44ab3204524c6aaa1c",
   "bytes": 5224,
   "compressed_sha256": "d6dc67bc806a2aaf3310d0c988c709b2c2c65d77d4c00cf3a7bc0de77bc6812e"
+ },
+ {
+  "fixture": "cyclic_acylguanidinium_3ge7.sdf.zst",
+  "source": "PDBbind v2013-core 3ge7/3ge7_ligand.sdf (copy /mnt/data/kdidi/pdbbind/v2013-core/3ge7/3ge7_ligand.sdf)",
+  "source_sha256": "04bcb11e0e40d24585e32b24bf361b24d6d0316162aa71f5f2ca76ccf7b875ef",
+  "transformation": "3ge7_ligand.sdf (PDBbind v2013-core) unchanged; zstd -19",
+  "sha256": "04bcb11e0e40d24585e32b24bf361b24d6d0316162aa71f5f2ca76ccf7b875ef",
+  "bytes": 3743,
+  "compressed_sha256": "95d56e465a55802f10b79eadf52cf0013ce0c53c5fa0246369ee7fd8dbafdb68"
  }
 ]

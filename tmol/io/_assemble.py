@@ -31,7 +31,7 @@ def atom_array_from_mol2(
     chain_id: str = "L",
     res_id: int = 1,
 ) -> struc.AtomArray:
-    """Read a Tripos MOL2 ligand as an AtomArray with its chemistry intact.
+    """Read a Tripos MOL2 (or MDL SDF/MOL) ligand as an AtomArray with its chemistry intact.
 
     The returned array carries explicit bond orders, formal charges and
     aromatic flags from the file, which is what lets the ligand describe itself
@@ -53,9 +53,16 @@ def atom_array_from_mol2(
         True
     """
     # Imported here because tmol.ligand imports tmol.io, as elsewhere in this package.
-    from tmol.ligand._detect import nonstandard_residue_info_from_mol2
+    from tmol.ligand._detect import (
+        nonstandard_residue_info_from_mol2,
+        nonstandard_residue_info_from_sdf,
+    )
 
-    info = nonstandard_residue_info_from_mol2(mol2_path, res_name=res_name)
+    sdf = Path(mol2_path).suffix.lower() in (".sdf", ".mol")
+    read = (
+        nonstandard_residue_info_from_sdf if sdf else nonstandard_residue_info_from_mol2
+    )
+    info = read(mol2_path, res_name=res_name)
     atom_array = as_atom_array_plus(info.atom_array.copy())
     atom_array.chain_id[:] = chain_id
     atom_array.res_id[:] = res_id
