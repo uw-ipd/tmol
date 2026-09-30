@@ -438,17 +438,12 @@ def _apply_mol2_metadata(mol, text):
 
 
 def _delocalized_neighbors(mol, center, delocalized_bonds):
-    """Acyclic neighbors sharing a source ``ar`` bond with ``center`` only."""
-    ring_info = mol.GetRingInfo()
-    if ring_info.NumAtomRings(center.GetIdx()):
-        return []
+    """Neighbors sharing a source ``ar`` bond with ``center`` only, ring or not."""
     neighbors = []
     for atom in center.GetNeighbors():
         pair = frozenset((center.GetIdx(), atom.GetIdx()))
         if pair not in delocalized_bonds:
             continue
-        if ring_info.NumAtomRings(atom.GetIdx()):
-            return []
         if any(
             frozenset((bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()))
             in delocalized_bonds
@@ -586,25 +581,23 @@ def _localize(center, neighbors, n_double, conformer, charge, charges, synthesiz
 
 
 def _infer_oxyacid_bonds(mol, charges, delocalized_bonds, synthesized=None):
-    """Localize acyclic delocalized bonds the source writes as Tripos ``ar``.
+    """Localize delocalized bonds the source writes as Tripos ``ar``.
 
-    Tripos ``ar`` off a ring means delocalization, not aromaticity: a
-    phosphonate, sulfonate, carboxylate or amidine drawn this way has no
-    Kekule structure and cannot be sanitized. Rewrite each such center as one
+    ``ar`` bonds joining a center to neighbors with no other ``ar`` bond mean
+    delocalization, not aromaticity: a phosphonate, sulfonate, carboxylate or
+    (cyclic) amidine or guanidine drawn this way has no Kekule structure and
+    cannot be sanitized. Rewrite each such center as one
     double bond plus charged single bonds. Explicit oxygen charges decide when
     the file supplies them; otherwise the double bond is the shortest bond and
     the count comes from the center's valence, which keeps an ester or other
     substituent on the center accounted for. A neighbor holding a hydrogen is a
     real hydroxyl and keeps its bond and charge.
     """
-    # Ring membership decides what may be rewritten, and RingInfo is not
-    # populated until something perceives rings; the mol here is unsanitized.
     if synthesized is None:
         # A caller that does not ask for the synthesized charges still needs
         # somewhere for them to go.
         synthesized = {}
     mol.UpdatePropertyCache(strict=False)
-    Chem.FastFindRings(mol)
     for center in mol.GetAtoms():
         neighbors = _delocalized_neighbors(mol, center, delocalized_bonds)
         if len(neighbors) < 2 or len({a.GetSymbol() for a in neighbors}) != 1:

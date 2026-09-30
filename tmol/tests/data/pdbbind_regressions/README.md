@@ -1,0 +1,9 @@
+# PDBbind regression files
+
+Trimmed PDBbind v2013-core inputs (protein/pocket PDB, ligand MOL2/SDF) that failed or were misread by TMol's
+readers; `provenance.json` records the source file, its hash, the trim and the hashes of the files here. Each is
+exercised by `tmol/tests/io/test_pdbbind_regressions.py`, whose tests fail without their fix.
+
+| File | Regression exercised |
+|---|---|
+| `cyclic_acylguanidinium_3ge7.mol2.zst`, `iminohydantoin_4djv.mol2.zst` | Tripos `ar` bonds of a C.cat inside a ring localize to one double bond and an N cation (+2, +1). |
