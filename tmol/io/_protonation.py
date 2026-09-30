@@ -380,12 +380,13 @@ def _polymer_gap_links(
 ):
     """``[n, 3]`` polymer bonds across the gaps of each chain, as single bonds.
 
-    tmol connects consecutive residues of a chain, one chain ID, entity and
-    symmetry copy, through the upper atom of the first and the lower atom of
-    the second, gap or not; AtomWorks sees the chemistry that gives them only
-    when they are bonded. ``backbone`` gives those ``(upper, lower)`` atoms by
-    residue name; a residue it does not name uses C/N when it has a CA and
-    O3'/P when it has a C4'. Atoms already bonded to another residue get none.
+    tmol connects consecutive polymer residues of a chain, one chain ID, entity
+    and symmetry copy, through the upper atom of the first and the lower atom of
+    the second, gap or not (across a gap both are mid-chain residues);
+    AtomWorks sees the chemistry that gives them only when they are bonded.
+    ``backbone`` gives those ``(upper, lower)`` atoms by residue name; a residue
+    it does not name uses C/N when it has a CA and O3'/P when it has a C4'.
+    Atoms already bonded to another residue get none.
     """
     n_res = len(starts) - 1
     if n_res < 2:
@@ -422,6 +423,9 @@ def _polymer_gap_links(
     u, d = atom_by_residue(upper)[:-1], atom_by_residue(lower)[1:]
     gap = same_chain & (u >= 0) & (d >= 0)
     gap &= ~linked[u] & ~linked[d]
+    if "is_polymer" in template.get_annotation_categories():
+        polymer = template.is_polymer[starts[:-1]].astype(bool)
+        gap &= polymer[:-1] & polymer[1:]
     return numpy.column_stack(
         [u[gap], d[gap], numpy.full(int(gap.sum()), int(struc.BondType.SINGLE))]
     ).astype(numpy.int64)

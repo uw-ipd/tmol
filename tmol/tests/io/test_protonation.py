@@ -97,3 +97,16 @@ def test_a_ligand_numbered_after_its_chain_is_not_bonded_to_it():
         protonated.atom_name, ("O1A", "O2A", "O1P", "O2P")
     )
     assert protonated.charge[phosphate].sum() == -2
+
+
+def test_free_nucleotides_of_one_chain_are_not_linked():
+    """Two AMP ligands of one chain and entity (8gpb) are no dinucleotide: each O3' is a hydroxyl."""
+    structure = atom_array_from_cif(
+        data_path("sweep_regressions", "free_nucleotides_8gpb.cif.zst")
+    )
+    protonated = protonation.with_atomworks_hydrogens(
+        structure[structure.element != "H"]
+    )
+    for o3 in numpy.flatnonzero(protonated.atom_name == "O3'"):
+        partners = protonated.element[protonated.bonds.get_bonds(o3)[0]]
+        assert sorted(partners) == ["C", "H"]

@@ -181,5 +181,14 @@
   "sha256": "7541731ab76b9086bf2f0d0440ab99c9c6ec13c7840a75862fe22ff36ee4ad92",
   "bytes": 160734,
   "compressed_sha256": "b4c83201d031a56350e6dc2e9613e97a05536df955c217478722149416ded3a3"
+ },
+ {
+  "fixture": "free_nucleotides_8gpb.cif.zst",
+  "source": "https://files.rcsb.org/download/8GPB.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/gp/8gpb.cif.gz)",
+  "source_sha256": "377e96a142fc2fed7870f437f70996b8c48523c9df0d1dda85fd465b54be4cfa",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/gp/8gpb.cif.gz free_nucleotides_8gpb.cif 0 AMP; zstd -19 free_nucleotides_8gpb.cif",
+  "sha256": "271f6fdc882eb91d9a556b98c81c5410fd74f8a3b2f519df8623ab0be14979cd",
+  "bytes": 82024,
+  "compressed_sha256": "d5e7b8ad3d5a49ada775fb13e1c45a32c014e22a9b0a3c9acaa5624cc6e6f737"
  }
 ]
