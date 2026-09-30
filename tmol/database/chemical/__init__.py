@@ -55,6 +55,12 @@ METAL_GEOMETRY_VAR_BASE = 5
 # protonation_state of the forms a residue takes without its titratable hydrogen
 DEPROTONATED_STATE = "negatively_charged"
 
+# display name of the neutral amino terminus, whose forms sit on the variant
+#    axis past the metal geometries, each at this base plus its sidechain index
+NEUTRAL_TERMINUS = "nterm_neutral"
+NEUTRAL_TERMINUS_VAR_BASE = METAL_GEOMETRY_VAR_BASE + len(GEOMETRY_NAMES)
+N_VARIANT_INDICES = NEUTRAL_TERMINUS_VAR_BASE + DEPROTONATED_VAR_IND + 1
+
 
 def metal_geometry_variant_index(geometry: str) -> int:
     """The res_type_variant index selecting this coordination geometry."""
@@ -510,14 +516,19 @@ def special_case_variant_index(restype) -> int:
     """Where a residue type sits on the res_type_variant axis of its class."""
     if restype.metal_sites:
         return metal_geometry_variant_index(restype.metal_sites[0].geometry)
+    offset = (
+        NEUTRAL_TERMINUS_VAR_BASE
+        if NEUTRAL_TERMINUS in restype.name.split(":")[1:]
+        else 0
+    )
     if restype.properties.protonation.protonation_state == DEPROTONATED_STATE:
-        return DEPROTONATED_VAR_IND
+        return offset + DEPROTONATED_VAR_IND
     base = l_base_name(restype)
     if base in ("CYD", "HIS_D"):
-        return 1
+        return offset + 1
     if base == "HIS_POS":
-        return 2
-    return 0
+        return offset + 2
+    return offset
 
 
 GENERATED_RESIDUE_FILES = (

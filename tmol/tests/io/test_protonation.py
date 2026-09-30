@@ -110,3 +110,73 @@ def test_free_nucleotides_of_one_chain_are_not_linked():
     for o3 in numpy.flatnonzero(protonated.atom_name == "O3'"):
         partners = protonated.element[protonated.bonds.get_bonds(o3)[0]]
         assert sorted(partners) == ["C", "H"]
+
+
+def _hydrogens_on(pose, chain, number):
+    """Block type, class and {heavy atom: hydrogens} of residue ``chain`` ``number``."""
+    info, pbt = pose.pdb_info, pose.packed_block_types
+    block = next(
+        b
+        for b in range(pose.max_n_blocks)
+        if (str(info.chain_labels[0, b]), int(info.residue_labels[0, b]))
+        == (chain, number)
+    )
+    index = int(pose.block_type_ind[0, block])
+    bt, is_h = pbt.active_block_types[index], pbt.atom_is_hydrogen[index].tolist()
+    got = {a.name: 0 for a, h in zip(bt.atoms, is_h) if not h}
+    for a, b in numpy.asarray(bt.bond_indices).reshape(-1, 2):
+        if is_h[b] and not is_h[a]:
+            got[bt.atoms[a].name] += 1
+    return bt.name, bt.io_equiv_class, got
+
+
+@pytest.mark.parametrize(
+    "fixture, residues",
+    [
+        ("metal_lysine_2r1w.cif.zst", [("B", 62)]),  # LYS NZ on Mg: a neutral amine
+        ("metal_amine_terminus_3ppd.cif.zst", [("A", 1)]),  # GLY 1 amine on Zn
+        ("cysteine_heme_1cch.cif.zst", [("A", 83)]),  # pyrroles of a Cys-bonded heme
+        ("metal_phosphate_7bad.cif.zst", [("A", 103)]),  # PO4 O2 on Mg
+        ("polar_hydrogens_10gs.pdb.zst", [("A", 47), ("A", 71), ("A", 101)]),
+    ],
+    ids=["2r1w_lys_mg", "3ppd_nterm_zn", "1cch_heme", "7bad_po4_mg", "10gs_polar_h"],
+)
+def test_residue_types_take_the_atomworks_state(
+    fixture, residues, monkeypatch, torch_device
+):
+    """Each residue's type carries the hydrogens AtomWorks gives each heavy atom.
+
+    AtomWorks is asked about the whole input once, with the bonds and drawn
+    hydrogens tmol hands it; a histidine tautomer it leaves free is summed.
+    """
+    from tmol.io import atom_array_from_file, pose_stack_from_biotite
+
+    placed, reference = protonation._placed_hydrogens, []
+
+    def whole(model, heavy, ph, extra, *declared):
+        if not reference:
+            every = ~numpy.isin(model.element, ("H", "D")) & (model.res_name != "HOH")
+            parent, *_, free = placed(model, every, ph, extra, *declared)
+            count = numpy.bincount(parent, minlength=len(model))
+            reference.append((model, count, set(free.tolist())))
+        return placed(model, heavy, ph, extra, *declared)
+
+    monkeypatch.setattr(protonation, "_placed_hydrogens", whole)
+    protonation._STATES.clear()
+    structure = atom_array_from_file(data_path("sweep_regressions", fixture))
+    pose = pose_stack_from_biotite(
+        structure, torch_device, prepare_ligands=True, ligand_seed=0
+    )
+    model, count, free = reference[0]
+    for chain, number in residues:
+        name, equiv, got = _hydrogens_on(pose, chain, number)
+        mine = numpy.flatnonzero(
+            (model.chain_id == chain)
+            & (model.res_id == number)
+            & (model.res_name == equiv)
+            & ~numpy.isin(model.element, ("H", "D"))
+        )
+        fixed = {str(model.atom_name[i]): int(count[i]) for i in mine if i not in free}
+        assert {a: got[a] for a in fixed} == fixed, name
+        ring = [i for i in mine if i in free]
+        assert sum(got[str(model.atom_name[i])] for i in ring) == count[ring].sum()

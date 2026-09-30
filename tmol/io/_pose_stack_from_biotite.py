@@ -2530,9 +2530,10 @@ def _with_input_hydrogens(biotite_structure, ph, co, chemdb, find_metal_coordina
         names = set(co.restype_io_equiv_classes)
         names |= {alias for alias, name in aliases.items() if name in names}
     template = _template_array(biotite_structure)
+    forms = database_forms(chemdb)
     if (
         PROTONATION_VARIANT in template.get_annotation_categories()
-        or not residues_lacking_hydrogens(biotite_structure, names)[1].any()
+        or not residues_lacking_hydrogens(biotite_structure, names, forms)[1].any()
     ):
         return biotite_structure
     metal_atom = _metal_atom_names(chemdb=chemdb)
@@ -2559,7 +2560,7 @@ def _with_input_hydrogens(biotite_structure, ph, co, chemdb, find_metal_coordina
         residue_names=None if co is None else set(co.restype_io_equiv_classes),
         coordination=coordination,
         backbone=backbone,
-        forms=database_forms(chemdb),
+        forms=forms,
     )
 
 

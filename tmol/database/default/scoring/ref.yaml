@@ -12,6 +12,7 @@ weights:
    HIS_DEP: 0.134426
    ILE: 1.0317
    LYS: -1.6738
+   LYS_DEP: -1.6738
    LEU: 0.729516
    MET: 1.2334
    ASN: -0.873554

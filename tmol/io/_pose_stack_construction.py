@@ -117,7 +117,10 @@ def pose_stack_from_canonical_form(  # noqa: C901
         place_site_virtuals,
         with_donor_patches,
     )
-    from tmol.io.details._protonation_variants import select_protonation_variants
+    from tmol.io.details._protonation_variants import (
+        neutral_terminus_patches,
+        select_protonation_variants,
+    )
     from tmol.io.details import resolve_his_tautomerization
     from tmol.io.details import (
         assign_block_types,
@@ -307,11 +310,14 @@ def pose_stack_from_canonical_form(  # noqa: C901
             res_type_variants.dtype
         )
 
-    # 4b: a coordinating atom needs a connection its metal can fill; those
-    #     forms are made for the donors this input has, not ahead of time
+    # 4b: a coordinating atom needs a connection its metal can fill, a neutral
+    #     amino terminus its own form; both are made for this input only
     pbt = with_donor_patches(
         pbt,
-        donor_patches(canonical_ordering, pbt.chem_db, res_types, metal_assignments),
+        donor_patches(canonical_ordering, pbt.chem_db, res_types, metal_assignments)
+        + neutral_terminus_patches(
+            canonical_ordering, pbt.chem_db, res_types, res_type_variants
+        ),
     )
 
     # 5
