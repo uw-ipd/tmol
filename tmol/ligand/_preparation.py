@@ -1765,26 +1765,44 @@ def _as_free_molecule(lig, ph, bonded_out=frozenset()):
     return _with_ligand_array(lig, protonated)
 
 
-def _hydrogen_state(array: struc.AtomArray, reopened) -> tuple:
-    """(name, hydrogens) of each resolved heavy atom not in ``reopened``.
+def _hydrogen_state(array: struc.AtomArray, reopened) -> dict:
+    """{name: (hydrogens, heavy neighbours)} of each heavy atom not in ``reopened``.
 
-    Charges do not count: copies with one set of hydrogens take one type.
+    Unresolved atoms, their neighbours and charges do not count: copies with
+    one set of hydrogens take one type.
     """
     element = np.char.upper(array.element.astype(str))
-    kept = ~np.isin(element, ("H", "D")) & np.isfinite(array.coord).all(axis=-1)
-    kept &= ~np.isin(array.atom_name, list(reopened))
+    heavy = ~np.isin(element, ("H", "D"))
+    resolved = np.isfinite(array.coord).all(axis=-1)
+    kept = heavy & resolved & ~np.isin(array.atom_name, list(reopened))
     count = hydrogens_by_parent(array)
-    return tuple(sorted(zip(array.atom_name[kept].tolist(), count[kept].tolist())))
+    partners = array.bonds.get_all_bonds()[0]
+    # AtomWorks gives an atom next to an unresolved one the count it can place
+    kept &= ~((partners >= 0) & ~resolved[partners]).any(axis=-1)
+    return {
+        str(array.atom_name[i]): (
+            int(count[i]),
+            frozenset(
+                str(array.atom_name[j]) for j in partners[i] if j >= 0 and heavy[j]
+            ),
+        )
+        for i in np.flatnonzero(kept)
+    }
+
+
+def _same_state(a: dict, b: dict) -> bool:
+    """Whether every atom both copies resolve with the same heavy neighbours has one count."""
+    return all(b[n] == got for n, got in a.items() if n in b and b[n][1] == got[1])
 
 
 def _state_variants(lig, base, atom_array, ph, seed, generate_heavy_chi_samples):
-    """A type for each hydrogen state a copy of ``lig`` presents that ``base`` lacks.
+    """A type for each hydrogen state a free copy of ``lig`` presents that ``base`` lacks.
 
     A copy's state is AtomWorks' in its own context: a metal donor may lose a
     hydrogen, a phosphate keep one. Each type is named by its state and shares
     the base's class and variant, so a copy selects the one whose hydrogens it
-    presents; connections and unresolved atoms do not count. A copy without
-    bond orders, or one that fails to prepare, keeps the base type.
+    presents. A covalently bonded copy takes its conjugated form of the base,
+    and a copy without bond orders, or one that fails to prepare, the base.
     """
     residue_of = struc.get_all_residue_positions(atom_array)
     out_of = _bonded_out(atom_array, residue_of, atom_array.bonds.as_array())
@@ -1798,24 +1816,23 @@ def _state_variants(lig, base, atom_array, ph, seed, generate_heavy_chi_samples)
         atom_array.atom_name[out_of & (atom_array.res_name == lig.res_name)]
     )
     linked |= lig.connection_atom_names or frozenset()
-    states = {_hydrogen_state(lig.atom_array, linked): base}
+    states = [_hydrogen_state(lig.atom_array, linked)]
     variants = []
     for start, stop in copies:
         copy = atom_array[start:stop]
         state = _hydrogen_state(copy, linked)
         kinds = copy.bonds.as_array()[:, 2]
-        if state in states or not len(kinds) or (kinds == struc.BondType.ANY).any():
+        if (
+            any(_same_state(state, known) for known in states)
+            or out_of[start:stop].any()
+            or not len(kinds)
+            or (kinds == struc.BondType.ANY).any()
+        ):
             continue
-        reopened = frozenset(copy.atom_name[out_of[start:stop]].tolist())
         info = _with_ligand_array(lig, copy.copy())
-        info = attr.evolve(info, connection_atom_names=reopened)
         try:
-            if (
-                reopened
-                or not np.isfinite(copy.coord).all()
-                or _open_valence(copy).any()
-            ):
-                info = _as_free_molecule(info, ph, reopened)
+            if not np.isfinite(copy.coord).all() or _open_valence(copy).any():
+                info = _as_free_molecule(info, ph)
             prep = _prepare_ligand_via_smiles(
                 info,
                 ph=ph,
@@ -1828,7 +1845,9 @@ def _state_variants(lig, base, atom_array, ph, seed, generate_heavy_chi_samples)
                 "%s: no type for a copy's hydrogen state (%s)", lig.res_name, err
             )
             continue
-        digest = hashlib.sha1(repr(state).encode()).hexdigest()[:6].upper()
+        # the name holds the heavy graph and its hydrogens: one name, one chemistry
+        graph = sorted((n, h, sorted(nb)) for n, (h, nb) in state.items())
+        digest = hashlib.sha1(repr(graph).encode()).hexdigest()[:6].upper()
         name = f"{lig.res_name}_{digest}"
         residue = attr.evolve(
             prep.residue_type,
@@ -1836,8 +1855,8 @@ def _state_variants(lig, base, atom_array, ph, seed, generate_heavy_chi_samples)
             base_name=name,
             io_equiv_class=base.residue_type.io_equiv_class,
         )
-        states[state] = replace(prep, residue_type=residue)
-        variants.append(states[state])
+        states.append(state)
+        variants.append(replace(prep, residue_type=residue))
     return variants
 
 

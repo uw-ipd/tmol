@@ -287,7 +287,9 @@ def with_atomworks_hydrogens(
         ]
         parent, names, charge, _, free = placed[0]
         count = numpy.bincount(parent, minlength=n_atoms)
+        # a free tautomer and an unresolved atom (4NDZ B:171 TYR ring) say nothing
         count[free] = -1
+        count[~numpy.isfinite(template.coord).all(axis=-1)] = -1
         state_charge = numpy.zeros(n_atoms, dtype=numpy.int64)
         state_charge[charge[0]] = charge[1]
         for key, r in new.items():

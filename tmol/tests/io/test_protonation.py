@@ -43,6 +43,7 @@ def test_states_by_context_match_the_whole_structure(path):
     )
     count = numpy.bincount(parent, minlength=len(marked))
     count[free] = -1
+    count[~numpy.isfinite(marked.coord).all(axis=-1)] = -1
     charges = numpy.zeros(len(marked), dtype=int)
     charges[charged] = charge
 
@@ -141,7 +142,14 @@ def _hydrogens_on(pose, chain, number):
         ("per_copy_phosphate_6m8q.cif.zst", [("A", 504), ("A", 505), ("B", 504)]),
         ("polar_hydrogens_10gs.pdb.zst", [("A", 47), ("A", 71), ("A", 101)]),
     ],
-    ids=["2r1w_lys", "3ppd_nterm", "1cch_heme", "7bad_po4", "6m8q_po4s", "10gs_polar_h"],
+    ids=[
+        "2r1w_lys",
+        "3ppd_nterm",
+        "1cch_heme",
+        "7bad_po4",
+        "6m8q_po4s",
+        "10gs_polar_h",
+    ],
 )
 def test_residue_types_take_the_atomworks_state(
     fixture, residues, monkeypatch, torch_device
