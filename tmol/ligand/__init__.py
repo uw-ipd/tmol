@@ -138,7 +138,6 @@ from ._preparation import (  # noqa: F401
 )  # noqa: F401
 from ._rdkit_mol import (  # noqa: F401
     ligand_atom_array_to_rdkit_mol,
-    normalize_cumulated_azide,
     source_carried_kekule,
     source_has_aromatic_annotations,
     source_subtype,
