@@ -404,7 +404,7 @@ def _with_chelates_covalent(
     sub: struc.AtomArray,
 ) -> tuple[struc.AtomArray, numpy.ndarray]:
     """``sub`` with each split chelated metal bonded covalently to its component, as
-    the dictionary draws it (a heme's bare pyrroles), and ``[n, 2]`` those bonds."""
+    the dictionary draws it (155C heme: bare pyrrole N), and ``[n, 2]`` those bonds."""
     from tmol.io._pose_stack_from_biotite import METAL_ORIGIN
 
     none = numpy.zeros((0, 2), dtype=numpy.int64)
