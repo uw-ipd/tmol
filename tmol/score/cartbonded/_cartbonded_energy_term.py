@@ -63,16 +63,13 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
         super(CartBondedEnergyTerm, self).__init__(param_db=param_db, device=device)
 
-        # Improper centres per parameterised residue: bare names would also match
-        # e.g. a calcium ion's CA, giving it protein improper torsions.
+        # Find the root of the improper torsions so that we can annotate them in the block types
         def find_improper_roots(db):
-            return {
-                res: frozenset(
-                    imp.atm3.lstrip(CROSS_RES_PREFIX)
-                    for imp in params.improper_parameters
-                )
-                for res, params in db.residue_params.items()
-            }
+            roots = set()
+            for res, params in db.residue_params.items():
+                for imp in params.improper_parameters:
+                    roots.add(imp.atm3.lstrip(CROSS_RES_PREFIX))
+            return roots
 
         self.improper_roots = find_improper_roots(param_db.scoring.cartbonded)
 
@@ -147,11 +144,8 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                             continue
                         torsions.append((atom1, atom2, atom3, atom4))
 
-        # get improper torsions: this residue's roots plus the wildcard ones
-        roots = self.improper_roots.get(
-            self._parameter_name(block_type), frozenset()
-        ) | self.improper_roots.get("wildcard", frozenset())
-        for improper_root in roots:
+        # get improper torsions
+        for improper_root in self.improper_roots:
             if improper_root in block_type.atom_to_idx:
                 atom3 = block_type.atom_to_idx[improper_root]
                 for atom1, atom2, atom4 in permutations(bondmap.get(atom3, ()), 3):
