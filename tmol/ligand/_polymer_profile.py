@@ -787,23 +787,17 @@ def completed_connection_atoms(atom_array, connection_atoms):
 @functools.cache
 def _warn_terminal_ambiguity(res_name: str, candidates: tuple, chosen: Optional[str]):
     """Report, once per case, a terminal residue whose far end chemistry cannot pick."""
-    if chosen is not None:
-        logger.warning(
-            "%s is seen only at a chain terminus and %s could each carry its "
-            "other connection; it is read as the conventional backbone through "
-            "%s. A copy of the residue in a chain would settle it.",
-            res_name or "this residue",
-            ", ".join(candidates),
-            chosen,
-        )
-    else:
-        logger.warning(
-            "%s is seen only at a chain terminus and %s could each carry its "
-            "other connection, none of them a conventional backbone; it cannot "
-            "be told apart. A copy of the residue in a chain would settle it.",
-            res_name or "this residue",
-            ", ".join(candidates),
-        )
+    logger.warning(
+        "%s is seen only at a chain terminus and %s could each carry its other "
+        "connection; %s. A copy of the residue in a chain would settle it.",
+        res_name or "this residue",
+        ", ".join(candidates),
+        (
+            f"it is read as the conventional backbone through {chosen}"
+            if chosen is not None
+            else "none of them is a conventional backbone, so it cannot be told apart"
+        ),
+    )
 
 
 def mainchain_path(atom_array, connection_atoms) -> Optional[Tuple[str, ...]]:
