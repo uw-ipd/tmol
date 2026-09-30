@@ -1422,14 +1422,8 @@ def na_backbone_kind(atom_array, connection_atoms) -> Optional[str]:
     path, ring = na_sugar_mainchain(adjacency, element)
     if path is None:
         return None
-    # the chain has to bond at this backbone's ends. A further connection is a
-    #    crosslink only where both ends are bonded: with one, it may be the
-    #    far end of a longer backbone (a dinucleotide fused into one residue)
-    ends = {path[0], path[-1]}
-    connected = set(connection_atoms)
-    if not connected <= ends and not (
-        ends <= connected and not connected & set(path) - ends
-    ):
+    # the chain has to bond at this backbone's ends
+    if not set(connection_atoms) <= {path[0], path[-1]}:
         return None
 
     # C2' is the ring carbon past C3', the last ring atom on the path
