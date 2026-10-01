@@ -15,7 +15,6 @@ from tmol.types import (
     validate_args,
 )
 from tmol.chemical import (
-    MAX_SIG_BOND_SEPARATION,
     RefinedResidueType,
     three2one,
 )
@@ -260,9 +259,8 @@ class PoseStackBuilder:
         # in the connection-annotated sequence. c. Then we will remove the
         # chemical bonds for i-to-i+1 connections that span chains
         #
-        # 3) Finally, we search the graph of connection points, weighted by the
-        # intra-residue connection distances of the PBT object and joined by the
-        # inter_residue_connections64 bonds, for the bond separations below the cap
+        # 3) Finally, we search the connection graph (intra-residue distances plus
+        # inter_residue_connections64 bonds) for the bond separations below the cap
 
         # 1
         resolved_expoly_connections = cls._find_connection_pairs_for_residue_subset(
@@ -667,9 +665,7 @@ class PoseStackBuilder:
         cls, pbt: PackedBlockTypes
     ):
         """Note the number of chemical bonds that separate all pairs of
-        connection atoms: the weights of the graph of chemical bonds from which
-        the chemical separation of the connection atoms is found.
-        """
+        connection atoms: the intra-block weights of the connection graph."""
         if hasattr(pbt, "conn_at_intrablock_bond_sep"):
             return
         for bt in pbt.active_block_types:
@@ -1006,24 +1002,11 @@ class PoseStackBuilder:
         real_blocks: Tensor[torch.bool][:, :],
         inter_residue_connections64: Tensor[torch.int64][:, :, :, 2],
     ) -> InterBlockBondsep:
-        """Bond separations between the connections of nearby blocks.
-
-        Searches the bonded graph of the blocks' connections only for
-        separations below ``MAX_SIG_BOND_SEPARATION``.
-        """
+        """Bond separations below the cap between the connections of nearby blocks."""
         cls._annotate_pbt_w_intraresidue_connection_atom_distances(pbt)
-        counts = torch.zeros_like(block_type_ind64, dtype=torch.int32)
-        counts[real_blocks] = pbt.n_conn[block_type_ind64[real_blocks]]
-        max_n_conn = pbt.conn_at_intrablock_bond_sep.shape[1]
-        intra_separation = torch.full(
-            (*block_type_ind64.shape, max_n_conn, max_n_conn),
-            MAX_SIG_BOND_SEPARATION,
-            dtype=torch.int32,
-            device=pbt.device,
-        )
-        intra_separation[real_blocks] = pbt.conn_at_intrablock_bond_sep[
-            block_type_ind64[real_blocks]
-        ]
+        # padding blocks have no connections, so their intra separations go unread
         return InterBlockBondsep.from_bonded_graph(
-            counts, intra_separation, inter_residue_connections64
+            torch.where(real_blocks, pbt.n_conn[block_type_ind64], 0),
+            pbt.conn_at_intrablock_bond_sep[block_type_ind64],
+            inter_residue_connections64,
         )

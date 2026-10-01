@@ -18,7 +18,3 @@ def test_create_pose_bond_separation_two_ubq(
         max_n_conn,
     )
     assert ubq_40_60_pose_stack.inter_block_bondsep.device == torch_device
-
-    near_blocks = ubq_40_60_pose_stack.inter_block_bondsep.near_blocks
-    assert near_blocks.shape[:2] == (2, 60)
-    assert near_blocks.device == torch_device

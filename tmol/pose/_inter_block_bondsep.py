@@ -9,21 +9,11 @@ from tmol.types import Tensor
 
 @attr.s(auto_attribs=True, frozen=True)
 class InterBlockBondsep:
-    """Connection bond separations below the cap, stored only for nearby block pairs.
+    """Connection bond separations below the cap of nearby block pairs; each row
+    lists its ``block2`` slots ascending, then empty slots (block -1, the cap)."""
 
-    Row ``[pose, block1]`` lists its ``block2`` ascending, then at least one empty
-    slot (block ``-1``, all separations the cap) that ``near_block_slot`` finds.
-
-    Attributes:
-        near_blocks: ``[pose, block1, slot, 2]`` int32 holding ``block2`` and
-            the minimum separation over the pair's connections.
-        bondsep: ``[pose, block1, slot, conn1, conn2]`` int8 separations between
-            connection ``conn1`` of ``block1`` and ``conn2`` of ``block2``;
-            connections a block type lacks hold the cap.
-    """
-
-    near_blocks: Tensor[torch.int32][:, :, :, 2]
-    bondsep: Tensor[torch.int8][:, :, :, :, :]
+    near_blocks: Tensor[torch.int32][:, :, :, 2]  # pose, block1, slot, (block2, min)
+    bondsep: Tensor[torch.int8][:, :, :, :, :]  # pose, block1, slot, conn1, conn2
 
     @property
     def n_poses(self) -> int:
@@ -58,7 +48,7 @@ class InterBlockBondsep:
         max_n_blocks: int,
         max_n_conn: int,
         device: torch.device,
-        n_slots: int = 1,
+        n_slots: int,
     ) -> "InterBlockBondsep":
         """Separations for blocks that are all at least the cap apart."""
         near_blocks = torch.full(
@@ -77,65 +67,14 @@ class InterBlockBondsep:
         return cls(near_blocks=near_blocks, bondsep=bondsep)
 
     @classmethod
-    def from_entries(
-        cls,
-        pose: Tensor[torch.int64][:],
-        block1: Tensor[torch.int64][:],
-        block2: Tensor[torch.int64][:],
-        conn1: Tensor[torch.int64][:],
-        conn2: Tensor[torch.int64][:],
-        separation: Tensor[torch.int32][:],
-        n_poses: int,
-        max_n_blocks: int,
-        max_n_conn: int,
-    ) -> "InterBlockBondsep":
-        """Build from the dense-table entries that are below the cap.
-
-        Each ``(pose, block1, block2, conn1, conn2)`` may appear at most once;
-        every entry not listed holds the cap.
-        """
-        device = separation.device
-        n_rows = n_poses * max_n_blocks
-        row = pose * max_n_blocks + block1
-        pair_key, pair_of_entry = torch.unique(
-            row * max_n_blocks + block2, sorted=True, return_inverse=True
-        )
-        pair_row = torch.div(pair_key, max_n_blocks, rounding_mode="floor")
-        row_len = torch.bincount(pair_row, minlength=n_rows)
-        n_slots = int(row_len.max()) + 1 if n_rows else 1
-        row_start = torch.cumsum(row_len, 0) - row_len
-        pair_slot = (
-            torch.arange(pair_key.shape[0], dtype=torch.int64, device=device)
-            - row_start[pair_row]
-        )
-
-        result = cls.empty(n_poses, max_n_blocks, max_n_conn, device, n_slots)
-        near_blocks = result.near_blocks.view(n_rows, n_slots, 2)
-        bondsep = result.bondsep.view(n_rows, n_slots, max_n_conn, max_n_conn)
-        near_blocks[pair_row, pair_slot, 0] = (pair_key % max_n_blocks).to(torch.int32)
-        bondsep[pair_row[pair_of_entry], pair_slot[pair_of_entry], conn1, conn2] = (
-            separation.to(torch.int8)
-        )
-        if max_n_conn > 0:
-            near_blocks[..., 1] = torch.amin(bondsep, dim=(2, 3)).to(torch.int32)
-        return result
-
-    @classmethod
     def from_bonded_graph(
         cls,
         counts: Tensor[torch.int32][:, :],
         intra_separation: Tensor[torch.int32][:, :, :, :],
         connections: Tensor[torch.int64][:, :, :, 2],
     ) -> "InterBlockBondsep":
-        """Shortest paths below the cap between connections, joined within a block by
-        their intra-block separation and across an inter-block bond by one.
-
-        Args:
-            counts: ``[pose, block]`` number of connections of each block.
-            intra_separation: ``[pose, block, conn1, conn2]`` bond separation
-                between the atoms of a block's connections.
-            connections: ``[pose, block, conn, 2]`` block and connection that
-                each connection bonds to, ``-1`` if none.
+        """Shortest paths below the cap between ``[pose, block, conn]`` connections, one
+        bond per ``connections`` partner (-1: none) plus ``intra_separation`` in a block.
         """
         n_poses, max_n_blocks, max_n_conn = connections.shape[:3]
         device = connections.device
@@ -206,17 +145,33 @@ class InterBlockBondsep:
         node_conn = torch.arange(n_nodes, device=device) - node_start[node_row]
         src = torch.div(best_key, n_nodes, rounding_mode="floor")
         dst = best_key % n_nodes
-        return cls.from_entries(
-            torch.div(node_row[src], max_n_blocks, rounding_mode="floor"),
-            node_row[src] % max_n_blocks,
-            node_row[dst] % max_n_blocks,
-            node_conn[src],
-            node_conn[dst],
-            best_sep,
-            n_poses,
-            max_n_blocks,
-            max_n_conn,
+        # node_row is pose * max_n_blocks + block; one slot per (row, block2)
+        n_rows = n_poses * max_n_blocks
+        pair_key, pair_of_entry = torch.unique(
+            node_row[src] * max_n_blocks + node_row[dst] % max_n_blocks,
+            sorted=True,
+            return_inverse=True,
         )
+        pair_row = torch.div(pair_key, max_n_blocks, rounding_mode="floor")
+        row_len = torch.bincount(pair_row, minlength=n_rows)
+        n_slots = int(row_len.max()) + 1 if n_rows else 1
+        row_start = torch.cumsum(row_len, 0) - row_len
+        pair_slot = (
+            torch.arange(pair_key.shape[0], dtype=torch.int64, device=device)
+            - row_start[pair_row]
+        )
+
+        result = cls.empty(n_poses, max_n_blocks, max_n_conn, device, n_slots)
+        near_blocks = result.near_blocks.view(n_rows, n_slots, 2)
+        bondsep = result.bondsep.view(n_rows, n_slots, max_n_conn, max_n_conn)
+        near_blocks[pair_row, pair_slot, 0] = (pair_key % max_n_blocks).to(torch.int32)
+        entry_row, entry_slot = pair_row[pair_of_entry], pair_slot[pair_of_entry]
+        bondsep[entry_row, entry_slot, node_conn[src], node_conn[dst]] = best_sep.to(
+            torch.int8
+        )
+        if max_n_conn > 0:
+            near_blocks[..., 1] = torch.amin(bondsep, dim=(2, 3)).to(torch.int32)
+        return result
 
     @classmethod
     def concatenate(
