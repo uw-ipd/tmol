@@ -22,7 +22,11 @@ from atomworks.io.parser import parse, parse_atom_array, prepare_atom_array
 from atomworks.io.transforms.categories import category_to_dict
 from atomworks.io.tools.rdkit import atom_array_to_rdkit, BIOTITE_BOND_TYPE_TO_RDKIT
 from atomworks.io.utils.bonds import get_struct_conn_bonds
-from atomworks.io.utils.ccd import custom_ccd_residues, get_polymerization_atoms
+from atomworks.io.utils.ccd import (
+    build_ccd_entries_from_cif_block,
+    custom_ccd_residues,
+    get_polymerization_atoms,
+)
 from atomworks.io.utils.io_utils import get_structure, infer_pdb_file_type, read_any
 
 from tmol.io._alternates import one_residue_per_site, pdb_lines_with_one_alternate
@@ -510,7 +514,10 @@ def _parse_repairing_author_numbering(path, config, model, assembly_id):
             file = read_any(path)
             block = getattr(file, "block", None)
             array = get_structure(file, model=model, extra_fields=_FIELDS)
-            templates = _own_cif_components(block, model)
+            templates = {
+                **build_ccd_entries_from_cif_block(block, on_mismatch="ignore"),
+                **_own_cif_components(block, model),
+            }
         repaired = _renumber_decreasing_author_ids(array)
         if repaired is array:
             raise

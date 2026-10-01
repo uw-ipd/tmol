@@ -33,3 +33,5 @@ compressed file) and exercises one failure class; each test fails without its fi
 
 | `alternate_polymer_chains_1gtv.cif.zst` | Full deposited entry: retain both overlapping polymer chains in the reader; reject their degenerate combined bond geometry before scoring. Either explicitly selected biological assembly scores and minimizes with finite gradients. |
 | `shared_author_site_3bln.cif.zst` | Full deposited entry: overlapping MPD/MRD in separate label chains share author site A:147; select one before collapsing author identifiers. |
+
+| `renumbered_chloride_4eu8.cif.zst` | Renumbering decreasing water author IDs preserves component definitions and charge provenance for the structure’s chloride ions. |
