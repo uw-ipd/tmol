@@ -1001,10 +1001,7 @@ def _prepare_ligand_via_smiles(
         coords=array.coord,
     )
     smiles = ligand_smiles_from_atom_array(
-        array,
-        res_name=ligand_info.res_name,
-        with_atom_map=True,
-        keep_hydrogens=not protonate and not ligand_info.covalently_linked,
+        array, res_name=ligand_info.res_name, with_atom_map=True
     )
 
     try:
