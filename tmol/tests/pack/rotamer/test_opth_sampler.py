@@ -4,7 +4,6 @@ from types import SimpleNamespace
 
 import biotite.structure
 import numpy
-import pytest
 import torch
 from tmol.pose import PoseStackBuilder
 
@@ -16,7 +15,8 @@ from tmol.pack.rotamer import (
     IncludeCurrentSampler,
     OptHSampler,
 )
-from tmol.io import pose_stack_from_biotite, pose_stack_from_pdb
+from tmol.io import atom_array_from_cif, pose_stack_from_biotite, pose_stack_from_pdb
+from tmol.tests.data import data_path
 
 
 def test_opth_builds_cartesian_product_for_multiple_proton_chis():
@@ -122,26 +122,6 @@ def test_optH_rotamer_sampler_flipNHQ(ubq_pdb, torch_device):
             assert cache.n_proton_samples == 0 or n_rots == cache.n_proton_samples + 1
 
 
-def with_his_ring_hydrogens(array, res_id):
-    """Protonate both ring nitrogens of histidine `res_id`, making it HIS_POS."""
-    his = array.res_id == res_id
-
-    def xyz(name):
-        return array.coord[his & (array.atom_name == name)][0]
-
-    end = numpy.flatnonzero(his)[-1] + 1
-    protonated = array[:end]
-    for n, a, b, h in (("ND1", "CG", "CE1", "HD1"), ("NE2", "CE1", "CD2", "HE2")):
-        if h in array.atom_name[his]:
-            continue
-        outward = xyz(n) - 0.5 * (xyz(a) + xyz(b))
-        atom = array[his & (array.atom_name == n)].copy()
-        atom.atom_name[:], atom.element[:] = h, "H"
-        atom.coord[:] = xyz(n) + 1.01 * outward / numpy.linalg.norm(outward)
-        protonated = protonated + atom
-    return protonated + array[end:]
-
-
 def his_ring_flipped(array, res_id):
     """Histidine `res_id` with its ring atoms turned 180 degrees about CB-CG."""
     his = array.res_id == res_id
@@ -167,16 +147,16 @@ def his_ring_after_optH(array, res_id, torch_device):
     return bt.name, ring
 
 
-@pytest.mark.parametrize("his_type", ["HIS", "HIS_POS"])
-def test_optH_flips_a_histidine_ring_back(biotite_1ubq, torch_device, his_type):
-    ubq = biotite_1ubq[~biotite_1ubq.hetero]
-    if his_type == "HIS_POS":
-        ubq = with_his_ring_hydrogens(ubq, 68)
-    (name, ring), (_, flipped) = (
-        his_ring_after_optH(array, 68, torch_device)
-        for array in (ubq, his_ring_flipped(ubq, 68))
+def test_optH_flips_a_doubly_protonated_histidine_ring_back(torch_device):
+    # 1YG0 His14 is deposited with HD1 and HE2, so it builds as HIS_POS.
+    array = atom_array_from_cif(
+        data_path("atomworks_regressions/his_pos_ring_1yg0.cif.zst")
     )
-    assert name == his_type
+    (name, ring), (_, flipped) = (
+        his_ring_after_optH(a, 14, torch_device)
+        for a in (array, his_ring_flipped(array, 14))
+    )
+    assert name == "HIS_POS"
     torch.testing.assert_close(ring, flipped, atol=0.1, rtol=0)
 
 
