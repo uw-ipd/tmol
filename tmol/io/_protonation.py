@@ -16,8 +16,6 @@ from atomworks.experimental.protonation.geometry import names_from_parent
 from atomworks.io.utils.atom_array_plus import concatenate_any
 from atomworks.io.utils.ccd import add_annotations_from_ccd, custom_ccd_residues
 from rdkit import Chem
-from scipy.sparse import coo_matrix
-from scipy.sparse.csgraph import connected_components
 
 from tmol.database.chemical import (
     DEPROTONATED_VAR_IND,
@@ -480,27 +478,6 @@ def _charges_without_chelates(
     return charge
 
 
-def _pn_units(sub: struc.AtomArray) -> numpy.ndarray:
-    """Polymer/non-polymer unit of each atom: a chain's polymer, or bonded ligands, so
-    AtomWorks does not read a ligand sharing its chain label as a modification."""
-    chain = sub.chain_id.astype(str)
-    if "is_polymer" not in sub.get_annotation_categories():
-        return chain.copy()
-    residue_of = struc.get_all_residue_positions(sub)
-    ligand = ~sub.is_polymer.astype(bool)
-    a, b = sub.bonds.as_array()[:, :2].T.astype(int)
-    linked = ligand[a] & ligand[b] & (chain[a] == chain[b])
-    n_res = struc.get_residue_count(sub)
-    graph = coo_matrix(
-        (numpy.ones(linked.sum()), (residue_of[a[linked]], residue_of[b[linked]])),
-        shape=(n_res, n_res),
-    )
-    unit = connected_components(graph, directed=False)[1][residue_of]
-    return numpy.where(
-        ligand, numpy.char.add(numpy.char.add(chain, "/"), unit.astype(str)), chain
-    )
-
-
 def _placed_hydrogens(
     model: struc.AtomArray,
     heavy_mask: numpy.ndarray,
@@ -523,7 +500,7 @@ def _placed_hydrogens(
     if "charge" not in categories:
         sub.set_annotation("charge", numpy.zeros(len(sub), dtype=numpy.int8))
     if "pn_unit_iid" not in categories:
-        sub.set_annotation("pn_unit_iid", _pn_units(sub))
+        sub.set_annotation("pn_unit_iid", sub.chain_id.astype(str))
     if "pn_unit_id" not in categories:
         sub.set_annotation("pn_unit_id", sub.pn_unit_iid.copy())
     registry = getattr(model, "_custom_ccd_registry", None) or {}
