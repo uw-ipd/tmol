@@ -68,7 +68,6 @@ def ligand_smiles_from_atom_array(
     *,
     res_name: str | None = None,
     with_atom_map: bool = False,
-    keep_hydrogens: bool = False,
 ) -> str:
     """Derive a canonical SMILES for a ligand AtomArray from its bond table.
 
@@ -82,8 +81,6 @@ def ligand_smiles_from_atom_array(
         res_name: Residue code, used only for log/error messages.
         with_atom_map: Tag heavy atoms with source-index map numbers for CIF
             atom naming downstream.
-        keep_hydrogens: Preserve the supplied hydrogen counts, including zero,
-            when the input already has its intended protonation state.
 
     Returns:
         A canonical SMILES string.
@@ -110,7 +107,6 @@ def ligand_smiles_from_atom_array(
             atom_array,
             res_name=res_name or "ligand",
             repair_chemistry=repair_chemistry,
-            keep_hydrogens=keep_hydrogens,
         )
         mol = correct_carboxylate_bond_orders(mol)
         if with_atom_map:
