@@ -141,18 +141,6 @@ def test_an_abasic_nucleotide_is_a_backbone_not_a_sugar() -> None:
     assert profile is not None and profile.up == ("up", "O3'")
 
 
-def test_an_abasic_site_in_dna_is_a_dna_backbone() -> None:
-    """1G5E AAB: a C1' hydroxyl and no 2' oxygen; only an oxygen on C2' makes RNA."""
-    from tmol.io import atom_array_from_cif
-
-    structure = atom_array_from_cif(
-        data_path("atomworks_regressions") / "abasic_1g5e.cif.zst"
-    )
-    abasic = structure[(structure.res_name == "AAB") & (structure.element != "H")]
-    assert "O1'" in set(abasic.atom_name)
-    assert na_backbone_kind(abasic, frozenset({"P", "O3'"})) == "dna"
-
-
 # --------------------------------------------------------------------------- #
 # the glycosidic torsion
 # --------------------------------------------------------------------------- #

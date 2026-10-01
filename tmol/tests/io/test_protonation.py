@@ -33,7 +33,7 @@ def test_states_by_context_match_the_whole_structure(path):
     variant = marked.get_annotation(protonation.PROTONATION_VARIANT)
 
     starts = biotite.structure.get_residue_starts(marked, add_exclusive_stop=True)
-    disulfides = protonation.find_disulfides(marked)
+    disulfides = protonation._disulfides(marked)
     extra = numpy.r_[
         protonation._polymer_gap_links(marked, starts, {}),
         numpy.c_[disulfides, numpy.ones(len(disulfides), dtype=int)],

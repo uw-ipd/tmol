@@ -230,13 +230,6 @@ the carbonyl double bond, and leave one lysine amide H. Tests retain every
 resolved non-water residue, explicitly exclude free calcium and unresolved
 residues, and verify both readers, all links, scoring, gradients and minimization.
 
-`phosphohistidine_1hxq.cif.zst` retains the complete nucleotidylated GALT structure.
-The shared sidechain-substitution workflow excludes free zinc/iron and water,
-checks both HIS NE2–U5P P bonds, removal of absent O3P, retained P=O,
-and a substituted histidine nitrogen with no hydrogen or donor/acceptor role.
-It then checks conserved residue charge, parameter export/reload, scoring,
-gradients and minimization. This does not validate metal coordination.
-
 `attachment_contexts_8trb.cif.zst` retains the complete structure containing both
 PLM C1–SER OG esters and PLM C1–CYS SG thioesters. Their carbonyl oxygen
 uses different generated physical types despite sharing the PLM input name.
@@ -265,6 +258,3 @@ proton: it must build as the imidazolate `HIS_DEP` coordinating at both.
 `thioglycine_1mro.cif.zst` keeps 1MRO chain A TYR 444–GL3 445–TYR 446. GL3's
 thioamide link reads as C=N with a thiol; it must build as the amide tautomer.
 The C(=S)-N bond is the backbone link, so TYR 446 gets no conjugation type.
-
-`abasic_1g5e.cif.zst` keeps 1G5E chain A DG 6–AAB 7–DA 8 (model 1). The abasic
-AAB carries a C1' hydroxyl and no 2' oxygen, so its backbone is DNA, not RNA.
