@@ -469,5 +469,17 @@
     "bytes": 154099,
     "compression": "zstd",
     "compressed_sha256": "34db8e3566bdce279bdfc0857745777a5a2522254ede4a7b45c09be6920dcf32"
+  },
+  {
+    "fixture": "abasic_1g5e.cif.zst",
+    "source": "PDB_MIRROR_PATH/g5/1g5e.cif.gz",
+    "source_repository": "AtomWorks frozen local PDB mirror",
+    "source_revision": "2026-01-06",
+    "source_sha256": "2ded46842d2cba30401f6f6f9e1c8abe67a71636187c5c921aa5edbc59410f4b",
+    "transformation": "AtomWorks model 1; atom_site cropped to label chain A residues 6-8 (DG-AAB-DA); other categories kept",
+    "sha256": "224d6bb9617ae9fc2a81f05b432f607c9bf102620604a761172ccccdc400759d",
+    "bytes": 81135,
+    "compression": "zstd",
+    "compressed_sha256": "d0179c50f07ad4621807842950128a50d495304e55e7618cbb47ba591dc06f0c"
   }
 ]
