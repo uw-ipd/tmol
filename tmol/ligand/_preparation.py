@@ -515,7 +515,6 @@ def prepare_single_ligand(
     index_by_name = {at.atom_name: at.index for at in atom_types}
     restype = attr.evolve(
         restype,
-        hydrogens_regenerated=from_source is None,
         io_bond_orders=tuple(
             (a, b, chemical)
             for a, b, order, *_ in restype.bonds
@@ -1002,7 +1001,10 @@ def _prepare_ligand_via_smiles(
         coords=array.coord,
     )
     smiles = ligand_smiles_from_atom_array(
-        array, res_name=ligand_info.res_name, with_atom_map=True
+        array,
+        res_name=ligand_info.res_name,
+        with_atom_map=True,
+        keep_hydrogens=not protonate and not ligand_info.covalently_linked,
     )
 
     try:
