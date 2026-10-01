@@ -450,21 +450,11 @@
 <a class="viewcode-back" href="../../../api/pose.html#tmol.pose.InterBlockBondsep">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">InterBlockBondsep</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Connection bond separations below the cap, stored only for nearby block pairs.</span>
+<span class="w">    </span><span class="sd">"""Connection bond separations below the cap of nearby block pairs; each row</span>
+<span class="sd">    lists its ``block2`` slots ascending, then empty slots (block -1, the cap)."""</span>
 
-<span class="sd">    Row ``[pose, block1]`` lists its ``block2`` ascending, then at least one empty</span>
-<span class="sd">    slot (block ``-1``, all separations the cap) that ``near_block_slot`` finds.</span>
-
-<span class="sd">    Attributes:</span>
-<span class="sd">        near_blocks: ``[pose, block1, slot, 2]`` int32 holding ``block2`` and</span>
-<span class="sd">            the minimum separation over the pair's connections.</span>
-<span class="sd">        bondsep: ``[pose, block1, slot, conn1, conn2]`` int8 separations between</span>
-<span class="sd">            connection ``conn1`` of ``block1`` and ``conn2`` of ``block2``;</span>
-<span class="sd">            connections a block type lacks hold the cap.</span>
-<span class="sd">    """</span>
-
-    <span class="n">near_blocks</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">]</span>
-    <span class="n">bondsep</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int8</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="n">near_blocks</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">]</span>  <span class="c1"># pose, block1, slot, (block2, min)</span>
+    <span class="n">bondsep</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int8</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span>  <span class="c1"># pose, block1, slot, conn1, conn2</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">n_poses</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
@@ -501,7 +491,7 @@
         <span class="n">max_n_blocks</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">max_n_conn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-        <span class="n">n_slots</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">n_slots</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"InterBlockBondsep"</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Separations for blocks that are all at least the cap apart."""</span>
         <span class="n">near_blocks</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
@@ -520,53 +510,6 @@
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">near_blocks</span><span class="o">=</span><span class="n">near_blocks</span><span class="p">,</span> <span class="n">bondsep</span><span class="o">=</span><span class="n">bondsep</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="InterBlockBondsep.from_entries">
-<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.InterBlockBondsep.from_entries">[docs]</a>
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">from_entries</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">pose</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
-        <span class="n">block1</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
-        <span class="n">block2</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
-        <span class="n">conn1</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
-        <span class="n">conn2</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
-        <span class="n">separation</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
-        <span class="n">n_poses</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">max_n_blocks</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">max_n_conn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"InterBlockBondsep"</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Build from the dense-table entries that are below the cap.</span>
-
-<span class="sd">        Each ``(pose, block1, block2, conn1, conn2)`` may appear at most once;</span>
-<span class="sd">        every entry not listed holds the cap.</span>
-<span class="sd">        """</span>
-        <span class="n">device</span> <span class="o">=</span> <span class="n">separation</span><span class="o">.</span><span class="n">device</span>
-        <span class="n">n_rows</span> <span class="o">=</span> <span class="n">n_poses</span> <span class="o">*</span> <span class="n">max_n_blocks</span>
-        <span class="n">row</span> <span class="o">=</span> <span class="n">pose</span> <span class="o">*</span> <span class="n">max_n_blocks</span> <span class="o">+</span> <span class="n">block1</span>
-        <span class="n">pair_key</span><span class="p">,</span> <span class="n">pair_of_entry</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span>
-            <span class="n">row</span> <span class="o">*</span> <span class="n">max_n_blocks</span> <span class="o">+</span> <span class="n">block2</span><span class="p">,</span> <span class="nb">sorted</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_inverse</span><span class="o">=</span><span class="kc">True</span>
-        <span class="p">)</span>
-        <span class="n">pair_row</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">pair_key</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">rounding_mode</span><span class="o">=</span><span class="s2">"floor"</span><span class="p">)</span>
-        <span class="n">row_len</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">pair_row</span><span class="p">,</span> <span class="n">minlength</span><span class="o">=</span><span class="n">n_rows</span><span class="p">)</span>
-        <span class="n">n_slots</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">row_len</span><span class="o">.</span><span class="n">max</span><span class="p">())</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">n_rows</span> <span class="k">else</span> <span class="mi">1</span>
-        <span class="n">row_start</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">row_len</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">row_len</span>
-        <span class="n">pair_slot</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">pair_key</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
-            <span class="o">-</span> <span class="n">row_start</span><span class="p">[</span><span class="n">pair_row</span><span class="p">]</span>
-        <span class="p">)</span>
-
-        <span class="n">result</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">n_slots</span><span class="p">)</span>
-        <span class="n">near_blocks</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">near_blocks</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">n_slots</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">bondsep</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">bondsep</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">n_slots</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">)</span>
-        <span class="n">near_blocks</span><span class="p">[</span><span class="n">pair_row</span><span class="p">,</span> <span class="n">pair_slot</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">pair_key</span> <span class="o">%</span> <span class="n">max_n_blocks</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-        <span class="n">bondsep</span><span class="p">[</span><span class="n">pair_row</span><span class="p">[</span><span class="n">pair_of_entry</span><span class="p">],</span> <span class="n">pair_slot</span><span class="p">[</span><span class="n">pair_of_entry</span><span class="p">],</span> <span class="n">conn1</span><span class="p">,</span> <span class="n">conn2</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">separation</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int8</span><span class="p">)</span>
-        <span class="p">)</span>
-        <span class="k">if</span> <span class="n">max_n_conn</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">near_blocks</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">amin</span><span class="p">(</span><span class="n">bondsep</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">result</span></div>
-
-
 <div class="viewcode-block" id="InterBlockBondsep.from_bonded_graph">
 <a class="viewcode-back" href="../../../api/pose.html#tmol.pose.InterBlockBondsep.from_bonded_graph">[docs]</a>
     <span class="nd">@classmethod</span>
@@ -576,15 +519,8 @@
         <span class="n">intra_separation</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span>
         <span class="n">connections</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"InterBlockBondsep"</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Shortest paths below the cap between connections, joined within a block by</span>
-<span class="sd">        their intra-block separation and across an inter-block bond by one.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            counts: ``[pose, block]`` number of connections of each block.</span>
-<span class="sd">            intra_separation: ``[pose, block, conn1, conn2]`` bond separation</span>
-<span class="sd">                between the atoms of a block's connections.</span>
-<span class="sd">            connections: ``[pose, block, conn, 2]`` block and connection that</span>
-<span class="sd">                each connection bonds to, ``-1`` if none.</span>
+<span class="w">        </span><span class="sd">"""Shortest paths below the cap between ``[pose, block, conn]`` connections, one</span>
+<span class="sd">        bond per ``connections`` partner (-1: none) plus ``intra_separation`` in a block.</span>
 <span class="sd">        """</span>
         <span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_conn</span> <span class="o">=</span> <span class="n">connections</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>
         <span class="n">device</span> <span class="o">=</span> <span class="n">connections</span><span class="o">.</span><span class="n">device</span>
@@ -655,17 +591,33 @@
         <span class="n">node_conn</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_nodes</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span> <span class="o">-</span> <span class="n">node_start</span><span class="p">[</span><span class="n">node_row</span><span class="p">]</span>
         <span class="n">src</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">best_key</span><span class="p">,</span> <span class="n">n_nodes</span><span class="p">,</span> <span class="n">rounding_mode</span><span class="o">=</span><span class="s2">"floor"</span><span class="p">)</span>
         <span class="n">dst</span> <span class="o">=</span> <span class="n">best_key</span> <span class="o">%</span> <span class="n">n_nodes</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_entries</span><span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">node_row</span><span class="p">[</span><span class="n">src</span><span class="p">],</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">rounding_mode</span><span class="o">=</span><span class="s2">"floor"</span><span class="p">),</span>
-            <span class="n">node_row</span><span class="p">[</span><span class="n">src</span><span class="p">]</span> <span class="o">%</span> <span class="n">max_n_blocks</span><span class="p">,</span>
-            <span class="n">node_row</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">%</span> <span class="n">max_n_blocks</span><span class="p">,</span>
-            <span class="n">node_conn</span><span class="p">[</span><span class="n">src</span><span class="p">],</span>
-            <span class="n">node_conn</span><span class="p">[</span><span class="n">dst</span><span class="p">],</span>
-            <span class="n">best_sep</span><span class="p">,</span>
-            <span class="n">n_poses</span><span class="p">,</span>
-            <span class="n">max_n_blocks</span><span class="p">,</span>
-            <span class="n">max_n_conn</span><span class="p">,</span>
-        <span class="p">)</span></div>
+        <span class="c1"># node_row is pose * max_n_blocks + block; one slot per (row, block2)</span>
+        <span class="n">n_rows</span> <span class="o">=</span> <span class="n">n_poses</span> <span class="o">*</span> <span class="n">max_n_blocks</span>
+        <span class="n">pair_key</span><span class="p">,</span> <span class="n">pair_of_entry</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span>
+            <span class="n">node_row</span><span class="p">[</span><span class="n">src</span><span class="p">]</span> <span class="o">*</span> <span class="n">max_n_blocks</span> <span class="o">+</span> <span class="n">node_row</span><span class="p">[</span><span class="n">dst</span><span class="p">]</span> <span class="o">%</span> <span class="n">max_n_blocks</span><span class="p">,</span>
+            <span class="nb">sorted</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">return_inverse</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">pair_row</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">pair_key</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">rounding_mode</span><span class="o">=</span><span class="s2">"floor"</span><span class="p">)</span>
+        <span class="n">row_len</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">pair_row</span><span class="p">,</span> <span class="n">minlength</span><span class="o">=</span><span class="n">n_rows</span><span class="p">)</span>
+        <span class="n">n_slots</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">row_len</span><span class="o">.</span><span class="n">max</span><span class="p">())</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">n_rows</span> <span class="k">else</span> <span class="mi">1</span>
+        <span class="n">row_start</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">row_len</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">row_len</span>
+        <span class="n">pair_slot</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">pair_key</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+            <span class="o">-</span> <span class="n">row_start</span><span class="p">[</span><span class="n">pair_row</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">n_slots</span><span class="p">)</span>
+        <span class="n">near_blocks</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">near_blocks</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">n_slots</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">bondsep</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">bondsep</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">n_slots</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">)</span>
+        <span class="n">near_blocks</span><span class="p">[</span><span class="n">pair_row</span><span class="p">,</span> <span class="n">pair_slot</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">pair_key</span> <span class="o">%</span> <span class="n">max_n_blocks</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">entry_row</span><span class="p">,</span> <span class="n">entry_slot</span> <span class="o">=</span> <span class="n">pair_row</span><span class="p">[</span><span class="n">pair_of_entry</span><span class="p">],</span> <span class="n">pair_slot</span><span class="p">[</span><span class="n">pair_of_entry</span><span class="p">]</span>
+        <span class="n">bondsep</span><span class="p">[</span><span class="n">entry_row</span><span class="p">,</span> <span class="n">entry_slot</span><span class="p">,</span> <span class="n">node_conn</span><span class="p">[</span><span class="n">src</span><span class="p">],</span> <span class="n">node_conn</span><span class="p">[</span><span class="n">dst</span><span class="p">]]</span> <span class="o">=</span> <span class="n">best_sep</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">int8</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">max_n_conn</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">near_blocks</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">amin</span><span class="p">(</span><span class="n">bondsep</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
 
 
 <div class="viewcode-block" id="InterBlockBondsep.concatenate">
