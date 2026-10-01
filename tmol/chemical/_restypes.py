@@ -477,9 +477,8 @@ class RefinedResidueType(RawResidueType):
         # 3 paths coming from that atom, followed by the 3 coming out
         # of each of those in turn. If a path doesn't exist, it is
         # filled with -1s to ensure deterministic indexing of the paths.
-        # a convenient datastructure for following connections; virtual atoms have
-        #    no bonded geometry to reach. Neither this nor the virtual set depends
-        #    on the connection, and a cluster metal asks for them twelve times.
+        # bonds to follow, built once for every connection; virtual atoms have no
+        #    bonded geometry to reach
         virtual = {self.atom_to_idx[name] for name in self.properties.virtual}
         bondmap = defaultdict(list)
         for bond in self.bond_indices:
@@ -707,10 +706,8 @@ class ResidueTypeSet:
         )
 
     def extended(self, chemical_db: PatchedChemicalDatabase) -> "ResidueTypeSet":
-        """This set grown to ``chemical_db``, whose residues begin with this set's.
-
-        The residue types already here stay the same objects, so packed block
-        types built from either set share them.
+        """This set grown to ``chemical_db``, whose residues begin with this set's; the
+        types already here stay the same objects.
 
         Raises:
             ValueError: If this set does not hold one type per residue of its

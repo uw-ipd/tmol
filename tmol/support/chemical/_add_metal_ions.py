@@ -1,15 +1,5 @@
-"""Generate the free metal-ion residue types and their electrostatic charges.
-
-Reads ``chemical/metals.yaml`` and writes ``chemical/metal_ions.yaml`` plus
-``scoring/elec_metal_ions.yaml``. One residue type per realised (element,
-oxidation state, coordination geometry) triple: the metal atom, and one virtual
-atom marking each vertex of the geometry.
-
-The virtuals sit at the ion's measured metal-water distance, because an
-unoccupied site is taken to hold a water and that is where lk_ball builds it.
-An untemplated geometry has no vertices, so those ions get no virtuals and no
-site waters -- their metal-ligand distances are restrained but their geometry
-is not.
+"""Generate chemical/metal_ions.yaml and scoring/elec_metal_ions.yaml from metals.yaml:
+a residue type per (ion, geometry), a virtual per vertex at the metal-water distance.
 """
 
 import math
@@ -18,6 +8,9 @@ import os
 import numpy
 import yaml
 from yaml import safe_load
+
+from tmol.chemical._ideal_coords import normalize
+from tmol.database.chemical import ideal_distances
 
 CHEM_DIR = os.path.join(
     os.path.dirname(__file__), "..", "..", "database", "default", "chemical"
@@ -30,18 +23,6 @@ SCORING_DIR = os.path.join(
 SITE_DONOR = "Owat"
 
 
-def fill_distances(ion, donor_radii):
-    """Measured distances, completed by ionic_radius + donor_radius."""
-    out = dict(ion["distances"])
-    for donor, radius in donor_radii.items():
-        out.setdefault(donor, round(ion["ionic_radius"] + radius, 3))
-    return out
-
-
-def normalize(v):
-    return v / numpy.linalg.norm(v)
-
-
 def frame_from_coords(p1, p2, p3):
     """The builder's frame: origin at p3, z from p2 to p3."""
     z = normalize(p3 - p2)
@@ -52,11 +33,8 @@ def frame_from_coords(p1, p2, p3):
 
 
 def icoors_for_sites(vertices, dist):
-    """Internal coordinates placing the metal at the origin and one virtual per vertex.
-
-    Inverts tmol.chemical._ideal_coords.build_coords_from_icoors, whose theta is
-    the supplement of the conventional bond angle: an atom is placed by rotating
-    phi about the frame's z, then -theta about x, then stepping d along z.
+    """Icoors for the metal at the origin and a virtual per vertex, inverting
+    build_coords_from_icoors (whose theta is the supplement of the bond angle).
     """
     sites = [numpy.array(v, dtype=numpy.float64) * dist for v in vertices]
     rows = []
@@ -175,7 +153,7 @@ def main():
 
     residues, charges = [], []
     for ion in table["ions"]:
-        distances = fill_distances(ion, table["donor_radii"])
+        distances = ideal_distances(ion, table["donor_radii"])
         for geometry in ion["geometries"]:
             res = residue_for(
                 ion, geometry, vertices_for[geometry], distances, n_sites_for[geometry]
