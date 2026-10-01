@@ -445,7 +445,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PDBInfo</span><span class="p">,</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">PoseStackBuilder</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">PoseStackBuilder</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreFunction</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -694,26 +694,7 @@
             <span class="n">constraint_unique_blocks</span><span class="o">=</span><span class="n">chunk_unique_blocks</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="n">pdb_info</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span>
-    <span class="n">chunk_pdb_info</span> <span class="o">=</span> <span class="n">PDBInfo</span><span class="p">(</span>
-        <span class="n">residue_labels</span><span class="o">=</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_labels</span><span class="p">[</span><span class="n">first_pose</span><span class="p">:</span><span class="n">last_pose</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
-        <span class="n">residue_insertion_codes</span><span class="o">=</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_insertion_codes</span><span class="p">[</span>
-            <span class="n">first_pose</span><span class="p">:</span><span class="n">last_pose</span>
-        <span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
-        <span class="n">chain_labels</span><span class="o">=</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">chain_labels</span><span class="p">[</span><span class="n">first_pose</span><span class="p">:</span><span class="n">last_pose</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
-        <span class="n">atom_occupancy</span><span class="o">=</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">atom_occupancy</span><span class="p">[</span><span class="n">first_pose</span><span class="p">:</span><span class="n">last_pose</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
-        <span class="n">atom_b_factor</span><span class="o">=</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">atom_b_factor</span><span class="p">[</span><span class="n">first_pose</span><span class="p">:</span><span class="n">last_pose</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
-        <span class="n">metal_origins</span><span class="o">=</span><span class="p">(</span>
-            <span class="kc">None</span>
-            <span class="k">if</span> <span class="n">pdb_info</span><span class="o">.</span><span class="n">metal_origins</span> <span class="ow">is</span> <span class="kc">None</span>
-            <span class="k">else</span> <span class="n">pdb_info</span><span class="o">.</span><span class="n">metal_origins</span><span class="p">[</span><span class="n">first_pose</span><span class="p">:</span><span class="n">last_pose</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="p">),</span>
-        <span class="n">residue_annotations</span><span class="o">=</span><span class="p">(</span>
-            <span class="kc">None</span>
-            <span class="k">if</span> <span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_annotations</span> <span class="ow">is</span> <span class="kc">None</span>
-            <span class="k">else</span> <span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_annotations</span><span class="p">[</span><span class="n">first_pose</span><span class="p">:</span><span class="n">last_pose</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="p">),</span>
-    <span class="p">)</span>
+    <span class="n">chunk_pdb_info</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">sliced</span><span class="p">(</span><span class="n">first_pose</span><span class="p">,</span> <span class="n">last_pose</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">view</span><span class="p">(</span><span class="n">tensor</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">tensor</span><span class="p">[</span><span class="n">first_pose</span><span class="p">:</span><span class="n">last_pose</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>

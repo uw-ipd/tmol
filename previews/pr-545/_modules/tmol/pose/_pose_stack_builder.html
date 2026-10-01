@@ -476,12 +476,9 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility._device</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_is_leading_run</span><span class="p">(</span><span class="n">block_types</span><span class="p">,</span> <span class="n">pbt</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Whether block_types begin pbt's active block types, as the same objects."""</span>
-    <span class="n">active</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span>
-    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">block_types</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">active</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span>
-        <span class="n">a</span> <span class="ow">is</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">block_types</span><span class="p">,</span> <span class="n">active</span><span class="p">)</span>
-    <span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_leading_run</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">of</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Whether ``items`` begin ``of``, as the same objects."""</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">of</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="n">a</span> <span class="ow">is</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">of</span><span class="p">))</span>
 
 
 <div class="viewcode-block" id="PoseStackBuilder">
@@ -493,24 +490,15 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_widest_packed_block_types</span><span class="p">(</span><span class="n">pose_stacks</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""The packed block types over the largest chemical database.</span>
 
-<span class="sd">        Databases only grow by appending residues, whether ligands or metal</span>
-<span class="sd">        donor forms, so a database whose residues are a leading run of</span>
-<span class="sd">        another's, as the same objects, names nothing the larger one does not</span>
-<span class="sd">        mean identically. Any other pair was built from unrelated sources.</span>
+<span class="sd">        Databases grow only by appending residues; each must be a leading run of it.</span>
 <span class="sd">        """</span>
         <span class="n">widest</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
             <span class="p">(</span><span class="n">ps</span><span class="o">.</span><span class="n">packed_block_types</span> <span class="k">for</span> <span class="n">ps</span> <span class="ow">in</span> <span class="n">pose_stacks</span><span class="p">),</span>
             <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">pbt</span><span class="p">:</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">chem_db</span><span class="o">.</span><span class="n">residues</span><span class="p">),</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">),</span>
         <span class="p">)</span>
-        <span class="n">residues</span> <span class="o">=</span> <span class="n">widest</span><span class="o">.</span><span class="n">chem_db</span><span class="o">.</span><span class="n">residues</span>
         <span class="k">for</span> <span class="n">ps</span> <span class="ow">in</span> <span class="n">pose_stacks</span><span class="p">:</span>
-            <span class="n">chem_db</span> <span class="o">=</span> <span class="n">ps</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">chem_db</span>
-            <span class="k">if</span> <span class="n">chem_db</span> <span class="ow">is</span> <span class="n">widest</span><span class="o">.</span><span class="n">chem_db</span><span class="p">:</span>
-                <span class="k">continue</span>
-            <span class="n">shared</span> <span class="o">=</span> <span class="n">residues</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="n">chem_db</span><span class="o">.</span><span class="n">residues</span><span class="p">)]</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shared</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">chem_db</span><span class="o">.</span><span class="n">residues</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span>
-                <span class="n">a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">shared</span><span class="p">,</span> <span class="n">chem_db</span><span class="o">.</span><span class="n">residues</span><span class="p">)</span>
-            <span class="p">):</span>
+            <span class="n">residues</span> <span class="o">=</span> <span class="n">ps</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">chem_db</span><span class="o">.</span><span class="n">residues</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">_is_leading_run</span><span class="p">(</span><span class="n">residues</span><span class="p">,</span> <span class="n">widest</span><span class="o">.</span><span class="n">chem_db</span><span class="o">.</span><span class="n">residues</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="s2">"pose stacks were built from chemical databases neither of "</span>
                     <span class="s2">"which extends the other; build them from one context"</span>
@@ -539,7 +527,9 @@
         <span class="n">pbt0</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_widest_packed_block_types</span><span class="p">(</span><span class="n">pose_stacks</span><span class="p">)</span>
         <span class="c1"># a grown generation keeps every earlier block type at its index</span>
         <span class="n">reuse_pbt</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span>
-            <span class="n">_is_leading_run</span><span class="p">(</span><span class="n">ps</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">,</span> <span class="n">pbt0</span><span class="p">)</span>
+            <span class="n">_is_leading_run</span><span class="p">(</span>
+                <span class="n">ps</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">,</span> <span class="n">pbt0</span><span class="o">.</span><span class="n">active_block_types</span>
+            <span class="p">)</span>
             <span class="k">for</span> <span class="n">ps</span> <span class="ow">in</span> <span class="n">pose_stacks</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">reuse_pbt</span><span class="p">:</span>
@@ -572,8 +562,10 @@
         <span class="n">inter_residue_connections</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_inter_residue_connections_from_pose_stacks</span><span class="p">(</span>
             <span class="n">packed_block_types</span><span class="p">,</span> <span class="n">pose_stacks</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="n">ps_offset</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">device</span>
         <span class="p">)</span>
-        <span class="n">inter_block_bondsep</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_interblock_bondsep_from_pose_stacks</span><span class="p">(</span>
-            <span class="n">packed_block_types</span><span class="p">,</span> <span class="n">pose_stacks</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="n">ps_offset</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">device</span>
+        <span class="n">inter_block_bondsep</span> <span class="o">=</span> <span class="n">InterBlockBondsep</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">ps</span><span class="o">.</span><span class="n">inter_block_bondsep</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">ps</span> <span class="ow">in</span> <span class="n">pose_stacks</span><span class="p">],</span>
+            <span class="n">max_n_blocks</span><span class="p">,</span>
+            <span class="n">packed_block_types</span><span class="o">.</span><span class="n">max_n_conn</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">block_type_ind</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_resolve_block_type_ind</span><span class="p">(</span>
             <span class="n">packed_block_types</span><span class="p">,</span> <span class="n">pose_stacks</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="n">ps_offset</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">device</span>
@@ -914,26 +906,6 @@
                 <span class="p">:</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
             <span class="p">]</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span>
         <span class="k">return</span> <span class="n">inter_residue_connections</span>
-
-    <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_interblock_bondsep_from_pose_stacks</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
-        <span class="n">pose_stacks</span><span class="p">,</span>  <span class="c1"># : List["PoseStack"],</span>
-        <span class="n">n_poses</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">ps_offsets</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
-        <span class="n">max_n_blocks</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InterBlockBondsep</span><span class="p">:</span>
-        <span class="n">max_n_conn</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
-            <span class="nb">len</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">connections</span><span class="p">)</span> <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
-        <span class="p">)</span>
-        <span class="k">return</span> <span class="n">InterBlockBondsep</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_block_bondsep</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">pose_stack</span> <span class="ow">in</span> <span class="n">pose_stacks</span><span class="p">],</span>
-            <span class="n">max_n_blocks</span><span class="p">,</span>
-            <span class="n">max_n_conn</span><span class="p">,</span>
-        <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="nd">@validate_args</span>
