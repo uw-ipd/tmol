@@ -1,17 +1,15 @@
 """Repairs for source files whose charges and bond orders are incomplete.
-
-These encode an input-cleanup policy for the formats TMol reads, not a general
-bond perception method, and must only be requested for a source that needs them.
-Chemistry reaches AtomWorks already repaired, so nothing downstream has to guess
-what a file meant.
-"""
+An input-cleanup policy for the formats TMol reads, not general bond perception."""
 
 import logging
+from itertools import combinations
 
 import biotite.structure as struc
 import numpy as np
 from atomworks.constants import HYDROGEN_LIKE_SYMBOLS
 from rdkit import Chem
+
+from tmol.ligand._icoor_tree import vertex_angle
 
 logger = logging.getLogger(__name__)
 
@@ -169,29 +167,19 @@ def _sp2_angle_sum(
     conf: Chem.Conformer, center: int, neighbors: list[int]
 ) -> float | None:
     """Sum of the three bond angles at ``center`` (deg); None if degenerate."""
-    cpos = np.asarray(conf.GetAtomPosition(center))
-    vecs = [np.asarray(conf.GetAtomPosition(n)) - cpos for n in neighbors]
-    norms = np.linalg.norm(vecs, axis=1)
+    pos = conf.GetPositions()
+    norms = np.linalg.norm(pos[neighbors] - pos[center], axis=1)
     if not np.all(np.isfinite(norms) & (norms > 0)):
         return None
-    units = np.asarray(vecs) / norms[:, None]
-    total = 0.0
-    for i in range(len(units)):
-        for j in range(i + 1, len(units)):
-            total += np.degrees(
-                np.arccos(np.clip(np.dot(units[i], units[j]), -1.0, 1.0))
-            )
-    return total
+    return sum(
+        np.degrees(vertex_angle(pos[i], pos[center], pos[j]))
+        for i, j in combinations(neighbors, 2)
+    )
 
 
 def _infer_carboxylate_bonds(rw: Chem.RWMol, conf: Chem.Conformer) -> int:
-    """Correct carboxylates mis-encoded as geminal diols; return #corrected.
-
-    A carbon bonded to exactly two terminal oxygens whose geometry is planar
-    with short C-O bonds is a delocalized carboxylate, not a diol, whatever
-    orders the input gives them (PDBbind v2020 2XEJ: a C.3 carboxyl with single
-    C-O and C-OXT). Its bonds are localized as every delocalized group's are.
-    """
+    """Localize each planar carbon with two short terminal C-O bonds as a carboxylate,
+    whatever orders the input gives (PDBbind v2020 2XEJ); returns the count."""
     delocalized = set()
     for atom in rw.GetAtoms():
         if atom.GetAtomicNum() != 6 or atom.GetDegree() != 3:
@@ -246,11 +234,7 @@ def localize_overvalent_centers(mol: Chem.Mol) -> None:
 
 
 def correct_carboxylate_bond_orders(mol: Chem.Mol) -> Chem.Mol:
-    """Repair input bond orders that disagree with the 3D geometry.
-
-    Re-sanitizes a corrected copy. Returns the input unchanged when no conformer
-    or no qualifying finite, planar carboxylate geometry is available.
-    """
+    """A sanitized copy with geometry-repaired carboxylates, else ``mol``."""
     if mol.GetNumConformers() == 0:
         return mol
     rw = Chem.RWMol(mol)
@@ -293,14 +277,8 @@ def _sanitized(rw: Chem.RWMol, mol: Chem.Mol, failure: str) -> Chem.Mol:
 def get_absent_substitution_leaving_groups(
     template: struc.AtomArray, residue: struc.AtomArray, connection_atoms: set[str]
 ) -> dict[str, tuple[str, ...]]:
-    """Identify unobserved terminal O/N groups displaced at carbonyl/phosphoryl sites.
-
-    A declared extra bond at a template carbonyl C or phosphoryl P replaces an absent
-    single-bonded terminal O/N branch. Resolved atoms, carbonyl oxygens, and
-    ambiguous alternatives are retained. Coordinates only establish whether
-    atoms were observed; they do not determine chemical bond orders.
-    ``connection_atoms`` contains template atom names with extra inter-residue bonds.
-    """
+    """{site: unobserved terminal O/N branch} an extra bond at a template carbonyl C or
+    phosphoryl P displaces; resolved atoms and ambiguous alternatives are kept."""
     if template.bonds is None or not connection_atoms:
         return {}
     observed = set(residue.atom_name[np.isfinite(residue.coord).all(axis=-1)])

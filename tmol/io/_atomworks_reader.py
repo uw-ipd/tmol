@@ -43,7 +43,7 @@ _FIELDS = [
 def _polymer_from_backbone_bonds(array):
     """Mark as polymer the residues a polymer bond joins to a neighbour in their chain.
 
-    A PDB writes a modified residue in a chain as HETATM, as it writes a free ligand.
+    A PDB writes a modified residue in a chain as HETATM, as a free ligand (5EMA SEP).
     """
     residue_of = struc.get_all_residue_positions(array)
     polymer = ~array.hetero[struc.get_residue_starts(array)]
@@ -71,7 +71,7 @@ def _polymer_from_backbone_bonds(array):
 def _with_pdb_author_chains(array, path, model):
     """Each atom's chain as its PDB record names it, as ``auth_asym_id``.
 
-    The loader moves the HETATM residues of a chain that also has polymer ones to a new chain.
+    The loader moves a chain's HETATM residues to a new chain (5EMA SEP as PDB).
     """
     authored = read_any(path).get_structure(
         model=model, altloc="first", extra_fields=["atom_id"]
@@ -87,7 +87,8 @@ def _with_metal_coordination(array, block):
     """The bond table plus the file's metalc bonds, typed COORDINATION.
 
     A row naming a conformer of an atom with alternates binds only that conformer
-    (3P1O: GLU A:86 conformer B to MG A:237; the kept A is 6 A away).
+    (3P1O: GLU A:86 conformer B to MG A:237; the kept A is 6 A away); one naming an
+    atom without alternates binds it (3F7L, 7ADR).
     """
     struct_conn = category_to_dict(block, "struct_conn")
     lettered = set()
@@ -164,32 +165,37 @@ def _one_disulfide_per_sulfur(array):
     return struc.BondList(len(array), np.delete(bonds, rows[dropped], axis=0))
 
 
-def _renumber_decreasing_author_ids(array):
-    """Renumber, in file order, any chain whose author numbering decreases.
+def renumbered_decreasing_chains(array):
+    """(res_id, ins_code, chains): chains whose numbering decreases renumbered 1..N.
 
-    AtomWorks refuses such a chain (5XNL numbers its waters backwards); renumbering
-    keeps residue identity and order. Returns the array unchanged where none decreases.
+    Their insertion codes are cleared; other chains' are load-bearing (antibody CDRs).
     """
     res_id = array.res_id.copy()
     ins_code = array.ins_code.copy()
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)
-    repaired = []
+    chains = []
     for chain in dict.fromkeys(array.chain_id.tolist()):
         in_chain = array.chain_id == chain
         if not (np.diff(res_id[in_chain]) < 0).any():
             continue
         number = 0
-        for begin, end in zip(starts[:-1], starts[1:], strict=False):
+        for begin, end in zip(starts[:-1], starts[1:]):
             if array.chain_id[begin] == chain:
                 number += 1
                 res_id[begin:end] = number
-        # renumbering supersedes this chain's insertion codes and no others:
-        #    elsewhere they are load-bearing, as an antibody's CDRs are
         ins_code[in_chain] = ""
-        repaired.append(str(chain))
+        chains.append(str(chain))
+    return res_id, ins_code, chains
+
+
+def _renumber_decreasing_author_ids(array):
+    """Renumber, in file order, any chain whose author numbering decreases.
+
+    AtomWorks refuses such a chain (5XNL numbers its waters backwards).
+    """
+    res_id, ins_code, repaired = renumbered_decreasing_chains(array)
     if not repaired:
         return array
-
     warnings.warn(
         f"Renumbering chain(s) {', '.join(repaired)}: author numbering that decreases "
         "within a chain is not an ordering that can be relied on downstream.",

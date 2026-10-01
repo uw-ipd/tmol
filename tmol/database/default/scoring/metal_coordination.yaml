@@ -1,16 +1,5 @@
-# Parameters for the metal_coordination term.
-#
-# Each occupied site restrains its donor onto the ray from the metal through
-# the site's virtual: a harmonic on the metal-donor distance about its ideal
-# d0 (chemical/metals.yaml) and on the donor's displacement off the ray.
-# Energy per site is ((r - d0) / radial_sd)^2 + (off_ray / lateral_sd)^2 +
-# well depth. The fan term holds metal-virtual and virtual-virtual separations
-# at ideal. Well depths are provisional.
-#
-# Two metals in different residues bonded to one donor atom are kept apart by
-# a one-sided harmonic on their separation. Its floor is the separation at the
-# donor's smallest metal-donor-metal angle with both metals at their ideal
-# donor distances; bridge_width, in degrees, maps onto the separation there.
+# Per filled site: ((r - d0) / radial_sd)^2 + (off_ray / lateral_sd)^2 + well depth, d0 from
+#    chemical/metals.yaml; fans are held at ideal separations with fan_sd.
 
 global_parameters:
   radial_sd: 0.20
@@ -22,13 +11,12 @@ global_parameters:
 #   - { atom_type: Zn2p, radial_sd: 0.15, lateral_sd: 0.30 }
 ions: []
 
-# well depth per filled site, kcal/mol, keyed by metal atom type and donor
-# (a key of donor_radii in chemical/metals.yaml); absent pairs are 0:
+# well depth (kcal/mol) per filled site by metal atom type and donor_radii key; absent is 0
 #   - { atom_type: Zn2p, donor: S, depth: -10.0 }
 well_depths: []
 
-# smallest metal-donor-metal angle, degrees, per donor key (chemical/metals.yaml
-# donor_radii); a donor without a floor puts no wall on the metals it bridges
+# smallest metal-donor-metal angle (deg) per donor_radii key: bridged metals get a wall,
+#    bridge_width (deg) wide, below the separation at ideal distances; none: no wall
 bridge_floors:
   - { donor: S, floor: 63.0 }
   - { donor: O, floor: 68.0 }

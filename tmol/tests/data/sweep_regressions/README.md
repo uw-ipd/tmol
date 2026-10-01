@@ -23,8 +23,6 @@ compressed file) and exercises one failure class; each test fails without its fi
 | `kik_lysine_crosslink_5lnu.cif.zst` | The incompatible conjugate chemistry error names both sites. |
 | `mmt_5prime_ether_1cx5.cif.zst` | A nucleotide whose 5' oxygen is substituted has no 5' port. |
 | `lcc_leaving_atoms_6c8d.cif.zst` | The declared leaving group breaks a leaving-atom tie at a polymer connection. |
-| `xy7_phosphate_hydrogens_7kw4.cif.zst` | A patch removes the hydrogens of the atoms it removes. |
-| `aab_phosphate_alias_1mwi.cif.zst` | A variant keeps the phosphate alias of its base residue. |
 | `five_prime_phosphate_9cf0.cif.zst` | Every cart_bonded length and angle of 5'-phosphate nucleotides (na5primephos P-OP3) has parameters. |
 | `terminal_alkyne_7e9i.cif.zst` | gen_torsions skip dihedrals through an acyclic sp centre; analytic and numeric gradients agree. |
 | `free_nucleotides_8gpb.cif.zst` | Free nucleotides sharing a chain and entity (AMP A930, A940) are not linked O3'-P for protonation. |
