@@ -105,7 +105,7 @@ def site_energies(metal, donor, virt, has_virt, params):
     radial = ((r - d0) / radial_sd) ** 2
     ray = torch.where(has_virt.unsqueeze(-1), virt - metal, delta)
     u = ray / torch.linalg.norm(ray, dim=-1, keepdim=True)
-    off_ray = delta - (delta * u).sum(-1, keepdim=True) * u
+    off_ray = delta - (delta * u).sum(-1, keepdim=True).clamp_min(0) * u
     lateral = (off_ray * off_ray).sum(-1) / lateral_sd**2
     return radial + torch.where(has_virt, lateral, torch.zeros_like(lateral)) + depth
 

@@ -58,7 +58,13 @@ def _disconnected_model(model):
         molecule.RemoveBond(mapping[a], mapping[b])
         # Detached comparison fragments complete the endpoints' open valences.
         for index in (mapping[a], mapping[b]):
-            molecule.GetAtomWithIdx(index).SetNoImplicit(False)
+            atom = molecule.GetAtomWithIdx(index)
+            atom.SetNoImplicit(False)
+            # Isolated halides are MMFF-typable; hydrogen halides are not.
+            if atom.GetDegree() == 0 and atom.GetAtomicNum() in (9, 17, 35, 53):
+                atom.SetFormalCharge(-1)
+                atom.SetNumExplicitHs(0)
+                atom.SetNoImplicit(True)
     Chem.SanitizeMol(molecule)
     return replace(model, atom_array=array, molecule=molecule.GetMol())
 
