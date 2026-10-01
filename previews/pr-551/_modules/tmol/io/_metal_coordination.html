@@ -452,6 +452,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">CanonicalOrdering</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._pose_stack_construction</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_canonical_form</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._pose_stack_deconstruction</span><span class="w"> </span><span class="kn">import</span> <span class="n">canonical_form_from_pose_stack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io.details._metal_geometry</span><span class="w"> </span><span class="kn">import</span> <span class="n">unit</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
 
 
@@ -466,13 +467,8 @@
     <span class="n">atom</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">site</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Bond a donor atom to one of a metal's open sites.</span>
-
-<span class="sd">    ``site`` defaults to the open site whose virtual points closest to the</span>
-<span class="sd">    donor, or the first open site of an untemplated ion. The donor atom loses</span>
-<span class="sd">    any hydrogen on it, so a thiol or phenol becomes its anion and a</span>
-<span class="sd">    protonated imidazole nitrogen leaves the ring deprotonated. Everything</span>
-<span class="sd">    else about the stack is rebuilt as it was.</span>
+<span class="w">    </span><span class="sd">"""Bond ``atom`` of ``donor`` to an open site of ``metal`` (by default the one whose</span>
+<span class="sd">    virtual faces it best); the donor atom loses its hydrogens.</span>
 <span class="sd">    """</span>
     <span class="n">cf</span> <span class="o">=</span> <span class="n">canonical_form_from_pose_stack</span><span class="p">(</span><span class="n">canonical_ordering</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">)</span>
     <span class="n">rows</span> <span class="o">=</span> <span class="n">_rows</span><span class="p">(</span><span class="n">cf</span><span class="o">.</span><span class="n">metal_coordination</span><span class="p">)</span>
@@ -556,10 +552,7 @@
         <span class="n">site</span><span class="p">,</span> <span class="n">local</span> <span class="o">=</span> <span class="n">site_metal</span><span class="p">(</span><span class="n">metal_bt</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
         <span class="n">metal_xyz</span> <span class="o">=</span> <span class="n">xyz</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">metal_bt</span><span class="o">.</span><span class="n">atom_to_idx</span><span class="p">[</span><span class="n">site</span><span class="o">.</span><span class="n">metal_atom</span><span class="p">]]</span>
         <span class="n">ray</span> <span class="o">=</span> <span class="n">xyz</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">metal_bt</span><span class="o">.</span><span class="n">atom_to_idx</span><span class="p">[</span><span class="n">site</span><span class="o">.</span><span class="n">site_virts</span><span class="p">[</span><span class="n">local</span><span class="p">]]]</span> <span class="o">-</span> <span class="n">metal_xyz</span>
-        <span class="n">direction</span> <span class="o">=</span> <span class="n">donor_xyz</span> <span class="o">-</span> <span class="n">metal_xyz</span>
-        <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">ray</span><span class="p">,</span> <span class="n">direction</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span>
-            <span class="n">numpy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">ray</span><span class="p">)</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">direction</span><span class="p">)</span>
-        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">unit</span><span class="p">(</span><span class="n">ray</span><span class="p">)</span> <span class="o">@</span> <span class="n">unit</span><span class="p">(</span><span class="n">donor_xyz</span> <span class="o">-</span> <span class="n">metal_xyz</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="n">open_sites</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">alignment</span><span class="p">)</span>
 

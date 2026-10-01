@@ -465,9 +465,8 @@
 
 <span class="n">CoordinationGeometry</span> <span class="o">=</span> <span class="n">NewType</span><span class="p">(</span><span class="s2">"CoordinationGeometry"</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
 
-<span class="c1"># Vertex count per coordination geometry. "irregular" has no fixed vertices:</span>
-<span class="c1"># its sites are not templated, so only metal-ligand distances are restrained</span>
-<span class="c1"># and the occupied count comes from the structure rather than from here.</span>
+<span class="c1"># vertices per coordination geometry; "irregular" is untemplated: only metal-ligand</span>
+<span class="c1">#    distances are restrained, and the structure sets how many sites are filled</span>
 <span class="n">GEOMETRY_SITE_COUNT</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">"linear"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
     <span class="s2">"trigonal"</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
@@ -480,16 +479,11 @@
 <span class="p">}</span>
 
 
-<span class="c1"># Stable ordering for the geometry registry, used to encode which coordination</span>
-<span class="c1"># geometry a residue type carries into the res_type_variant axis that structure</span>
-<span class="c1"># input uses to choose among block types sharing an io equivalence class.</span>
+<span class="c1"># the geometries' order on the res_type_variant axis</span>
 <span class="n">GEOMETRY_NAMES</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">GEOMETRY_SITE_COUNT</span><span class="p">)</span>
 
-<span class="c1"># Layout of that axis. 0-2 are the amino-acid special cases (CYD, the histidine</span>
-<span class="c1"># tautomers); 3 is what the histidine kernel writes for an unresolved tautomer</span>
-<span class="c1"># and must select nothing; 4 is the deprotonated forms only metal coordination</span>
-<span class="c1"># selects; metals take one index per geometry above those. The index is per</span>
-<span class="c1"># equivalence class, so a metal never meets a disulfide or a histidine state.</span>
+<span class="c1"># res_type_variant, per io class: 0-2 CYD and histidine tautomers, 3 an unresolved</span>
+<span class="c1">#    tautomer (selects nothing), 4 deprotonated donors, then one per metal geometry</span>
 <span class="n">HIS_UNRESOLVED_VAR_IND</span> <span class="o">=</span> <span class="mi">3</span>
 <span class="n">DEPROTONATED_VAR_IND</span> <span class="o">=</span> <span class="mi">4</span>
 <span class="n">METAL_GEOMETRY_VAR_BASE</span> <span class="o">=</span> <span class="mi">5</span>
@@ -600,9 +594,8 @@
     <span class="c1"># electrostatic charge and the Lennard-Jones radius: Fe2p is not Fe3p.</span>
     <span class="n">is_metal</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">oxidation_state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="c1"># Can donate a lone pair to a metal. Deliberately separate from is_acceptor:</span>
-    <span class="c1"># thiolate and thioether sulfur coordinate metals while being poor hydrogen</span>
-    <span class="c1"># bond acceptors, and is_acceptor is pinned to Rosetta's hbond typing.</span>
+    <span class="c1"># donates a lone pair to a metal; not is_acceptor, which follows Rosetta's hbond</span>
+    <span class="c1">#    typing and excludes thiolate and thioether sulfur</span>
     <span class="n">is_metal_donor</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="c1"># the type this atom takes when a covalent bond replaces its hydrogen:</span>
     <span class="c1">#    a hydroxyl becomes an ether, a thiol a thioether</span>
@@ -682,9 +675,8 @@
     <span class="c1"># written for a ring bond. Only a cut that splits a ring sets this: a</span>
     <span class="c1"># polymer up/down bond and an ordinary attachment do not close one.</span>
     <span class="n">in_ring</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="c1"># False for a bond that neither builds the kinematic tree nor ties its</span>
-    <span class="c1"># blocks into one packing group: a disulfide, a metal-ligand bond. It is</span>
-    <span class="c1"># still a bond for count-pair.</span>
+    <span class="c1"># False for a bond outside the kinematic tree and packing groups (a disulfide,</span>
+    <span class="c1">#    a metal-ligand bond); it still counts for count-pair</span>
     <span class="n">kinematic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
 
 
@@ -766,27 +758,18 @@
 
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MetalSite</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""The coordination sites on one metal atom of a residue type.</span>
-
-<span class="sd">    ``internal_satisfiers`` are in-block atoms already occupying sites: a</span>
-<span class="sd">    heme's four porphyrin nitrogens, an Fe-S cluster's bridging sulfurs. One</span>
-<span class="sd">    atom may satisfy sites on several metals, so a bridging sulfur is listed by</span>
-<span class="sd">    every iron it bridges. Detection fills only the sites left over.</span>
-
-<span class="sd">    ``site_virts`` mark the directions of the free sites, and are where lk_ball</span>
-<span class="sd">    builds its waters. A cofactor authors their internal coordinates; a free</span>
-<span class="sd">    ion has no internal geometry to orient against, so its fan is placed when</span>
-<span class="sd">    the site is assigned.</span>
-
-<span class="sd">    ``site_connections`` are the metal atom's connections a donor fills, one</span>
-<span class="sd">    per free site and parallel to ``site_virts``; an untemplated ion has</span>
-<span class="sd">    connections but no virtuals. An unfilled connection is an open site.</span>
-<span class="sd">    """</span>
+<span class="w">    </span><span class="sd">"""The coordination sites on one metal atom of a residue type."""</span>
 
     <span class="n">metal_atom</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">geometry</span><span class="p">:</span> <span class="n">CoordinationGeometry</span>
+    <span class="c1"># in-block atoms filling sites (heme nitrogens, a cluster's bridging sulfurs,</span>
+    <span class="c1">#    listed by every metal they bridge); detection fills only the rest</span>
     <span class="n">internal_satisfiers</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="c1"># free-site directions, where lk_ball builds waters; a free ion's are placed</span>
+    <span class="c1">#    when its sites are assigned</span>
     <span class="n">site_virts</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="c1"># connections a donor fills, parallel to site_virts (an untemplated ion has</span>
+    <span class="c1">#    no virtuals); an unfilled one is an open site</span>
     <span class="n">site_connections</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
 
     <span class="nd">@property</span>
@@ -934,11 +917,8 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">site_connections</span><span class="p">(</span><span class="n">restype</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""Every free-site connection of a residue's metals, numbered in order.</span>
-
-<span class="sd">    A metal site's index everywhere outside the residue type is its position</span>
-<span class="sd">    here, so a cluster's sites run on across its metals.</span>
-<span class="sd">    """</span>
+<span class="w">    </span><span class="sd">"""Every free-site connection of a residue's metals; a site's index everywhere</span>
+<span class="sd">    is its position here, so a cluster's sites run on across its metals."""</span>
     <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">name</span> <span class="k">for</span> <span class="n">site</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">metal_sites</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">site</span><span class="o">.</span><span class="n">site_connections</span><span class="p">)</span>
 
 
