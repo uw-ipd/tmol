@@ -208,5 +208,14 @@
   "sha256": "39fca583efa112b2f47e474c2d04779aa6506376abe5663690192714223a7b82",
   "bytes": 52915,
   "compressed_sha256": "a943627b247bd1a6075d4ee50e5cb0f55cc1b3ec08ded964c1a7cfafdc27087c"
+ },
+ {
+  "fixture": "two_atom_residue_1gj2.cif.zst",
+  "source": "https://files.rcsb.org/download/1GJ2.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/gj/1gj2.cif.gz)",
+  "source_sha256": "b9fbad6985ba41151fdf97145ca0cef8534977143320c0f321009ba52dc63b67",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/gj/1gj2.cif.gz two_atom_residue_1gj2.cif 6 O; zstd -19 two_atom_residue_1gj2.cif",
+  "sha256": "b0ed8c38a3f0dda12cb35ec94e1c50364e4dfaf056c86ca2fec2a7b78c02caba",
+  "bytes": 19854,
+  "compressed_sha256": "bb0bc7f9661a4d12610e9c5f6ffbd2c65e3555641def9e0fdc1c06bbd6bf69d5"
  }
 ]
