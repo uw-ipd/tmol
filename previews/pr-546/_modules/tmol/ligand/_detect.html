@@ -1365,12 +1365,8 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_dimorphite_protonate_smiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ph</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">7.4</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Return the SMILES pKa-protonated at ``ph`` via Dimorphite-DL.</span>
-
-<span class="sd">    Takes the first protonation variant (matching the reference ligand-prep</span>
-<span class="sd">    protocol). Falls back to the input SMILES if RDKit cannot parse it or</span>
-<span class="sd">    Dimorphite produces no variant.</span>
-<span class="sd">    """</span>
+<span class="w">    </span><span class="sd">"""The SMILES protonated at ``ph`` by AtomWorks' Dimorphite-DL, or the input</span>
+<span class="sd">    SMILES if RDKit cannot parse it or Dimorphite gives no state."""</span>
     <span class="n">mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">smiles</span>
@@ -1608,25 +1604,21 @@
 <span class="w">    </span><span class="sd">"""The copy of this residue to describe the type from.</span>
 
 <span class="sd">    Prefer copies carrying all connection atoms, then the fuller heavy-atom</span>
-<span class="sd">    inventory, then the fuller hydrogen inventory, then resolved coordinates.</span>
+<span class="sd">    inventory, then resolved coordinates.</span>
 <span class="sd">    A fully observed internal sugar has lost its anomeric leaving oxygen; using</span>
 <span class="sd">    it ahead of a fuller terminal copy would omit an atom the shared base type</span>
-<span class="sd">    must describe. A copy whose donors gave up a proton to a metal is described</span>
-<span class="sd">    by a deprotonated variant of the fuller copy's type.</span>
+<span class="sd">    must describe.</span>
 <span class="sd">    """</span>
     <span class="n">wanted</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">connection_atoms</span><span class="p">)</span>
 
     <span class="n">ends</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">residue_starts</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">array_length</span><span class="p">())</span>
-    <span class="n">is_h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">element</span><span class="p">,</span> <span class="p">(</span><span class="s2">"H"</span><span class="p">,</span> <span class="s2">"D"</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">heavy_counts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">is_h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">element</span><span class="p">,</span> <span class="p">(</span><span class="s2">"H"</span><span class="p">,</span> <span class="s2">"D"</span><span class="p">))</span>
         <span class="n">heavy_counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">reduceat</span><span class="p">(</span><span class="o">~</span><span class="n">is_h</span><span class="p">,</span> <span class="n">residue_starts</span><span class="p">)</span>
-    <span class="n">hydrogen_counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">reduceat</span><span class="p">(</span><span class="n">is_h</span><span class="p">,</span> <span class="n">residue_starts</span><span class="p">)</span>
     <span class="n">copies</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span>
         <span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">residue_starts</span><span class="p">]</span> <span class="o">==</span> <span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">start</span><span class="p">]</span>
     <span class="p">)</span>
-    <span class="n">copies</span> <span class="o">=</span> <span class="n">copies</span><span class="p">[</span>
-        <span class="n">np</span><span class="o">.</span><span class="n">lexsort</span><span class="p">((</span><span class="n">copies</span><span class="p">,</span> <span class="o">-</span><span class="n">hydrogen_counts</span><span class="p">[</span><span class="n">copies</span><span class="p">],</span> <span class="o">-</span><span class="n">heavy_counts</span><span class="p">[</span><span class="n">copies</span><span class="p">]))</span>
-    <span class="p">]</span>
+    <span class="n">copies</span> <span class="o">=</span> <span class="n">copies</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">lexsort</span><span class="p">((</span><span class="n">copies</span><span class="p">,</span> <span class="o">-</span><span class="n">heavy_counts</span><span class="p">[</span><span class="n">copies</span><span class="p">]))]</span>
     <span class="n">fallback</span><span class="p">,</span> <span class="n">best_count</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">copies</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">fallback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">heavy_counts</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">best_count</span><span class="p">:</span>

@@ -801,10 +801,7 @@
     <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">residue</span><span class="p">,</span> <span class="n">template</span><span class="p">,</span> <span class="n">linked</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">,</span> <span class="n">chemistry</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">warned</span><span class="p">:</span> <span class="nb">set</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Sorted heavy template atoms ``residue`` lacks; ``None`` if taken as resolved.</span>
-
-<span class="sd">    ``chemistry`` caches each component's heavy atoms and leaving groups, and</span>
-<span class="sd">    ``warned`` holds the components already reported as unaccounted for.</span>
-<span class="sd">    """</span>
+<span class="sd">    ``chemistry`` caches heavy atoms and leaving groups; ``warned``, reported names."""</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.leaving_atoms</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_leaving_atom_groups</span>
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._input_repair</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_absent_substitution_leaving_groups</span>
