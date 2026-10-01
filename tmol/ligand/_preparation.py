@@ -1629,9 +1629,7 @@ def _has_open_valence(array: struc.AtomArray, bonded_out=frozenset()) -> bool:
 
 
 def _placeholder_coords(array: struc.AtomArray) -> np.ndarray:
-    """Unresolved atoms 1.4 A from a placed neighbour, away from its placed atoms.
-    Hydrogens count, so a stereocentre keeps its handedness (1en2 NAG, O1 unresolved).
-    """
+    """Unresolved atoms 1.4 A from a placed neighbour, away from its placed atoms."""
     coord = array.coord.copy()
     placed = np.isfinite(coord).all(axis=-1)
     if placed.all() or not placed.any() or array.bonds is None:
@@ -1667,7 +1665,7 @@ def _as_free_molecule(lig, ph):
     heavy = lig.atom_array[~is_h]
     unresolved = ~np.isfinite(heavy.coord).all(axis=-1)
     stand_in = heavy.copy()
-    stand_in.coord = _placeholder_coords(lig.atom_array)[~is_h]
+    stand_in.coord = _placeholder_coords(heavy)
     protonated = with_atomworks_hydrogens(stand_in, ph=ph)
     protonated.res_name[:] = heavy.res_name[0]
     names = {str(n) for n in heavy.atom_name[unresolved]}

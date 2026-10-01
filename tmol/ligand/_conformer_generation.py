@@ -335,7 +335,7 @@ def _planar_systems(rd: Chem.Mol, bonds):  # noqa: C901
 
 
 def _double_bond_stereo(smiles: str, rd: Chem.Mol) -> dict:
-    """Cis/trans the SMILES declares, which ``rd`` (same atom order) lost:
+    """Cis/trans the SMILES declares, which ``rd`` (same atom order) lost (4XXJ retinal):
     {(i, j): (a, d, is_cis)}, a on i and d on j."""
     source = Chem.MolFromSmiles(smiles, sanitize=False)
     if source is None:

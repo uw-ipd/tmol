@@ -1147,7 +1147,7 @@ def _representative_instance(
     """The copy of this residue to describe the type from.
 
     Prefer copies carrying all connection atoms, then the fuller heavy-atom
-    inventory, then the fuller hydrogen inventory, then resolved coordinates.
+    inventory, then resolved coordinates.
     A fully observed internal sugar has lost its anomeric leaving oxygen; using
     it ahead of a fuller terminal copy would omit an atom the shared base type
     must describe.
@@ -1155,16 +1155,13 @@ def _representative_instance(
     wanted = set(connection_atoms)
 
     ends = np.append(residue_starts[1:], atom_array.array_length())
-    is_h = np.isin(atom_array.element, ("H", "D"))
     if heavy_counts is None:
+        is_h = np.isin(atom_array.element, ("H", "D"))
         heavy_counts = np.add.reduceat(~is_h, residue_starts)
-    hydrogen_counts = np.add.reduceat(is_h, residue_starts)
     copies = np.flatnonzero(
         atom_array.res_name[residue_starts] == atom_array.res_name[start]
     )
-    copies = copies[
-        np.lexsort((copies, -hydrogen_counts[copies], -heavy_counts[copies]))
-    ]
+    copies = copies[np.lexsort((copies, -heavy_counts[copies]))]
     fallback, best_count = None, -1
     for i in copies:
         if fallback is not None and heavy_counts[i] < best_count:
