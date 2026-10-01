@@ -202,21 +202,15 @@ def test_concatenate_pdb_atom_records_dataframes(disulfide_pdb):
 def test_canonical_form_from_pdb_keeps_one_alternate_per_group(torch_device):
     """1EJG writes PRO/SER A:22 and LEU/ILE A:25 as altlocs A/B of one position; a
     later alternate no longer overwrites an earlier one atom by atom."""
-    import io
-    from pathlib import Path
-
     import zstandard
 
-    fixture = (
-        Path(__file__).parents[1]
-        / "data"
-        / "sweep_regressions"
-        / "microheterogeneity_1ejg.pdb.zst"
+    from tmol.tests.data import data_path
+
+    packed = data_path("sweep_regressions", "microheterogeneity_1ejg.pdb.zst")
+    lines = zstandard.ZstdDecompressor().decompress(
+        packed.read_bytes(), max_output_size=1 << 26
     )
-    with zstandard.ZstdDecompressor().stream_reader(
-        io.BytesIO(fixture.read_bytes())
-    ) as f:
-        lines = f.read().decode()
+    lines = lines.decode()
     records = parse_pdb(lines)
     co = default_canonical_ordering()
     cf = canonical_form_from_pdb(co, lines, torch_device)
