@@ -217,5 +217,14 @@
   "sha256": "b0ed8c38a3f0dda12cb35ec94e1c50364e4dfaf056c86ca2fec2a7b78c02caba",
   "bytes": 19854,
   "compressed_sha256": "bb0bc7f9661a4d12610e9c5f6ffbd2c65e3555641def9e0fdc1c06bbd6bf69d5"
+ },
+ {
+  "fixture": "glycine_ca_conjugate_5wrh.cif.zst",
+  "source": "https://files.rcsb.org/download/5WRH.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/wr/5wrh.cif.gz)",
+  "source_sha256": "9b082a4a94e54c8f4b3f23048eef17f3dc7fb73cbd09bd1bd3672c904353b987",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/wr/5wrh.cif.gz glycine_ca_conjugate_5wrh.cif 2 A:171; zstd -19 glycine_ca_conjugate_5wrh.cif",
+  "sha256": "f1cc7bd34ff5cde365d31322967e725ab98c13a50f598e346a7b920dc3843e99",
+  "bytes": 46528,
+  "compressed_sha256": "c9a3aa5e5a9a881b59dd2911a3d28b76464d45dc9c0998b6581d645fe3aaf4c9"
  }
 ]

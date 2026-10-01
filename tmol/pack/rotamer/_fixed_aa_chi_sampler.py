@@ -58,7 +58,9 @@ class FixedAAChiSampler(ChiSampler):
             # Glycine's alpha hydrogens exchange under reflection. Rebuilding
             # only one can place it on top of the retained hydrogen, and a
             # glycine-to-amino-acid design must not inherit an arbitrary one.
-            return ("HA2", "HA3")
+            ca, mainchain = rt.atom_to_idx["CA"], rt.properties.polymer.mainchain_atoms
+            names = (rt.atoms[j].name for i, j in rt.bond_indices if i == ca)
+            return tuple(name for name in names if name not in mainchain)
         elif base == "ALA":
             return ("CB",)
 
