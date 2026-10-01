@@ -85,17 +85,6 @@ def _completion_templates(entries):
             ],
             dtype="U4",
         )
-        bonds = array.bonds.as_array()
-        aromatic = np.isin(
-            bonds[:, 2],
-            [
-                struc.BondType.AROMATIC_SINGLE,
-                struc.BondType.AROMATIC_DOUBLE,
-                struc.BondType.AROMATIC_TRIPLE,
-            ],
-        )
-        bonds[aromatic, 2] = struc.BondType.AROMATIC
-        array.bonds = struc.BondList(len(array), bonds)
     return entries
 
 
