@@ -2,7 +2,6 @@
 import math
 from types import SimpleNamespace
 
-import biotite.structure
 import numpy
 import torch
 from tmol.pose import PoseStackBuilder
@@ -122,42 +121,29 @@ def test_optH_rotamer_sampler_flipNHQ(ubq_pdb, torch_device):
             assert cache.n_proton_samples == 0 or n_rots == cache.n_proton_samples + 1
 
 
-def his_ring_flipped(array, res_id):
-    """Histidine `res_id` with its ring atoms turned 180 degrees about CB-CG."""
-    his = array.res_id == res_id
-    fixed = ["N", "CA", "C", "O", "CB", "CG", "H", "HA", "HB2", "HB3", "1HB", "2HB"]
-    ring = his & ~numpy.isin(array.atom_name, fixed)
-    cb, cg = (array.coord[his & (array.atom_name == n)][0] for n in ("CB", "CG"))
-    axis = (cg - cb) / numpy.linalg.norm(cg - cb)
-    offset = array.coord[ring] - cg
-    flipped = array.copy()
-    flipped.coord[ring] = cg + 2 * numpy.outer(offset @ axis, axis) - offset
-    return flipped
-
-
-def his_ring_after_optH(array, res_id, torch_device):
-    """Block type name and ND1/NE2 coordinates of histidine `res_id` after OptH."""
-    pose = pose_stack_from_biotite(array, torch_device, no_optH=False)
-    index = int(
-        numpy.flatnonzero(biotite.structure.get_residues(array)[0] == res_id)[0]
-    )
-    bt = pose.packed_block_types.active_block_types[int(pose.block_type_ind[0, index])]
-    offset = int(pose.block_coord_offset[0, index])
-    ring = pose.coords[0, [offset + bt.atom_to_idx[n] for n in ("ND1", "NE2")]]
-    return bt.name, ring
-
-
 def test_optH_flips_a_doubly_protonated_histidine_ring_back(torch_device):
-    # 1YG0 His14 is deposited with HD1 and HE2, so it builds as HIS_POS.
+    # 1YG0 ASN13-HIS14-CYS15; His14 is deposited with HD1 and HE2 (HIS_POS).
     array = atom_array_from_cif(
         data_path("atomworks_regressions/his_pos_ring_1yg0.cif.zst")
     )
-    (name, ring), (_, flipped) = (
-        his_ring_after_optH(a, 14, torch_device)
-        for a in (array, his_ring_flipped(array, 14))
-    )
-    assert name == "HIS_POS"
-    torch.testing.assert_close(ring, flipped, atol=0.1, rtol=0)
+    his = array.res_id == 14
+    ring_names = ["ND1", "CD2", "CE1", "NE2", "HD1", "HD2", "HE1", "HE2"]
+    ring = his & numpy.isin(array.atom_name, ring_names)
+    cb, cg = (array.coord[his & (array.atom_name == n)][0] for n in ("CB", "CG"))
+    axis = (cg - cb) / numpy.linalg.norm(cg - cb)
+    arm = array.coord[ring] - cg
+    flipped = array.copy()
+    flipped.coord[ring] = cg + 2 * numpy.outer(arm @ axis, axis) - arm
+    rings = []
+    for structure in (array, flipped):
+        pose = pose_stack_from_biotite(structure, torch_device, no_optH=False)
+        bt = pose.packed_block_types.active_block_types[int(pose.block_type_ind[0, 1])]
+        assert bt.name == "HIS_POS"
+        start = int(pose.block_coord_offset[0, 1])
+        rings.append(
+            pose.coords[0, [start + bt.atom_to_idx[n] for n in ("ND1", "NE2")]]
+        )
+    torch.testing.assert_close(*rings, atol=0.1, rtol=0)
 
 
 def test_optH_rotamer_sampler_no_flipNHQ(ubq_pdb, torch_device):
