@@ -30,6 +30,7 @@ from tmol.ligand._polymer_profile import (
     glycosidic_torsion_atoms,
     na_backbone_kind,
     na_profile,
+    profile_for_atom_array,
 )
 from tmol.tests.data import data_path
 
@@ -124,6 +125,32 @@ def test_a_fused_dinucleotide_is_not_a_standard_backbone() -> None:
     component = _component("TTD")
     assert {"P", "PB"} <= {str(n) for n in component.atom_name}
     assert na_backbone_kind(component, frozenset({"P", "O3'"})) is None
+
+
+@pytest.mark.parametrize("code", ["DDG", "DOC"])
+def test_a_3_prime_deoxy_nucleotide_ends_its_chain_at_c3(code: str) -> None:
+    """A dideoxy chain terminator has no O3': the backbone stops at C3'."""
+    profile = profile_for_atom_array(_component(code), frozenset({"P"}))
+    assert profile.down == ("down", "P") and profile.up is None
+    assert profile.mainchain_atoms[-1] == "C3'"
+
+
+def test_an_abasic_nucleotide_is_a_backbone_not_a_sugar() -> None:
+    """AAB's C1' hydroxyl makes it look like a sugar; its backbone wins."""
+    profile = profile_for_atom_array(_component("AAB"), frozenset({"P", "O3'"}))
+    assert profile is not None and profile.up == ("up", "O3'")
+
+
+def test_an_abasic_site_in_dna_is_a_dna_backbone() -> None:
+    """1G5E AAB: a C1' hydroxyl and no 2' oxygen; only an oxygen on C2' makes RNA."""
+    from tmol.io import atom_array_from_cif
+
+    structure = atom_array_from_cif(
+        data_path("atomworks_regressions") / "abasic_1g5e.cif.zst"
+    )
+    abasic = structure[(structure.res_name == "AAB") & (structure.element != "H")]
+    assert "O1'" in set(abasic.atom_name)
+    assert na_backbone_kind(abasic, frozenset({"P", "O3'"})) == "dna"
 
 
 # --------------------------------------------------------------------------- #

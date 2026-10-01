@@ -58,15 +58,8 @@ def _polymer_connection(residue, atom):
 def attachment_connection_name(
     atom_array, index, partner, residue, partner_residue=None
 ):
-    """Classify a cross-residue endpoint from both atoms' chemistry.
-
-    A polymer nitrogen's ``down`` connection means an incoming carbonyl or
-    thiocarbonyl, not every possible bond at that atom. Alkyl carbon and phosphorus partners are
-    ordinary conjugations, including when the nitrogen is at a chain end.
-    With the partner's definition known, a port links only to the partner's
-    complementary port, as in the pose; any other bond at it is a conjugation
-    (3W93 LYS B:21 NZ acylated by TYZ B:401; 1I72 SER A:69 N by PYR A:68).
-    """
+    """A polymer ``down`` N takes only an incoming (thio)carbonyl (1MRO GL3); a port of a
+    known partner only its complementary port (7AG5, 3W93, 1I72); else a conjugation."""
     atom = str(atom_array.atom_name[index])
     declared = _polymer_connection(residue, atom)
     if declared is not None and partner_residue is not None:
@@ -192,31 +185,19 @@ def iter_capped_conjugate_models(atom_array, chemical_database):
         ri, name = port(index, partner)
         return f"residue {ri} {atom_array.res_name[index]}.{atom_array.atom_name[index]} ({name})"
 
-    def slot(index, partner):
-        # an up carbonyl has room for one partner, whichever connection it takes;
-        #    a down nitrogen may carry an alkyl conjugation beside its link
-        ri, name = port(index, partner)
-        atom = str(atom_array.atom_name[index])
-        return ri, "up" if _polymer_connection(definition(ri), atom) == "up" else name
-
     polymer_attached = set()
     for first, second, order in cross:
         first, second = int(first), int(second)
         ri, rj = int(indices[first]), int(indices[second])
         for endpoint, partner in ((first, second), (second, first)):
-            previous = occupied.setdefault(slot(endpoint, partner), partner)
+            previous = occupied.setdefault(port(endpoint, partner), partner)
             if previous != partner:
                 raise ValueError(
                     f"{label(endpoint, partner)} has multiple declared partners: "
                     f"{label(previous, endpoint)} and {label(partner, endpoint)}. "
                     "Each connection accepts one partner; resolve the input bond graph."
                 )
-        ci = attachment_connection_name(
-            atom_array, first, second, definition(ri), partner_definition(second)
-        )
-        cj = attachment_connection_name(
-            atom_array, second, first, definition(rj), partner_definition(first)
-        )
+        ci, cj = port(first, second)[1], port(second, first)[1]
         if is_polymer_link(ci, cj):
             polymer_attached.update(
                 (
@@ -360,7 +341,7 @@ def _restore_template_stereochemistry(
         if template is None:
             continue
         if name not in references:
-            reference = ccd_template_to_rdkit(template, hydrogen_policy="remove")
+            reference = ccd_template_to_rdkit(template)
             references[name] = (
                 reference,
                 {

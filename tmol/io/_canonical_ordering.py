@@ -634,13 +634,8 @@ def default_packed_block_types(device: torch.device) -> PackedBlockTypes:
 
 
 def _only_coordinates_a_metal(restype) -> bool:
-    """Whether this type is an ion or a cluster: not a polymer, only metal sites.
-
-    A metal's sites are not kinematic -- but neither is a disulfide, and a cystine
-    capped at both ends has nothing else left, so being a polymer is what keeps it.
-    What this picks out is the ions and clusters, which nothing reaches without a
-    metal in the structure.
-    """
+    """Whether this type is an ion or cluster: a non-polymer whose connections are all
+    non-kinematic (a capped cystine's disulfide is too, so polymers are kept)."""
     if restype.properties.polymer.is_polymer:
         return False
     connections = restype.connections
@@ -653,10 +648,8 @@ def _only_coordinates_a_metal(restype) -> bool:
 def _memoized_packed_block_types(device: torch.device) -> PackedBlockTypes:
     restype_set = ResidueTypeSet.get_default()
 
-    # A metal cluster carries twelve connections where a polymer carries three, and
-    # every pose is sized by the widest type packed with it -- the bond-separation
-    # table by the square of it, and the cartbonded dispatch by it directly. The
-    # ions and clusters join the packed set when a structure has one.
+    # a cluster's twelve connections would widen every pose packed with it; ions and
+    #    clusters join the packed set only when a structure has a metal
     active = [
         rt for rt in restype_set.residue_types if not _only_coordinates_a_metal(rt)
     ]

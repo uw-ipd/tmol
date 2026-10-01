@@ -110,3 +110,16 @@ def test_free_nucleotides_of_one_chain_are_not_linked():
     for o3 in numpy.flatnonzero(protonated.atom_name == "O3'"):
         partners = protonated.element[protonated.bonds.get_bonds(o3)[0]]
         assert sorted(partners) == ["C", "H"]
+
+
+def test_a_heme_split_from_its_iron_keeps_the_porphyrin_dianion():
+    """155C HEM's Fe becomes an ion residue; NA and NC stay anionic, not radicals."""
+    from tmol.io._pose_stack_from_biotite import _with_input_hydrogens
+
+    structure = atom_array_from_cif(data_path("cif", "155c__1__1.A__1.B.cif"))
+    heavy = structure[(structure.element != "H") & (structure.res_name != "HOH")]
+    chemdb = ParameterDatabase.get_default().chemical
+    protonated = _with_input_hydrogens(heavy, 7.4, None, chemdb, True)
+    heme = protonated[protonated.res_name == "HEM"]
+    nitrogens = numpy.isin(heme.atom_name, ("NA", "NB", "NC", "ND"))
+    assert heme.charge[nitrogens].sum() == -2

@@ -714,12 +714,8 @@ def _normalize_radical_oxygens(smiles: str) -> str:
 
 
 def _dimorphite_protonate_smiles(smiles: str, ph: float = 7.4) -> str:
-    """Return the SMILES pKa-protonated at ``ph`` via Dimorphite-DL.
-
-    Takes the first protonation variant (matching the reference ligand-prep
-    protocol). Falls back to the input SMILES if RDKit cannot parse it or
-    Dimorphite produces no variant.
-    """
+    """The SMILES protonated at ``ph`` by AtomWorks' Dimorphite-DL, or the input
+    SMILES if RDKit cannot parse it or Dimorphite gives no state."""
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return smiles
@@ -951,25 +947,21 @@ def _representative_instance(
     """The copy of this residue to describe the type from.
 
     Prefer copies carrying all connection atoms, then the fuller heavy-atom
-    inventory, then the fuller hydrogen inventory, then resolved coordinates.
+    inventory, then resolved coordinates.
     A fully observed internal sugar has lost its anomeric leaving oxygen; using
     it ahead of a fuller terminal copy would omit an atom the shared base type
-    must describe. A copy whose donors gave up a proton to a metal is described
-    by a deprotonated variant of the fuller copy's type.
+    must describe.
     """
     wanted = set(connection_atoms)
 
     ends = np.append(residue_starts[1:], atom_array.array_length())
-    is_h = np.isin(atom_array.element, ("H", "D"))
     if heavy_counts is None:
+        is_h = np.isin(atom_array.element, ("H", "D"))
         heavy_counts = np.add.reduceat(~is_h, residue_starts)
-    hydrogen_counts = np.add.reduceat(is_h, residue_starts)
     copies = np.flatnonzero(
         atom_array.res_name[residue_starts] == atom_array.res_name[start]
     )
-    copies = copies[
-        np.lexsort((copies, -hydrogen_counts[copies], -heavy_counts[copies]))
-    ]
+    copies = copies[np.lexsort((copies, -heavy_counts[copies]))]
     fallback, best_count = None, -1
     for i in copies:
         if fallback is not None and heavy_counts[i] < best_count:

@@ -61,9 +61,8 @@ def test_d_residues_reference_their_l_form() -> None:
     for l_rt, d_rt in base_pairs(param_db):
         # backbone tables follow the l form's own reference, mirrored
         assert d_rt.rama_reference == (l_rt.rama_reference or l_rt.name)
-        # The rotamer reference names the l form this mirrors -- except where
-        # the l form borrows a library it has no lookup row for, which mirrors
-        # to nothing, so the d form must name the mirrored library outright.
+        # the rotamer reference names the l form, or the mirror of the library
+        #    it borrows
         borrowed = l_rt.dunbrack_reference not in (None, l_rt.base_name)
         assert d_rt.dunbrack_reference == (
             "D" + l_rt.dunbrack_reference if borrowed else l_rt.base_name
