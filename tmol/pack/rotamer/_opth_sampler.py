@@ -276,7 +276,6 @@ class OptHSampler(ConformerSampler):
         nhq_downstream_kfo = numpy.zeros(0, dtype=numpy.int32)
         is_his = base in _HIS_FLIP_BASES
 
-        # every histidine protonation state (HIS_D, HIS_POS, ...) flips its ring
         flip_chi = {"ASN": "chi2", "GLN": "chi3", "HIS": "chi2"}.get(base.split("_")[0])
         uaids = rt.torsion_to_uaids.get(flip_chi)
         if uaids is not None and all(u[0] >= 0 for u in uaids):
