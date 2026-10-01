@@ -856,6 +856,16 @@ def test_a_thioglycine_link_read_as_an_iminothiol_builds_as_the_thioamide(
     assert orders[frozenset(("C", "S"))] == "DOUBLE"
 
 
+def test_a_thioglycine_link_is_a_backbone_bond_not_a_conjugation(torch_device):
+    """1MRO GL3 445 C(=S) bonds TYR 446 N as the backbone: TYR gets no conj_N type."""
+    array = atom_array_from_cif(DATA / "thioglycine_1mro.cif.zst")
+    pose = pose_stack_from_biotite(
+        array, torch_device, prepare_ligands=True, ligand_seed=20260928
+    )
+    names = {bt.name for bt in pose.packed_block_types.active_block_types}
+    assert not [n for n in names if n.startswith("TYR") and "conj_N" in n]
+
+
 def test_an_ester_oxygen_and_a_metal_bound_oxygen_keep_their_own_forms(torch_device):
     """In each of three chains PLM esterifies SER 360 OG and SER 342 OG binds Na."""
     from tmol.io import build_context_from_biotite
