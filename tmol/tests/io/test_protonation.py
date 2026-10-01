@@ -21,11 +21,12 @@ from tmol.tests.data import data_path
     ],
     ids=["3n0i", "3ks3_zinc", "2cua_copper"],
 )
-def test_states_by_context_match_the_whole_structure(path):
+def test_states_by_context_match_the_whole_structure(path, monkeypatch):
     """A residue's state read from its bonded context is the whole structure's."""
     structure = atom_array_from_cif(data_path(*path))
     heavy = structure[structure.element != "H"]
     forms = protonation.database_forms(ParameterDatabase.get_default().chemical)
+    monkeypatch.setattr(protonation, "_STATE_CAPACITY", 1)
     protonation._STATES.clear()
     marked = protonation.with_atomworks_hydrogens(
         heavy, forms=forms, residue_names=list(forms)
@@ -33,7 +34,7 @@ def test_states_by_context_match_the_whole_structure(path):
     variant = marked.get_annotation(protonation.PROTONATION_VARIANT)
 
     starts = biotite.structure.get_residue_starts(marked, add_exclusive_stop=True)
-    disulfides = protonation.find_disulfides(marked)
+    disulfides = protonation._disulfides(marked)
     extra = numpy.r_[
         protonation._polymer_gap_links(marked, starts, {}),
         numpy.c_[disulfides, numpy.ones(len(disulfides), dtype=int)],
