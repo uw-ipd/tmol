@@ -507,19 +507,13 @@
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_db</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">CartBondedEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">param_db</span><span class="o">=</span><span class="n">param_db</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 
-        <span class="c1"># Improper centres, kept keyed by the residue they were parameterised</span>
-        <span class="c1"># for. Flattened to bare names they match any block type that happens to</span>
-        <span class="c1"># share an atom name -- a calcium ion's atom is CA, as an alpha carbon</span>
-        <span class="c1"># is -- which would hand a ligand improper torsions built from protein</span>
-        <span class="c1"># parameters.</span>
+        <span class="c1"># Find the root of the improper torsions so that we can annotate them in the block types</span>
         <span class="k">def</span><span class="w"> </span><span class="nf">find_improper_roots</span><span class="p">(</span><span class="n">db</span><span class="p">):</span>
-            <span class="k">return</span> <span class="p">{</span>
-                <span class="n">res</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">(</span>
-                    <span class="n">imp</span><span class="o">.</span><span class="n">atm3</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="n">CROSS_RES_PREFIX</span><span class="p">)</span>
-                    <span class="k">for</span> <span class="n">imp</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">improper_parameters</span>
-                <span class="p">)</span>
-                <span class="k">for</span> <span class="n">res</span><span class="p">,</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">db</span><span class="o">.</span><span class="n">residue_params</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-            <span class="p">}</span>
+            <span class="n">roots</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">res</span><span class="p">,</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">db</span><span class="o">.</span><span class="n">residue_params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">imp</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">improper_parameters</span><span class="p">:</span>
+                    <span class="n">roots</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">imp</span><span class="o">.</span><span class="n">atm3</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="n">CROSS_RES_PREFIX</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">roots</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">improper_roots</span> <span class="o">=</span> <span class="n">find_improper_roots</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">cartbonded</span><span class="p">)</span>
 
@@ -594,20 +588,11 @@
                             <span class="k">continue</span>
                         <span class="n">torsions</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">atom1</span><span class="p">,</span> <span class="n">atom2</span><span class="p">,</span> <span class="n">atom3</span><span class="p">,</span> <span class="n">atom4</span><span class="p">))</span>
 
-        <span class="c1"># get improper torsions: those parameterised for this residue, plus the</span>
-        <span class="c1"># wildcard set that applies to every type. A wildcard root can still</span>
-        <span class="c1"># land on an atom with too few bonds to centre anything, so the degree</span>
-        <span class="c1"># is checked rather than assumed.</span>
-        <span class="n">roots</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">improper_roots</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_name</span><span class="p">(</span><span class="n">block_type</span><span class="p">),</span> <span class="nb">frozenset</span><span class="p">()</span>
-        <span class="p">)</span> <span class="o">|</span> <span class="bp">self</span><span class="o">.</span><span class="n">improper_roots</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"wildcard"</span><span class="p">,</span> <span class="nb">frozenset</span><span class="p">())</span>
-        <span class="k">for</span> <span class="n">improper_root</span> <span class="ow">in</span> <span class="n">roots</span><span class="p">:</span>
+        <span class="c1"># get improper torsions</span>
+        <span class="k">for</span> <span class="n">improper_root</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">improper_roots</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">improper_root</span> <span class="ow">in</span> <span class="n">block_type</span><span class="o">.</span><span class="n">atom_to_idx</span><span class="p">:</span>
                 <span class="n">atom3</span> <span class="o">=</span> <span class="n">block_type</span><span class="o">.</span><span class="n">atom_to_idx</span><span class="p">[</span><span class="n">improper_root</span><span class="p">]</span>
-                <span class="n">neighbors</span> <span class="o">=</span> <span class="n">bondmap</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">atom3</span><span class="p">,</span> <span class="p">())</span>
-                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">neighbors</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
-                    <span class="k">continue</span>
-                <span class="k">for</span> <span class="n">atom1</span><span class="p">,</span> <span class="n">atom2</span><span class="p">,</span> <span class="n">atom4</span> <span class="ow">in</span> <span class="n">permutations</span><span class="p">(</span><span class="n">neighbors</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">atom1</span><span class="p">,</span> <span class="n">atom2</span><span class="p">,</span> <span class="n">atom4</span> <span class="ow">in</span> <span class="n">permutations</span><span class="p">(</span><span class="n">bondmap</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">atom3</span><span class="p">,</span> <span class="p">()),</span> <span class="mi">3</span><span class="p">):</span>
                     <span class="n">improper</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">atom1</span><span class="p">,</span> <span class="n">atom2</span><span class="p">,</span> <span class="n">atom3</span><span class="p">,</span> <span class="n">atom4</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="p">(</span>
