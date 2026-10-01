@@ -1,12 +1,5 @@
-"""Assemble one well-formed CIF from the separate files an input arrives in.
-
-A structure prediction is often split across formats: the protein in a PDB, a
-ligand in a Tripos MOL2. Neither format carries everything AtomWorks needs --
-a PDB states connectivity but never bond order, and a MOL2 describes a molecule
-no dictionary knows. Converting each part here, joining them, and writing one
-CIF that carries its own component chemistry means AtomWorks is handed a
-complete description rather than asked to guess at an incomplete one.
-"""
+"""Join an input split across files (a PDB protein, a MOL2 ligand) into one CIF that
+carries its own component chemistry."""
 
 from __future__ import annotations
 
@@ -31,11 +24,8 @@ def atom_array_from_mol2(
     chain_id: str = "L",
     res_id: int = 1,
 ) -> struc.AtomArray:
-    """Read a Tripos MOL2 (or MDL SDF/MOL) ligand as an AtomArray with its chemistry intact.
-
-    The returned array carries explicit bond orders, formal charges and
-    aromatic flags from the file, which is what lets the ligand describe itself
-    in a CIF rather than depend on a dictionary entry that does not exist.
+    """Read a Tripos MOL2 (or MDL SDF/MOL) ligand as an AtomArray with the file's bond
+    orders, formal charges and aromatic flags, registered as its own component template.
 
     Args:
         mol2_path: Path to the MOL2, SDF or MOL file.
@@ -52,7 +42,7 @@ def atom_array_from_mol2(
         >>> ligand.bonds.get_bond_count() > 0
         True
     """
-    # Imported here because tmol.ligand imports tmol.io, as elsewhere in this package.
+    # tmol.ligand imports tmol.io
     from tmol.ligand._detect import nonstandard_residue_info_from_file
 
     info = nonstandard_residue_info_from_file(mol2_path, res_name=res_name)
@@ -60,8 +50,7 @@ def atom_array_from_mol2(
     atom_array.chain_id[:] = chain_id
     atom_array.res_id[:] = res_id
     atom_array.hetero[:] = True
-    # A placeholder code can be a real entry ("LG1"), so the molecule is registered as
-    # its own template: the file describes what was read, not what shares the name.
+    # a placeholder code can be a real entry ("LG1"): the file, not the name, decides
     atom_array._custom_ccd_registry[str(atom_array.res_name[0]).upper()] = (
         _component_template(atom_array)
     )
@@ -86,11 +75,8 @@ def _component_template(residue: struc.AtomArray) -> struc.AtomArray:
 
 
 def _harmonised(parts: list[struc.AtomArray]) -> list[struc.AtomArray]:
-    """Give every part the union of the annotations, so none is dropped on join.
-
-    Concatenation refuses categories that are missing from some input. Filling
-    them keeps chemistry -- ``charge`` above all -- that dropping would discard.
-    """
+    """Give every part the union of the annotations (zero-filled), so concatenation
+    keeps them all, ``charge`` above all."""
     union: dict[str, np.ndarray] = {}
     for part in parts:
         for category in part.get_annotation_categories():
@@ -135,11 +121,8 @@ def _with_unique_chain_ids(parts: list[struc.AtomArray]) -> list[struc.AtomArray
 
 
 def assemble_input(*parts: struc.AtomArray) -> struc.AtomArray:
-    """Join separately-read parts into one structure.
-
-    Chain IDs are kept as read and only moved where two parts claim the same
-    one. Bonds, annotations and any component templates the parts carry all
-    survive the join.
+    """Join separately-read parts with their bonds, annotations and templates; a chain
+    ID claimed by an earlier part is moved to a free one.
 
     Args:
         *parts: Structures to join, in the order they should appear.
@@ -167,12 +150,8 @@ def cif_from_atom_array(
     path: str | Path | None = None,
     entry_id: str = "assembled",
 ) -> str | Path:
-    """Write a structure as a CIF that carries its own component chemistry.
-
-    Components the dictionary knows are written from it; anything it does not
-    know -- a ligand read from a MOL2, say -- has its ``chem_comp_atom`` and
-    ``chem_comp_bond`` rows written from the structure itself. The result parses
-    without needing a dictionary entry for the ligand.
+    """Write a structure as a CIF carrying its own component chemistry: known components
+    from the dictionary, others (a MOL2 ligand) from the structure itself.
 
     Args:
         atom_array: Structure to write.
@@ -190,8 +169,6 @@ def cif_from_atom_array(
     config = CIFWriteConfig(
         id=entry_id,
         include_entity_categories=True,
-        # "ccd" writes a known component from the dictionary, and one it lacks
-        # (a ligand read from a file) from the structure.
         chem_comp_source="ccd",
         warn_on_ccd_without_registry=False,
     )

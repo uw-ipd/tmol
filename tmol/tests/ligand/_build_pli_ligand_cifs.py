@@ -1,7 +1,8 @@
 """Generate protein_ligand_test ligand CIF fixtures from reference .tmol data.
 
-This script builds ligand-only CIFs that carry explicit bond orders and
-reference partial charges. Coordinates are taken from ``*_complex*.pdb`` when
+This script builds ligand-only CIFs that declare their own component (written by
+AtomWorks with ``chem_comp_atom``/``chem_comp_bond``) and carry reference partial
+charges. Coordinates are taken from ``*_complex*.pdb`` when
 atom names match the reference (Rosetta/LG1 naming); otherwise from the paired
 ``.lig.mol2`` (mol2gen uses the same names as the mol2 file, with duplicate
 names disambiguated as ``C2'2``, etc.).
@@ -13,6 +14,7 @@ from pathlib import Path
 
 import biotite.structure as struc
 import biotite.structure.io as struc_io
+import numpy as np
 
 from tmol.tests.data import data_path
 from tmol.ligand import (
@@ -23,11 +25,12 @@ from tmol.ligand import (
 PLI_DIR = data_path("protein_ligand_test")
 CIF_OUT_DIR = PLI_DIR / "cif_inputs"
 
-_BOND_ORDER_TO_CIF = {
-    "SINGLE": "SING",
-    "DOUBLE": "DOUB",
-    "TRIPLE": "TRIP",
-    "AROMATIC": "AROM",
+# a name no CCD entry can have, so nothing is read for the ligand but what it declares
+LIGAND_RES_NAME = "L_1"
+_BOND_ORDER = {
+    "SINGLE": struc.BondType.SINGLE,
+    "DOUBLE": struc.BondType.DOUBLE,
+    "TRIPLE": struc.BondType.TRIPLE,
 }
 
 
@@ -234,115 +237,113 @@ def _source_subtype_from_atom_type(element: str, atom_type: str) -> str:  # noqa
     return "?"
 
 
-def _render_ligand_cif(
-    prep, coords_by_name: dict[str, tuple[str, tuple[float, float, float]]]
-) -> str:
-    """Render a ligand-only CIF with explicit bond orders and partial charges.
+def _with_lewis_structure(ligand: struc.AtomArray) -> None:
+    """Give ``ligand`` the formal charges and bond orders tmol reads from its bond table.
 
-    Args:
-        prep: The ligand preparation supplying topology and charges.
-        coords_by_name: Atom-name -> ``(element, xyz)`` coordinate donor.
+    The reference writes delocalized groups (carboxylates) as single bonds and states
+    no charges; a component definition states both. A bond table tmol cannot read
+    (parp, which the fail-closed tests use) is left as the reference writes it.
+    """
+    from rdkit import Chem
 
-    Returns:
-        The CIF document as a single string.
+    from tmol.ligand._structure_to_smiles import ligand_smiles_from_atom_array
+
+    try:
+        smiles = ligand_smiles_from_atom_array(ligand, with_atom_map=True)
+    except ValueError:
+        return
+    mol = Chem.MolFromSmiles(smiles)
+    Chem.Kekulize(mol)
+    source = {a.GetIdx(): a.GetAtomMapNum() - 1 for a in mol.GetAtoms()}
+    charge = np.zeros(len(ligand), dtype=int)
+    for atom in mol.GetAtoms():
+        charge[source[atom.GetIdx()]] = atom.GetFormalCharge()
+    ligand.set_annotation("charge", charge)
+    order = {
+        frozenset((source[b.GetBeginAtomIdx()], source[b.GetEndAtomIdx()])): (
+            struc.BondType[f"AROMATIC_{b.GetBondType()}"]
+            if b.GetIsAromatic()
+            else _BOND_ORDER[str(b.GetBondType())]
+        )
+        for b in mol.GetBonds()
+    }
+    bonds = ligand.bonds.as_array()
+    for row, (i, j, _) in enumerate(bonds):
+        bonds[row, 2] = order.get(frozenset((int(i), int(j))), bonds[row, 2])
+    ligand.bonds = struc.BondList(len(ligand), bonds)
+
+
+def _write_ligand_cif(
+    prep, coords_by_name: dict[str, tuple[str, tuple[float, float, float]]], path
+) -> None:
+    """Write a ligand-only CIF, named ``LIGAND_RES_NAME``, that declares its own component.
+
+    AtomWorks writes ``chem_comp``, ``chem_comp_atom`` and ``chem_comp_bond`` from
+    the ligand itself, so no CCD entry is consulted for it; the atoms also carry the
+    reference partial charges, aromatic flags and source subtypes.
 
     Raises:
         ValueError: On an unsupported bond type or an atom missing coordinates
             or a reference charge.
     """
+    from atomworks.io.utils.io_utils import to_cif_file
+
     restype = prep.residue_type
     aromatic_atoms = _aromatic_atom_set(restype)
-
-    lines: list[str] = ["data_structure", "#", "loop_"]
-    lines.extend(
-        [
-            "_chem_comp_bond.pdbx_ordinal ",
-            "_chem_comp_bond.comp_id ",
-            "_chem_comp_bond.atom_id_1 ",
-            "_chem_comp_bond.atom_id_2 ",
-            "_chem_comp_bond.value_order ",
-            "_chem_comp_bond.pdbx_aromatic_flag ",
-            "_chem_comp_bond.pdbx_stereo_config ",
-        ]
-    )
-    for idx, (a, b, bond_type, *rest) in enumerate(restype.bonds, start=1):
-        btype = str(bond_type)
-        ring = bool(rest[0]) if rest else False
-        if btype == "AROMATIC" and not ring:
-            # Non-ring aromatic bonds in .tmol represent delocalized/resonance
-            # chemistry (e.g. carboxylate/amide-like patterns), not true ring
-            # aromaticity. Writing these as AROM+N yields an unsupported bond
-            # code in biotite's CIF parser; keep them explicit and non-aromatic.
-            order = "SING"
-            aromatic_flag = "N"
-        else:
-            order = _BOND_ORDER_TO_CIF.get(btype)
-            if order is None:
-                raise ValueError(f"{restype.name}: unsupported bond type {btype}")
-            aromatic_flag = "Y" if (btype == "AROMATIC" and ring) else "N"
-        lines.append(
-            f"{idx:<2} {restype.name:<3} {str(a):<4} {str(b):<4} {order:<4} {aromatic_flag} ?"
-        )
-
-    lines.extend(
-        [
-            "#",
-            "loop_",
-            "_atom_site.group_PDB ",
-            "_atom_site.type_symbol ",
-            "_atom_site.label_atom_id ",
-            "_atom_site.label_alt_id ",
-            "_atom_site.label_comp_id ",
-            "_atom_site.label_asym_id ",
-            "_atom_site.label_entity_id ",
-            "_atom_site.label_seq_id ",
-            "_atom_site.pdbx_PDB_ins_code ",
-            "_atom_site.auth_seq_id ",
-            "_atom_site.auth_comp_id ",
-            "_atom_site.auth_asym_id ",
-            "_atom_site.auth_atom_id ",
-            "_atom_site.B_iso_or_equiv ",
-            "_atom_site.occupancy ",
-            "_atom_site.pdbx_formal_charge ",
-            "_atom_site.Cartn_x ",
-            "_atom_site.Cartn_y ",
-            "_atom_site.Cartn_z ",
-            "_atom_site.pdbx_PDB_model_num ",
-            "_atom_site.id ",
-            "_atom_site.partial_charge ",
-            "_atom_site.tmol_aromatic ",
-            "_atom_site.tmol_source_subtype ",
-        ]
-    )
-
-    for idx, atom in enumerate(restype.atoms, start=1):
-        name = str(atom.name)
+    names = [str(atom.name) for atom in restype.atoms]
+    for name in names:
         if name not in coords_by_name:
-            raise ValueError(
-                f"{restype.name}: atom {name} missing from coordinate donor structure"
-            )
+            raise ValueError(f"{restype.name}: atom {name} missing from coordinates")
         if name not in prep.partial_charges:
             raise ValueError(f"{restype.name}: atom {name} missing reference charge")
-
-        element, coord = coords_by_name[name]
-        partial_charge = prep.partial_charges[name]
-        aromatic_flag = "Y" if name in aromatic_atoms else "N"
-        source_subtype = _source_subtype_from_atom_type(element, atom.atom_type)
-        lines.append(
-            "HETATM "
-            f"{element:<2} "
-            f"{name:<4} "
-            ". "
-            f"{restype.name:<3} "
-            "A 1 1 . "
-            f"1 {restype.name:<3} A {name:<4} "
-            "nan 0.0 ? "
-            f"{coord[0]:.4f} {coord[1]:.4f} {coord[2]:.4f} "
-            f"1 {idx} {partial_charge:+.6f} {aromatic_flag} {source_subtype}"
-        )
-    lines.append("#")
-    lines.append("")
-    return "\n".join(lines)
+    ligand = struc.AtomArray(len(names))
+    ligand.coord = np.array([coords_by_name[n][1] for n in names])
+    ligand.atom_name = np.array(names)
+    ligand.element = np.array([coords_by_name[n][0].upper() for n in names])
+    ligand.res_name[:] = LIGAND_RES_NAME
+    ligand.chain_id[:] = "A"
+    ligand.res_id[:] = 1
+    ligand.hetero[:] = True
+    ligand.set_annotation("chem_comp_type", np.full(len(names), "NON-POLYMER"))
+    for field, values in (
+        ("partial_charge", [prep.partial_charges[n] for n in names]),
+        ("tmol_aromatic", [n in aromatic_atoms for n in names]),
+        (
+            "tmol_source_subtype",
+            [
+                _source_subtype_from_atom_type(coords_by_name[n][0], atom.atom_type)
+                for n, atom in zip(names, restype.atoms)
+            ],
+        ),
+    ):
+        ligand.set_annotation(field, np.array(values))
+    index = {name: i for i, name in enumerate(names)}
+    bonds = []
+    for a, b, bond_type, *rest in restype.bonds:
+        btype = str(bond_type)
+        if btype == "AROMATIC":
+            # a non-ring AROMATIC bond in .tmol is delocalized chemistry
+            # (carboxylate, amide), not ring aromaticity
+            order = (
+                struc.BondType.AROMATIC if rest and rest[0] else struc.BondType.SINGLE
+            )
+        elif btype in _BOND_ORDER:
+            order = _BOND_ORDER[btype]
+        else:
+            raise ValueError(f"{restype.name}: unsupported bond type {btype}")
+        bonds.append((index[str(a)], index[str(b)], order))
+    ligand.bonds = struc.BondList(len(names), np.array(bonds))
+    _with_lewis_structure(ligand)
+    to_cif_file(
+        ligand,
+        path,
+        id="structure",
+        author="tmol",
+        date="2026-09-30",
+        time="00:00:00",
+        extra_fields=["partial_charge", "tmol_aromatic", "tmol_source_subtype"],
+        ccd_entries={LIGAND_RES_NAME: ligand},
+    )
 
 
 def ensure_pli_ligand_cifs(output_dir: Path = CIF_OUT_DIR) -> list[Path]:
@@ -365,10 +366,8 @@ def ensure_pli_ligand_cifs(output_dir: Path = CIF_OUT_DIR) -> list[Path]:
         restype = prep.residue_type
         complex_path = _find_complex_path(target)
         coords_by_name = _load_ligand_coords_for_target(target, restype, complex_path)
-        cif_text = _render_ligand_cif(prep, coords_by_name)
-
         out_path = output_dir / f"{target}.ligand.cif"
-        out_path.write_text(cif_text)
+        _write_ligand_cif(prep, coords_by_name, out_path)
         written.append(out_path)
 
     return written
