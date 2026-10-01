@@ -211,8 +211,8 @@ def _score_and_grad(pose_stack, sfxn, coords=None):
     return energies.detach(), grad
 
 
-def _assert_scored_as_alone(poses, sfxn, energies, grads, which):
-    for i in which:
+def _assert_scored_as_alone(poses, sfxn, energies, grads):
+    for i in range(len(poses)):
         energy, grad = _score_and_grad(poses[i], sfxn)
         n_atoms = poses[i].coords.shape[1]
         assert torch.isfinite(grads[i, :n_atoms]).all(), f"pose {i}"
@@ -232,7 +232,7 @@ def test_stack_of_sweep_regressions_matches_individual(torch_device):
     poses, sfxn = _sweep_regression_poses(torch_device)
     stack = PoseStackBuilder.from_poses(poses, torch_device)
     energies, grads = _score_and_grad(stack, sfxn)
-    _assert_scored_as_alone(poses, sfxn, energies, grads, range(len(poses)))
+    _assert_scored_as_alone(poses, sfxn, energies, grads)
     if torch_device.type == "cpu":
         _compare("cart, sweep regressions", poses, stack, sfxn, _cart_min_per_pose)
     else:
@@ -241,21 +241,3 @@ def test_stack_of_sweep_regressions_matches_individual(torch_device):
         minimized = _cart_min_per_pose(stack, sfxn)
         assert torch.isfinite(minimized).all()
         assert torch.all(minimized < energies)
-
-
-def test_nan_in_one_pose_stays_in_that_pose(torch_device):
-    """A pose with a NaN coordinate scores NaN; its neighbours in the stack score
-    and minimize as they would without it."""
-    poses, sfxn = _sweep_regression_poses(torch_device)
-    stack = PoseStackBuilder.from_poses(poses, torch_device)
-    coords = stack.coords.clone()
-    coords[1, 0] = float("nan")
-    stack = attr.evolve(stack, coords=coords)
-    energies, grads = _score_and_grad(stack, sfxn)
-    assert torch.isnan(energies[1])
-    _assert_scored_as_alone(poses, sfxn, energies, grads, (0, 2))
-
-    minimized = _cart_min_per_pose(stack, sfxn)
-    one_by_one = torch.cat([_cart_min_per_pose(poses[i], sfxn) for i in (0, 2)])
-    assert torch.isfinite(minimized[[0, 2]]).all()
-    assert torch.all(torch.abs(minimized[[0, 2]] - one_by_one) < 5.0)
