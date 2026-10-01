@@ -817,7 +817,6 @@ def test_a_component_of_unbonded_fragments_builds_scores_packs_and_minimizes(
         torch_device,
         prepare_ligands=True,
         return_context=True,
-        use_ccd=False,
         ligand_seed=0,
     )
     database = context.parameter_database
