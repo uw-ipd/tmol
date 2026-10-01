@@ -211,5 +211,14 @@
   "sha256": "adb43951ee296215f9b2e4b74f4043b1ef5d8f979985a44440e72e922c45924e",
   "bytes": 391302,
   "compressed_sha256": "3ebafddadb1426b9ae85e5093d85f1a3bf5deee34b851bafbedb827de841cc86"
+ },
+ {
+  "fixture": "renumbered_chloride_4eu8.cif.zst",
+  "source": "https://files.rcsb.org/download/4EU8.cif.gz (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/eu/4eu8.cif.gz)",
+  "source_sha256": "2b5f50451bc023e3d143fde7b3449ea66a2428a6845537a0e7ce149c4825a19a",
+  "transformation": "Retained four CL ions and the three waters surrounding the first decrease in label chain I (author residues646,647,517), component/entity/nonpoly-scheme definitions and original coordinates/charges/identifiers. Tests also exercise an explicitly authored zero atom-site charge.",
+  "sha256": "320d2a30831fdd53e3d3e7e04a3db40dfc360455015b89b6b3abf50bb447da4f",
+  "bytes": 3012,
+  "compressed_sha256": "9ef8a9eb5d07ced7a9ad3cd7fddea8bf606abc4b91267b3530f825745194f4ec"
  }
 ]
