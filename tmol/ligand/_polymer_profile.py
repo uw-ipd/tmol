@@ -19,7 +19,7 @@ import biotite.structure as struc
 from rdkit import Chem
 from rdkit.Chem import rdFMCS
 from atomworks.io.utils.atom_array_plus import concatenate_atom_array_plus
-from atomworks.io.utils.leaving_atoms import get_leaving_atom_groups
+from atomworks.io.utils.link_chemistry import get_leaving_atom_groups
 
 from tmol.utility.weak_identity_cache import WeakIdentityLRU
 
