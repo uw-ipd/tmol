@@ -9,21 +9,11 @@ from tmol.types import Tensor
 
 @attr.s(auto_attribs=True, frozen=True)
 class InterBlockBondsep:
-    """Connection bond separations below the cap, stored only for nearby block pairs.
+    """Connection bond separations below the cap of nearby block pairs; each row
+    lists its ``block2`` slots ascending, then empty slots (block -1, the cap)."""
 
-    Row ``[pose, block1]`` lists its ``block2`` ascending, then at least one empty
-    slot (block ``-1``, all separations the cap) that ``near_block_slot`` finds.
-
-    Attributes:
-        near_blocks: ``[pose, block1, slot, 2]`` int32 holding ``block2`` and
-            the minimum separation over the pair's connections.
-        bondsep: ``[pose, block1, slot, conn1, conn2]`` int8 separations between
-            connection ``conn1`` of ``block1`` and ``conn2`` of ``block2``;
-            connections a block type lacks hold the cap.
-    """
-
-    near_blocks: Tensor[torch.int32][:, :, :, 2]
-    bondsep: Tensor[torch.int8][:, :, :, :, :]
+    near_blocks: Tensor[torch.int32][:, :, :, 2]  # pose, block1, slot, (block2, min)
+    bondsep: Tensor[torch.int8][:, :, :, :, :]  # pose, block1, slot, conn1, conn2
 
     @property
     def n_poses(self) -> int:
@@ -83,15 +73,8 @@ class InterBlockBondsep:
         intra_separation: Tensor[torch.int32][:, :, :, :],
         connections: Tensor[torch.int64][:, :, :, 2],
     ) -> "InterBlockBondsep":
-        """Shortest paths below the cap between connections, joined within a block by
-        their intra-block separation and across an inter-block bond by one.
-
-        Args:
-            counts: ``[pose, block]`` number of connections of each block.
-            intra_separation: ``[pose, block, conn1, conn2]`` bond separation
-                between the atoms of a block's connections.
-            connections: ``[pose, block, conn, 2]`` block and connection that
-                each connection bonds to, ``-1`` if none.
+        """Shortest paths below the cap between ``[pose, block, conn]`` connections, one
+        bond per ``connections`` partner (-1: none) plus ``intra_separation`` in a block.
         """
         n_poses, max_n_blocks, max_n_conn = connections.shape[:3]
         device = connections.device

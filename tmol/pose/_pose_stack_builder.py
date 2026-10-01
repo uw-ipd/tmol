@@ -259,9 +259,8 @@ class PoseStackBuilder:
         # in the connection-annotated sequence. c. Then we will remove the
         # chemical bonds for i-to-i+1 connections that span chains
         #
-        # 3) Finally, we search the graph of connection points, weighted by the
-        # intra-residue connection distances of the PBT object and joined by the
-        # inter_residue_connections64 bonds, for the bond separations below the cap
+        # 3) Finally, we search the connection graph (intra-residue distances plus
+        # inter_residue_connections64 bonds) for the bond separations below the cap
 
         # 1
         resolved_expoly_connections = cls._find_connection_pairs_for_residue_subset(
@@ -666,9 +665,7 @@ class PoseStackBuilder:
         cls, pbt: PackedBlockTypes
     ):
         """Note the number of chemical bonds that separate all pairs of
-        connection atoms: the weights of the graph of chemical bonds from which
-        the chemical separation of the connection atoms is found.
-        """
+        connection atoms: the intra-block weights of the connection graph."""
         if hasattr(pbt, "conn_at_intrablock_bond_sep"):
             return
         for bt in pbt.active_block_types:
@@ -1004,11 +1001,7 @@ class PoseStackBuilder:
         real_blocks: Tensor[torch.bool][:, :],
         inter_residue_connections64: Tensor[torch.int64][:, :, :, 2],
     ) -> InterBlockBondsep:
-        """Bond separations between the connections of nearby blocks.
-
-        Searches the bonded graph of the blocks' connections only for
-        separations below ``MAX_SIG_BOND_SEPARATION``.
-        """
+        """Bond separations below the cap between the connections of nearby blocks."""
         cls._annotate_pbt_w_intraresidue_connection_atom_distances(pbt)
         # padding blocks have no connections, so their intra separations go unread
         return InterBlockBondsep.from_bonded_graph(
