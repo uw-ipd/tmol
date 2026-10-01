@@ -13,7 +13,7 @@ import networkx as nx
 import numpy as np
 from rdkit import Chem
 from atomworks.io.utils.atom_array_plus import concatenate_atom_array_plus
-from atomworks.io.utils.leaving_atoms import get_leaving_atom_groups
+from atomworks.io.utils.link_chemistry import get_leaving_atom_groups
 
 from tmol.ligand._polymer_profile import cap_residue, profile_for_atom_array
 from tmol.ligand._conjugation_patches import connection_name

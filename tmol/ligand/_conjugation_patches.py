@@ -18,7 +18,7 @@ import attr
 import biotite.structure as struc
 import networkx
 import numpy as np
-from atomworks.io.utils.leaving_atoms import get_leaving_atom_groups
+from atomworks.io.utils.link_chemistry import get_leaving_atom_groups
 
 from tmol.ligand._icoor_tree import signed_dihedral_angle
 from tmol.ligand._input_repair import get_absent_substitution_leaving_groups

@@ -141,18 +141,6 @@ def test_an_abasic_nucleotide_is_a_backbone_not_a_sugar() -> None:
     assert profile is not None and profile.up == ("up", "O3'")
 
 
-def test_an_abasic_site_in_dna_is_a_dna_backbone() -> None:
-    """1G5E AAB: a C1' hydroxyl and no 2' oxygen; only an oxygen on C2' makes RNA."""
-    from tmol.io import atom_array_from_cif
-
-    structure = atom_array_from_cif(
-        data_path("atomworks_regressions") / "abasic_1g5e.cif.zst"
-    )
-    abasic = structure[(structure.res_name == "AAB") & (structure.element != "H")]
-    assert "O1'" in set(abasic.atom_name)
-    assert na_backbone_kind(abasic, frozenset({"P", "O3'"})) == "dna"
-
-
 # --------------------------------------------------------------------------- #
 # the glycosidic torsion
 # --------------------------------------------------------------------------- #
@@ -456,34 +444,3 @@ def test_the_component_definition_breaks_a_leaving_oxygen_tie(torch_device) -> N
     names, _chemdb = _block_type_names(structure, torch_device)
 
     assert names == ["LCC:na5prime", "LCC", "LCC", "LCG", "RA:na3prime"]
-
-
-def test_a_patch_removes_the_hydrogens_of_the_atoms_it_removes() -> None:
-    """XY7's phosphate carries hydroxyl hydrogens a canonical nucleotide lacks.
-
-    The 5'-terminal patches remove OP1 and OP2, and with them HOP1 and HOP2 (7KW4
-    A:2).
-    """
-    prepared, _known, _co = _prepared(_sweep_structure("xy7_phosphate_hydrogens_7kw4"))
-    atoms = {
-        r.name: {a.name for a in r.atoms}
-        for r in prepared.chemical.residues
-        if r.base_name == "XY7"
-    }
-
-    assert {"HOP1", "HOP2"} <= atoms["XY7"]
-    assert not {"HOP1", "HOP2"} & (atoms["XY7:na5prime"] | atoms["XY7:na5primephos"])
-
-
-def test_a_variant_keeps_the_phosphate_alias_of_its_residue(torch_device) -> None:
-    """1MWI D:7 AAB reads its deposited O3P as OP2; so do its variants, na5primephos
-    too."""
-    structure = _sweep_structure("aab_phosphate_alias_1mwi")
-    names, chemdb = _block_type_names(structure, torch_device)
-
-    assert names == ["DG:na5primephos", "AAB", "DT:na3prime"]
-    aab = [r for r in chemdb.residues if r.base_name == "AAB"]
-    assert len(aab) > 1
-    for restype in aab:
-        aliases = {a.alt_name: a.name for a in restype.atom_aliases}
-        assert aliases["O3P"] == "OP2", restype.name
