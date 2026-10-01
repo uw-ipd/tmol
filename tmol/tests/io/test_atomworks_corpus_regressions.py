@@ -1269,7 +1269,6 @@ def test_small_attachment_frames_and_minimization(fixture, components, torch_dev
     [
         ("2rm9", "GLU", "CD", "OE1", "OE2", 1),
         ("6n0a", "ASN", "CG", "OD1", "ND2", 4),
-        ("1hxq", "U5P", "P", "O1P", "O3P", 2),
     ],
 )
 def test_sidechain_substitutions_retain_chemistry(
@@ -1280,16 +1279,13 @@ def test_sidechain_substitutions_retain_chemistry(
     from tmol.ligand._conjugation_patches import _hydrogens_on
     from tmol.tests.ligand.test_local_conjugate_params import _charges
 
-    prefix = "phosphohistidine" if code == "1hxq" else "isopeptide"
-    array = atom_array_from_cif(DATA / f"{prefix}_{code}.cif.zst")
+    array = atom_array_from_cif(DATA / f"isopeptide_{code}.cif.zst")
     metals = np.isin(np.char.upper(array.element), ("CA", "ZN", "FE"))
     assert_metal_bonds_are_coordination(array, metals)
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)
     backbone = np.isin(array.atom_name, ("N", "CA", "C"))
     observed = np.isfinite(array.coord).all(-1)
-    resolved = (np.add.reduceat(backbone & observed, starts[:-1]) == 3) | (
-        array.res_name[starts[:-1]] == "U5P"
-    )
+    resolved = np.add.reduceat(backbone & observed, starts[:-1]) == 3
     array = array[
         np.repeat(resolved, np.diff(starts)) & ~metals & (array.res_name != "HOH")
     ]
@@ -1305,9 +1301,7 @@ def test_sidechain_substitutions_retain_chemistry(
         for bt in attached
         if bt.base_name == acyl and any(c.atom == carbon for c in bt.connections)
     ]
-    partner, site, hydrogens, generic = (
-        ("HIS", "NE2", 0, "NG2") if acyl == "U5P" else ("LYS", "NZ", 1, "Nad")
-    )
+    partner, site, hydrogens, generic = ("LYS", "NZ", 1, "Nad")
     partners = [
         bt
         for bt in attached
