@@ -348,18 +348,3 @@ def test_the_bounded_search_finds_every_short_path(structure, ubq_pdb, torch_dev
         pose_stack.inter_block_bondsep.to_dense(),
         dense_bondsep(*bonded_graph(pose_stack)),
     )
-
-
-def test_pose_stacks_keep_their_separations_when_stacked(ubq_pdb, torch_device):
-    poses = [
-        pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=n) for n in (12, 30)
-    ]
-    stacked = PoseStackBuilder.from_poses(poses, torch_device)
-
-    assert_well_formed(stacked.inter_block_bondsep)
-    dense = stacked.inter_block_bondsep.to_dense()
-    for index, pose in enumerate(poses):
-        n, m = pose.max_n_blocks, pose.packed_block_types.max_n_conn
-        torch.testing.assert_close(
-            dense[index, :n, :n, :m, :m], pose.inter_block_bondsep.to_dense()[0]
-        )

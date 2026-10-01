@@ -53,7 +53,6 @@ def assign_block_types(
     pbt = packed_block_types
     _annotate_packed_block_types_w_canonical_res_order(canonical_ordering, pbt)
     annotate_packed_block_types_w_dslf_conn_inds(pbt)
-    PoseStackBuilder._annotate_pbt_w_intraresidue_connection_atom_distances(pbt)
 
     device = pbt.device
     n_poses = chain_id.shape[0]
