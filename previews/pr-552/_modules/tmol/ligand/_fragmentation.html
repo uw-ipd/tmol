@@ -453,13 +453,10 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">struc</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._icoor_tree</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">signed_dihedral_angle</span><span class="p">,</span>
-    <span class="n">vertex_angle</span><span class="p">,</span>
-<span class="p">)</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_coords_from_icoors</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">Connection</span><span class="p">,</span> <span class="n">Icoor</span><span class="p">,</span> <span class="n">RawResidueType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._icoor_tree</span><span class="w"> </span><span class="kn">import</span> <span class="n">signed_dihedral_angle</span><span class="p">,</span> <span class="n">vertex_angle</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">LigandPreparation</span>
 
 <span class="n">FRAGMENT_ID_ANNOTATION</span> <span class="o">=</span> <span class="s2">"tmol_fragment_id"</span>

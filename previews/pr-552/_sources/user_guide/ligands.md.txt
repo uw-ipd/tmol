@@ -137,7 +137,7 @@ from tmol.io import pose_stack_from_file
 from tmol.ligand import write_params_from_mol2
 
 write_params_from_mol2(
-    "ligand.mol2", "ligand.tmol", res_name="LIG", format="tmol", mode="auto"
+    "ligand.mol2", "ligand.tmol", res_name="LIG", mode="auto"
 )
 pose_stack, context = pose_stack_from_file(
     "complex.pdb", device,

@@ -656,8 +656,8 @@
         <span class="ow">or</span> <span class="n">bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">protonation</span><span class="o">.</span><span class="n">protonation_state</span> <span class="o">==</span> <span class="n">DEPROTONATED_STATE</span>
         <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span>
     <span class="p">]</span>
-    <span class="c1"># only types that agree on these fields can pass the test below; comparing</span>
-    <span class="c1">#    within those groups keeps the pairs, and their order, of the full n^2 scan</span>
+    <span class="c1"># types can exchange only within a group that agrees on these fields; each</span>
+    <span class="c1">#    type's candidates keep the order of the full n^2 scan</span>
     <span class="n">groups</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
         <span class="n">polymer</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span>
@@ -678,16 +678,9 @@
                 <span class="k">continue</span>
             <span class="n">j_allowed_for_restrict_to_repack</span> <span class="o">=</span> <span class="n">alt_bt</span><span class="o">.</span><span class="n">name3</span> <span class="o">==</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">name3</span>
             <span class="k">if</span> <span class="p">(</span>
-                <span class="n">alt_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">is_polymer</span>
-                <span class="o">==</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">is_polymer</span>
-                <span class="ow">and</span> <span class="n">alt_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">polymer_type</span>
-                <span class="o">==</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">polymer_type</span>
-                <span class="ow">and</span> <span class="n">alt_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">backbone_type</span>
-                <span class="o">==</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">backbone_type</span>
-                <span class="ow">and</span> <span class="n">alt_bt</span><span class="o">.</span><span class="n">connections</span>
+                <span class="n">alt_bt</span><span class="o">.</span><span class="n">connections</span>
                 <span class="o">==</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">connections</span>  <span class="c1"># fd  use this instead of terminal variant check</span>
                 <span class="ow">and</span> <span class="n">alt_bt</span><span class="o">.</span><span class="n">conjugation_context</span> <span class="o">==</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">conjugation_context</span>
-                <span class="ow">and</span> <span class="n">mc_elements</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">mc_elements</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
                 <span class="ow">and</span> <span class="n">set_compare</span><span class="p">(</span>
                     <span class="n">alt_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">chemical_modifications</span><span class="p">,</span>
                     <span class="n">orig_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">chemical_modifications</span><span class="p">,</span>
@@ -695,8 +688,6 @@
                 <span class="ow">and</span> <span class="n">set_compare</span><span class="p">(</span>
                     <span class="n">alt_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">connectivity</span><span class="p">,</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">connectivity</span>
                 <span class="p">)</span>
-                <span class="ow">and</span> <span class="n">alt_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">protonation</span><span class="o">.</span><span class="n">protonation_state</span>
-                <span class="o">==</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">protonation</span><span class="o">.</span><span class="n">protonation_state</span>
             <span class="p">):</span>
                 <span class="k">if</span> <span class="p">(</span>
                     <span class="n">alt_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">sidechain_chirality</span>

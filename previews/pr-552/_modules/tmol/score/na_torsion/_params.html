@@ -602,14 +602,13 @@
 
 
 
-<span class="n">_FROM_DB_CACHE</span> <span class="o">=</span> <span class="n">WeakIdentityLRU</span><span class="p">()</span>
-
-
 <div class="viewcode-block" id="NaTorsionParams">
 <a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.na_torsion.NaTorsionParams">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">NaTorsionParams</span><span class="p">(</span><span class="n">ValidateAttrs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Device-resident nucleic-acid torsion distributions and well energies."""</span>
+
+    <span class="n">_from_db_cache</span> <span class="o">=</span> <span class="n">WeakIdentityLRU</span><span class="p">()</span>
 
     <span class="c1"># means in degrees; 3 bins for alpha/gamma, 2 for beta/epsilon/zeta</span>
     <span class="n">backbone_means</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][</span><span class="mi">2</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
@@ -642,9 +641,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">from_database</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">database</span><span class="p">:</span> <span class="n">NaTorsionDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
         <span class="c1"># score functions built from one database share its tables</span>
         <span class="n">device</span> <span class="o">=</span> <span class="n">resolve_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cpu"</span><span class="p">:</span>
-            <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">_FROM_DB_CACHE</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_from_db_cache</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span>
             <span class="n">database</span><span class="p">,</span> <span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">device</span><span class="p">),</span> <span class="k">lambda</span><span class="p">:</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_from_database</span><span class="p">(</span><span class="n">database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
         <span class="p">)</span>
 

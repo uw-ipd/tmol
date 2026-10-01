@@ -440,15 +440,8 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.io._assemble</h1><div class="highlight"><pre>
-<span></span><span class="sd">"""Assemble one well-formed CIF from the separate files an input arrives in.</span>
-
-<span class="sd">A structure prediction is often split across formats: the protein in a PDB, a</span>
-<span class="sd">ligand in a Tripos MOL2. Neither format carries everything AtomWorks needs --</span>
-<span class="sd">a PDB states connectivity but never bond order, and a MOL2 describes a molecule</span>
-<span class="sd">no dictionary knows. Converting each part here, joining them, and writing one</span>
-<span class="sd">CIF that carries its own component chemistry means AtomWorks is handed a</span>
-<span class="sd">complete description rather than asked to guess at an incomplete one.</span>
-<span class="sd">"""</span>
+<span></span><span class="sd">"""Join an input split across files (a PDB protein, a MOL2 ligand) into one CIF that</span>
+<span class="sd">carries its own component chemistry."""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
@@ -475,14 +468,11 @@
     <span class="n">chain_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"L"</span><span class="p">,</span>
     <span class="n">res_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Read a Tripos MOL2 ligand as an AtomArray with its chemistry intact.</span>
-
-<span class="sd">    The returned array carries explicit bond orders, formal charges and</span>
-<span class="sd">    aromatic flags from the file, which is what lets the ligand describe itself</span>
-<span class="sd">    in a CIF rather than depend on a dictionary entry that does not exist.</span>
+<span class="w">    </span><span class="sd">"""Read a Tripos MOL2 (or MDL SDF/MOL) ligand as an AtomArray with the file's bond</span>
+<span class="sd">    orders, formal charges and aromatic flags, registered as its own component template.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        mol2_path: Path to the MOL2 file.</span>
+<span class="sd">        mol2_path: Path to the MOL2, SDF or MOL file.</span>
 <span class="sd">        res_name: Component code to give the ligand. Taken from the file's</span>
 <span class="sd">            substructure record when None.</span>
 <span class="sd">        chain_id: Chain to place the ligand on.</span>
@@ -496,16 +486,15 @@
 <span class="sd">        &gt;&gt;&gt; ligand.bonds.get_bond_count() &gt; 0</span>
 <span class="sd">        True</span>
 <span class="sd">    """</span>
-    <span class="c1"># Imported here because tmol.ligand imports tmol.io, as elsewhere in this package.</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._detect</span><span class="w"> </span><span class="kn">import</span> <span class="n">nonstandard_residue_info_from_mol2</span>
+    <span class="c1"># tmol.ligand imports tmol.io</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._detect</span><span class="w"> </span><span class="kn">import</span> <span class="n">nonstandard_residue_info_from_file</span>
 
-    <span class="n">info</span> <span class="o">=</span> <span class="n">nonstandard_residue_info_from_mol2</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span><span class="p">)</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">nonstandard_residue_info_from_file</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span><span class="p">)</span>
     <span class="n">atom_array</span> <span class="o">=</span> <span class="n">as_atom_array_plus</span><span class="p">(</span><span class="n">info</span><span class="o">.</span><span class="n">atom_array</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">chain_id</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">chain_id</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">res_id</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">res_id</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">hetero</span><span class="p">[:]</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="c1"># A placeholder code can be a real entry ("LG1"), so the molecule is registered as</span>
-    <span class="c1"># its own template: the file describes what was read, not what shares the name.</span>
+    <span class="c1"># a placeholder code can be a real entry ("LG1"): the file, not the name, decides</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">_custom_ccd_registry</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">upper</span><span class="p">()]</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">_component_template</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span>
     <span class="p">)</span>
@@ -531,11 +520,8 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_harmonised</span><span class="p">(</span><span class="n">parts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""Give every part the union of the annotations, so none is dropped on join.</span>
-
-<span class="sd">    Concatenation refuses categories that are missing from some input. Filling</span>
-<span class="sd">    them keeps chemistry -- ``charge`` above all -- that dropping would discard.</span>
-<span class="sd">    """</span>
+<span class="w">    </span><span class="sd">"""Give every part the union of the annotations (zero-filled), so concatenation</span>
+<span class="sd">    keeps them all, ``charge`` above all."""</span>
     <span class="n">union</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">parts</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">category</span> <span class="ow">in</span> <span class="n">part</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">():</span>
@@ -582,11 +568,8 @@
 <div class="viewcode-block" id="assemble_input">
 <a class="viewcode-back" href="../../../api/io.html#tmol.io.assemble_input">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">assemble_input</span><span class="p">(</span><span class="o">*</span><span class="n">parts</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Join separately-read parts into one structure.</span>
-
-<span class="sd">    Chain IDs are kept as read and only moved where two parts claim the same</span>
-<span class="sd">    one. Bonds, annotations and any component templates the parts carry all</span>
-<span class="sd">    survive the join.</span>
+<span class="w">    </span><span class="sd">"""Join separately-read parts with their bonds, annotations and templates; a chain</span>
+<span class="sd">    ID claimed by an earlier part is moved to a free one.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        *parts: Structures to join, in the order they should appear.</span>
@@ -617,12 +600,8 @@
     <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">entry_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"assembled"</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Write a structure as a CIF that carries its own component chemistry.</span>
-
-<span class="sd">    Components the dictionary knows are written from it; anything it does not</span>
-<span class="sd">    know -- a ligand read from a MOL2, say -- has its ``chem_comp_atom`` and</span>
-<span class="sd">    ``chem_comp_bond`` rows written from the structure itself. The result parses</span>
-<span class="sd">    without needing a dictionary entry for the ligand.</span>
+<span class="w">    </span><span class="sd">"""Write a structure as a CIF carrying its own component chemistry: known components</span>
+<span class="sd">    from the dictionary, others (a MOL2 ligand) from the structure itself.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        atom_array: Structure to write.</span>
@@ -640,8 +619,6 @@
     <span class="n">config</span> <span class="o">=</span> <span class="n">CIFWriteConfig</span><span class="p">(</span>
         <span class="nb">id</span><span class="o">=</span><span class="n">entry_id</span><span class="p">,</span>
         <span class="n">include_entity_categories</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="c1"># "ccd" writes a known component from the dictionary, and one it lacks</span>
-        <span class="c1"># (a ligand read from a file) from the structure.</span>
         <span class="n">chem_comp_source</span><span class="o">=</span><span class="s2">"ccd"</span><span class="p">,</span>
         <span class="n">warn_on_ccd_without_registry</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span>

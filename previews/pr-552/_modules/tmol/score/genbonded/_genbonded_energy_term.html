@@ -503,10 +503,11 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_linear_centers</span><span class="p">(</span><span class="n">block_type</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">frozenset</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Acyclic two-coordinate atoms with a triple bond or two double bonds.</span>
+<span class="w">    </span><span class="sd">"""Acyclic two-coordinate atoms with a triple bond or two double bonds (the</span>
+<span class="sd">    terminal alkyne of 7E9I A:101 J0C).</span>
 
 <span class="sd">    Ring atoms are excluded: they cannot be linear, and aromatic rings may be</span>
-<span class="sd">    written with every bond DOUBLE.</span>
+<span class="sd">    written with every bond DOUBLE (MOL2 input: DUD ada ZINC02169852).</span>
 <span class="sd">    """</span>
     <span class="n">orders</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">),</span> <span class="n">order</span> <span class="ow">in</span> <span class="n">block_type</span><span class="o">.</span><span class="n">bond_to_type</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
