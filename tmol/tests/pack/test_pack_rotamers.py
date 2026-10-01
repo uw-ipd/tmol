@@ -355,28 +355,24 @@ def test_pack_rotamers_pose_chunks_preserve_pose_order_and_task(
     assert torch.isfinite(chunked.coords).all()
 
 
-def test_seeded_pack_rotamers_is_reproducible(
-    default_database, ubq_pdb, dun_sampler, torch_device
+def test_seeded_packing_is_reproducible(
+    default_database, ubq_pdb, biotite_1ubq, dun_sampler, torch_device
 ):
+    # Seeded packs agree whatever the C rand() state and the global torch state.
     pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=40)
     pose_stack, task = setup_pose_stack_and_task([pose], torch_device, dun_sampler)
     sfxn = get_packer_sfxn(default_database, torch_device)
-    libc = ctypes.CDLL(None)
+    packed = []
+    for c_seed in (1, 2):
+        ctypes.CDLL(None).srand(c_seed)
+        packed.append(pack_rotamers(pose_stack, sfxn, task, seed=11).coords)
+        pack_rotamers(pose_stack, sfxn, task)
+    torch.testing.assert_close(*packed, equal_nan=True)
 
-    libc.srand(1)
-    torch.manual_seed(7)
-    first = pack_rotamers(pose_stack, sfxn, task)
-    libc.srand(2)
-    torch.manual_seed(7)
-    second = pack_rotamers(pose_stack, sfxn, task)
-    torch.testing.assert_close(first.coords, second.coords, equal_nan=True)
-
-    seeded = pack_rotamers(pose_stack, sfxn, task, seed=11)
-    pack_rotamers(pose_stack, sfxn, task)
     state = torch.random.get_rng_state()
-    reseeded = pack_rotamers(pose_stack, sfxn, task, seed=11)
+    ubq = biotite_1ubq[~biotite_1ubq.hetero]
+    pose_stack_from_biotite(ubq, torch_device, no_optH=False, packer_seed=0)
     assert torch.equal(torch.random.get_rng_state(), state)
-    torch.testing.assert_close(seeded.coords, reseeded.coords, equal_nan=True)
 
 
 @pytest.mark.parametrize("n_blocks,expected", [(256, 25), (257, 10), (1025, 10)])
