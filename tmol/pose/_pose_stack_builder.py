@@ -38,10 +38,6 @@ from tmol.utility.tensor import (
 from tmol.utility._device import resolve_device
 
 
-def _chemistry(bt):
-    return bt.atoms, bt.bonds, bt.connections, bt.icoors
-
-
 def _is_leading_run(block_types, pbt) -> bool:
     """Whether block_types begin pbt's active block types, as the same objects."""
     active = pbt.active_block_types
@@ -112,16 +108,11 @@ class PoseStackBuilder:
                 for pose_stack in pose_stacks
                 for bt in pose_stack.packed_block_types.active_block_types
             ]
-            # one name, one chemistry: a pose's residue is never read as another type
             bt_set = {}
             for bt in all_bt:
-                kept = bt_set.setdefault(bt.name, bt)
-                if kept is not bt and _chemistry(kept) != _chemistry(bt):
-                    raise ValueError(
-                        f"pose stacks carry two residue types named {bt.name} "
-                        "with different atoms, bonds or connections"
-                    )
-            uniq_bt = list(bt_set.values())
+                if bt.name not in bt_set:
+                    bt_set[bt.name] = bt
+            uniq_bt = [v for _, v in bt_set.items()]
             packed_block_types = PackedBlockTypes.from_restype_list(
                 pbt0.chem_db, pbt0.restype_set, uniq_bt, device
             )
