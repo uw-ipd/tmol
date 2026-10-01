@@ -1,5 +1,14 @@
 [
  {
+  "fixture": "kgq_alternates_4m8y.pdb.zst",
+  "source": "https://files.rcsb.org/download/4M8Y.cif.gz (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/m8/4m8y.cif.gz)",
+  "source_sha256": "ec882f14ed2bb8f2e89211050c327515fa8fb63a2edf5b539373070042897c51",
+  "transformation": "python3 /mnt/home/kdidi/scratch/protofix/crop.py 4m8y.cif.gz kgq_alternates_4m8y.cif 5 KGQ && python3 /mnt/home/kdidi/scratch/protofix/altloc_tmol/scripts/cif2pdb.py kgq_alternates_4m8y.cif kgq_alternates_4m8y.pdb && zstd -19 kgq_alternates_4m8y.pdb",
+  "sha256": "586feb4608147b34e2a854fdf8f541633890c9bcf59fe1a99218e97d1606af56",
+  "bytes": 28997,
+  "compressed_sha256": "7dd6425d91d38297d8831ae895b791e9222cab2d69f4318708a1d980f8e6939a"
+ },
+ {
   "fixture": "metalc_alternate_3p1o.cif.zst",
   "source": "https://files.rcsb.org/download/3P1O.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/p1/3p1o.cif.gz)",
   "source_sha256": "f9736f2ad281d02ebc3b8cd63e3a63d09945974cc5fe0920020bbe46592dd322",
