@@ -153,7 +153,7 @@ def atom_array_from_cif(
         custom_ccd_residues,
         get_available_ccd_codes,
     )
-    from atomworks.io.utils.leaving_atoms import resolve_leaving_atoms
+    from atomworks.io.utils.link_chemistry import resolve_leaving_atoms
 
     authored_charges = _component_formal_charges(block)
     available_ccds = get_available_ccd_codes("")
@@ -354,7 +354,7 @@ def _unresolved_heavy_atoms(
 ) -> list[str] | None:
     """Sorted heavy template atoms ``residue`` lacks; ``None`` if taken as resolved.
     ``chemistry`` caches heavy atoms and leaving groups; ``warned``, reported names."""
-    from atomworks.io.utils.leaving_atoms import get_leaving_atom_groups
+    from atomworks.io.utils.link_chemistry import get_leaving_atom_groups
 
     from tmol.ligand._input_repair import get_absent_substitution_leaving_groups
     from tmol.ligand._polymer_profile import completed_connection_atoms
