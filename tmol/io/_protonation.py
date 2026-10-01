@@ -6,16 +6,12 @@ from typing import Collection, Mapping
 import biotite.structure as struc
 import numpy
 from atomworks.constants import METAL_ELEMENTS
-from atomworks.experimental.protonation import (
-    assign_hydrogens,
-    find_disulfides,
-    hydrogen_plan,
-    place_hydrogens,
-)
+from atomworks.experimental.protonation import assign_hydrogens, place_hydrogens
 from atomworks.experimental.protonation.geometry import names_from_parent
 from atomworks.io.utils.atom_array_plus import concatenate_any
 from atomworks.io.utils.ccd import add_annotations_from_ccd, custom_ccd_residues
 from rdkit import Chem
+from scipy.spatial import cKDTree
 
 from tmol.database.chemical import (
     DEPROTONATED_VAR_IND,
@@ -174,7 +170,7 @@ def with_atomworks_hydrogens(
     bonds = template.bonds.as_array().astype(numpy.int64)
     single = int(struc.BondType.SINGLE)
     coordination = numpy.zeros((0, 2)) if coordination is None else coordination
-    disulfides = find_disulfides(template)
+    disulfides = _disulfides(template)
     extra = numpy.concatenate(
         [
             numpy.c_[
@@ -281,6 +277,28 @@ def with_atomworks_hydrogens(
     if registry is not None:
         merged._custom_ccd_registry = registry
     return merged if bonds_given else _unbonded(merged)
+
+
+def _disulfides(template) -> numpy.ndarray:
+    """The SG pairs the pose builder makes: closest unpaired SG within 2.5 A."""
+    sg = numpy.flatnonzero(
+        numpy.isin(template.res_name, ("CYS", "DCY"))
+        & (template.atom_name == "SG")
+        & numpy.isfinite(template.coord).all(axis=-1)
+    )
+    bonds = template.bonds.as_array()[:, :2]
+    bonds = bonds[numpy.isin(bonds, sg).any(axis=1)]
+    to_s = numpy.char.upper(template.element[bonds[:, ::-1]].astype(str)) == "S"
+    paired = numpy.isin(sg, bonds[to_s])
+    coord = template.coord[sg]
+    close = cKDTree(coord).query_pairs(2.5, output_type="ndarray")
+    d = numpy.linalg.norm(coord[close[:, 0]] - coord[close[:, 1]], axis=-1)
+    pairs = []
+    for i, j in close[numpy.lexsort((d, close[:, 0]))]:
+        if not paired[i] and not paired[j]:
+            paired[[i, j]] = True
+            pairs.append((sg[i], sg[j]))
+    return numpy.array(pairs, dtype=numpy.int64).reshape(-1, 2)
 
 
 def _unbonded(structure):
@@ -512,14 +530,22 @@ def _placed_hydrogens(
             hydrogen_policy="remove",
             ccd_mirror_path=None,
         )
-        # sub has no hydrogens, so the state's atoms are sub's, in order
-        state = assign_hydrogens(sub, ph=ph)
-        plan = hydrogen_plan(state)
-    hydrogens = numpy.bincount(plan.parent, minlength=len(state))
+        # sub has no hydrogens; atom_id maps the protonated atoms back to sub
+        sub.set_annotation("atom_id", numpy.arange(len(sub)))
+        atom_array = assign_hydrogens(sub, ph=ph)
+        protonated = place_hydrogens(atom_array)
+    # each placed hydrogen has one bond, to its parent
+    bonds = protonated.bonds.as_array()[:, :2]
+    is_new = protonated.atom_id[bonds] >= len(atom_array)
+    hydrogen = bonds[is_new]
+    parent = protonated.atom_id[bonds[is_new[:, ::-1]]]
+    order = numpy.lexsort((protonated.atom_id[hydrogen], parent))
+    hydrogen, parent = hydrogen[order], parent[order]
+    hydrogens = numpy.bincount(parent, minlength=len(atom_array))
     return (
-        source[plan.parent],
-        plan.atom_name.astype(str),
-        (source, _charges_without_chelates(state, hydrogens, chelates)),
-        place_hydrogens(state.coord, plan),
-        source[state.tautomer_free.astype(bool)],
+        source[parent],
+        protonated.atom_name[hydrogen].astype(str),
+        (source, _charges_without_chelates(atom_array, hydrogens, chelates)),
+        protonated.coord[hydrogen],
+        source[atom_array.tautomer_free.astype(bool)],
     )
