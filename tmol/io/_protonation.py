@@ -1,6 +1,7 @@
 """Protonation of structure inputs: AtomWorks decides it, tmol builds the hydrogens."""
 
-from collections import Counter, defaultdict
+from collections import Counter, OrderedDict, defaultdict
+from threading import RLock
 from typing import Collection, Mapping
 
 import biotite.structure as struc
@@ -9,7 +10,11 @@ from atomworks.constants import METAL_ELEMENTS
 from atomworks.experimental.protonation import assign_hydrogens, place_hydrogens
 from atomworks.experimental.protonation.geometry import names_from_parent
 from atomworks.io.utils.atom_array_plus import concatenate_any
-from atomworks.io.utils.ccd import add_annotations_from_ccd, custom_ccd_residues
+from atomworks.io.utils.ccd import (
+    add_annotations_from_ccd,
+    custom_ccd_residues,
+    get_custom_ccd_entries,
+)
 from rdkit import Chem
 from scipy.spatial import cKDTree
 
@@ -20,6 +25,7 @@ from tmol.database.chemical import (
     special_case_variant_index,
 )
 from tmol.io._cif import _FORMAL_CHARGE_SPECIFIED
+from tmol.utility.weak_identity_cache import WeakIdentityLRU
 
 # per atom, the res_type_variant its residue's protonation state selects; -1 for none
 PROTONATION_VARIANT = "tmol_protonation_variant"
@@ -30,9 +36,11 @@ _CARRIES_HYDROGEN = ("C", "N", "O", "S", "P", "B", "SE")
 # (heavy atoms whose hydrogen counts tell a class's forms apart,
 #    {(their counts, anionic): res_type_variant})
 Forms = tuple[tuple[str, ...], dict[tuple[tuple[int, ...], bool], int]]
-_FORMS: dict[int, tuple] = {}
+_FORMS = WeakIdentityLRU()
 # AtomWorks' (hydrogen count, charge) of each heavy atom, by residue context
-_STATES: dict[str, dict[str, tuple[int, int]]] = {}
+_STATES: OrderedDict[str, dict[str, tuple[int, int]]] = OrderedDict()
+_STATE_LOCK = RLock()
+_STATE_CAPACITY = 8192
 
 
 def hydrogen_names_by_parent(
@@ -53,9 +61,10 @@ def database_forms(chemdb) -> dict[str, Forms]:
 
     Only plain, histidine and deprotonated forms count; tmol's disulfide search
     decides CYD."""
-    cached = _FORMS.get(id(chemdb))
-    if cached is not None and cached[0] is chemdb:
-        return cached[1]
+    return _FORMS.get_or_create(chemdb, (), lambda: _database_forms(chemdb))
+
+
+def _database_forms(chemdb) -> dict[str, Forms]:
     from tmol.io._pose_stack_from_biotite import canonical_ordering_for_biotite
 
     known = set(canonical_ordering_for_biotite().restype_io_equiv_classes)
@@ -90,7 +99,6 @@ def database_forms(chemdb) -> dict[str, Forms]:
             key = (tuple(on.get(a, -1) for a in atoms), variant == DEPROTONATED_VAR_IND)
             table.setdefault(key, variant)
         out[name] = (atoms, table)
-    _FORMS[id(chemdb)] = (chemdb, out)
     return out
 
 
@@ -186,10 +194,16 @@ def with_atomworks_hydrogens(
     placing = lacking & ~numpy.isin(res_name, list(forms))
     asked = [r for r in numpy.flatnonzero(lacking & ~placing) if forms[res_name[r]][0]]
     keys = _contexts(template, starts, residue_of, numpy.r_[bonds, extra], asked, ph)
-    new = {}
-    for r, key in zip(asked, keys):
-        if key not in _STATES:
-            new.setdefault(key, r)
+    cacheable = not (
+        getattr(structure, "_custom_ccd_registry", None) or get_custom_ccd_entries()
+    )
+    with _STATE_LOCK:
+        states = {key: _STATES[key] for key in keys if cacheable and key in _STATES}
+        for key in states:
+            _STATES.move_to_end(key)
+    new = {
+        key: r for r, key in zip(reversed(asked), reversed(keys)) if key not in states
+    }
     call = placing.copy()
     call[list(new.values())] = True
     if call.any():
@@ -213,14 +227,21 @@ def with_atomworks_hydrogens(
         state_charge = numpy.zeros(n_atoms, dtype=numpy.int64)
         state_charge[charge[0]] = charge[1]
         for key, r in new.items():
-            _STATES[key] = {
+            states[key] = {
                 str(template.atom_name[i]): (int(count[i]), int(state_charge[i]))
                 for i in range(starts[r], starts[r + 1])
             }
+        if cacheable:
+            with _STATE_LOCK:
+                for key in new:
+                    _STATES[key] = states[key]
+                    _STATES.move_to_end(key)
+                while len(_STATES) > _STATE_CAPACITY:
+                    _STATES.popitem(last=False)
 
     variant = numpy.full(n_atoms, -1, dtype=numpy.int8)
     for r, key in zip(asked, keys):
-        variant[starts[r] : starts[r + 1]] = _variant(forms[res_name[r]], _STATES[key])
+        variant[starts[r] : starts[r + 1]] = _variant(forms[res_name[r]], states[key])
     if not placing.any():
         out = structure.copy()
         out.set_annotation(PROTONATION_VARIANT, variant)

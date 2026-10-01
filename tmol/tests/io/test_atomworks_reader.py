@@ -114,6 +114,79 @@ def test_file_hydrogen_policy_through_scoring(tmp_path, ubq_pdb):
     assert torch.isfinite(coords.grad).all()
 
 
+def test_coincident_input_hydrogens_rebuilt_without_changing_state(
+    ubq_pdb, torch_device
+):
+    from tmol.io import (
+        biotite_from_pose_stack,
+        pose_stack_from_biotite,
+        pose_stack_from_pdb,
+    )
+
+    baseline = pose_stack_from_pdb(ubq_pdb, torch_device, no_optH=True)
+    source = biotite_from_pose_stack(baseline)
+    original = source.coord.copy()
+    first, second = source.bonds.as_array()[:, :2].T
+    hydrogen = source.element == "H"
+    parents = np.r_[first[hydrogen[second]], second[hydrogen[first]]]
+    children = np.r_[second[hydrogen[second]], first[hydrogen[first]]]
+    # Exercise carbon-bound H and the ring proton that determines histidine's state.
+    selected = [
+        *np.flatnonzero(
+            parents == parents[np.flatnonzero(source.atom_name[parents] == "CE")[0]]
+        ),
+        np.flatnonzero(
+            (source.res_name[children] == "HIS")
+            & np.isin(source.atom_name[children], ["HD1", "HE2"])
+        )[0],
+    ]
+    damaged = children[selected]
+    source.coord[damaged] = source.coord[parents[selected]]
+    corrupted = source.coord.copy()
+    with pytest.warns(UserWarning, match="Rebuilding hydrogens coincident"):
+        repaired = pose_stack_from_biotite(source, torch_device, no_optH=True)
+    torch.testing.assert_close(repaired.block_type_ind, baseline.block_type_ind)
+    exported = biotite_from_pose_stack(repaired)
+    np.testing.assert_array_equal(exported.atom_name, source.atom_name)
+    retained = ~np.isin(np.arange(len(source)), damaged)
+    np.testing.assert_array_equal(exported.coord[retained], original[retained])
+    assert np.all(
+        np.linalg.norm(exported.coord[damaged] - original[parents[selected]], axis=-1)
+        > 0.5
+    )
+    np.testing.assert_array_equal(source.coord, corrupted)
+    coords = repaired.coords.detach().clone().requires_grad_()
+    energy = beta2016_score_function(torch_device).render_whole_pose_scoring_module(
+        repaired
+    )(coords)
+    energy.sum().backward()
+    assert torch.isfinite(energy).all() and torch.isfinite(coords.grad).all()
+
+
+@pytest.mark.parametrize("inter_residue", [False, True])
+def test_coincident_bonded_heavy_atoms_rejected_with_identity(
+    ubq_pdb, torch_device, inter_residue
+):
+    from tmol.io import (
+        biotite_from_pose_stack,
+        pose_stack_from_biotite,
+        pose_stack_from_pdb,
+    )
+
+    source = biotite_from_pose_stack(
+        pose_stack_from_pdb(ubq_pdb, torch_device, no_optH=True)
+    )
+    carbon = np.flatnonzero(source.atom_name == "C")[0]
+    partner_name = "N" if inter_residue else "O"
+    partner = np.flatnonzero(source.atom_name == partner_name)[int(inter_residue)]
+    source.coord[partner] = source.coord[carbon]
+    with pytest.raises(
+        ValueError,
+        match=rf"Coincident bonded heavy atoms.*atom C.*chain A.*atom {partner_name}",
+    ):
+        pose_stack_from_biotite(source, torch_device, no_optH=True)
+
+
 @pytest.mark.parametrize(
     "source_charge,should_fail", [("0", True), ("-1", False), ("?", False)]
 )
