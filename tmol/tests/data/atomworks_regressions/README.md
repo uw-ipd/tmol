@@ -199,7 +199,7 @@ also undergo the external 1,000-CIF scoring/minimization/FastRelax audit.
 | --- | --- | --- |
 | `missing_ribose_oxygen_6dp5.cif` | 6DP5 chains B/C, residues 1–3 (five residues) | Rebuild fixed RNA 2′ oxygen and its hydrogen from observed sugar atoms. |
 | `missing_sugar_carbon_7n5v.cif` | 7N5V chain E, residues 15–16 | Rebuild missing C2′ without losing the observed sugar/backbone during packing. |
-| `retinyl_lysine_4xxj.cif` | 4XXJ chain A, residues 216–218 | Complete and pack retinyl lysine with overlapping side-chain roots. |
+| `retinyl_lysine_4xxj.cif` | 4XXJ chain A, residues 216–218 | Complete and pack retinyl lysine with overlapping side-chain roots; its generated conformer keeps the four trans double bonds. |
 
 Source compressed-file SHA256 values, respectively:
 `f55a9df09f93d0b85c9705f5ec39df55aca5918f266dffa15e3a202e67c2958a`,

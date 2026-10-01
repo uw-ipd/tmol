@@ -983,6 +983,44 @@ def test_chromophore_imine_junction_retains_generated_restoring_forces(torch_dev
         assert abs(length - bond.x0) < 0.08
 
 
+def test_a_retinal_conformer_keeps_its_trans_double_bonds(monkeypatch):
+    """4XXJ LYR: the generated conformer keeps the four declared trans double bonds."""
+    from rdkit import Chem
+
+    import tmol.ligand._conformer_generation as conformers
+    from tmol.io import build_context_from_biotite
+
+    generated = []
+    generate = conformers._generate_conformer
+
+    def recording(smiles, minimize_steps, seed):
+        molecule = generate(smiles, minimize_steps, seed)
+        generated.append((smiles, np.array([atom.coords for atom in molecule.atoms])))
+        return molecule
+
+    monkeypatch.setattr(conformers, "_generate_conformer", recording)
+    conformers._seeded_conformer.cache_clear()
+    array = atom_array_from_cif(DATA / "retinyl_lysine_4xxj.cif")
+    build_context_from_biotite(
+        array, torch.device("cpu"), prepare_ligands=True, ligand_seed=20260909
+    )
+    torsions = []
+    for smiles, xyz in generated:
+        declared = Chem.MolFromSmiles(smiles, sanitize=False)
+        Chem.SetBondStereoFromDirections(declared)
+        for bond in declared.GetBonds():
+            if bond.GetStereo() != Chem.BondStereo.STEREOTRANS:
+                continue
+            a, d = bond.GetStereoAtoms()
+            p0, p1, p2, p3 = xyz[[a, bond.GetBeginAtomIdx(), bond.GetEndAtomIdx(), d]]
+            axis = (p2 - p1) / np.linalg.norm(p2 - p1)
+            u, v = p0 - p1, p3 - p2
+            u, v = u - u.dot(axis) * axis, v - v.dot(axis) * axis
+            torsions.append(np.degrees(np.arctan2(np.cross(axis, u).dot(v), u.dot(v))))
+    assert len(torsions) == 4
+    assert all(abs(t) > 160 for t in torsions)
+
+
 @pytest.mark.parametrize(
     "fixture,blocks,missing",
     [
