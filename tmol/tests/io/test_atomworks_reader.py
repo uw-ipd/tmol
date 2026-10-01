@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import biotite.structure as struc
 import numpy as np
 import pytest
 import torch
@@ -702,16 +703,34 @@ def test_pdb_link_records_reach_the_pose(tmp_path, torch_device):
     }
 
 
-def test_pdb_keeps_one_alternate_per_linked_group(torch_device):
-    """1I54 writes its heme (altloc A) and Zn-porphyrin (altloc B) as HEC A:1104
-    and ZNH A:1105, both bonded to CYS A:14 and A:17; one of them is read."""
+@pytest.mark.parametrize(
+    "fixture, res_ids, names",
+    [
+        # heme (altloc A) and Zn-porphyrin (B) as two residues on CYS A:14 and A:17
+        ("heme_alternates_1i54", [1104, 1105], {"HEC"}),
+        # KGQ A:201 (altloc A) over A:202 (altloc B)
+        ("kgq_alternates_4m8y", [201, 202], {"KGQ"}),
+    ],
+)
+def test_pdb_keeps_one_alternate_per_linked_group(
+    fixture, res_ids, names, torch_device
+):
+    """Alternates written as separate residues are read as one: no heavy atoms of
+    two residues overlap."""
+    from scipy.spatial import cKDTree
+
     from tmol.io import atom_array_from_file, pose_stack_from_file
 
-    fixture = DATA / "sweep_regressions" / "heme_alternates_1i54.pdb.zst"
-    array = atom_array_from_file(fixture)
-    assert set(array.res_name[np.isin(array.res_id, [1104, 1105])]) == {"HEC"}
+    path = DATA / "sweep_regressions" / f"{fixture}.pdb.zst"
+    array = atom_array_from_file(path)
+    assert set(array.res_name[np.isin(array.res_id, res_ids)]) == names
+    heavy = ~np.isin(np.char.upper(array.element.astype(str)), ("H", "D"))
+    heavy = array[heavy & np.isfinite(array.coord).all(-1)]
+    residue = struc.get_all_residue_positions(heavy)
+    pairs = cKDTree(heavy.coord).query_pairs(1.2, output_type="ndarray")
+    assert (residue[pairs[:, 0]] == residue[pairs[:, 1]]).all()
     pose = pose_stack_from_file(
-        fixture, torch_device, prepare_ligands=True, ligand_seed=0, no_optH=True
+        path, torch_device, prepare_ligands=True, ligand_seed=0, no_optH=True
     )
     assert torch.isfinite(pose.coords).all()
 

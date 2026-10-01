@@ -6,6 +6,7 @@ compressed file) and exercises one failure class; each test fails without its fi
 
 | File | Regression exercised |
 |---|---|
+| `kgq_alternates_4m8y.pdb.zst` | KGQ A:201 (altloc A) and A:202 (altloc B) are two overlapping residues; the PDB reader keeps one. |
 | `metalc_alternate_3p1o.cif.zst` | A metalc row naming conformer B of GLU A:86 binds MG A:237 only if that conformer is kept (the kept conformer A is 6 A away). |
 | `ion_alternates_8a7k.cif.zst` | Mn and Mg modelled at half occupancy on each of three sites without altloc ids keep one residue per site (the site failed the 12-connection limit). |
 | `ion_alternates_3f7l.cif.zst` | The two conformers of a Cu (0.8/0.2), written in two chains, keep the more occupied one (one residue per site). |
