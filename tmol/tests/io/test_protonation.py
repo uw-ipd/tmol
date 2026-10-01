@@ -21,11 +21,12 @@ from tmol.tests.data import data_path
     ],
     ids=["3n0i", "3ks3_zinc", "2cua_copper"],
 )
-def test_states_by_context_match_the_whole_structure(path):
+def test_states_by_context_match_the_whole_structure(path, monkeypatch):
     """A residue's state read from its bonded context is the whole structure's."""
     structure = atom_array_from_cif(data_path(*path))
     heavy = structure[structure.element != "H"]
     forms = protonation.database_forms(ParameterDatabase.get_default().chemical)
+    monkeypatch.setattr(protonation, "_STATE_CAPACITY", 1)
     protonation._STATES.clear()
     marked = protonation.with_atomworks_hydrogens(
         heavy, forms=forms, residue_names=list(forms)
@@ -33,7 +34,7 @@ def test_states_by_context_match_the_whole_structure(path):
     variant = marked.get_annotation(protonation.PROTONATION_VARIANT)
 
     starts = biotite.structure.get_residue_starts(marked, add_exclusive_stop=True)
-    disulfides = protonation.find_disulfides(marked)
+    disulfides = protonation._disulfides(marked)
     extra = numpy.r_[
         protonation._polymer_gap_links(marked, starts, {}),
         numpy.c_[disulfides, numpy.ones(len(disulfides), dtype=int)],
@@ -97,3 +98,16 @@ def test_a_ligand_numbered_after_its_chain_is_not_bonded_to_it():
         protonated.atom_name, ("O1A", "O2A", "O1P", "O2P")
     )
     assert protonated.charge[phosphate].sum() == -2
+
+
+def test_a_heme_split_from_its_iron_keeps_the_porphyrin_dianion():
+    """155C HEM's Fe becomes an ion residue; NA and NC stay anionic, not radicals."""
+    from tmol.io._pose_stack_from_biotite import _with_input_hydrogens
+
+    structure = atom_array_from_cif(data_path("cif", "155c__1__1.A__1.B.cif"))
+    heavy = structure[(structure.element != "H") & (structure.res_name != "HOH")]
+    chemdb = ParameterDatabase.get_default().chemical
+    protonated = _with_input_hydrogens(heavy, 7.4, None, chemdb, True)
+    heme = protonated[protonated.res_name == "HEM"]
+    nitrogens = numpy.isin(heme.atom_name, ("NA", "NB", "NC", "ND"))
+    assert heme.charge[nitrogens].sum() == -2

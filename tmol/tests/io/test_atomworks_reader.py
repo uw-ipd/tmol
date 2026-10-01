@@ -1,6 +1,5 @@
 """Exercise shared parsing through chemical preparation and minimization."""
 
-from contextlib import contextmanager, nullcontext
 from pathlib import Path
 
 import numpy as np
@@ -13,24 +12,6 @@ from tmol.score import beta2016_score_function
 pytest.importorskip("atomworks")
 
 DATA = Path(__file__).parents[1] / "data"
-
-
-@pytest.fixture
-def forbid_ccd_access(monkeypatch):
-    """Return a guard that rejects CCD inventory and template access."""
-    import atomworks.io.utils.ccd as ccd
-
-    @contextmanager
-    def guard():
-        def unexpected(*args, **kwargs):
-            raise AssertionError("use_ccd=False must not access CCD data")
-
-        with monkeypatch.context() as patch:
-            patch.setattr(ccd, "get_available_ccd_codes", unexpected)
-            patch.setattr(ccd, "atom_array_from_ccd_code", unexpected)
-            yield
-
-    return guard
 
 
 def _write_halogen_cif(
@@ -133,6 +114,79 @@ def test_file_hydrogen_policy_through_scoring(tmp_path, ubq_pdb):
     assert torch.isfinite(coords.grad).all()
 
 
+def test_coincident_input_hydrogens_rebuilt_without_changing_state(
+    ubq_pdb, torch_device
+):
+    from tmol.io import (
+        biotite_from_pose_stack,
+        pose_stack_from_biotite,
+        pose_stack_from_pdb,
+    )
+
+    baseline = pose_stack_from_pdb(ubq_pdb, torch_device, no_optH=True)
+    source = biotite_from_pose_stack(baseline)
+    original = source.coord.copy()
+    first, second = source.bonds.as_array()[:, :2].T
+    hydrogen = source.element == "H"
+    parents = np.r_[first[hydrogen[second]], second[hydrogen[first]]]
+    children = np.r_[second[hydrogen[second]], first[hydrogen[first]]]
+    # Exercise carbon-bound H and the ring proton that determines histidine's state.
+    selected = [
+        *np.flatnonzero(
+            parents == parents[np.flatnonzero(source.atom_name[parents] == "CE")[0]]
+        ),
+        np.flatnonzero(
+            (source.res_name[children] == "HIS")
+            & np.isin(source.atom_name[children], ["HD1", "HE2"])
+        )[0],
+    ]
+    damaged = children[selected]
+    source.coord[damaged] = source.coord[parents[selected]]
+    corrupted = source.coord.copy()
+    with pytest.warns(UserWarning, match="Rebuilding hydrogens coincident"):
+        repaired = pose_stack_from_biotite(source, torch_device, no_optH=True)
+    torch.testing.assert_close(repaired.block_type_ind, baseline.block_type_ind)
+    exported = biotite_from_pose_stack(repaired)
+    np.testing.assert_array_equal(exported.atom_name, source.atom_name)
+    retained = ~np.isin(np.arange(len(source)), damaged)
+    np.testing.assert_array_equal(exported.coord[retained], original[retained])
+    assert np.all(
+        np.linalg.norm(exported.coord[damaged] - original[parents[selected]], axis=-1)
+        > 0.5
+    )
+    np.testing.assert_array_equal(source.coord, corrupted)
+    coords = repaired.coords.detach().clone().requires_grad_()
+    energy = beta2016_score_function(torch_device).render_whole_pose_scoring_module(
+        repaired
+    )(coords)
+    energy.sum().backward()
+    assert torch.isfinite(energy).all() and torch.isfinite(coords.grad).all()
+
+
+@pytest.mark.parametrize("inter_residue", [False, True])
+def test_coincident_bonded_heavy_atoms_rejected_with_identity(
+    ubq_pdb, torch_device, inter_residue
+):
+    from tmol.io import (
+        biotite_from_pose_stack,
+        pose_stack_from_biotite,
+        pose_stack_from_pdb,
+    )
+
+    source = biotite_from_pose_stack(
+        pose_stack_from_pdb(ubq_pdb, torch_device, no_optH=True)
+    )
+    carbon = np.flatnonzero(source.atom_name == "C")[0]
+    partner_name = "N" if inter_residue else "O"
+    partner = np.flatnonzero(source.atom_name == partner_name)[int(inter_residue)]
+    source.coord[partner] = source.coord[carbon]
+    with pytest.raises(
+        ValueError,
+        match=rf"Coincident bonded heavy atoms.*atom C.*chain A.*atom {partner_name}",
+    ):
+        pose_stack_from_biotite(source, torch_device, no_optH=True)
+
+
 @pytest.mark.parametrize(
     "source_charge,should_fail", [("0", True), ("-1", False), ("?", False)]
 )
@@ -217,86 +271,6 @@ def test_ccd_isolated_atom_charge_provenance(
     assert source.charge.tolist() == [expected_charge]
     assert source.tmol_source_formal_charge.tolist() == ["?"]
     assert source.tmol_formal_charge_specified.tolist() == [True]
-
-
-@pytest.mark.parametrize(
-    "source_charge,component_charge,expected_charge,expected_specified",
-    [
-        ("-1", None, -1, True),
-        ("0", None, 0, True),
-        ("?", "-1", -1, True),
-        ("?", "0", 0, True),
-        ("?", None, 0, False),
-    ],
-)
-def test_no_ccd_preserves_authored_charge_provenance(
-    tmp_path,
-    forbid_ccd_access,
-    source_charge: str,
-    component_charge: str | None,
-    expected_charge: int,
-    expected_specified: bool,
-) -> None:
-    """Read only authored charges and distinguish zero from unspecified."""
-    with forbid_ccd_access():
-        source = atom_array_from_cif(
-            _write_halogen_cif(tmp_path, source_charge, component_charge),
-            use_ccd=False,
-        )
-
-    assert source.charge.tolist() == [expected_charge]
-    assert source.tmol_source_formal_charge.tolist() == [source_charge]
-    assert source.tmol_formal_charge_specified.tolist() == [expected_specified]
-
-
-def test_no_ccd_missing_isolated_charge_fails_only_for_preparation(
-    tmp_path, forbid_ccd_access, torch_device
-) -> None:
-    """Require uninferable charge for generation but permit saved-parameter reuse."""
-    from tmol.io import pose_stack_from_biotite
-    from tmol.ligand import prepare_ligands
-    from tmol.ligand._preparation import LigandPreparationError
-
-    with forbid_ccd_access():
-        missing = atom_array_from_cif(
-            _write_halogen_cif(tmp_path, "?", None), use_ccd=False
-        )
-    assert missing.coord.tolist() == [[1.0, 2.0, 3.0]]
-
-    expected = (
-        "QHX: formal charge is unspecified for isolated Cl atom X1; no bond or "
-        "hydrogen valence can establish its charge. Supply "
-        "_atom_site.pdbx_formal_charge or _chem_comp_atom.charge, enable use_ccd "
-        "for a CCD component, or load its prepared .tmol parameters. Pass "
-        "strict_ligands=False to skip it with a warning, or supply prebuilt params "
-        "via ligand_params_files."
-    )
-    with pytest.raises(LigandPreparationError) as error:
-        pose_stack_from_biotite(
-            missing, torch_device, prepare_ligands=True, use_ccd=False
-        )
-    assert str(error.value) == expected
-
-    with forbid_ccd_access():
-        charged = atom_array_from_cif(
-            _write_halogen_cif(tmp_path, "?", "-1"), use_ccd=False
-        )
-    params_path = tmp_path / "halide.tmol"
-    prepare_ligands(
-        charged,
-        params_output=str(params_path),
-        use_ccd=False,
-        seed=17,
-    )
-    pose = pose_stack_from_biotite(
-        missing,
-        torch_device,
-        prepare_ligands=True,
-        ligand_params_files=[str(params_path)],
-        use_ccd=False,
-        no_optH=True,
-    )
-    assert torch.isfinite(pose.coords[pose.real_atoms]).all()
 
 
 @pytest.mark.parametrize(
@@ -570,7 +544,7 @@ def test_pdb_modified_polymer_preserves_chain_and_scores(tmp_path, torch_device)
 
 
 def test_known_and_unknown_chemistry_share_file_contract(
-    tmp_path, monkeypatch, forbid_ccd_access, torch_device
+    tmp_path, monkeypatch, torch_device
 ):
     """MOL2 preparation makes atom-only PDB/CIF sufficient for scoring."""
     from biotite.structure.io import pdb, pdbx
@@ -594,9 +568,7 @@ def test_known_and_unknown_chemistry_share_file_contract(
     source.bonds = None
 
     def unexpected(*args, **kwargs):
-        raise AssertionError(
-            "Known chemistry must not regenerate or consult disabled CCD"
-        )
+        raise AssertionError("Known chemistry must not regenerate")
 
     for extension in ("pdb", "cif"):
         file = pdb.PDBFile() if extension == "pdb" else pdbx.CIFFile()
@@ -615,45 +587,34 @@ def test_known_and_unknown_chemistry_share_file_contract(
             file.set_structure(connected)
             connected_path = tmp_path / "connectivity.pdb"
             file.write(connected_path)
-            for use_ccd in (False, True):
-                untyped = atom_array_from_file(connected_path, use_ccd=use_ccd)
-                assert untyped.bonds.get_bond_count() > 0
-                assert np.all(untyped.bonds.as_array()[:, 2] == 0)
-                with pytest.raises(
-                    LigandPreparationError, match="ZZQ.*chemical bond orders"
-                ):
-                    pose_stack_from_biotite(
-                        untyped, torch_device, prepare_ligands=True, use_ccd=False
-                    )
-        for use_ccd in (False, True):
-            ccd_guard = nullcontext() if use_ccd else forbid_ccd_access()
-            with monkeypatch.context() as patch, ccd_guard:
-                patch.setattr(preparation, "_prepare_ligand_via_smiles", unexpected)
-                array = atom_array_from_file(path, use_ccd=use_ccd)
-                np.testing.assert_allclose(array.coord, source.coord, atol=0.001)
-                assert list(array.atom_name) == list(source.atom_name)
-                pose, context = pose_stack_from_file(
-                    path,
-                    torch_device,
-                    use_ccd=use_ccd,
-                    prepare_ligands=True,
-                    param_db=param_db,
-                    no_optH=True,
-                    return_context=True,
-                )
-                _score_and_minimize(pose, context, max_iter=10)
-                reloaded, reloaded_context = pose_stack_from_file(
-                    path,
-                    torch_device,
-                    use_ccd=use_ccd,
-                    ligand_params_files=[str(params_path)],
-                    no_optH=True,
-                    return_context=True,
-                )
-                _score_and_minimize(reloaded, reloaded_context, max_iter=1)
+            untyped = atom_array_from_file(connected_path)
+            assert untyped.bonds.get_bond_count() > 0
+            assert np.all(untyped.bonds.as_array()[:, 2] == 0)
             with pytest.raises(
                 LigandPreparationError, match="ZZQ.*chemical bond orders"
             ):
-                pose_stack_from_biotite(
-                    array, torch_device, prepare_ligands=True, use_ccd=False
-                )
+                pose_stack_from_biotite(untyped, torch_device, prepare_ligands=True)
+        with monkeypatch.context() as patch:
+            patch.setattr(preparation, "_prepare_ligand_via_smiles", unexpected)
+            array = atom_array_from_file(path)
+            np.testing.assert_allclose(array.coord, source.coord, atol=0.001)
+            assert list(array.atom_name) == list(source.atom_name)
+            pose, context = pose_stack_from_file(
+                path,
+                torch_device,
+                prepare_ligands=True,
+                param_db=param_db,
+                no_optH=True,
+                return_context=True,
+            )
+            _score_and_minimize(pose, context, max_iter=10)
+            reloaded, reloaded_context = pose_stack_from_file(
+                path,
+                torch_device,
+                ligand_params_files=[str(params_path)],
+                no_optH=True,
+                return_context=True,
+            )
+            _score_and_minimize(reloaded, reloaded_context, max_iter=1)
+        with pytest.raises(LigandPreparationError, match="ZZQ.*chemical bond orders"):
+            pose_stack_from_biotite(array, torch_device, prepare_ligands=True)

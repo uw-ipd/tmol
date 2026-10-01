@@ -14,13 +14,10 @@ from typing import Mapping, Sequence
 
 import biotite.structure as struc
 import numpy as np
-from atomworks.experimental.protonation.geometry import (
-    signed_dihedral_angle,
-    vertex_angle,
-)
 
 from tmol.chemical import build_coords_from_icoors
 from tmol.database.chemical import Connection, Icoor, RawResidueType
+from tmol.ligand._icoor_tree import signed_dihedral_angle, vertex_angle
 from tmol.ligand._registry import LigandPreparation
 
 FRAGMENT_ID_ANNOTATION = "tmol_fragment_id"

@@ -1,13 +1,5 @@
-"""Decide what coordinates each metal, and with what geometry.
-
-Three decisions, each overridable on its own: which atoms are metals, what
-geometry each has, and which donor takes which site. Only the last two are
-inferred here -- metal identity comes from the atom's element and is never
-guessed.
-
-Candidates are gathered without reference to any polyhedron, because choosing a
-geometry needs a set of donors and the set must not presuppose the answer. Only
-then is a geometry fitted, and only then are sites assigned.
+"""Decide which atoms coordinate each metal, its geometry, and which site each fills.
+Candidates are gathered geometry-free; only then is a geometry fitted.
 """
 
 import logging
@@ -19,7 +11,6 @@ import attr
 import numpy
 import torch
 
-from tmol.chemical._ideal_coords import build_coords_from_icoors
 from tmol.database.chemical import (
     Connection,
     VariantScope,
@@ -81,12 +72,8 @@ def gather_candidates(
     tolerance: float,
     required: Sequence[int] = (),
 ) -> Tuple[numpy.ndarray, numpy.ndarray]:
-    """Donors close enough to be coordinating, and how far each is past ideal.
-
-    Geometry-free by construction: a donor is kept within ``tolerance`` A past
-    its element's ideal distance, nothing more.
-    Choosing a polyhedron needs this set, so this set must not depend on one.
-    Required donors are kept at any distance.
+    """Donors within ``tolerance`` A past their ideal distance, and how far past it.
+    Geometry-free, as choosing a geometry needs this set; ``required`` ones always stay.
     """
     if len(donor_xyz) == 0:
         return numpy.zeros(0, dtype=int), numpy.zeros(0)
@@ -115,10 +102,8 @@ def assign_one(
     tolerance: float = 0.55,
     required: Sequence[int] = (),
 ) -> MetalSiteAssignment:
-    """Gather, choose a geometry, then fill sites -- in that order.
-
-    Required donors (declared bonds) are always gathered, and are the last to
-    be dropped when there are more donors than sites.
+    """Gather, choose a geometry, then fill sites; required donors are always gathered
+    and are the last dropped when there are more donors than sites.
     """
     vertices_for = {g["name"]: g["vertices"] for g in table["geometries"]}
     distances = ideal_distances(ion, table["donor_radii"])
@@ -140,9 +125,7 @@ def assign_one(
         geometry = fit.geometry if fit is not None else None
 
     if fit is None and how != "untemplated" and len(keep):
-        # too crowded for any candidate, which is not the same as untemplated:
-        # the ion does have a shape, there are simply more contacts than it can
-        # hold. Take its roomiest geometry and let the excess go.
+        # too crowded for any candidate geometry: take the roomiest, drop the excess
         geometry = max(
             (g for g in ion["geometries"] if vertices_for[g]),
             key=lambda g: len(vertices_for[g]),
@@ -161,9 +144,8 @@ def assign_one(
             )
 
     if fit is None:
-        # untemplated, or nothing within range at all: no polyhedron to assign
-        # against, so every candidate simply stands. A declared geometry still
-        # holds -- it is an override, and nothing here is evidence against it.
+        # untemplated, or nothing in range: every candidate stands, and a declared
+        #    geometry still holds
         declared = how == "declared" and vertices_for.get(geometry)
         return MetalSiteAssignment(
             metal=metal_index,
@@ -191,11 +173,8 @@ def assign_one(
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class CanonicalMetalTables:
-    """Per-equivalence-class lookups detection needs before block types exist.
-
-    Geometry has to be chosen *before* a block type is picked, so none of this
-    can come from one. It is all keyed on the io equivalence class, which the
-    input names, and the canonical atom index, which the ordering fixes.
+    """Per-equivalence-class lookups detection needs before a block type is chosen,
+    keyed on io equivalence class and canonical atom index.
     """
 
     # equivalence class index -> its entry in metals.yaml, for the metal ions
@@ -242,11 +221,8 @@ class ClusterSites:
 def build_canonical_metal_tables(
     canonical_ordering, chemical_db, table: dict
 ) -> CanonicalMetalTables:
-    """Fold the chemical database down to what detection reads per atom.
-
-    The three inputs are immutable and every pose stack asks the same question of
-    them, so the answer is kept rather than rebuilt -- most of the cost is walking
-    the cluster residues' icoors, which do not change.
+    """Fold the chemical database down to what detection reads per atom, cached on the
+    identity of its immutable inputs.
     """
     global _LAST_METAL_TABLES
     if _LAST_METAL_TABLES is not None:
@@ -262,9 +238,7 @@ def build_canonical_metal_tables(
     return built
 
 
-# The inputs are compared by identity rather than keyed by id(), which a later
-# object can reuse once the first is collected. One entry is the whole cache: a
-# process reads one canonical ordering.
+# one entry, compared by identity: id() can be reused once an object is collected
 _LAST_METAL_TABLES: Optional[tuple] = None
 
 
@@ -274,6 +248,7 @@ def _build_canonical_metal_tables(
     """Fold the chemical database down to what detection reads per atom."""
     atom_type = {at.name: at for at in chemical_db.atom_types}
     ion_for_name3 = {ion["name3"]: ion for ion in table["ions"]}
+    radii = table["donor_radii"]
 
     members = defaultdict(list)
     for res in chemical_db.residues:
@@ -296,11 +271,8 @@ def _build_canonical_metal_tables(
                     continue
                 j = index_of.get(atom.name)
                 if j is not None:
-                    # water is typed apart from other oxygens: it is what an
-                    # open site is assumed to hold, so it has its own distance
-                    donor_element[i, j] = "Owat" if at.name == "Owat" else at.element
-        # a hydrogen marks its atom as non-donating only in a type where that
-        #    atom cannot donate (thiol, phenol, N-H); a hydroxyl donates with its H
+                    donor_element[i, j] = at.name if at.name in radii else at.element
+        # Bound H excludes donors only in types where that atom cannot donate.
         for res in members.get(equiv_class, ()):
             element_of = {
                 a.name: getattr(atom_type.get(a.atom_type), "element", "")
@@ -345,27 +317,14 @@ def _build_canonical_metal_tables(
     )
 
 
-def _raw_ideal_coords(res):
-    """{atom name: ideal position} built from a raw residue's icoors."""
-    names = [ic.name for ic in res.icoors]
-    index = {n: i for i, n in enumerate(names)}
-    ancestors = numpy.array(
-        [
-            [index[ic.parent], index[ic.grand_parent], index[ic.great_grand_parent]]
-            for ic in res.icoors
-        ],
-        dtype=numpy.int32,
-    )
-    geom = numpy.array([[ic.phi, ic.theta, ic.d] for ic in res.icoors])
-    coords = build_coords_from_icoors(ancestors, geom).astype(numpy.float64)
-    return dict(zip(names, coords))
-
-
 def _cluster_sites(res, index_of, atom_type, table):
     """Detection's view of a cluster: each metal, its satisfiers and free sites."""
+    # tmol.ligand imports tmol.io
+    from tmol.ligand._fragmentation import _full_ideal_coords
+
     ion_for_atom_type = {ion["atom_type"]: ion for ion in table["ions"]}
     types = {a.name: a.atom_type for a in res.atoms}
-    ideal = _raw_ideal_coords(res)
+    ideal = _full_ideal_coords(res)
     metals, first = [], 0
     for site in res.metal_sites:
         names = (site.metal_atom, *site.internal_satisfiers, *site.site_virts)
@@ -390,19 +349,13 @@ def _cluster_sites(res, index_of, atom_type, table):
 
 
 def _pose_donor_table(pose, rt, xyz, excluded, tables):
-    """Every donor atom in one pose, in residue then atom order.
-
-    Each metal wants this list without its own residue, which is a mask over a
-    table built once rather than a reason to walk the pose again per metal.
-    """
+    """Every donor atom in one pose, in residue then atom order; built once per pose."""
     types = rt[pose]
     live = (types >= 0) & ~excluded[pose]
     if not live.any():
         return numpy.zeros((0, 3)), [], [], numpy.zeros(0, dtype=int)
 
-    # tables.donor_element is one row of atom-name-or-empty per block type; the
-    # donors of a pose are that table indexed by its residues, masked by which
-    # coordinates were actually observed.
+    # the per-class donor table indexed by residue, masked to observed coordinates
     n_atoms = min(tables.donor_element.shape[1], xyz.shape[2])
     element = tables.donor_element[types][:, :n_atoms].copy()
     element[~live] = ""
@@ -506,11 +459,8 @@ def _cluster_assignment(
     tolerance,
     find_additional,
 ):
-    """Fill each metal's free sites: declared donors first, then the closest.
-
-    A site takes the donor its ideal direction points at best, the ideal
-    directions coming from the cluster's own atoms as observed. A donor in
-    range of several metals bridges them, filling a site on each.
+    """Fill each metal's free sites, declared donors first, then the closest to ideal.
+    A site takes the donor it faces best; a donor near several metals bridges them.
     """
     donor_xyz = numpy.asarray(donor_xyz, dtype=numpy.float64).reshape(-1, 3)
     sites, chosen, rotations = [], [], []
@@ -568,12 +518,8 @@ def _cluster_assignment(
 
 
 def _metal_rotation(metal, xyz, donors, assigned=None):
-    """Row-vector map, about the metal, carrying its ideal atoms onto ``xyz``.
-
-    The metal's own satisfiers fix what they can: spread in three dimensions
-    they fix the frame, in a plane they leave a mirror through it, on a line
-    they leave the spin about it, and with none the donors fix it all. Donors choose among what is left: each
-    donor scores the site ``assigned`` to it, or else its best site.
+    """Row-vector map about the metal carrying its ideal atoms onto ``xyz``: satisfiers
+    fix what they can, donors (on their ``assigned`` site, else best) choose the rest.
     """
     n_frame = 1 + len(metal.satisfiers)
     center = numpy.asarray(xyz[metal.atom], dtype=numpy.float64)
@@ -620,8 +566,8 @@ def _frame_candidates(a, b, free, donors):
         # coplanar satisfiers leave a mirror through their plane: both sides are
         # candidates, and the caller scores them.
         return [u @ vt, u @ numpy.diag([1.0, 1.0, -1.0]) @ vt]
-    # non-coplanar satisfiers fix the frame, reflection included: a deposited
-    # cluster's atoms may be named in the mirror sense of its template
+    # non-coplanar satisfiers fix the frame, reflection included: 2FDN names its
+    #    SF4 atoms in the mirror sense of the template
     return [u @ vt]
 
 
@@ -670,19 +616,8 @@ def find_metal_geometries(
     find_additional: bool = True,
     required_donors: Optional[Dict[Tuple[int, int], set]] = None,
 ):
-    """Choose a coordination geometry for every metal, as a res_type_variant.
-
-    Mirrors find_disulfides: returns the variant index each residue should take,
-    zero everywhere that is not a metal. ``geometries`` declares the geometry
-    for a (pose, residue) outright and suppresses inference for it.
-    excluded_donor_residues masks residues whose state is already fixed, such
-    as disulfide-bonded cysteines, out of the donor candidates.
-
-    ``declared_sites`` maps (pose, metal) to (geometry, ((site, donor, atom),
-    ...)) and is taken as given. ``required_donors`` maps (pose, metal) to the
-    (donor, atom) pairs it is declared bonded to, without sites: these are
-    always kept, and the geometry and sites are chosen around them. Without
-    ``find_additional``, a metal takes only its required donors.
+    """Each residue's res_type_variant (0 unless a metal) and each metal's assignment.
+    ``geometries``/``declared_sites`` fix geometry/sites; ``required_donors`` stay.
     """
     table = metal_table() if table is None else table
     table_vertices = {g["name"]: g["vertices"] for g in table["geometries"]}
@@ -814,12 +749,8 @@ def _declared_assignment(metal, ion, geometry, filled, metal_xyz, xyz, vertices_
 
 
 def metal_donor_patch(base_name: str, atom: str, n_metals: int = 1) -> VariantType:
-    """Give one atom of one residue type a connection per metal it coordinates.
-
-    Connections are metal_<atom>, metal2_<atom>, ...: a count before the
-    separator cannot be mistaken for part of an atom name. The patch is named
-    for its last connection, so the name a patched type carries is one of its
-    own connection names.
+    """A patch giving ``atom`` a connection per metal: metal_<atom>, metal2_<atom>, ...
+    Named for its last connection, so a patched type's name is one of its connections.
     """
     names = [f"metal_{atom}"] + [f"metal{k}_{atom}" for k in range(2, n_metals + 1)]
     prefix = f"metal{n_metals}" if n_metals > 1 else "metal"
@@ -841,11 +772,8 @@ def metal_donor_patch(base_name: str, atom: str, n_metals: int = 1) -> VariantTy
 
 
 def donor_patches(canonical_ordering, chemical_db, res_types, assignments):
-    """One patch per (base type, atom, metal count) an assigned donor needs.
-
-    Every base type of the donor's class where that atom donates gets one,
-    since which of them the residue becomes is decided after this. An atom
-    bridging two metals needs two connections on it.
+    """One patch per (base type, atom, metal count) an assigned donor needs, on every
+    base type of the class where that atom donates (the residue's is chosen later).
     """
     atom_type = {at.name: at for at in chemical_db.atom_types}
     bases = defaultdict(list)
@@ -881,12 +809,8 @@ def donor_patches(canonical_ordering, chemical_db, res_types, assignments):
 
 
 def with_donor_patches(pbt: PackedBlockTypes, patches) -> PackedBlockTypes:
-    """The newest packed block types grown from pbt that carry every patch.
-
-    Donor forms accumulate: each extension appends to the newest generation
-    grown from the same root, so every pose built from one context shares a
-    packed set until a donor it has not seen arrives, and each generation's
-    residues are a leading run of the next's.
+    """The newest packed block types grown from ``pbt`` carrying every patch; each
+    generation's residues are a leading run of the next's.
     """
     if not patches:
         return pbt
@@ -906,9 +830,7 @@ def with_donor_patches(pbt: PackedBlockTypes, patches) -> PackedBlockTypes:
 
 
 def metal_connection_rows(assignments):
-    """(pose, metal, site, donor, donor canonical atom) for every filled site.
-
-    A templated ion's donor fills the site of the vertex it was fitted to; an
+    """(pose, metal, site, donor, donor canonical atom) per filled site; an
     untemplated ion's donors fill its sites in order.
     """
     rows = []
@@ -922,13 +844,7 @@ def metal_connection_rows(assignments):
 def _assign_crowded(
     metal_index, element, ox, geometry, vertices, directions, keep, excess
 ):
-    """More candidates than the geometry has sites: keep the closest that fit.
-
-    Each site takes at most one donor, so something has to give. Ranking by how
-    far past ideal a contact sits drops the weakest ones, which are what a
-    generous cutoff pulled in. Rosetta hard-exits on this case; it is common
-    enough in real structures to deserve an answer.
-    """
+    """More candidates than sites: keep those closest to ideal and drop the rest."""
     n_sites = len(vertices)
     order = numpy.argsort(excess)
     chosen = numpy.sort(order[:n_sites])
@@ -972,13 +888,8 @@ def _place_cluster_virtuals(bt, coords, missing, rotations):
 
 
 def place_site_virtuals(pbt, block_types64, block_coords, missing_atoms, assignments):
-    """Build each free ion's site virtuals along its fitted vertex directions.
-
-    A lone metal gives the icoor builder no frame to orient them against. The
-    fitted rotation carries vertex k onto the donor that took it, so the fan
-    starts aligned with the site; with no donors the orientation is arbitrary.
-    Virtuals sit at the distance the block type's icoors give them. A declared
-    site whose virtuals all came with the input keeps them.
+    """Place each free ion's site virtuals along its fitted vertex directions.
+    A declared site whose virtuals all came with the input keeps them.
     """
     vertices_for = {g["name"]: g["vertices"] for g in metal_table()["geometries"]}
     for (pose, res), got in assignments:

@@ -64,7 +64,7 @@ dependencies = [
     "astor>=0.8",
     # Structure I/O
     "biotite>=1.4.0",
-    "atomworks @ git+ssh://git@github.com/baker-laboratory/atomworks-dev.git@0d3efe87f895fbc06da74c93279fc37f2d13f362",
+    "atomworks @ git+ssh://git@github.com/baker-laboratory/atomworks-dev.git@711b6b426061a15d9586a2b1886d2bce6bf0b53f",
     # Ligand preparation
     "rdkit>=2024.3",
 ]
@@ -191,7 +191,6 @@ ext = ".cpp,.hh,.h,.cu,.py,.yaml"
 # sync with the `ignore:` block in codecov.yml.
 [tool.coverage.run]
 omit = [
-    "*/tmol/ligand/_dimorphite_dl.py",
     "*/tmol/ligand/_openbabel_compat.py",
     "*/tmol/tests/ligand/_build_pli_ligand_cifs.py",
 ]

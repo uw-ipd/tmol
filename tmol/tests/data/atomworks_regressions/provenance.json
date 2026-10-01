@@ -4,8 +4,10 @@
     "source": "tests/io/utils/schiff_base_double_bond.cif",
     "source_repository": "atomworks-dev",
     "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
-    "sha256": "d8189d050ea7fb6b6115e777d3d839e43c067bc5030fe6e1b9cff7d928e701c6",
-    "bytes": 2212
+    "sha256": "dba3b1d8eddcf484e3df0eee7acbf7ee6acb51c565ab7d5ac7c5aca3129b1d0c",
+    "bytes": 2109,
+    "source_fixture_sha256": "d8189d050ea7fb6b6115e777d3d839e43c067bc5030fe6e1b9cff7d928e701c6",
+    "transformation": "Remove the synthetic HE3 coordinate and CE-HE3 bond: CCD lysine CE has two hydrogens and an unresolved CD neighbour. Keep the declared Schiff-base connection and incomplete backbone unchanged."
   },
   {
     "fixture": "acetylated_peptide_1j8z.cif",
@@ -333,17 +335,6 @@
     "compressed_sha256": "534d6f11e95159837f263630c69bb1b080a2c48d9db8ccf1fbc3b416963e1e35"
   },
   {
-    "fixture": "phosphohistidine_1hxq.cif.zst",
-    "source": "https://files.rcsb.org/download/1HXQ.cif.gz",
-    "source_repository": "RCSB PDB; seeded local CIF audit",
-    "transformation": "none; complete source",
-    "source_sha256": "03d52afb3494933381a067fcbdbbc93a0dece56524e4ff203d8e56ca8f878ac7",
-    "sha256": "774f0f5aea882616892ed75f4e6fb11e9d4d0dc5fbb782bd5e060b0009f08853",
-    "bytes": 705378,
-    "compression": "zstd; decompressed bytes identical to source",
-    "compressed_sha256": "30930c4e7026c9a50ce0cd5a7cd1c91399084482c61578eb56bc51519ebfcbce"
-  },
-  {
     "fixture": "attachment_contexts_8trb.cif.zst",
     "source": "https://files.rcsb.org/download/8TRB.cif.gz",
     "source_repository": "RCSB PDB; seeded local CIF audit",
@@ -457,5 +448,17 @@
     "bytes": 581356,
     "compression": "zstd; decompressed bytes identical to source",
     "compressed_sha256": "931c1fb6a96941c91a3c04d7794553aa1ce792c7adcaa1466926ce5acf5c706e"
+  },
+  {
+    "fixture": "thioglycine_1mro.cif.zst",
+    "source": "https://files.rcsb.org/download/1MRO.cif.gz",
+    "source_repository": "RCSB PDB",
+    "retrieved": "2026-09-30",
+    "source_sha256": "700dc8080bf6895fe77f7cb91462fe8b8a332f04fa5ab048261925338869b5c0",
+    "transformation": "model 1 atom_site cropped to label chain A residues 443-445 (TYR-GL3-TYR); other categories kept",
+    "sha256": "7783e0c85879a0c22856946fcfd31cad1d084cff9af228dba175175a5a06f243",
+    "bytes": 154099,
+    "compression": "zstd",
+    "compressed_sha256": "34db8e3566bdce279bdfc0857745777a5a2522254ede4a7b45c09be6920dcf32"
   }
 ]
