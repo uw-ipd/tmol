@@ -277,6 +277,35 @@ def test_ideal_sites_score_zero(built, stem, default_database, torch_device):
     ), f"{stem}: {detail}"
 
 
+def test_a_donor_behind_its_zinc_site_is_penalized(
+    built, default_database, torch_device
+):
+    pose_stack = built("zn_tetrahedral_3ks3", torch_device)
+    term = MetalCoordinationEnergyTerm(default_database, torch_device)
+    score = render(term, pose_stack)
+    coords, rows = idealized(default_database, pose_stack)
+    pose, mb, ma, _, db, da = rows[0]
+    metal = coords[pose, global_index(pose_stack, pose, mb, ma)]
+    donor = global_index(pose_stack, pose, db, da)
+    delta = coords[pose, donor] - metal
+    before = score(coords).sum()
+    coords[pose, donor] = metal - delta
+    coords.requires_grad_(True)
+    after = score(coords).sum()
+    _, parameters, _, _ = metal_oracle.restraints(default_database, pose_stack)
+    assert float((after - before).detach()) == pytest.approx(
+        float(delta.square().sum()) / parameters[0][3] ** 2, rel=1e-5
+    )
+    expected = metal_oracle.block_pair_energies(
+        default_database, pose_stack, coords
+    ).sum()
+    torch.testing.assert_close(after, expected)
+    torch.testing.assert_close(
+        torch.autograd.grad(after, coords)[0],
+        torch.autograd.grad(expected, coords)[0],
+    )
+
+
 def block_index(pose_stack, chain, resnum):
     info = pose_stack.pdb_info
     for block in range(pose_stack.max_n_blocks):
