@@ -7,6 +7,7 @@ import biotite.structure as struc
 import biotite.structure.io.pdbx as pdbx
 from biotite.structure.io.pdb.hybrid36 import decode_hybrid36
 import numpy as np
+from rdkit import Chem
 
 from atomworks.constants import (
     BOND_DISTANCE_THRESHOLD_CHNO,
@@ -18,6 +19,7 @@ from atomworks.io import load_pdb
 from atomworks.io.config import ParseConfig
 from atomworks.io.parser import parse, parse_atom_array, prepare_atom_array
 from atomworks.io.transforms.categories import category_to_dict
+from atomworks.io.tools.rdkit import atom_array_to_rdkit, BIOTITE_BOND_TYPE_TO_RDKIT
 from atomworks.io.utils.bonds import get_struct_conn_bonds
 from atomworks.io.utils.ccd import custom_ccd_residues, get_polymerization_atoms
 from atomworks.io.utils.io_utils import get_structure, infer_pdb_file_type, read_any
@@ -346,7 +348,7 @@ def _own_template(residue, entry):
     bonds = template.bonds.as_array()
     to_h = ~(heavy[bonds[:, 0]] & heavy[bonds[:, 1]])
     fits = _atoms(template[heavy]) <= _atoms(entry)
-    fits &= _bond_table(template, ~to_h).keys() <= pairs.keys()
+    fits &= _compatible_bonds(_bond_table(template, ~to_h), entry)
     kind = str(entry.chem_comp_type[0]) if fits else "NON-POLYMER"
     template.set_annotation("chem_comp_type", np.full(len(template), kind))
     if fits:
@@ -363,6 +365,40 @@ def _own_template(residue, entry):
         charge = dict(zip(entry.atom_name.tolist(), entry.charge.tolist()))
         template.charge[heavy] = [charge[n] for n in template.atom_name[heavy]]
     return template, fits
+
+
+def _compatible_bonds(stated, entry):
+    """Explicit bond orders must agree, allowing unknown orders and Kekule equivalents."""
+    known = _bond_table(entry)
+    if not stated.keys() <= known.keys():
+        return False
+    explicit = {
+        pair: kind for pair, kind in stated.items() if kind != struc.BondType.ANY
+    }
+    if all(kind == known[pair] for pair, kind in explicit.items()):
+        return True
+    try:
+        reference = atom_array_to_rdkit(
+            entry,
+            sanitize=False,
+            attempt_fixing_corrupted_molecules=False,
+            annotations_to_keep=[],
+        )
+        Chem.SanitizeMol(reference)
+        molecule = Chem.Mol(reference)
+        Chem.Kekulize(molecule, clearAromaticFlags=True)
+        index = {name: i for i, name in enumerate(entry.atom_name)}
+        for pair, kind in explicit.items():
+            a, b = pair
+            bond = molecule.GetBondBetweenAtoms(index[a], index[b])
+            bond.SetBondType(BIOTITE_BOND_TYPE_TO_RDKIT[kind][0])
+        Chem.SanitizeMol(molecule)
+        return all(
+            bond.GetBondType() == reference.GetBondWithIdx(bond.GetIdx()).GetBondType()
+            for bond in molecule.GetBonds()
+        )
+    except (ValueError, RuntimeError):
+        return False
 
 
 def _own_components(array, names=None):
@@ -387,8 +423,7 @@ def _own_components(array, names=None):
         mine = chosen & (array.res_name == name)
         if entry is None or (
             _atoms(array[mine & _heavy(array)]) <= _atoms(entry)
-            and _bond_table(array, within & mine[bonds[:, 0]]).keys()
-            <= _bond_table(entry).keys()
+            and _compatible_bonds(_bond_table(array, within & mine[bonds[:, 0]]), entry)
         ):
             continue
         r = max(np.unique(residue[mine]), key=lambda r: bounds[r + 1] - bounds[r])

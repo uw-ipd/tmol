@@ -167,6 +167,7 @@ def test_prepare_ligands_missing_ligand_atom_fails(
 
     from tmol.database import ParameterDatabase
     from tmol.io import pose_stack_from_biotite
+    from tmol.ligand import LigandPreparationError
 
     bt = cif_184l_with_i4b.copy()
     ligand_atoms = numpy.nonzero(bt.res_name == "I4B")[0]
@@ -177,7 +178,9 @@ def test_prepare_ligands_missing_ligand_atom_fails(
     keep_mask[ligand_atoms[0]] = False
     bt_ligand_missing = bt[keep_mask]
 
-    with pytest.raises(Exception):
+    with pytest.raises(
+        LigandPreparationError, match="I4B.*missing declared heavy atoms: C1"
+    ):
         pose_stack_from_biotite(
             bt_ligand_missing,
             torch_device,
