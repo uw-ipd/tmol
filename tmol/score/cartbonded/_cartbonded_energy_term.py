@@ -267,25 +267,18 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         )
 
     _warned_unparameterized = set()
-    # water has no rows either, but the structure readers drop it
-    _unparameterized_by_design = frozenset({"HOH"})
 
     @classmethod
     def _warn_unparameterized(cls, block_type, lengths):
-        """Say so when a residue type's own bonds have no cart_bonded parameters.
-
-        Its lengths and angles then score zero and minimization leaves its atoms
-        unrestrained, as HIS_POS was. Bonds to virtual atoms need no parameters.
-        """
+        """Warn once per type whose own bonds have no rows, as HIS_POS had; HOH (the
+        readers drop water) and bonds to virtual atoms are exempt."""
         virtual = {
             i
             for i, atom in enumerate(block_type.atoms)
             if atom.atom_type == "Vrt" or atom.name in block_type.properties.virtual
         }
-        if (
-            block_type.base_name in cls._warned_unparameterized
-            or block_type.base_name in cls._unparameterized_by_design
-            or all({a, b} & virtual for a, b, _, _ in lengths)
+        if block_type.base_name in cls._warned_unparameterized | {"HOH"} or all(
+            {a, b} & virtual for a, b, _, _ in lengths
         ):
             return
         cls._warned_unparameterized.add(block_type.base_name)
