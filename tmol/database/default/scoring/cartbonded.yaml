@@ -2108,8 +2108,6 @@ residue_params:
     - {atm1: CA, atm2: C, atm3: +N, atm4: +H, k2: 10.458, phi2: 9.424777961589793}
     - {atm1: CA, atm2: N, atm3: +C, atm4: +O, k2: 9.667, phi2: 3.141592653589793}
     - {atm1: O, atm2: C, atm3: +N, atm4: +H, k2: 10.992, phi2: 9.424777961589793}
-    - {atm1: O, atm2: C, atm3: +N, atm4: +CN, k2: 20.0, phi2: 9.424777961589793}
-    - {atm1: CA, atm2: C, atm3: +N, atm4: +CN, k2: 20.0, phi2: 9.424777961589793}
     improper_parameters: []
     hxltorsion_parameters: []
   RA:
