@@ -505,7 +505,6 @@ def test_a_declared_bond_to_a_hydroxide_ligand_is_kept():
         structure,
         torch.device("cpu"),
         prepare_ligands=True,
-        use_ccd=False,
         ligand_seed=0,
         find_additional_metal_coordination=False,
     )
