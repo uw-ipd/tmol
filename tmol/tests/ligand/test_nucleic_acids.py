@@ -30,6 +30,7 @@ from tmol.ligand._polymer_profile import (
     glycosidic_torsion_atoms,
     na_backbone_kind,
     na_profile,
+    profile_for_atom_array,
 )
 from tmol.tests.data import data_path
 
@@ -124,6 +125,32 @@ def test_a_fused_dinucleotide_is_not_a_standard_backbone() -> None:
     component = _component("TTD")
     assert {"P", "PB"} <= {str(n) for n in component.atom_name}
     assert na_backbone_kind(component, frozenset({"P", "O3'"})) is None
+
+
+@pytest.mark.parametrize("code", ["DDG", "DOC"])
+def test_a_3_prime_deoxy_nucleotide_ends_its_chain_at_c3(code: str) -> None:
+    """A dideoxy chain terminator has no O3': the backbone stops at C3'."""
+    profile = profile_for_atom_array(_component(code), frozenset({"P"}))
+    assert profile.down == ("down", "P") and profile.up is None
+    assert profile.mainchain_atoms[-1] == "C3'"
+
+
+def test_an_abasic_nucleotide_is_a_backbone_not_a_sugar() -> None:
+    """AAB's C1' hydroxyl makes it look like a sugar; its backbone wins."""
+    profile = profile_for_atom_array(_component("AAB"), frozenset({"P", "O3'"}))
+    assert profile is not None and profile.up == ("up", "O3'")
+
+
+def test_an_abasic_site_in_dna_is_a_dna_backbone() -> None:
+    """1G5E AAB: a C1' hydroxyl and no 2' oxygen; only an oxygen on C2' makes RNA."""
+    from tmol.io import atom_array_from_cif
+
+    structure = atom_array_from_cif(
+        data_path("atomworks_regressions") / "abasic_1g5e.cif.zst"
+    )
+    abasic = structure[(structure.res_name == "AAB") & (structure.element != "H")]
+    assert "O1'" in set(abasic.atom_name)
+    assert na_backbone_kind(abasic, frozenset({"P", "O3'"})) == "dna"
 
 
 # --------------------------------------------------------------------------- #
@@ -394,7 +421,7 @@ def _block_type_names(structure, device):
 
 
 def test_a_substituted_five_prime_oxygen_leaves_no_five_prime_port() -> None:
-    """MMT's 5' oxygen bonds the methylimino link to the previous residue.
+    """1CX5 A:7 MMT's 5' oxygen bonds the methylimino link to the previous residue.
 
     No phosphate is grafted onto that ether: the type keeps only its 3' port,
     and the link at C3X is a conjugation.
@@ -407,11 +434,23 @@ def test_a_substituted_five_prime_oxygen_leaves_no_five_prime_port() -> None:
     assert "MMT:conj_C3X" in types
 
 
+def test_a_substituted_three_prime_oxygen_leaves_no_three_prime_port(
+    torch_device,
+) -> None:
+    """CCC's 3' oxygen closes its 2',3'-cyclic phosphate (1hq1 B178), so the
+    chain-end copy is no 3' terminus: nothing puts a hydrogen on that O3'."""
+    names, _chemdb = _block_type_names(
+        _sweep_structure("cyclic_phosphate_3prime_1hq1"), torch_device
+    )
+
+    assert names == ["RC:na5primephos", "CCC"]
+
+
 def test_the_component_definition_breaks_a_leaving_oxygen_tie(torch_device) -> None:
     """LCC's 5'-terminal copy is completed with the definition's O1P and OXT.
 
     Both are terminal hydroxyls on P; the definition declares OXT as leaving,
-    so O1P stays, as in the copies inside the chain.
+    so O1P stays, as in the copies inside the chain (6C8D A:1-A:3).
     """
     structure = _sweep_structure("lcc_leaving_atoms_6c8d")
     names, _chemdb = _block_type_names(structure, torch_device)
@@ -422,7 +461,8 @@ def test_the_component_definition_breaks_a_leaving_oxygen_tie(torch_device) -> N
 def test_a_patch_removes_the_hydrogens_of_the_atoms_it_removes() -> None:
     """XY7's phosphate carries hydroxyl hydrogens a canonical nucleotide lacks.
 
-    The 5'-terminal patches remove OP1 and OP2, and with them HOP1 and HOP2.
+    The 5'-terminal patches remove OP1 and OP2, and with them HOP1 and HOP2 (7KW4
+    A:2).
     """
     prepared, _known, _co = _prepared(_sweep_structure("xy7_phosphate_hydrogens_7kw4"))
     atoms = {
@@ -436,7 +476,8 @@ def test_a_patch_removes_the_hydrogens_of_the_atoms_it_removes() -> None:
 
 
 def test_a_variant_keeps_the_phosphate_alias_of_its_residue(torch_device) -> None:
-    """AAB reads its deposited O3P as OP2; so do its variants, na5primephos too."""
+    """1MWI D:7 AAB reads its deposited O3P as OP2; so do its variants, na5primephos
+    too."""
     structure = _sweep_structure("aab_phosphate_alias_1mwi")
     names, chemdb = _block_type_names(structure, torch_device)
 

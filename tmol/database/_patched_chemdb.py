@@ -241,10 +241,8 @@ def validate_raw_residue(res):
 
 
 def _validate_raw_residue_metal_sites(res, allatoms):
-    """Every metal site names atoms this residue has, and no site is oversubscribed.
-
-    Patching carries metal_sites through untouched, so a variant that deletes a
-    referenced atom must fail here rather than leave a site pointing at nothing.
+    """Every metal site names atoms this residue has, and no site is oversubscribed;
+    a patch deleting an atom a site names fails here.
     """
     from tmol.database.chemical import GEOMETRY_SITE_COUNT
 
@@ -665,13 +663,6 @@ def _patch_preserves_torsion_support(res, variant, namemap, deleted):
     return True
 
 
-# apply a patch to a rawresidue
-#    res, resgraph - base residue, graph
-#    variant, patchgraph - patch variant, patch graph
-#    marked - atoms modified in the base residue
-# returns:
-#    newreses - list of new residues produced by the patch (currently only support for 1)
-#    newmarked - updated list of modified atoms in new residue
 # marks an atom a patch created, as against one it modified
 CREATED = "+"
 # marks an atom a patch only bonded to or took a neighbor from, leaving the
@@ -689,6 +680,13 @@ def _only_adds_connections(variant):
     )
 
 
+# apply a patch to a rawresidue
+#    res, resgraph - base residue, graph
+#    variant, patchgraph - patch variant, patch graph
+#    marked - atoms modified in the base residue
+# returns:
+#    newreses - list of new residues produced by the patch (currently only support for 1)
+#    newmarked - updated list of modified atoms in new residue
 def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
     added, modded, deleted = get_modified_atoms(variant)
     assert len(modded) + len(deleted) > 0, (
@@ -722,9 +720,8 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
             if j in deleted and i not in deleted:
                 modded.append(i)
 
-        # 0. check if we've already modified any of these atoms; a patch that
-        #    only adds connections may attach to an atom another patch created
-        #    or only anchored
+        # 0. check if we've already modified any of these atoms; a patch only adding
+        #    connections may attach to an atom another created (1YJO) or anchored (2G8F)
         blocking = {
             x.lstrip(CREATED + ANCHORED)
             for x in newmark
@@ -735,7 +732,8 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
         if set(modded) & blocking:
             continue
 
-        # a patch cannot delete an atom a connection it keeps sits on
+        # a patch cannot delete an atom a connection it keeps sits on (7EOH: the
+        #    phosphate oxygens its Mg ions bond)
         gone = set(deleted)
         if any(c.atom in gone and c.name not in gone for c in res.connections):
             continue
@@ -746,7 +744,7 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
         newres = attr.evolve(res, name=res.name + ":" + variant.display_name)
 
         # hydrogens on removed atoms go with them; a prepared residue can carry
-        #    some (a protonated phosphate) where canonical ones do not
+        #    some where canonical ones do not (7KW4 A:2 XY7's HOP1/HOP2)
         removed = {namemap[a] for a in variant.remove_atoms if a in namemap}
         stranded = sorted(
             name
@@ -772,7 +770,7 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
         newres.atoms = (*newres.atoms, *variant.add_atoms)
 
         # 2b. add atom alias; a source name the base residue already aliases keeps
-        #     that meaning, since input names are read per name3
+        #     that meaning, since input names are read per name3 (1MWI D:7 AAB O3P)
         claimed = {a.alt_name: a.name for a in res.atom_aliases}
         newres.atom_aliases = (
             *newres.atom_aliases,

@@ -54,7 +54,6 @@ from ._conformer_generation import (  # noqa: F401
 from ._detect import (  # noqa: F401
     NonStandardResidueInfo,
     SKIP_RESIDUES,
-    _METAL_SYMBOLS,
     _charge_model_is_authoritative,
     _dimorphite_protonate_smiles,
     _infer_res_name_from_mol2,
@@ -138,7 +137,6 @@ from ._preparation import (  # noqa: F401
 )  # noqa: F401
 from ._rdkit_mol import (  # noqa: F401
     ligand_atom_array_to_rdkit_mol,
-    normalize_cumulated_azide,
     source_carried_kekule,
     source_has_aromatic_annotations,
     source_subtype,

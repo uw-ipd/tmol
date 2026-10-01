@@ -10,6 +10,15 @@
   "compressed_sha256": "2e607b3abdc5e426531797298cffe414a9eb8937c2dd84534d1b50b15ec55b0f"
  },
  {
+  "fixture": "capped_peptide_1coi.pdb.zst",
+  "source": "https://files.rcsb.org/download/1COI.pdb",
+  "source_sha256": "685390d4f6144f9a007a85d045fedb8b2e8a930ccf02222d6a29a95e6f2d6088",
+  "transformation": "grep -E '^(ATOM|HETATM|TER|END)' 1COI.pdb > capped_peptide_1coi.pdb && python -c \"import zstandard; open('capped_peptide_1coi.pdb.zst', 'wb').write(zstandard.ZstdCompressor(level=19).compress(open('capped_peptide_1coi.pdb', 'rb').read()))\"",
+  "sha256": "8c00a92891628ab476b7f7b1a6e84b1755fdc015858671126b161157cb9990c5",
+  "bytes": 20331,
+  "compressed_sha256": "f8bf3bca1c90a9efe1590d98aadadcba4c2a3ece999ca797a284587f5597fb85"
+ },
+ {
   "fixture": "bonded_bromide_1mhk.cif.zst",
   "source": "https://files.rcsb.org/download/1MHK.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/mh/1mhk.cif.gz)",
   "source_sha256": "1b2f79a23d109ff0cc8bb64f05dd3efa58ee1b584b926360d012fc63f9757bb0",
@@ -181,5 +190,23 @@
   "sha256": "7541731ab76b9086bf2f0d0440ab99c9c6ec13c7840a75862fe22ff36ee4ad92",
   "bytes": 160734,
   "compressed_sha256": "b4c83201d031a56350e6dc2e9613e97a05536df955c217478722149416ded3a3"
+ },
+ {
+  "fixture": "free_nucleotides_8gpb.cif.zst",
+  "source": "https://files.rcsb.org/download/8GPB.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/gp/8gpb.cif.gz)",
+  "source_sha256": "377e96a142fc2fed7870f437f70996b8c48523c9df0d1dda85fd465b54be4cfa",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/gp/8gpb.cif.gz free_nucleotides_8gpb.cif 0 AMP; zstd -19 free_nucleotides_8gpb.cif",
+  "sha256": "271f6fdc882eb91d9a556b98c81c5410fd74f8a3b2f519df8623ab0be14979cd",
+  "bytes": 82024,
+  "compressed_sha256": "d5e7b8ad3d5a49ada775fb13e1c45a32c014e22a9b0a3c9acaa5624cc6e6f737"
+ },
+ {
+  "fixture": "cyclic_phosphate_3prime_1hq1.cif.zst",
+  "source": "https://files.rcsb.org/download/1HQ1.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/hq/1hq1.cif.gz)",
+  "source_sha256": "4ae72a693b11ebaa33d6a5248c6f02f5f50e3e1a17169c1fec105670c855a4af",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/hq/1hq1.cif.gz cyclic_phosphate_3prime_1hq1.cif 2.0 CCC; zstd -19 cyclic_phosphate_3prime_1hq1.cif",
+  "sha256": "39fca583efa112b2f47e474c2d04779aa6506376abe5663690192714223a7b82",
+  "bytes": 52915,
+  "compressed_sha256": "a943627b247bd1a6075d4ee50e5cb0f55cc1b3ec08ded964c1a7cfafdc27087c"
  }
 ]

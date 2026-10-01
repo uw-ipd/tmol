@@ -100,6 +100,15 @@ def assign_block_types(
         explicit_polymer_connections,
     )
 
+    termini_variants = _termini_the_atoms_state(
+        pbt,
+        atom_is_present,
+        res_types64,
+        res_type_variants64,
+        termini_variants,
+        res_not_connected & is_polymeric[..., None],
+        is_real_res,
+    )
     block_type_ind64 = select_best_block_type_candidate(
         canonical_ordering,
         pbt,
@@ -482,6 +491,29 @@ def determine_chain_ending_status(
         is_actual_last_chain_res,
         is_polymeric,
     )
+
+
+def _termini_the_atoms_state(pbt, present, restypes, variants, termini, broken, real):
+    """Termini with a gap side made a terminus where only that fits the given atoms.
+
+    PDBbind v2020 1ERR A:74 (PrepWizard) caps its chain break with H1 and H2,
+    which no mid-chain ALA holds; a heavy-atom input still fits mid-chain.
+    """
+    can_ann = pbt.canonical_ordering_annotation
+    down = (termini == 0) | (termini == 3) | broken[..., 0]
+    up = (termini == 2) | (termini == 3) | broken[..., 1]
+    alt = torch.where(down & up, 3, torch.where(down, 0, torch.where(up, 2, 1)))
+    restypes, variants = restypes.clamp(min=0), variants.clamp(min=0)
+
+    def unfit(t):
+        cands = can_ann.var_combo_candidate_bt_index[restypes, t, variants]
+        real_cand = can_ann.var_combo_is_real_candidate[restypes, t, variants]
+        absent = can_ann.bt_canonical_atom_is_absent[cands.clamp(min=0)]
+        absent |= ~real_cand[..., None]
+        return (present[:, :, None] & absent).any(-1).all(-1)
+
+    switch = real & (alt != termini) & unfit(termini) & ~unfit(alt)
+    return torch.where(switch, alt, termini)
 
 
 @validate_args
@@ -1403,7 +1435,8 @@ def _apply_metal_connections(
         key = (pbt.conjugation_base_for_bt[bt_ind], tuple(sorted(attached)))
         coordinating = pbt.conjugated_bt_for_base_and_atoms.get(key)
         if coordinating is None:
-            # the given protonation state wins: a neutral TYR or CYS has no donor form
+            # 6YV5 A:45: the given protonation state wins; a neutral TYR's OH has no
+            #    donor form (TYR_DEP has), so its metal bond is dropped
             logger.warning(
                 "pose %d: %s %d cannot coordinate a metal at %s in its given "
                 "protonation state; left uncoordinated",
@@ -1449,19 +1482,8 @@ def _apply_metal_connections(
 
 
 def _annotate_packed_block_types_w_conjugations(pbt: PackedBlockTypes):
-    """Which connections an input bond selects a residue's form by.
-
-    Any connection but the polymer up or down, the disulfide, and a metal's
-    own site connections is an attachment: a glycan on a serine, a ligand on a
-    lysine, a histidine coordinating a metal. The disulfide is chosen on the
-    variant axis instead, and a metal type carries its sites whether filled or
-    not. Read from the connections themselves, so it holds for a generated
-    component and a patched canonical residue alike.
-
-    Annotates, per block type, its attachments as ``(is_metal, atom)`` and its
-    name without them, and a lookup from (unattached name, attachments) to the
-    block type that carries exactly those.
-    """
+    """Annotate per block type its attachments (connections but up, down, disulfide and
+    metal sites) as (is_metal, atom), its name without them, and the reverse lookup."""
     if hasattr(pbt, "conjugation_atoms_for_bt"):
         return
     annotate_packed_block_types_w_dslf_conn_inds(pbt)

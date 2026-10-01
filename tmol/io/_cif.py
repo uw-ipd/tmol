@@ -14,6 +14,7 @@ through the usual sidechain path rather than through anything new.
 """
 
 import logging
+from pathlib import Path
 
 import biotite.structure as struc
 import numpy as np
@@ -132,7 +133,7 @@ def atom_array_from_cif(
     model: int = 1,
     assembly_id: str | None = None,
 ):
-    """Read a PDB, CIF, compressed CIF or binary CIF into an AtomArray.
+    """Read a PDB, CIF, compressed CIF, binary CIF, MOL2 or SDF into an AtomArray.
 
     Preserve supplied names, coordinates, hydrogens and covalent connections.
     Declared unresolved heavy atoms have NaN coordinates. Chemistry the file
@@ -145,6 +146,14 @@ def atom_array_from_cif(
     """
     from tmol.io._atomworks_reader import read_structure
 
+    if isinstance(cif_path, (str, Path)) and Path(cif_path).suffix.lower() in (
+        ".mol2",
+        ".sdf",
+        ".mol",
+    ):
+        from tmol.io._assemble import atom_array_from_mol2
+
+        return atom_array_from_mol2(cif_path)
     if assembly_id is not None and (
         not isinstance(assembly_id, str) or not assembly_id
     ):
@@ -193,7 +202,11 @@ def atom_array_from_cif(
     # AtomWorks skips sanitation when its own completion is disabled. Repair
     # the final author-view graph with the same shared attachment chemistry.
     with custom_ccd_residues(array._custom_ccd_registry):
-        specified = getattr(array, "pdbx_formal_charge", np.full(len(array), "?"))
+        # PoseBusters 6TW5 (Cl1-): a PDB states charges in its charge column,
+        # where blank reads as 0
+        stated = np.where(array.charge != 0, array.charge.astype(str), "?")
+        stated = stated if block is None else np.full(len(array), "?")
+        specified = getattr(array, "pdbx_formal_charge", stated)
         charge_specified = ~np.isin(specified, _MISSING_CIF_VALUE)
         for index in np.flatnonzero(charge_specified):
             array.charge[index] = int(specified[index])
@@ -234,11 +247,11 @@ def atom_array_from_cif(
 def _without_misstated_charges(array, templates):
     """``array`` with the charges its bonded C, N, O and halogen atoms cannot carry set to 0.
 
-    Off a metal, such a charge leaves too little room for the atom's bonds (a
-    bromide bonded to a base, -1 on a C=O oxygen, +8 on a CB), is two or more
-    where the bonds need none and the dictionary states none (+7 on a
-    carboxylate O), or is +1 on an oxygen with fewer than three bonds (a
-    carboxylate's -1 deposited unsigned). The pH then decides the atom.
+    Off a metal, such a charge leaves too little room for the atom's bonds (1MHK
+    S:13 BR -1 bonded to a uridine C5), or the dictionary does not state it and it
+    is two or more where the bonds need none (7TJM 7:103 GLU OE2 +7) or +1 on an
+    oxygen with fewer than three bonds (3ZLP n:107 GLU OE1, a carboxylate's -1
+    deposited unsigned). The pH then decides the atom.
     """
     from atomworks.constants import METAL_ELEMENTS
 
@@ -258,21 +271,20 @@ def _without_misstated_charges(array, templates):
     by_metal[bonds[metal[bonds[:, 1]], 0]] = True
     by_metal[bonds[metal[bonds[:, 0]], 1]] = True
     room = np.where(element == "C", valence - np.abs(charge), valence + charge)
-    multiple = (np.abs(charge) > 1) & (fewest <= valence) & (valence > 0)
-    for index in np.flatnonzero(multiple):
+    unstated = (valence > 0) & (
+        ((np.abs(charge) > 1) & (fewest <= valence))
+        | ((element == "O") & (charge == 1) & (most < room))
+    )
+    for index in np.flatnonzero(unstated):
         name = str(array.res_name[index])
         template = templates.get(name)
         if template is None:
             template = _component_dictionary_template(name)
-        multiple[index] = template is None or charge[index] not in (
+        unstated[index] = template is None or charge[index] not in (
             template.charge[template.atom_name == array.atom_name[index]]
         )
     misstated = (valence > 0) & (fewest > 0) & ~by_metal
-    misstated &= (
-        ((room < valence) & (fewest > room))
-        | multiple
-        | ((element == "O") & (charge == 1) & (most < room))
-    )
+    misstated &= ((room < valence) & (fewest > room)) | unstated
     # ligands are prepared by name, so a charge another copy of the atom keeps stays
     named = np.char.add(np.char.add(array.res_name.astype(str), "/"), array.atom_name)
     named = np.char.add(np.char.add(named, "/"), charge.astype(str))
@@ -422,10 +434,7 @@ def _unresolved_heavy_atoms(
     res_name: str, residue, template, linked: frozenset, chemistry: dict, warned: set
 ) -> list[str] | None:
     """Sorted heavy template atoms ``residue`` lacks; ``None`` if taken as resolved.
-
-    ``chemistry`` caches each component's heavy atoms and leaving groups, and
-    ``warned`` holds the components already reported as unaccounted for.
-    """
+    ``chemistry`` caches heavy atoms and leaving groups; ``warned``, reported names."""
     from atomworks.io.utils.leaving_atoms import get_leaving_atom_groups
 
     from tmol.ligand._input_repair import get_absent_substitution_leaving_groups

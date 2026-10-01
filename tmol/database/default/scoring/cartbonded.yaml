@@ -2105,7 +2105,7 @@ residue_params:
     - {atm1: O5', atm2: P, atm3: +O3', x0: 1.809906, K: 80}
     - {atm1: C3', atm2: O3', atm3: HO3', x0: 1.911485, K: 80}
     - {atm1: C5', atm2: O5', atm3: HO5', x0: 1.911485, K: 80}
-    # 5'-phosphate (na5primephos) terminal oxygen
+    # 5'-phosphate (na5primephos) terminal oxygen (9CF0 N:-10 DA, W:4 U)
     - {atm1: O5', atm2: P, atm3: OP3, x0: 1.8326, K: 80}
     - {atm1: OP1, atm2: P, atm3: OP3, x0: 1.9373, K: 80}
     - {atm1: OP2, atm2: P, atm3: OP3, x0: 1.9373, K: 80}

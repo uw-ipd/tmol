@@ -1,6 +1,7 @@
 """Read supplied structure information before tmol validates parameter requirements."""
 
 import warnings
+from string import ascii_uppercase
 
 import biotite.structure as struc
 import numpy as np
@@ -37,7 +38,7 @@ _FIELDS = [
 def _polymer_from_backbone_bonds(array):
     """Mark as polymer the residues a polymer bond joins to a neighbour in their chain.
 
-    A PDB writes a modified residue in a chain as HETATM, as it writes a free ligand.
+    A PDB writes a modified residue in a chain as HETATM, as a free ligand (5EMA SEP).
     """
     residue_of = struc.get_all_residue_positions(array)
     polymer = ~array.hetero[struc.get_residue_starts(array)]
@@ -65,7 +66,7 @@ def _polymer_from_backbone_bonds(array):
 def _with_pdb_author_chains(array, path, model):
     """Each atom's chain as its PDB record names it, as ``auth_asym_id``.
 
-    The loader moves the HETATM residues of a chain that also has polymer ones to a new chain.
+    The loader moves a chain's HETATM residues to a new chain (5EMA SEP as PDB).
     """
     authored = read_any(path).get_structure(
         model=model, altloc="first", extra_fields=["atom_id"]
@@ -80,7 +81,7 @@ def _with_pdb_author_chains(array, path, model):
 def _with_metal_coordination(array, block):
     """The bond table plus the file's metalc bonds, typed COORDINATION.
 
-    The reader has kept one conformer, so a row's alternate locations all name it.
+    The reader kept one conformer, so a row's alternate locations name it (3F7L, 7ADR).
     """
     struct_conn = category_to_dict(block, "struct_conn")
     for partner in (1, 2):
@@ -99,7 +100,7 @@ def _with_metal_coordination(array, block):
 def _one_disulfide_per_sulfur(array):
     """The bond table keeping, of the S-S bonds between residues, one per sulfur.
 
-    A deposit can declare one cysteine in two disulfides (6CNB) or a Zn(Cys)4
+    A deposit can declare one cysteine in two disulfides (6CNB L:51) or a Zn(Cys)4
     site as a ring of them (5N5Y). The bonds nearest 2.04 A are kept.
     """
     bonds = array.bonds.as_array()
@@ -137,32 +138,37 @@ def _one_disulfide_per_sulfur(array):
     return struc.BondList(len(array), np.delete(bonds, rows[dropped], axis=0))
 
 
-def _renumber_decreasing_author_ids(array):
-    """Renumber, in file order, any chain whose author numbering decreases.
+def renumbered_decreasing_chains(array):
+    """(res_id, ins_code, chains): chains whose numbering decreases renumbered 1..N.
 
-    AtomWorks refuses such a chain (5XNL numbers its waters backwards); renumbering
-    keeps residue identity and order. Returns the array unchanged where none decreases.
+    Their insertion codes are cleared; other chains' are load-bearing (antibody CDRs).
     """
     res_id = array.res_id.copy()
     ins_code = array.ins_code.copy()
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)
-    repaired = []
+    chains = []
     for chain in dict.fromkeys(array.chain_id.tolist()):
         in_chain = array.chain_id == chain
         if not (np.diff(res_id[in_chain]) < 0).any():
             continue
         number = 0
-        for begin, end in zip(starts[:-1], starts[1:], strict=False):
+        for begin, end in zip(starts[:-1], starts[1:]):
             if array.chain_id[begin] == chain:
                 number += 1
                 res_id[begin:end] = number
-        # renumbering supersedes this chain's insertion codes and no others:
-        #    elsewhere they are load-bearing, as an antibody's CDRs are
         ins_code[in_chain] = ""
-        repaired.append(str(chain))
+        chains.append(str(chain))
+    return res_id, ins_code, chains
+
+
+def _renumber_decreasing_author_ids(array):
+    """Renumber, in file order, any chain whose author numbering decreases.
+
+    AtomWorks refuses such a chain (5XNL numbers its waters backwards).
+    """
+    res_id, ins_code, repaired = renumbered_decreasing_chains(array)
     if not repaired:
         return array
-
     warnings.warn(
         f"Renumbering chain(s) {', '.join(repaired)}: author numbering that decreases "
         "within a chain is not an ordering that can be relied on downstream.",
@@ -177,7 +183,8 @@ def _renumber_decreasing_author_ids(array):
 def _link_bonds(array, lines):
     """The LINK records as bonds, skipping symmetry mates and links longer than a covalent bond.
 
-    A link to a metal is a coordination bond.
+    A link to a metal is a coordination bond (1HZY A:401 ZN), as in the mmCIF
+    struct_conn path, whose distance limits these are.
     """
     index = {}
     for i, key in enumerate(
@@ -234,9 +241,12 @@ def _extends_polymer(array, starts, anchor, residue, step):
 def _read_pdb(path, model):
     """A PDB's atoms with its LINK records as bonds, HETATM chains in residue-number order.
 
-    The loader moves a chain's HETATM residues off it; those within its ATOM residues, or
-    bonded at its ends (caps), rejoin it. PDB files may list the rest out of order (1HZY).
+    The loader moves a chain's HETATM residues off it; those within its ATOM residues
+    (3SVU A:63 NRQ), or bonded at its ends (caps: 1COI A:0 ACE, A:30 NH2), rejoin it.
+    PDB files may list the rest out of order (1HZY A:369 FMT after A:401 ZN).
     """
+    from tmol.ligand._mol2_names import disambiguated_atom_names
+
     array, _ = load_pdb(path, model=model)
     if array.coord.ndim == 3:
         array = array[0]
@@ -264,6 +274,18 @@ def _read_pdb(path, model):
         if array.hetero[in_chain].all():
             by_number = np.argsort(array.res_id[in_chain], kind="stable")
             order[in_chain] = in_chain[by_number]
+    # PDBbind 10GS: a residue naming atoms alike (a peptidic ligand written as
+    # one) takes the MOL2 reader's names for them
+    starts = struc.get_residue_starts(array, add_exclusive_stop=True)
+    for begin, end in zip(starts[:-1], starts[1:]):
+        names = array.atom_name[begin:end]
+        if len(set(names)) < len(names):
+            array.atom_name[begin:end] = disambiguated_atom_names(names.tolist())
+    # PDBbind 1GPK pocket: a blank chain ID is valid in a PDB but names no chain
+    blank = array.auth_asym_id == ""
+    if blank.any():
+        free = next(c for c in ascii_uppercase if c not in array.auth_asym_id)
+        array.chain_id[blank] = array.auth_asym_id[blank] = free
     return array[order]
 
 

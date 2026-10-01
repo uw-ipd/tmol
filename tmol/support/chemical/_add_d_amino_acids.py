@@ -104,14 +104,8 @@ def mirror_residue(residue: dict) -> dict:
     # the backbone potentials are the L tables read at negated phi/psi,
     #    following the l residue's own borrow
     out["rama_reference"] = residue.get("rama_reference") or l_name
-    # Name the mirrored library, and follow the l residue's own borrow to get
-    # there: mirrored libraries exist only for l names with a lookup row of
-    # their own, so a d residue pointed at an l name without one resolves to
-    # nothing and is never given a rotamer.
-    # Normally the l base name: it says which residue this mirrors, and the d
-    # library is found first under the d residue's own base_name. Where the l
-    # form borrows a library it has no row for, that name mirrors to nothing,
-    # so the d library has to be named outright.
+    # the l base name, or the mirror of the library the l form borrows: only l names
+    #    with a lookup row of their own are mirrored
     borrowed = residue.get("dunbrack_reference")
     if borrowed in (None, residue["base_name"]):
         borrowed = None  # a self-reference is not a borrow
