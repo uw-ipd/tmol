@@ -437,6 +437,20 @@ def test_metalc_naming_an_alternate_location_is_read(stem, metal, donors):
     assert donors <= read
 
 
+@pytest.mark.parametrize(
+    "stem, metal, donor",
+    [
+        # OXT is created by the C-terminus patch
+        ("zn_cterm_oxt_1yjo", ("A", 7), (("A", 6), "OXT")),
+        # O3' is anchored by the 3' terminus patch
+        ("mg_three_prime_2g8f", ("A", 301), (("B", 6), "O3'")),
+    ],
+)
+def test_terminus_patched_atom_coordinates_a_metal(built, stem, metal, donor):
+    pose_stack, _ = built(stem)
+    assert (metal, *donor) in labeled_metal_bonds(pose_stack)
+
+
 def test_declared_bond_beyond_cutoff_is_kept(built):
     pose_stack, _ = built("zn_tetrahedral_3ks3")
     structure, zinc = zinc_with_declared_bonds([], struc.BondType.ANY)

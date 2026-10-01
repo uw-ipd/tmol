@@ -205,11 +205,8 @@ def canonical_form_from_pose_stack(
 
 
 def _declared_connections(co: CanonicalOrdering, pose_stack: PoseStack):
-    """Metal sites, filled metal sites and conjugation bonds, in canonical terms.
-
-    Each is None when the stack has none. Ligand-fragment connections are
-    left to the fragment mapping that restores them.
-    """
+    """Metal sites, filled metal sites and conjugation bonds in canonical terms (None if
+    none); ligand-fragment connections are left to the fragment mapping."""
     pbt = pose_stack.packed_block_types
     bt_inds = pose_stack.block_type_ind64.cpu().numpy()
     irc = pose_stack.inter_residue_connections64.cpu().numpy()
