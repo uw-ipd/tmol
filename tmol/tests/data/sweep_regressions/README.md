@@ -29,3 +29,6 @@ compressed file) and exercises one failure class; each test fails without its fi
 | `cysteine_heme_1cch.cif.zst` | The pyrroles of a Cys-bonded heme keep no hydrogen once its iron is split out. |
 | `metal_phosphate_7bad.cif.zst`, `per_copy_phosphate_6m8q.cif.zst` | Each phosphate copy keeps AtomWorks' state: no hydrogen on an O bound to a metal, a free copy protonated. |
 | `polar_hydrogens_10gs.pdb.zst` | A PDBbind protein drawn with polar hydrogens only: a histidine or cysteine without ring or thiol H is asked of AtomWorks, not read as an anion. |
+| `unresolved_tyrosine_4ndz.cif.zst` | TYR B:171 drawn without its ring (N, CA, C, O, CB) keeps TYR; the missing atoms carry no protonation state. |
+| `plm_copies_8trb.cif.zst` | Every PLM copy is bonded to the protein (SER/CYS), so no per-copy state type is prepared. |
+| `capped_peptide_1j8z.cif.zst` | Prepared after 3PPD in one database, the ACE-capped peptide does not take GLY's on-demand nterm_neutral as a terminus template. |

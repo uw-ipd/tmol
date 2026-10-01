@@ -280,5 +280,32 @@
   "sha256": "5aafe36ea77f3feff4dce4ea375a9f75869649b843612d250ab72c3b3a16535e",
   "bytes": 111358,
   "compressed_sha256": "23976ffba621bf8ca54d47f78d3169cc8b938564c4443106884a3bec33028a1c"
+ },
+ {
+  "fixture": "unresolved_tyrosine_4ndz.cif.zst",
+  "source": "https://files.rcsb.org/download/4NDZ.cif.gz (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/nd/4ndz.cif.gz)",
+  "source_sha256": "3c86357cb63fcfd34efe300f21cd929332c823b2038aa4c2b91de8bd013d70ab",
+  "transformation": "python3 /mnt/home/kdidi/scratch/protofix/crop.py 4ndz.cif.gz unresolved_tyrosine_4ndz.cif 6 B:171 && zstd -19 unresolved_tyrosine_4ndz.cif",
+  "sha256": "255a965cfa07e76e333f09e87d479221280fa6853244a805e1b5183de5a9b7a3",
+  "bytes": 211527,
+  "compressed_sha256": "6c3515342d58e77aaf08e6920324c500a0652787efb152706cc8c195db9b3cf3"
+ },
+ {
+  "fixture": "plm_copies_8trb.cif.zst",
+  "source": "https://files.rcsb.org/download/8TRB.cif.gz (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/tr/8trb.cif.gz)",
+  "source_sha256": "7567c37c56a107386f75e982d9224adacc03d08778da465b410aee0d08351f23",
+  "transformation": "python3 /mnt/home/kdidi/scratch/protofix/crop.py 8trb.cif.gz plm_copies_8trb.cif 5 J:. K:. L:. M:. N:. && zstd -19 plm_copies_8trb.cif",
+  "sha256": "a33ca96da8ea29095894307fdca8850dea1b7563800bd1c8558dad043809e3b3",
+  "bytes": 156935,
+  "compressed_sha256": "adf5621b90c37c34a8d60690e4edb9e0a9dc40ca1b8606161e31d5360d38250c"
+ },
+ {
+  "fixture": "capped_peptide_1j8z.cif.zst",
+  "source": "https://files.rcsb.org/download/1J8Z.cif.gz (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/j8/1j8z.cif.gz)",
+  "source_sha256": "5f23702afebb608e7b41ef767ed6ef1869a9fe6b94886975cd66d10db361e082",
+  "transformation": "python3 /mnt/home/kdidi/scratch/protofix/crop.py 1j8z.cif.gz capped_peptide_1j8z.cif 30 ACE && zstd -19 capped_peptide_1j8z.cif",
+  "sha256": "a32f264c5e9c5d90d5c23548593fd0911940e62cf4b62c807e542c60f57a3c1a",
+  "bytes": 34112,
+  "compressed_sha256": "b4022894db4c0bc1cf33ecee18d28d1d97ff4f52d9f0cb4b14c8ef4b00c6c4ce"
  }
 ]

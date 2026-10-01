@@ -190,3 +190,56 @@ def test_residue_types_take_the_atomworks_state(
         assert {a: got[a] for a in fixed} == fixed, name
         ring = [i for i in mine if i in free]
         assert sum(got[str(model.atom_name[i])] for i in ring) == count[ring].sum()
+
+
+@pytest.mark.parametrize(
+    "fixture, chain, number, name",
+    [
+        ("unresolved_tyrosine_4ndz.cif.zst", "B", 171, "TYR"),  # ring not drawn
+        ("plm_copies_8trb.cif.zst", "A", 607, "PLM"),  # every copy bonded
+    ],
+)
+def test_residues_without_a_free_resolved_state_keep_their_type(
+    fixture, chain, number, name, torch_device
+):
+    """Unresolved atoms carry no state (4NDZ TYR B:171 was read as TYR_DEP), and
+    only free ligand copies get state types (8TRB prepared unused PLM_ types)."""
+    import re
+
+    from tmol.io import atom_array_from_file, pose_stack_from_biotite
+
+    structure = atom_array_from_file(data_path("sweep_regressions", fixture))
+    pose, context = pose_stack_from_biotite(
+        structure,
+        torch_device,
+        prepare_ligands=True,
+        ligand_seed=0,
+        return_context=True,
+    )
+    assert _hydrogens_on(pose, chain, number)[0].split(":")[0] == name
+    state = re.compile(rf"{name}_[0-9A-F]{{6}}")
+    residues = context.parameter_database.chemical.residues
+    assert not any(state.match(r.name) for r in residues)
+
+
+def test_a_capped_peptide_after_an_on_demand_terminus_builds(torch_device):
+    """3PPD adds GLY's on-demand nterm_neutral to the database; 1J8Z, prepared next
+    in that database, must not take it as a terminus template for its ACE cap."""
+    import attr
+
+    from tmol.io import atom_array_from_file, pose_stack_from_biotite
+
+    database = None
+    for fixture in ("metal_amine_terminus_3ppd.cif.zst", "capped_peptide_1j8z.cif.zst"):
+        pose, context = pose_stack_from_biotite(
+            atom_array_from_file(data_path("sweep_regressions", fixture)),
+            torch_device,
+            prepare_ligands=True,
+            ligand_seed=0,
+            param_db=database,
+            return_context=True,
+        )
+        database = context.parameter_database
+        if pose.packed_block_types.chem_db is not database.chemical:
+            database = attr.evolve(database, chemical=pose.packed_block_types.chem_db)
+    assert pose.coords.isfinite().all()
