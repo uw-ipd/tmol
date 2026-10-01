@@ -1434,19 +1434,8 @@ def _apply_metal_connections(
 
 
 def _annotate_packed_block_types_w_conjugations(pbt: PackedBlockTypes):
-    """Which connections an input bond selects a residue's form by.
-
-    Any connection but the polymer up or down, the disulfide, and a metal's
-    own site connections is an attachment: a glycan on a serine, a ligand on a
-    lysine, a histidine coordinating a metal. The disulfide is chosen on the
-    variant axis instead, and a metal type carries its sites whether filled or
-    not. Read from the connections themselves, so it holds for a generated
-    component and a patched canonical residue alike.
-
-    Annotates, per block type, its attachments as ``(is_metal, atom)`` and its
-    name without them, and a lookup from (unattached name, attachments) to the
-    block type that carries exactly those.
-    """
+    """Annotate per block type its attachments (connections but up, down, disulfide and
+    metal sites) as (is_metal, atom), its name without them, and the reverse lookup."""
     if hasattr(pbt, "conjugation_atoms_for_bt"):
         return
     annotate_packed_block_types_w_dslf_conn_inds(pbt)

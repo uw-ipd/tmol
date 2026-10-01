@@ -68,6 +68,22 @@ def residue_key(pose_stack, pose, res):
     return (str(info.chain_labels[pose, res]), int(info.residue_labels[pose, res]))
 
 
+@pytest.mark.parametrize("charge, name", [(2, "FE2"), (3, "FE")])
+def test_chelated_iron_keeps_its_stated_oxidation_state(charge, name):
+    structure = atom_array_from_cif(FIXTURE_DIR / "heme_myoglobin_5yce.cif.zst")
+    iron = numpy.char.upper(structure.element.astype(str)) == "FE"
+    assert iron.sum() == 1
+    structure.charge[iron] = charge
+    pose = pose_stack_from_biotite(structure, torch.device("cpu"), prepare_ligands=True)
+    used = [
+        pose.packed_block_types.active_block_types[i]
+        for i in set(pose.block_type_ind64[0].tolist())
+        if i >= 0
+    ]
+    ions = [bt.io_equiv_class for bt in used if bt.io_equiv_class in ("FE", "FE2")]
+    assert ions == [name]
+
+
 @pytest.mark.parametrize("stem", EXPECTED)
 def test_metal_geometry_selects_the_block_type(built, stem):
     pose_stack, _ = built(stem)
@@ -435,6 +451,20 @@ def test_metalc_naming_an_alternate_location_is_read(stem, metal, donors):
     partners = partners[~numpy.isin(partners, at)]
     read = {(int(structure.res_id[p]), str(structure.atom_name[p])) for p in partners}
     assert donors <= read
+
+
+@pytest.mark.parametrize(
+    "stem, metal, donor",
+    [
+        # OXT is created by the C-terminus patch
+        ("zn_cterm_oxt_1yjo", ("A", 7), (("A", 6), "OXT")),
+        # O3' is anchored by the 3' terminus patch
+        ("mg_three_prime_2g8f", ("A", 301), (("B", 6), "O3'")),
+    ],
+)
+def test_terminus_patched_atom_coordinates_a_metal(built, stem, metal, donor):
+    pose_stack, _ = built(stem)
+    assert (metal, *donor) in labeled_metal_bonds(pose_stack)
 
 
 def test_declared_bond_beyond_cutoff_is_kept(built):

@@ -503,12 +503,10 @@ def generate_conjugate_connection_params(
     if not records:
         return ()
     protonation = {
-        "engine": "tmol Dimorphite-DL",
+        "engine": "atomworks Dimorphite-DL",
         "selection": "first ordered variant",
         "pka_precision": 0.1,
         "max_variants": 128,
-        # Hash the actual compiled rule records, not a potentially edited
-        # on-disk file or query-object addresses.
         "rules_sha256": content_hash(site_rules()),
     }
 

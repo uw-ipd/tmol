@@ -49,12 +49,13 @@ TMOL_DEVICE_FUNC void accumulate_metal_site(
     Vec<Real, 3> const ray = coords[virt_ind] - metal;
     Real const ray_len = ray.norm();
     Vec<Real, 3> const u = ray / ray_len;
-    Real const along = delta.dot(u);
+    Real const projection = delta.dot(u);
+    Real const along = projection > 0 ? projection : Real(0);
     Vec<Real, 3> const off_ray = delta - along * u;
     Real const k_lateral = 1 / (p.lateral_sd * p.lateral_sd);
     score += off_ray.squaredNorm() * k_lateral;
     dE_ddelta += (2 * k_lateral) * off_ray;
-    // |off_ray|^2 = |delta|^2 - (delta.u)^2, projected through du/dray
+    // The closest point lies on the forward ray, including its origin.
     dE_dray = (-2 * k_lateral * along / ray_len) * off_ray;
   }
 
