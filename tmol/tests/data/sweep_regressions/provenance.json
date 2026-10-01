@@ -247,5 +247,14 @@
   "sha256": "39fca583efa112b2f47e474c2d04779aa6506376abe5663690192714223a7b82",
   "bytes": 52915,
   "compressed_sha256": "a943627b247bd1a6075d4ee50e5cb0f55cc1b3ec08ded964c1a7cfafdc27087c"
+ },
+ {
+  "fixture": "nitric_oxide_1koi.cif.zst",
+  "source": "https://files.rcsb.org/download/1KOI.cif.gz (frozen PDB mirror 2026_01_06, ko/1koi.cif.gz)",
+  "source_sha256": "145c520bdc18d1fa9aea4c8ef760f913443add4dbfe33c8c2a3b6bf1fed0373f",
+  "transformation": "Decompress original gzip and recompress with zstandard level 12; preserve the full mmCIF byte-for-byte.",
+  "sha256": "adb43951ee296215f9b2e4b74f4043b1ef5d8f979985a44440e72e922c45924e",
+  "bytes": 391302,
+  "compressed_sha256": "3ebafddadb1426b9ae85e5093d85f1a3bf5deee34b851bafbedb827de841cc86"
  }
 ]

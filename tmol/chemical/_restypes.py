@@ -714,8 +714,10 @@ class ResidueTypeSet:
                 database, or ``chemical_db`` does not begin with those residues.
         """
         old = self.chem_db.residues
-        if len(self.residue_types) != len(old) or any(
-            a is not b for a, b in zip(chemical_db.residues, old)
+        if (
+            len(self.residue_types) != len(old)
+            or len(chemical_db.residues) < len(old)
+            or any(a is not b for a, b in zip(chemical_db.residues, old))
         ):
             raise ValueError("chemical_db does not extend this residue type set")
         cache = self._default_refined_cache()

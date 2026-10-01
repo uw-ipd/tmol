@@ -253,6 +253,7 @@ def _with_lewis_structure(ligand: struc.AtomArray) -> None:
     except ValueError:
         return
     mol = Chem.MolFromSmiles(smiles)
+    Chem.Kekulize(mol)
     source = {a.GetIdx(): a.GetAtomMapNum() - 1 for a in mol.GetAtoms()}
     charge = np.zeros(len(ligand), dtype=int)
     for atom in mol.GetAtoms():
@@ -260,7 +261,7 @@ def _with_lewis_structure(ligand: struc.AtomArray) -> None:
     ligand.set_annotation("charge", charge)
     order = {
         frozenset((source[b.GetBeginAtomIdx()], source[b.GetEndAtomIdx()])): (
-            struc.BondType.AROMATIC
+            struc.BondType[f"AROMATIC_{b.GetBondType()}"]
             if b.GetIsAromatic()
             else _BOND_ORDER[str(b.GetBondType())]
         )

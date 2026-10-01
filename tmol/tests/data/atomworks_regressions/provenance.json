@@ -4,8 +4,10 @@
     "source": "tests/io/utils/schiff_base_double_bond.cif",
     "source_repository": "atomworks-dev",
     "source_commit": "a1bda7edfcf325bc140091889b9745220adb5eba",
-    "sha256": "d8189d050ea7fb6b6115e777d3d839e43c067bc5030fe6e1b9cff7d928e701c6",
-    "bytes": 2212
+    "sha256": "dba3b1d8eddcf484e3df0eee7acbf7ee6acb51c565ab7d5ac7c5aca3129b1d0c",
+    "bytes": 2109,
+    "source_fixture_sha256": "d8189d050ea7fb6b6115e777d3d839e43c067bc5030fe6e1b9cff7d928e701c6",
+    "transformation": "Remove the synthetic HE3 coordinate and CE-HE3 bond: CCD lysine CE has two hydrogens and an unresolved CD neighbour. Keep the declared Schiff-base connection and incomplete backbone unchanged."
   },
   {
     "fixture": "acetylated_peptide_1j8z.cif",
