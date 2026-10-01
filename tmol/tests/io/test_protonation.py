@@ -33,7 +33,7 @@ def test_states_by_context_match_the_whole_structure(path):
     variant = marked.get_annotation(protonation.PROTONATION_VARIANT)
 
     starts = biotite.structure.get_residue_starts(marked, add_exclusive_stop=True)
-    disulfides = protonation.find_disulfides(marked)
+    disulfides = protonation._disulfides(marked)
     extra = numpy.r_[
         protonation._polymer_gap_links(marked, starts, {}),
         numpy.c_[disulfides, numpy.ones(len(disulfides), dtype=int)],
@@ -243,3 +243,16 @@ def test_a_capped_peptide_after_an_on_demand_terminus_builds(torch_device):
         if pose.packed_block_types.chem_db is not database.chemical:
             database = attr.evolve(database, chemical=pose.packed_block_types.chem_db)
     assert pose.coords.isfinite().all()
+
+
+def test_a_heme_split_from_its_iron_keeps_the_porphyrin_dianion():
+    """155C HEM's Fe becomes an ion residue; NA and NC stay anionic, not radicals."""
+    from tmol.io._pose_stack_from_biotite import _with_input_hydrogens
+
+    structure = atom_array_from_cif(data_path("cif", "155c__1__1.A__1.B.cif"))
+    heavy = structure[(structure.element != "H") & (structure.res_name != "HOH")]
+    chemdb = ParameterDatabase.get_default().chemical
+    protonated = _with_input_hydrogens(heavy, 7.4, None, chemdb, True)
+    heme = protonated[protonated.res_name == "HEM"]
+    nitrogens = numpy.isin(heme.atom_name, ("NA", "NB", "NC", "ND"))
+    assert heme.charge[nitrogens].sum() == -2

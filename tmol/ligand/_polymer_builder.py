@@ -10,8 +10,6 @@ from collections import deque
 
 import numpy
 
-from tmol.ligand._icoor_tree import icoor_geometry_from_coords
-
 from tmol.database.chemical import (
     ChemicalProperties,
     Connection,
@@ -22,6 +20,7 @@ from tmol.database.chemical import (
     Torsion,
     UnresolvedAtom,
 )
+from tmol.ligand._icoor_tree import icoor_geometry_from_coords
 from tmol.ligand._polymer_profile import PolymerProfile
 
 # non-canonicals with no acceptible sidechain mapping fall back to this AA
