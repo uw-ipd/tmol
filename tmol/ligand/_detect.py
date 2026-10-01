@@ -274,9 +274,13 @@ def _strip_metals(mol: Chem.Mol) -> Chem.Mol:
 
 def _rdkit_bond_to_biotite_type(bond: Chem.Bond) -> int:
     """Map an RDKit bond to a Biotite ``BondType`` integer."""
-    if bond.GetIsAromatic() or bond.GetBondType() == Chem.BondType.AROMATIC:
-        return int(struc.BondType.AROMATIC)
     btype = bond.GetBondType()
+    if bond.GetIsAromatic() and btype == Chem.BondType.SINGLE:
+        return int(struc.BondType.AROMATIC_SINGLE)
+    if bond.GetIsAromatic() and btype == Chem.BondType.DOUBLE:
+        return int(struc.BondType.AROMATIC_DOUBLE)
+    if bond.GetIsAromatic() or btype == Chem.BondType.AROMATIC:
+        return int(struc.BondType.AROMATIC)
     if btype == Chem.BondType.SINGLE:
         return int(struc.BondType.SINGLE)
     if btype == Chem.BondType.DOUBLE:
@@ -840,6 +844,12 @@ def _nonstandard_residue_info_from_mol2_mol(
         "tmol_source_subtype", np.array(source_subtypes, dtype="U8")
     )
 
+    # Kekulé orders, so no bond reaches AtomWorks' protonation as plain AROMATIC
+    kekule = Chem.Mol(mol)
+    try:
+        Chem.Kekulize(kekule, clearAromaticFlags=False)
+    except Chem.KekulizeException:
+        kekule = mol
     bond_array = np.array(
         [
             (
@@ -847,7 +857,7 @@ def _nonstandard_residue_info_from_mol2_mol(
                 bond.GetEndAtomIdx(),
                 _rdkit_bond_to_biotite_type(bond),
             )
-            for bond in mol.GetBonds()
+            for bond in kekule.GetBonds()
         ],
         dtype=np.int32,
     )

@@ -68,6 +68,22 @@ def residue_key(pose_stack, pose, res):
     return (str(info.chain_labels[pose, res]), int(info.residue_labels[pose, res]))
 
 
+@pytest.mark.parametrize("charge, name", [(2, "FE2"), (3, "FE")])
+def test_chelated_iron_keeps_its_stated_oxidation_state(charge, name):
+    structure = atom_array_from_cif(FIXTURE_DIR / "heme_myoglobin_5yce.cif.zst")
+    iron = numpy.char.upper(structure.element.astype(str)) == "FE"
+    assert iron.sum() == 1
+    structure.charge[iron] = charge
+    pose = pose_stack_from_biotite(structure, torch.device("cpu"), prepare_ligands=True)
+    used = [
+        pose.packed_block_types.active_block_types[i]
+        for i in set(pose.block_type_ind64[0].tolist())
+        if i >= 0
+    ]
+    ions = [bt.io_equiv_class for bt in used if bt.io_equiv_class in ("FE", "FE2")]
+    assert ions == [name]
+
+
 @pytest.mark.parametrize("stem", EXPECTED)
 def test_metal_geometry_selects_the_block_type(built, stem):
     pose_stack, _ = built(stem)

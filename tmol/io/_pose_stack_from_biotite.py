@@ -17,6 +17,7 @@ from tmol.chemical import BondType as ChemBondType
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import metal_table, site_connections
 from tmol.io._atomworks_reader import renumbered_decreasing_chains
+from tmol.io._input_geometry import rebuild_coincident_hydrogens
 from tmol.io._canonical_ordering import _only_coordinates_a_metal
 from tmol.io._protonation import (
     PROTONATION_VARIANT,
@@ -666,7 +667,8 @@ def pose_stack_from_biotite(  # noqa: C901
         no_optH: Residues the input gives no hydrogens take AtomWorks'
             protonation state: database residues then get hydrogens built by
             tmol, other residues those AtomWorks places. When True (default),
-            preserve finite input hydrogen coordinates
+            preserve finite input hydrogen coordinates, except coincident
+            hydrogen-parent pairs, which are rebuilt with a warning,
             and build only missing hydrogens and heavy-atom sidechains. When
             False, residues with complete heavy atoms are packed with OptHSampler
             to optimize hydrogen positions and NHQ flips, while residues with
@@ -863,6 +865,10 @@ def pose_stack_from_canonical_form_and_context(
       return_context: Also return the context used.
       packer_seed: Seed of the packer, as for ``pose_stack_from_biotite``.
 
+    For ordinary structure inputs, coincident bonded heavy atoms raise before
+    packing; hydrogens coincident with their parent are rebuilt without changing
+    protonation. Differentiable ``atom37_coords`` retain their supplied geometry.
+
     Returns:
       The constructed pose, optionally with atom mappings or the context.
     """
@@ -910,6 +916,8 @@ def pose_stack_from_canonical_form_and_context(
     )
 
     pose_stack, opt_return_vals = result
+    if atom37_coords is None:
+        pose_stack = rebuild_coincident_hydrogens(pose_stack)
     if fragment_mapping is not None:
         from tmol.ligand import apply_fragment_connections
 
@@ -1478,8 +1486,11 @@ def _chelated_metals(template, metal_atom):
     """
     ion_for_element = {}
     for ion in metal_table()["ions"]:
-        ion_for_element.setdefault(ion["element"].upper(), ion["name3"])
+        element = ion["element"].upper()
+        ion_for_element.setdefault((element, 0), ion["name3"])
+        ion_for_element[element, ion["oxidation_state"]] = ion["name3"]
     elements = numpy.char.upper(template.element.astype(str))
+    charge = getattr(template, "charge", numpy.zeros(len(template), dtype=int))
     starts = biotite.structure.get_residue_starts(template, add_exclusive_stop=True)
     bonds = template.bonds
     moved = {}
@@ -1487,7 +1498,7 @@ def _chelated_metals(template, metal_atom):
         if stop - start < 2:
             continue
         members = set(range(start, stop))
-        metals = [i for i in members if elements[i] in ion_for_element]
+        metals = [i for i in members if (elements[i], 0) in ion_for_element]
         rest = members - set(metals)
         if not metals or "C" not in elements[list(rest)]:
             continue
@@ -1510,7 +1521,7 @@ def _chelated_metals(template, metal_atom):
         if seen != rest:
             continue
         for i in metals:
-            name3 = ion_for_element[elements[i]]
+            name3 = ion_for_element.get((elements[i], int(charge[i])))
             if name3 in metal_atom and numpy.isfinite(template.coord[i]).all():
                 moved[i] = (name3, metal_atom[name3])
     return moved
