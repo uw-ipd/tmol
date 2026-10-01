@@ -15,7 +15,6 @@ from tmol.types import (
     validate_args,
 )
 from tmol.chemical import (
-    MAX_SIG_BOND_SEPARATION,
     RefinedResidueType,
     three2one,
 )
@@ -1011,18 +1010,9 @@ class PoseStackBuilder:
         separations below ``MAX_SIG_BOND_SEPARATION``.
         """
         cls._annotate_pbt_w_intraresidue_connection_atom_distances(pbt)
-        counts = torch.zeros_like(block_type_ind64, dtype=torch.int32)
-        counts[real_blocks] = pbt.n_conn[block_type_ind64[real_blocks]]
-        max_n_conn = pbt.conn_at_intrablock_bond_sep.shape[1]
-        intra_separation = torch.full(
-            (*block_type_ind64.shape, max_n_conn, max_n_conn),
-            MAX_SIG_BOND_SEPARATION,
-            dtype=torch.int32,
-            device=pbt.device,
-        )
-        intra_separation[real_blocks] = pbt.conn_at_intrablock_bond_sep[
-            block_type_ind64[real_blocks]
-        ]
+        # padding blocks have no connections, so their intra separations go unread
         return InterBlockBondsep.from_bonded_graph(
-            counts, intra_separation, inter_residue_connections64
+            torch.where(real_blocks, pbt.n_conn[block_type_ind64], 0),
+            pbt.conn_at_intrablock_bond_sep[block_type_ind64],
+            inter_residue_connections64,
         )
