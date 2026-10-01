@@ -58,7 +58,7 @@ class InterBlockBondsep:
         max_n_blocks: int,
         max_n_conn: int,
         device: torch.device,
-        n_slots: int = 1,
+        n_slots: int,
     ) -> "InterBlockBondsep":
         """Separations for blocks that are all at least the cap apart."""
         near_blocks = torch.full(
