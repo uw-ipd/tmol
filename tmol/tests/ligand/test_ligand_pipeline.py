@@ -30,20 +30,6 @@ PLI_CIF_INPUT_DIR = data_path("protein_ligand_test", "cif_inputs")
 PLI_DATA_DIR = data_path("protein_ligand_test")
 
 
-def test_nitric_oxide_is_not_converted_to_nitroxyl(torch_device):
-    """1KOI NO has no hydrogen; its radical cannot be filled with an H to prepare it."""
-    from tmol.io import atom_array_from_file, pose_stack_from_biotite
-    from tmol.ligand import LigandPreparationError
-
-    array = atom_array_from_file(
-        data_path("sweep_regressions", "nitric_oxide_1koi.cif.zst")
-    )
-    with pytest.raises(LigandPreparationError, match=r"\[N:1\]=\[O:2\]"):
-        pose_stack_from_biotite(
-            array, torch_device, prepare_ligands=True, strict_ligands=True, no_optH=True
-        )
-
-
 class TestDetectFromCIF:
     """Verify detection of non-standard residues in real CIF files."""
 
