@@ -265,3 +265,6 @@ proton: it must build as the imidazolate `HIS_DEP` coordinating at both.
 `thioglycine_1mro.cif.zst` keeps 1MRO chain A TYR 444–GL3 445–TYR 446. GL3's
 thioamide link reads as C=N with a thiol; it must build as the amide tautomer.
 The C(=S)-N bond is the backbone link, so TYR 446 gets no conjugation type.
+
+`abasic_1g5e.cif.zst` keeps 1G5E chain A DG 6–AAB 7–DA 8 (model 1). The abasic
+AAB carries a C1' hydroxyl and no 2' oxygen, so its backbone is DNA, not RNA.
