@@ -142,17 +142,11 @@ class InterBlockBondsep:
         block_counts = counts.flatten().to(torch.int64)
         node_start = torch.cumsum(block_counts, 0) - block_counts
         n_nodes = int(block_counts.sum())
-        if n_nodes == 0:
-            return cls.empty(n_poses, max_n_blocks, max_n_conn, device)
-
         conn = torch.arange(max_n_conn, dtype=torch.int64, device=device)
         real = conn < counts[..., None]
-        intra = (
-            real[..., :, None]
-            & real[..., None, :]
-            & (intra_separation < MAX_SIG_BOND_SEPARATION)
+        pose, block, conn1, conn2 = torch.nonzero(
+            real[..., :, None] & real[..., None, :], as_tuple=True
         )
-        pose, block, conn1, conn2 = torch.nonzero(intra, as_tuple=True)
         first = node_start[pose * max_n_blocks + block]
         intra_key = (first + conn1) * n_nodes + first + conn2
         intra_weight = intra_separation[pose, block, conn1, conn2].to(torch.int32)

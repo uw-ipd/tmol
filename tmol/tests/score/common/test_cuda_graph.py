@@ -166,20 +166,22 @@ def test_cuda_scoring_capture_preserves_uncached_autocast(torch_device, dtype):
 
 
 @pytest.mark.parametrize(
-    "hook", ["forward", "forward_pre", "full_backward", "full_backward_pre"]
+    "misuse",
+    [
+        "forward_hook",
+        "forward_pre_hook",
+        "full_backward_hook",
+        "full_backward_pre_hook",
+        "trainable_buffer",
+    ],
 )
-def test_cuda_scoring_capture_rejects_hooks_on_submodules(torch_device, hook):
+def test_cuda_scoring_capture_rejects_hooks_and_trainable_buffers(torch_device, misuse):
     inner = _ScoringExample(torch_device, torch.float32)
-    getattr(inner, f"register_{hook}_hook")(lambda *args: None)
-    module = torch.nn.Sequential(inner)
+    if misuse == "trainable_buffer":
+        inner.offset.requires_grad_(True)
+    else:
+        getattr(inner, f"register_{misuse}")(lambda *args: None)
     sample = torch.zeros((3, 5), device=torch_device, requires_grad=True)
-    with pytest.raises(AssertionError, match="must not have hooks"):
-        CapturedScoringGraph(module, sample)
-
-
-def test_cuda_scoring_capture_rejects_trainable_buffers(torch_device):
-    module = _ScoringExample(torch_device, torch.float32)
-    module.offset.requires_grad_(True)
-    sample = torch.zeros((3, 5), device=torch_device, requires_grad=True)
-    with pytest.raises(AssertionError, match="buffers must have requires_grad=False"):
-        CapturedScoringGraph(module, sample)
+    match = "requires_grad=False" if misuse == "trainable_buffer" else "have hooks"
+    with pytest.raises(AssertionError, match=match):
+        CapturedScoringGraph(torch.nn.Sequential(inner), sample)
