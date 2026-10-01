@@ -25,3 +25,4 @@ compressed file) and exercises one failure class; each test fails without its fi
 | `cyclic_phosphate_3prime_1hq1.cif.zst` | A nucleotide whose 3' oxygen is in a 2',3'-cyclic phosphate (CCC) has no 3' port, so no 3' terminus adds HO3'. |
 | `two_atom_residue_1gj2.cif.zst` | The O residue (O, HO) bonded to a DNA phosphate is a polymer type whose rotamer kinforest has no grandchild to frame on. |
 | `glycine_ca_conjugate_5wrh.cif.zst` | A glycine whose CA is conjugated (GLY:conj_CA, no HA3) rebuilds only the alpha hydrogen it has. |
+| `unresolved_frozen_chi_6sm6.cif.zst` | A frozen chi whose defining atoms are unresolved (4HH tail beyond CM) takes its ideal value. |

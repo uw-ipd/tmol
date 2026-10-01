@@ -226,5 +226,14 @@
   "sha256": "f1cc7bd34ff5cde365d31322967e725ab98c13a50f598e346a7b920dc3843e99",
   "bytes": 46528,
   "compressed_sha256": "c9a3aa5e5a9a881b59dd2911a3d28b76464d45dc9c0998b6581d645fe3aaf4c9"
+ },
+ {
+  "fixture": "unresolved_frozen_chi_6sm6.cif.zst",
+  "source": "https://files.rcsb.org/download/6SM6.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/sm/6sm6.cif.gz)",
+  "source_sha256": "d47ac1763fa674c9feb23c0263bf3b779d269d13e180f2bf1dedf120ac33ed13",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/sm/6sm6.cif.gz unresolved_frozen_chi_6sm6.cif 0 4HH; zstd -19 unresolved_frozen_chi_6sm6.cif",
+  "sha256": "deec91efa7511445a862f6395758b344c2c94e9102cedf6fc7cae41671af0b90",
+  "bytes": 58629,
+  "compressed_sha256": "fa3e35142c754b5f65b8fea8c806e5614d78f8ca8d9e956a2fe26a5ff541407d"
  }
 ]

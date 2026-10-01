@@ -10,6 +10,7 @@ from tmol.tests.data import data_path
     [
         "two_atom_residue_1gj2",  # O (O, HO) on a DNA phosphate: no grandchild
         "glycine_ca_conjugate_5wrh",  # GLY:conj_CA has HA2 but no HA3
+        "unresolved_frozen_chi_6sm6",  # 4HH frozen chi beyond CM are unresolved
     ],
 )
 def test_sweep_entry_builds_with_opth(fixture, torch_device):
