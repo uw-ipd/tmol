@@ -32,3 +32,5 @@ compressed file) and exercises one failure class; each test fails without its fi
 | `capped_peptide_1j8z.cif.zst` | Prepared after 3PPD in one database, the ACE-capped peptide does not take GLY's on-demand nterm_neutral as a terminus template. |
 
 | `nitric_oxide_1koi.cif.zst` | Full deposited entry: nitric oxide keeps its zero-hydrogen state during SMILES conversion; unsupported radical preparation is refused instead of adding a hydrogen. |
+
+| `renumbered_chloride_4eu8.cif.zst` | Renumbering decreasing water author IDs preserves component definitions and charge provenance for the structure’s chloride ions. |
