@@ -17,7 +17,11 @@ from atomworks.io.config import ParseConfig
 from atomworks.io.parser import parse, parse_atom_array, prepare_atom_array
 from atomworks.io.transforms.categories import category_to_dict
 from atomworks.io.utils.bonds import get_struct_conn_bonds
-from atomworks.io.utils.ccd import get_polymerization_atoms
+from atomworks.io.utils.ccd import (
+    build_ccd_entries_from_cif_block,
+    custom_ccd_residues,
+    get_polymerization_atoms,
+)
 from atomworks.io.utils.io_utils import get_structure, infer_pdb_file_type, read_any
 
 _AUTHOR_FIELDS = {
@@ -312,7 +316,14 @@ def _parse_repairing_author_numbering(path, config, model, assembly_id):
         repaired = _renumber_decreasing_author_ids(array)
         if repaired is array:
             raise
-        atoms = prepare_atom_array(repaired, config=config, cif_block=block)
+        templates = (
+            build_ccd_entries_from_cif_block(block, on_mismatch="ignore")
+            if block is not None
+            else {}
+        )
+        with custom_ccd_residues(templates):
+            atoms = prepare_atom_array(repaired, config=config, cif_block=block)
+        atoms._custom_ccd_registry = templates
         return {"asym_unit": atoms, "cif_block": block}
 
 
