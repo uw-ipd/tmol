@@ -1,10 +1,5 @@
-"""Where AtomWorks puts a hydrogen, tmol keeps it.
-
-Both libraries build hydrogens from internal coordinates against the same ideal
-geometry, so a structure protonated by one and read by the other should not move
-a hydrogen. A hydrogen tmol cannot account for is one it rebuilds from its own
-table, and this is what notices when the two tables drift apart.
-"""
+"""Where AtomWorks puts a hydrogen, tmol keeps it: this notices when their ideal
+hydrogen geometries drift apart."""
 
 import biotite.structure as struc
 import biotite.structure.info as info
@@ -58,9 +53,7 @@ def test_tmol_keeps_the_hydrogens_atomworks_placed(res_name, torch_device):
     assert len(placed) > 0, f"AtomWorks placed no hydrogen on {res_name}"
 
     pose_stack = pose_stack_from_biotite(protonated, torch_device=torch_device)
-    rebuilt = biotite_from_pose_stack(pose_stack)
-    rebuilt = rebuilt[0] if isinstance(rebuilt, (list, tuple)) else rebuilt
-    kept = _hydrogens(rebuilt, 2)
+    kept = _hydrogens(biotite_from_pose_stack(pose_stack), 2)
 
     # Each hydrogen AtomWorks placed has one of tmol's on top of it.
     for position in placed:

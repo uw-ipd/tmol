@@ -156,10 +156,8 @@ atom_types:
   - { name: BrR , element: Br }
   - { name: IR  , element: I }
 
-# Metal ions, one type per oxidation state: the state fixes the electrostatic
-#    charge and the Lennard-Jones radius, so Fe(II) and Fe(III) cannot share a
-#    type. Coordination geometry is not here -- it belongs to the residue type,
-#    since one Fe(II) is octahedral in a heme and tetrahedral in a rubredoxin.
+# Metal ions, one type per oxidation state (it fixes charge and LJ radius); the
+#    coordination geometry belongs to the residue type
   - { name: Mg2p, element: Mg, is_metal: true, oxidation_state: 2 }
   - { name: Ca2p, element: Ca, is_metal: true, oxidation_state: 2 }
   - { name: Na1p, element: Na, is_metal: true, oxidation_state: 1 }

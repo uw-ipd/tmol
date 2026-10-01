@@ -177,13 +177,24 @@ def pose_stack_from_canonical_form(  # noqa: C901
     # downstream will work properly. This effectively means "shifting left"
     # all the other residues in the Pose to fill the vacated slots.
     # Single-slot poses are already left-justified.
+    real = res_types != -1
+    order = torch.argsort((~real).to(torch.int8), dim=1, stable=True)
+    kept = torch.gather(real, 1, order)
     if protonation_variants is not None:
-        real = res_types != -1
-        order = torch.argsort((~real).to(torch.int8), dim=1, stable=True)
         protonation_variants = torch.where(
-            torch.gather(real, 1, order),
+            kept,
             torch.gather(protonation_variants.to(res_types.device), 1, order),
             -1,
+        )
+    if metal_origins is not None:
+        metal_origins = numpy.where(
+            kept.cpu().numpy(),
+            numpy.take_along_axis(metal_origins, order.cpu().numpy(), 1),
+            None,
+        )
+    if residue_annotations is not None:
+        residue_annotations = numpy.take_along_axis(
+            residue_annotations, order.cpu().numpy(), 1
         )
     if res_types.shape[1] != 1:
         (
@@ -239,10 +250,8 @@ def pose_stack_from_canonical_form(  # noqa: C901
             find_additional_disulfides,
         )
 
-    # 3a: a metal's geometry cannot be read from the atoms it presents -- every
-    #     geometry of an ion shows the same single atom -- so it rides the same
-    #     variant axis a disulfide does. Metals and cysteines never collide.
-    #     A disulfide cysteine's state is already fixed, so it cannot donate.
+    # 3a: a metal's geometry rides the variant axis a disulfide does (they never
+    #     collide); a disulfide cysteine cannot donate.
     metal_variants, metal_assignments = find_metal_geometries(
         canonical_ordering,
         pbt.chem_db,
@@ -461,13 +470,8 @@ def pose_stack_from_canonical_form(  # noqa: C901
 
 
 def _declared_metal_sites(res_types, metal_sites, metal_coordination):
-    """Declared metal sites and declared metal bonds, left-justified.
-
-    Returns ({(pose, metal): (geometry, ((site, donor, atom), ...))},
-    {(pose, metal): {(donor, atom), ...}}). A bond is placed at its site only
-    when the metal's geometry is declared too; otherwise it is a required donor
-    and detection chooses the site.
-    """
+    """Left-justified {(pose, metal): (geometry, ((site, donor, atom), ...))}, and
+    {(pose, metal): {(donor, atom)}} for bonds whose metal has no declared geometry."""
     # tmol.io.details imports this module's package, as the builder above does
     from tmol.io.details import left_justify_residue_indices
 

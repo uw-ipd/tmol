@@ -13,13 +13,13 @@ import biotite.structure as struc
 import numpy as np
 import pytest
 import torch
-from atomworks.experimental.protonation.dimorphite import protonate_at_ph
 
 from tmol.tests.data import data_path
 from tmol.io import canonical_ordering_for_biotite
 from tmol.ligand import (
     chem_comp_types_from_cif,
     prepare_ligands,
+    _dimorphite_protonate_smiles,
     _prepare_ligand_via_smiles,
     _residue_names_with_cross_residue_bonds,
     detect_nonstandard_residues,
@@ -28,6 +28,20 @@ from tmol.ligand import (
 
 PLI_CIF_INPUT_DIR = data_path("protein_ligand_test", "cif_inputs")
 PLI_DATA_DIR = data_path("protein_ligand_test")
+
+
+def test_nitric_oxide_is_not_converted_to_nitroxyl(torch_device):
+    """1KOI NO has no hydrogen; its radical cannot be filled with an H to prepare it."""
+    from tmol.io import atom_array_from_file, pose_stack_from_biotite
+    from tmol.ligand import LigandPreparationError
+
+    array = atom_array_from_file(
+        data_path("sweep_regressions", "nitric_oxide_1koi.cif.zst")
+    )
+    with pytest.raises(LigandPreparationError, match=r"\[N:1\]=\[O:2\]"):
+        pose_stack_from_biotite(
+            array, torch_device, prepare_ligands=True, strict_ligands=True, no_optH=True
+        )
 
 
 class TestDetectFromCIF:
@@ -254,17 +268,20 @@ def test_collect_new_atom_types_strict_mode_errors(default_database) -> None:
         )
 
 
-def test_protonate_at_ph_produces_valid_mol() -> None:
-    """Protonating a molecule yields an RDKit-parseable SMILES."""
-    from rdkit import Chem
-
-    input_smiles = "CC(=O)ON"
-    mol = Chem.MolFromSmiles(input_smiles)
-    assert mol is not None
-    protonated = protonate_at_ph(mol, 7.4)
-    assert protonated is not None
-    result_smi = Chem.MolToSmiles(protonated, isomericSmiles=True)
-    assert Chem.MolFromSmiles(result_smi) is not None
+@pytest.mark.parametrize(
+    ("smiles", "expected"),
+    [
+        ("CC(=O)ON", "CC(=O)ON"),
+        # the cases Frank added to the rule inventory
+        ("CN(C)C=C", "C=CN(C)C"),
+        ("CN(C)N=O", "CN(C)N=O"),
+        ("COP(=O)(S)OC", "COP(=O)([S-])OC"),
+        ("[O-]S([O-])(=O)=O", "O=S(=O)([O-])[O-]"),
+        ("OP(O)(O)=O", "O=P([O-])([O-])O"),
+    ],
+)
+def test_ligand_smiles_are_protonated_at_ph_7_4(smiles, expected) -> None:
+    assert _dimorphite_protonate_smiles(smiles, ph=7.4) == expected
 
 
 def test_prepare_ligand_from_cif_helper_loads_reference_fixture() -> None:
@@ -277,7 +294,7 @@ def test_prepare_ligand_from_cif_helper_loads_reference_fixture() -> None:
         str(cif_path),
         param_db=ParameterDatabase.get_default(),
     )
-    assert any(rt.name == "LG1" for rt in param_db.chemical.residues)
+    assert any(rt.name == "L_1" for rt in param_db.chemical.residues)
 
 
 def _residue_atoms(res_id, res_name, names_coords, chain_id="A"):

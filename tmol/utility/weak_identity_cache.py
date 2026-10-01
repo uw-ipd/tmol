@@ -39,8 +39,6 @@ def _cuda_devices(value):
 
 def _record_cuda_readiness(value):
     """Record producer-stream readiness for every CUDA device in a value."""
-    if not torch.cuda.is_initialized():
-        return ()
     readiness = []
     for device in sorted(_cuda_devices(value), key=lambda item: item.index):
         with torch.cuda.device(device):

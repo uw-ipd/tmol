@@ -27,8 +27,6 @@ FIXTURE_DIR = data_path("metal_fixtures")
 with open(os.path.join(FIXTURE_DIR, "expected.yaml")) as infile:
     EXPECTED = safe_load(infile)["fixtures"]
 
-LOADABLE = [stem for stem, spec in EXPECTED.items() if "xfail" not in spec]
-
 
 @pytest.fixture(scope="module")
 def built():
@@ -36,7 +34,7 @@ def built():
 
     def build(stem, device=torch.device("cpu")):
         if (stem, device) not in cache:
-            structure = atom_array_from_cif(os.path.join(FIXTURE_DIR, stem + ".cif.gz"))
+            structure = atom_array_from_cif(FIXTURE_DIR / f"{stem}.cif.zst")
             cache[stem, device] = pose_stack_from_biotite(
                 structure, device, prepare_ligands=True
             )
@@ -60,11 +58,8 @@ def global_index(pose_stack, pose, block, atom):
 
 
 def contested_atoms(site_rows, fan_rows):
-    """Atoms two restraints pull toward different places.
-
-    A donor bridging two metals has an ideal position for each of them, and a
-    cluster's own satisfier that is also another metal's donor has one for its
-    cluster and one for that metal. No single coordinate answers both.
+    """Atoms two restraints pull toward different places: a donor bridging two metals,
+    or a cluster's satisfier that is another metal's donor.
     """
     served = Counter((pose, block, atom) for pose, _, _, _, block, atom in site_rows)
     for pose, block, a, b in fan_rows:
@@ -159,10 +154,8 @@ def residuals(param_db, pose_stack, coords):
 
 
 def idealized(param_db, pose_stack):
-    """Coordinates with every paired donor moved onto its site at ideal distance.
-
-    A cluster is first replaced by its ideal geometry, fitted onto it with a
-    reflection allowed, since its atoms may be named in the mirror sense.
+    """Coordinates with every paired donor moved onto its site at ideal distance, after
+    fitting each cluster's ideal geometry onto it (reflection allowed, as in 2FDN).
     """
     coords = pose_stack.coords.detach().clone().double()
     pbt = pose_stack.packed_block_types
@@ -182,10 +175,8 @@ def idealized(param_db, pose_stack):
         placed = (ideal - ca) @ (u @ vt) + cb
         coords[pose, start : start + bt.n_atoms] = placed.to(coords.device)
     site_rows, site_params, _, _ = metal_oracle.restraints(param_db, pose_stack)
-    # A donor bridging two metals has a target for each and can take only one:
-    #    the last wins, and what the other keeps is accounted irreducible. Their
-    #    midpoint is not a third answer -- for two metals far enough apart it
-    #    lands on one of them.
+    # a donor bridging two metals takes the last one's target; what the other
+    #    keeps is accounted irreducible
     for (pose, mblock, matom, vatom, dblock, datom), params in zip(
         site_rows, site_params
     ):
@@ -208,7 +199,7 @@ def with_well_depth(param_db, atom_type, donor, depth):
     return attr.evolve(param_db, scoring=scoring)
 
 
-@pytest.mark.parametrize("stem", LOADABLE)
+@pytest.mark.parametrize("stem", EXPECTED)
 def test_site_pairing_matches_detection(built, stem, default_database):
     pose_stack = built(stem)
     site_rows, _, _, _ = metal_oracle.restraints(default_database, pose_stack)
@@ -237,7 +228,7 @@ def test_site_pairing_matches_detection(built, stem, default_database):
         assert found.get((metal["chain"], metal["res"]), set()) == expected
 
 
-@pytest.mark.parametrize("stem", LOADABLE)
+@pytest.mark.parametrize("stem", EXPECTED)
 def test_kernel_matches_oracle(built, stem, default_database, torch_device):
     pose_stack = built(stem, torch_device)
     term = MetalCoordinationEnergyTerm(default_database, torch_device)
@@ -266,14 +257,10 @@ def test_kernel_matches_oracle(built, stem, default_database, torch_device):
     torch.testing.assert_close(gradient(pairs), expected_grad)
 
 
-@pytest.mark.parametrize("stem", LOADABLE)
+@pytest.mark.parametrize("stem", EXPECTED)
 def test_ideal_sites_score_zero(built, stem, default_database, torch_device):
-    """Every restraint one atom can satisfy on its own is at rest.
-
-    An atom two restraints pull apart -- a cysteine bridging two metals, a
-    fluoride that is one metal's satisfier and another's donor -- has an ideal
-    position for each and can take only one, so what is left of those is the
-    strain the ideal geometry cannot remove.
+    """Every restraint one atom can satisfy on its own is at rest; what atoms pulled
+    two ways keep is strain the ideal geometry cannot remove.
     """
     pose_stack = built(stem, torch_device)
     term = MetalCoordinationEnergyTerm(default_database, torch_device)
@@ -288,6 +275,35 @@ def test_ideal_sites_score_zero(built, stem, default_database, torch_device):
     assert score == pytest.approx(
         settled + irreducible, rel=1e-5, abs=1e-6
     ), f"{stem}: {detail}"
+
+
+def test_a_donor_behind_its_zinc_site_is_penalized(
+    built, default_database, torch_device
+):
+    pose_stack = built("zn_tetrahedral_3ks3", torch_device)
+    term = MetalCoordinationEnergyTerm(default_database, torch_device)
+    score = render(term, pose_stack)
+    coords, rows = idealized(default_database, pose_stack)
+    pose, mb, ma, _, db, da = rows[0]
+    metal = coords[pose, global_index(pose_stack, pose, mb, ma)]
+    donor = global_index(pose_stack, pose, db, da)
+    delta = coords[pose, donor] - metal
+    before = score(coords).sum()
+    coords[pose, donor] = metal - delta
+    coords.requires_grad_(True)
+    after = score(coords).sum()
+    _, parameters, _, _ = metal_oracle.restraints(default_database, pose_stack)
+    assert float((after - before).detach()) == pytest.approx(
+        float(delta.square().sum()) / parameters[0][3] ** 2, rel=1e-5
+    )
+    expected = metal_oracle.block_pair_energies(
+        default_database, pose_stack, coords
+    ).sum()
+    torch.testing.assert_close(after, expected)
+    torch.testing.assert_close(
+        torch.autograd.grad(after, coords)[0],
+        torch.autograd.grad(expected, coords)[0],
+    )
 
 
 def block_index(pose_stack, chain, resnum):
@@ -310,7 +326,7 @@ def metal_atom(pose_stack, block):
 
 def bridged_sod(device):
     """3F7L with His61 ND1 bonded to both its zinc and the copper."""
-    structure = atom_array_from_cif(os.path.join(FIXTURE_DIR, "cu_zn_sod_3f7l.cif.gz"))
+    structure = atom_array_from_cif(FIXTURE_DIR / "cu_zn_sod_3f7l.cif.zst")
     pose_stack, context = pose_stack_from_biotite(
         structure, device, prepare_ligands=True, return_context=True
     )

@@ -1,24 +1,16 @@
-"""Build missing heavy atoms outward from observed ones, choosing torsions that do not clash.
+"""Build missing atoms outward from observed ones with ideal internal geometry, choosing
+each free rotation (and interchangeable anchor labels) greedily to minimize clashes."""
 
-Each block's missing atoms are placed along a tree grown from its observed atoms (and
-its connection partners): every atom takes its distance, angle and dihedral from the
-block type's ideal coordinates against three already-placed references, so bonded
-geometry, rings and chirality are ideal. A rotation left free by the observed atoms
--- about a rotatable bond whose far side is entirely missing, or the spin of a
-fragment anchored by fewer than three atoms -- is chosen greedily in tree order: each
-candidate is scored by building everything still missing, later rotations at their
-ideal values, against a heavy-atom clash penalty. Observed atoms that only the
-missing atoms would tell apart (a phosphate's oxygens) may trade labels, where that
-lowers the penalty.
-"""
-
-import itertools
 import math
 from collections import deque
 from typing import Dict, List, Tuple
 
 import numpy
 import torch
+from tmol.ligand._icoor_tree import (
+    signed_dihedral_angle,
+    vertex_angle,
+)
 from scipy.spatial import cKDTree
 
 from tmol.chemical._restypes import BondType
@@ -36,32 +28,9 @@ FREE_SPINS = tuple(float(x) for x in range(0, 360, 30))
 UNSATURATED = (int(BondType.DOUBLE), int(BondType.TRIPLE), int(BondType.AROMATIC))
 
 
-def _unit(v):
-    n = numpy.linalg.norm(v)
-    return v / n if n > 1e-12 else v
-
-
-def _angle(a, b, c):
-    u, v = _unit(a - b), _unit(c - b)
-    return math.acos(max(-1.0, min(1.0, float(u @ v))))
-
-
 def _dihedral(a, b, c, d):
-    b0, b1, b2 = a - b, _unit(c - b), d - c
-    v = b0 - (b0 @ b1) * b1
-    w = b2 - (b2 @ b1) * b1
-    return math.atan2(float(numpy.cross(b1, v) @ w), float(v @ w))
-
-
-def _cross(u, v):
-    return numpy.stack(
-        (
-            u[..., 1] * v[..., 2] - u[..., 2] * v[..., 1],
-            u[..., 2] * v[..., 0] - u[..., 0] * v[..., 2],
-            u[..., 0] * v[..., 1] - u[..., 1] * v[..., 0],
-        ),
-        axis=-1,
-    )
+    """The IUPAC dihedral a-b-c-d, which ``signed_dihedral_angle`` negates."""
+    return -signed_dihedral_angle(a, b, c, d)
 
 
 def _normalize(v):
@@ -69,10 +38,10 @@ def _normalize(v):
 
 
 def _place_batch(a, b, c, dist, theta, phi):
-    """_place over candidates: references [..., 3] (broadcast), phi [C]."""
+    """Place one atom per candidate: references [..., 3] (broadcast), phi [C]."""
     bc = _normalize(c - b)
-    n = _normalize(_cross(b - a, bc))
-    m = _cross(n, bc)
+    n = _normalize(numpy.cross(b - a, bc))
+    m = numpy.cross(n, bc)
     phi = numpy.asarray(phi)[..., None]
     return c + dist * (
         -math.cos(theta) * bc
@@ -94,7 +63,7 @@ def _place_torch(a, b, c, dist, theta, phi):
 
 def _perpendicular_point(origin, through):
     """A point off the origin-through axis, fixed relative to it."""
-    axis = _unit(through - origin)
+    axis = _normalize(through - origin)
     other = numpy.eye(3)[int(numpy.argmin(numpy.abs(axis)))]
     return origin + numpy.cross(axis, other)
 
@@ -200,11 +169,8 @@ class _Step:
 
 
 def _plan(geom, known, targets, conn_nodes, ideal_of):
-    """Order the missing atoms and pick each one's three placed references.
-
-    known: nodes already placed (local atoms, and n + k for connection k).
-    Returns the steps in build order and, per rotation axis, its candidates in
-    radians as offsets from the ideal dihedral of the axis's first step.
+    """Build-ordered steps for the missing atoms from ``known`` nodes (n + k: connection
+    k), and per rotation axis its candidate offsets (radians) from the ideal dihedral.
     """
     n = geom.n
     neighbors = {i: list(geom.neighbors[i]) for i in range(n)}
@@ -256,27 +222,15 @@ def _plan(geom, known, targets, conn_nodes, ideal_of):
             axis = ("free", p)
         refs = (gg, g, p)
         ia = ideal_of(a)
-        ip, ig, igg = ideal_of(p), _ideal_ref(ideal_of, g), _ideal_ref(ideal_of, gg)
+        ip, ig, igg = ideal_of(p), _resolve(g, ideal_of), _resolve(gg, ideal_of)
         dist = float(numpy.linalg.norm(ia - ip))
-        theta = _angle(ig, ip, ia)
+        theta = vertex_angle(ig, ip, ia)
         phi = _dihedral(igg, ig, ip, ia)
         steps.append(_Step(a, refs, dist, theta, phi, axis))
         if axis is not None and axis not in axis_candidates:
             axis_candidates[axis] = _candidates(geom, axis, phi, ideal_of, n)
         ready.add(a)
     return steps, axis_candidates
-
-
-def _ideal_ref(ideal_of, ref):
-    if isinstance(ref, tuple):
-        kind, origin, through = ref
-        o = ideal_of(origin)
-        if kind == "perp":
-            if through is None:
-                return o + numpy.array([1.0, 0.0, 0.0])
-            return _perpendicular_point(o, ideal_of(through))
-        return o + numpy.array([0.0, 1.0, 0.0])
-    return ideal_of(ref)
 
 
 def _rotatable(geom, g, p, n):
@@ -291,7 +245,7 @@ def _rotatable(geom, g, p, n):
 
 def _candidates(geom, axis, phi0, ideal_of, n):
     """Offsets from the axis's ideal dihedral, radians."""
-    if axis[0] == "free" or not isinstance(axis[0], int) or not _is_bond_axis(axis, n):
+    if axis[0] == "free":
         return [0.0] + [math.radians(x) for x in FREE_SPINS[1:]]
     g, p = axis
     offsets = [0.0]
@@ -314,15 +268,11 @@ def _candidates(geom, axis, phi0, ideal_of, n):
     return offsets
 
 
-def _is_bond_axis(axis, n):
-    return all(isinstance(x, int) for x in axis)
-
-
 class _Environment:
     """Heavy atoms a block's rebuilt atoms may clash with, outside that block."""
 
-    def __init__(self, xyz, block_of, donor, acceptor, metal, metal_donor, usable):
-        self.xyz, self.block_of = xyz, block_of
+    def __init__(self, xyz, donor, acceptor, metal, metal_donor, usable):
+        self.xyz = xyz
         self.donor, self.acceptor = donor, acceptor
         self.metal, self.metal_donor = metal, metal_donor
         idx = numpy.flatnonzero(usable)
@@ -387,12 +337,8 @@ def _overlap(d, a, b, atoms_a, atoms_b):
 
 
 def _clash(moved, points, others, other_xyz, geom, env, excluded):
-    """Per-candidate overlap of the moved atoms with the environment and the block.
-
-    moved: local atoms; points: [C, m, 3] their positions for each candidate;
-    others: local atoms at other_xyz, placed and not moved. Pairs within
-    EXCLUDED_BONDS bonds, and hydrogens, are skipped.
-    """
+    """Per-candidate heavy-atom overlap of ``moved`` at ``points`` [C, m, 3] with the
+    environment and the block's unmoved ``others``, beyond EXCLUDED_BONDS."""
     n_cand = points.shape[0]
     moved = numpy.asarray(moved)
     scorable = geom.heavy[moved]
@@ -439,13 +385,8 @@ def build_missing_by_context(
     connections,
     heavy_only=True,
 ):
-    """Place each block's missing target atoms (only heavy ones, by default).
-
-    pose_coords: [n_poses, n_atoms, 3]; missing and targets: [n_poses, n_atoms], the
-    atoms without coordinates and those of them to build. Blocks grow together,
-    each rotation seeing every block's current build. Returns the new coordinates and the mask
-    of atoms built; a target no placed reference reaches is left unbuilt.
-    """
+    """(coords, built mask): the ``targets`` among ``missing`` pose atoms (heavy only by
+    default) placed; a target no placed reference reaches is left unbuilt."""
     atom_types = {at.name: at for at in pbt.chem_db.atom_types}
     out = pose_coords.clone()
     xyz_all = pose_coords.detach().cpu().double().numpy().copy()
@@ -462,7 +403,6 @@ def build_missing_by_context(
             continue
         xyz = xyz_all[pose]
         n_pose_atoms = xyz.shape[0]
-        block_of = numpy.full(n_pose_atoms, -1, dtype=numpy.int64)
         donor = numpy.zeros(n_pose_atoms, dtype=bool)
         acceptor = numpy.zeros(n_pose_atoms, dtype=bool)
         metal = numpy.zeros(n_pose_atoms, dtype=bool)
@@ -474,16 +414,13 @@ def build_missing_by_context(
                 continue
             geom = geoms[b] = _geometry(bts[t], atom_types)
             s = int(off_all[pose, b])
-            block_of[s : s + geom.n] = b
             donor[s : s + geom.n] = geom.donor
             acceptor[s : s + geom.n] = geom.acceptor
             metal[s : s + geom.n] = geom.metal
             metal_donor[s : s + geom.n] = geom.metal_donor
             heavy[s : s + geom.n] = geom.heavy
         finite = numpy.isfinite(xyz).all(axis=-1)
-        env = _Environment(
-            xyz, block_of, donor, acceptor, metal, metal_donor, heavy & finite
-        )
+        env = _Environment(xyz, donor, acceptor, metal, metal_donor, heavy & finite)
         pending = {}
 
         for b, t in enumerate(types_all[pose].tolist()):
@@ -547,32 +484,12 @@ def _waits_on(pose, b, geom, pending, conn_all, conn_atom, types_all):
 
 
 def _build_together(builds, xyz, out, env):
-    """Grow blocks at once: each rotation, shallowest first, sees every block's build.
-
-    Each block starts at its ideal build; interchangeable anchors are settled per
-    block against the others' ideal builds.
-    """
+    """Grow blocks together from their ideal builds, then choose each rotation
+    (shallowest first) against every block's current build."""
     for build in builds:
         build.start(xyz)
         build.write(xyz, env)
     env.add([build.s + a for build in builds for a in build.built])
-    for build in builds:
-        swaps = _anchor_swaps(
-            build.geom, build.known_atoms, build.targets, build.conn_atoms
-        )
-        if not swaps:
-            continue
-        score = build.greedy(xyz, env)
-        for options in swaps:
-            base = dict(build.relabel)
-            for option in options[1:]:
-                build.relabel = {**base, **option}
-                trial = build.greedy(xyz, env)
-                if trial < score - 1e-9:
-                    score, base = trial, dict(build.relabel)
-            build.relabel = base
-        build.start(xyz)
-        build.write(xyz, env)
     order = sorted(
         (
             (build.axis_depth[axis], k, i, axis)
@@ -592,12 +509,8 @@ def _build_together(builds, xyz, out, env):
 def _connection_nodes(
     pose, b, n, geom, xyz, conn_all, conn_atom, off_all, types_all, geoms
 ):
-    """Placed connection partners as extra nodes n + k, and atoms to leave unscored.
-
-    Returns {k: (local atom, node)}, node positions, node ideal positions, node pose
-    indices, and the pose atoms not to score against (this block, and the partners'
-    atoms within reach of the bond).
-    """
+    """Placed partners as nodes n + k: ({k: (atom, node)}, node xyz, node ideal, node
+    pose index), and the partners' atoms near the bond, left unscored."""
     nodes, node_xyz, node_ideal, node_global = {}, {}, {}, {}
     excluded = set()
     for k, atom in enumerate(geom.conn_atom):
@@ -620,14 +533,14 @@ def _connection_nodes(
     return nodes, node_xyz, node_ideal, node_global, excluded
 
 
-def _resolve(ref, positions, offset_point):
+def _resolve(ref, position_of):
     """A reference's position: a node, or a point built off one to fix a free spin."""
     if not isinstance(ref, tuple):
-        return positions[ref]
+        return position_of(ref)
     kind, origin, through = ref
-    o = positions[origin]
+    o = position_of(origin)
     if kind == "perp" and through is not None:
-        return offset_point(o, positions[through])
+        return _perpendicular_point(o, position_of(through))
     return o + (
         numpy.array([1.0, 0.0, 0.0]) if kind == "perp" else numpy.array([0.0, 1.0, 0.0])
     )
@@ -650,7 +563,7 @@ class _BlockBuild:
         types_all,
         geoms,
     ):
-        self.pose, self.b, self.s, self.geom, self.targets = pose, b, s, geom, targets
+        self.pose, self.b, self.s, self.geom = pose, b, s, geom
         n = geom.n
         local_finite = numpy.isfinite(xyz[s : s + n]).all(axis=-1)
         self.known_atoms = [a for a in range(n) if local_finite[a] and a not in targets]
@@ -660,7 +573,6 @@ class _BlockBuild:
             )
         )
         self.excluded = numpy.array(sorted(excluded | set(range(s, s + n))), dtype=int)
-        self.conn_atoms = {atom for atom, _ in nodes.values()}
 
         def ideal_of(x):
             return node_ideal[x] if x >= n else geom.ideal[x]
@@ -691,14 +603,13 @@ class _BlockBuild:
         self.axis_depth = {
             axis: depth[self.steps[self.moved_by[axis][0]].atom] for axis in self.axes
         }
-        self.relabel = {}
 
     def start(self, xyz):
-        """Every step at its ideal, from the observed atoms as relabeled."""
-        positions = {a: xyz[self.s + self.relabel.get(a, a)] for a in self.known_atoms}
+        """Every step at its ideal, from the observed atoms."""
+        positions = {a: xyz[self.s + a] for a in self.known_atoms}
         positions.update(self.node_xyz)
         for step in self.steps:
-            gg, g, p = (_resolve(r, positions, _perpendicular_point) for r in step.refs)
+            gg, g, p = (_resolve(r, positions.__getitem__) for r in step.refs)
             positions[step.atom] = _place_batch(
                 gg, g, p, step.dist, step.theta, numpy.array([step.phi])
             )[0]
@@ -720,7 +631,7 @@ class _BlockBuild:
         offsets = numpy.asarray(self.axis_candidates[axis])
         # a rotation turns everything it moves rigidly about its bond
         first = self.steps[which[0]]
-        gg, g, p = (_resolve(r, positions, _perpendicular_point) for r in first.refs)
+        gg, g, p = (_resolve(r, positions.__getitem__) for r in first.refs)
         sign = _rotation_sign(gg, g, p, first, positions[first.atom])
         xyz = numpy.array([positions[a] for a in moved])
         points = _rotate_about(xyz, g, p, sign * offsets)
@@ -730,87 +641,14 @@ class _BlockBuild:
         for a, x in zip(moved, points[best]):
             positions[a] = x
 
-    def score(self, env):
-        return _total_clash(self.built, self.positions, self.geom, env, self.excluded)
-
-    def greedy(self, xyz, env):
-        """Choose this block's rotations alone, in order; returns the clash score."""
-        self.start(xyz)
-        for axis in self.axes:
-            self.choose(axis, env)
-        return self.score(env)
-
     def place(self, xyz, out):
-        """Apply the relabeling and place the chosen build differentiably."""
+        """Place the chosen build differentiably."""
         pose, s = self.pose, self.s
-        if self.relabel:
-            atoms = list(self.relabel)
-            sources = [self.relabel[a] for a in atoms]
-            out[pose, [s + a for a in atoms]] = out[
-                pose, [s + a for a in sources]
-            ].clone()
-            xyz[[s + a for a in atoms]] = xyz[[s + a for a in sources]].copy()
-            self.relabel = {}
         placed = _place_differentiably(
             self.steps, self.chosen, out, pose, s, self.known_atoms, self.node_global
         )
         for a, x in placed.items():
             xyz[s + a] = x.detach().cpu().double().numpy()
-
-
-def _total_clash(built, positions, geom, env, excluded):
-    """Overlap of the built atoms with everything, each other included."""
-    n = geom.n
-    built_set = set(built)
-    others = [x for x in positions if x < n and x not in built_set]
-    other_xyz = numpy.array([positions[x] for x in others]).reshape(-1, 3)
-    xyz = numpy.array([positions[a] for a in built])
-    score = float(_clash(built, xyz[None], others, other_xyz, geom, env, excluded)[0])
-    built = numpy.asarray(built)
-    keep = geom.heavy[built]
-    built, xyz = built[keep], xyz[keep]
-    if len(built) > 1:
-        pairs = cKDTree(xyz).query_pairs(CONTACT, output_type="ndarray")
-        a, b = built[pairs[:, 0]], built[pairs[:, 1]]
-        far = geom.bonds_apart[a, b] > EXCLUDED_BONDS
-        if far.any():
-            d = numpy.linalg.norm(xyz[pairs[far, 0]] - xyz[pairs[far, 1]], axis=-1)
-            score += float(_overlap(d, geom, geom, a[far], b[far]).sum())
-    return score
-
-
-def _anchor_swaps(geom, known_atoms, targets, conn_atoms):
-    """Relabelings of observed atoms the observed atoms alone cannot tell apart.
-
-    Observed heavy atoms of one element bonded only to the same observed atom
-    (e.g. a phosphate's oxygens) are interchangeable when a missing branch grows
-    from one of them. Returns, per such group, its relabelings as
-    {atom: atom whose coordinates it takes}, the identity first.
-    """
-    known = set(known_atoms)
-    groups: Dict[tuple, List[int]] = {}
-    for a in known_atoms:
-        if not geom.heavy[a] or a in conn_atoms:
-            continue
-        placed = [x for x in geom.neighbors[a] if x in known]
-        if len(placed) != 1:
-            continue
-        groups.setdefault((placed[0], geom.element[a]), []).append(a)
-    swaps = []
-    for members in groups.values():
-        roots = [a for a in members if any(x in targets for x in geom.neighbors[a])]
-        if len(members) < 2 or not roots:
-            continue
-        rest = [a for a in members if a not in roots]
-        options = [{}]
-        for sources in itertools.permutations(members, len(roots)):
-            remaining = [a for a in members if a not in sources]
-            relabel = dict(zip(roots + rest, list(sources) + remaining))
-            relabel = {a: x for a, x in relabel.items() if a != x}
-            if relabel not in options:
-                options.append(relabel)
-        swaps.append(options)
-    return swaps
 
 
 def _rotate_about(xyz, origin, through, angles):
@@ -819,7 +657,7 @@ def _rotate_about(xyz, origin, through, angles):
     v = xyz - through
     c, s = numpy.cos(angles)[:, None, None], numpy.sin(angles)[:, None, None]
     kv = v @ k
-    return through + v * c + _cross(k, v) * s + k * kv[:, None] * (1 - c)
+    return through + v * c + numpy.cross(k, v) * s + k * kv[:, None] * (1 - c)
 
 
 def _rotation_sign(gg, g, p, step, at):

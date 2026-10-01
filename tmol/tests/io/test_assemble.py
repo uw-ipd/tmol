@@ -52,21 +52,16 @@ def test_joining_keeps_both_parts_whole(protein, ligand):
     assert not (protein_chains & ligand_chains)
 
 
-def test_the_written_cif_carries_the_ligand_chemistry(protein, ligand):
-    """The ligand describes itself, because no dictionary describes it."""
-    text = cif_from_atom_array(assemble_input(protein, ligand))
-
-    assert "_chem_comp_atom" in text
-    assert "_chem_comp_bond" in text
-    # The component rows name the ligand, not only the standard residues.
-    assert LIGAND_RES_NAME in text
-
-
-def test_the_written_cif_parses_back_into_the_same_ligand(protein, ligand, tmp_path):
+@pytest.mark.parametrize("route", ["text", "path"])
+def test_the_written_cif_parses_back_into_the_same_ligand(
+    protein, ligand, tmp_path, route
+):
     """The file carries the molecule read, not the dictionary's own "LG1" entry."""
-    path = cif_from_atom_array(
-        assemble_input(protein, ligand), path=tmp_path / "complex.cif"
-    )
+    path = tmp_path / "complex.cif"
+    if route == "text":
+        path.write_text(cif_from_atom_array(assemble_input(protein, ligand)))
+    else:
+        assert cif_from_atom_array(assemble_input(protein, ligand), path=path) == path
     reparsed = atom_array_from_file(path)
 
     restored = reparsed[reparsed.res_name == LIGAND_RES_NAME]

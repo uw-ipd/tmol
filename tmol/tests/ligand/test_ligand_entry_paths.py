@@ -220,7 +220,6 @@ def test_partially_protonated_atom_array_builds_complete_ligand(torch_device):
         prepare_ligands=True,
         param_db=ParameterDatabase.get_default(),
         return_context=True,
-        use_ccd=False,
         ligand_seed=17,
     )
     residue = next(
@@ -265,14 +264,14 @@ def test_neutralized_mol2_protonation_workflow(
     # 2FZC; this is not the unavailable original PDBbind addH MOL2 file.
     path = tmp_path / "neutralized_addH.mol2"
     path.write_text(_build_charged_3d_mol2_mol(smiles, seed=17).write("mol2"))
-    source = nonstandard_residue_info_from_mol2(path, res_name="LG1")
+    source = nonstandard_residue_info_from_mol2(path, res_name="L_1")
     assert source.skip_protonation  # Auto preserves complete, prepared input.
     assert source.atom_array.charge.sum() == 0
     assert sum(source.partial_charges.values()) == pytest.approx(0, abs=2e-4)
     heavy = source.atom_array[source.atom_array.element != "H"]
     cif_path = tmp_path / "neutralized.cif"
-    to_cif_file(source.atom_array, cif_path, ccd_entries={"LG1": source.atom_array})
-    cif_database, _ = prepare_ligand_from_cif(cif_path, res_name="LG1", seed=17)
+    to_cif_file(source.atom_array, cif_path, ccd_entries={"L_1": source.atom_array})
+    cif_database, _ = prepare_ligand_from_cif(cif_path, res_name="L_1", seed=17)
 
     damaged = tmp_path / "untrusted_addH.mol2"
     lines = path.read_text().splitlines()
@@ -289,23 +288,23 @@ def test_neutralized_mol2_protonation_workflow(
         (damaged, {}, expected_charge),
     ):
         database, _ = prepare_ligand_from_mol2(
-            input_path, res_name="LG1", seed=17, **options
+            input_path, res_name="L_1", seed=17, **options
         )
         charges = {
             row.atom: row.charge
             for row in database.scoring.elec.atom_charge_parameters
-            if row.res == "LG1"
+            if row.res == "L_1"
         }
         assert sum(charges.values()) == pytest.approx(charge, abs=2e-4)
         if options.get("mode") == "regenerate":
             assert charges == {
                 row.atom: row.charge
                 for row in cif_database.scoring.elec.atom_charge_parameters
-                if row.res == "LG1"
+                if row.res == "L_1"
             }
             assert next(
-                r for r in database.chemical.residues if r.name == "LG1"
-            ) == next(r for r in cif_database.chemical.residues if r.name == "LG1")
+                r for r in database.chemical.residues if r.name == "L_1"
+            ) == next(r for r in cif_database.chemical.residues if r.name == "L_1")
         if charge == 0:
             assert sorted(charges.values()) == sorted(source.partial_charges.values())
             for name in heavy.atom_name:
@@ -338,7 +337,7 @@ def test_neutralized_mol2_protonation_workflow(
         )
         _score_and_minimize_ligand(pose, database)
         output = tmp_path / "ligand.tmol"
-        write_params_from_mol2(input_path, output, res_name="LG1", seed=17, **options)
+        write_params_from_mol2(input_path, output, res_name="L_1", seed=17, **options)
         loaded = load_params_file(output)[0]
         assert loaded.partial_charges == charges
         assert set(loaded.partial_charges) == {atom.name for atom in bt.atoms}
@@ -587,8 +586,7 @@ _CIF_LIGANDS = ["ada", "cdk2", "cox2", "hivrt", "src", "egfr"]
 def _load_full_array(cif_path: Path):
     from tmol.io import atom_array_from_cif
 
-    # a single-ligand file supplying a whole molecule under a code of its own
-    return atom_array_from_cif(cif_path, use_ccd=False)
+    return atom_array_from_cif(cif_path)
 
 
 @pytest.mark.parametrize("name", _CIF_LIGANDS)
@@ -618,8 +616,6 @@ def test_prepare_ligands_writes_params_output(tmp_path) -> None:
         arr,
         param_db=ParameterDatabase.get_default(),
         params_output=str(out),
-        # a ligand file supplying a whole molecule under a code of its own
-        use_ccd=False,
     )
     assert out.exists() and out.stat().st_size > 0
     assert ordering is not None
@@ -638,8 +634,7 @@ def test_prepare_ligands_accepts_single_model_stack() -> None:
         stack = struc.stack([stack])
     assert len(stack) == 1
     # No param_db passed -> default resolved internally.
-    # a ligand file supplying a whole molecule under a code of its own
-    param_db, _ = prepare_ligands(stack, use_ccd=False)
+    param_db, _ = prepare_ligands(stack)
     assert param_db is not None
 
 
@@ -745,17 +740,15 @@ def test_prepare_ligands_rejects_incomplete_generated_chemistry(
     base = ParameterDatabase.get_default()
 
     if strict_ligands:
-        with pytest.raises(LigandPreparationError, match=r"LG1.*C1"):
-            prepare_ligands(
-                arr, param_db=base, strict_ligands=True, use_ccd=False, seed=1234
-            )
+        with pytest.raises(LigandPreparationError, match=r"L_1.*C1"):
+            prepare_ligands(arr, param_db=base, strict_ligands=True, seed=1234)
     else:
         with caplog.at_level(logging.WARNING, logger=_preparation.__name__):
             prepared, _ = prepare_ligands(
-                arr, param_db=base, strict_ligands=False, use_ccd=False, seed=1234
+                arr, param_db=base, strict_ligands=False, seed=1234
             )
         assert prepared is base
-        assert "Skipping LG1" in caplog.text
+        assert "Skipping L_1" in caplog.text
         assert "C1" in caplog.text
 
     assert (arr.atom_name == source_atom_names).all()

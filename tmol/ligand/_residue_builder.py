@@ -5,18 +5,12 @@ suitable for registration in tmol's ChemicalDatabase. Handles atom tree
 construction, internal coordinate computation, rotatable bond detection,
 and non-polymer property assignment.
 
-The atom tree and internal coordinates come from :mod:`atomworks.experimental.protonation`,
-so a structure keeps the same geometry whichever library placed it.
+The atom tree and internal coordinates come from :mod:`tmol.ligand._icoor_tree`.
 """
 
 import logging
 
 import numpy as np
-from atomworks.experimental.protonation.geometry import (
-    build_atom_tree,
-    find_root_atom,
-    icoor_geometry_from_coords,
-)
 from rdkit import Chem
 
 from tmol.database.chemical import (
@@ -29,6 +23,11 @@ from tmol.database.chemical import (
 )
 from tmol.ligand._atom_typing import AtomTypeAssignment, RosettaTypingState
 from tmol.ligand._chi_topology import build_chi_topology
+from tmol.ligand._icoor_tree import (
+    build_atom_tree,
+    find_root_atom,
+    icoor_geometry_from_coords,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -282,14 +281,14 @@ def build_residue_type(  # noqa: C901
     icoors = [
         Icoor(
             name=atom_names[idx],
-            phi=geom.phi,
-            theta=geom.theta,
-            d=geom.d,
+            phi=phi,
+            theta=theta,
+            d=d,
             parent=atom_names[parent[idx]],
             grand_parent=atom_names[grandparents[idx][0]],
             great_grand_parent=atom_names[grandparents[idx][1]],
         )
-        for idx, geom in zip(order, geometry)
+        for idx, (d, theta, phi) in zip(order, geometry.tolist())
     ]
 
     # Rotatable-bond (CHI / PROTON_CHI) topology, classified against the
