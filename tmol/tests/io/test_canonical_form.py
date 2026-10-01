@@ -214,6 +214,18 @@ def test_canonical_form_from_pdb_keeps_one_alternate_per_group(torch_device):
     records = parse_pdb(lines)
     co = default_canonical_ordering()
     cf = canonical_form_from_pdb(co, lines, torch_device)
+    atoms = "\n".join(
+        line for line in lines.splitlines() if line.startswith(("ATOM", "HETATM"))
+    )
+    shifted = "\n".join(
+        line[:16] + line[16].translate(str.maketrans("AB", "BC")) + line[17:]
+        for line in atoms.splitlines()
+    )
+    ensemble = f"MODEL        1\n{atoms}\nENDMDL\nMODEL        2\n{shifted}\nENDMDL\n"
+    models = canonical_form_from_pdb(co, ensemble, torch_device)
+    assert models.coords.shape[0] == 2
+    for model in range(2):
+        torch.testing.assert_close(models.coords[model], cf.coords[0], equal_nan=True)
     for resi in (22, 25):
         kept = records[(records.resi == resi) & (records.location == "A")]
         res = list(cf.res_labels[0]).index(resi)

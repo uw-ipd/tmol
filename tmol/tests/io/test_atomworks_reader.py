@@ -338,6 +338,48 @@ def test_residues_occupying_one_site_keep_one(
     assert torch.isfinite(pose.coords).all()
 
 
+def test_coincident_alternate_chains_require_an_assembly_choice(torch_device):
+    from tmol.tests.io.test_atomworks_corpus_regressions import _score_and_minimize
+
+    path = DATA / "sweep_regressions" / "alternate_polymer_chains_1gtv.cif.zst"
+    array = atom_array_from_cif(path)
+    assert set(array.chain_id[array.is_polymer]) == {"A", "B"}
+    with pytest.raises(ValueError, match="Coincident bonded heavy atoms"):
+        pose_stack_from_cif(path, torch_device, prepare_ligands=True, no_optH=True)
+    for assembly_id in ("1", "2"):
+        pose, context = pose_stack_from_cif(
+            path,
+            torch_device,
+            assembly_id=assembly_id,
+            prepare_ligands=True,
+            no_optH=True,
+            return_context=True,
+        )
+        _score_and_minimize(pose, context)
+
+
+def test_label_chains_sharing_an_author_site_keep_one_residue(torch_device):
+    path = DATA / "sweep_regressions" / "shared_author_site_3bln.cif.zst"
+    with pytest.warns(UserWarning, match="one residue per site"):
+        array = atom_array_from_cif(path)
+    site = (array.chain_id == "A") & (array.res_id == 147)
+    assert set(array.res_name[site]) == {"MPD"}
+    assert len(set(array.atom_name[site])) == site.sum() == 8
+    assert set(array.res_id[array.res_name == "MRD"]) == {145, 146}
+
+    pose, context = pose_stack_from_cif(
+        path, torch_device, prepare_ligands=True, no_optH=True, return_context=True
+    )
+    coords = pose.coords.detach().clone().requires_grad_()
+    energy = beta2016_score_function(
+        torch_device, param_db=context.parameter_database
+    ).render_whole_pose_scoring_module(pose)(coords)
+    energy.sum().backward()
+    assert torch.isfinite(coords).all()
+    assert torch.isfinite(energy).all()
+    assert torch.isfinite(coords.grad).all()
+
+
 @pytest.mark.parametrize(
     "fixture",
     [

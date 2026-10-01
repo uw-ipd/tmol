@@ -159,8 +159,7 @@ def records_with_one_alternate(atom_records):
         return atom_records
     atoms = struc.AtomArray(len(atom_records))
     atoms.coord = atom_records[["x", "y", "z"]].to_numpy(dtype=float)
-    model = atom_records["modeli"].astype(str) + "|"
-    atoms.chain_id = (model + atom_records["chain"]).to_numpy(str)
+    atoms.chain_id = atom_records["chain"].to_numpy(str)
     atoms.res_id = atom_records["resi"].to_numpy()
     atoms.ins_code = atom_records["insert"].to_numpy(str)
     atoms.res_name = atom_records["resn"].to_numpy(str)
@@ -168,7 +167,13 @@ def records_with_one_alternate(atom_records):
     atoms.element = atom_records["atomn"].str.lstrip("0123456789").str[:1].to_numpy(str)
     atoms.set_annotation("altloc_id", atom_records["location"].to_numpy(str))
     atoms.set_annotation("record", np.arange(len(atoms)))
-    atoms = one_alternate(atoms)
+    atoms = struc.concatenate(
+        [
+            one_alternate(atoms[indices])
+            for indices in atom_records.groupby("modeli", sort=False).indices.values()
+        ]
+    )
+    atoms = atoms[np.argsort(atoms.record)]
     kept = atom_records.iloc[atoms.record].assign(resn=atoms.res_name)
     return kept.reset_index(drop=True)
 

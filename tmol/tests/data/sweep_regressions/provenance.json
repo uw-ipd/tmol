@@ -256,5 +256,23 @@
   "sha256": "adb43951ee296215f9b2e4b74f4043b1ef5d8f979985a44440e72e922c45924e",
   "bytes": 391302,
   "compressed_sha256": "3ebafddadb1426b9ae85e5093d85f1a3bf5deee34b851bafbedb827de841cc86"
+ },
+ {
+  "fixture": "shared_author_site_3bln.cif.zst",
+  "source": "https://files.rcsb.org/download/3BLN.cif.gz (frozen PDB mirror 2026_01_06, bl/3bln.cif.gz)",
+  "source_sha256": "e21084861659a7e40592aaadfbd664956ab4ac5e2028ab0d3912532f0ff6d30e",
+  "transformation": "Decompress original gzip and recompress with zstandard level 12; preserve the full mmCIF byte-for-byte.",
+  "sha256": "514e647423265dbd831e85bf5c8371aa020ecb5e16ba3f7615697d8e90310726",
+  "bytes": 342174,
+  "compressed_sha256": "dd8cd077eadbd757d374ecc13c15427763b667237375d2763a4dbc02d725cfb4"
+ },
+ {
+  "fixture": "alternate_polymer_chains_1gtv.cif.zst",
+  "source": "https://files.rcsb.org/download/1GTV.cif.gz (frozen PDB mirror 2026_01_06, gt/1gtv.cif.gz)",
+  "source_sha256": "d20cc69a34da74599bd625ddf27edc9a266bef04eaa0e6167378b9a44cc9f586",
+  "transformation": "Decompress original gzip and recompress with zstandard level 12; preserve the full mmCIF byte-for-byte.",
+  "sha256": "92f27f714d374db6b23649449603e0da333c4486a22a6c309fd91956c8cc9a95",
+  "bytes": 472573,
+  "compressed_sha256": "e490a9cabb69bf1776b8ca434fbeb65206db2b514578d42c2b2589b9fb8a7fab"
  }
 ]

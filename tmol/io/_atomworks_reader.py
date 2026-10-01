@@ -586,6 +586,8 @@ def read_structure(path, *, model=1, assembly_id=None):
         array.bonds = _with_metal_coordination(array, block)
     if assembly_id is not None:
         array.set_annotation("chain_id", array.chain_iid.copy())
+    # Separate label chains may occupy one author residue site (3BLN MPD/MRD).
+    array = one_residue_per_site(array)
     for target, source in _AUTHOR_FIELDS.items():
         # Assembly expansion owns chain_id: it distinguishes symmetry copies
         # that share an author chain. Nothing else does, so a file without
@@ -597,7 +599,6 @@ def read_structure(path, *, model=1, assembly_id=None):
         if source in array.get_annotation_categories():
             array.set_annotation(target, array.get_annotation(source).copy())
     array.ins_code[np.isin(array.ins_code, (".", "?"))] = ""
-    array = one_residue_per_site(array)
     retained = {
         "chain_id",
         "res_id",
