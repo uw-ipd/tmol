@@ -245,6 +245,29 @@ def test_isolated_halogen_charge_provenance(
     np.testing.assert_array_equal(source.bonds.as_array(), bonds_before)
 
 
+@pytest.mark.parametrize("source_charge", ["?", "0"])
+def test_author_renumbering_preserves_component_chemistry(tmp_path, source_charge):
+    from atomworks.io.utils.io_utils import read_any
+
+    file = read_any(DATA / "sweep_regressions" / "renumbered_chloride_4eu8.cif.zst")
+    site = file.block["atom_site"]
+    chloride = site["label_comp_id"].as_array(str) == "CL"
+    charges = site["pdbx_formal_charge"].as_array(str)
+    charges[chloride] = source_charge
+    site["pdbx_formal_charge"] = charges
+    path = tmp_path / "renumbered.cif"
+    file.write(path)
+
+    with pytest.warns(UserWarning, match="Renumbering chain"):
+        source = atom_array_from_cif(path)
+    ions = source[source.res_name == "CL"]
+    assert len(ions) == 4
+    assert ions.charge.tolist() == ([0] * 4 if source_charge == "0" else [-1] * 4)
+    assert ions.tmol_source_formal_charge.tolist() == [source_charge] * 4
+    assert ions.tmol_formal_charge_specified.tolist() == [True] * 4
+    assert source._custom_ccd_registry["CL"].charge.tolist() == [-1]
+
+
 @pytest.mark.parametrize(
     "res_name,atom_name,element,expected_charge",
     [("XE", "XE", "Xe", 0), ("CL", "CL", "Cl", -1)],
