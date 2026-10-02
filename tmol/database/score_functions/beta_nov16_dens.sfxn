@@ -6,8 +6,10 @@
 # weights are specific + aggregate:
 #   cart_bonded_length  0.5 + 0.5 = 1.0   -> cart_lengths
 #   cart_bonded_angle   1.0 + 0.5 = 1.5   -> cart_angles
-#   cart_bonded_torsion 0.5 + 0.5 = 1.0   -> cart_torsions, cart_impropers, cart_hxltorsions
+#   cart_bonded_torsion 0.5 + 0.5 = 1.0   -> cart_torsions, cart_impropers
 #     (Rosetta adds proper and improper torsions to cart_bonded_torsion; cart_bonded_ring covers ring geometry)
+# cart_hxltorsions keeps tmol's database weight: Rosetta scores hydroxyl torsions with a separate hxl_tors term
+# (weight 1.0) whose relation to this term is not established.
 # fa_rep 0.05 (default 0.55) is fa_ljrep. elec_dens_fast 35.0. Rosetta's pro_close and atom_pair_constraint terms do
 # not exist in tmol.
 #
@@ -31,7 +33,7 @@ weights:
   cart_angles: 1.5
   cart_torsions: 1.0
   cart_impropers: 1.0
-  cart_hxltorsions: 1.0
+  cart_hxltorsions: 0.5
   dunbrack_rot: 0.76
   dunbrack_rotdev: 0.69
   dunbrack_semirot: 0.78
