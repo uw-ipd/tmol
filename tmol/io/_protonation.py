@@ -167,6 +167,28 @@ def hydrogens_by_parent(template: struc.AtomArray) -> numpy.ndarray:
     return numpy.bincount(parent, minlength=len(template))
 
 
+def _stated_terminal_variants(template, starts, lacking, forms):
+    """Database variants for complete, explicitly supplied free amines."""
+    variant = numpy.full(len(template), -1, dtype=numpy.int8)
+    if EXPLICIT_TERMINI in template.get_annotation_categories():
+        stated = template.get_annotation(EXPLICIT_TERMINI)[starts[:-1]]
+        count = hydrogens_by_parent(template)
+        # Complete input states need no protonation call, including their zero
+        # hydrogens on the unprotonated atom of a histidine tautomer.
+        for r in numpy.flatnonzero(~lacking & ((stated & 1) != 0)):
+            begin, end = starts[r : r + 2]
+            name = template.res_name[begin]
+            if name in (forms or {}):
+                state = {
+                    str(template.atom_name[i]): (int(count[i]), 0)
+                    for i in range(begin, end)
+                }
+                chosen = _variant(forms[name], state, terminal=True)
+                if chosen >= NEUTRAL_TERMINUS_VAR_BASE:
+                    variant[begin:end] = chosen
+    return variant
+
+
 def with_atomworks_hydrogens(
     structure: struc.AtomArray | struc.AtomArrayStack,
     *,
@@ -205,23 +227,7 @@ def with_atomworks_hydrogens(
     """
     starts, lacking = residues_lacking_hydrogens(structure, residue_names, forms)
     template = _template(structure)
-    variant = numpy.full(len(template), -1, dtype=numpy.int8)
-    if EXPLICIT_TERMINI in template.get_annotation_categories():
-        stated = template.get_annotation(EXPLICIT_TERMINI)[starts[:-1]]
-        count = hydrogens_by_parent(template)
-        # Complete input states need no protonation call, including their zero
-        # hydrogens on the unprotonated atom of a histidine tautomer.
-        for r in numpy.flatnonzero(~lacking & ((stated & 1) != 0)):
-            begin, end = starts[r : r + 2]
-            name = template.res_name[begin]
-            if name in (forms or {}):
-                state = {
-                    str(template.atom_name[i]): (int(count[i]), 0)
-                    for i in range(begin, end)
-                }
-                chosen = _variant(forms[name], state, terminal=True)
-                if chosen >= NEUTRAL_TERMINUS_VAR_BASE:
-                    variant[begin:end] = chosen
+    variant = _stated_terminal_variants(template, starts, lacking, forms)
     if not lacking.any():
         if (variant >= 0).any():
             structure = structure.copy()
