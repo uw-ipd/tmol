@@ -40,7 +40,7 @@ class OptHSamplerRTCache:
     Covers two orthogonal features:
     1. Proton chi sampling (SER/THR/TYR/CYS): samples the terminal (proton)
        chi angle using values from restype definition.
-    2. NHQ flip (ASN/GLN/HIS/HIS_D): generates the input conformation plus a
+    2. NHQ flip (ASN/GLN/any HIS state): generates the input conformation plus a
        180-degree rotation about the terminal amide/ring chi angle, provided
        it does not move an atom connected to another block.
        HIS additionally generates both protonation states.
@@ -241,6 +241,7 @@ class OptHSampler(ConformerSampler):
     - HIS/HIS_D: {HIS, HIS_D} x {current chi2, chi2+180} = 4 rotamers.
       All atoms through CG are taken from the input; ring atoms are rebuilt
       from ideal geometry for three non-input variants.
+    - Other HIS states: current chi2 + chi2+180, as ASN/GLN.
 
     NOTE: DunbrackChiSampler and OptHSampler must not be assigned to the
     same block (Dunbrack already samples proton chis, so both on one block
@@ -275,9 +276,7 @@ class OptHSampler(ConformerSampler):
         nhq_downstream_kfo = numpy.zeros(0, dtype=numpy.int32)
         is_his = base in _HIS_FLIP_BASES
 
-        flip_chi = {"ASN": "chi2", "GLN": "chi3", "HIS": "chi2", "HIS_D": "chi2"}.get(
-            base
-        )
+        flip_chi = {"ASN": "chi2", "GLN": "chi3", "HIS": "chi2"}.get(base.split("_")[0])
         uaids = rt.torsion_to_uaids.get(flip_chi)
         if uaids is not None and all(u[0] >= 0 for u in uaids):
             # An attachment may append more chis. The terminal amide/ring flip

@@ -1,5 +1,17 @@
 [
   {
+    "fixture": "his_pos_ring_1yg0.cif.zst",
+    "source": "PDB_MIRROR_PATH/yg/1yg0.cif.gz",
+    "source_repository": "AtomWorks frozen local PDB mirror",
+    "source_revision": "2026-01-06",
+    "source_sha256": "62cd201a343028e0094ee2852950e6d3fc3bbaa5ce0c54573670ce89acfd410c",
+    "transformation": "model 1, chain A residues 13-15 (ASN-HIS-CYS) with deposited hydrogens; HIS 14 carries HD1 and HE2",
+    "sha256": "6bea94bd9a59d7366a2d6d89be8dab47009d220584da1ed3cdebd6c9c3a67aef",
+    "bytes": 43090,
+    "compression": "zstd",
+    "compressed_sha256": "f7c57bd0a301ff4e5b7e2be1175a7d3f12b58455a02b8e68c6e6220d7cb5eeb9"
+  },
+  {
     "fixture": "schiff_base_double_bond.cif",
     "source": "tests/io/utils/schiff_base_double_bond.cif",
     "source_repository": "atomworks-dev",

@@ -21,6 +21,11 @@ Tests live in `tmol/tests/io/test_atomworks_corpus_regressions.py`,
 `tmol/tests/ligand/test_atomworks_modified_components.py`.
 Successful numerical checks do not independently validate the force field.
 
+`his_pos_ring_1yg0.cif.zst` keeps 1YG0 (NMR, model 1) chain A ASN 13–HIS 14–CYS 15
+with deposited hydrogens. HIS 14 carries HD1 and HE2, so it builds as HIS_POS; OptH
+must flip its ring back when given the ring turned 180 degrees
+(`tmol/tests/pack/rotamer/test_opth_sampler.py`).
+
 `plp_cap_5t4j.cif.zst` retains the complete RCSB entry referenced by the AtomWorks
 IO suite. Its PLP C4A=N ABU external aldimine is a conjugate attachment, not a
 peptide bond: C4A keeps one hydrogen, N none, and the link its imine length.
