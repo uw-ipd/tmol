@@ -14,6 +14,8 @@ atom_cp_reps_parameters:
   - { *r: ALA:nterm ,*ai: N, *ao: H1 }
   - { *r: ALA:nterm ,*ai: N, *ao: H2 }
   - { *r: ALA:nterm ,*ai: N, *ao: H3 }
+  - { *r: ALA:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: ALA:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: ALA ,*ai: C, *ao: O }
   - { *r: ALA ,*ai: N, *ao: H }
   - { *r: ARG:cterm ,*ai: C, *ao: O }
@@ -21,6 +23,8 @@ atom_cp_reps_parameters:
   - { *r: ARG:nterm ,*ai: N, *ao: H1 }
   - { *r: ARG:nterm ,*ai: N, *ao: H2 }
   - { *r: ARG:nterm ,*ai: N, *ao: H3 }
+  - { *r: ARG:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: ARG:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: ARG ,*ai: N, *ao: H }
   - { *r: ARG ,*ai: C, *ao: O }
   - { *r: ARG ,*ai: NE, *ao: HE }
@@ -33,6 +37,8 @@ atom_cp_reps_parameters:
   - { *r: ASN:nterm ,*ai: N, *ao: H1 }
   - { *r: ASN:nterm ,*ai: N, *ao: H2 }
   - { *r: ASN:nterm ,*ai: N, *ao: H3 }
+  - { *r: ASN:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: ASN:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: ASN ,*ai: N, *ao: H }
   - { *r: ASN ,*ai: C, *ao: O }
   - { *r: ASN ,*ai: CG, *ao: OD1 }
@@ -43,6 +49,8 @@ atom_cp_reps_parameters:
   - { *r: ASP:nterm ,*ai: N, *ao: H1 }
   - { *r: ASP:nterm ,*ai: N, *ao: H2 }
   - { *r: ASP:nterm ,*ai: N, *ao: H3 }
+  - { *r: ASP:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: ASP:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: ASP ,*ai: N, *ao: H }
   - { *r: ASP ,*ai: C, *ao: O }
   - { *r: ASP ,*ai: CG, *ao: OD1 }
@@ -52,6 +60,8 @@ atom_cp_reps_parameters:
   - { *r: CYS:nterm ,*ai: N, *ao: H1 }
   - { *r: CYS:nterm ,*ai: N, *ao: H2 }
   - { *r: CYS:nterm ,*ai: N, *ao: H3 }
+  - { *r: CYS:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: CYS:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: CYS ,*ai: N, *ao: H }
   - { *r: CYS ,*ai: C, *ao: O }
   - { *r: CYS_DEP:cterm ,*ai: C, *ao: O }
@@ -59,6 +69,8 @@ atom_cp_reps_parameters:
   - { *r: CYS_DEP:nterm ,*ai: N, *ao: H1 }
   - { *r: CYS_DEP:nterm ,*ai: N, *ao: H2 }
   - { *r: CYS_DEP:nterm ,*ai: N, *ao: H3 }
+  - { *r: CYS_DEP:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: CYS_DEP:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: CYS_DEP ,*ai: N, *ao: H }
   - { *r: CYS_DEP ,*ai: C, *ao: O }
   - { *r: CYD:cterm ,*ai: C, *ao: O }
@@ -66,6 +78,8 @@ atom_cp_reps_parameters:
   - { *r: CYD:nterm ,*ai: N, *ao: H1 }
   - { *r: CYD:nterm ,*ai: N, *ao: H2 }
   - { *r: CYD:nterm ,*ai: N, *ao: H3 }
+  - { *r: CYD:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: CYD:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: CYD ,*ai: N, *ao: H }
   - { *r: CYD ,*ai: C, *ao: O }
   - { *r: GLN:cterm ,*ai: C, *ao: O }
@@ -73,6 +87,8 @@ atom_cp_reps_parameters:
   - { *r: GLN:nterm ,*ai: N, *ao: H1 }
   - { *r: GLN:nterm ,*ai: N, *ao: H2 }
   - { *r: GLN:nterm ,*ai: N, *ao: H3 }
+  - { *r: GLN:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: GLN:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: GLN ,*ai: N, *ao: H }
   - { *r: GLN ,*ai: C, *ao: O }
   - { *r: GLN ,*ai: CD, *ao: OE1 }
@@ -83,6 +99,8 @@ atom_cp_reps_parameters:
   - { *r: GLU:nterm ,*ai: N, *ao: H1 }
   - { *r: GLU:nterm ,*ai: N, *ao: H2 }
   - { *r: GLU:nterm ,*ai: N, *ao: H3 }
+  - { *r: GLU:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: GLU:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: GLU ,*ai: N, *ao: H }
   - { *r: GLU ,*ai: C, *ao: O }
   - { *r: GLU ,*ai: CD, *ao: OE1 }
@@ -92,6 +110,8 @@ atom_cp_reps_parameters:
   - { *r: GLY:nterm ,*ai: N, *ao: H1 }
   - { *r: GLY:nterm ,*ai: N, *ao: H2 }
   - { *r: GLY:nterm ,*ai: N, *ao: H3 }
+  - { *r: GLY:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: GLY:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: GLY ,*ai: N, *ao: H }
   - { *r: GLY ,*ai: C, *ao: O }
   - { *r: HIS:cterm ,*ai: C, *ao: O }
@@ -99,6 +119,8 @@ atom_cp_reps_parameters:
   - { *r: HIS:nterm ,*ai: N, *ao: H1 }
   - { *r: HIS:nterm ,*ai: N, *ao: H2 }
   - { *r: HIS:nterm ,*ai: N, *ao: H3 }
+  - { *r: HIS:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: HIS:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: HIS ,*ai: N, *ao: H }
   - { *r: HIS ,*ai: C, *ao: O }
   - { *r: HIS ,*ai: ND1, *ao: HD1 }
@@ -108,6 +130,8 @@ atom_cp_reps_parameters:
   - { *r: HIS_DEP:nterm ,*ai: N, *ao: H1 }
   - { *r: HIS_DEP:nterm ,*ai: N, *ao: H2 }
   - { *r: HIS_DEP:nterm ,*ai: N, *ao: H3 }
+  - { *r: HIS_DEP:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: HIS_DEP:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: HIS_DEP ,*ai: N, *ao: H }
   - { *r: HIS_DEP ,*ai: C, *ao: O }
   - { *r: HIS_D:cterm ,*ai: C, *ao: O }
@@ -115,6 +139,8 @@ atom_cp_reps_parameters:
   - { *r: HIS_D:nterm ,*ai: N, *ao: H1 }
   - { *r: HIS_D:nterm ,*ai: N, *ao: H2 }
   - { *r: HIS_D:nterm ,*ai: N, *ao: H3 }
+  - { *r: HIS_D:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: HIS_D:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: HIS_D ,*ai: N, *ao: H }
   - { *r: HIS_D ,*ai: C, *ao: O }
   - { *r: HIS_D ,*ai: ND1, *ao: HD1 }
@@ -124,6 +150,8 @@ atom_cp_reps_parameters:
   - { *r: ILE:nterm ,*ai: N, *ao: H1 }
   - { *r: ILE:nterm ,*ai: N, *ao: H2 }
   - { *r: ILE:nterm ,*ai: N, *ao: H3 }
+  - { *r: ILE:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: ILE:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: ILE ,*ai: N, *ao: H }
   - { *r: ILE ,*ai: C, *ao: O }
   - { *r: LEU:cterm ,*ai: C, *ao: O }
@@ -131,6 +159,8 @@ atom_cp_reps_parameters:
   - { *r: LEU:nterm ,*ai: N, *ao: H1 }
   - { *r: LEU:nterm ,*ai: N, *ao: H2 }
   - { *r: LEU:nterm ,*ai: N, *ao: H3 }
+  - { *r: LEU:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: LEU:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: LEU ,*ai: N, *ao: H }
   - { *r: LEU ,*ai: C, *ao: O }
   - { *r: LEU ,*ai: N, *ao: H1 }
@@ -141,16 +171,31 @@ atom_cp_reps_parameters:
   - { *r: LYS:nterm ,*ai: N, *ao: H1 }
   - { *r: LYS:nterm ,*ai: N, *ao: H2 }
   - { *r: LYS:nterm ,*ai: N, *ao: H3 }
+  - { *r: LYS:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: LYS:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: LYS ,*ai: N, *ao: H }
   - { *r: LYS ,*ai: C, *ao: O }
   - { *r: LYS ,*ai: NZ, *ao: HZ1 }
   - { *r: LYS ,*ai: NZ, *ao: HZ2 }
   - { *r: LYS ,*ai: NZ, *ao: HZ3 }
+  - { *r: LYS_DEP:cterm ,*ai: C, *ao: O }
+  - { *r: LYS_DEP:cterm ,*ai: C, *ao: OXT }
+  - { *r: LYS_DEP:nterm ,*ai: N, *ao: H1 }
+  - { *r: LYS_DEP:nterm ,*ai: N, *ao: H2 }
+  - { *r: LYS_DEP:nterm ,*ai: N, *ao: H3 }
+  - { *r: LYS_DEP:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: LYS_DEP:nterm_neutral ,*ai: N, *ao: H2 }
+  - { *r: LYS_DEP ,*ai: N, *ao: H }
+  - { *r: LYS_DEP ,*ai: C, *ao: O }
+  - { *r: LYS_DEP ,*ai: NZ, *ao: HZ1 }
+  - { *r: LYS_DEP ,*ai: NZ, *ao: HZ2 }
   - { *r: MET:cterm ,*ai: C, *ao: O }
   - { *r: MET:cterm ,*ai: C, *ao: OXT }
   - { *r: MET:nterm ,*ai: N, *ao: H1 }
   - { *r: MET:nterm ,*ai: N, *ao: H2 }
   - { *r: MET:nterm ,*ai: N, *ao: H3 }
+  - { *r: MET:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: MET:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: MET ,*ai: N, *ao: H }
   - { *r: MET ,*ai: C, *ao: O }
   - { *r: PHE:cterm ,*ai: C, *ao: O }
@@ -158,6 +203,8 @@ atom_cp_reps_parameters:
   - { *r: PHE:nterm ,*ai: N, *ao: H1 }
   - { *r: PHE:nterm ,*ai: N, *ao: H2 }
   - { *r: PHE:nterm ,*ai: N, *ao: H3 }
+  - { *r: PHE:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: PHE:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: PHE ,*ai: N, *ao: H }
   - { *r: PHE ,*ai: C, *ao: O }
   - { *r: PRO:cterm ,*ai: C, *ao: O }
@@ -170,6 +217,8 @@ atom_cp_reps_parameters:
   - { *r: SER:nterm ,*ai: N, *ao: H1 }
   - { *r: SER:nterm ,*ai: N, *ao: H2 }
   - { *r: SER:nterm ,*ai: N, *ao: H3 }
+  - { *r: SER:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: SER:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: SER ,*ai: N, *ao: H }
   - { *r: SER ,*ai: C, *ao: O }
   - { *r: SER ,*ai: OG, *ao: HG }
@@ -178,6 +227,8 @@ atom_cp_reps_parameters:
   - { *r: THR:nterm ,*ai: N, *ao: H1 }
   - { *r: THR:nterm ,*ai: N, *ao: H2 }
   - { *r: THR:nterm ,*ai: N, *ao: H3 }
+  - { *r: THR:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: THR:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: THR ,*ai: N, *ao: H }
   - { *r: THR ,*ai: C, *ao: O }
   - { *r: THR ,*ai: OG1, *ao: HG1 }
@@ -186,6 +237,8 @@ atom_cp_reps_parameters:
   - { *r: TRP:nterm ,*ai: N, *ao: H1 }
   - { *r: TRP:nterm ,*ai: N, *ao: H2 }
   - { *r: TRP:nterm ,*ai: N, *ao: H3 }
+  - { *r: TRP:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: TRP:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: TRP ,*ai: N, *ao: H }
   - { *r: TRP ,*ai: C, *ao: O }
   - { *r: TRP ,*ai: NE1, *ao: HE1 }
@@ -194,6 +247,8 @@ atom_cp_reps_parameters:
   - { *r: TYR:nterm ,*ai: N, *ao: H1 }
   - { *r: TYR:nterm ,*ai: N, *ao: H2 }
   - { *r: TYR:nterm ,*ai: N, *ao: H3 }
+  - { *r: TYR:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: TYR:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: TYR ,*ai: N, *ao: H }
   - { *r: TYR ,*ai: C, *ao: O }
   - { *r: TYR ,*ai: OH, *ao: HH }
@@ -202,6 +257,8 @@ atom_cp_reps_parameters:
   - { *r: TYR_DEP:nterm ,*ai: N, *ao: H1 }
   - { *r: TYR_DEP:nterm ,*ai: N, *ao: H2 }
   - { *r: TYR_DEP:nterm ,*ai: N, *ao: H3 }
+  - { *r: TYR_DEP:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: TYR_DEP:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: TYR_DEP ,*ai: N, *ao: H }
   - { *r: TYR_DEP ,*ai: C, *ao: O }
   - { *r: VAL:cterm ,*ai: C, *ao: O }
@@ -209,6 +266,8 @@ atom_cp_reps_parameters:
   - { *r: VAL:nterm ,*ai: N, *ao: H1 }
   - { *r: VAL:nterm ,*ai: N, *ao: H2 }
   - { *r: VAL:nterm ,*ai: N, *ao: H3 }
+  - { *r: VAL:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: VAL:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: VAL ,*ai: N, *ao: H }
   - { *r: VAL ,*ai: C, *ao: O }
 
@@ -234,6 +293,11 @@ atom_charge_parameters:
   - { *r: ALA:nterm ,*a: H1, *e: 0.26154 }
   - { *r: ALA:nterm ,*a: H2, *e: 0.26154 }
   - { *r: ALA:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: ALA:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: ALA:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: ALA:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: ALA:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: ALA:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: ARG ,*a: HB2, *e: 0.07619 }
   - { *r: ARG ,*a: HD2, *e: 0.07619 }
   - { *r: ARG ,*a: HG2, *e: 0.07619 }
@@ -267,6 +331,11 @@ atom_charge_parameters:
   - { *r: ARG:nterm ,*a: H1, *e: 0.26154 }
   - { *r: ARG:nterm ,*a: H2, *e: 0.26154 }
   - { *r: ARG:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: ARG:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: ARG:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: ARG:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: ARG:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: ARG:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: ASN ,*a: HB2, *e: 0.07322 }
   - { *r: ASN ,*a: HD22, *e: 0.26032 }
   - { *r: ASN ,*a: HB3, *e: 0.07322 }
@@ -289,6 +358,11 @@ atom_charge_parameters:
   - { *r: ASN:nterm ,*a: H1, *e: 0.26154 }
   - { *r: ASN:nterm ,*a: H2, *e: 0.26154 }
   - { *r: ASN:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: ASN:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: ASN:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: ASN:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: ASN:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: ASN:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: ASN ,*a: OD1, *e: -0.44743 }
   - { *r: ASP ,*a: HB2, *e: 0.13276 }
   - { *r: ASP ,*a: HB3, *e: 0.13276 }
@@ -309,6 +383,11 @@ atom_charge_parameters:
   - { *r: ASP:nterm ,*a: H1, *e: 0.26154 }
   - { *r: ASP:nterm ,*a: H2, *e: 0.26154 }
   - { *r: ASP:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: ASP:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: ASP:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: ASP:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: ASP:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: ASP:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: ASP ,*a: OD1, *e: -0.85885 }
   - { *r: ASP ,*a: OD2, *e: -0.85885 }
   - { *r: CYS ,*a: HB2, *e: 0.12155 }
@@ -341,6 +420,11 @@ atom_charge_parameters:
   - { *r: CYS:nterm ,*a: H1, *e: 0.26154 }
   - { *r: CYS:nterm ,*a: H2, *e: 0.26154 }
   - { *r: CYS:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: CYS:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: CYS:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: CYS:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: CYS:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: CYS:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: CYS ,*a: SG, *e: -0.31063 }
   - { *r: CYS_DEP ,*a: HB2, *e: 0.06640 }
   - { *r: CYS_DEP ,*a: HB3, *e: 0.06640 }
@@ -361,6 +445,11 @@ atom_charge_parameters:
   - { *r: CYS_DEP:nterm ,*a: H1, *e: 0.26154 }
   - { *r: CYS_DEP:nterm ,*a: H2, *e: 0.26154 }
   - { *r: CYS_DEP:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: CYS_DEP:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: CYS_DEP:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: CYS_DEP:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: CYS_DEP:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: CYS_DEP:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: CYD:cterm ,*a: OXT, *e: -0.67724 }
   - { *r: CYD:cterm ,*a: O, *e: -0.67724 }
   - { *r: CYD:cterm ,*a: C, *e: 0.35448 }
@@ -370,6 +459,11 @@ atom_charge_parameters:
   - { *r: CYD:nterm ,*a: H1, *e: 0.26154 }
   - { *r: CYD:nterm ,*a: H2, *e: 0.26154 }
   - { *r: CYD:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: CYD:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: CYD:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: CYD:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: CYD:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: CYD:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: CYD ,*a: SG, *e: -0.10804 }
   - { *r: GLN ,*a: HB2, *e: 0.09669 }
   - { *r: GLN ,*a: HE22, *e: 0.34378 }
@@ -396,6 +490,11 @@ atom_charge_parameters:
   - { *r: GLN:nterm ,*a: H1, *e: 0.26154 }
   - { *r: GLN:nterm ,*a: H2, *e: 0.26154 }
   - { *r: GLN:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: GLN:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: GLN:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: GLN:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: GLN:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: GLN:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: GLN ,*a: OE1, *e: -0.59087 }
   - { *r: GLU ,*a: HB2, *e: 0.05862 }
   - { *r: GLU ,*a: HG2, *e: 0.05862 }
@@ -419,6 +518,11 @@ atom_charge_parameters:
   - { *r: GLU:nterm ,*a: H1, *e: 0.26154 }
   - { *r: GLU:nterm ,*a: H2, *e: 0.26154 }
   - { *r: GLU:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: GLU:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: GLU:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: GLU:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: GLU:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: GLU:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: GLU ,*a: OE1, *e: -0.65874 }
   - { *r: GLU ,*a: OE2, *e: -0.65874 }
   - { *r: GLY ,*a: HA2, *e: 0.14754 }
@@ -438,6 +542,12 @@ atom_charge_parameters:
   - { *r: GLY:nterm ,*a: H1, *e: 0.25156 }
   - { *r: GLY:nterm ,*a: H2, *e: 0.25156 }
   - { *r: GLY:nterm ,*a: H3, *e: 0.25156 }
+  - { *r: GLY:nterm_neutral ,*a: N, *e: -0.86282 }
+  - { *r: GLY:nterm_neutral ,*a: CA, *e: 0.13539 }
+  - { *r: GLY:nterm_neutral ,*a: HA2, *e: 0.11215 }
+  - { *r: GLY:nterm_neutral ,*a: HA3, *e: 0.11215 }
+  - { *r: GLY:nterm_neutral ,*a: H1, *e: 0.25156 }
+  - { *r: GLY:nterm_neutral ,*a: H2, *e: 0.25156 }
   - { *r: HIS_D ,*a: HB2, *e: 0.08456 }
   - { *r: HIS_D ,*a: HB3, *e: 0.08456 }
   - { *r: HIS_D ,*a: C, *e: 0.76511 }
@@ -497,6 +607,11 @@ atom_charge_parameters:
   - { *r: HIS_DEP:nterm ,*a: H1, *e: 0.26154 }
   - { *r: HIS_DEP:nterm ,*a: H2, *e: 0.26154 }
   - { *r: HIS_DEP:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: HIS_DEP:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: HIS_DEP:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: HIS_DEP:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: HIS_DEP:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: HIS_DEP:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: HIS_POS, *a: N, *e: -0.47}
   - { *r: HIS_POS, *a: CA, *e: 0.07}
   - { *r: HIS_POS, *a: C, *e: 0.51}
@@ -524,6 +639,11 @@ atom_charge_parameters:
   - { *r: HIS:nterm ,*a: H1, *e: 0.26154 }
   - { *r: HIS:nterm ,*a: H2, *e: 0.26154 }
   - { *r: HIS:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: HIS:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: HIS:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: HIS:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: HIS:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: HIS:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: HIS_D:cterm ,*a: OXT, *e: -0.67724 }
   - { *r: HIS_D:cterm ,*a: O, *e: -0.67724 }
   - { *r: HIS_D:cterm ,*a: C, *e: 0.35448 }
@@ -533,6 +653,11 @@ atom_charge_parameters:
   - { *r: HIS_D:nterm ,*a: H1, *e: 0.26154 }
   - { *r: HIS_D:nterm ,*a: H2, *e: 0.26154 }
   - { *r: HIS_D:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: HIS_D:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: HIS_D:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: HIS_D:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: HIS_D:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: HIS_D:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: HIS_POS:cterm ,*a: OXT, *e: -0.67724 }
   - { *r: HIS_POS:cterm ,*a: O, *e: -0.67724 }
   - { *r: HIS_POS:cterm ,*a: C, *e: 0.35448 }
@@ -542,6 +667,11 @@ atom_charge_parameters:
   - { *r: HIS_POS:nterm ,*a: H1, *e: 0.26154 }
   - { *r: HIS_POS:nterm ,*a: H2, *e: 0.26154 }
   - { *r: HIS_POS:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: HIS_POS:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: HIS_POS:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: HIS_POS:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: HIS_POS:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: HIS_POS:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: ILE ,*a: HD11, *e: 0.12155 }
   - { *r: ILE ,*a: HG12, *e: 0.12155 }
   - { *r: ILE ,*a: HG21, *e: 0.12155 }
@@ -570,6 +700,11 @@ atom_charge_parameters:
   - { *r: ILE:nterm ,*a: H1, *e: 0.26154 }
   - { *r: ILE:nterm ,*a: H2, *e: 0.26154 }
   - { *r: ILE:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: ILE:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: ILE:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: ILE:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: ILE:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: ILE:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: LEU ,*a: HB2, *e: 0.12155 }
   - { *r: LEU ,*a: HD11, *e: 0.12155 }
   - { *r: LEU ,*a: HD21, *e: 0.12155 }
@@ -598,6 +733,11 @@ atom_charge_parameters:
   - { *r: LEU:nterm ,*a: H1, *e: 0.26154 }
   - { *r: LEU:nterm ,*a: H2, *e: 0.26154 }
   - { *r: LEU:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: LEU:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: LEU:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: LEU:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: LEU:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: LEU:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: LYS ,*a: HB2, *e: 0.08943 }
   - { *r: LYS ,*a: HD2, *e: 0.08943 }
   - { *r: LYS ,*a: HE2, *e: 0.05026 }
@@ -629,6 +769,46 @@ atom_charge_parameters:
   - { *r: LYS:nterm ,*a: H1, *e: 0.26154 }
   - { *r: LYS:nterm ,*a: H2, *e: 0.26154 }
   - { *r: LYS:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: LYS:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: LYS:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: LYS:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: LYS:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: LYS:nterm_neutral ,*a: H2, *e: 0.26154 }
+  - { *r: LYS_DEP ,*a: HB2, *e: 0.08943 }
+  - { *r: LYS_DEP ,*a: HD2, *e: 0.08943 }
+  - { *r: LYS_DEP ,*a: HE2, *e: 0.05026 }
+  - { *r: LYS_DEP ,*a: HG2, *e: 0.08943 }
+  - { *r: LYS_DEP ,*a: HZ1, *e: 0.32446 }
+  - { *r: LYS_DEP ,*a: HB3, *e: 0.08943 }
+  - { *r: LYS_DEP ,*a: HD3, *e: 0.08943 }
+  - { *r: LYS_DEP ,*a: HE3, *e: 0.05026 }
+  - { *r: LYS_DEP ,*a: HG3, *e: 0.08943 }
+  - { *r: LYS_DEP ,*a: HZ2, *e: 0.32446 }
+  - { *r: LYS_DEP ,*a: C, *e: 0.76511 }
+  - { *r: LYS_DEP ,*a: CA, *e: 0.11475 }
+  - { *r: LYS_DEP ,*a: CB, *e: -0.17497 }
+  - { *r: LYS_DEP ,*a: CD, *e: -0.17497 }
+  - { *r: LYS_DEP ,*a: CE, *e: 0.20694 }
+  - { *r: LYS_DEP ,*a: CG, *e: -0.17497 }
+  - { *r: LYS_DEP ,*a: H, *e: 0.50819 }
+  - { *r: LYS_DEP ,*a: HA, *e: 0.14754 }
+  - { *r: LYS_DEP ,*a: N, *e: -0.77049 }
+  - { *r: LYS_DEP ,*a: NZ, *e: -0.96803 }
+  - { *r: LYS_DEP ,*a: O, *e: -0.76511 }
+  - { *r: LYS_DEP:cterm ,*a: OXT, *e: -0.67724 }
+  - { *r: LYS_DEP:cterm ,*a: O, *e: -0.67724 }
+  - { *r: LYS_DEP:cterm ,*a: C, *e: 0.35448 }
+  - { *r: LYS_DEP:nterm ,*a: N, *e: -0.10440 }
+  - { *r: LYS_DEP:nterm ,*a: CA, *e: 0.19184 }
+  - { *r: LYS_DEP:nterm ,*a: HA, *e: 0.12794 }
+  - { *r: LYS_DEP:nterm ,*a: H1, *e: 0.26154 }
+  - { *r: LYS_DEP:nterm ,*a: H2, *e: 0.26154 }
+  - { *r: LYS_DEP:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: LYS_DEP:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: LYS_DEP:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: LYS_DEP:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: LYS_DEP:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: LYS_DEP:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: MET ,*a: HB2, *e: 0.12155 }
   - { *r: MET ,*a: HE1, *e: 0.12155 }
   - { *r: MET ,*a: HG2, *e: 0.12155 }
@@ -654,6 +834,11 @@ atom_charge_parameters:
   - { *r: MET:nterm ,*a: H1, *e: 0.26154 }
   - { *r: MET:nterm ,*a: H2, *e: 0.26154 }
   - { *r: MET:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: MET:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: MET:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: MET:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: MET:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: MET:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: MET ,*a: SD, *e: -0.12155 }
 
   - { *r: PHE ,*a: HB2, *e: 0.14323 }
@@ -685,6 +870,11 @@ atom_charge_parameters:
   - { *r: PHE:nterm ,*a: H1, *e: 0.26154 }
   - { *r: PHE:nterm ,*a: H2, *e: 0.26154 }
   - { *r: PHE:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: PHE:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: PHE:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: PHE:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: PHE:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: PHE:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: PRO ,*a: HB2, *e: 0.14754 }
   - { *r: PRO ,*a: HD2, *e: 0.14754 }
   - { *r: PRO ,*a: HG2, *e: 0.14754 }
@@ -734,6 +924,11 @@ atom_charge_parameters:
   - { *r: SER:nterm ,*a: H1, *e: 0.26154 }
   - { *r: SER:nterm ,*a: H2, *e: 0.26154 }
   - { *r: SER:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: SER:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: SER:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: SER:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: SER:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: SER:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: SER ,*a: OG, *e: -0.53802 }
   - { *r: THR ,*a: HG21, *e: 0.08381 }
   - { *r: THR ,*a: HG22, *e: 0.08381 }
@@ -757,6 +952,11 @@ atom_charge_parameters:
   - { *r: THR:nterm ,*a: H1, *e: 0.26154 }
   - { *r: THR:nterm ,*a: H2, *e: 0.26154 }
   - { *r: THR:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: THR:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: THR:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: THR:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: THR:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: THR:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: THR ,*a: OG1, *e: -0.61459 }
   - { *r: TRP ,*a: HB2, *e: 0.10831 }
   - { *r: TRP ,*a: HB3, *e: 0.10831 }
@@ -791,6 +991,11 @@ atom_charge_parameters:
   - { *r: TRP:nterm ,*a: H1, *e: 0.26154 }
   - { *r: TRP:nterm ,*a: H2, *e: 0.26154 }
   - { *r: TRP:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: TRP:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: TRP:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: TRP:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: TRP:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: TRP:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: TYR ,*a: HB2, *e: 0.07353 }
   - { *r: TYR ,*a: HB3, *e: 0.07353 }
   - { *r: TYR ,*a: C, *e: 0.76511 }
@@ -820,6 +1025,11 @@ atom_charge_parameters:
   - { *r: TYR:nterm ,*a: H1, *e: 0.26154 }
   - { *r: TYR:nterm ,*a: H2, *e: 0.26154 }
   - { *r: TYR:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: TYR:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: TYR:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: TYR:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: TYR:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: TYR:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: TYR ,*a: OH, *e: -0.44117 }
   - { *r: TYR_DEP ,*a: HB2, *e: 0.03987 }
   - { *r: TYR_DEP ,*a: HB3, *e: 0.03987 }
@@ -850,6 +1060,11 @@ atom_charge_parameters:
   - { *r: TYR_DEP:nterm ,*a: H1, *e: 0.26154 }
   - { *r: TYR_DEP:nterm ,*a: H2, *e: 0.26154 }
   - { *r: TYR_DEP:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: TYR_DEP:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: TYR_DEP:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: TYR_DEP:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: TYR_DEP:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: TYR_DEP:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: VAL ,*a: HG11, *e: 0.12155 }
   - { *r: VAL ,*a: HG21, *e: 0.12155 }
   - { *r: VAL ,*a: HG12, *e: 0.12155 }
@@ -875,6 +1090,11 @@ atom_charge_parameters:
   - { *r: VAL:nterm ,*a: H1, *e: 0.26154 }
   - { *r: VAL:nterm ,*a: H2, *e: 0.26154 }
   - { *r: VAL:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: VAL:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: VAL:nterm_neutral ,*a: CA, *e: 0.19184 }
+  - { *r: VAL:nterm_neutral ,*a: HA, *e: 0.12794 }
+  - { *r: VAL:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: VAL:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: VRT, *a: A1, *e: 0.00000 }
   - { *r: VRT, *a: A2, *e: 0.00000 }
   - { *r: VRT, *a: A3, *e: 0.00000 }

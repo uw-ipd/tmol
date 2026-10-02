@@ -5,10 +5,15 @@ which is how the terminal OXT / H1-H3 geometry went unscored. These tests pin th
 resolution rules so a stranded param is a test failure rather than a zero.
 """
 
+import logging
+
+import attr
 import torch
 
 from tmol.database import ParameterDatabase
 from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+from tmol.optimization import run_cart_min
+from tmol.score import beta2016_score_function
 from tmol.score.cartbonded import CROSS_RES_PREFIX, CartBondedEnergyTerm
 from tmol.tests.data import data_path
 
@@ -187,3 +192,84 @@ def test_real_pose_bonds_and_angles_are_parameterized():
             if param_indices[j] < 0 and not virtual & set(atoms):
                 missing.append(f"{block_type.name} {'-'.join(atoms)}")
     assert not missing, f"unparameterized lengths/angles: {missing}"
+
+
+def _bond_lengths(pose_stack, block_type_name):
+    """Every bond length of the blocks of one type, keyed by block and atom names."""
+    coords = pose_stack.coords[0].detach().cpu()
+    pbt = pose_stack.packed_block_types
+    lengths = {}
+    for block, type_ind in enumerate(pose_stack.block_type_ind[0].tolist()):
+        if type_ind < 0 or pbt.active_block_types[type_ind].name != block_type_name:
+            continue
+        block_type = pbt.active_block_types[type_ind]
+        offset = int(pose_stack.block_coord_offset[0, block])
+        for i, j in block_type.bond_indices.tolist():
+            if i < j:
+                key = (block, block_type.atoms[i].name, block_type.atoms[j].name)
+                lengths[key] = float((coords[offset + i] - coords[offset + j]).norm())
+    return lengths
+
+
+def test_his_pos_keeps_its_bonds_in_minimization(torch_device):
+    """2LNY (NMR) HIS 16 carries both ring protons, so it is read as HIS_POS.
+    Without cart_bonded parameters for HIS_POS nothing held its bonds, and
+    minimization stretched its ring by 4 A."""
+    structure = atom_array_from_cif(
+        data_path("sweep_regressions", "his_pos_nmr_2lny.cif.zst")
+    )
+    pose_stack, context = pose_stack_from_biotite(
+        structure, torch_device, return_context=True
+    )
+    before = _bond_lengths(pose_stack, "HIS_POS")
+    assert len(before) == 18
+    sfxn = beta2016_score_function(torch_device, param_db=context.parameter_database)
+    after = _bond_lengths(run_cart_min(pose_stack, sfxn), "HIS_POS")
+    stretched = {
+        key: round(after[key] - length, 3)
+        for key, length in before.items()
+        if abs(after[key] - length) > 0.1
+    }
+    assert not stretched
+
+
+def test_a_residue_type_without_parameters_is_reported(caplog, monkeypatch):
+    """A residue type whose own bonds have no cart_bonded rows goes unrestrained
+    in minimization, as HIS_POS did; setting it up logs a warning naming it."""
+    device = torch.device("cpu")
+    structure = atom_array_from_cif(
+        data_path("sweep_regressions", "his_pos_nmr_2lny.cif.zst")
+    )
+    pose_stack, context = pose_stack_from_biotite(
+        structure, device, return_context=True
+    )
+    database = context.parameter_database
+    cartbonded = database.scoring.cartbonded
+    without_his_pos = attr.evolve(
+        cartbonded,
+        residue_params={
+            name: params
+            for name, params in cartbonded.residue_params.items()
+            if name != "HIS_POS"
+        },
+    )
+
+    def reported(cartbonded):
+        # an evolved (distinct) database is set up afresh rather than from cache
+        param_db = attr.evolve(
+            database, scoring=attr.evolve(database.scoring, cartbonded=cartbonded)
+        )
+        monkeypatch.setattr(CartBondedEnergyTerm, "_warned_unparameterized", set())
+        caplog.clear()
+        with caplog.at_level(logging.WARNING, logger=CartBondedEnergyTerm.__module__):
+            term = CartBondedEnergyTerm(param_db=param_db, device=device)
+            term.setup_packed_block_types(pose_stack.packed_block_types)
+        return [
+            r.getMessage()
+            for r in caplog.records
+            if r.getMessage().startswith("cart_bonded has no parameters")
+        ]
+
+    assert reported(attr.evolve(cartbonded)) == []
+    (message,) = reported(without_his_pos)
+    assert message.startswith("cart_bonded has no parameters for HIS_POS ")

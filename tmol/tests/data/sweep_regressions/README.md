@@ -6,6 +6,13 @@ compressed file) and exercises one failure class; each test fails without its fi
 
 | File | Regression exercised |
 |---|---|
+| `kgq_alternates_4m8y.pdb.zst` | KGQ A:201 (altloc A) and A:202 (altloc B) are two overlapping residues; the PDB reader keeps one. |
+| `metalc_alternate_3p1o.cif.zst` | A metalc row naming conformer B of GLU A:86 binds MG A:237 only if that conformer is kept (the kept conformer A is 6 A away). |
+| `ion_alternates_8a7k.cif.zst` | Mn and Mg modelled at half occupancy on each of three sites without altloc ids keep one residue per site (the site failed the 12-connection limit). |
+| `ion_alternates_3f7l.cif.zst` | The two conformers of a Cu (0.8/0.2), written in two chains, keep the more occupied one (one residue per site). |
+| `heme_alternates_1i54.pdb.zst` | A PDB whose heme (altloc A) and Zn-porphyrin (altloc B) are two residues bonded to the same cysteines keeps one alternate per linked group. |
+| `microheterogeneity_1ejg.pdb.zst` | PRO/SER A:22 and LEU/ILE A:25 are altlocs A/B of one position; the internal PDB parser keeps one alternate instead of overwriting atom by atom. |
+| `glycerol_alternates_1p4k.cif.zst` | Two half-occupied GOL without altloc ids, which struct_conn bonds to each other, keep one residue per site (the pair failed with multiple declared partners). |
 | `zn_link_records_1hzy.pdb.zst` | PDB LINK records become bonds (Zn coordination, LYS169 NZ-FMT C); HETATM residues keep their numbers and order. |
 | `capped_peptide_1coi.pdb.zst` | A coordinate-only PDB (no LINK or CONECT records) keeps its HETATM caps (ACE A:0, NH2 A:30) in the chain. |
 | `bonded_bromide_1mhk.cif.zst`, `unsigned_carboxylate_charge_3zlp.cif.zst`, `oxygen_charge_seven_7tjm.cif.zst` | Deposited charges no bonded atom carries (bonded bromide -1, unsigned carboxylate +1, +7 on OE2) are ignored. |
@@ -21,7 +28,19 @@ compressed file) and exercises one failure class; each test fails without its fi
 | `terminal_alkyne_7e9i.cif.zst` | gen_torsions skip dihedrals through an acyclic sp centre; analytic and numeric gradients agree. |
 | `free_nucleotides_8gpb.cif.zst` | Free nucleotides sharing a chain and entity (AMP A930, A940) are not linked O3'-P for protonation. |
 | `cyclic_phosphate_3prime_1hq1.cif.zst` | A nucleotide whose 3' oxygen is in a 2',3'-cyclic phosphate (CCC) has no 3' port, so no 3' terminus adds HO3'. |
+| `his_pos_nmr_2lny.cif.zst` | HIS_POS (both ring protons) has cart_bonded parameters: minimization keeps its bonds; a type without parameters is reported. |
+| `oxygen_acceptor_1mbo.cif.zst` | An acceptor without a base (haem-bound O2, OXY) scores hbond with finite gradients. |
+| `metal_lysine_2r1w.cif.zst`, `metal_amine_terminus_3ppd.cif.zst` | A lysine or N-terminal amine bonded to a metal is the neutral amine AtomWorks makes it (LYS_DEP, nterm_neutral). |
+| `cysteine_heme_1cch.cif.zst` | The pyrroles of a Cys-bonded heme keep no hydrogen once its iron is split out. |
+| `metal_phosphate_7bad.cif.zst`, `per_copy_phosphate_6m8q.cif.zst` | Each phosphate copy keeps AtomWorks' state: no hydrogen on an O bound to a metal, a free copy protonated. |
+| `polar_hydrogens_10gs.pdb.zst` | A PDBbind protein drawn with polar hydrogens only: a histidine or cysteine without ring or thiol H is asked of AtomWorks, not read as an anion. |
+| `unresolved_tyrosine_4ndz.cif.zst` | TYR B:171 drawn without its ring (N, CA, C, O, CB) keeps TYR; the missing atoms carry no protonation state. |
+| `plm_copies_8trb.cif.zst` | Every PLM copy is bonded to the protein (SER/CYS), so no per-copy state type is prepared. |
+| `capped_peptide_1j8z.cif.zst` | Prepared after 3PPD in one database, the ACE-capped peptide does not take GLY's on-demand nterm_neutral as a terminus template. |
 
 | `nitric_oxide_1koi.cif.zst` | Full deposited entry: nitric oxide keeps its zero-hydrogen state during SMILES conversion; unsupported radical preparation is refused instead of adding a hydrogen. |
+
+| `alternate_polymer_chains_1gtv.cif.zst` | Full deposited entry: retain both overlapping polymer chains in the reader; reject their degenerate combined bond geometry before scoring. Either explicitly selected biological assembly scores and minimizes with finite gradients. |
+| `shared_author_site_3bln.cif.zst` | Full deposited entry: overlapping MPD/MRD in separate label chains share author site A:147; select one before collapsing author identifiers. |
 
 | `renumbered_chloride_4eu8.cif.zst` | Renumbering decreasing water author IDs preserves component definitions and charge provenance for the structure’s chloride ions. |

@@ -11,8 +11,8 @@ from tmol.types import (
     validate_args,
 )
 from tmol.database.chemical import (
-    GEOMETRY_NAMES,
-    METAL_GEOMETRY_VAR_BASE,
+    N_VARIANT_INDICES,
+    NEUTRAL_TERMINUS_VAR_BASE,
     site_connections,
     special_case_variant_index,
 )
@@ -108,6 +108,18 @@ def assign_block_types(
         res_not_connected & is_polymeric[..., None],
         is_real_res,
     )
+    # a neutral amino terminus where the residue is one; its charge elsewhere
+    neutral = res_type_variants64 >= NEUTRAL_TERMINUS_VAR_BASE
+    if bool(neutral.any()):
+        can_ann = pbt.canonical_ordering_annotation
+        fits = can_ann.var_combo_is_real_candidate[
+            res_types64.clamp(min=0), termini_variants, res_type_variants64.clamp(min=0)
+        ].any(-1)
+        res_type_variants64 = torch.where(
+            neutral & ~fits,
+            res_type_variants64 - NEUTRAL_TERMINUS_VAR_BASE,
+            res_type_variants64,
+        )
     block_type_ind64 = select_best_block_type_candidate(
         canonical_ordering,
         pbt,
@@ -1115,7 +1127,7 @@ def _annotate_packed_block_types_w_canonical_res_order(
 
     max_n_termini_types = 4  # 0=down-term, 1=mid, 2=up-term, 3=down+up
     # layout in tmol.database.chemical: sidechain states, then metal geometries
-    max_n_special_case_aa_variant_types = METAL_GEOMETRY_VAR_BASE + len(GEOMETRY_NAMES)
+    max_n_special_case_aa_variant_types = N_VARIANT_INDICES
 
     pbt_io_equiv_class_name_set = set(
         [bt.io_equiv_class for bt in pbt.active_block_types]
