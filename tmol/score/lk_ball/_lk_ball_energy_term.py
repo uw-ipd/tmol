@@ -341,8 +341,8 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         args = [
             *common_args,
             pose_stack.inter_residue_connections,
-            pose_stack.min_block_bondsep,
-            pose_stack.inter_block_bondsep,
+            pose_stack.inter_block_bondsep.near_blocks,
+            pose_stack.inter_block_bondsep.bondsep,
             pose_stack.packed_block_types.n_atoms,
             pose_stack.packed_block_types.n_conn,
             pose_stack.packed_block_types.conn_atom,
@@ -413,8 +413,8 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         args = [
             *common_args,
             pose_stack.inter_residue_connections,
-            pose_stack.min_block_bondsep,
-            pose_stack.inter_block_bondsep,
+            pose_stack.inter_block_bondsep.near_blocks,
+            pose_stack.inter_block_bondsep.bondsep,
             pose_stack.packed_block_types.n_atoms,
             pose_stack.packed_block_types.n_conn,
             pose_stack.packed_block_types.conn_atom,

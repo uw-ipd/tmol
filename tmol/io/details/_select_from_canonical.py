@@ -18,6 +18,7 @@ from tmol.database.chemical import (
 )
 from tmol.io import CanonicalOrdering
 from tmol.pose import (
+    InterBlockBondsep,
     PackedBlockTypes,
     PoseStackBuilder,
     annotate_packed_block_types_w_dslf_conn_inds,
@@ -42,7 +43,7 @@ def assign_block_types(
 ) -> Tuple[
     Tensor[torch.int64][:, :],
     Tensor[torch.int64][:, :, :, 2],
-    Tensor[torch.int32][:, :, :, :, :],
+    InterBlockBondsep,
 ]:
     """Choose each residue's block type and wire every inter-residue connection.
 
@@ -52,8 +53,6 @@ def assign_block_types(
     pbt = packed_block_types
     _annotate_packed_block_types_w_canonical_res_order(canonical_ordering, pbt)
     annotate_packed_block_types_w_dslf_conn_inds(pbt)
-    PoseStackBuilder._annotate_pbt_w_polymeric_down_up_bondsep_dist(pbt)
-    PoseStackBuilder._annotate_pbt_w_intraresidue_connection_atom_distances(pbt)
 
     device = pbt.device
     n_poses = chain_id.shape[0]
@@ -271,32 +270,11 @@ def assign_block_types(
         pbt, block_type_ind64, inter_residue_connections64
     )
 
-    # proceed with the rest of the PoseStackBuilder's steps
-    # in constructing the inter_block_bondsep tensor using the
-    # all-pairs-shortest-path algorithm
-    # 3a
-    (
-        pconn_matrix,
-        pconn_offsets,
-        block_n_conn,
-        _,
-    ) = PoseStackBuilder._take_real_conn_conn_intrablock_pairs(
-        pbt, block_type_ind64, is_real_res
+    inter_block_bondsep = PoseStackBuilder._inter_block_bondsep_from_connections(
+        pbt, block_type_ind64, is_real_res, inter_residue_connections64
     )
 
-    # 3b
-    PoseStackBuilder._incorporate_inter_residue_connections_into_connectivity_graph(
-        inter_residue_connections64, pconn_offsets, pconn_matrix
-    )
-
-    # 4
-    # bad naming because python indentation- and line-wrapping rules are annoying:
-    # inter_block_bondsep64 == ibb64
-    ibb64 = PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph(
-        pbt, pconn_offsets, block_n_conn, pconn_matrix
-    )
-
-    return (block_type_ind64, inter_residue_connections64, ibb64)
+    return (block_type_ind64, inter_residue_connections64, inter_block_bondsep)
 
 
 def _assert_connections_are_well_formed(
