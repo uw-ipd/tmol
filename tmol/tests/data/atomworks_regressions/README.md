@@ -216,6 +216,8 @@ Attached H2S and S2H exercise small-component coordinate frames and retained
 hydrogen references after a conjugation patch displaces a hydrogen.
 
 `phosphate_attachment_8ch1.cif.zst` retains the complete RCSB entry.
+Its VDF is the altloc B alternate of LAO, and the reader keeps altloc A, so
+`vdf_attachment_8ch1_b.cif.zst` holds conformer B alone, cropped 8 A around VDF.
 The VDF phosphate attachment oxygen has no departing H after free-component
 protonation. Its construction frame must use the complete conjugate's angle
 target and a stable local plane. Both readers retain every resolved non-water

@@ -1,5 +1,6 @@
 """Read supplied structure information before tmol validates parameter requirements."""
 
+import io
 import warnings
 from string import ascii_uppercase
 
@@ -27,6 +28,8 @@ from atomworks.io.utils.ccd import (
     get_polymerization_atoms,
 )
 from atomworks.io.utils.io_utils import get_structure, infer_pdb_file_type, read_any
+
+from tmol.io._alternates import one_residue_per_site, pdb_lines_with_one_alternate
 
 _AUTHOR_FIELDS = {
     "atom_name": "auth_atom_id",
@@ -89,11 +92,33 @@ def _with_pdb_author_chains(array, path, model):
 def _with_metal_coordination(array, block):
     """The bond table plus the file's metalc bonds, typed COORDINATION.
 
-    The reader kept one conformer, so a row's alternate locations name it (3F7L, 7ADR).
+    A row naming a conformer of an atom with alternates binds only that conformer
+    (3P1O: GLU A:86 conformer B to MG A:237; the kept A is 6 A away); one naming an
+    atom without alternates binds it (3F7L, 7ADR).
     """
     struct_conn = category_to_dict(block, "struct_conn")
-    for partner in (1, 2):
-        struct_conn.pop(f"pdbx_ptnr{partner}_label_alt_id", None)
+    lettered = set()
+    if "label_alt_id" in array.get_annotation_categories():
+        at = ~np.isin(array.label_alt_id, (".", "?", " ", ""))
+        fields = (array.chain_id, array.res_id.astype(str), array.res_name)
+        lettered = set(zip(*(f[at] for f in fields), array.atom_name[at], strict=True))
+    for p in (1, 2):
+        if f"pdbx_ptnr{p}_label_alt_id" in struct_conn:
+            # AtomWorks matches the alt id; it names no conformer of an atom without any
+            seq = struct_conn[f"ptnr{p}_label_seq_id"]
+            seq = np.where(
+                seq == ".", struct_conn.get(f"ptnr{p}_auth_seq_id", seq), seq
+            )
+            named = zip(
+                struct_conn[f"ptnr{p}_label_asym_id"],
+                seq,
+                struct_conn[f"ptnr{p}_label_comp_id"],
+                struct_conn[f"ptnr{p}_label_atom_id"],
+                strict=True,
+            )
+            has = np.array([atom in lettered for atom in named], dtype=bool)
+            alt = struct_conn[f"pdbx_ptnr{p}_label_alt_id"]
+            struct_conn[f"pdbx_ptnr{p}_label_alt_id"] = np.where(has, alt, ".")
     bonds = array.bonds if array.bonds is not None else struc.BondList(len(array))
     return bonds.merge(
         get_struct_conn_bonds(
@@ -280,11 +305,12 @@ def _read_pdb(path, model):
     """
     from tmol.ligand._mol2_names import disambiguated_atom_names
 
-    array, _ = load_pdb(path, model=model)
+    lines = pdb_lines_with_one_alternate(read_any(path).lines, model)
+    text = "\n".join(lines) + "\n"
+    array, _ = load_pdb(io.StringIO(text), model=model)
     if array.coord.ndim == 3:
         array = array[0]
-    array = _with_pdb_author_chains(array, path, model)
-    lines = read_any(path).lines
+    array = _with_pdb_author_chains(array, io.StringIO(text), model)
     array.bonds = _stated_hetero_bonds(array, lines).merge(_link_bonds(array, lines))
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)
     author = array.auth_asym_id[starts[:-1]]
@@ -567,6 +593,8 @@ def read_structure(path, *, model=1, assembly_id=None):
         array.bonds = _with_metal_coordination(array, block)
     if assembly_id is not None:
         array.set_annotation("chain_id", array.chain_iid.copy())
+    # Separate label chains may occupy one author residue site (3BLN MPD/MRD).
+    array = one_residue_per_site(array)
     for target, source in _AUTHOR_FIELDS.items():
         # Assembly expansion owns chain_id: it distinguishes symmetry copies
         # that share an author chain. Nothing else does, so a file without

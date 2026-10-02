@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import biotite.structure as struc
 import numpy as np
 import pytest
 import torch
@@ -334,6 +335,72 @@ def test_declared_disulfides_sharing_a_sulfur_keep_the_nearest(torch_device, rec
     assert any("L:34-L:51" in str(w.message) for w in recwarn)
     pose = pose_stack_from_cif(path, torch_device, no_optH=True)
     assert torch.isfinite(pose.coords).all()
+
+
+@pytest.mark.parametrize(
+    "fixture, names, kept, dropped",
+    [
+        ("ion_alternates_8a7k", ["MN", "MG"], {501, 502, 503}, {504, 505, 506}),
+        ("ion_alternates_3f7l", ["CU", "CU1"], {201}, {202}),
+        ("glycerol_alternates_1p4k", ["GOL"], {296}, {297}),
+    ],
+)
+def test_residues_occupying_one_site_keep_one(
+    fixture, names, kept, dropped, torch_device
+):
+    """8A7K models Mn and Mg at half occupancy on each site, and 1P4K two
+    half-occupied GOL its struct_conn bonds to each other, without altloc ids;
+    3F7L writes the conformers of a Cu (0.8 and 0.2) in two chains."""
+    path = DATA / "sweep_regressions" / f"{fixture}.cif.zst"
+    with pytest.warns(UserWarning, match="one residue per site"):
+        array = atom_array_from_cif(path)
+    read = set(array.res_id[np.isin(array.res_name, names)].tolist())
+
+    assert kept <= read and not dropped & read
+    pose = pose_stack_from_cif(path, torch_device, prepare_ligands=True, no_optH=True)
+    assert torch.isfinite(pose.coords).all()
+
+
+def test_coincident_alternate_chains_require_an_assembly_choice(torch_device):
+    from tmol.tests.io.test_atomworks_corpus_regressions import _score_and_minimize
+
+    path = DATA / "sweep_regressions" / "alternate_polymer_chains_1gtv.cif.zst"
+    array = atom_array_from_cif(path)
+    assert set(array.chain_id[array.is_polymer]) == {"A", "B"}
+    with pytest.raises(ValueError, match="Coincident bonded heavy atoms"):
+        pose_stack_from_cif(path, torch_device, prepare_ligands=True, no_optH=True)
+    for assembly_id in ("1", "2"):
+        pose, context = pose_stack_from_cif(
+            path,
+            torch_device,
+            assembly_id=assembly_id,
+            prepare_ligands=True,
+            no_optH=True,
+            return_context=True,
+        )
+        _score_and_minimize(pose, context)
+
+
+def test_label_chains_sharing_an_author_site_keep_one_residue(torch_device):
+    path = DATA / "sweep_regressions" / "shared_author_site_3bln.cif.zst"
+    with pytest.warns(UserWarning, match="one residue per site"):
+        array = atom_array_from_cif(path)
+    site = (array.chain_id == "A") & (array.res_id == 147)
+    assert set(array.res_name[site]) == {"MPD"}
+    assert len(set(array.atom_name[site])) == site.sum() == 8
+    assert set(array.res_id[array.res_name == "MRD"]) == {145, 146}
+
+    pose, context = pose_stack_from_cif(
+        path, torch_device, prepare_ligands=True, no_optH=True, return_context=True
+    )
+    coords = pose.coords.detach().clone().requires_grad_()
+    energy = beta2016_score_function(
+        torch_device, param_db=context.parameter_database
+    ).render_whole_pose_scoring_module(pose)(coords)
+    energy.sum().backward()
+    assert torch.isfinite(coords).all()
+    assert torch.isfinite(energy).all()
+    assert torch.isfinite(coords.grad).all()
 
 
 @pytest.mark.parametrize(
@@ -772,6 +839,38 @@ def test_pdb_link_records_reach_the_pose(tmp_path, torch_device):
         for pair in links
         if not pair[0].startswith("HOH")
     }
+
+
+@pytest.mark.parametrize(
+    "fixture, res_ids, names",
+    [
+        # heme (altloc A) and Zn-porphyrin (B) as two residues on CYS A:14 and A:17
+        ("heme_alternates_1i54", [1104, 1105], {"HEC"}),
+        # KGQ A:201 (altloc A) over A:202 (altloc B)
+        ("kgq_alternates_4m8y", [201, 202], {"KGQ"}),
+    ],
+)
+def test_pdb_keeps_one_alternate_per_linked_group(
+    fixture, res_ids, names, torch_device
+):
+    """Alternates written as separate residues are read as one: no heavy atoms of
+    two residues overlap."""
+    from scipy.spatial import cKDTree
+
+    from tmol.io import atom_array_from_file, pose_stack_from_file
+
+    path = DATA / "sweep_regressions" / f"{fixture}.pdb.zst"
+    array = atom_array_from_file(path)
+    assert set(array.res_name[np.isin(array.res_id, res_ids)]) == names
+    heavy = ~np.isin(np.char.upper(array.element.astype(str)), ("H", "D"))
+    heavy = array[heavy & np.isfinite(array.coord).all(-1)]
+    residue = struc.get_all_residue_positions(heavy)
+    pairs = cKDTree(heavy.coord).query_pairs(1.2, output_type="ndarray")
+    assert (residue[pairs[:, 0]] == residue[pairs[:, 1]]).all()
+    pose = pose_stack_from_file(
+        path, torch_device, prepare_ligands=True, ligand_seed=0, no_optH=True
+    )
+    assert torch.isfinite(pose.coords).all()
 
 
 def test_coordinate_only_pdb_keeps_its_caps_in_the_chain(torch_device):
