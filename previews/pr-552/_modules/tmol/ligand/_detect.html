@@ -689,9 +689,13 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_rdkit_bond_to_biotite_type</span><span class="p">(</span><span class="n">bond</span><span class="p">:</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Bond</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Map an RDKit bond to a Biotite ``BondType`` integer."""</span>
-    <span class="k">if</span> <span class="n">bond</span><span class="o">.</span><span class="n">GetIsAromatic</span><span class="p">()</span> <span class="ow">or</span> <span class="n">bond</span><span class="o">.</span><span class="n">GetBondType</span><span class="p">()</span> <span class="o">==</span> <span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">AROMATIC</span><span class="p">:</span>
-        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">AROMATIC</span><span class="p">)</span>
     <span class="n">btype</span> <span class="o">=</span> <span class="n">bond</span><span class="o">.</span><span class="n">GetBondType</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">bond</span><span class="o">.</span><span class="n">GetIsAromatic</span><span class="p">()</span> <span class="ow">and</span> <span class="n">btype</span> <span class="o">==</span> <span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">SINGLE</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">AROMATIC_SINGLE</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bond</span><span class="o">.</span><span class="n">GetIsAromatic</span><span class="p">()</span> <span class="ow">and</span> <span class="n">btype</span> <span class="o">==</span> <span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">AROMATIC_DOUBLE</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bond</span><span class="o">.</span><span class="n">GetIsAromatic</span><span class="p">()</span> <span class="ow">or</span> <span class="n">btype</span> <span class="o">==</span> <span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">AROMATIC</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">AROMATIC</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">btype</span> <span class="o">==</span> <span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">SINGLE</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">SINGLE</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">btype</span> <span class="o">==</span> <span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">:</span>
@@ -1091,6 +1095,12 @@
         <span class="s2">"tmol_source_subtype"</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">source_subtypes</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"U8"</span><span class="p">)</span>
     <span class="p">)</span>
 
+    <span class="c1"># Kekulé orders, so no bond reaches AtomWorks' protonation as plain AROMATIC</span>
+    <span class="n">kekule</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">Chem</span><span class="o">.</span><span class="n">Kekulize</span><span class="p">(</span><span class="n">kekule</span><span class="p">,</span> <span class="n">clearAromaticFlags</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">Chem</span><span class="o">.</span><span class="n">KekulizeException</span><span class="p">:</span>
+        <span class="n">kekule</span> <span class="o">=</span> <span class="n">mol</span>
     <span class="n">bond_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
         <span class="p">[</span>
             <span class="p">(</span>
@@ -1098,7 +1108,7 @@
                 <span class="n">bond</span><span class="o">.</span><span class="n">GetEndAtomIdx</span><span class="p">(),</span>
                 <span class="n">_rdkit_bond_to_biotite_type</span><span class="p">(</span><span class="n">bond</span><span class="p">),</span>
             <span class="p">)</span>
-            <span class="k">for</span> <span class="n">bond</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">bond</span> <span class="ow">in</span> <span class="n">kekule</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">()</span>
         <span class="p">],</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
     <span class="p">)</span>

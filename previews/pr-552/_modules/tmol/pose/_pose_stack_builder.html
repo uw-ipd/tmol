@@ -454,7 +454,6 @@
     <span class="n">validate_args</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">MAX_SIG_BOND_SEPARATION</span><span class="p">,</span>
     <span class="n">RefinedResidueType</span><span class="p">,</span>
     <span class="n">three2one</span><span class="p">,</span>
 <span class="p">)</span>
@@ -706,9 +705,8 @@
         <span class="c1"># in the connection-annotated sequence. c. Then we will remove the</span>
         <span class="c1"># chemical bonds for i-to-i+1 connections that span chains</span>
         <span class="c1">#</span>
-        <span class="c1"># 3) Finally, we search the graph of connection points, weighted by the</span>
-        <span class="c1"># intra-residue connection distances of the PBT object and joined by the</span>
-        <span class="c1"># inter_residue_connections64 bonds, for the bond separations below the cap</span>
+        <span class="c1"># 3) Finally, we search the connection graph (intra-residue distances plus</span>
+        <span class="c1"># inter_residue_connections64 bonds) for the bond separations below the cap</span>
 
         <span class="c1"># 1</span>
         <span class="n">resolved_expoly_connections</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_find_connection_pairs_for_residue_subset</span><span class="p">(</span>
@@ -1114,9 +1112,7 @@
         <span class="bp">cls</span><span class="p">,</span> <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Note the number of chemical bonds that separate all pairs of</span>
-<span class="sd">        connection atoms: the weights of the graph of chemical bonds from which</span>
-<span class="sd">        the chemical separation of the connection atoms is found.</span>
-<span class="sd">        """</span>
+<span class="sd">        connection atoms: the intra-block weights of the connection graph."""</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"conn_at_intrablock_bond_sep"</span><span class="p">):</span>
             <span class="k">return</span>
         <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">:</span>
@@ -1453,26 +1449,13 @@
         <span class="n">real_blocks</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:],</span>
         <span class="n">inter_residue_connections64</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InterBlockBondsep</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Bond separations between the connections of nearby blocks.</span>
-
-<span class="sd">        Searches the bonded graph of the blocks' connections only for</span>
-<span class="sd">        separations below ``MAX_SIG_BOND_SEPARATION``.</span>
-<span class="sd">        """</span>
+<span class="w">        </span><span class="sd">"""Bond separations below the cap between the connections of nearby blocks."""</span>
         <span class="bp">cls</span><span class="o">.</span><span class="n">_annotate_pbt_w_intraresidue_connection_atom_distances</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
-        <span class="n">counts</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">block_type_ind64</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-        <span class="n">counts</span><span class="p">[</span><span class="n">real_blocks</span><span class="p">]</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_conn</span><span class="p">[</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">real_blocks</span><span class="p">]]</span>
-        <span class="n">max_n_conn</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">conn_at_intrablock_bond_sep</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">intra_separation</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-            <span class="p">(</span><span class="o">*</span><span class="n">block_type_ind64</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">),</span>
-            <span class="n">MAX_SIG_BOND_SEPARATION</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-            <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">intra_separation</span><span class="p">[</span><span class="n">real_blocks</span><span class="p">]</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">conn_at_intrablock_bond_sep</span><span class="p">[</span>
-            <span class="n">block_type_ind64</span><span class="p">[</span><span class="n">real_blocks</span><span class="p">]</span>
-        <span class="p">]</span>
+        <span class="c1"># padding blocks have no connections, so their intra separations go unread</span>
         <span class="k">return</span> <span class="n">InterBlockBondsep</span><span class="o">.</span><span class="n">from_bonded_graph</span><span class="p">(</span>
-            <span class="n">counts</span><span class="p">,</span> <span class="n">intra_separation</span><span class="p">,</span> <span class="n">inter_residue_connections64</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">real_blocks</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_conn</span><span class="p">[</span><span class="n">block_type_ind64</span><span class="p">],</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">pbt</span><span class="o">.</span><span class="n">conn_at_intrablock_bond_sep</span><span class="p">[</span><span class="n">block_type_ind64</span><span class="p">],</span>
+            <span class="n">inter_residue_connections64</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 </pre></div>
