@@ -26,12 +26,7 @@ import logging
 
 from biotite.structure import AtomArray
 from rdkit import Chem
-from atomworks.io.tools.protonation import (  # noqa: F401 (compatibility exports)
-    correct_carboxylate_bond_orders as apply_geometry_bond_corrections,
-    _infer_carboxylate_bonds,
-    _sp2_angle_sum,
-)
-
+from tmol.ligand._input_repair import correct_carboxylate_bond_orders
 from tmol.ligand._rdkit_mol import rdkit_mol_from_ligand_atom_array
 
 logger = logging.getLogger(__name__)
@@ -73,6 +68,7 @@ def ligand_smiles_from_atom_array(
     *,
     res_name: str | None = None,
     with_atom_map: bool = False,
+    keep_hydrogens: bool = False,
 ) -> str:
     """Derive a canonical SMILES for a ligand AtomArray from its bond table.
 
@@ -86,6 +82,8 @@ def ligand_smiles_from_atom_array(
         res_name: Residue code, used only for log/error messages.
         with_atom_map: Tag heavy atoms with source-index map numbers for CIF
             atom naming downstream.
+        keep_hydrogens: Preserve the supplied hydrogen counts, including zero,
+            when the input already has its intended protonation state.
 
     Returns:
         A canonical SMILES string.
@@ -112,8 +110,9 @@ def ligand_smiles_from_atom_array(
             atom_array,
             res_name=res_name or "ligand",
             repair_chemistry=repair_chemistry,
+            keep_hydrogens=keep_hydrogens,
         )
-        mol = apply_geometry_bond_corrections(mol)
+        mol = correct_carboxylate_bond_orders(mol)
         if with_atom_map:
             _tag_source_atom_map(mol, atom_array)
         return _mol_to_smiles(mol)

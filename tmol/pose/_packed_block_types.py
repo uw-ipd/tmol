@@ -16,13 +16,9 @@ from tmol.chemical import (
 from tmol.database import PatchedChemicalDatabase
 from tmol.utility._device import resolve_device
 
-
-def residue_types_from_residues(residues):
-    rt_dict = {}
-    for res in residues:
-        if id(res.residue_type) not in rt_dict:
-            rt_dict[id(res.residue_type)] = res.residue_type
-    return [rt for addr, rt in rt_dict.items()]
+# The per-block connection capacity of the ljlk, elec, hbond and lk_ball
+# kernels' shared-memory tiles (MAX_N_CONN in their .hh files).
+MAX_N_CONN = 12
 
 
 @attr.s(auto_attribs=True)
@@ -134,7 +130,20 @@ class PackedBlockTypes:
 
         Returns:
             Packed residue-type tensors and their concrete device metadata.
+
+        Raises:
+            ValueError: If a residue type has more than ``MAX_N_CONN`` connections.
         """
+        overfull = [
+            f"{bt.name} ({len(bt.connections)})"
+            for bt in active_block_types
+            if len(bt.connections) > MAX_N_CONN
+        ]
+        if overfull:
+            raise ValueError(
+                f"Residue types exceed the {MAX_N_CONN} connections the scoring "
+                f"kernels hold per block: {', '.join(overfull)}"
+            )
         device = resolve_device(device)
         max_n_atoms = cls.count_max_n_atoms(active_block_types)
         n_atoms = cls.count_n_atoms(active_block_types, device)
@@ -455,24 +464,39 @@ def annotate_packed_block_types_w_dslf_conn_inds(pbt: PackedBlockTypes):
     setattr(pbt, "canonical_dslf_conn_ind", canonical_dslf_conn_ind)
 
 
+def annotate_packed_block_types_w_kinematic_conns(pbt: PackedBlockTypes):
+    """Mark, per block type, which connections carry motion between blocks."""
+    if hasattr(pbt, "kinematic_conn"):
+        return
+    kinematic_conn = numpy.zeros((pbt.n_types, pbt.max_n_conn), dtype=bool)
+    for i, bt in enumerate(pbt.active_block_types):
+        for ind, conn in enumerate(bt.connections):
+            kinematic_conn[i, ind] = conn.kinematic
+    setattr(
+        pbt,
+        "kinematic_conn",
+        torch.tensor(kinematic_conn, dtype=torch.bool, device=pbt.device),
+    )
+
+
 def annotate_packed_block_types_w_conjugation_conns(pbt: PackedBlockTypes):
     """Mark, per block type, which connections are conjugations.
 
-    A connection that is neither the polymer up or down nor the disulfide joins
-    a residue to something other than its own chain: a glycan on a serine, a
-    ligand on a lysine. Read from the connections themselves, so a generated
-    component and a patched canonical residue are treated alike.
+    A kinematic connection other than the polymer up or down joins a residue to
+    something other than its own chain: a glycan on a serine, a ligand on a
+    lysine. Read from the connections themselves, so a generated component and
+    a patched canonical residue are treated alike.
     """
     if hasattr(pbt, "conjugation_conn"):
         return
-    annotate_packed_block_types_w_dslf_conn_inds(pbt)
-    dslf = pbt.canonical_dslf_conn_ind.cpu().numpy()
+    annotate_packed_block_types_w_kinematic_conns(pbt)
+    kinematic = pbt.kinematic_conn.cpu().numpy()
 
     conjugation_conn = numpy.zeros((pbt.n_types, pbt.max_n_conn), dtype=bool)
     for i, bt in enumerate(pbt.active_block_types):
-        structural = {bt.down_connection_ind, bt.up_connection_ind, int(dslf[i])}
+        polymer = {bt.down_connection_ind, bt.up_connection_ind}
         for ind in range(len(bt.connections)):
-            conjugation_conn[i, ind] = ind not in structural
+            conjugation_conn[i, ind] = ind not in polymer and kinematic[i, ind]
     setattr(
         pbt,
         "conjugation_conn",

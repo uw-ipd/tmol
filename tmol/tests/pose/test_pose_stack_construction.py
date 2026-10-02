@@ -3,7 +3,7 @@ import torch
 from tmol.chemical import MAX_SIG_BOND_SEPARATION
 from tmol.io import pose_stack_from_pdb
 
-from tmol.pose import PoseStackBuilder
+from tmol.pose import InterBlockBondsep, PoseStackBuilder
 
 
 def test_concatenate_pose_stacks_ctor(ubq_pdb, default_database, torch_device):
@@ -12,7 +12,8 @@ def test_concatenate_pose_stacks_ctor(ubq_pdb, default_database, torch_device):
     poses = PoseStackBuilder.from_poses([p1, p2], torch.device(torch_device.type))
     assert poses.block_type_ind.shape == (2, 60)
     assert poses.coords.shape == (2, 962, 3)  # fd 959->961 for nterm
-    assert poses.inter_block_bondsep.shape == (2, 60, 60, 3, 3)
+    max_n_conn = poses.packed_block_types.max_n_conn
+    assert poses.inter_block_bondsep.shape == (2, 60, 60, max_n_conn, max_n_conn)
     assert poses.device == torch_device
     torch.testing.assert_close(
         poses.block_ind_for_rot,
@@ -25,224 +26,6 @@ def test_create_pose_from_sequence(fresh_default_packed_block_types, torch_devic
     seqs = [["A", "P", "L", "F"], ["F", "P", "D"], ["A", "S", "F"]]
     chain_lengths = [[len(seq)] for seq in seqs]
     PoseStackBuilder.from_block_type_names(pbt, seqs, chain_lengths)
-
-
-def test_pose_stack_builder_find_inter_block_sep_for_polymeric_monomers_lcaa(
-    torch_device,
-):
-    # lets's conceive of a set of three bts, all w/ lcaa-like backbones
-    def i64(x):
-        return torch.tensor(x, dtype=torch.int64, device=torch_device)
-
-    def i32(x):
-        return torch.tensor(x, dtype=torch.int32, device=torch_device)
-
-    bt_polymeric_down_to_up_nbonds = i32([2, 2, 2])
-    bt_up_conn_inds = i32([1, 1, 1])
-    bt_down_conn_inds = i32([0, 0, 0])
-    n_chains = 1
-    max_n_res = 4
-    max_n_conn = 2
-    real_res = torch.tensor(
-        [[True, True, True, True]], dtype=torch.bool, device=torch_device
-    )
-    block_type_ind64 = i64([[1, 2, 0, 1]])
-
-    ibs64 = PoseStackBuilder._find_inter_block_separation_for_polymeric_monomers_heavy(
-        torch_device,
-        bt_polymeric_down_to_up_nbonds,
-        bt_up_conn_inds,
-        bt_down_conn_inds,
-        n_chains,
-        max_n_res,
-        max_n_conn,
-        real_res,
-        block_type_ind64,
-    )
-    inter_block_separation64 = ibs64
-
-    gold_inter_block_separation64 = i64(
-        [
-            [
-                [
-                    [[0, 2], [2, 0]],  # 0, 0
-                    [[3, 5], [1, 3]],  # 0, 1
-                    [[6, 8], [4, 6]],  # 0, 2
-                    [[9, 11], [7, 9]],  # 0, 3
-                ],
-                [
-                    [[3, 1], [5, 3]],  # 1, 0
-                    [[0, 2], [2, 0]],  # 1, 1
-                    [[3, 5], [1, 3]],  # 1, 2
-                    [[6, 8], [4, 6]],  # 1, 3
-                ],
-                [
-                    [[6, 4], [8, 6]],  # 2, 0
-                    [[3, 1], [5, 3]],  # 2, 1
-                    [[0, 2], [2, 0]],  # 2, 2
-                    [[3, 5], [1, 3]],  # 2, 3
-                ],
-                [
-                    [[9, 7], [11, 9]],  # 3, 0
-                    [[6, 4], [8, 6]],  # 3, 1
-                    [[3, 1], [5, 3]],  # 3, 2
-                    [[0, 2], [2, 0]],  # 3, 3
-                ],
-            ]
-        ]
-    )
-
-    torch.testing.assert_close(gold_inter_block_separation64, inter_block_separation64)
-
-
-def test_pose_stack_builder_inter_block_sep_mix_alpha_and_beta(
-    torch_device,
-):
-    # this time, mix alpha- and beta amino acids in a chain
-
-    def i64(x):
-        return torch.tensor(x, dtype=torch.int64, device=torch_device)
-
-    def i32(x):
-        return torch.tensor(x, dtype=torch.int32, device=torch_device)
-
-    bt_polymeric_down_to_up_nbonds = i32([2, 2, 2, 3, 3, 3])
-    bt_up_conn_inds = i32([1, 1, 1, 1, 1, 1])
-    bt_down_conn_inds = i32([0, 0, 0, 0, 0, 0])
-    n_chains = 1
-    max_n_res = 4
-    max_n_conn = 2
-    real_res = torch.tensor(
-        [[True, True, True, True]], dtype=torch.bool, device=torch_device
-    )
-    block_type_ind64 = i64([[1, 2, 4, 1]])
-
-    ibs64 = PoseStackBuilder._find_inter_block_separation_for_polymeric_monomers_heavy(
-        torch_device,
-        bt_polymeric_down_to_up_nbonds,
-        bt_up_conn_inds,
-        bt_down_conn_inds,
-        n_chains,
-        max_n_res,
-        max_n_conn,
-        real_res,
-        block_type_ind64,
-    )
-    inter_block_separation64 = ibs64
-
-    gold_inter_block_separation64 = i64(
-        [
-            [
-                [
-                    [[0, 2], [2, 0]],  # 0, 0
-                    [[3, 5], [1, 3]],  # 0, 1
-                    [[6, 9], [4, 7]],  # 0, 2
-                    [[10, 12], [8, 10]],  # 0, 3
-                ],
-                [
-                    [[3, 1], [5, 3]],  # 1, 0
-                    [[0, 2], [2, 0]],  # 1, 1
-                    [[3, 6], [1, 4]],  # 1, 2
-                    [[7, 9], [5, 7]],  # 1, 3
-                ],
-                [
-                    [[6, 4], [9, 7]],  # 2, 0
-                    [[3, 1], [6, 4]],  # 2, 1
-                    [[0, 3], [3, 0]],  # 2, 2
-                    [[4, 6], [1, 3]],  # 2, 3
-                ],
-                [
-                    [[10, 8], [12, 10]],  # 3, 0
-                    [[7, 5], [9, 7]],  # 3, 1
-                    [[4, 1], [6, 3]],  # 3, 2
-                    [[0, 2], [2, 0]],  # 3, 3
-                ],
-            ]
-        ]
-    )
-
-    torch.testing.assert_close(gold_inter_block_separation64, inter_block_separation64)
-
-
-def test_take_real_conn_conn_intrablock_pairs_heavy(torch_device):
-    ala_bt = 0
-    cyd_bt = 1
-    n_bt = 2
-    max_n_conn = 3
-    pbt_n_conn = torch.tensor([2, 3], dtype=torch.int32, device=torch_device)
-    pbt_conn_at_intrablock_bond_sep = torch.full(
-        (n_bt, max_n_conn, max_n_conn),
-        MAX_SIG_BOND_SEPARATION,
-        dtype=torch.int32,
-        device=torch_device,
-    )
-    # self, ala
-    pbt_conn_at_intrablock_bond_sep[0, 0, 0] = 0
-    pbt_conn_at_intrablock_bond_sep[0, 1, 1] = 0
-
-    # other, ala
-    pbt_conn_at_intrablock_bond_sep[0, 0, 1] = 2
-    pbt_conn_at_intrablock_bond_sep[0, 1, 0] = 2
-
-    # self, cyd
-    pbt_conn_at_intrablock_bond_sep[1, 0, 0] = 0
-    pbt_conn_at_intrablock_bond_sep[1, 1, 1] = 0
-    pbt_conn_at_intrablock_bond_sep[1, 2, 2] = 0
-
-    # other, cyd
-    pbt_conn_at_intrablock_bond_sep[1, 0, 1] = 2
-    pbt_conn_at_intrablock_bond_sep[1, 1, 0] = 2
-    pbt_conn_at_intrablock_bond_sep[1, 0, 2] = 3
-    pbt_conn_at_intrablock_bond_sep[1, 2, 0] = 3
-    pbt_conn_at_intrablock_bond_sep[1, 1, 2] = 3
-    pbt_conn_at_intrablock_bond_sep[1, 2, 1] = 3
-
-    block_types64 = torch.tensor(
-        [[ala_bt, ala_bt, cyd_bt, ala_bt], [ala_bt, ala_bt, -1, -1]],
-        dtype=torch.int64,
-        device=torch_device,
-    )
-    real_blocks = block_types64 != -1
-
-    pconn_matrix, *_ = PoseStackBuilder._take_real_conn_conn_intrablock_pairs_heavy(
-        pbt_n_conn, pbt_conn_at_intrablock_bond_sep, block_types64, real_blocks
-    )
-
-    pconn_matrix_gold = torch.full(
-        (2, 2 + 2 + 3 + 2, 2 + 2 + 3 + 2),
-        MAX_SIG_BOND_SEPARATION,
-        dtype=torch.int32,
-        device=torch_device,
-    )
-
-    pconn_matrix_gold[0, 0:2, 0:2] = 2
-    pconn_matrix_gold[0, 0, 0] = 0
-    pconn_matrix_gold[0, 1, 1] = 0
-
-    pconn_matrix_gold[0, 2:4, 2:4] = 2
-    pconn_matrix_gold[0, 2, 2] = 0
-    pconn_matrix_gold[0, 3, 3] = 0
-
-    pconn_matrix_gold[0, 4:6, 4:6] = 2
-    pconn_matrix_gold[0, 4, 4] = 0
-    pconn_matrix_gold[0, 5, 5] = 0
-    pconn_matrix_gold[0, 4:6, 6] = 3
-    pconn_matrix_gold[0, 6, 4:6] = 3
-    pconn_matrix_gold[0, 6, 6] = 0
-
-    pconn_matrix_gold[0, 7:9, 7:9] = 2
-    pconn_matrix_gold[0, 7, 7] = 0
-    pconn_matrix_gold[0, 8, 8] = 0
-
-    pconn_matrix_gold[1, 0:2, 0:2] = 2
-    pconn_matrix_gold[1, 0, 0] = 0
-    pconn_matrix_gold[1, 1, 1] = 0
-
-    pconn_matrix_gold[1, 2:4, 2:4] = 2
-    pconn_matrix_gold[1, 2, 2] = 0
-    pconn_matrix_gold[1, 3, 3] = 0
-
-    torch.testing.assert_close(pconn_matrix_gold, pconn_matrix)
 
 
 def test_find_connection_pairs_for_residue_subset(
@@ -398,154 +181,17 @@ def test_find_connection_pairs_for_residue_subset_w_errors2(
     assert not succeeded
 
 
-def test_calculate_interblock_bondsep_from_connectivity_graph_heavy(torch_device):
-    pbt_max_n_conn = 3
-    block_n_conn = torch.tensor(
-        [[2, 2, 3, 2, 3], [2, 3, 2, 3, 0]], dtype=torch.int32, device=torch_device
+def test_blocks_without_connections_are_all_the_cap_apart(torch_device):
+    counts = torch.zeros((2, 3), dtype=torch.int32, device=torch_device)
+    intra = torch.full(
+        (2, 3, 3, 3), MAX_SIG_BOND_SEPARATION, dtype=torch.int32, device=torch_device
     )
-    pconn_offsets = torch.tensor(
-        [[0, 2, 4, 7, 9], [0, 2, 5, 7, 10]],
-        dtype=torch.int64,
-        device=torch_device,
-    )
-    pconn_matrix = torch.tensor(
-        [
-            [
-                [0, 2, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],  # ala down
-                [2, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6],  # ala up
-                [6, 1, 0, 2, 6, 6, 6, 6, 6, 6, 6, 6],  # ala down
-                [6, 6, 2, 0, 1, 6, 6, 6, 6, 6, 6, 6],  # ala up
-                [6, 6, 6, 1, 0, 2, 3, 6, 6, 6, 6, 6],  # cyd down
-                [6, 6, 6, 6, 2, 0, 3, 1, 6, 6, 6, 6],  # cyd up
-                [6, 6, 6, 6, 3, 3, 0, 6, 6, 6, 6, 1],  # cyd dslf
-                [6, 6, 6, 6, 6, 1, 6, 0, 2, 6, 6, 6],  # ala down
-                [6, 6, 6, 6, 6, 6, 6, 2, 0, 1, 6, 6],  # ala up
-                [6, 6, 6, 6, 6, 6, 6, 6, 1, 0, 2, 3],  # cyd down
-                [6, 6, 6, 6, 6, 6, 6, 6, 6, 2, 0, 3],  # cyd up
-                [6, 6, 6, 6, 6, 6, 1, 6, 6, 3, 3, 0],  # cyd dslf
-            ],
-            [
-                [0, 2, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],  # ala down
-                [2, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6],  # ala up
-                [6, 1, 0, 2, 3, 6, 6, 6, 6, 6, 6, 6],  # cyd down
-                [6, 6, 2, 0, 3, 1, 6, 6, 6, 6, 6, 6],  # cyd up
-                [6, 6, 3, 3, 0, 6, 6, 6, 6, 1, 6, 6],  # cyd dslf
-                [6, 6, 6, 1, 6, 0, 2, 6, 6, 6, 6, 6],  # ala down
-                [6, 6, 6, 6, 6, 2, 0, 1, 6, 6, 6, 6],  # ala up
-                [6, 6, 6, 6, 6, 6, 1, 0, 2, 3, 6, 6],  # cyd down
-                [6, 6, 6, 6, 6, 6, 6, 2, 0, 3, 6, 6],  # cyd up
-                [6, 6, 6, 6, 1, 6, 6, 3, 3, 0, 6, 6],  # cyd dslf
-                [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],  # empty
-                [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],  # empty
-            ],
-        ],
-        dtype=torch.int32,
-        device=torch_device,
-    )
+    connections = torch.full((2, 3, 3, 2), -1, dtype=torch.int64, device=torch_device)
 
-    ibb = PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph_heavy(
-        pbt_max_n_conn, pconn_offsets, block_n_conn, pconn_matrix
-    )
-    inter_block_bondsep = ibb
-
-    inter_block_bondsep_gold = torch.tensor(
-        [
-            [
-                [
-                    [[0, 2, 6], [2, 0, 6], [6, 6, 6]],
-                    [[3, 5, 6], [1, 3, 6], [6, 6, 6]],
-                    [[6, 6, 6], [4, 6, 6], [6, 6, 6]],
-                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
-                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
-                ],
-                [
-                    [[3, 1, 6], [5, 3, 6], [6, 6, 6]],
-                    [[0, 2, 6], [2, 0, 6], [6, 6, 6]],
-                    [[3, 5, 6], [1, 3, 4], [6, 6, 6]],
-                    [[6, 6, 6], [4, 6, 6], [6, 6, 6]],
-                    [[6, 6, 6], [6, 6, 5], [6, 6, 6]],
-                ],
-                [
-                    [[6, 4, 6], [6, 6, 6], [6, 6, 6]],
-                    [[3, 1, 6], [5, 3, 6], [6, 4, 6]],
-                    [[0, 2, 3], [2, 0, 3], [3, 3, 0]],
-                    [[3, 5, 6], [1, 3, 6], [4, 5, 6]],
-                    [[6, 6, 4], [4, 6, 4], [4, 4, 1]],
-                ],
-                [
-                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
-                    [[6, 4, 6], [6, 6, 6], [6, 6, 6]],
-                    [[3, 1, 4], [5, 3, 5], [6, 6, 6]],
-                    [[0, 2, 6], [2, 0, 6], [6, 6, 6]],
-                    [[3, 5, 5], [1, 3, 4], [6, 6, 6]],
-                ],
-                [
-                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
-                    [[6, 6, 6], [6, 6, 6], [6, 5, 6]],
-                    [[6, 4, 4], [6, 6, 4], [4, 4, 1]],
-                    [[3, 1, 6], [5, 3, 6], [5, 4, 6]],
-                    [[0, 2, 3], [2, 0, 3], [3, 3, 0]],
-                ],
-            ],
-            [
-                [
-                    [[0, 2, 6], [2, 0, 6], [6, 6, 6]],
-                    [[3, 5, 6], [1, 3, 4], [6, 6, 6]],
-                    [[6, 6, 6], [4, 6, 6], [6, 6, 6]],
-                    [[6, 6, 6], [6, 6, 5], [6, 6, 6]],
-                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
-                ],
-                [
-                    [[3, 1, 6], [5, 3, 6], [6, 4, 6]],
-                    [[0, 2, 3], [2, 0, 3], [3, 3, 0]],
-                    [[3, 5, 6], [1, 3, 6], [4, 5, 6]],
-                    [[6, 6, 4], [4, 6, 4], [4, 4, 1]],
-                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
-                ],
-                [
-                    [[6, 4, 6], [6, 6, 6], [6, 6, 6]],
-                    [[3, 1, 4], [5, 3, 5], [6, 6, 6]],
-                    [[0, 2, 6], [2, 0, 6], [6, 6, 6]],
-                    [[3, 5, 5], [1, 3, 4], [6, 6, 6]],
-                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
-                ],
-                [
-                    [[6, 6, 6], [6, 6, 6], [6, 5, 6]],
-                    [[6, 4, 4], [6, 6, 4], [4, 4, 1]],
-                    [[3, 1, 6], [5, 3, 6], [5, 4, 6]],
-                    [[0, 2, 3], [2, 0, 3], [3, 3, 0]],
-                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
-                ],
-                [
-                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
-                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
-                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
-                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
-                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
-                ],
-            ],
-        ],
-        dtype=torch.int32,
-        device=torch_device,
-    )
-
-    torch.testing.assert_close(inter_block_bondsep, inter_block_bondsep_gold)
-    assert inter_block_bondsep.is_contiguous()
-
-
-def test_calculate_interblock_bondsep_without_connections(torch_device):
-    block_n_conn = torch.zeros((2, 3), dtype=torch.int32, device=torch_device)
-    pconn_offsets = torch.zeros((2, 3), dtype=torch.int64, device=torch_device)
-    pconn_matrix = torch.empty((2, 0, 0), dtype=torch.int32, device=torch_device)
-
-    result = (
-        PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph_heavy(
-            3, pconn_offsets, block_n_conn, pconn_matrix
-        )
-    )
+    result = InterBlockBondsep.from_bonded_graph(counts, intra, connections)
 
     assert result.shape == (2, 3, 3, 3, 3)
-    assert torch.all(result == MAX_SIG_BOND_SEPARATION)
+    assert torch.all(result.to_dense() == MAX_SIG_BOND_SEPARATION)
 
 
 def test_incorporate_extra_connections_into_inter_res_conn_set(torch_device):
@@ -611,67 +257,6 @@ def test_incorporate_extra_connections_into_inter_res_conn_set2(torch_device):
     torch.testing.assert_close(
         inter_residue_connections64_gold, inter_residue_connections64
     )
-
-
-def test_incorporate_inter_residue_connections_into_connectivity_graph(torch_device):
-    n_poses, max_n_blocks, max_n_conn, max_n_pconn = 2, 5, 3, 12
-
-    inter_residue_connections64 = torch.full(
-        (n_poses, max_n_blocks, max_n_conn, 2),
-        -1,
-        dtype=torch.int64,
-        device=torch_device,
-    )
-
-    def connect_up_down_pair(pind, r1ind, r2ind):
-        inter_residue_connections64[pind, r1ind, 1, 0] = r2ind
-        inter_residue_connections64[pind, r2ind, 0, 0] = r1ind
-        inter_residue_connections64[pind, r1ind, 1, 1] = 0
-        inter_residue_connections64[pind, r1ind, 0, 0] = 1
-
-    connect_up_down_pair(0, 0, 1)
-    connect_up_down_pair(0, 1, 2)
-    connect_up_down_pair(0, 2, 3)
-    connect_up_down_pair(0, 3, 4)
-    connect_up_down_pair(1, 0, 1)
-    connect_up_down_pair(1, 1, 2)
-    connect_up_down_pair(1, 2, 3)
-
-    # imagined sequence: [[ala, ala, cyd, ala, cyd], [ala, cyd, ala, cyd]]
-    resolved_expoly_connections = [[(2, 2, 4, 2)], [(1, 2, 3, 2)]]
-
-    PoseStackBuilder._incorporate_extra_connections_into_inter_res_conn_set(
-        resolved_expoly_connections, inter_residue_connections64
-    )
-
-    pconn_offset = torch.tensor(
-        [[0, 2, 4, 7, 9], [0, 2, 5, 7, 7]], dtype=torch.int64, device=torch_device
-    )
-
-    pconn_matrix = torch.full(
-        (n_poses, max_n_pconn, max_n_pconn),
-        MAX_SIG_BOND_SEPARATION,
-        dtype=torch.int32,
-        device=torch_device,
-    )
-    pconn_matrix_gold = pconn_matrix.clone()
-    for i in range(n_poses):
-        for j in range(max_n_blocks):
-            for k in range(max_n_conn):
-                if inter_residue_connections64[i, j, k, 0] != -1:
-                    partner = inter_residue_connections64[i, j, k, 0]
-                    j_offset = pconn_offset[i, j]
-                    partner_offset = pconn_offset[i, partner]
-                    partner_conn = inter_residue_connections64[i, j, k, 1]
-                    pconn_matrix_gold[
-                        i, j_offset + k, partner_offset + partner_conn
-                    ] = 1
-
-    PoseStackBuilder._incorporate_inter_residue_connections_into_connectivity_graph(
-        inter_residue_connections64, pconn_offset, pconn_matrix
-    )
-
-    torch.testing.assert_close(pconn_matrix_gold, pconn_matrix)
 
 
 def test_construct_pose_stack_containing_disulfides_smoke(
@@ -755,7 +340,7 @@ def test_from_block_type_names_smoke(
     ibb_gold = torch.full(
         (n_poses, max_n_res, max_n_res, max_n_conn, max_n_conn),
         MAX_SIG_BOND_SEPARATION,
-        dtype=torch.int32,
+        dtype=torch.int8,
         device=torch_device,
     )
 
@@ -800,4 +385,9 @@ def test_from_block_type_names_smoke(
     interblock_dslf_pair_correction(ibb_gold, res_bound_to_next, 0, 2, 4)
     interblock_dslf_pair_correction(ibb_gold, res_bound_to_next, 1, 3, 5)
 
-    torch.testing.assert_close(pose_stack.inter_block_bondsep, ibb_gold)
+    # connection slots past the three these residue types have are padding
+    ibb = pose_stack.inter_block_bondsep.to_dense()
+    torch.testing.assert_close(ibb[..., :max_n_conn, :max_n_conn], ibb_gold)
+    padding = torch.ones_like(ibb, dtype=torch.bool)
+    padding[..., :max_n_conn, :max_n_conn] = False
+    assert bool((ibb[padding] == MAX_SIG_BOND_SEPARATION).all())

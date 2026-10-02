@@ -29,7 +29,6 @@ from tmol.pack.rotamer import (
 from tmol.optimization import (
     CartesianMinimizer,
     run_cart_min,
-    run_kin_min,
 )
 from tmol.types import Tensor
 from tmol.utility._device import synchronize_device
@@ -119,25 +118,6 @@ def _normalize_schedule(
                 f" 'fa_rep_pack_frac', 'fa_rep_min_frac', and optionally 'cst_frac', got {type(entry)}"
             )
     return normalized
-
-
-def _default_kin_min_fn(
-    pose_stack: PoseStack,
-    sfxn: ScoreFunction,
-    *,
-    fold_forest: FoldForest,
-    move_map: MoveMap | CartesianMoveMap,
-    verbose: bool,
-) -> PoseStack:
-    """Default minimization function: kinematic (torsion-space) LBFGS."""
-    return run_kin_min(
-        pose_stack,
-        sfxn,
-        fold_forest,
-        move_map,
-        verbose=verbose,
-        optimizer_kwargs={"verbose": verbose},
-    )
 
 
 def _default_cart_min_fn(

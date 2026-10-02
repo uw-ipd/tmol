@@ -1,3 +1,5 @@
+from typing import Optional
+
 import attr
 import numpy
 
@@ -38,15 +40,20 @@ class PDBInfo:
     chain_labels: NDArray[object][:, :]
     atom_occupancy: NDArray[numpy.float32][:, :]
     atom_b_factor: NDArray[numpy.float32][:, :]
+    # per residue: where a metal split out of a component sat, else None
+    metal_origins: Optional[NDArray[object][:, :]] = None
+    # per residue: the input's RESIDUE_ANNOTATIONS as one structured array
+    residue_annotations: Optional[numpy.ndarray] = None
 
     def split(self, index) -> "PDBInfo":
         """Split out a single pose's worth of PDBInfo from a batch."""
+        return self.sliced(index, index + 1)
+
+    def sliced(self, start, stop) -> "PDBInfo":
+        """A copy of poses ``start:stop``; absent optional fields stay None."""
         return PDBInfo(
-            residue_labels=self.residue_labels[index : index + 1].copy(),
-            residue_insertion_codes=self.residue_insertion_codes[
-                index : index + 1
-            ].copy(),
-            chain_labels=self.chain_labels[index : index + 1].copy(),
-            atom_occupancy=self.atom_occupancy[index : index + 1].copy(),
-            atom_b_factor=self.atom_b_factor[index : index + 1].copy(),
+            **{
+                name: None if value is None else value[start:stop].copy()
+                for name, value in attr.asdict(self, recurse=False).items()
+            }
         )

@@ -40,6 +40,9 @@ def borrowers(chemdb: ChemicalDatabase, covered) -> list:
         equiv = restype.io_equiv_class
         if restype.name in covered or equiv == restype.name or equiv not in covered:
             continue
+        # a type naming another type's tables reads those, and needs no rows
+        if restype.rama_reference not in (None, restype.name):
+            continue
         out.append((restype.name, equiv))
     return out
 

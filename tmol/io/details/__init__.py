@@ -18,7 +18,10 @@ from ._his_taut_resolution import (  # noqa: F401
     HisTautomerResolution,
     resolve_his_tautomerization,
 )
-from ._left_justify_canonical_form import left_justify_canonical_form  # noqa: F401
+from ._left_justify_canonical_form import (  # noqa: F401
+    left_justify_canonical_form,
+    left_justify_residue_indices,
+)
 from ._select_from_canonical import (  # noqa: F401
     assign_block_types,
     determine_chain_ending_status,

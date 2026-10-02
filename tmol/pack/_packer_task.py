@@ -4,6 +4,7 @@ import torch
 import attr
 
 from tmol.types import Tensor
+from tmol.database.chemical import DEPROTONATED_STATE
 from tmol.pose import (
     PackedBlockTypes,
     PoseStack,
@@ -192,20 +193,37 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
     allowed_block_types_for_block_type = [list() for _ in range(pbt.n_types)]
     allowed_block_is_orig = [list() for _ in range(pbt.n_types)]
     restrict_to_repacking_masks = [list() for _ in range(pbt.n_types)]
+    # types that only metal detection selects never trade places with another
+    selected_by_detection = [
+        bool(bt.metal_sites)
+        or bt.properties.protonation.protonation_state == DEPROTONATED_STATE
+        for bt in pbt.active_block_types
+    ]
+    # types can exchange only within a group that agrees on these fields; each
+    #    type's candidates keep the order of the full n^2 scan
+    groups = {}
+    for j, bt in enumerate(pbt.active_block_types):
+        polymer = bt.properties.polymer
+        key = (
+            polymer.is_polymer,
+            polymer.polymer_type,
+            polymer.backbone_type,
+            bt.properties.protonation.protonation_state,
+            len(bt.connections),
+            mc_elements[j],
+        )
+        groups.setdefault(key, []).append(j)
+    group_of = {j: members for members in groups.values() for j in members}
     for i, orig_bt in enumerate(pbt.active_block_types):
-        for j, alt_bt in enumerate(pbt.active_block_types):
+        for j in group_of[i]:
+            alt_bt = pbt.active_block_types[j]
+            if i != j and (selected_by_detection[i] or selected_by_detection[j]):
+                continue
             j_allowed_for_restrict_to_repack = alt_bt.name3 == orig_bt.name3
             if (
-                alt_bt.properties.polymer.is_polymer
-                == orig_bt.properties.polymer.is_polymer
-                and alt_bt.properties.polymer.polymer_type
-                == orig_bt.properties.polymer.polymer_type
-                and alt_bt.properties.polymer.backbone_type
-                == orig_bt.properties.polymer.backbone_type
-                and alt_bt.connections
+                alt_bt.connections
                 == orig_bt.connections  # fd  use this instead of terminal variant check
                 and alt_bt.conjugation_context == orig_bt.conjugation_context
-                and mc_elements[i] == mc_elements[j]
                 and set_compare(
                     alt_bt.properties.chemical_modifications,
                     orig_bt.properties.chemical_modifications,
@@ -213,8 +231,6 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
                 and set_compare(
                     alt_bt.properties.connectivity, orig_bt.properties.connectivity
                 )
-                and alt_bt.properties.protonation.protonation_state
-                == orig_bt.properties.protonation.protonation_state
             ):
                 if (
                     alt_bt.properties.polymer.sidechain_chirality

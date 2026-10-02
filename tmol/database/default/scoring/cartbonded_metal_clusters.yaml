@@ -1,0 +1,617 @@
+residue_params:
+  SF4:
+    length_parameters:
+    - {atm1: FE1, atm2: S2, x0: 2.3651, K: 300.0}
+    - {atm1: FE1, atm2: S3, x0: 2.3984, K: 300.0}
+    - {atm1: FE1, atm2: S4, x0: 2.3422, K: 300.0}
+    - {atm1: FE2, atm2: S1, x0: 2.3779, K: 300.0}
+    - {atm1: FE2, atm2: S3, x0: 2.4538, K: 300.0}
+    - {atm1: FE2, atm2: S4, x0: 2.2503, K: 300.0}
+    - {atm1: FE3, atm2: S1, x0: 2.3212, K: 300.0}
+    - {atm1: FE3, atm2: S2, x0: 2.3217, K: 300.0}
+    - {atm1: FE3, atm2: S4, x0: 2.3388, K: 300.0}
+    - {atm1: FE4, atm2: S1, x0: 2.3813, K: 300.0}
+    - {atm1: FE4, atm2: S2, x0: 2.2791, K: 300.0}
+    - {atm1: FE4, atm2: S3, x0: 2.4373, K: 300.0}
+    angle_parameters:
+    - {atm1: S2, atm2: FE1, atm3: S3, x0: 1.826778, K: 80.0}
+    - {atm1: S2, atm2: FE1, atm3: S4, x0: 1.859289, K: 80.0}
+    - {atm1: S3, atm2: FE1, atm3: S4, x0: 1.842864, K: 80.0}
+    - {atm1: S1, atm2: FE2, atm3: S3, x0: 1.861824, K: 80.0}
+    - {atm1: S1, atm2: FE2, atm3: S4, x0: 1.832746, K: 80.0}
+    - {atm1: S3, atm2: FE2, atm3: S4, x0: 1.862157, K: 80.0}
+    - {atm1: S1, atm2: FE3, atm3: S2, x0: 1.839552, K: 80.0}
+    - {atm1: S1, atm2: FE3, atm3: S4, x0: 1.815614, K: 80.0}
+    - {atm1: S2, atm2: FE3, atm3: S4, x0: 1.88642, K: 80.0}
+    - {atm1: S1, atm2: FE4, atm3: S2, x0: 1.829385, K: 80.0}
+    - {atm1: S1, atm2: FE4, atm3: S3, x0: 1.869246, K: 80.0}
+    - {atm1: S2, atm2: FE4, atm3: S3, x0: 1.852034, K: 80.0}
+    - {atm1: FE2, atm2: S1, atm3: FE3, x0: 1.243903, K: 80.0}
+    - {atm1: FE2, atm2: S1, atm3: FE4, x0: 1.249644, K: 80.0}
+    - {atm1: FE3, atm2: S1, atm3: FE4, x0: 1.239556, K: 80.0}
+    - {atm1: FE1, atm2: S2, atm3: FE3, x0: 1.238026, K: 80.0}
+    - {atm1: FE1, atm2: S2, atm3: FE4, x0: 1.272871, K: 80.0}
+    - {atm1: FE3, atm2: S2, atm3: FE4, x0: 1.271396, K: 80.0}
+    - {atm1: FE1, atm2: S3, atm3: FE2, x0: 1.198026, K: 80.0}
+    - {atm1: FE1, atm2: S3, atm3: FE4, x0: 1.215273, K: 80.0}
+    - {atm1: FE2, atm2: S3, atm3: FE4, x0: 1.210981, K: 80.0}
+    - {atm1: FE1, atm2: S4, atm3: FE2, x0: 1.275969, K: 80.0}
+    - {atm1: FE1, atm2: S4, atm3: FE3, x0: 1.239895, K: 80.0}
+    - {atm1: FE2, atm2: S4, atm3: FE3, x0: 1.278193, K: 80.0}
+    torsion_parameters: []
+    improper_parameters: []
+    hxltorsion_parameters: []
+  FES:
+    length_parameters:
+    - {atm1: FE1, atm2: S1, x0: 2.1956, K: 300.0}
+    - {atm1: FE1, atm2: S2, x0: 2.1956, K: 300.0}
+    - {atm1: FE2, atm2: S1, x0: 2.1956, K: 300.0}
+    - {atm1: FE2, atm2: S2, x0: 2.1956, K: 300.0}
+    angle_parameters:
+    - {atm1: S1, atm2: FE1, atm3: S2, x0: 1.456109, K: 80.0}
+    - {atm1: S1, atm2: FE2, atm3: S2, x0: 1.456109, K: 80.0}
+    - {atm1: FE1, atm2: S1, atm3: FE2, x0: 1.543248, K: 80.0}
+    - {atm1: FE1, atm2: S2, atm3: FE2, x0: 1.543248, K: 80.0}
+    torsion_parameters: []
+    improper_parameters: []
+    hxltorsion_parameters: []
+  F3S:
+    length_parameters:
+    - {atm1: FE1, atm2: S1, x0: 2.2081, K: 300.0}
+    - {atm1: FE1, atm2: S2, x0: 2.2084, K: 300.0}
+    - {atm1: FE1, atm2: S3, x0: 2.1937, K: 300.0}
+    - {atm1: FE3, atm2: S1, x0: 2.2079, K: 300.0}
+    - {atm1: FE3, atm2: S3, x0: 2.1935, K: 300.0}
+    - {atm1: FE3, atm2: S4, x0: 2.2079, K: 300.0}
+    - {atm1: FE4, atm2: S2, x0: 2.2076, K: 300.0}
+    - {atm1: FE4, atm2: S3, x0: 2.1937, K: 300.0}
+    - {atm1: FE4, atm2: S4, x0: 2.2085, K: 300.0}
+    angle_parameters:
+    - {atm1: S1, atm2: FE1, atm3: S2, x0: 2.56291, K: 80.0}
+    - {atm1: S1, atm2: FE1, atm3: S3, x0: 1.45319, K: 80.0}
+    - {atm1: S2, atm2: FE1, atm3: S3, x0: 1.4529, K: 80.0}
+    - {atm1: S1, atm2: FE3, atm3: S3, x0: 1.453387, K: 80.0}
+    - {atm1: S1, atm2: FE3, atm3: S4, x0: 2.563799, K: 80.0}
+    - {atm1: S3, atm2: FE3, atm3: S4, x0: 1.453595, K: 80.0}
+    - {atm1: S2, atm2: FE4, atm3: S3, x0: 1.453218, K: 80.0}
+    - {atm1: S2, atm2: FE4, atm3: S4, x0: 2.56328, K: 80.0}
+    - {atm1: S3, atm2: FE4, atm3: S4, x0: 1.453232, K: 80.0}
+    - {atm1: FE1, atm2: S1, atm3: FE3, x0: 1.534486, K: 80.0}
+    - {atm1: FE1, atm2: S2, atm3: FE4, x0: 1.534777, K: 80.0}
+    - {atm1: FE1, atm2: S3, atm3: FE3, x0: 1.547173, K: 80.0}
+    - {atm1: FE1, atm2: S3, atm3: FE4, x0: 1.547376, K: 80.0}
+    - {atm1: FE3, atm2: S3, atm3: FE4, x0: 1.547119, K: 80.0}
+    - {atm1: FE3, atm2: S4, atm3: FE4, x0: 1.534229, K: 80.0}
+    torsion_parameters: []
+    improper_parameters: []
+    hxltorsion_parameters: []
+  CLF:
+    length_parameters:
+    - {atm1: FE1, atm2: S1, x0: 2.4028, K: 300.0}
+    - {atm1: FE1, atm2: S2A, x0: 2.3153, K: 300.0}
+    - {atm1: FE1, atm2: S3A, x0: 2.2701, K: 300.0}
+    - {atm1: FE2, atm2: S1, x0: 2.4903, K: 300.0}
+    - {atm1: FE2, atm2: S2A, x0: 2.3011, K: 300.0}
+    - {atm1: FE2, atm2: S4A, x0: 2.2735, K: 300.0}
+    - {atm1: FE3, atm2: S2A, x0: 2.323, K: 300.0}
+    - {atm1: FE3, atm2: S4A, x0: 2.2882, K: 300.0}
+    - {atm1: FE3, atm2: S3A, x0: 2.3796, K: 300.0}
+    - {atm1: FE4, atm2: S1, x0: 2.3913, K: 300.0}
+    - {atm1: FE4, atm2: S4A, x0: 2.2733, K: 300.0}
+    - {atm1: FE4, atm2: S3A, x0: 2.2373, K: 300.0}
+    - {atm1: S1, atm2: FE5, x0: 2.4263, K: 300.0}
+    - {atm1: S1, atm2: FE6, x0: 2.5035, K: 300.0}
+    - {atm1: S1, atm2: FE8, x0: 2.4849, K: 300.0}
+    - {atm1: FE5, atm2: S2B, x0: 2.3177, K: 300.0}
+    - {atm1: FE5, atm2: S4B, x0: 2.2529, K: 300.0}
+    - {atm1: FE6, atm2: S2B, x0: 2.3156, K: 300.0}
+    - {atm1: FE6, atm2: S3B, x0: 2.3574, K: 300.0}
+    - {atm1: FE7, atm2: S2B, x0: 2.3611, K: 300.0}
+    - {atm1: FE7, atm2: S3B, x0: 2.3348, K: 300.0}
+    - {atm1: FE7, atm2: S4B, x0: 2.3752, K: 300.0}
+    - {atm1: FE8, atm2: S3B, x0: 2.3857, K: 300.0}
+    - {atm1: FE8, atm2: S4B, x0: 2.2292, K: 300.0}
+    angle_parameters:
+    - {atm1: S1, atm2: FE1, atm3: S2A, x0: 2.02051, K: 80.0}
+    - {atm1: S1, atm2: FE1, atm3: S3A, x0: 1.87164, K: 80.0}
+    - {atm1: S2A, atm2: FE1, atm3: S3A, x0: 1.82047, K: 80.0}
+    - {atm1: S1, atm2: FE2, atm3: S2A, x0: 1.971869, K: 80.0}
+    - {atm1: S1, atm2: FE2, atm3: S4A, x0: 1.872799, K: 80.0}
+    - {atm1: S2A, atm2: FE2, atm3: S4A, x0: 1.808423, K: 80.0}
+    - {atm1: S2A, atm2: FE3, atm3: S4A, x0: 1.788376, K: 80.0}
+    - {atm1: S2A, atm2: FE3, atm3: S3A, x0: 1.757522, K: 80.0}
+    - {atm1: S4A, atm2: FE3, atm3: S3A, x0: 1.826862, K: 80.0}
+    - {atm1: S1, atm2: FE4, atm3: S4A, x0: 1.932979, K: 80.0}
+    - {atm1: S1, atm2: FE4, atm3: S3A, x0: 1.89772, K: 80.0}
+    - {atm1: S4A, atm2: FE4, atm3: S3A, x0: 1.920299, K: 80.0}
+    - {atm1: FE1, atm2: S1, atm3: FE2, x0: 1.068862, K: 80.0}
+    - {atm1: FE1, atm2: S1, atm3: FE4, x0: 1.108477, K: 80.0}
+    - {atm1: FE1, atm2: S1, atm3: FE5, x0: 2.403531, K: 80.0}
+    - {atm1: FE1, atm2: S1, atm3: FE6, x0: 2.752771, K: 80.0}
+    - {atm1: FE1, atm2: S1, atm3: FE8, x0: 2.274687, K: 80.0}
+    - {atm1: FE2, atm2: S1, atm3: FE4, x0: 1.10401, K: 80.0}
+    - {atm1: FE2, atm2: S1, atm3: FE5, x0: 1.717069, K: 80.0}
+    - {atm1: FE2, atm2: S1, atm3: FE6, x0: 2.345019, K: 80.0}
+    - {atm1: FE2, atm2: S1, atm3: FE8, x0: 1.250718, K: 80.0}
+    - {atm1: FE4, atm2: S1, atm3: FE5, x0: 1.296164, K: 80.0}
+    - {atm1: FE4, atm2: S1, atm3: FE6, x0: 2.345227, K: 80.0}
+    - {atm1: FE4, atm2: S1, atm3: FE8, x0: 1.901515, K: 80.0}
+    - {atm1: FE5, atm2: S1, atm3: FE6, x0: 1.091263, K: 80.0}
+    - {atm1: FE5, atm2: S1, atm3: FE8, x0: 1.067627, K: 80.0}
+    - {atm1: FE6, atm2: S1, atm3: FE8, x0: 1.09587, K: 80.0}
+    - {atm1: FE1, atm2: S2A, atm3: FE2, x0: 1.141172, K: 80.0}
+    - {atm1: FE1, atm2: S2A, atm3: FE3, x0: 1.29025, K: 80.0}
+    - {atm1: FE2, atm2: S2A, atm3: FE3, x0: 1.276521, K: 80.0}
+    - {atm1: FE2, atm2: S4A, atm3: FE3, x0: 1.296901, K: 80.0}
+    - {atm1: FE2, atm2: S4A, atm3: FE4, x0: 1.196761, K: 80.0}
+    - {atm1: FE3, atm2: S4A, atm3: FE4, x0: 1.24925, K: 80.0}
+    - {atm1: FE1, atm2: S3A, atm3: FE3, x0: 1.285829, K: 80.0}
+    - {atm1: FE1, atm2: S3A, atm3: FE4, x0: 1.188179, K: 80.0}
+    - {atm1: FE3, atm2: S3A, atm3: FE4, x0: 1.230695, K: 80.0}
+    - {atm1: S1, atm2: FE5, atm3: S2B, x0: 1.972226, K: 80.0}
+    - {atm1: S1, atm2: FE5, atm3: S4B, x0: 1.936677, K: 80.0}
+    - {atm1: S2B, atm2: FE5, atm3: S4B, x0: 1.833705, K: 80.0}
+    - {atm1: S1, atm2: FE6, atm3: S2B, x0: 1.925172, K: 80.0}
+    - {atm1: S1, atm2: FE6, atm3: S3B, x0: 1.942154, K: 80.0}
+    - {atm1: S2B, atm2: FE6, atm3: S3B, x0: 1.78743, K: 80.0}
+    - {atm1: S2B, atm2: FE7, atm3: S3B, x0: 1.775359, K: 80.0}
+    - {atm1: S2B, atm2: FE7, atm3: S4B, x0: 1.74506, K: 80.0}
+    - {atm1: S3B, atm2: FE7, atm3: S4B, x0: 1.826948, K: 80.0}
+    - {atm1: S1, atm2: FE8, atm3: S3B, x0: 1.936722, K: 80.0}
+    - {atm1: S1, atm2: FE8, atm3: S4B, x0: 1.91415, K: 80.0}
+    - {atm1: S3B, atm2: FE8, atm3: S4B, x0: 1.880545, K: 80.0}
+    - {atm1: FE5, atm2: S2B, atm3: FE6, x0: 1.170383, K: 80.0}
+    - {atm1: FE5, atm2: S2B, atm3: FE7, x0: 1.291188, K: 80.0}
+    - {atm1: FE6, atm2: S2B, atm3: FE7, x0: 1.306422, K: 80.0}
+    - {atm1: FE6, atm2: S3B, atm3: FE7, x0: 1.301451, K: 80.0}
+    - {atm1: FE6, atm2: S3B, atm3: FE8, x0: 1.159598, K: 80.0}
+    - {atm1: FE7, atm2: S3B, atm3: FE8, x0: 1.235343, K: 80.0}
+    - {atm1: FE5, atm2: S4B, atm3: FE7, x0: 1.306961, K: 80.0}
+    - {atm1: FE5, atm2: S4B, atm3: FE8, x0: 1.183053, K: 80.0}
+    - {atm1: FE7, atm2: S4B, atm3: FE8, x0: 1.270218, K: 80.0}
+    torsion_parameters: []
+    improper_parameters: []
+    hxltorsion_parameters: []
+  1CL:
+    length_parameters:
+    - {atm1: S1, atm2: FE1, x0: 2.3893, K: 300.0}
+    - {atm1: S1, atm2: FE2, x0: 2.4837, K: 300.0}
+    - {atm1: S1, atm2: FE4, x0: 2.3659, K: 300.0}
+    - {atm1: S1, atm2: FE8, x0: 2.346, K: 300.0}
+    - {atm1: FE1, atm2: S2A, x0: 2.3076, K: 300.0}
+    - {atm1: FE1, atm2: S3A, x0: 2.3107, K: 300.0}
+    - {atm1: FE2, atm2: S2A, x0: 2.2961, K: 300.0}
+    - {atm1: FE2, atm2: S4A, x0: 2.2768, K: 300.0}
+    - {atm1: FE3, atm2: S2A, x0: 2.2905, K: 300.0}
+    - {atm1: FE3, atm2: S3A, x0: 2.313, K: 300.0}
+    - {atm1: FE3, atm2: S4A, x0: 2.2648, K: 300.0}
+    - {atm1: FE4, atm2: S3A, x0: 2.2959, K: 300.0}
+    - {atm1: FE4, atm2: S4A, x0: 2.2867, K: 300.0}
+    - {atm1: FE5, atm2: S2B, x0: 2.2734, K: 300.0}
+    - {atm1: FE5, atm2: S4B, x0: 2.3102, K: 300.0}
+    - {atm1: FE6, atm2: S2B, x0: 2.3296, K: 300.0}
+    - {atm1: FE6, atm2: S3B, x0: 2.3301, K: 300.0}
+    - {atm1: FE7, atm2: S2B, x0: 2.3094, K: 300.0}
+    - {atm1: FE7, atm2: S3B, x0: 2.3199, K: 300.0}
+    - {atm1: FE7, atm2: S4B, x0: 2.2888, K: 300.0}
+    - {atm1: FE8, atm2: S3B, x0: 2.2833, K: 300.0}
+    - {atm1: FE8, atm2: S4B, x0: 2.3238, K: 300.0}
+    angle_parameters:
+    - {atm1: FE1, atm2: S1, atm3: FE2, x0: 1.085615, K: 80.0}
+    - {atm1: FE1, atm2: S1, atm3: FE4, x0: 1.170152, K: 80.0}
+    - {atm1: FE1, atm2: S1, atm3: FE8, x0: 2.348503, K: 80.0}
+    - {atm1: FE2, atm2: S1, atm3: FE4, x0: 1.11468, K: 80.0}
+    - {atm1: FE2, atm2: S1, atm3: FE8, x0: 1.311449, K: 80.0}
+    - {atm1: FE4, atm2: S1, atm3: FE8, x0: 1.891883, K: 80.0}
+    - {atm1: S1, atm2: FE1, atm3: S2A, x0: 2.013971, K: 80.0}
+    - {atm1: S1, atm2: FE1, atm3: S3A, x0: 1.844782, K: 80.0}
+    - {atm1: S2A, atm2: FE1, atm3: S3A, x0: 1.777554, K: 80.0}
+    - {atm1: S1, atm2: FE2, atm3: S2A, x0: 1.959423, K: 80.0}
+    - {atm1: S1, atm2: FE2, atm3: S4A, x0: 1.890557, K: 80.0}
+    - {atm1: S2A, atm2: FE2, atm3: S4A, x0: 1.782615, K: 80.0}
+    - {atm1: S2A, atm2: FE3, atm3: S3A, x0: 1.785473, K: 80.0}
+    - {atm1: S2A, atm2: FE3, atm3: S4A, x0: 1.792184, K: 80.0}
+    - {atm1: S3A, atm2: FE3, atm3: S4A, x0: 1.841913, K: 80.0}
+    - {atm1: S1, atm2: FE4, atm3: S3A, x0: 1.866623, K: 80.0}
+    - {atm1: S1, atm2: FE4, atm3: S4A, x0: 1.957573, K: 80.0}
+    - {atm1: S3A, atm2: FE4, atm3: S4A, x0: 1.83928, K: 80.0}
+    - {atm1: S2B, atm2: FE5, atm3: S4B, x0: 1.802827, K: 80.0}
+    - {atm1: S2B, atm2: FE6, atm3: S3B, x0: 1.831145, K: 80.0}
+    - {atm1: S2B, atm2: FE7, atm3: S3B, x0: 1.848282, K: 80.0}
+    - {atm1: S2B, atm2: FE7, atm3: S4B, x0: 1.794855, K: 80.0}
+    - {atm1: S3B, atm2: FE7, atm3: S4B, x0: 1.801585, K: 80.0}
+    - {atm1: S1, atm2: FE8, atm3: S3B, x0: 2.138501, K: 80.0}
+    - {atm1: S1, atm2: FE8, atm3: S4B, x0: 1.976649, K: 80.0}
+    - {atm1: S3B, atm2: FE8, atm3: S4B, x0: 1.802415, K: 80.0}
+    - {atm1: FE1, atm2: S2A, atm3: FE2, x0: 1.157622, K: 80.0}
+    - {atm1: FE1, atm2: S2A, atm3: FE3, x0: 1.307157, K: 80.0}
+    - {atm1: FE2, atm2: S2A, atm3: FE3, x0: 1.28351, K: 80.0}
+    - {atm1: FE5, atm2: S2B, atm3: FE6, x0: 2.08136, K: 80.0}
+    - {atm1: FE5, atm2: S2B, atm3: FE7, x0: 1.33119, K: 80.0}
+    - {atm1: FE6, atm2: S2B, atm3: FE7, x0: 1.293113, K: 80.0}
+    - {atm1: FE1, atm2: S3A, atm3: FE3, x0: 1.29873, K: 80.0}
+    - {atm1: FE1, atm2: S3A, atm3: FE4, x0: 1.213229, K: 80.0}
+    - {atm1: FE3, atm2: S3A, atm3: FE4, x0: 1.260584, K: 80.0}
+    - {atm1: FE6, atm2: S3B, atm3: FE7, x0: 1.289551, K: 80.0}
+    - {atm1: FE6, atm2: S3B, atm3: FE8, x0: 1.591765, K: 80.0}
+    - {atm1: FE7, atm2: S3B, atm3: FE8, x0: 1.28206, K: 80.0}
+    - {atm1: FE2, atm2: S4A, atm3: FE3, x0: 1.298335, K: 80.0}
+    - {atm1: FE2, atm2: S4A, atm3: FE4, x0: 1.194834, K: 80.0}
+    - {atm1: FE3, atm2: S4A, atm3: FE4, x0: 1.279023, K: 80.0}
+    - {atm1: FE5, atm2: S4B, atm3: FE7, x0: 1.325717, K: 80.0}
+    - {atm1: FE5, atm2: S4B, atm3: FE8, x0: 1.663443, K: 80.0}
+    - {atm1: FE7, atm2: S4B, atm3: FE8, x0: 1.279031, K: 80.0}
+    torsion_parameters: []
+    improper_parameters: []
+    hxltorsion_parameters: []
+  SF3:
+    length_parameters:
+    - {atm1: FE1, atm2: S1, x0: 2.1944, K: 300.0}
+    - {atm1: FE1, atm2: S2, x0: 2.1929, K: 300.0}
+    - {atm1: FE1, atm2: S3, x0: 2.1967, K: 300.0}
+    - {atm1: FE3, atm2: S1, x0: 2.1932, K: 300.0}
+    - {atm1: FE3, atm2: S3, x0: 2.1935, K: 300.0}
+    - {atm1: FE4, atm2: S2, x0: 2.1941, K: 300.0}
+    - {atm1: FE4, atm2: S3, x0: 2.194, K: 300.0}
+    - {atm1: FE7, atm2: S2, x0: 2.1905, K: 300.0}
+    angle_parameters:
+    - {atm1: S1, atm2: FE1, atm3: S2, x0: 3.006743, K: 80.0}
+    - {atm1: S1, atm2: FE1, atm3: S3, x0: 1.502912, K: 80.0}
+    - {atm1: S2, atm2: FE1, atm3: S3, x0: 1.503893, K: 80.0}
+    - {atm1: S1, atm2: FE3, atm3: S3, x0: 1.504773, K: 80.0}
+    - {atm1: S2, atm2: FE4, atm3: S3, x0: 1.504552, K: 80.0}
+    - {atm1: FE1, atm2: S1, atm3: FE3, x0: 1.505355, K: 80.0}
+    - {atm1: FE1, atm2: S2, atm3: FE4, x0: 1.505175, K: 80.0}
+    - {atm1: FE1, atm2: S2, atm3: FE7, x0: 1.571077, K: 80.0}
+    - {atm1: FE4, atm2: S2, atm3: FE7, x0: 3.076251, K: 80.0}
+    - {atm1: FE1, atm2: S3, atm3: FE3, x0: 1.504234, K: 80.0}
+    - {atm1: FE1, atm2: S3, atm3: FE4, x0: 1.503559, K: 80.0}
+    - {atm1: FE3, atm2: S3, atm3: FE4, x0: 3.007739, K: 80.0}
+    torsion_parameters: []
+    improper_parameters: []
+    hxltorsion_parameters: []
+  F4S:
+    length_parameters:
+    - {atm1: S1, atm2: FE1, x0: 2.288, K: 300.0}
+    - {atm1: S1, atm2: FE2, x0: 2.2789, K: 300.0}
+    - {atm1: S1, atm2: FE4, x0: 2.2793, K: 300.0}
+    - {atm1: FE1, atm2: S2, x0: 2.2659, K: 300.0}
+    - {atm1: S2, atm2: FE2, x0: 2.2802, K: 300.0}
+    - {atm1: S2, atm2: FE3, x0: 2.292, K: 300.0}
+    - {atm1: FE2, atm2: S3, x0: 2.2686, K: 300.0}
+    - {atm1: S3, atm2: FE3, x0: 2.2888, K: 300.0}
+    - {atm1: S3, atm2: FE4, x0: 2.315, K: 300.0}
+    angle_parameters:
+    - {atm1: FE1, atm2: S1, atm3: FE2, x0: 1.208351, K: 80.0}
+    - {atm1: FE1, atm2: S1, atm3: FE4, x0: 1.247569, K: 80.0}
+    - {atm1: FE2, atm2: S1, atm3: FE4, x0: 1.347801, K: 80.0}
+    - {atm1: S1, atm2: FE1, atm3: S2, x0: 1.849857, K: 80.0}
+    - {atm1: FE1, atm2: S2, atm3: FE2, x0: 1.214695, K: 80.0}
+    - {atm1: FE1, atm2: S2, atm3: FE3, x0: 1.762336, K: 80.0}
+    - {atm1: FE2, atm2: S2, atm3: FE3, x0: 1.270937, K: 80.0}
+    - {atm1: S1, atm2: FE2, atm3: S2, x0: 1.846876, K: 80.0}
+    - {atm1: S1, atm2: FE2, atm3: S3, x0: 1.799878, K: 80.0}
+    - {atm1: S2, atm2: FE2, atm3: S3, x0: 1.782545, K: 80.0}
+    - {atm1: FE2, atm2: S3, atm3: FE3, x0: 1.275698, K: 80.0}
+    - {atm1: FE2, atm2: S3, atm3: FE4, x0: 1.338841, K: 80.0}
+    - {atm1: FE3, atm2: S3, atm3: FE4, x0: 2.072362, K: 80.0}
+    - {atm1: S2, atm2: FE3, atm3: S3, x0: 1.76532, K: 80.0}
+    - {atm1: S1, atm2: FE4, atm3: S3, x0: 1.774375, K: 80.0}
+    torsion_parameters: []
+    improper_parameters: []
+    hxltorsion_parameters: []
+  9S8:
+    length_parameters:
+    - {atm1: S1, atm2: FE2, x0: 2.1444, K: 300.0}
+    - {atm1: S1, atm2: FE4, x0: 2.129, K: 300.0}
+    - {atm1: S1, atm2: FE9, x0: 2.155, K: 300.0}
+    - {atm1: FE2, atm2: S3, x0: 2.2453, K: 300.0}
+    - {atm1: S3, atm2: FE4, x0: 2.2115, K: 300.0}
+    - {atm1: FE4, atm2: S5, x0: 2.2467, K: 300.0}
+    - {atm1: FE4, atm2: S7, x0: 2.1399, K: 300.0}
+    - {atm1: S5, atm2: FE6, x0: 2.2252, K: 300.0}
+    - {atm1: FE6, atm2: S7, x0: 2.1242, K: 300.0}
+    - {atm1: S7, atm2: FE9, x0: 2.1595, K: 300.0}
+    angle_parameters:
+    - {atm1: FE2, atm2: S1, atm3: FE4, x0: 1.848646, K: 80.0}
+    - {atm1: FE2, atm2: S1, atm3: FE9, x0: 2.08511, K: 80.0}
+    - {atm1: FE4, atm2: S1, atm3: FE9, x0: 1.431501, K: 80.0}
+    - {atm1: S1, atm2: FE2, atm3: S3, x0: 1.208215, K: 80.0}
+    - {atm1: FE2, atm2: S3, atm3: FE4, x0: 1.743183, K: 80.0}
+    - {atm1: S1, atm2: FE4, atm3: S3, x0: 1.224179, K: 80.0}
+    - {atm1: S1, atm2: FE4, atm3: S5, x0: 1.257371, K: 80.0}
+    - {atm1: S1, atm2: FE4, atm3: S7, x0: 1.68344, K: 80.0}
+    - {atm1: S3, atm2: FE4, atm3: S5, x0: 1.955532, K: 80.0}
+    - {atm1: S3, atm2: FE4, atm3: S7, x0: 2.800948, K: 80.0}
+    - {atm1: S5, atm2: FE4, atm3: S7, x0: 1.313011, K: 80.0}
+    - {atm1: FE4, atm2: S5, atm3: FE6, x0: 1.722914, K: 80.0}
+    - {atm1: S5, atm2: FE6, atm3: S7, x0: 1.326312, K: 80.0}
+    - {atm1: FE4, atm2: S7, atm3: FE6, x0: 1.840488, K: 80.0}
+    - {atm1: FE4, atm2: S7, atm3: FE9, x0: 1.425315, K: 80.0}
+    - {atm1: FE6, atm2: S7, atm3: FE9, x0: 1.825866, K: 80.0}
+    - {atm1: S1, atm2: FE9, atm3: S7, x0: 1.659964, K: 80.0}
+    torsion_parameters: []
+    improper_parameters: []
+    hxltorsion_parameters: []
+  MGF:
+    length_parameters:
+    - {atm1: F1, atm2: MG, x0: 1.7902, K: 300.0}
+    - {atm1: MG, atm2: F2, x0: 1.7901, K: 300.0}
+    - {atm1: MG, atm2: F3, x0: 1.7899, K: 300.0}
+    angle_parameters:
+    - {atm1: F1, atm2: MG, atm3: F2, x0: 2.094547, K: 80.0}
+    - {atm1: F1, atm2: MG, atm3: F3, x0: 2.094336, K: 80.0}
+    - {atm1: F2, atm2: MG, atm3: F3, x0: 2.094288, K: 80.0}
+    torsion_parameters: []
+    improper_parameters: []
+    hxltorsion_parameters: []
+  MF4:
+    length_parameters:
+    - {atm1: MG, atm2: F1, x0: 1.7901, K: 300.0}
+    - {atm1: MG, atm2: F2, x0: 1.7901, K: 300.0}
+    - {atm1: MG, atm2: F3, x0: 1.7901, K: 300.0}
+    - {atm1: MG, atm2: F4, x0: 1.7901, K: 300.0}
+    angle_parameters:
+    - {atm1: F1, atm2: MG, atm3: F2, x0: 1.911354, K: 80.0}
+    - {atm1: F1, atm2: MG, atm3: F3, x0: 1.910273, K: 80.0}
+    - {atm1: F1, atm2: MG, atm3: F4, x0: 1.910273, K: 80.0}
+    - {atm1: F2, atm2: MG, atm3: F3, x0: 1.910273, K: 80.0}
+    - {atm1: F2, atm2: MG, atm3: F4, x0: 1.910273, K: 80.0}
+    - {atm1: F3, atm2: MG, atm3: F4, x0: 1.911354, K: 80.0}
+    torsion_parameters: []
+    improper_parameters: []
+    hxltorsion_parameters: []
+  NCO:
+    length_parameters:
+    - {atm1: CO, atm2: N1, x0: 1.8098, K: 300.0}
+    - {atm1: CO, atm2: N2, x0: 1.8098, K: 300.0}
+    - {atm1: CO, atm2: N3, x0: 1.8103, K: 300.0}
+    - {atm1: CO, atm2: N4, x0: 1.8097, K: 300.0}
+    - {atm1: CO, atm2: N5, x0: 1.8103, K: 300.0}
+    - {atm1: CO, atm2: N6, x0: 1.8097, K: 300.0}
+    - {atm1: N1, atm2: HN11, x0: 1.0087, K: 300.0}
+    - {atm1: N1, atm2: HN12, x0: 1.0086, K: 300.0}
+    - {atm1: N1, atm2: HN13, x0: 1.0099, K: 300.0}
+    - {atm1: N2, atm2: HN21, x0: 1.0099, K: 300.0}
+    - {atm1: N2, atm2: HN22, x0: 1.0089, K: 300.0}
+    - {atm1: N2, atm2: HN23, x0: 1.0084, K: 300.0}
+    - {atm1: N3, atm2: HN31, x0: 1.009, K: 300.0}
+    - {atm1: N3, atm2: HN32, x0: 1.0085, K: 300.0}
+    - {atm1: N3, atm2: HN33, x0: 1.0089, K: 300.0}
+    - {atm1: N4, atm2: HN41, x0: 1.0085, K: 300.0}
+    - {atm1: N4, atm2: HN42, x0: 1.0095, K: 300.0}
+    - {atm1: N4, atm2: HN43, x0: 1.0097, K: 300.0}
+    - {atm1: N5, atm2: HN51, x0: 1.009, K: 300.0}
+    - {atm1: N5, atm2: HN52, x0: 1.0089, K: 300.0}
+    - {atm1: N5, atm2: HN53, x0: 1.0093, K: 300.0}
+    - {atm1: N6, atm2: HN61, x0: 1.0086, K: 300.0}
+    - {atm1: N6, atm2: HN62, x0: 1.0096, K: 300.0}
+    - {atm1: N6, atm2: HN63, x0: 1.0095, K: 300.0}
+    angle_parameters:
+    - {atm1: N1, atm2: CO, atm3: N2, x0: 3.141593, K: 80.0}
+    - {atm1: N1, atm2: CO, atm3: N3, x0: 1.570951, K: 80.0}
+    - {atm1: N1, atm2: CO, atm3: N4, x0: 1.571201, K: 80.0}
+    - {atm1: N1, atm2: CO, atm3: N5, x0: 1.570642, K: 80.0}
+    - {atm1: N1, atm2: CO, atm3: N6, x0: 1.570391, K: 80.0}
+    - {atm1: N2, atm2: CO, atm3: N3, x0: 1.570642, K: 80.0}
+    - {atm1: N2, atm2: CO, atm3: N4, x0: 1.570391, K: 80.0}
+    - {atm1: N2, atm2: CO, atm3: N5, x0: 1.570951, K: 80.0}
+    - {atm1: N2, atm2: CO, atm3: N6, x0: 1.571201, K: 80.0}
+    - {atm1: N3, atm2: CO, atm3: N4, x0: 1.570579, K: 80.0}
+    - {atm1: N3, atm2: CO, atm3: N5, x0: 3.141593, K: 80.0}
+    - {atm1: N3, atm2: CO, atm3: N6, x0: 1.571014, K: 80.0}
+    - {atm1: N4, atm2: CO, atm3: N5, x0: 1.571014, K: 80.0}
+    - {atm1: N4, atm2: CO, atm3: N6, x0: 3.141593, K: 80.0}
+    - {atm1: N5, atm2: CO, atm3: N6, x0: 1.570579, K: 80.0}
+    - {atm1: CO, atm2: N1, atm3: HN11, x0: 1.910686, K: 80.0}
+    - {atm1: CO, atm2: N1, atm3: HN12, x0: 1.911825, K: 80.0}
+    - {atm1: CO, atm2: N1, atm3: HN13, x0: 1.90966, K: 80.0}
+    - {atm1: HN11, atm2: N1, atm3: HN12, x0: 1.910646, K: 80.0}
+    - {atm1: HN11, atm2: N1, atm3: HN13, x0: 1.910693, K: 80.0}
+    - {atm1: HN12, atm2: N1, atm3: HN13, x0: 1.91029, K: 80.0}
+    - {atm1: CO, atm2: N2, atm3: HN21, x0: 1.909946, K: 80.0}
+    - {atm1: CO, atm2: N2, atm3: HN22, x0: 1.910869, K: 80.0}
+    - {atm1: CO, atm2: N2, atm3: HN23, x0: 1.911359, K: 80.0}
+    - {atm1: HN21, atm2: N2, atm3: HN22, x0: 1.910274, K: 80.0}
+    - {atm1: HN21, atm2: N2, atm3: HN23, x0: 1.910452, K: 80.0}
+    - {atm1: HN22, atm2: N2, atm3: HN23, x0: 1.910898, K: 80.0}
+    - {atm1: CO, atm2: N3, atm3: HN31, x0: 1.909944, K: 80.0}
+    - {atm1: CO, atm2: N3, atm3: HN32, x0: 1.910352, K: 80.0}
+    - {atm1: CO, atm2: N3, atm3: HN33, x0: 1.910699, K: 80.0}
+    - {atm1: HN31, atm2: N3, atm3: HN32, x0: 1.911106, K: 80.0}
+    - {atm1: HN31, atm2: N3, atm3: HN33, x0: 1.910048, K: 80.0}
+    - {atm1: HN32, atm2: N3, atm3: HN33, x0: 1.911649, K: 80.0}
+    - {atm1: CO, atm2: N4, atm3: HN41, x0: 1.910972, K: 80.0}
+    - {atm1: CO, atm2: N4, atm3: HN42, x0: 1.911161, K: 80.0}
+    - {atm1: CO, atm2: N4, atm3: HN43, x0: 1.910199, K: 80.0}
+    - {atm1: HN41, atm2: N4, atm3: HN42, x0: 1.91106, K: 80.0}
+    - {atm1: HN41, atm2: N4, atm3: HN43, x0: 1.910009, K: 80.0}
+    - {atm1: HN42, atm2: N4, atm3: HN43, x0: 1.910397, K: 80.0}
+    - {atm1: CO, atm2: N5, atm3: HN51, x0: 1.910453, K: 80.0}
+    - {atm1: CO, atm2: N5, atm3: HN52, x0: 1.910631, K: 80.0}
+    - {atm1: CO, atm2: N5, atm3: HN53, x0: 1.909922, K: 80.0}
+    - {atm1: HN51, atm2: N5, atm3: HN52, x0: 1.910443, K: 80.0}
+    - {atm1: HN51, atm2: N5, atm3: HN53, x0: 1.911232, K: 80.0}
+    - {atm1: HN52, atm2: N5, atm3: HN53, x0: 1.911118, K: 80.0}
+    - {atm1: CO, atm2: N6, atm3: HN61, x0: 1.910697, K: 80.0}
+    - {atm1: CO, atm2: N6, atm3: HN62, x0: 1.910967, K: 80.0}
+    - {atm1: CO, atm2: N6, atm3: HN63, x0: 1.91046, K: 80.0}
+    - {atm1: HN61, atm2: N6, atm3: HN62, x0: 1.910974, K: 80.0}
+    - {atm1: HN61, atm2: N6, atm3: HN63, x0: 1.91076, K: 80.0}
+    - {atm1: HN62, atm2: N6, atm3: HN63, x0: 1.90994, K: 80.0}
+    torsion_parameters: []
+    improper_parameters: []
+    hxltorsion_parameters: []
+  FEO:
+    length_parameters:
+    - {atm1: FE1, atm2: O, x0: 1.7892, K: 300.0}
+    - {atm1: FE2, atm2: O, x0: 1.7892, K: 300.0}
+    angle_parameters:
+    - {atm1: FE1, atm2: O, atm3: FE2, x0: 1.865098, K: 80.0}
+    torsion_parameters: []
+    improper_parameters: []
+    hxltorsion_parameters: []
+  C2O:
+    length_parameters:
+    - {atm1: CU2, atm2: O1, x0: 1.9967, K: 300.0}
+    - {atm1: CU3, atm2: O1, x0: 1.9936, K: 300.0}
+    angle_parameters:
+    - {atm1: CU2, atm2: O1, atm3: CU3, x0: 2.425055, K: 80.0}
+    torsion_parameters: []
+    improper_parameters: []
+    hxltorsion_parameters: []
+  CUA:
+    length_parameters:
+    - {atm1: CU1, atm2: CU2, x0: 1.74, K: 300.0}
+    angle_parameters: []
+    torsion_parameters: []
+    improper_parameters: []
+    hxltorsion_parameters: []
+  XCC:
+    length_parameters:
+    - {atm1: FE1, atm2: S2, x0: 2.2585, K: 300.0}
+    - {atm1: FE1, atm2: S4, x0: 2.3096, K: 300.0}
+    - {atm1: FE1, atm2: S3, x0: 2.34, K: 300.0}
+    - {atm1: FE2, atm2: S3, x0: 1.9382, K: 300.0}
+    - {atm1: FE3, atm2: S1, x0: 2.3174, K: 300.0}
+    - {atm1: FE3, atm2: S2, x0: 2.3083, K: 300.0}
+    - {atm1: FE3, atm2: S4, x0: 2.2567, K: 300.0}
+    - {atm1: FE4, atm2: S1, x0: 2.2823, K: 300.0}
+    - {atm1: FE4, atm2: S2, x0: 2.3238, K: 300.0}
+    - {atm1: FE4, atm2: S3, x0: 2.2843, K: 300.0}
+    - {atm1: S1, atm2: NI, x0: 2.2747, K: 300.0}
+    - {atm1: NI, atm2: S4, x0: 2.2883, K: 300.0}
+    angle_parameters:
+    - {atm1: S2, atm2: FE1, atm3: S4, x0: 1.804208, K: 80.0}
+    - {atm1: S2, atm2: FE1, atm3: S3, x0: 1.78968, K: 80.0}
+    - {atm1: S4, atm2: FE1, atm3: S3, x0: 1.913925, K: 80.0}
+    - {atm1: S1, atm2: FE3, atm3: S2, x0: 1.772638, K: 80.0}
+    - {atm1: S1, atm2: FE3, atm3: S4, x0: 1.821609, K: 80.0}
+    - {atm1: S2, atm2: FE3, atm3: S4, x0: 1.805947, K: 80.0}
+    - {atm1: S1, atm2: FE4, atm3: S2, x0: 1.782966, K: 80.0}
+    - {atm1: S1, atm2: FE4, atm3: S3, x0: 1.869615, K: 80.0}
+    - {atm1: S2, atm2: FE4, atm3: S3, x0: 1.784649, K: 80.0}
+    - {atm1: FE3, atm2: S1, atm3: FE4, x0: 1.339217, K: 80.0}
+    - {atm1: FE3, atm2: S1, atm3: NI, x0: 1.308765, K: 80.0}
+    - {atm1: FE4, atm2: S1, atm3: NI, x0: 1.559341, K: 80.0}
+    - {atm1: FE1, atm2: S2, atm3: FE3, x0: 1.298466, K: 80.0}
+    - {atm1: FE1, atm2: S2, atm3: FE4, x0: 1.307056, K: 80.0}
+    - {atm1: FE3, atm2: S2, atm3: FE4, x0: 1.328234, K: 80.0}
+    - {atm1: FE1, atm2: S4, atm3: FE3, x0: 1.298582, K: 80.0}
+    - {atm1: FE1, atm2: S4, atm3: NI, x0: 1.504482, K: 80.0}
+    - {atm1: FE3, atm2: S4, atm3: NI, x0: 1.324732, K: 80.0}
+    - {atm1: FE1, atm2: S3, atm3: FE2, x0: 1.82714, K: 80.0}
+    - {atm1: FE1, atm2: S3, atm3: FE4, x0: 1.293275, K: 80.0}
+    - {atm1: FE2, atm2: S3, atm3: FE4, x0: 2.270814, K: 80.0}
+    - {atm1: S1, atm2: NI, atm3: S4, x0: 1.828069, K: 80.0}
+    torsion_parameters: []
+    improper_parameters: []
+    hxltorsion_parameters: []
+  OEX:
+    length_parameters:
+    - {atm1: O1, atm2: CA1, x0: 2.3284, K: 300.0}
+    - {atm1: O1, atm2: MN1, x0: 1.871, K: 300.0}
+    - {atm1: O1, atm2: MN2, x0: 2.0629, K: 300.0}
+    - {atm1: CA1, atm2: O2, x0: 2.4851, K: 300.0}
+    - {atm1: CA1, atm2: O5, x0: 2.4943, K: 300.0}
+    - {atm1: MN1, atm2: O5, x0: 2.6044, K: 300.0}
+    - {atm1: MN1, atm2: O3, x0: 1.8106, K: 300.0}
+    - {atm1: O2, atm2: MN2, x0: 2.131, K: 300.0}
+    - {atm1: O2, atm2: MN3, x0: 1.875, K: 300.0}
+    - {atm1: MN2, atm2: O3, x0: 2.1025, K: 300.0}
+    - {atm1: MN4, atm2: O5, x0: 2.5032, K: 300.0}
+    - {atm1: O3, atm2: MN3, x0: 2.1246, K: 300.0}
+    - {atm1: MN3, atm2: O4, x0: 2.0869, K: 300.0}
+    - {atm1: O4, atm2: MN4, x0: 2.1073, K: 300.0}
+    - {atm1: MN3, atm2: O5, x0: 2.3817, K: 300.0}
+    angle_parameters:
+    - {atm1: CA1, atm2: O1, atm3: MN1, x0: 1.977966, K: 80.0}
+    - {atm1: CA1, atm2: O1, atm3: MN2, x0: 1.743456, K: 80.0}
+    - {atm1: MN1, atm2: O1, atm3: MN2, x0: 1.614438, K: 80.0}
+    - {atm1: O1, atm2: CA1, atm3: O2, x0: 1.311678, K: 80.0}
+    - {atm1: O1, atm2: CA1, atm3: O5, x0: 1.33977, K: 80.0}
+    - {atm1: O2, atm2: CA1, atm3: O5, x0: 1.338756, K: 80.0}
+    - {atm1: O1, atm2: MN1, atm3: O5, x0: 1.437007, K: 80.0}
+    - {atm1: O1, atm2: MN1, atm3: O3, x0: 1.604649, K: 80.0}
+    - {atm1: O5, atm2: MN1, atm3: O3, x0: 1.426243, K: 80.0}
+    - {atm1: CA1, atm2: O2, atm3: MN2, x0: 1.628453, K: 80.0}
+    - {atm1: CA1, atm2: O2, atm3: MN3, x0: 1.782586, K: 80.0}
+    - {atm1: MN2, atm2: O2, atm3: MN3, x0: 1.604689, K: 80.0}
+    - {atm1: O1, atm2: MN2, atm3: O2, x0: 1.552053, K: 80.0}
+    - {atm1: O1, atm2: MN2, atm3: O3, x0: 1.377309, K: 80.0}
+    - {atm1: O2, atm2: MN2, atm3: O3, x0: 1.516362, K: 80.0}
+    - {atm1: MN1, atm2: O3, atm3: MN2, x0: 1.622605, K: 80.0}
+    - {atm1: MN1, atm2: O3, atm3: MN3, x0: 1.972123, K: 80.0}
+    - {atm1: MN2, atm2: O3, atm3: MN3, x0: 1.502821, K: 80.0}
+    - {atm1: O2, atm2: MN3, atm3: O3, x0: 1.626648, K: 80.0}
+    - {atm1: O2, atm2: MN3, atm3: O4, x0: 1.451975, K: 80.0}
+    - {atm1: O2, atm2: MN3, atm3: O5, x0: 1.610942, K: 80.0}
+    - {atm1: O3, atm2: MN3, atm3: O4, x0: 3.069614, K: 80.0}
+    - {atm1: O3, atm2: MN3, atm3: O5, x0: 1.423629, K: 80.0}
+    - {atm1: O4, atm2: MN3, atm3: O5, x0: 1.684957, K: 80.0}
+    - {atm1: MN3, atm2: O4, atm3: MN4, x0: 1.575059, K: 80.0}
+    - {atm1: O5, atm2: MN4, atm3: O4, x0: 1.613765, K: 80.0}
+    - {atm1: CA1, atm2: O5, atm3: MN1, x0: 1.522131, K: 80.0}
+    - {atm1: CA1, atm2: O5, atm3: MN4, x0: 1.719461, K: 80.0}
+    - {atm1: CA1, atm2: O5, atm3: MN3, x0: 1.550269, K: 80.0}
+    - {atm1: MN1, atm2: O5, atm3: MN4, x0: 2.728521, K: 80.0}
+    - {atm1: MN1, atm2: O5, atm3: MN3, x0: 1.436759, K: 80.0}
+    - {atm1: MN4, atm2: O5, atm3: MN3, x0: 1.307325, K: 80.0}
+    torsion_parameters: []
+    improper_parameters: []
+    hxltorsion_parameters: []
+  OEY:
+    length_parameters:
+    - {atm1: O1, atm2: MN1, x0: 1.8384, K: 300.0}
+    - {atm1: O1, atm2: MN2, x0: 1.7802, K: 300.0}
+    - {atm1: MN1, atm2: O3, x0: 2.0018, K: 300.0}
+    - {atm1: MN1, atm2: O6, x0: 2.2679, K: 300.0}
+    - {atm1: O2, atm2: MN2, x0: 1.8719, K: 300.0}
+    - {atm1: O2, atm2: MN3, x0: 1.9011, K: 300.0}
+    - {atm1: MN2, atm2: O3, x0: 1.9828, K: 300.0}
+    - {atm1: O3, atm2: MN3, x0: 2.0914, K: 300.0}
+    - {atm1: MN3, atm2: O4, x0: 1.9214, K: 300.0}
+    - {atm1: MN3, atm2: O5, x0: 2.0186, K: 300.0}
+    - {atm1: O4, atm2: MN4, x0: 2.0113, K: 300.0}
+    - {atm1: MN4, atm2: O5, x0: 2.3026, K: 300.0}
+    - {atm1: O5, atm2: O6, x0: 1.4557, K: 300.0}
+    - {atm1: O5, atm2: CA1, x0: 2.525, K: 300.0}
+    - {atm1: O1, atm2: CA1, x0: 2.5444, K: 300.0}
+    - {atm1: O2, atm2: CA1, x0: 2.6303, K: 300.0}
+    angle_parameters:
+    - {atm1: MN1, atm2: O1, atm3: MN2, x0: 1.665319, K: 80.0}
+    - {atm1: MN1, atm2: O1, atm3: CA1, x0: 1.766106, K: 80.0}
+    - {atm1: MN2, atm2: O1, atm3: CA1, x0: 1.796226, K: 80.0}
+    - {atm1: O5, atm2: CA1, atm3: O1, x0: 1.427188, K: 80.0}
+    - {atm1: O5, atm2: CA1, atm3: O2, x0: 1.123262, K: 80.0}
+    - {atm1: O1, atm2: CA1, atm3: O2, x0: 1.101586, K: 80.0}
+    - {atm1: O1, atm2: MN1, atm3: O3, x0: 1.548072, K: 80.0}
+    - {atm1: O1, atm2: MN1, atm3: O6, x0: 1.828658, K: 80.0}
+    - {atm1: O3, atm2: MN1, atm3: O6, x0: 1.790061, K: 80.0}
+    - {atm1: MN2, atm2: O2, atm3: MN3, x0: 1.709414, K: 80.0}
+    - {atm1: MN2, atm2: O2, atm3: CA1, x0: 1.697656, K: 80.0}
+    - {atm1: MN3, atm2: O2, atm3: CA1, x0: 1.801938, K: 80.0}
+    - {atm1: O1, atm2: MN2, atm3: O2, x0: 1.671033, K: 80.0}
+    - {atm1: O1, atm2: MN2, atm3: O3, x0: 1.587645, K: 80.0}
+    - {atm1: O2, atm2: MN2, atm3: O3, x0: 1.543638, K: 80.0}
+    - {atm1: MN1, atm2: O3, atm3: MN2, x0: 1.473367, K: 80.0}
+    - {atm1: MN1, atm2: O3, atm3: MN3, x0: 1.844268, K: 80.0}
+    - {atm1: MN2, atm2: O3, atm3: MN3, x0: 1.546192, K: 80.0}
+    - {atm1: O2, atm2: MN3, atm3: O3, x0: 1.47581, K: 80.0}
+    - {atm1: O2, atm2: MN3, atm3: O4, x0: 1.540514, K: 80.0}
+    - {atm1: O2, atm2: MN3, atm3: O5, x0: 1.552185, K: 80.0}
+    - {atm1: O3, atm2: MN3, atm3: O4, x0: 2.89859, K: 80.0}
+    - {atm1: O3, atm2: MN3, atm3: O5, x0: 1.644845, K: 80.0}
+    - {atm1: O4, atm2: MN3, atm3: O5, x0: 1.702441, K: 80.0}
+    - {atm1: MN3, atm2: O4, atm3: MN4, x0: 1.521754, K: 80.0}
+    - {atm1: O4, atm2: MN4, atm3: O5, x0: 1.509999, K: 80.0}
+    - {atm1: MN3, atm2: O5, atm3: MN4, x0: 1.351957, K: 80.0}
+    - {atm1: MN3, atm2: O5, atm3: O6, x0: 2.299582, K: 80.0}
+    - {atm1: MN3, atm2: O5, atm3: CA1, x0: 1.805791, K: 80.0}
+    - {atm1: MN4, atm2: O5, atm3: O6, x0: 2.388867, K: 80.0}
+    - {atm1: MN4, atm2: O5, atm3: CA1, x0: 2.008163, K: 80.0}
+    - {atm1: O6, atm2: O5, atm3: CA1, x0: 1.5836, K: 80.0}
+    - {atm1: MN1, atm2: O6, atm3: O5, x0: 1.660332, K: 80.0}
+    torsion_parameters: []
+    improper_parameters: []
+    hxltorsion_parameters: []

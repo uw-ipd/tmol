@@ -140,16 +140,10 @@ def test_round_trip_irregular_pose_stack_and_split(
         )
 
         torch.testing.assert_close(
-            split_pose_stack.inter_block_bondsep[
+            split_pose_stack.inter_block_bondsep.to_dense()[
                 :, : i_pose.max_n_blocks, : i_pose.max_n_blocks
             ],
-            i_pose.inter_block_bondsep,
-        )
-        torch.testing.assert_close(
-            split_pose_stack.inter_block_bondsep64[
-                :, : i_pose.max_n_blocks, : i_pose.max_n_blocks
-            ],
-            i_pose.inter_block_bondsep64,
+            i_pose.inter_block_bondsep.to_dense(),
         )
         torch.testing.assert_close(
             split_pose_stack.block_type_ind[:, : i_pose.max_n_blocks],
@@ -176,9 +170,9 @@ def test_clone_sharing_topology_aliases_only_immutable_tensors(
     )
     shared = pose_stack.clone_sharing_topology()
 
-    # The large connection tensors alias rather than duplicate.
+    # The connection tensors alias rather than duplicate.
+    assert shared.inter_block_bondsep is pose_stack.inter_block_bondsep
     for name in (
-        "inter_block_bondsep",
         "inter_residue_connections",
         "inter_residue_connections64",
     ):
@@ -207,7 +201,8 @@ def test_clone_sharing_topology_aliases_only_immutable_tensors(
 
     # A full clone still deep-copies everything, including the topology.
     deep = pose_stack.clone()
-    assert (
-        deep.inter_block_bondsep.data_ptr() != pose_stack.inter_block_bondsep.data_ptr()
-    )
-    torch.testing.assert_close(deep.inter_block_bondsep, pose_stack.inter_block_bondsep)
+    for name in ("near_blocks", "bondsep"):
+        copied = getattr(deep.inter_block_bondsep, name)
+        original = getattr(pose_stack.inter_block_bondsep, name)
+        assert copied.data_ptr() != original.data_ptr(), name
+        torch.testing.assert_close(copied, original)

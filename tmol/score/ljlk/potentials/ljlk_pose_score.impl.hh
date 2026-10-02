@@ -35,7 +35,7 @@
 #include <chrono>
 
 // The maximum number of inter-residue chemical bonds
-#define MAX_N_CONN 4
+#define MAX_N_CONN 12
 #define TILE_SIZE 32
 
 namespace tmol {
@@ -184,10 +184,10 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 // LOAD_TILE_INVARIANT_INTERRES_DATA
 // captures:
 //    pose_stack_block_coord_offset (TView<Vec<Real, 3>, 2, D>)
-//    pose_stack_min_bond_separation (TView<Int, 3, D>)
+//    pose_stack_near_blocks (TView<Int, 4, D>)
 //    block_type_n_interblock_bonds (TView<Int, 1, D>)
 //    block_type_atoms_forming_chemical_bonds (TView<Int, 2, D>)
-//    pose_stack_inter_block_bondsep (TView<Int, 5, D>)
+//    pose_stack_inter_block_bondsep (TView<int8_t, 5, D>)
 //    global_params (TView<LJGlobalParams<Real>, 1, D>)
 //    max_important_bond_separation (int)
 #define LOAD_TILE_INVARIANT_INTERRES_DATA                            \
@@ -205,7 +205,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       shared_mem_union& shared) {                                    \
     ljlk_load_tile_invariant_interres_data<DeviceOperations, D, nt>( \
         rot_coord_offset,                                            \
-        pose_stack_min_bond_separation,                              \
+        pose_stack_near_blocks,                                      \
         block_type_n_interblock_bonds,                               \
         block_type_atoms_forming_chemical_bonds,                     \
         pose_stack_inter_block_bondsep,                              \
@@ -604,18 +604,10 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     TView<Int, 2, D> rot_offset_for_block,
     Int max_n_rots_per_pose,
 
-    // dims: n-systems x max-n-blocks x max-n-blocks
-    // Quick lookup: given the inds of two blocks, ask: what is the minimum
-    // number of chemical bonds that separate any pair of atoms in those
-    // blocks? If this minimum is greater than the crossover, then no further
-    // logic for deciding whether two atoms in those blocks should have their
-    // interaction energies calculated: all should. intentionally small to
-    // (possibly) fit in constant cache
-    TView<Int, 3, D> pose_stack_min_bond_separation,
-
-    // dims: n-systems x max-n-blocks x max-n-blocks x
-    // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, D> pose_stack_inter_block_bondsep,
+    // InterBlockBondsep: [pose, block1, slot, (block2, min separation)]
+    // and [pose, block1, slot, conn1, conn2]
+    TView<Int, 4, D> pose_stack_near_blocks,
+    TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
 
     //////////////////////
     // Chemical properties
@@ -690,13 +682,14 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
 
   assert(max_n_interblock_bonds <= MAX_N_CONN);
 
-  assert(pose_stack_min_bond_separation.size(0) == n_poses);
-  assert(pose_stack_min_bond_separation.size(1) == max_n_blocks);
-  assert(pose_stack_min_bond_separation.size(2) == max_n_blocks);
+  assert(pose_stack_near_blocks.size(0) == n_poses);
+  assert(pose_stack_near_blocks.size(1) == max_n_blocks);
+  assert(pose_stack_near_blocks.size(3) == 2);
 
   assert(pose_stack_inter_block_bondsep.size(0) == n_poses);
   assert(pose_stack_inter_block_bondsep.size(1) == max_n_blocks);
-  assert(pose_stack_inter_block_bondsep.size(2) == max_n_blocks);
+  assert(
+      pose_stack_inter_block_bondsep.size(2) == pose_stack_near_blocks.size(2));
   assert(pose_stack_inter_block_bondsep.size(3) == max_n_interblock_bonds);
   assert(pose_stack_inter_block_bondsep.size(4) == max_n_interblock_bonds);
 
@@ -1188,18 +1181,10 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::backward(
     TView<Int, 2, D> rot_offset_for_block,
     Int max_n_rots_per_pose,
 
-    // dims: n-systems x max-n-blocks x max-n-blocks
-    // Quick lookup: given the inds of two blocks, ask: what is the minimum
-    // number of chemical bonds that separate any pair of atoms in those
-    // blocks? If this minimum is greater than the crossover, then no further
-    // logic for deciding whether two atoms in those blocks should have their
-    // interaction energies calculated: all should. intentionally small to
-    // (possibly) fit in constant cache
-    TView<Int, 3, D> pose_stack_min_bond_separation,
-
-    // dims: n-systems x max-n-blocks x max-n-blocks x
-    // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, D> pose_stack_inter_block_bondsep,
+    // InterBlockBondsep: [pose, block1, slot, (block2, min separation)]
+    // and [pose, block1, slot, conn1, conn2]
+    TView<Int, 4, D> pose_stack_near_blocks,
+    TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
 
     //////////////////////
     // Chemical properties
@@ -1270,13 +1255,14 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::backward(
 
   assert(max_n_interblock_bonds <= MAX_N_CONN);
 
-  assert(pose_stack_min_bond_separation.size(0) == n_poses);
-  assert(pose_stack_min_bond_separation.size(1) == max_n_blocks);
-  assert(pose_stack_min_bond_separation.size(2) == max_n_blocks);
+  assert(pose_stack_near_blocks.size(0) == n_poses);
+  assert(pose_stack_near_blocks.size(1) == max_n_blocks);
+  assert(pose_stack_near_blocks.size(3) == 2);
 
   assert(pose_stack_inter_block_bondsep.size(0) == n_poses);
   assert(pose_stack_inter_block_bondsep.size(1) == max_n_blocks);
-  assert(pose_stack_inter_block_bondsep.size(2) == max_n_blocks);
+  assert(
+      pose_stack_inter_block_bondsep.size(2) == pose_stack_near_blocks.size(2));
   assert(pose_stack_inter_block_bondsep.size(3) == max_n_interblock_bonds);
   assert(pose_stack_inter_block_bondsep.size(4) == max_n_interblock_bonds);
 
@@ -1489,18 +1475,10 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     TView<Int, 2, D> lockstep_group_for_block,
     Int max_n_rots_per_pose,
 
-    // dims: n-systems x max-n-blocks x max-n-blocks
-    // Quick lookup: given the inds of two blocks, ask: what is the minimum
-    // number of chemical bonds that separate any pair of atoms in those
-    // blocks? If this minimum is greater than the crossover, then no further
-    // logic for deciding whether two atoms in those blocks should have their
-    // interaction energies calculated: all should. intentionally small to
-    // (possibly) fit in constant cache
-    TView<Int, 3, D> pose_stack_min_bond_separation,
-
-    // dims: n-systems x max-n-blocks x max-n-blocks x
-    // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, D> pose_stack_inter_block_bondsep,
+    // InterBlockBondsep: [pose, block1, slot, (block2, min separation)]
+    // and [pose, block1, slot, conn1, conn2]
+    TView<Int, 4, D> pose_stack_near_blocks,
+    TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
 
     //////////////////////
     // Chemical properties
@@ -1572,13 +1550,14 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
 
   assert(max_n_interblock_bonds <= MAX_N_CONN);
 
-  assert(pose_stack_min_bond_separation.size(0) == n_poses);
-  assert(pose_stack_min_bond_separation.size(1) == max_n_blocks);
-  assert(pose_stack_min_bond_separation.size(2) == max_n_blocks);
+  assert(pose_stack_near_blocks.size(0) == n_poses);
+  assert(pose_stack_near_blocks.size(1) == max_n_blocks);
+  assert(pose_stack_near_blocks.size(3) == 2);
 
   assert(pose_stack_inter_block_bondsep.size(0) == n_poses);
   assert(pose_stack_inter_block_bondsep.size(1) == max_n_blocks);
-  assert(pose_stack_inter_block_bondsep.size(2) == max_n_blocks);
+  assert(
+      pose_stack_inter_block_bondsep.size(2) == pose_stack_near_blocks.size(2));
   assert(pose_stack_inter_block_bondsep.size(3) == max_n_interblock_bonds);
   assert(pose_stack_inter_block_bondsep.size(4) == max_n_interblock_bonds);
 
@@ -1806,18 +1785,10 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::backward(
     TView<Int, 2, D> rot_offset_for_block,
     Int max_n_rots_per_pose,
 
-    // dims: n-systems x max-n-blocks x max-n-blocks
-    // Quick lookup: given the inds of two blocks, ask: what is the minimum
-    // number of chemical bonds that separate any pair of atoms in those
-    // blocks? If this minimum is greater than the crossover, then no further
-    // logic for deciding whether two atoms in those blocks should have their
-    // interaction energies calculated: all should. intentionally small to
-    // (possibly) fit in constant cache
-    TView<Int, 3, D> pose_stack_min_bond_separation,
-
-    // dims: n-systems x max-n-blocks x max-n-blocks x
-    // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, D> pose_stack_inter_block_bondsep,
+    // InterBlockBondsep: [pose, block1, slot, (block2, min separation)]
+    // and [pose, block1, slot, conn1, conn2]
+    TView<Int, 4, D> pose_stack_near_blocks,
+    TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
 
     //////////////////////
     // Chemical properties
@@ -1888,13 +1859,14 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::backward(
 
   assert(max_n_interblock_bonds <= MAX_N_CONN);
 
-  assert(pose_stack_min_bond_separation.size(0) == n_poses);
-  assert(pose_stack_min_bond_separation.size(1) == max_n_blocks);
-  assert(pose_stack_min_bond_separation.size(2) == max_n_blocks);
+  assert(pose_stack_near_blocks.size(0) == n_poses);
+  assert(pose_stack_near_blocks.size(1) == max_n_blocks);
+  assert(pose_stack_near_blocks.size(3) == 2);
 
   assert(pose_stack_inter_block_bondsep.size(0) == n_poses);
   assert(pose_stack_inter_block_bondsep.size(1) == max_n_blocks);
-  assert(pose_stack_inter_block_bondsep.size(2) == max_n_blocks);
+  assert(
+      pose_stack_inter_block_bondsep.size(2) == pose_stack_near_blocks.size(2));
   assert(pose_stack_inter_block_bondsep.size(3) == max_n_interblock_bonds);
   assert(pose_stack_inter_block_bondsep.size(4) == max_n_interblock_bonds);
 

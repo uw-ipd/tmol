@@ -553,6 +553,24 @@ def test_a_terminal_residue_finds_its_other_end(code: str) -> None:
     assert profile.mainchain_atoms == expected
 
 
+def test_an_ambiguous_terminal_residue_is_reported_once(caplog) -> None:
+    # an N-terminal ASN could continue through N or ND2; every load meets it
+    from tmol.ligand._polymer_profile import (
+        _warn_terminal_ambiguity,
+        completed_connection_atoms,
+    )
+
+    residue = _residue_bonded_only_at("ASN", "C")
+    _warn_terminal_ambiguity.cache_clear()
+    with caplog.at_level(logging.WARNING, logger="tmol.ligand._polymer_profile"):
+        for _ in range(3):
+            ends = completed_connection_atoms(residue, frozenset({"C"}))
+            assert ends == frozenset({"C", "N"})
+    assert (
+        sum("seen only at a chain terminus" in r.message for r in caplog.records) == 1
+    )
+
+
 def test_heavy_only_terminal_sar_is_a_polymer_but_b3k_stays_ambiguous() -> None:
     """Infer one supported amine endpoint without guessing between two."""
     sar = _heavy_only(_residue_bonded_only_at("SAR", "C"))
@@ -577,6 +595,30 @@ def test_unsupported_heavy_only_nitrogen_is_not_a_cap() -> None:
     residue.bonds = struc.BondList(len(residue), bonds)
 
     assert profile_for_atom_array(residue, frozenset({"C"})) is None
+
+
+@pytest.mark.parametrize(
+    "code, connection_atom, leaving, is_cap",
+    [
+        # 5T4J's aldimine: the carbonyl oxygen itself leaves C4A
+        ("PLP", "C4A", ("O4A", "H4A"), False),
+        # an aldehyde carbon keeps its C=O and caps like an acyl group
+        ("PLP", "C4A", ("H4A",), True),
+        ("ACE", "C", ("H",), True),
+    ],
+)
+def test_a_carbon_caps_a_chain_only_as_an_acyl_carbon(
+    code: str, connection_atom: str, leaving: tuple[str, ...], is_cap: bool
+) -> None:
+    """A terminating carbon without C=O/C=S makes an attachment, not a peptide bond."""
+    residue = info.residue(code)
+    residue.res_name[:] = code
+    residue = _heavy_only(residue[~numpy.isin(residue.atom_name, leaving)])
+
+    profile = profile_for_atom_array(residue, frozenset({connection_atom}))
+    assert (profile is not None) == is_cap
+    if is_cap:
+        assert profile.up == ("up", connection_atom)
 
 
 @pytest.mark.parametrize(
@@ -751,7 +793,7 @@ def test_b3k_endpoint_inference_uses_complete_template_before_restoration(
     monkeypatch.setattr(
         _polymer_profile, "completed_connection_atoms", record_inference_source
     )
-    restored = _cif.with_unresolved_atoms(structure, {"B3K": template}, use_ccd=False)
+    restored = _cif.with_unresolved_atoms(structure, {"B3K": template})
 
     assert inferred_from and "NZ" in inferred_from[0]
     b3k = restored[restored.res_name == "B3K"]
@@ -814,7 +856,7 @@ def test_declared_geometry_requires_observed_placement_anchors() -> None:
     partial = template.copy()
     partial._custom_ccd_registry = {code: template}
     partial.coord[-1] = numpy.nan
-    resolved = with_resolved_coordinates(partial, code, use_ccd=True)
+    resolved = with_resolved_coordinates(partial, code)
     assert resolved is not None
     assert numpy.isfinite(resolved.coord).all()
     numpy.testing.assert_array_equal(resolved.coord[:-1], partial.coord[:-1])
@@ -822,7 +864,7 @@ def test_declared_geometry_requires_observed_placement_anchors() -> None:
     unresolved = template.copy()
     unresolved._custom_ccd_registry = {code: template}
     unresolved.coord[:] = numpy.nan
-    assert with_resolved_coordinates(unresolved, code, use_ccd=True) is None
+    assert with_resolved_coordinates(unresolved, code) is None
 
 
 def test_the_component_dictionary_completes_what_the_file_does_not_declare(
@@ -863,7 +905,7 @@ def test_a_dictionary_entry_for_a_different_molecule_is_not_used(caplog) -> None
     structure.res_name[structure.res_name == _TRUNCATED[0]] = "X3K"
 
     with caplog.at_level(logging.WARNING, logger="tmol.io._cif"):
-        taken_as_is = with_unresolved_atoms(structure, {}, use_ccd=True)
+        taken_as_is = with_unresolved_atoms(structure, {})
 
     assert taken_as_is.array_length() == structure.array_length()
     assert any("does not account for" in r.message for r in caplog.records)
@@ -879,7 +921,7 @@ def test_a_residue_nothing_describes_is_assumed_complete() -> None:
     structure.res_name[structure.res_name == "MLE"] = "QXJ"
 
     supplied = structure.copy()
-    structure = with_unresolved_atoms(structure, {}, use_ccd=True)
+    structure = with_unresolved_atoms(structure, {})
     numpy.testing.assert_array_equal(structure.atom_name, supplied.atom_name)
     numpy.testing.assert_array_equal(structure.coord, supplied.coord)
     numpy.testing.assert_array_equal(

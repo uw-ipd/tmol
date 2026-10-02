@@ -1,7 +1,11 @@
 from typing import Dict, List, Optional
 
 import attr
+import math
+
 import numpy
+from atomworks.experimental.protonation.geometry import build_coordinates
+from tmol.ligand._icoor_tree import vertex_angle
 import torch
 
 from tmol.chemical import ResidueTypeSet
@@ -294,11 +298,15 @@ def _junction_transform(pose_stack, pose, block, bt, local, prev, placed):
         ]
     )
     dist = numpy.linalg.norm(src[2] - src[1])
-    angle = _angle(src[0], src[1], src[2])
+    angle = vertex_angle(src[0], src[1], src[2])
     torsion = numpy.radians(_junction_torsion_value(prev_bt, prev_conn))
 
     dst = numpy.array(
-        [anchor, hinge, _place_atom(ref, anchor, hinge, dist, angle, torsion)]
+        [
+            anchor,
+            hinge,
+            build_coordinates(hinge, anchor, ref, (dist, math.pi - angle, torsion)),
+        ]
     )
     return _rigid_transform(src, dst)
 
@@ -318,29 +326,6 @@ def _junction_torsion_value(prev_bt, prev_conn):
         if spans:
             return targets.get(tor.name, 180.0)
     return 180.0
-
-
-def _angle(a, b, c):
-    ba = a - b
-    bc = c - b
-    cos = numpy.dot(ba, bc) / (numpy.linalg.norm(ba) * numpy.linalg.norm(bc))
-    return numpy.arccos(numpy.clip(cos, -1.0, 1.0))
-
-
-def _place_atom(a, b, c, dist, angle, torsion):
-    bc = c - b
-    bc /= numpy.linalg.norm(bc)
-    n = numpy.cross(bc, a - b)
-    n /= numpy.linalg.norm(n)
-    m = numpy.cross(n, bc)
-    d2 = numpy.array(
-        [
-            -dist * numpy.cos(angle),
-            dist * numpy.sin(angle) * numpy.cos(torsion),
-            dist * numpy.sin(angle) * numpy.sin(torsion),
-        ]
-    )
-    return c + d2[0] * bc + d2[1] * m + d2[2] * n
 
 
 def _rigid_transform(src, dst):

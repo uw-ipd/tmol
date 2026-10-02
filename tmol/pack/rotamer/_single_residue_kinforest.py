@@ -116,7 +116,8 @@ def _rotamer_kinforest_from_data(rkd, n_atoms, atom_names, mainchain_atoms, idea
         else:
             c1_children = numpy.where(kfo_parents == c1)[0]
             c1_children = sorted(c1_children, key=sort_key)
-            c2 = int(c1_children[0])
+            # a two-atom residue (1GJ2 O: O, HO) has no grandchild to frame on
+            c2 = int(c1_children[0]) if len(c1_children) else 0
     else:
         # Ligand / non-polymer: no mainchain to prefer. Use the root's children
         #   (and grandchildren) in the order produced by the params-file icoor

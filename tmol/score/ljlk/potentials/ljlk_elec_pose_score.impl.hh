@@ -27,7 +27,10 @@ namespace potentials {
 namespace ljlk_elec_detail {
 
 constexpr int tile_size = 32;
-constexpr int max_n_conn = 4;
+// Must not sit below the widest block type the database carries: the shared
+// tile is indexed by a block's own connection count, so a narrower bound writes
+// past it. The unfused kernels hold the same number.
+constexpr int max_n_conn = 12;
 
 template <typename Real>
 struct SingleResData {
@@ -337,8 +340,8 @@ auto ljlk_elec_forward_impl(
     TView<Int, 2, D> n_rots_for_block,
     TView<Int, 2, D> rot_offset_for_block,
     Int max_n_rots_per_pose,
-    TView<Int, 3, D> pose_stack_min_bond_separation,
-    TView<Int, 5, D> pose_stack_inter_block_bondsep,
+    TView<Int, 4, D> pose_stack_near_blocks,
+    TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
     TView<Int, 1, D> block_type_n_atoms,
     TView<Int, 2, D> block_type_atom_types,
     TView<Int, 1, D> block_type_n_interblock_bonds,
@@ -486,7 +489,9 @@ auto ljlk_elec_forward_impl(
       data.r2.n_atoms = na2;
       data.r1.n_conn = block_type_n_interblock_bonds[bt1];
       data.r2.n_conn = block_type_n_interblock_bonds[bt2];
-      data.min_separation = pose_stack_min_bond_separation[p][b1][b2];
+      int const near_slot = common::count_pair::near_block_slot(
+          pose_stack_near_blocks[p][b1], b2);
+      data.min_separation = pose_stack_near_blocks[p][b1][near_slot][1];
       data.in_count_pair_striking_dist = data.min_separation <= 4;
       data.r1.coords = sm.m.coords1;
       data.r2.coords = sm.m.coords2;
@@ -563,9 +568,12 @@ auto ljlk_elec_forward_impl(
                                           shared_mem_union& sm) {
       initialize_common(p, r1, r2, b1, b2, bt1, bt2, na1, na2, data, sm);
       if (!data.in_count_pair_striking_dist) return;
+      int const near_slot = common::count_pair::near_block_slot(
+          pose_stack_near_blocks[p][b1], b2);
       auto load_connections = ([&](int tid) {
         int const n1 = data.r1.n_conn;
         int const n2 = data.r2.n_conn;
+        assert(n1 <= max_n_conn && n2 <= max_n_conn);
         int const total = n1 + n2 + n1 * n2;
         for (int index = tid; index < total; index += score_nt) {
           if (index < n1) {
@@ -577,7 +585,8 @@ auto ljlk_elec_forward_impl(
           } else {
             int const pair_index = index - n1 - n2;
             sm.m.conn_seps[pair_index] =
-                pose_stack_inter_block_bondsep[p][b1][b2][pair_index / n2]
+                pose_stack_inter_block_bondsep[p][b1][near_slot]
+                                              [pair_index / n2]
                                               [pair_index % n2];
           }
         }
@@ -962,8 +971,8 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     TView<Int, 2, D> n_rots_for_block,
     TView<Int, 2, D> rot_offset_for_block,
     Int max_n_rots_per_pose,
-    TView<Int, 3, D> pose_stack_min_bond_separation,
-    TView<Int, 5, D> pose_stack_inter_block_bondsep,
+    TView<Int, 4, D> pose_stack_near_blocks,
+    TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
     TView<Int, 1, D> block_type_n_atoms,
     TView<Int, 2, D> block_type_atom_types,
     TView<Int, 1, D> block_type_n_interblock_bonds,
@@ -986,7 +995,7 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
       first_rot_block_type, block_ind_for_rot, pose_ind_for_rot,              \
       block_type_ind_for_rot, n_rots_for_pose, rot_offset_for_pose,           \
       n_rots_for_block, rot_offset_for_block, max_n_rots_per_pose,            \
-      pose_stack_min_bond_separation, pose_stack_inter_block_bondsep,         \
+      pose_stack_near_blocks, pose_stack_inter_block_bondsep,                 \
       block_type_n_atoms, block_type_atom_types,                              \
       block_type_n_interblock_bonds, block_type_atoms_forming_chemical_bonds, \
       block_type_ljlk_path_distance, block_type_all_atoms_ligand_typed,       \
@@ -1048,8 +1057,8 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
         TView<Int, 2, D> n_rots_for_block,
         TView<Int, 2, D> rot_offset_for_block,
         Int max_n_rots_per_pose,
-        TView<Int, 3, D> pose_stack_min_bond_separation,
-        TView<Int, 5, D> pose_stack_inter_block_bondsep,
+        TView<Int, 4, D> pose_stack_near_blocks,
+        TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
         TView<Int, 1, D> block_type_n_atoms,
         TView<Int, 2, D> block_type_atom_types,
         TView<Int, 1, D> block_type_n_interblock_bonds,
@@ -1073,7 +1082,7 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
       first_rot_block_type, block_ind_for_rot, pose_ind_for_rot,              \
       block_type_ind_for_rot, n_rots_for_pose, rot_offset_for_pose,           \
       n_rots_for_block, rot_offset_for_block, max_n_rots_per_pose,            \
-      pose_stack_min_bond_separation, pose_stack_inter_block_bondsep,         \
+      pose_stack_near_blocks, pose_stack_inter_block_bondsep,                 \
       block_type_n_atoms, block_type_atom_types,                              \
       block_type_n_interblock_bonds, block_type_atoms_forming_chemical_bonds, \
       block_type_ljlk_path_distance, block_type_all_atoms_ligand_typed,       \
@@ -1197,8 +1206,8 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
         TView<Int, 2, D> rot_offset_for_block,
         TView<Int, 2, D> lockstep_group_for_block,
         Int max_n_rots_per_pose,
-        TView<Int, 3, D> pose_stack_min_bond_separation,
-        TView<Int, 5, D> pose_stack_inter_block_bondsep,
+        TView<Int, 4, D> pose_stack_near_blocks,
+        TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
         TView<Int, 1, D> block_type_n_atoms,
         TView<Int, 2, D> block_type_atom_types,
         TView<Int, 1, D> block_type_n_interblock_bonds,
@@ -1245,7 +1254,7 @@ auto LJLKAndElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::
       first_rot_block_type, block_ind_for_rot, pose_ind_for_rot,              \
       block_type_ind_for_rot, n_rots_for_pose, rot_offset_for_pose,           \
       n_rots_for_block, rot_offset_for_block, max_n_rots_per_pose,            \
-      pose_stack_min_bond_separation, pose_stack_inter_block_bondsep,         \
+      pose_stack_near_blocks, pose_stack_inter_block_bondsep,                 \
       block_type_n_atoms, block_type_atom_types,                              \
       block_type_n_interblock_bonds, block_type_atoms_forming_chemical_bonds, \
       block_type_ljlk_path_distance, block_type_all_atoms_ligand_typed,       \

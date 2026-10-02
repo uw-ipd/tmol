@@ -15,13 +15,16 @@ from tmol.io import (
 from tmol.ligand import chem_comp_types_from_cif
 from tmol.ligand._registry import _applied_patch
 from tmol.score.elec._params import ElecParamResolver
-from tmol.tests.io.test_atomworks_corpus_regressions import _score_and_minimize
+from tmol.tests.io.test_atomworks_corpus_regressions import (
+    _score_and_minimize,
+    assert_metal_bonds_are_coordination,
+)
 
 DATA = Path(__file__).parents[1] / "data" / "atomworks_regressions"
 
 
 def test_free_and_attached_solutes_keep_distinct_chemistry(torch_device):
-    array = atom_array_from_cif(DATA / "free_and_attached_solutes_5xag.cif.gz")
+    array = atom_array_from_cif(DATA / "free_and_attached_solutes_5xag.cif.zst")
     array = array[
         (array.res_name != "HOH") & ~np.isin(np.char.upper(array.element), ("MG", "CA"))
     ]
@@ -98,7 +101,7 @@ def test_free_and_attached_solutes_keep_distinct_chemistry(torch_device):
 def test_missing_ligand_carbon_reconstructs_and_backpropagates(torch_device):
     from tmol.io import canonical_form_from_biotite, pose_stack_from_canonical_form
 
-    array = atom_array_from_cif(DATA / "missing_ligand_carbon_5hs6.cif.gz")
+    array = atom_array_from_cif(DATA / "missing_ligand_carbon_5hs6.cif.zst")
     array = array[(np.char.upper(array.element) != "NA") & (array.res_name != "HOH")]
     ligand = array[array.res_name == "J3Z"]
     assert int((ligand.atom_name == "C6").sum()) == 1
@@ -144,18 +147,34 @@ def test_missing_ligand_carbon_reconstructs_and_backpropagates(torch_device):
 
     rebuilt = rebuild(source)
     assert torch.isfinite(rebuilt.coords[rebuilt.real_atoms]).all()
-    # Fresh preparation must agree across atom order and bond order.
-    other = atom_array_from_cif(DATA / "missing_ligand_carbon_5hs6.cif.gz")
-    other = other[other.res_name == "J3Z"][::-1]
-    other.bonds = struc.BondList(len(other), other.bonds.as_array()[::-1])
-    fresh = pose_stack_from_biotite(
-        other,
-        torch_device,
-        prepare_ligands=True,
-        ligand_seed=20260909,
-        no_optH=True,
+    # Fresh preparation must agree across atom order and bond order; the
+    #    tensor route builds hydrogens that AtomWorks places from structures.
+    other = atom_array_from_cif(DATA / "missing_ligand_carbon_5hs6.cif.zst")
+    other = other[other.res_name == "J3Z"]
+    fresh = []
+    for order in (slice(None), slice(None, None, -1)):
+        reordered = other[order]
+        reordered.bonds = struc.BondList(
+            len(reordered), other[order].bonds.as_array()[order]
+        )
+        fresh.append(
+            pose_stack_from_biotite(
+                reordered,
+                torch_device,
+                prepare_ligands=True,
+                ligand_seed=20260909,
+                no_optH=True,
+            )
+        )
+    torch.testing.assert_close(fresh[1].coords, fresh[0].coords, rtol=0, atol=0)
+    heavy = [
+        j
+        for j, atom in enumerate(residue.atoms)
+        if atom.atom_type not in hydrogen_types
+    ]
+    torch.testing.assert_close(
+        fresh[1].coords[0, heavy], rebuilt.coords[0, heavy], rtol=0, atol=0
     )
-    torch.testing.assert_close(fresh.coords, rebuilt.coords, rtol=0, atol=0)
 
     from atomworks.io.tools.rdkit import atom_array_to_rdkit
     from rdkit import Chem
@@ -199,20 +218,40 @@ def test_missing_ligand_carbon_reconstructs_and_backpropagates(torch_device):
         rebuild(torch.full_like(source, float("nan")))
 
 
-def test_single_atom_plp_backbone_packs_and_preserves_chirality(
-    torch_device, monkeypatch
-):
-    from tmol.pack.rotamer import create_mainchain_fingerprint
+def _hydrogens_on(residue_type, atom):
+    return sorted(
+        other
+        for a, b, *_ in residue_type.bonds
+        for bonded, other in ((a, b), (b, a))
+        if bonded == atom and other.startswith("H")
+    )
+
+
+def test_plp_aldimine_keeps_its_double_bond_through_packing(torch_device):
+    """5T4J's PLP C4A=N ABU external aldimine is a conjugate, not a peptide bond.
+
+    Its carbonyl oxygen O4A left, so C4A cannot cap a chain as an acyl carbon;
+    the declared double bond keeps one hydrogen on C4A and none on N.
+    """
     from tmol.tests.io.test_atomworks_corpus_regressions import (
         _assert_all_source_connections,
     )
 
-    array = atom_array_from_cif(DATA / "plp_cap_5t4j.cif.gz")
+    array = atom_array_from_cif(DATA / "plp_cap_5t4j.cif.zst")
     array = array[array.res_name != "HOH"]
+    c4a = np.flatnonzero((array.res_name == "PLP") & (array.atom_name == "C4A"))
+    assert len(c4a) == 1
+    partners, orders = array.bonds.get_bonds(int(c4a[0]))
+    link = [
+        (str(array.res_name[j]), str(array.atom_name[j]), int(order))
+        for j, order in zip(partners, orders)
+        if array.res_name[j] != "PLP"
+    ]
+    assert link == [("ABU", "N", int(struc.BondType.DOUBLE))]
     context = build_context_from_biotite(
         array, torch_device, prepare_ligands=True, ligand_seed=20260909
     )
-    # Missing sidechain atoms trigger packing and fingerprint the PLP cap.
+    # Missing sidechain atoms trigger packing.
     assert np.isnan(array.coord).any()
     pose = pose_stack_from_biotite(array, torch_device, context=context, no_optH=True)
     # The author chain A also names the separate ligand entities. The protein
@@ -232,29 +271,90 @@ def test_single_atom_plp_backbone_packs_and_preserves_chirality(
     # AtomWorks additionally carries five completely unresolved protein residues.
     assert int((~resolved).sum()) == 0
     _assert_all_source_connections(pose, array[np.repeat(resolved, np.diff(starts))])
-    plp = next(rt for rt in context.restype_set.residue_types if rt.name == "PLP")
-    assert plp.properties.polymer.mainchain_atoms == ("C4A",)
-    original = create_mainchain_fingerprint(
-        plp, (), context.parameter_database.chemical
-    )[1]
-    assert len(set(original)) == plp.n_atoms
-    assert {original[plp.atom_to_idx[name]].chirality for name in ("HC4", "HC5")} == {
-        1,
-        2,
+    types = pose.packed_block_types.active_block_types
+    blocks = {
+        types[int(t)].name: block
+        for block, t in enumerate(pose.block_type_ind[0].tolist())
+        if t >= 0 and types[int(t)].base_name in ("PLP", "ABU")
     }
-    with monkeypatch.context() as patch:
-        patch.setattr(plp, "ideal_coords", plp.ideal_coords * [-1, 1, 1])
-        mirrored = create_mainchain_fingerprint(
-            plp, (), context.parameter_database.chemical
-        )[1]
-    for first, reflected in zip(original, mirrored):
-        expected = 3 - first.chirality if first.chirality in (1, 2) else first.chirality
-        assert reflected.chirality == expected
+    assert set(blocks) == {"PLP:conj_C4A", "ABU:conj_N"}
+    plp, abu = (types[int(pose.block_type_ind[0, blocks[n]])] for n in blocks)
+    assert not plp.properties.polymer.is_polymer
+    assert not abu.properties.polymer.is_polymer
+    assert len(_hydrogens_on(plp, "C4A")) == 1
+    assert _hydrogens_on(abu, "N") == []
+    port = plp.connection_to_cidx["conj_C4A"]
+    assert tuple(
+        pose.inter_residue_connections[0, blocks["PLP:conj_C4A"], port].tolist()
+    ) == (blocks["ABU:conj_N"], abu.connection_to_cidx["conj_N"])
+    records = [
+        r
+        for r in context.parameter_database.scoring.cartbonded.connection_params
+        if {r.block_type1, r.block_type2} == {"PLP:conj_C4A", "ABU:conj_N"}
+    ]
+    assert len(records) == 1
+    (length,) = records[0].length_parameters
+    # an imine, not the 1.47 A amine single bond
+    assert 1.25 < length.x0 < 1.33
     _score_and_minimize(pose, context)
 
 
+def test_single_atom_plp_backbone_preserves_chirality(monkeypatch):
+    """A single-atom mainchain's two hydrogens have mirror-image fingerprints.
+
+    5T4J's linked PLP copy, built explicitly as a terminating cap through C4A,
+    gives the CH2 mainchain the packer fingerprints.
+    """
+    from tmol.chemical import ResidueTypeSet
+    from tmol.database import ParameterDatabase
+    from tmol.ligand import prepare_polymer_residue
+    from tmol.ligand._polymer_profile import cap_polymer_profile
+    from tmol.ligand._registry import (
+        inject_ligand_preparations,
+        rebuild_canonical_ordering,
+    )
+    from tmol.pack.rotamer import (
+        construct_single_residue_kinforest,
+        create_mainchain_fingerprint,
+    )
+
+    array = atom_array_from_cif(DATA / "plp_cap_5t4j.cif.zst")
+    source = array[array.res_name == "PLP"]
+    assert "O4A" not in set(source.atom_name)
+    database = ParameterDatabase.get_default()
+    prep = prepare_polymer_residue(
+        source,
+        rebuild_canonical_ordering(database),
+        database,
+        connection_atoms={"C4A"},
+        profile=cap_polymer_profile(source, "C4A", database.chemical),
+        seed=20260909,
+    )
+    chemical = inject_ligand_preparations(database, [prep]).chemical
+    plp = next(
+        rt
+        for rt in ResidueTypeSet.from_database(chemical).residue_types
+        if rt.name == "PLP"
+    )
+    assert plp.properties.polymer.mainchain_atoms == ("C4A",)
+    construct_single_residue_kinforest(plp)
+    original = create_mainchain_fingerprint(plp, (), chemical)[1]
+    assert len(set(original)) == plp.n_atoms
+    mainchain_hydrogens = _hydrogens_on(plp, "C4A")
+    assert len(mainchain_hydrogens) == 2
+    assert {
+        original[plp.atom_to_idx[name]].chirality for name in mainchain_hydrogens
+    } == {1, 2}
+    with monkeypatch.context() as patch:
+        patch.setattr(plp, "ideal_coords", plp.ideal_coords * [-1, 1, 1])
+        mirrored = create_mainchain_fingerprint(plp, (), chemical)[1]
+    for first, reflected in zip(original, mirrored):
+        expected = 3 - first.chirality if first.chirality in (1, 2) else first.chirality
+        assert reflected.chirality == expected
+
+
 def test_chromophore_with_one_terminal_patch_constructs_and_minimizes(torch_device):
-    array = atom_array_from_cif(DATA / "chromophore_3nez.cif.gz")
+    array = atom_array_from_cif(DATA / "chromophore_3nez.cif.zst")
     array = array[array.res_name != "HOH"]
     context = build_context_from_biotite(
         array, torch_device, prepare_ligands=True, ligand_seed=20260909
@@ -285,7 +385,7 @@ def test_chromophore_with_one_terminal_patch_constructs_and_minimizes(torch_devi
 def test_internal_representative_keeps_terminal_oxygen_names(torch_device):
     array = atom_array_from_cif(DATA / "modified_components_6q9t.cif")
     metal = np.isin(np.char.upper(array.element), ("ZN", "NA", "MG", "CA"))
-    assert not metal[array.bonds.as_array()[:, :2]].any()
+    assert_metal_bonds_are_coordination(array, metal)
     array = array[~metal & (array.res_name != "HOH")]
     supplied = array.coord.copy()
     boundaries = struc.get_residue_starts(array, add_exclusive_stop=True)
@@ -367,9 +467,9 @@ def test_internal_representative_keeps_terminal_oxygen_names(torch_device):
 def test_modified_nucleotide_aliases_construct_score_and_minimize(torch_device):
     from collections import Counter
 
-    array = atom_array_from_cif(DATA / "modified_nucleotide_aliases_1d9d.cif.gz")
+    array = atom_array_from_cif(DATA / "modified_nucleotide_aliases_1d9d.cif.zst")
     metal = np.isin(np.char.upper(array.element), ("ZN", "MG"))
-    assert not metal[array.bonds.as_array()[:, :2]].any()
+    assert_metal_bonds_are_coordination(array, metal)
     array = array[~metal & (array.res_name != "HOH")]
     supplied, names = array.coord.copy(), array.atom_name.copy()
     context = build_context_from_biotite(

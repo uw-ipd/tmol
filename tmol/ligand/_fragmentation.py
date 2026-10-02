@@ -17,6 +17,7 @@ import numpy as np
 
 from tmol.chemical import build_coords_from_icoors
 from tmol.database.chemical import Connection, Icoor, RawResidueType
+from tmol.ligand._icoor_tree import signed_dihedral_angle, vertex_angle
 from tmol.ligand._registry import LigandPreparation
 
 FRAGMENT_ID_ANNOTATION = "tmol_fragment_id"
@@ -180,29 +181,10 @@ def _full_ideal_coords(restype: RawResidueType) -> dict[str, np.ndarray]:
 
 
 def _angle(a: np.ndarray, b: np.ndarray, c: np.ndarray) -> float:
-    ba = a - b
-    bc = c - b
-    denom = float(np.linalg.norm(ba) * np.linalg.norm(bc))
-    if denom < 1e-12:
+    """Angle at vertex b, in radians; zero where the points coincide."""
+    if float(np.linalg.norm(a - b) * np.linalg.norm(c - b)) < 1e-12:
         return 0.0
-    return float(np.arccos(np.clip(np.dot(ba, bc) / denom, -1.0, 1.0)))
-
-
-def _dihedral(a: np.ndarray, b: np.ndarray, c: np.ndarray, d: np.ndarray) -> float:
-    b1 = b - a
-    b2 = c - b
-    b3 = d - c
-    n1 = np.cross(b1, b2)
-    n2 = np.cross(b2, b3)
-    n1_norm = float(np.linalg.norm(n1))
-    n2_norm = float(np.linalg.norm(n2))
-    b2_norm = float(np.linalg.norm(b2))
-    if min(n1_norm, n2_norm, b2_norm) < 1e-12:
-        return 0.0
-    n1 /= n1_norm
-    n2 /= n2_norm
-    m1 = np.cross(n1, b2 / b2_norm)
-    return float(np.arctan2(np.dot(m1, n2), np.dot(n1, n2)))
+    return vertex_angle(a, b, c)
 
 
 def _fragment_atom_tree(  # noqa: C901
@@ -279,7 +261,9 @@ def _atom_icoors(
             theta = math.pi - _angle(coords[name], coords[par], coords[gp])
             d = float(np.linalg.norm(coords[name] - coords[par]))
         else:
-            phi = -_dihedral(coords[name], coords[par], coords[gp], coords[ggp])
+            phi = -signed_dihedral_angle(
+                coords[name], coords[par], coords[gp], coords[ggp]
+            )
             theta = math.pi - _angle(coords[name], coords[par], coords[gp])
             d = float(np.linalg.norm(coords[name] - coords[par]))
         result.append(
@@ -320,7 +304,7 @@ def _connection_icoor(
     remote = coords[connection.partner_atom_name]
     return Icoor(
         name=connection.connection_name,
-        phi=-_dihedral(remote, coords[parent], coords[gp], coords[ggp]),
+        phi=-signed_dihedral_angle(remote, coords[parent], coords[gp], coords[ggp]),
         theta=math.pi - _angle(remote, coords[parent], coords[gp]),
         d=float(np.linalg.norm(remote - coords[parent])),
         parent=parent,
@@ -582,6 +566,11 @@ def build_ligand_fragment_definition(  # noqa: C901
                 alias for alias in restype.atom_aliases if alias.name in name_set
             ),
             bonds=local_bonds,
+            io_bond_orders=tuple(
+                b
+                for b in restype.io_bond_orders
+                if b[0] in name_set and b[1] in name_set
+            ),
             connections=tuple(
                 Connection(
                     name=conn.connection_name,
@@ -867,29 +856,15 @@ def apply_fragment_connections(pose_stack, mapping: FragmentedLigandPoseMapping)
             )
 
     real_res = pose_stack.block_type_ind64 >= 0
-    (
-        pconn_matrix,
-        pconn_offsets,
-        block_n_conn,
-        _,
-    ) = PoseStackBuilder._take_real_conn_conn_intrablock_pairs(
-        pbt, pose_stack.block_type_ind64, real_res
-    )
-    PoseStackBuilder._incorporate_inter_residue_connections_into_connectivity_graph(
-        inter_residue_connections64, pconn_offsets, pconn_matrix
-    )
-    inter_block_bondsep64 = (
-        PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph(
-            pbt, pconn_offsets, block_n_conn, pconn_matrix
-        )
+    inter_block_bondsep = PoseStackBuilder._inter_block_bondsep_from_connections(
+        pbt, pose_stack.block_type_ind64, real_res, inter_residue_connections64
     )
     result = attr.evolve(
         pose_stack,
         coords=pose_stack.coords.clone(),
         inter_residue_connections=inter_residue_connections64.to(torch.int32),
         inter_residue_connections64=inter_residue_connections64,
-        inter_block_bondsep=inter_block_bondsep64.to(torch.int32),
-        inter_block_bondsep64=inter_block_bondsep64,
+        inter_block_bondsep=inter_block_bondsep,
     )
     result, sbm = build_split_block_mapping(result, mapping)
     return attr.evolve(result, split_block_mapping=sbm)
@@ -1160,6 +1135,16 @@ def _unsplit_chain_and_pdb(
     chain_labels = np.full((n_poses, new_max_n_blocks), "", dtype=object)
     occ = np.full((n_poses, new_max_n_atoms), DEFAULT_ATOM_OCCUPANCY, dtype=np.float32)
     bf = np.full((n_poses, new_max_n_atoms), DEFAULT_ATOM_B_FACTOR, dtype=np.float32)
+    origins = (
+        None
+        if old_pdb.metal_origins is None
+        else np.full((n_poses, new_max_n_blocks), None, dtype=object)
+    )
+    annotations = (
+        None
+        if old_pdb.residue_annotations is None
+        else np.zeros((n_poses, new_max_n_blocks), old_pdb.residue_annotations.dtype)
+    )
     old_chain = pose_stack.chain_id.cpu().numpy()
     for p, (blocks, m) in enumerate(zip(per_pose_blocks, old_to_new)):
         for old_b, new_b in m.items():
@@ -1169,6 +1154,10 @@ def _unsplit_chain_and_pdb(
             res_labels[p, new_b] = old_pdb.residue_labels[p, old_b]
             ins_codes[p, new_b] = old_pdb.residue_insertion_codes[p, old_b]
             chain_labels[p, new_b] = old_pdb.chain_labels[p, old_b]
+            if origins is not None:
+                origins[p, new_b] = old_pdb.metal_origins[p, old_b]
+            if annotations is not None:
+                annotations[p, new_b] = old_pdb.residue_annotations[p, old_b]
         for new_b, (bt_idx, kind, src) in enumerate(blocks):
             if kind != "orig":
                 continue
@@ -1188,6 +1177,8 @@ def _unsplit_chain_and_pdb(
         chain_labels=chain_labels,
         atom_occupancy=occ,
         atom_b_factor=bf,
+        metal_origins=origins,
+        residue_annotations=annotations,
     )
     return new_chain_id, new_pdb
 
@@ -1263,14 +1254,8 @@ def unsplit_pose_stack(pose_stack):
         device,
     )
 
-    pconn_matrix, pconn_offsets, block_n_conn, _ = (
-        PoseStackBuilder._take_real_conn_conn_intrablock_pairs(pbt, new_bt64, real_new)
-    )
-    PoseStackBuilder._incorporate_inter_residue_connections_into_connectivity_graph(
-        new_irc64, pconn_offsets, pconn_matrix
-    )
-    new_ibs64 = PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph(
-        pbt, pconn_offsets, block_n_conn, pconn_matrix
+    new_ibs = PoseStackBuilder._inter_block_bondsep_from_connections(
+        pbt, new_bt64, real_new, new_irc64
     )
 
     new_chain_id, new_pdb_info = _unsplit_chain_and_pdb(
@@ -1292,8 +1277,7 @@ def unsplit_pose_stack(pose_stack):
         block_coord_offset64=new_bco.to(torch.int64),
         inter_residue_connections=new_irc64.to(torch.int32),
         inter_residue_connections64=new_irc64,
-        inter_block_bondsep=new_ibs64.to(torch.int32),
-        inter_block_bondsep64=new_ibs64,
+        inter_block_bondsep=new_ibs,
         block_type_ind=new_bt32,
         block_type_ind64=new_bt64,
         chain_id=new_chain_id,

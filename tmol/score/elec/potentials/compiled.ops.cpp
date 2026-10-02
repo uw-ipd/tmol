@@ -44,7 +44,7 @@ class ElecPoseScoreOp
       Tensor rot_offset_for_block,
       int64_t max_n_rots_per_pose,
 
-      Tensor pose_stack_min_bond_separation,
+      Tensor pose_stack_near_blocks,
       Tensor pose_stack_inter_block_bondsep,
 
       Tensor block_type_n_atoms,
@@ -88,7 +88,7 @@ class ElecPoseScoreOp
                   TCAST(rot_offset_for_block),
                   max_n_rots_per_pose,
 
-                  TCAST(pose_stack_min_bond_separation),
+                  TCAST(pose_stack_near_blocks),
                   TCAST(pose_stack_inter_block_bondsep),
 
                   TCAST(block_type_n_atoms),
@@ -131,7 +131,7 @@ class ElecPoseScoreOp
            rot_offset_for_block,
            max_n_rots_per_pose_tp.tensor,
 
-           pose_stack_min_bond_separation,
+           pose_stack_near_blocks,
            pose_stack_inter_block_bondsep,
 
            block_type_n_atoms,
@@ -196,7 +196,7 @@ class ElecPoseScoreOp
       // auto pose_stack_block_coord_offset = saved[i++];
       // auto pose_stack_block_type = saved[i++];
 
-      auto pose_stack_min_bond_separation = saved[i++];
+      auto pose_stack_near_blocks = saved[i++];
       auto pose_stack_inter_block_bondsep = saved[i++];
 
       auto block_type_n_atoms = saved[i++];
@@ -241,7 +241,7 @@ class ElecPoseScoreOp
                     TCAST(rot_offset_for_block),
                     max_n_rots_per_pose,
 
-                    TCAST(pose_stack_min_bond_separation),
+                    TCAST(pose_stack_near_blocks),
                     TCAST(pose_stack_inter_block_bondsep),
 
                     TCAST(block_type_n_atoms),
@@ -288,7 +288,7 @@ class ElecRotamerScoreOp
       Tensor lockstep_group_for_block,
       int64_t max_n_rots_per_pose,
 
-      Tensor pose_stack_min_bond_separation,
+      Tensor pose_stack_near_blocks,
       Tensor pose_stack_inter_block_bondsep,
 
       Tensor block_type_n_atoms,
@@ -334,7 +334,7 @@ class ElecRotamerScoreOp
                   TCAST(lockstep_group_for_block),
                   max_n_rots_per_pose,
 
-                  TCAST(pose_stack_min_bond_separation),
+                  TCAST(pose_stack_near_blocks),
                   TCAST(pose_stack_inter_block_bondsep),
 
                   TCAST(block_type_n_atoms),
@@ -375,7 +375,7 @@ class ElecRotamerScoreOp
            rot_offset_for_block,
            max_n_rots_per_pose_tp.tensor,
 
-           pose_stack_min_bond_separation,
+           pose_stack_near_blocks,
            pose_stack_inter_block_bondsep,
 
            block_type_n_atoms,
@@ -439,7 +439,7 @@ class ElecRotamerScoreOp
       auto max_n_rots_per_pose =
           TPack<int32_t, 1, tmol::Device::CPU>(saved[i++]).view[0];
 
-      auto pose_stack_min_bond_separation = saved[i++];
+      auto pose_stack_near_blocks = saved[i++];
       auto pose_stack_inter_block_bondsep = saved[i++];
 
       auto block_type_n_atoms = saved[i++];
@@ -484,7 +484,7 @@ class ElecRotamerScoreOp
                     TCAST(rot_offset_for_block),
                     max_n_rots_per_pose,
 
-                    TCAST(pose_stack_min_bond_separation),
+                    TCAST(pose_stack_near_blocks),
                     TCAST(pose_stack_inter_block_bondsep),
 
                     TCAST(block_type_n_atoms),
@@ -537,7 +537,7 @@ std::vector<Tensor> elec_pose_scores_op(
     Tensor rot_offset_for_block,
     int64_t max_n_rots_per_pose,
 
-    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_near_blocks,
     Tensor pose_stack_inter_block_bondsep,
 
     Tensor block_type_n_atoms,
@@ -567,7 +567,7 @@ std::vector<Tensor> elec_pose_scores_op(
       rot_offset_for_block,
       max_n_rots_per_pose,
 
-      pose_stack_min_bond_separation,
+      pose_stack_near_blocks,
       pose_stack_inter_block_bondsep,
 
       block_type_n_atoms,
@@ -602,7 +602,7 @@ std::vector<Tensor> elec_rotamer_scores_op(
     Tensor lockstep_group_for_block,
     int64_t max_n_rots_per_pose,
 
-    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_near_blocks,
     Tensor pose_stack_inter_block_bondsep,
 
     Tensor block_type_n_atoms,
@@ -634,7 +634,7 @@ std::vector<Tensor> elec_rotamer_scores_op(
       lockstep_group_for_block,
       max_n_rots_per_pose,
 
-      pose_stack_min_bond_separation,
+      pose_stack_near_blocks,
       pose_stack_inter_block_bondsep,
 
       block_type_n_atoms,
@@ -667,7 +667,7 @@ std::vector<Tensor> elec_rotamer_scores_shared_op(
     Tensor rot_offset_for_block,
     Tensor lockstep_group_for_block,
     int64_t max_n_rots_per_pose,
-    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_near_blocks,
     Tensor pose_stack_inter_block_bondsep,
     Tensor block_type_n_atoms,
     Tensor block_type_partial_charge,
@@ -707,7 +707,7 @@ std::vector<Tensor> elec_rotamer_scores_shared_op(
       rot_offset_for_block,
       lockstep_group_for_block,
       max_n_rots_per_pose,
-      pose_stack_min_bond_separation,
+      pose_stack_near_blocks,
       pose_stack_inter_block_bondsep,
       block_type_n_atoms,
       block_type_partial_charge,

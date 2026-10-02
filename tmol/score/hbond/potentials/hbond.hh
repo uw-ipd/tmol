@@ -2,6 +2,7 @@
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 
+#include <tmol/score/common/count_pair.hh>
 #include <tmol/score/common/data_loading.hh>
 #include <tmol/score/bonded_atom.hh>
 #include <tmol/score/hbond/identification.hh>
@@ -90,11 +91,11 @@ struct HBondBlockPairSharedData {
   unsigned char acc_hybridization1[TILE_SIZE];
   unsigned char acc_hybridization2[TILE_SIZE];
 
-  unsigned char conn_ats1[MAX_N_CONN];  // 8 bytes
+  unsigned char conn_ats1[MAX_N_CONN];  // 12 bytes
   unsigned char conn_ats2[MAX_N_CONN];
-  unsigned char path_dist1[MAX_N_CONN * TILE_SIZE];  // 256 bytes
+  unsigned char path_dist1[MAX_N_CONN * TILE_SIZE];  // 384 bytes
   unsigned char path_dist2[MAX_N_CONN * TILE_SIZE];
-  unsigned char conn_seps[MAX_N_CONN * MAX_N_CONN];  // 64 bytes
+  unsigned char conn_seps[MAX_N_CONN * MAX_N_CONN];  // 144 bytes
 };
 
 template <
@@ -206,8 +207,8 @@ template <
 void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
     TView<Int, 1, Dev> rot_coord_offset,
     TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
-    TView<Int, 3, Dev> pose_stack_min_bond_separation,
-    TView<Int, 5, Dev> pose_stack_inter_block_bondsep,
+    TView<Int, 4, Dev> pose_stack_near_blocks,
+    TView<int8_t, 5, Dev> pose_stack_inter_block_bondsep,
 
     TView<Int, 1, Dev> block_type_n_interblock_bonds,
     TView<Int, 2, Dev> block_type_atoms_forming_chemical_bonds,
@@ -242,8 +243,10 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
   inter_dat.r2.rot_coord_offset = rot_coord_offset[rot_ind2];
   inter_dat.pair_data.max_important_bond_separation =
       max_important_bond_separation;
+  int const near_slot = common::count_pair::near_block_slot(
+      pose_stack_near_blocks[pose_ind][block_ind1], block_ind2);
   inter_dat.pair_data.min_separation =
-      pose_stack_min_bond_separation[pose_ind][block_ind1][block_ind2];
+      pose_stack_near_blocks[pose_ind][block_ind1][near_slot][1];
   inter_dat.pair_data.in_count_pair_striking_dist =
       inter_dat.pair_data.min_separation <= max_important_bond_separation;
   inter_dat.r1.n_atoms = n_atoms1;
@@ -292,7 +295,7 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
           int conn1 = conn_ind / inter_dat.r2.n_conn;
           int conn2 = conn_ind % inter_dat.r2.n_conn;
           shared_m.conn_seps[conn_ind] =
-              pose_stack_inter_block_bondsep[pose_ind][block_ind1][block_ind2]
+              pose_stack_inter_block_bondsep[pose_ind][block_ind1][near_slot]
                                             [conn1][conn2];
         }
       }
@@ -660,6 +663,12 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_full(
         don_dat.rot_coord_offset + don_start + don_h_atom_tile_ind;
     int const A_pose_atom_ind =
         acc_dat.rot_coord_offset + acc_start + acc_atom_tile_ind;
+    // An undefined donor or acceptor base (index -1) leaves NaN derived
+    // coordinates; the pair scores 0 but its gradient would be NaN * 0.
+    if (respair_dat.derived_atom_inds[H_pose_atom_ind][0] < 0
+        || respair_dat.derived_atom_inds[A_pose_atom_ind][1] < 0) {
+      return 0;
+    }
 
     Real3 Dxyz = respair_dat.derived_coords[H_pose_atom_ind][0];
     Real3 Bxyz = respair_dat.derived_coords[A_pose_atom_ind][1];
@@ -707,6 +716,12 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
         don_dat.rot_coord_offset + don_start + don_h_atom_tile_ind;
     int const A_pose_atom_ind =
         acc_dat.rot_coord_offset + acc_start + acc_atom_tile_ind;
+    // An undefined donor or acceptor base (index -1) leaves NaN derived
+    // coordinates; the pair scores 0 but its gradient would be NaN * 0.
+    if (respair_dat.derived_atom_inds[H_pose_atom_ind][0] < 0
+        || respair_dat.derived_atom_inds[A_pose_atom_ind][1] < 0) {
+      return 0;
+    }
 
     Real3 Dxyz = respair_dat.derived_coords[H_pose_atom_ind][0];
     Real3 Bxyz = respair_dat.derived_coords[A_pose_atom_ind][1];
@@ -779,6 +794,12 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
         don_dat.rot_coord_offset + don_start + don_h_atom_tile_ind;
     int const A_pose_atom_ind =
         acc_dat.rot_coord_offset + acc_start + acc_atom_tile_ind;
+    // An undefined donor or acceptor base (index -1) leaves NaN derived
+    // coordinates; the pair scores 0 but its gradient would be NaN * 0.
+    if (respair_dat.derived_atom_inds[H_pose_atom_ind][0] < 0
+        || respair_dat.derived_atom_inds[A_pose_atom_ind][1] < 0) {
+      return 0;
+    }
 
     Real3 Dxyz = respair_dat.derived_coords[H_pose_atom_ind][0];
     Real3 Bxyz = respair_dat.derived_coords[A_pose_atom_ind][1];

@@ -43,7 +43,9 @@ atom_type_parameters:
 
   - { name: NtrR, *ljr: 1.802452, *ljw: 0.161725, *lkd:  -4.92802, *lkl: 3.500000, *lkv:  9.779200 }
   - { name: NH2O, *ljr: 1.802452, *ljw: 0.161725, *lkd:  -7.66671, *lkl: 3.500000, *lkv: 15.689000 }
-  - { name: Nlys, *ljr: 1.802452, *ljw: 0.161725, *lkd: -18.74326, *lkl: 3.500000, *lkv: 16.514000 }
+  - &Nlys
+    { name: Nlys, *ljr: 1.802452, *ljw: 0.161725, *lkd: -18.74326, *lkl: 3.500000, *lkv: 16.514000 }
+  - { <<: *Nlys, name: NlysDepro } # Deprotonated form in LYS_DEP
   - { name: Narg, *ljr: 1.802452, *ljw: 0.161725, *lkd:  -8.69602, *lkl: 3.500000, *lkv: 15.717000 }
   - { name: Npro, *ljr: 1.802452, *ljw: 0.161725, *lkd:  -1.51111, *lkl: 3.500000, *lkv:  3.718100 }
   - &OH
@@ -54,6 +56,8 @@ atom_type_parameters:
   - { name: OOC , *ljr: 1.492871, *ljw: 0.099873, *lkd: -10.20822, *lkl: 3.500000, *lkv:  9.995600 }
   - { name: S   , *ljr: 1.975967, *ljw: 0.455970, *lkd:  -4.89802, *lkl: 3.500000, *lkv: 17.640000 }
   - { name: SH1 , *ljr: 1.975967, *ljw: 0.455970, *lkd:   2.07945, *lkl: 3.500000, *lkv: 23.240000 }
+  # thiolate: SH1's values, provisional until fit with the coordination well depth
+  - { name: Sthio, *ljr: 1.975967, *ljw: 0.455970, *lkd:   2.07945, *lkl: 3.500000, *lkv: 23.240000 }
   - { name: Nbb , *ljr: 1.802452, *ljw: 0.161725, *lkd: -12.84665, *lkl: 3.500000, *lkv: 15.992000 }
   - { name: CAbb, *ljr: 2.011760, *ljw: 0.062642, *lkd:   4.44945, *lkl: 3.500000, *lkv: 12.137000 }
   - { name: CObb, *ljr: 1.916661, *ljw: 0.141799, *lkd:   3.57899, *lkl: 3.500000, *lkv: 13.221000 }
@@ -148,3 +152,23 @@ atom_type_parameters:
   - { name: ClR , *ljr: 2.049600, *ljw: 0.107000, *lkd:   2.36680, *lkl: 3.500000, *lkv: 17.584900 }
   - { name: BrR , *ljr: 2.197100, *ljw: 0.109000, *lkd:   2.79510, *lkl: 3.500000, *lkv: 19.687600 }
   - { name: IR  , *ljr: 2.360000, *ljw: 0.111000, *lkd:   3.13610, *lkl: 3.500000, *lkv: 22.089100 }
+
+  # Metal ions: CHARMM (toppar_water_ions) radii, else Shannon radii scaled onto CHARMM's Zn
+  #    (3% off on Cd); well depth is the 5e-3 floor, as metal_coordination carries attraction.
+  # lk_dgfree prices displacing an open site's water: ~0.08 * |lk_dgfree| per three-carbon
+  #    face, so -30 (linear in charge) is ~2.4 kcal/mol per divalent site; provisional.
+  - { name: Mg2p, *ljr: 1.185000, *ljw: 0.005000, *lkd: -30.00000, *lkl: 3.500000, *lkv:  6.970175 }
+  - { name: Ca2p, *ljr: 1.367000, *ljw: 0.005000, *lkd: -30.00000, *lkl: 3.500000, *lkv: 10.700256 }
+  - { name: Na1p, *ljr: 1.410750, *ljw: 0.005000, *lkd: -15.00000, *lkl: 3.500000, *lkv: 11.760852 }
+  - { name: K1p , *ljr: 1.763750, *ljw: 0.005000, *lkd: -15.00000, *lkl: 3.500000, *lkv: 22.982628 }
+  - { name: Mn2p, *ljr: 1.222568, *ljw: 0.005000, *lkd: -30.00000, *lkl: 3.500000, *lkv:  7.654331 }  # radius derived, no CHARMM ion type
+  - { name: Fe2p, *ljr: 1.148919, *ljw: 0.005000, *lkd: -30.00000, *lkl: 3.500000, *lkv:  6.352677 }  # radius derived, no CHARMM ion type
+  - { name: Fe3p, *ljr: 0.950068, *ljw: 0.005000, *lkd: -45.00000, *lkl: 3.500000, *lkv:  3.592130 }  # radius derived, no CHARMM ion type
+  - { name: Co2p, *ljr: 1.097365, *ljw: 0.005000, *lkd: -30.00000, *lkl: 3.500000, *lkv:  5.535308 }  # radius derived, no CHARMM ion type
+  - { name: Co3p, *ljr: 0.898514, *ljw: 0.005000, *lkd: -45.00000, *lkl: 3.500000, *lkv:  3.038522 }  # radius derived, no CHARMM ion type
+  - { name: Ni2p, *ljr: 1.016351, *ljw: 0.005000, *lkd: -30.00000, *lkl: 3.500000, *lkv:  4.397645 }  # radius derived, no CHARMM ion type
+  - { name: Cu1p, *ljr: 1.134189, *ljw: 0.005000, *lkd: -15.00000, *lkl: 3.500000, *lkv:  6.111462 }  # radius derived, no CHARMM ion type
+  - { name: Cu2p, *ljr: 1.075270, *ljw: 0.005000, *lkd: -30.00000, *lkl: 3.500000, *lkv:  5.207647 }  # radius derived, no CHARMM ion type
+  - { name: Zn2p, *ljr: 1.090000, *ljw: 0.005000, *lkd: -30.00000, *lkl: 3.500000, *lkv:  5.424605 }
+  - { name: Cd2p, *ljr: 1.357000, *ljw: 0.005000, *lkd: -30.00000, *lkl: 3.500000, *lkv: 10.467143 }
+  - { name: Hg2p, *ljr: 1.502432, *ljw: 0.005000, *lkd: -30.00000, *lkl: 3.500000, *lkv: 14.206054 }  # radius derived, no CHARMM ion type

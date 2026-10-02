@@ -1,3 +1,4 @@
+from operator import attrgetter
 from pathlib import Path
 
 import biotite.structure as struc
@@ -271,18 +272,16 @@ def test_prepared_atom37_builder_is_reusable_and_differentiable(
         "block_coord_offset64",
         "inter_residue_connections",
         "inter_residue_connections64",
-        "inter_block_bondsep",
-        "inter_block_bondsep64",
+        "inter_block_bondsep.near_blocks",
+        "inter_block_bondsep.bondsep",
         "block_type_ind",
         "block_type_ind64",
         "chain_id",
         "chain_id64",
     )
     for name in structural_tensors:
-        assert (
-            getattr(first_pose, name).data_ptr()
-            != getattr(cached_pose, name).data_ptr()
-        )
+        tensor = attrgetter(name)
+        assert tensor(first_pose).data_ptr() != tensor(cached_pose).data_ptr()
     assert not np.shares_memory(
         first_pose.pdb_info.residue_labels, cached_pose.pdb_info.residue_labels
     )
@@ -312,17 +311,10 @@ def test_prepared_atom37_builder_is_reusable_and_differentiable(
     assert second_pose.packed_block_types is context.packed_block_types
     torch.testing.assert_close(first_pose.coords, first_snapshot)
     for name in structural_tensors:
-        torch.testing.assert_close(
-            getattr(second_pose, name), getattr(expected_second, name)
-        )
-        assert (
-            getattr(second_pose, name).data_ptr()
-            != getattr(cached_pose, name).data_ptr()
-        )
-        assert (
-            getattr(second_pose, name).data_ptr()
-            != getattr(first_pose, name).data_ptr()
-        )
+        tensor = attrgetter(name)
+        torch.testing.assert_close(tensor(second_pose), tensor(expected_second))
+        assert tensor(second_pose).data_ptr() != tensor(cached_pose).data_ptr()
+        assert tensor(second_pose).data_ptr() != tensor(first_pose).data_ptr()
     for name in (
         "residue_labels",
         "residue_insertion_codes",
@@ -457,7 +449,7 @@ def test_prepared_atom37_builder_falls_back_for_ambiguous_histidine_hydrogen(
 
 @pytest.mark.parametrize("prebuilt", [True, False])
 def test_atom37_pose_uses_ligand_context(torch_device, prebuilt):
-    cif_path = data_path("protein_ligand_test", "cif_inputs", "ace.ligand.cif")
+    cif_path = data_path("protein_ligand_test", "cif_inputs", "ace.ligand.cif.zst")
     params_path = data_path("protein_ligand_test", "ace.xtal-lig.mmff94.tmol")
     from tmol.io import atom_array_from_cif
 
@@ -469,6 +461,7 @@ def test_atom37_pose_uses_ligand_context(torch_device, prebuilt):
         torch_device,
         prepare_ligands=True,
         ligand_params_files=[str(params_path)] if prebuilt else None,
+        ligand_seed=20260909,
     )
 
     pose = pose_stack_from_atom37_and_topology(atom37, structure, context)

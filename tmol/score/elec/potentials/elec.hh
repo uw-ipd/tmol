@@ -2,6 +2,7 @@
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 
+#include <tmol/score/common/count_pair.hh>
 #include <tmol/score/common/data_loading.hh>
 #include <tmol/score/elec/potentials/params.hh>
 #include <tmol/score/elec/potentials/potentials.hh>
@@ -48,11 +49,11 @@ struct ElecBlockPairSharedData {
   Real coords2[TILE_SIZE * 3];
   Real charges1[TILE_SIZE];  // 256 bytes for params
   Real charges2[TILE_SIZE];
-  unsigned char conn_ats1[MAX_N_CONN];  // 8 bytes
+  unsigned char conn_ats1[MAX_N_CONN];  // 12 bytes
   unsigned char conn_ats2[MAX_N_CONN];
-  unsigned char path_dist1[MAX_N_CONN * TILE_SIZE];  // 256 bytes
+  unsigned char path_dist1[MAX_N_CONN * TILE_SIZE];  // 384 bytes
   unsigned char path_dist2[MAX_N_CONN * TILE_SIZE];
-  unsigned char conn_seps[MAX_N_CONN * MAX_N_CONN];  // 64 bytes
+  unsigned char conn_seps[MAX_N_CONN * MAX_N_CONN];  // 144 bytes
 };
 
 template <
@@ -131,10 +132,10 @@ template <
     int MAX_N_CONN>
 void TMOL_DEVICE_FUNC elec_load_tile_invariant_interres_data(
     TView<Int, 1, D> rot_coord_offset,
-    TView<Int, 3, D> pose_stack_min_bond_separation,
+    TView<Int, 4, D> pose_stack_near_blocks,
     TView<Int, 1, D> block_type_n_interblock_bonds,
     TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
-    TView<Int, 5, D> pose_stack_inter_block_bondsep,
+    TView<int8_t, 5, D> pose_stack_inter_block_bondsep,
     TView<ElecGlobalParams<Real>, 1, D> global_params,
     int const max_important_bond_separation,
     int pose_ind,
@@ -156,8 +157,10 @@ void TMOL_DEVICE_FUNC elec_load_tile_invariant_interres_data(
   inter_dat.r1.rot_coord_offset = rot_coord_offset[rot_ind1];
   inter_dat.r2.rot_coord_offset = rot_coord_offset[rot_ind2];
   inter_dat.max_important_bond_separation = max_important_bond_separation;
+  int const near_slot = common::count_pair::near_block_slot(
+      pose_stack_near_blocks[pose_ind][block_ind1], block_ind2);
   inter_dat.min_separation =
-      pose_stack_min_bond_separation[pose_ind][block_ind1][block_ind2];
+      pose_stack_near_blocks[pose_ind][block_ind1][near_slot][1];
   inter_dat.in_count_pair_striking_dist =
       inter_dat.min_separation <= max_important_bond_separation;
   inter_dat.r1.n_atoms = n_atoms1;
@@ -198,7 +201,7 @@ void TMOL_DEVICE_FUNC elec_load_tile_invariant_interres_data(
           int conn1 = conn_ind / inter_dat.r2.n_conn;
           int conn2 = conn_ind % inter_dat.r2.n_conn;
           shared_m.conn_seps[conn_ind] =
-              pose_stack_inter_block_bondsep[pose_ind][block_ind1][block_ind2]
+              pose_stack_inter_block_bondsep[pose_ind][block_ind1][near_slot]
                                             [conn1][conn2];
         }
       }

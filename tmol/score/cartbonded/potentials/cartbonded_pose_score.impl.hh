@@ -229,6 +229,7 @@ TMOL_DEVICE_FUNC void evaluate_connection_paths(
     int conn_ind2,
     TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
     TView<Int, 1, D> block_type_is_fragment,
+    TView<Int, 2, D> atom_is_rosetta,
     TView<Int, 2, D> atom_unique_ids,
     TView<Int, 2, D> atom_wildcard_ids,
     TView<Int, 2, D> atom_cross_ids,
@@ -260,9 +261,7 @@ TMOL_DEVICE_FUNC void evaluate_connection_paths(
       return;
     }
   }
-  // no cross-residue torsion parameter exists; the two amide impropers
-  // are enumerated separately because they are not bonded paths
-  int n_connection_spanning_subgraphs = common::NUM_INTER_RES_PATHS_THRU_ANGLE;
+  int n_connection_spanning_subgraphs = common::NUM_INTER_RES_PATHS;
   for (int i = tid; i < 2 * n_connection_spanning_subgraphs; i += nt) {
     bool reverse = i % 2 == 1;
     // interleave the subgraphs from the two directions so we can have
@@ -302,6 +301,19 @@ TMOL_DEVICE_FUNC void evaluate_connection_paths(
     // Calculate the size of each path
     Int resA_size = (resA_atom_indices.array() != -1).count();
     Int resB_size = (resB_atom_indices.array() != -1).count();
+
+    if (resA_size + resB_size == 4) {
+      // genbonded scores a torsion unless both central atoms are Rosetta-typed
+      bool rosetta_owned = true;
+      for (int pos = 1; pos <= 2; ++pos) {
+        bool const in_a = pos < resA_size;
+        Int const local =
+            in_a ? resA_path[3 - resA_size + pos] : resB_path[pos - resA_size];
+        rosetta_owned &=
+            atom_is_rosetta[in_a ? block_typeA : block_typeB][local] != 0;
+      }
+      if (!rosetta_owned) continue;
+    }
 
     // Prefer exact parameters when both blocks share a residue base name,
     // then fall back to the historical unique/wildcard and
@@ -666,6 +678,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
             conn_ind2,
             atom_paths_from_conn,
             block_type_is_fragment,
+            atom_is_rosetta,
             atom_unique_ids,
             atom_wildcard_ids,
             atom_cross_ids,
@@ -1039,6 +1052,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
             conn_ind2,
             atom_paths_from_conn,
             block_type_is_fragment,
+            atom_is_rosetta,
             atom_unique_ids,
             atom_wildcard_ids,
             atom_cross_ids,
@@ -1497,6 +1511,7 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
             conn_ind2,
             atom_paths_from_conn,
             block_type_is_fragment,
+            atom_is_rosetta,
             atom_unique_ids,
             atom_wildcard_ids,
             atom_cross_ids,
@@ -1834,6 +1849,7 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
             conn_ind2,
             atom_paths_from_conn,
             block_type_is_fragment,
+            atom_is_rosetta,
             atom_unique_ids,
             atom_wildcard_ids,
             atom_cross_ids,

@@ -12,6 +12,7 @@ from ._genbonded_creator import GenBondedTermCreator  # noqa: F401
 from ._hbond_creator import HBondTermCreator  # noqa: F401
 from ._ljlk_creator import LJLKTermCreator  # noqa: F401
 from ._lk_ball_creator import LKBallTermCreator  # noqa: F401
+from ._metal_coordination_creator import MetalCoordinationTermCreator  # noqa: F401
 from ._na_torsion_creator import NaTorsionTermCreator  # noqa: F401
 from ._ref_creator import RefTermCreator  # noqa: F401
 
@@ -26,6 +27,7 @@ __all__ = [
     "HBondTermCreator",
     "LJLKTermCreator",
     "LKBallTermCreator",
+    "MetalCoordinationTermCreator",
     "NaTorsionTermCreator",
     "RefTermCreator",
     "ScoreTermFactory",

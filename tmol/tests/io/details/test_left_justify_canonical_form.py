@@ -69,7 +69,8 @@ def add_two_res_at_end(x, fill_value):
 
 def cf_as_tuple_from_pdb_lines(co, pdblines, device):
     cf = canonical_form_from_pdb(co, pdblines, device)
-    return tuple([*cf])
+    # the leading fields, through covalent_bonds, that the tests unpack
+    return tuple([*cf])[:12]
 
 
 def not_any_nancoord(coords):

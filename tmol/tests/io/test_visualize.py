@@ -28,6 +28,12 @@ def _atom_array() -> struc.AtomArray:
     return atoms
 
 
+def _stub_ipython_display(monkeypatch):
+    display = SimpleNamespace(HTML=lambda data: SimpleNamespace(data=data))
+    monkeypatch.setitem(sys.modules, "IPython", SimpleNamespace(display=display))
+    monkeypatch.setitem(sys.modules, "IPython.display", display)
+
+
 def test_module_import_does_not_require_display_dependencies(monkeypatch):
     module_path = Path(visualize.__file__)
     spec = importlib.util.spec_from_file_location(
@@ -127,6 +133,7 @@ def test_view_rejects_invalid_highlight_masks(monkeypatch, mask, error):
 
 
 def test_switchable_view_escapes_payload_and_uses_unique_ids(monkeypatch):
+    _stub_ipython_display(monkeypatch)
     monkeypatch.setitem(
         sys.modules,
         "py3Dmol",
@@ -150,7 +157,10 @@ def test_switchable_view_escapes_payload_and_uses_unique_ids(monkeypatch):
     assert "window.dispatchEvent(new Event('resize'))" in first.data
 
 
-def test_selection_gallery_uses_one_switchable_viewer_and_escapes_payload():
+def test_selection_gallery_uses_one_switchable_viewer_and_escapes_payload(
+    monkeypatch,
+):
+    _stub_ipython_display(monkeypatch)
     atoms = _atom_array()
     unsafe_label = "</script><selected>"
     unsafe_note = "</script><note>"

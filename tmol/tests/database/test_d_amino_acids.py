@@ -59,12 +59,10 @@ def test_every_chiral_l_residue_has_a_mirror() -> None:
 def test_d_residues_reference_their_l_form() -> None:
     param_db = ParameterDatabase.get_default()
     for l_rt, d_rt in base_pairs(param_db):
-        assert d_rt.rama_reference == l_rt.name
-        # The reference names the l form this mirrors -- except where the l form
-        # itself borrows another library. Mirrored libraries are built only for
-        # l names with a lookup row of their own, so HIS_POS, which reads HIS's,
-        # mirrors to nothing and DHIS_POS must name DHIS outright or it gets no
-        # rotamers at all.
+        # backbone tables follow the l form's own reference, mirrored
+        assert d_rt.rama_reference == (l_rt.rama_reference or l_rt.name)
+        # the rotamer reference names the l form, or the mirror of the library
+        #    it borrows
         borrowed = l_rt.dunbrack_reference not in (None, l_rt.base_name)
         assert d_rt.dunbrack_reference == (
             "D" + l_rt.dunbrack_reference if borrowed else l_rt.base_name
@@ -168,10 +166,15 @@ def test_every_polymer_class_has_default_termini() -> None:
 
     co = default_canonical_ordering()
     mapping = co.restypes_default_termini_mapping
+    polymer_classes = {
+        rt.io_equiv_class
+        for rt in ParameterDatabase.get_default().chemical.residues
+        if rt.properties.polymer.is_polymer
+    }
     uncovered = [
         equiv
         for equiv in co.restype_io_equiv_classes
-        if equiv not in mapping and equiv not in ("HOH", "VRT")
+        if equiv not in mapping and equiv in polymer_classes
     ]
     assert uncovered == []
     assert mapping["DAL"] == ("nterm", "cterm")

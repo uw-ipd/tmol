@@ -88,12 +88,12 @@ def test_jagged_reasonable_fold_forest(
 
 
 # Two synthetic block types for the connectivity-only tests below.
-# Type 0 is a polymer residue: down in slot 0, up in slot 1, the disulfide in
-# slot 2, and slot 3 free for a conjugation. Type 1 is a non-polymer residue
+# Type 0 is a polymer residue: down in slot 0, up in slot 1, a non-kinematic
+# disulfide in slot 2, and slot 3 free for a conjugation. Type 1 is a non-polymer residue
 # (a sugar, a ligand) whose four connections are all conjugations.
 _UP_C = numpy.array([1, -1], dtype=numpy.int64)
 _DOWN_C = numpy.array([0, -1], dtype=numpy.int64)
-_DSLF_C = numpy.array([2, -1], dtype=numpy.int64)
+_KINEMATIC_C = numpy.array([[1, 1, 0, 1], [1, 1, 1, 1]], dtype=bool)
 _N_CONN = numpy.array([4, 4], dtype=numpy.int64)
 
 
@@ -122,7 +122,7 @@ def _linear_polymer_pose(segments, chain_ids, block_types=None, bonds=()):
         irc,
         _UP_C,
         _DOWN_C,
-        _DSLF_C,
+        _KINEMATIC_C,
         _N_CONN,
         numpy.array(chain_ids, dtype=numpy.int64),
     )

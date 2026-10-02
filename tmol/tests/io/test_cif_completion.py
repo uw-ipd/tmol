@@ -27,7 +27,7 @@ def test_insertion_codes_keep_missing_atoms_local():
     first.coord[:] = 1
     second.coord[:] = 2
     original = struc.concatenate([first, second])
-    result = _cif.with_unresolved_atoms(original, {"ZZZ": template}, use_ccd=False)
+    result = _cif.with_unresolved_atoms(original, {"ZZZ": template})
     assert result.array_length() == 6
     np.testing.assert_array_equal(result.ins_code, ["A"] * 3 + ["B"] * 3)
     np.testing.assert_array_equal(result.atom_name, ["C1", "C2", "C3"] * 2)
@@ -49,7 +49,7 @@ def test_insertion_codes_keep_missing_atoms_local():
     partner.res_id[:] = 2
     original = struc.concatenate([first, second, partner])
     original.bonds.add_bond(1, 4, struc.BondType.SINGLE)
-    result = _cif.with_unresolved_atoms(original, {"ZZZ": template}, use_ccd=False)
+    result = _cif.with_unresolved_atoms(original, {"ZZZ": template})
     free = result[(result.res_id == 1) & (result.ins_code == "B")]
     attached = result[(result.res_id == 1) & (result.ins_code == "A")]
     assert list(free.atom_name) == ["C1", "C2", "C3"]
@@ -94,7 +94,7 @@ def test_inserted_atoms_remap_existing_cross_residue_bonds():
     original.bonds.add_bond(0, 2, struc.BondType.SINGLE)
     original_bonds = original.bonds.as_array().copy()
     template.set_annotation("atom_name", np.array(["C1", "C2", "UNRESOLVED_CARBON"]))
-    result = _cif.with_unresolved_atoms(original, {"ZZZ": template}, use_ccd=False)
+    result = _cif.with_unresolved_atoms(original, {"ZZZ": template})
     assert list(result.atom_name) == ["C1", "C2", "UNRESOLVED_CARBON"] * 2
     assert {tuple(b) for b in result.bonds.as_array()} == {
         (0, 1, 1),
@@ -111,7 +111,7 @@ def test_numbered_hydrogen_names_do_not_block_heavy_atom_completion():
     residue = template.copy()
     residue.atom_name[-1] = "1H"
     residue.element[-1] = "H"
-    result = _cif.with_unresolved_atoms(residue, {"ZZZ": template}, use_ccd=False)
+    result = _cif.with_unresolved_atoms(residue, {"ZZZ": template})
     assert list(result.atom_name) == ["C1", "C2", "1H", "C3"]
 
 

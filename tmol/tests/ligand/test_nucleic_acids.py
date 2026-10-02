@@ -30,6 +30,7 @@ from tmol.ligand._polymer_profile import (
     glycosidic_torsion_atoms,
     na_backbone_kind,
     na_profile,
+    profile_for_atom_array,
 )
 from tmol.tests.data import data_path
 
@@ -124,6 +125,20 @@ def test_a_fused_dinucleotide_is_not_a_standard_backbone() -> None:
     component = _component("TTD")
     assert {"P", "PB"} <= {str(n) for n in component.atom_name}
     assert na_backbone_kind(component, frozenset({"P", "O3'"})) is None
+
+
+@pytest.mark.parametrize("code", ["DDG", "DOC"])
+def test_a_3_prime_deoxy_nucleotide_ends_its_chain_at_c3(code: str) -> None:
+    """A dideoxy chain terminator has no O3': the backbone stops at C3'."""
+    profile = profile_for_atom_array(_component(code), frozenset({"P"}))
+    assert profile.down == ("down", "P") and profile.up is None
+    assert profile.mainchain_atoms[-1] == "C3'"
+
+
+def test_an_abasic_nucleotide_is_a_backbone_not_a_sugar() -> None:
+    """AAB's C1' hydroxyl makes it look like a sugar; its backbone wins."""
+    profile = profile_for_atom_array(_component("AAB"), frozenset({"P", "O3'"}))
+    assert profile is not None and profile.up == ("up", "O3'")
 
 
 # --------------------------------------------------------------------------- #
@@ -374,3 +389,58 @@ def test_every_variant_builds_finite_ideal_coordinates(stem: str) -> None:
         if not np.isfinite(refined.compute_ideal_coords()).all():
             bad.append(restype.name)
     assert bad == []
+
+
+def _sweep_structure(stem: str):
+    from tmol.io import atom_array_from_cif
+
+    return atom_array_from_cif(data_path("sweep_regressions", f"{stem}.cif.zst"))
+
+
+def _block_type_names(structure, device):
+    from tmol.io import pose_stack_from_biotite
+
+    pose = pose_stack_from_biotite(
+        structure, device, prepare_ligands=True, ligand_seed=0, no_optH=True
+    )
+    types = pose.packed_block_types.active_block_types
+    names = [types[i].name for i in pose.block_type_ind64[0].tolist() if i >= 0]
+    return names, pose.packed_block_types.chem_db
+
+
+def test_a_substituted_five_prime_oxygen_leaves_no_five_prime_port() -> None:
+    """1CX5 A:7 MMT's 5' oxygen bonds the methylimino link to the previous residue.
+
+    No phosphate is grafted onto that ether: the type keeps only its 3' port,
+    and the link at C3X is a conjugation.
+    """
+    prepared, _known, _co = _prepared(_sweep_structure("mmt_5prime_ether_1cx5"))
+    types = {r.name: r for r in prepared.chemical.residues if r.base_name == "MMT"}
+
+    assert "P" not in {a.name for a in types["MMT"].atoms}
+    assert {c.name for c in types["MMT"].connections} == {"up"}
+    assert "MMT:conj_C3X" in types
+
+
+def test_a_substituted_three_prime_oxygen_leaves_no_three_prime_port(
+    torch_device,
+) -> None:
+    """CCC's 3' oxygen closes its 2',3'-cyclic phosphate (1hq1 B178), so the
+    chain-end copy is no 3' terminus: nothing puts a hydrogen on that O3'."""
+    names, _chemdb = _block_type_names(
+        _sweep_structure("cyclic_phosphate_3prime_1hq1"), torch_device
+    )
+
+    assert names == ["RC:na5primephos", "CCC"]
+
+
+def test_the_component_definition_breaks_a_leaving_oxygen_tie(torch_device) -> None:
+    """LCC's 5'-terminal copy is completed with the definition's O1P and OXT.
+
+    Both are terminal hydroxyls on P; the definition declares OXT as leaving,
+    so O1P stays, as in the copies inside the chain (6C8D A:1-A:3).
+    """
+    structure = _sweep_structure("lcc_leaving_atoms_6c8d")
+    names, _chemdb = _block_type_names(structure, torch_device)
+
+    assert names == ["LCC:na5prime", "LCC", "LCC", "LCG", "RA:na3prime"]
