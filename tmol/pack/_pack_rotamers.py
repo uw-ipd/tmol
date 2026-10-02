@@ -27,18 +27,31 @@ def pack_rotamers(
     sfxn: ScoreFunction,
     task: PackerTask,
     verbose: bool = False,
+    seed: int | None = None,
 ) -> PoseStack:
     """Optimize side-chain conformers for a pose stack.
+
+    The annealer draws from torch's generator on the pose device, so
+    ``torch.manual_seed`` controls it on the CPU as on CUDA.
 
     Args:
         pose_stack: Poses whose task-enabled blocks will be packed.
         sfxn: Score function used to rank rotamer assignments.
         task: Allowed block types, conformers, and packing positions.
         verbose: Print synchronized stage timings when true.
+        seed: Seed for this call only, leaving torch's global random state unchanged.
 
     Returns:
         A new pose stack containing the lowest-ranked assignment per pose.
     """
+    if seed is not None:
+        cuda = pose_stack.device.type == "cuda"
+        with torch.random.fork_rng(devices=[pose_stack.device] if cuda else []):
+            torch.random.default_generator.manual_seed(seed)
+            if cuda:
+                with torch.cuda.device(pose_stack.device):
+                    torch.cuda.manual_seed(seed)
+            return pack_rotamers(pose_stack, sfxn, task, verbose=verbose)
 
     max_poses_per_chunk = _max_poses_per_packing_chunk(pose_stack)
     if pose_stack.n_poses > max_poses_per_chunk:
