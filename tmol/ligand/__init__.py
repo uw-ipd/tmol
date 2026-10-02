@@ -10,7 +10,6 @@ from ._atom_typing import (  # noqa: F401
     HYB_SP3,
     RosettaTypingState,
     _assign_missing_hybridization,
-    _bond_is_planar,
     _build_rosetta_typing_state,
     _classify_H,
     _classify_N,
@@ -35,7 +34,6 @@ from ._atom_typing import (  # noqa: F401
 from ._chemistry_tables import (  # noqa: F401
     get_hbond_properties,
     get_polar_classes,
-    get_sp2_atom_types,
 )  # noqa: F401
 from ._chi_topology import MAX_CONFS, build_chi_topology  # noqa: F401
 from ._conformer_generation import (  # noqa: F401
@@ -105,10 +103,7 @@ from ._openbabel_compat import (  # noqa: F401
     _import_openbabel,
     _obmol_to_rdkit_mol,
     normalize_azide,
-    obabel_read_mol2,
     obabel_read_mol2_block,
-    obabel_smiles_to_mol2,
-    obabel_smiles_to_mol2_block,
     strip_nontetrahedral_stereo,
 )  # noqa: F401
 from ._params_file import (  # noqa: F401
@@ -125,7 +120,6 @@ from ._preparation import (  # noqa: F401
     LigandPreparationError,
     _ligand_info_from_cif,
     _prepare_ligand_via_smiles,
-    _residue_covers_cif_heavy_atoms,
     prepare_ligand_from_cif,
     prepare_ligand_from_mol2,
     prepare_ligand_from_smiles,

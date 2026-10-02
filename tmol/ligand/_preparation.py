@@ -950,18 +950,6 @@ def _missing_cif_heavy_atom_names(
     return cif_heavy_names - restype_heavy
 
 
-def _residue_covers_cif_heavy_atoms(
-    prep: LigandPreparation, cif_heavy_names: set[str]
-) -> bool:
-    """Return True if the prepared residue carries every CIF heavy-atom name.
-
-    When the SMILES-derived residue's heavy-atom names are a superset of the
-    CIF ligand's heavy-atom names, pose-build can place every CIF heavy-atom
-    coordinate by ``(res_name, atom_name)`` match.
-    """
-    return not _missing_cif_heavy_atom_names(prep, cif_heavy_names)
-
-
 def _prepare_ligand_via_smiles(
     ligand_info: NonStandardResidueInfo,
     *,

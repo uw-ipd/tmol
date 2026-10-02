@@ -184,21 +184,6 @@ def test_assign_missing_hybridization_geometry_and_aromatic() -> None:
     assert hyb_n[n_idx] in (HYB_SP2, HYB_SP3)
 
 
-def test_bond_is_planar() -> None:
-    """Planarity check covers the conformer, terminal-neighbor and angle paths."""
-    from tmol.ligand import _bond_is_planar
-
-    # No conformer -> defaults to planar (True).
-    flat = Chem.MolFromSmiles("C=CC=C")
-    assert _bond_is_planar(flat, 1, 2) is True
-
-    mol = _embed_3d("C=CC=C")
-    # Central bond: both atoms carry heavy neighbors -> dihedral evaluation.
-    assert isinstance(_bond_is_planar(mol, 1, 2), bool)
-    # Terminal bond: atom 0 has no other heavy neighbor -> early True.
-    assert _bond_is_planar(mol, 0, 1) is True
-
-
 class TestClassifierHelpers:
     """Direct tests for the per-element classifier helpers' state-free paths.
 

@@ -1,6 +1,5 @@
-from tmol.database._yaml import safe_load
+from tmol.database._yaml import load_yaml, existing_paths
 
-import os
 
 import attr
 import cattr
@@ -12,11 +11,7 @@ class RefDatabase:
 
     @classmethod
     def from_file(cls, path, generated=()):
-        with open(path, "r") as infile:
-            raw = safe_load(infile)
-        for extra in generated:
-            if not os.path.exists(extra):
-                continue
-            with open(extra, "r") as infile:
-                raw["weights"].update(safe_load(infile)["weights"])
+        raw = load_yaml(path)
+        for extra in existing_paths(generated):
+            raw["weights"].update(load_yaml(extra)["weights"])
         return cattr.structure(raw, cls)

@@ -185,35 +185,19 @@ def assign_block_types(
         nz_res_is_poly_and_conn_to_next_res_ind,
     ) = torch.nonzero(res_is_polymeric_and_conn_to_next, as_tuple=True)
 
-    # now let's mark for each upper-connect the residue and
-    # connection id it's connected to
-    inter_residue_connections64[
-        nz_res_is_poly_and_conn_to_next_pose_ind,
-        nz_res_is_poly_and_conn_to_next_res_ind,
-        connected_up_conn_inds,
-        0,  # residue id
-    ] = nz_res_is_poly_and_conn_to_prev_res_ind
-    inter_residue_connections64[
-        nz_res_is_poly_and_conn_to_next_pose_ind,
-        nz_res_is_poly_and_conn_to_next_res_ind,
-        connected_up_conn_inds,
-        1,  # connection id
-    ] = connected_down_conn_inds
+    # mark each connection with the residue and connection on its other side
+    def join(pose1, res1, conn1, pose2, res2, conn2):
+        inter_residue_connections64[pose1, res1, conn1] = torch.stack((res2, conn2), -1)
+        inter_residue_connections64[pose2, res2, conn2] = torch.stack((res1, conn1), -1)
 
-    # now let's mark for each lower-connect the residue and
-    # connection id it's connected to
-    inter_residue_connections64[
+    join(
+        nz_res_is_poly_and_conn_to_next_pose_ind,
+        nz_res_is_poly_and_conn_to_next_res_ind,
+        connected_up_conn_inds,
         nz_res_is_poly_and_conn_to_prev_pose_ind,
         nz_res_is_poly_and_conn_to_prev_res_ind,
         connected_down_conn_inds,
-        0,  # residue id
-    ] = nz_res_is_poly_and_conn_to_next_res_ind
-    inter_residue_connections64[
-        nz_res_is_poly_and_conn_to_prev_pose_ind,
-        nz_res_is_poly_and_conn_to_prev_res_ind,
-        connected_down_conn_inds,
-        1,  # connection id
-    ] = connected_up_conn_inds
+    )
 
     # if we have any disulfides, then we need to also mark those
     # connections in the inter_residue_connections64 map
@@ -233,19 +217,14 @@ def assign_block_types(
         cyd2_dslf_conn64 = pbt.canonical_dslf_conn_ind[cyd2_block_type64].to(
             torch.int64
         )
-
-        inter_residue_connections64[
-            found_disulfides64[:, 0], found_disulfides64[:, 1], cyd1_dslf_conn64, 0
-        ] = found_disulfides64[:, 2]
-        inter_residue_connections64[
-            found_disulfides64[:, 0], found_disulfides64[:, 1], cyd1_dslf_conn64, 1
-        ] = cyd2_dslf_conn64
-        inter_residue_connections64[
-            found_disulfides64[:, 0], found_disulfides64[:, 2], cyd2_dslf_conn64, 0
-        ] = found_disulfides64[:, 1]
-        inter_residue_connections64[
-            found_disulfides64[:, 0], found_disulfides64[:, 2], cyd2_dslf_conn64, 1
-        ] = cyd1_dslf_conn64
+        join(
+            found_disulfides64[:, 0],
+            found_disulfides64[:, 1],
+            cyd1_dslf_conn64,
+            found_disulfides64[:, 0],
+            found_disulfides64[:, 2],
+            cyd2_dslf_conn64,
+        )
 
     # a cyclic chain's closing bond joins two residues the sequential logic
     # above deliberately skipped, so write it from the explicit pair list
@@ -259,18 +238,8 @@ def assign_block_types(
         cyc_down_conn64 = pbt.down_conn_inds[
             block_type_ind64[cyc_pose, cyc_down_res]
         ].to(torch.int64)
-
-        inter_residue_connections64[cyc_pose, cyc_up_res, cyc_up_conn64, 0] = (
-            cyc_down_res
-        )
-        inter_residue_connections64[cyc_pose, cyc_up_res, cyc_up_conn64, 1] = (
-            cyc_down_conn64
-        )
-        inter_residue_connections64[cyc_pose, cyc_down_res, cyc_down_conn64, 0] = (
-            cyc_up_res
-        )
-        inter_residue_connections64[cyc_pose, cyc_down_res, cyc_down_conn64, 1] = (
-            cyc_up_conn64
+        join(
+            cyc_pose, cyc_up_res, cyc_up_conn64, cyc_pose, cyc_down_res, cyc_down_conn64
         )
 
     # a conjugation joins two residues through connections neither of them
@@ -630,12 +599,6 @@ def select_best_block_type_candidate(  # noqa: C901
         dtype=torch.bool,
         device=device,
     )
-    block_type_candidates[is_real_res] = can_ann.var_combo_candidate_bt_index[
-        res_types64[is_real_res],
-        termini_variants[is_real_res],
-        res_type_variants64[is_real_res],
-    ]
-
     real_res_res_types64 = res_types64[is_real_res]
     real_res_termini_variants = termini_variants[is_real_res]
     real_res_res_type_variants64 = res_type_variants64[is_real_res]
@@ -643,15 +606,11 @@ def select_best_block_type_candidate(  # noqa: C901
     real_res_block_type_candidates = can_ann.var_combo_candidate_bt_index[
         real_res_res_types64, real_res_termini_variants, real_res_res_type_variants64
     ]
-
-    is_real_candidate[is_real_res] = can_ann.var_combo_is_real_candidate[
-        res_types64[is_real_res],
-        termini_variants[is_real_res],
-        res_type_variants64[is_real_res],
-    ]
     is_real_cand_for_real_res = can_ann.var_combo_is_real_candidate[
         real_res_res_types64, real_res_termini_variants, real_res_res_type_variants64
     ]
+    block_type_candidates[is_real_res] = real_res_block_type_candidates
+    is_real_candidate[is_real_res] = is_real_cand_for_real_res
     real_candidate_block_type = real_res_block_type_candidates[
         is_real_cand_for_real_res
     ]
@@ -874,26 +833,24 @@ def take_block_type_atoms_from_canonical(
             & real_atoms
         )
 
-    canonical_atom_occupancy = None
-    if atom_occupancy is not None:
-        canonical_atom_occupancy = numpy.zeros(
-            (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=numpy.float32
-        )
-        canonical_atom_occupancy[real_atoms.cpu().numpy()] = atom_occupancy[
+    canonical_atom_occupancy = canonical_atom_b_factor = None
+    if atom_occupancy is not None or atom_b_factor is not None:
+        real_atoms_n = real_atoms.cpu().numpy()
+        source = (
             nz_real_pose_ind.cpu().numpy(),
             nz_real_block_ind.cpu().numpy(),
             real_canonical_atom_inds.cpu().numpy(),
-        ]
-    canonical_atom_b_factor = None
-    if atom_b_factor is not None:
-        canonical_atom_b_factor = numpy.zeros(
-            (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=numpy.float32
         )
-        canonical_atom_b_factor[real_atoms.cpu().numpy()] = atom_b_factor[
-            nz_real_pose_ind.cpu().numpy(),
-            nz_real_block_ind.cpu().numpy(),
-            real_canonical_atom_inds.cpu().numpy(),
-        ]
+
+        def block_layout(values):
+            if values is None:
+                return None
+            laid_out = numpy.zeros(real_atoms_n.shape, dtype=numpy.float32)
+            laid_out[real_atoms_n] = values[source]
+            return laid_out
+
+        canonical_atom_occupancy = block_layout(atom_occupancy)
+        canonical_atom_b_factor = block_layout(atom_b_factor)
 
     return (
         block_coords,
@@ -911,8 +868,6 @@ class CanonicalOrderingAnnotation:
     # n-co-equiv-class
     co_equiv_class_is_polymeric: Tensor[torch.bool][:]
     co_polymer_connection_atoms: Tensor[torch.int64][:, 2]
-    # n-co-equiv-class x n-term-opts x n-spcase-var
-    var_combo_n_candidates: Tensor[torch.int64][:, :, :]
     # n-co-equiv-class x n-term-opts x n-spcase-var x max-n-candidates
     var_combo_is_real_candidate: Tensor[torch.bool][:, :, :, :]
     # n-co-equiv-class x n-term-opts x n-spcase-var x max-n-candidates
@@ -943,12 +898,7 @@ def _map_term_to_int(is_down_term, is_up_term):
 
 
 def _term_and_spcase_var_candidate_lists(max_n_term, max_n_spcase):
-    candidates = []
-    for i in range(max_n_term):
-        candidates.append([])
-        for j in range(max_n_spcase):
-            candidates[i].append([])
-    return candidates
+    return [[[] for _ in range(max_n_spcase)] for _ in range(max_n_term)]
 
 
 def _assign_var_inds_for_bt(co, bt):
@@ -1017,34 +967,18 @@ def _collect_var_combo_candidates(
         dtype=torch.bool,
         device=torch.device("cpu"),
     )
-    var_combo_n_candidates = torch.zeros(
-        (
-            n_co_io_equiv_classes,
-            max_n_termini_types,
-            max_n_special_case_aa_variant_types,
-        ),
-        dtype=torch.int64,
-        device=torch.device("cpu"),
-    )
 
     for i, bt_name3 in enumerate(co.restype_io_equiv_classes):
         if bt_name3 not in pbt_io_equiv_class_candidates:
             continue
         for j in range(max_n_termini_types):
             for k in range(max_n_special_case_aa_variant_types):
-                var_combo_n_candidates[i, j, k] = len(
-                    pbt_io_equiv_class_candidates[bt_name3][j][k]
-                )
                 for candidate, (bt, bt_ind) in enumerate(
                     pbt_io_equiv_class_candidates[bt_name3][j][k]
                 ):
                     var_combo_candidate_bt_index[i, j, k, candidate] = bt_ind
                     var_combo_is_real_candidate[i, j, k, candidate] = True
-    return (
-        var_combo_candidate_bt_index,
-        var_combo_is_real_candidate,
-        var_combo_n_candidates,
-    )
+    return var_combo_candidate_bt_index, var_combo_is_real_candidate
 
 
 def _note_atoms_present_and_absent_from_variants(co, pbt: PackedBlockTypes):
@@ -1184,16 +1118,14 @@ def _annotate_packed_block_types_w_canonical_res_order(
         co, n_co_io_equiv_classes, bts_for_equiv_class
     )
 
-    (
-        var_combo_candidate_bt_index,
-        var_combo_is_real_candidate,
-        var_combo_n_candidates,
-    ) = _collect_var_combo_candidates(
-        co,
-        max_n_termini_types,
-        max_n_special_case_aa_variant_types,
-        max_n_candidates_for_var_combo,
-        pbt_io_equiv_class_candidates,
+    var_combo_candidate_bt_index, var_combo_is_real_candidate = (
+        _collect_var_combo_candidates(
+            co,
+            max_n_termini_types,
+            max_n_special_case_aa_variant_types,
+            max_n_candidates_for_var_combo,
+            pbt_io_equiv_class_candidates,
+        )
     )
 
     bt_canonical_atom_is_absent, bt_non_term_patch_added_canonical_atom_is_present = (
@@ -1220,7 +1152,6 @@ def _annotate_packed_block_types_w_canonical_res_order(
             dtype=torch.int64,
             device=pbt.device,
         ),
-        var_combo_n_candidates=_d(var_combo_n_candidates),
         var_combo_is_real_candidate=_d(var_combo_is_real_candidate),
         var_combo_candidate_bt_index=_d(var_combo_candidate_bt_index),
         bt_canonical_atom_is_absent=_d(bt_canonical_atom_is_absent),
