@@ -9,6 +9,12 @@ the conformations considered by the packer.
    :imported-members:
    :show-inheritance:
 
+Protonation alternatives
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: tmol.pack.protonation_alternatives
+   :members: ProtonationChoice, block_alternatives, chosen_protonation_variants
+
 Rotamer sampling
 ~~~~~~~~~~~~~~~~
 
