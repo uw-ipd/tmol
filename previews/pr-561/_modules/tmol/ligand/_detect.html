@@ -869,6 +869,20 @@
     <span class="n">mol</span><span class="o">.</span><span class="n">GetConformer</span><span class="p">()</span><span class="o">.</span><span class="n">SetPositions</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">coordinates</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
     <span class="n">synthesized_charges</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">_infer_oxyacid_bonds</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">declared_charges</span><span class="p">,</span> <span class="n">delocalized_bonds</span><span class="p">,</span> <span class="n">synthesized_charges</span><span class="p">)</span>
+    <span class="c1"># O.co2 also states an oxyanion when its bonds are already localized.</span>
+    <span class="c1"># OpenBabel otherwise leaves singly bonded phosphate oxygens as radicals.</span>
+    <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">():</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">index</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">declared_charges</span>
+            <span class="ow">and</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetProp</span><span class="p">(</span><span class="s2">"_TriposAtomType"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"O.co2"</span>
+            <span class="ow">and</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetDegree</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="p">):</span>
+            <span class="n">bond</span> <span class="o">=</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">bond</span><span class="o">.</span><span class="n">GetBondType</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">SINGLE</span><span class="p">,</span> <span class="n">Chem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">):</span>
+                <span class="n">charge</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">bond</span><span class="o">.</span><span class="n">GetBondTypeAsDouble</span><span class="p">())</span> <span class="o">-</span> <span class="mi">2</span>
+                <span class="n">atom</span><span class="o">.</span><span class="n">SetFormalCharge</span><span class="p">(</span><span class="n">charge</span><span class="p">)</span>
+                <span class="n">synthesized_charges</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">charge</span>
     <span class="k">return</span> <span class="n">declared_charges</span><span class="p">,</span> <span class="n">synthesized_charges</span>
 
 
@@ -980,20 +994,33 @@
     <span class="n">probe</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
     <span class="n">invalid</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">SanitizeMol</span><span class="p">(</span><span class="n">probe</span><span class="p">,</span> <span class="n">catchErrors</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
     <span class="n">charge_model</span> <span class="o">=</span> <span class="n">_mol2_charge_model_from_text</span><span class="p">(</span><span class="n">mol2_block</span><span class="p">)</span>
-    <span class="c1"># Tripos ``ar`` bonds carry no kekulization, so a reader that picks the</span>
-    <span class="c1"># wrong Kekule structure can return a sanitizable but different molecule --</span>
-    <span class="c1"># a pyrrole-type ring nitrogen comes back protonated and cationic. The mol2</span>
-    <span class="c1"># records every nonzero formal charge, so a net charge that disagrees with</span>
-    <span class="c1"># what was declared means the chemistry was rewritten, not just perceived.</span>
-    <span class="c1"># Localization legitimately adds charges the file never wrote, so the net to</span>
-    <span class="c1"># compare against is what the file declared plus what localization put</span>
-    <span class="c1"># there. Anything else is the reader having changed the molecule.</span>
+    <span class="n">prepared_net</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">_charge_model_is_authoritative</span><span class="p">(</span><span class="n">charge_model</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span>
+        <span class="n">atom</span><span class="o">.</span><span class="n">HasProp</span><span class="p">(</span><span class="s2">"_TriposPartialCharge"</span><span class="p">)</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()</span>
+    <span class="p">):</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+            <span class="n">atom</span><span class="o">.</span><span class="n">GetDoubleProp</span><span class="p">(</span><span class="s2">"_TriposPartialCharge"</span><span class="p">)</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">total</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">total</span> <span class="o">-</span> <span class="nb">round</span><span class="p">(</span><span class="n">total</span><span class="p">))</span> <span class="o">&lt;=</span> <span class="mf">1e-3</span><span class="p">:</span>
+            <span class="n">prepared_net</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">total</span><span class="p">)</span>
+    <span class="c1"># Aromatic bond types may omit the charge needed for a valid Kekule form.</span>
+    <span class="c1"># Prepared partial charges constrain the total; explicit formal charges</span>
+    <span class="c1"># constrain individual atoms. Without a prepared total, retain the source's</span>
+    <span class="c1"># declared charges plus those implied by oxyacid bond localization.</span>
     <span class="n">declared_net</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">declared_charges</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
-    <span class="n">expected_net</span> <span class="o">=</span> <span class="n">declared_net</span> <span class="o">+</span> <span class="nb">sum</span><span class="p">(</span><span class="n">synthesized_charges</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+    <span class="n">expected_net</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">prepared_net</span>
+        <span class="k">if</span> <span class="n">prepared_net</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">else</span> <span class="n">declared_net</span> <span class="o">+</span> <span class="nb">sum</span><span class="p">(</span><span class="n">synthesized_charges</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+    <span class="p">)</span>
     <span class="n">rewritten</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">invalid</span> <span class="ow">and</span> <span class="n">Chem</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">(</span><span class="n">probe</span><span class="p">)</span> <span class="o">!=</span> <span class="n">expected_net</span>
     <span class="k">if</span> <span class="n">invalid</span> <span class="ow">or</span> <span class="n">rewritten</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">alternate</span> <span class="o">=</span> <span class="n">obabel_read_mol2_block</span><span class="p">(</span><span class="n">mol2_block</span><span class="p">)</span>
+            <span class="n">alternate</span> <span class="o">=</span> <span class="n">obabel_read_mol2_block</span><span class="p">(</span>
+                <span class="n">mol2_block</span><span class="p">,</span>
+                <span class="n">net_charge</span><span class="o">=</span><span class="n">prepared_net</span><span class="p">,</span>
+                <span class="n">atom_charges</span><span class="o">=</span><span class="p">{</span><span class="o">**</span><span class="n">declared_charges</span><span class="p">,</span> <span class="o">**</span><span class="n">synthesized_charges</span><span class="p">},</span>
+            <span class="p">)</span>
         <span class="k">except</span> <span class="n">OpenBabelUnavailableError</span><span class="p">:</span>
             <span class="n">alternate</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">alternate</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">[</span>
@@ -1007,19 +1034,20 @@
                 <span class="n">alternate</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">()</span> <span class="o">==</span> <span class="n">charge</span>
                 <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">charge</span> <span class="ow">in</span> <span class="n">declared_charges</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
             <span class="p">)</span>
+            <span class="n">expected_alternate_net</span> <span class="o">=</span> <span class="n">prepared_net</span>
+            <span class="k">if</span> <span class="n">expected_alternate_net</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">invalid</span><span class="p">:</span>
+                <span class="n">expected_alternate_net</span> <span class="o">=</span> <span class="n">declared_net</span> <span class="o">+</span> <span class="nb">sum</span><span class="p">(</span>
+                    <span class="n">alternate_synthesized</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+                <span class="p">)</span>
             <span class="k">if</span> <span class="p">(</span>
                 <span class="n">preserves_charges</span>
                 <span class="ow">and</span> <span class="ow">not</span> <span class="n">Chem</span><span class="o">.</span><span class="n">SanitizeMol</span><span class="p">(</span><span class="n">alternate</span><span class="p">,</span> <span class="n">catchErrors</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
                 <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span>
                     <span class="n">atom</span><span class="o">.</span><span class="n">GetNumRadicalElectrons</span><span class="p">()</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">alternate</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()</span>
                 <span class="p">)</span>
-                <span class="c1"># When the primary reader is unusable the alternate is the only</span>
-                <span class="c1"># candidate; require the declared net charge only when we are</span>
-                <span class="c1"># rejecting a primary that parsed but rewrote the chemistry.</span>
                 <span class="ow">and</span> <span class="p">(</span>
-                    <span class="n">invalid</span>
-                    <span class="ow">or</span> <span class="n">Chem</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">(</span><span class="n">alternate</span><span class="p">)</span>
-                    <span class="o">==</span> <span class="n">declared_net</span> <span class="o">+</span> <span class="nb">sum</span><span class="p">(</span><span class="n">alternate_synthesized</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+                    <span class="n">expected_alternate_net</span> <span class="ow">is</span> <span class="kc">None</span>
+                    <span class="ow">or</span> <span class="n">Chem</span><span class="o">.</span><span class="n">GetFormalCharge</span><span class="p">(</span><span class="n">alternate</span><span class="p">)</span> <span class="o">==</span> <span class="n">expected_alternate_net</span>
                 <span class="p">)</span>
             <span class="p">):</span>
                 <span class="n">mol</span> <span class="o">=</span> <span class="n">alternate</span>

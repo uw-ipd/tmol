@@ -582,11 +582,19 @@
     <span class="k">return</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromMolBlock</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="n">sanitize</span><span class="o">=</span><span class="n">sanitize</span><span class="p">,</span> <span class="n">removeHs</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">obabel_read_mol2_block</span><span class="p">(</span><span class="n">mol2_block</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">obabel_read_mol2_block</span><span class="p">(</span>
+    <span class="n">mol2_block</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">net_charge</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">atom_charges</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Read a TRIPOS mol2 *string* via OpenBabel and return an RDKit ``Chem.Mol``.</span>
 
 <span class="sd">    Use as a fallback when ``Chem.MolFromMol2Block`` returns ``None``. Returns ``None`` if OB could not</span>
 <span class="sd">    parse the block. Raises :class:`OpenBabelUnavailableError` if OB is missing.</span>
+<span class="sd">    When supplied, ``net_charge`` constrains missing formal-charge assignment;</span>
+<span class="sd">    ``atom_charges`` restores known charges by zero-based atom index first.</span>
+<span class="sd">    The caller must validate the resulting valences and charge constraints.</span>
 <span class="sd">    """</span>
     <span class="n">_</span><span class="p">,</span> <span class="n">pybel</span> <span class="o">=</span> <span class="n">_import_openbabel</span><span class="p">()</span>
     <span class="k">try</span><span class="p">:</span>
@@ -594,6 +602,10 @@
     <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"OpenBabel failed to parse in-memory mol2 block"</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">charge</span> <span class="ow">in</span> <span class="p">(</span><span class="n">atom_charges</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="o">.</span><span class="n">GetAtom</span><span class="p">(</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">SetFormalCharge</span><span class="p">(</span><span class="n">charge</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">net_charge</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="o">.</span><span class="n">AssignTotalChargeToAtoms</span><span class="p">(</span><span class="n">net_charge</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">_obmol_to_rdkit_mol</span><span class="p">(</span><span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="p">)</span>
 
 
