@@ -129,7 +129,10 @@ def test_a_capped_chain_break_is_a_terminus():
     bts = pose.packed_block_types.active_block_types
     labels = pose.pdb_info.residue_labels[0].tolist()
     block = pose.block_type_ind[0, labels.index(382)]
-    assert bts[block].name == "ALA:nterm"
+    # The deposited neutral N has H1/H2: selecting charged ALA:nterm would
+    # invent a third hydrogen. Preserve the supplied terminal chemistry.
+    assert bts[block].name == "ALA:nterm_neutral"
+    assert "H3" not in bts[block].atom_to_idx
 
 
 def _bonded(pose, first, second):

@@ -5,6 +5,6 @@
 
 [![Open Example 02 in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/uw-ipd/tmol/blob/master/notebooks/example_02_model_inputs.ipynb)
 
-Example 02 installs pinned development sources against the runtime's PyTorch. The unpublished AtomWorks dependency currently needs a Colab secret named `ATOMWORKS_TOKEN` with read access to `baker-laboratory/atomworks-dev`. Replace this source dependency with a public release once the companion PR lands. GPU execution needs a CUDA toolkit compatible with the runtime's PyTorch; CPU execution is also supported. Native extensions compile on first use.
+Example 02 installs pinned public tmol and AtomWorks release sources against the runtime's PyTorch. GPU execution needs a CUDA toolkit compatible with the runtime's PyTorch; CPU execution is also supported. Native extensions compile on first use.
 
 In an existing tmol development environment, set `TMOL_EXAMPLE_SOURCE` to the checkout and optionally `TMOL_EXAMPLE_DEVICE=cpu` or `cuda`. This reuses that environment; every subsequent notebook cell is identical. The pytest workflow executes those cells on CPU and CUDA and checks exact supplied C-alpha coordinates, finite scores/gradients, RF2 rebuilt-slot gradients, and repeated fixed-topology guidance.

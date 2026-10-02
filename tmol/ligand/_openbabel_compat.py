@@ -140,11 +140,19 @@ def _obmol_to_rdkit_mol(obmol, *, sanitize: bool = False) -> Optional[Chem.Mol]:
     return Chem.MolFromMolBlock(sdf, sanitize=sanitize, removeHs=False)
 
 
-def obabel_read_mol2_block(mol2_block: str) -> Optional[Chem.Mol]:
+def obabel_read_mol2_block(
+    mol2_block: str,
+    *,
+    net_charge: int | None = None,
+    atom_charges: dict[int, int] | None = None,
+) -> Optional[Chem.Mol]:
     """Read a TRIPOS mol2 *string* via OpenBabel and return an RDKit ``Chem.Mol``.
 
     Use as a fallback when ``Chem.MolFromMol2Block`` returns ``None``. Returns ``None`` if OB could not
     parse the block. Raises :class:`OpenBabelUnavailableError` if OB is missing.
+    When supplied, ``net_charge`` constrains missing formal-charge assignment;
+    ``atom_charges`` restores known charges by zero-based atom index first.
+    The caller must validate the resulting valences and charge constraints.
     """
     _, pybel = _import_openbabel()
     try:
@@ -152,6 +160,10 @@ def obabel_read_mol2_block(mol2_block: str) -> Optional[Chem.Mol]:
     except Exception:
         logger.warning("OpenBabel failed to parse in-memory mol2 block", exc_info=True)
         return None
+    for index, charge in (atom_charges or {}).items():
+        pymol.OBMol.GetAtom(index + 1).SetFormalCharge(charge)
+    if net_charge is not None:
+        pymol.OBMol.AssignTotalChargeToAtoms(net_charge)
     return _obmol_to_rdkit_mol(pymol.OBMol)
 
 
