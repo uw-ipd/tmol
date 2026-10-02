@@ -6,6 +6,9 @@ compressed file) and exercises one failure class; each test fails without its fi
 
 | File | Regression exercised |
 |---|---|
+| `alternate_polymer_chains_1gtv.cif.zst` | Full deposited entry: retain both overlapping polymer chains in the reader; reject their degenerate combined bond geometry before scoring. Either explicitly selected biological assembly scores and minimizes with finite gradients. |
+| `shared_author_site_3bln.cif.zst` | Full deposited entry: overlapping MPD/MRD in separate label chains share author site A:147; select one before collapsing author identifiers. |
+| `nitric_oxide_1koi.cif.zst` | Full deposited entry: nitric oxide keeps its zero-hydrogen state during SMILES conversion; unsupported radical preparation is refused instead of adding a hydrogen. |
 | `kgq_alternates_4m8y.pdb.zst` | KGQ A:201 (altloc A) and A:202 (altloc B) are two overlapping residues; the PDB reader keeps one. |
 | `metalc_alternate_3p1o.cif.zst` | A metalc row naming conformer B of GLU A:86 binds MG A:237 only if that conformer is kept (the kept conformer A is 6 A away). |
 | `ion_alternates_8a7k.cif.zst` | Mn and Mg modelled at half occupancy on each of three sites without altloc ids keep one residue per site (the site failed the 12-connection limit). |
@@ -37,10 +40,7 @@ compressed file) and exercises one failure class; each test fails without its fi
 | `unresolved_tyrosine_4ndz.cif.zst` | TYR B:171 drawn without its ring (N, CA, C, O, CB) keeps TYR; the missing atoms carry no protonation state. |
 | `plm_copies_8trb.cif.zst` | Every PLM copy is bonded to the protein (SER/CYS), so no per-copy state type is prepared. |
 | `capped_peptide_1j8z.cif.zst` | Prepared after 3PPD in one database, the ACE-capped peptide does not take GLY's on-demand nterm_neutral as a terminus template. |
-
-| `nitric_oxide_1koi.cif.zst` | Full deposited entry: nitric oxide keeps its zero-hydrogen state during SMILES conversion; unsupported radical preparation is refused instead of adding a hydrogen. |
-
-| `alternate_polymer_chains_1gtv.cif.zst` | Full deposited entry: retain both overlapping polymer chains in the reader; reject their degenerate combined bond geometry before scoring. Either explicitly selected biological assembly scores and minimizes with finite gradients. |
-| `shared_author_site_3bln.cif.zst` | Full deposited entry: overlapping MPD/MRD in separate label chains share author site A:147; select one before collapsing author identifiers. |
-
+| `two_atom_residue_1gj2.cif.zst` | The O residue (O, HO) bonded to a DNA phosphate is a polymer type whose rotamer kinforest has no grandchild to frame on. |
+| `glycine_ca_conjugate_5wrh.cif.zst` | A glycine whose CA is conjugated (GLY:conj_CA, no HA3) rebuilds only the alpha hydrogen it has. |
+| `unresolved_frozen_chi_6sm6.cif.zst` | A frozen chi whose defining atoms are unresolved (4HH tail beyond CM) takes its ideal value. |
 | `renumbered_chloride_4eu8.cif.zst` | Renumbering decreasing water author IDs preserves component definitions and charge provenance for the structure’s chloride ions. |
