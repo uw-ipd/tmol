@@ -42,6 +42,7 @@ options:
       HIS_DEP: 0.5347
       ILE: 3.6828
       LYS: -1.1870
+      LYS_DEP: -1.1870
       LEU: 3.0591
       MET: 2.1654
       ASN: -0.7549

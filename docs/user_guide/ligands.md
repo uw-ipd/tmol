@@ -84,7 +84,7 @@ from tmol.ligand import (
 
 param_db, co = prepare_ligand_from_mol2("ligand.mol2")
 param_db, co = prepare_ligand_from_cif("ligand.cif")
-param_db, co = prepare_ligand_from_smiles("c1ccccc1C(=O)O", res_name="BEN")
+param_db, co = prepare_ligand_from_smiles("c1ccccc1C(=O)O", res_name="L_1")
 ```
 
 Each returns a new `(ParameterDatabase, CanonicalOrdering)`. The input database
@@ -137,7 +137,7 @@ from tmol.io import pose_stack_from_file
 from tmol.ligand import write_params_from_mol2
 
 write_params_from_mol2(
-    "ligand.mol2", "ligand.tmol", res_name="LIG", format="tmol", mode="auto"
+    "ligand.mol2", "ligand.tmol", res_name="L_1", mode="auto"
 )
 pose_stack, context = pose_stack_from_file(
     "complex.pdb", device,
@@ -155,6 +155,10 @@ parameters are reused, and only unknown chemistry enters preparation. Unknown
 residues need chemical bond orders from the input or CCD; otherwise the error
 names the residue that needs more information. PDB `CONECT` records alone do not
 provide those orders.
+
+Name a custom ligand with a code containing `_` (TMol generates `L_1`, `L_2`, ...):
+no CCD entry has one. A PDB or CIF residue whose atoms or bonds contradict the CCD
+entry of its name (PDBbind names ligands `MOL` or `ACT`) is read as its own component.
 
 ## Reuse Prepared Context
 
@@ -214,7 +218,7 @@ The ligand-prep script writes a TMol `.tmol` parameter bundle:
 
 ```bash
 python scripts/ligand_prep/smiles_to_params.py "<SMILES>" <out_prefix> \
-    --res-name LG1 --ph 7.4
+    --res-name L_1 --ph 7.4
 ```
 
 Useful flags include `--no-protonate`, `--heavy-chi-samples`, and

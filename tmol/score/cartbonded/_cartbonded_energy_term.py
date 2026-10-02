@@ -1,3 +1,5 @@
+import logging
+
 import torch
 import numpy
 import attrs
@@ -19,6 +21,8 @@ from tmol.pose import (
     PoseStack,
 )
 from tmol.score.common import make_hashtable_keys_values, add_to_hashtable
+
+logger = logging.getLogger(__name__)
 
 debug = False
 
@@ -247,6 +251,8 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         # variants and other score terms can retain their existing parameters.
         parameter_name = self._parameter_name(block_type)
         cartbonded_params = self.get_params_for_res(parameter_name)
+        if parameter_name not in self.cart_database.residue_params:
+            self._warn_unparameterized(block_type, lengths)
         cb_block_ann = CartBondedBlockAnnotations(
             cartbonded_subgraphs=cart_subgraphs,
             cartbonded_subgraph_type_counts=cart_subgraph_type_counts,
@@ -258,6 +264,29 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             "_cartbonded_annotation",
             self._block_annotation_key,
             cb_block_ann,
+        )
+
+    _warned_unparameterized = set()
+
+    @classmethod
+    def _warn_unparameterized(cls, block_type, lengths):
+        """Warn once per type whose own bonds have no rows, as HIS_POS had; HOH (the
+        readers drop water) and bonds to virtual atoms are exempt."""
+        virtual = {
+            i
+            for i, atom in enumerate(block_type.atoms)
+            if atom.atom_type == "Vrt" or atom.name in block_type.properties.virtual
+        }
+        if block_type.base_name in cls._warned_unparameterized | {"HOH"} or all(
+            {a, b} & virtual for a, b, _, _ in lengths
+        ):
+            return
+        cls._warned_unparameterized.add(block_type.base_name)
+        logger.warning(
+            "cart_bonded has no parameters for %s or its variants (first seen: %s): "
+            "their bond lengths and angles are unrestrained",
+            block_type.base_name,
+            block_type.name,
         )
 
     def _parameter_name(self, block_type):

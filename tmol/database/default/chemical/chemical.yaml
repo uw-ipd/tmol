@@ -48,6 +48,7 @@ atom_types:
   - { name: NtrR, element: N, is_donor : true }
   - { name: NH2O, element: N, is_donor : true , conjugated_type: Nglyc }
   - { name: Nlys, element: N, is_donor : true , conjugated_type: Nbb }
+  - { name: NlysDepro, element: N, is_donor : true , conjugated_type: Nbb, is_metal_donor: true } # neutral amine in LYS_DEP
   - { name: Narg, element: N, is_donor : true }
   - { name: Npro, element: N, is_donor : true } # should not be a donor, but matching rosetta
 
@@ -1947,6 +1948,134 @@ residues:
       protonation:
         protonated_atoms: []
         protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
+    default_jump_connection_atom: CA
+  - name:  LYS_DEP
+    base_name: LYS_DEP
+    name3: LYS
+    io_equiv_class: LYS
+    rama_reference: LYS
+    dunbrack_reference: LYS_DEP
+    atoms:
+    - { name: N   ,  atom_type: Nbb  }
+    - { name: CA  ,  atom_type: CAbb }
+    - { name: C   ,  atom_type: CObb }
+    - { name: O   ,  atom_type: OCbb }
+    - { name: CB  ,  atom_type: CH2  }
+    - { name: CG  ,  atom_type: CH2  }
+    - { name: CD  ,  atom_type: CH2  }
+    - { name: CE  ,  atom_type: CH2  }
+    - { name: NZ  ,  atom_type: NlysDepro }
+    - { name: H   ,  atom_type: HNbb }
+    - { name: HA  ,  atom_type: Hapo }
+    - { name: HB2 ,  atom_type: Hapo }
+    - { name: HB3 ,  atom_type: Hapo }
+    - { name: HG2 ,  atom_type: Hapo }
+    - { name: HG3 ,  atom_type: Hapo }
+    - { name: HD2 ,  atom_type: Hapo }
+    - { name: HD3 ,  atom_type: Hapo }
+    - { name: HE2 ,  atom_type: Hapo }
+    - { name: HE3 ,  atom_type: Hapo }
+    - { name: HZ1 ,  atom_type: Hpol }
+    - { name: HZ2 ,  atom_type: Hpol }
+    atom_aliases:
+    - { name: HB2 , alt_name: 1HB}
+    - { name: HB3 , alt_name: 2HB}
+    - { name: HG2 , alt_name: 1HG}
+    - { name: HG3 , alt_name: 2HG}
+    - { name: HD2 , alt_name: 1HD}
+    - { name: HD3 , alt_name: 2HD}
+    - { name: HE2 , alt_name: 1HE}
+    - { name: HE3 , alt_name: 2HE}
+    - { name: HZ1 , alt_name: 1HZ}
+    - { name: HZ2 , alt_name: 2HZ}
+    bonds:
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,   CB, SINGLE, false]
+    - [  CA,   HA, SINGLE, false]
+    - [  CB,   CG, SINGLE, false]
+    - [  CB,  HB2, SINGLE, false]
+    - [  CB,  HB3, SINGLE, false]
+    - [  CG,   CD, SINGLE, false]
+    - [  CG,  HG2, SINGLE, false]
+    - [  CG,  HG3, SINGLE, false]
+    - [  CD,   CE, SINGLE, false]
+    - [  CD,  HD2, SINGLE, false]
+    - [  CD,  HD3, SINGLE, false]
+    - [  CE,   NZ, SINGLE, false]
+    - [  CE,  HE2, SINGLE, false]
+    - [  CE,  HE3, SINGLE, false]
+    - [  NZ,  HZ1, SINGLE, false]
+    - [  NZ,  HZ2, SINGLE, false]
+    connections:
+    - { name:  down, atom: N, type: AROMATIC }
+    - { name:    up, atom: C, type: AROMATIC }
+    torsions:
+    - name: phi
+      a: { connection: down, bond_sep_from_conn: 0 }
+      b: { atom: N }
+      c: { atom: CA }
+      d: { atom: C }
+    - name: psi
+      a: { atom: N }
+      b: { atom: CA }
+      c: { atom: C }
+      d: { connection: up, bond_sep_from_conn: 0 }
+    - name: omega
+      a: { atom: CA }
+      b: { atom: C }
+      c: { connection: up, bond_sep_from_conn: 0 }
+      d: { connection: up, bond_sep_from_conn: 1 }
+    - { name: chi1,  a: {atom:  N}, b: {atom: CA}, c: {atom: CB}, d: {atom: CG}}
+    - { name: chi2,  a: {atom: CA}, b: {atom: CB}, c: {atom: CG}, d: {atom: CD}}
+    - { name: chi3,  a: {atom: CB}, b: {atom: CG}, c: {atom: CD}, d: {atom: CE}}
+    - { name: chi4,  a: {atom: CG}, b: {atom: CD}, c: {atom: CE}, d: {atom: NZ}}
+    icoors:
+    - { name:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, parent:     N, grand_parent:    CA, great_grand_parent:     C}
+    - { name:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, parent:     N, grand_parent:    CA, great_grand_parent:     C}
+    - { name:     C, phi:    0.000000 deg, theta:   68.800011 deg, d:    1.523258, parent:    CA, grand_parent:     N, great_grand_parent:     C}
+    - { name:    up, phi:  149.999985 deg, theta:   63.799984 deg, d:    1.328685, parent:     C, grand_parent:    CA, great_grand_parent:     N}
+    - { name:     O, phi:  179.999969 deg, theta:   59.200024 deg, d:    1.231015, parent:     C, grand_parent:    CA, great_grand_parent:    up}
+    - { name:    CB, phi: -122.600000 deg, theta:   69.498947 deg, d:    1.529508, parent:    CA, grand_parent:     N, great_grand_parent:     C}
+    - { name:    CG, phi:   -0.000001 deg, theta:   65.602592 deg, d:    1.522933, parent:    CB, grand_parent:    CA, great_grand_parent:     N}
+    - { name:    CD, phi:    0.000033 deg, theta:   68.700000 deg, d:    1.521348, parent:    CG, grand_parent:    CB, great_grand_parent:    CA}
+    - { name:    CE, phi:    0.000008 deg, theta:   68.632225 deg, d:    1.521582, parent:    CD, grand_parent:    CG, great_grand_parent:    CB}
+    - { name:    NZ, phi:   -0.000016 deg, theta:   68.036385 deg, d:    1.488108, parent:    CE, grand_parent:    CD, great_grand_parent:    CG}
+    - { name:   HZ1, phi: -179.972504 deg, theta:   70.500000 deg, d:    1.010217, parent:    NZ, grand_parent:    CE, great_grand_parent:    CD}
+    - { name:   HZ2, phi:  120.005402 deg, theta:   70.500000 deg, d:    1.010513, parent:    NZ, grand_parent:    CE, great_grand_parent:   HZ1}
+    - { name:   HE2, phi:  120.770477 deg, theta:   70.500000 deg, d:    1.088988, parent:    CE, grand_parent:    CD, great_grand_parent:    NZ}
+    - { name:   HE3, phi:  118.534203 deg, theta:   70.500000 deg, d:    1.089932, parent:    CE, grand_parent:    CD, great_grand_parent:   HE2}
+    - { name:   HD2, phi:  120.629311 deg, theta:   70.500000 deg, d:    1.090858, parent:    CD, grand_parent:    CG, great_grand_parent:    CE}
+    - { name:   HD3, phi:  118.840126 deg, theta:   70.500000 deg, d:    1.089962, parent:    CD, grand_parent:    CG, great_grand_parent:   HD2}
+    - { name:   HG2, phi:  120.573410 deg, theta:   70.500000 deg, d:    1.090654, parent:    CG, grand_parent:    CB, great_grand_parent:    CD}
+    - { name:   HG3, phi:  118.835373 deg, theta:   70.500000 deg, d:    1.089538, parent:    CG, grand_parent:    CB, great_grand_parent:   HG2}
+    - { name:   HB2, phi:  121.200000 deg, theta:   70.500000 deg, d:    1.090330, parent:    CB, grand_parent:    CA, great_grand_parent:    CG}
+    - { name:   HB3, phi:  117.600000 deg, theta:   70.500000 deg, d:    1.090207, parent:    CB, grand_parent:    CA, great_grand_parent:   HB2}
+    - { name:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090528, parent:    CA, grand_parent:     N, great_grand_parent:    CB}
+    - { name:  down, phi: -149.999969 deg, theta:   58.300011 deg, d:    1.328685, parent:     N, grand_parent:    CA, great_grand_parent:     C}
+    - { name:     H, phi:  179.999985 deg, theta:   60.849998 deg, d:    1.010001, parent:     N, grand_parent:    CA, great_grand_parent:  down}
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha_aa
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: negatively_charged
         pH: 7
       virtual: []
     chi_samples: []
@@ -4325,6 +4454,32 @@ variants:
     - { name:   H1, source: <H1>, phi: 180.0 deg, theta: 70.5 deg, d: 1.0, parent:  <N1>, grand_parent: <*2>, great_grand_parent: <*1> }
     - { name:   H2, source: <H1>, phi: 120.0 deg, theta: 70.5 deg, d: 1.0, parent:  <N1>, grand_parent: <*2>, great_grand_parent: H1 }
     - { name:   H3, source: <H1>, phi: 120.0 deg, theta: 70.5 deg, d: 1.0, parent:  <N1>, grand_parent: <*2>, great_grand_parent: H2 }
+
+  # the amine AtomWorks leaves neutral (3PPD GLY 1 on its zinc); built per
+  #    residue type only when an input asks for it, so it applies to none here
+  - name:  AminoTerminusNeutral
+    display_name: nterm_neutral
+    pattern: '[*][*][NH][{down}]'
+    applies_to: { backbone_types: [alpha_aa], base_names: [] }
+    remove_atoms:
+    - <{down}>
+    - <H1>
+    add_atoms:
+    - { name: H1  ,  atom_type: Hpol }
+    - { name: H2  ,  atom_type: Hpol }
+    add_atom_aliases:
+    - { name: H1  ,  alt_name: 1H }
+    - { name: H2  ,  alt_name: 2H }
+
+    modify_atoms:
+    - { name: <N1> ,  atom_type: Nlys }
+    add_connections: []
+    add_bonds:
+    - [  <N1>,    H1  , SINGLE, false ]
+    - [  <N1>,    H2  , SINGLE, false ]
+    icoors:
+    - { name:   H1, source: <H1>, phi: 180.0 deg, theta: 70.5 deg, d: 1.0, parent:  <N1>, grand_parent: <*2>, great_grand_parent: <*1> }
+    - { name:   H2, source: <H1>, phi: 120.0 deg, theta: 70.5 deg, d: 1.0, parent:  <N1>, grand_parent: <*2>, great_grand_parent: H1 }
 
   - name:  AminoTerminusPro
     display_name: nterm

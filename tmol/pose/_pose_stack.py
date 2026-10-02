@@ -9,6 +9,7 @@ from tmol.pose import (
     PDBInfo,
     PackedBlockTypes,
     ConstraintSet,
+    InterBlockBondsep,
 )
 
 if TYPE_CHECKING:
@@ -31,7 +32,8 @@ class PoseStack:
         block_coord_offset64: 64-bit copy of ``block_coord_offset`` for PyTorch.
         inter_residue_connections: Connected residue and connection indices.
         inter_residue_connections64: 64-bit connection-index copy.
-        inter_block_bondsep: Capped bond separation between residue connections.
+        inter_block_bondsep: Bond separation between residue connections, capped at
+            ``MAX_SIG_BOND_SEPARATION`` and stored only for nearby residue pairs.
         block_type_ind: Packed block-type index for each residue; ``-1`` is padding.
         block_type_ind64: 64-bit block-type-index copy.
         chain_id: Chain index for each residue.
@@ -55,7 +57,7 @@ class PoseStack:
     inter_residue_connections: Tensor[torch.int32][:, :, :, 2]
     inter_residue_connections64: Tensor[torch.int64][:, :, :, 2]
 
-    inter_block_bondsep: Tensor[torch.int32][:, :, :, :, :]
+    inter_block_bondsep: InterBlockBondsep
 
     block_type_ind: Tensor[torch.int32][:, :]
     block_type_ind64: Tensor[torch.int64][:, :]
@@ -185,7 +187,7 @@ class PoseStack:
             block_coord_offset64=self.block_coord_offset64.detach().clone(),
             inter_residue_connections=self.inter_residue_connections.detach().clone(),
             inter_residue_connections64=self.inter_residue_connections64.detach().clone(),
-            inter_block_bondsep=self.inter_block_bondsep.detach().clone(),
+            inter_block_bondsep=self.inter_block_bondsep.clone(),
             block_type_ind=self.block_type_ind.detach().clone(),
             block_type_ind64=self.block_type_ind64.detach().clone(),
             chain_id=self.chain_id.detach().clone(),
@@ -199,12 +201,10 @@ class PoseStack:
     def clone_sharing_topology(self) -> "PoseStack":
         """Copy per-pose state but share this stack's immutable bond topology.
 
-        :py:meth:`clone` deep-copies every tensor, including
-        ``inter_block_bondsep``, whose size grows as
-        ``n_poses * max_n_blocks**2 * max_n_conn**2``. For large assemblies
-        that single copy dominates peak memory even though nothing ever
-        mutates it in place: the connection tensors are built once by
-        :py:class:`~tmol.pose.PoseStackBuilder` and thereafter only read.
+        :py:meth:`clone` deep-copies every tensor, including the connection
+        tensors, even though nothing ever mutates them in place: they are
+        built once by :py:class:`~tmol.pose.PoseStackBuilder` and thereafter
+        only read.
 
         Callers that vary coordinates while holding topology fixed -- the
         FastRelax accept/restore loop, for example -- should use this instead.
@@ -256,9 +256,9 @@ class PoseStack:
             ]
             .detach()
             .clone(),
-            inter_block_bondsep=self.inter_block_bondsep[index : index + 1]
-            .detach()
-            .clone(),
+            inter_block_bondsep=self.inter_block_bondsep.select_poses(
+                index, index + 1
+            ).clone(),
             block_type_ind=self.block_type_ind[index : index + 1].detach().clone(),
             block_type_ind64=self.block_type_ind64[index : index + 1].detach().clone(),
             chain_id=self.chain_id[index : index + 1].detach().clone(),

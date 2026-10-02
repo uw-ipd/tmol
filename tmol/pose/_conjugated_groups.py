@@ -149,15 +149,6 @@ def find_conjugated_groups(pose_stack: PoseStack) -> List[ConjugatedGroup]:
     return groups
 
 
-def blocks_in_conjugated_groups(pose_stack: PoseStack) -> torch.Tensor:
-    """Per-block mask of everything a conjugated group covers."""
-    mask = numpy.zeros((pose_stack.n_poses, pose_stack.max_n_blocks), dtype=bool)
-    for group in find_conjugated_groups(pose_stack):
-        for block in group.blocks:
-            mask[group.pose, block] = True
-    return torch.tensor(mask, dtype=torch.bool, device=pose_stack.device)
-
-
 def lockstep_group_for_block(pose_stack, rotamer_set) -> torch.Tensor:
     """Per-block id shared by the blocks a group samples in lockstep.
 

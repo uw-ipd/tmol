@@ -19,6 +19,7 @@ import biotite.structure as struc
 from rdkit import Chem
 from rdkit.Chem import rdFMCS
 from atomworks.io.utils.atom_array_plus import concatenate_atom_array_plus
+from atomworks.io.utils.link_chemistry import get_leaving_atom_groups
 
 from tmol.utility.weak_identity_cache import WeakIdentityLRU
 
@@ -803,17 +804,7 @@ def mainchain_path(atom_array, connection_atoms) -> Optional[Tuple[str, ...]]:
     start, end = _orient_connections(sorted(connection_atoms), double, element)
     if start not in adj or end not in adj:
         return None
-    queue = deque([(start, (start,))])
-    seen = {start}
-    while queue:
-        current, path = queue.popleft()
-        if current == end:
-            return path
-        for neighbour in sorted(adj.get(current, ())):
-            if neighbour not in seen:
-                seen.add(neighbour)
-                queue.append((neighbour, path + (neighbour,)))
-    return None
+    return _shortest_path(adj, start, end)
 
 
 def _orient_connections(ends, double, element):
@@ -1224,8 +1215,8 @@ def profile_for_atom_array(
 
 
 def _na_profile_for_structure(atom_array, connection_atoms, profile):
-    """Drop a polymer port the structure cannot use: the 5' one of a phosphate with a
-    retained ester substituent, the 3' one of a 3'-deoxy sugar (DDG, DOC)."""
+    """Drop a polymer port the structure cannot use: the 5' one of a substituted phosphate
+    or 5' oxygen, the 3' one of a 3'-deoxy sugar (DDG, DOC) or substituted 3' oxygen."""
     if profile is None:
         return profile
     adjacency, _, elements = _heavy_adjacency(atom_array)
@@ -1235,6 +1226,20 @@ def _na_profile_for_structure(atom_array, connection_atoms, profile):
     if profile.up is not None and elements.get(path[-1]) != "O":
         # no 3' oxygen: the backbone ends at C3', so nothing may graft one on
         profile = _without_atom(_without_connection(profile, "up"), profile.up[1])
+    elif profile.up is not None and adjacency[path[-1]] - {path[-2]}:
+        # 1HQ1 B:178 CCC: a substituted 3' oxygen (2',3'-cyclic phosphate) has no port
+        profile = _without_connection(profile, "up")
+    if (
+        profile.down is not None
+        and elements.get(path[0]) == "O"
+        and adjacency[path[0]] - {path[1]}
+    ):
+        # a 5'-O ether (1CX5 A:7 MMT's O5'-N) leaves no room to graft a phosphate on
+        profile = _without_connection(profile, "down")
+        for atom, _type in tuple(profile.backbone_types):
+            if atom not in elements:
+                profile = _without_atom(profile, atom)
+        return profile
     if (
         profile.down is None
         or elements.get(path[0]) != "P"
@@ -1472,6 +1477,21 @@ def resolve_cap_names(profile: PolymerProfile, existing):
     return resolved
 
 
+def _declared_if_tied(atom_array, anchor, leaving):
+    """Tied leaving candidates narrowed to the one the component definition declares.
+
+    6C8D A:1 LCC: O1P and OXT tie at P; the definition declares OXT as leaving.
+    """
+    template = getattr(atom_array, "_custom_ccd_registry", {}).get(
+        str(atom_array.res_name[0])
+    )
+    if len(leaving) < 2 or template is None:
+        return leaving
+    groups = get_leaving_atom_groups(template).get(anchor, ())
+    declared = [n for n in leaving if any(n in group for group in groups)]
+    return declared if len(declared) == 1 else leaving
+
+
 def cap_residue(atom_array, profile: PolymerProfile, *, include_coordinates=True):
     """Return (capped heavy-atom AtomArray, cap name mapping).
 
@@ -1521,6 +1541,7 @@ def cap_residue(atom_array, profile: PolymerProfile, *, include_coordinates=True
             and n not in double.get(anchor, ())
             and (carbonyl or n not in retained_backbone)
         ]
+        leaving = _declared_if_tied(atom_array, anchor, leaving)
         if len(leaving) > 1:
             raise ValueError(
                 f"Ambiguous leaving atoms at polymer connection {anchor}: {leaving}"
@@ -1634,6 +1655,8 @@ def sugar_backbone(residue, mainchain, element):
         adjacency[a].add(b)
         adjacency[b].add(a)
     types = {a.name: a.atom_type for a in residue.atoms}
+    if not set(mainchain) <= types.keys():
+        return None
 
     ring = _smallest_ring_through(adjacency, mainchain[-2], mainchain[-3])
     if ring is None or len(ring) != 5:
@@ -1992,7 +2015,9 @@ def complete_backbone_from_reference(atom_array, profile, param_db):
     )
     if donor_type is None:
         return atom_array
-    coords = _ideal_coords_for(donor_type)
+    from tmol.ligand._preparation import _ideal_coords_by_name
+
+    coords = _ideal_coords_by_name(donor_type)
     shared = sorted(present & set(coords))
     if len(shared) < 3 or not wanted <= set(coords):
         return atom_array
@@ -2076,17 +2101,6 @@ def _localized_bonds(residue_type, existing_orders=None):
             seen.add(bond)
             localized.append((bond[0], bond[1], 2 if bond in doubled else 1))
     return localized
-
-
-def _ideal_coords_for(residue_type):
-    """A canonical residue's ideal coordinates, by atom name."""
-    import cattr
-
-    from tmol.chemical._restypes import RefinedResidueType
-
-    refined = cattr.structure(cattr.unstructure(residue_type), RefinedResidueType)
-    xyz = refined.compute_ideal_coords()
-    return {ic.name: numpy.asarray(xyz[i]) for i, ic in enumerate(refined.icoors)}
 
 
 def _element_of(residue_type, name):
