@@ -683,10 +683,8 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_validate_raw_residue_metal_sites</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">allatoms</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Every metal site names atoms this residue has, and no site is oversubscribed.</span>
-
-<span class="sd">    Patching carries metal_sites through untouched, so a variant that deletes a</span>
-<span class="sd">    referenced atom must fail here rather than leave a site pointing at nothing.</span>
+<span class="w">    </span><span class="sd">"""Every metal site names atoms this residue has, and no site is oversubscribed;</span>
+<span class="sd">    a patch deleting an atom a site names fails here.</span>
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">GEOMETRY_SITE_COUNT</span>
 
@@ -1107,13 +1105,6 @@
     <span class="k">return</span> <span class="kc">True</span>
 
 
-<span class="c1"># apply a patch to a rawresidue</span>
-<span class="c1">#    res, resgraph - base residue, graph</span>
-<span class="c1">#    variant, patchgraph - patch variant, patch graph</span>
-<span class="c1">#    marked - atoms modified in the base residue</span>
-<span class="c1"># returns:</span>
-<span class="c1">#    newreses - list of new residues produced by the patch (currently only support for 1)</span>
-<span class="c1">#    newmarked - updated list of modified atoms in new residue</span>
 <span class="c1"># marks an atom a patch created, as against one it modified</span>
 <span class="n">CREATED</span> <span class="o">=</span> <span class="s2">"+"</span>
 <span class="c1"># marks an atom a patch only bonded to or took a neighbor from, leaving the</span>
@@ -1131,6 +1122,13 @@
     <span class="p">)</span>
 
 
+<span class="c1"># apply a patch to a rawresidue</span>
+<span class="c1">#    res, resgraph - base residue, graph</span>
+<span class="c1">#    variant, patchgraph - patch variant, patch graph</span>
+<span class="c1">#    marked - atoms modified in the base residue</span>
+<span class="c1"># returns:</span>
+<span class="c1">#    newreses - list of new residues produced by the patch (currently only support for 1)</span>
+<span class="c1">#    newmarked - updated list of modified atoms in new residue</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">do_patch</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">variant</span><span class="p">,</span> <span class="n">resgraph</span><span class="p">,</span> <span class="n">patchgraph</span><span class="p">,</span> <span class="n">marked</span><span class="p">):</span>  <span class="c1"># noqa: C901</span>
     <span class="n">added</span><span class="p">,</span> <span class="n">modded</span><span class="p">,</span> <span class="n">deleted</span> <span class="o">=</span> <span class="n">get_modified_atoms</span><span class="p">(</span><span class="n">variant</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">modded</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">deleted</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
@@ -1164,9 +1162,8 @@
             <span class="k">if</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">deleted</span> <span class="ow">and</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">deleted</span><span class="p">:</span>
                 <span class="n">modded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
 
-        <span class="c1"># 0. check if we've already modified any of these atoms; a patch that</span>
-        <span class="c1">#    only adds connections may attach to an atom another patch created</span>
-        <span class="c1">#    or only anchored</span>
+        <span class="c1"># 0. check if we've already modified any of these atoms; a patch only adding</span>
+        <span class="c1">#    connections may attach to an atom another created (1YJO) or anchored (2G8F)</span>
         <span class="n">blocking</span> <span class="o">=</span> <span class="p">{</span>
             <span class="n">x</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="n">CREATED</span> <span class="o">+</span> <span class="n">ANCHORED</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">newmark</span>
@@ -1177,7 +1174,8 @@
         <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">modded</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">blocking</span><span class="p">:</span>
             <span class="k">continue</span>
 
-        <span class="c1"># a patch cannot delete an atom a connection it keeps sits on</span>
+        <span class="c1"># a patch cannot delete an atom a connection it keeps sits on (7EOH: the</span>
+        <span class="c1">#    phosphate oxygens its Mg ions bond)</span>
         <span class="n">gone</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">deleted</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">atom</span> <span class="ow">in</span> <span class="n">gone</span> <span class="ow">and</span> <span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">gone</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">connections</span><span class="p">):</span>
             <span class="k">continue</span>
