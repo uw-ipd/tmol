@@ -6,7 +6,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tmol.score.terms._genbonded_creator &#8212; TMol</title>
+    <title>tmol.score.terms._metal_coordination_creator &#8212; TMol</title>
   
   
   
@@ -46,9 +46,9 @@
     <script>let toggleOpenOnPrint = 'true';</script>
     <script src="../../../../_static/togglebutton.js?v=b8b12719"></script>
     <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
-    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/score/terms/_genbonded_creator';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/score/terms/_metal_coordination_creator';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
-    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/score/terms/_genbonded_creator.html" />
+    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/score/terms/_metal_coordination_creator.html" />
     <link rel="index" title="Index" href="../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -422,7 +422,7 @@
     
     <li class="breadcrumb-item"><a href="../../score.html" class="nav-link">tmol.score</a></li>
     
-    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.score.terms._genbonded_creator</span></li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.score.terms._metal_coordination_creator</span></li>
   </ul>
 </nav>
 </div>
@@ -439,28 +439,26 @@
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <h1>Source code for tmol.score.terms._genbonded_creator</h1><div class="highlight"><pre>
+  <h1>Source code for tmol.score.terms._metal_coordination_creator</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.terms</span><span class="w"> </span><span class="kn">import</span> <span class="n">TermCreator</span><span class="p">,</span> <span class="n">score_term_creator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreType</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
 
-<div class="viewcode-block" id="GenBondedTermCreator">
-<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.terms.GenBondedTermCreator">[docs]</a>
+<div class="viewcode-block" id="MetalCoordinationTermCreator">
+<a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.terms.MetalCoordinationTermCreator">[docs]</a>
 <span class="nd">@score_term_creator</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">GenBondedTermCreator</span><span class="p">(</span><span class="n">TermCreator</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Create the general bonded-torsion energy term."""</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MetalCoordinationTermCreator</span><span class="p">(</span><span class="n">TermCreator</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Create the metal coordination term."""</span>
 
-    <span class="n">_score_types</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">ScoreType</span><span class="o">.</span><span class="n">gen_torsions</span><span class="p">,</span>
-    <span class="p">]</span>
+    <span class="n">_score_types</span> <span class="o">=</span> <span class="p">[</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">metal_coordination</span><span class="p">]</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">create_term</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">param_db</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
-        <span class="kn">import</span><span class="w"> </span><span class="nn">tmol.score.genbonded._genbonded_energy_term</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">tmol.score.metal._metal_coordination_term</span>
 
-        <span class="k">return</span> <span class="n">tmol</span><span class="o">.</span><span class="n">score</span><span class="o">.</span><span class="n">genbonded</span><span class="o">.</span><span class="n">_genbonded_energy_term</span><span class="o">.</span><span class="n">GenBondedEnergyTerm</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">tmol</span><span class="o">.</span><span class="n">score</span><span class="o">.</span><span class="n">metal</span><span class="o">.</span><span class="n">_metal_coordination_term</span><span class="o">.</span><span class="n">MetalCoordinationEnergyTerm</span><span class="p">(</span>
             <span class="n">param_db</span><span class="p">,</span> <span class="n">device</span>
         <span class="p">)</span>
 
