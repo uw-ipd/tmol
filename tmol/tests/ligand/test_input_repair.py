@@ -48,3 +48,15 @@ def test_a_carboxylate_written_as_a_diol_takes_its_carbonyl_from_the_geometry(
     assert [a.GetFormalCharge() for a in repaired.GetAtoms()] == [
         -1 if a.GetIdx() == longer_oxygen else 0 for a in repaired.GetAtoms()
     ]
+
+
+def test_a_nitro_group_written_with_two_double_bonds_is_localized():
+    """CCD VYZ writes its nitro group N(=O)=O, past nitrogen's valence; like any
+    delocalized group it takes one double bond, an O- and an N+."""
+    from atomworks.io.utils.ccd import atom_array_from_ccd_code
+
+    from tmol.ligand._rdkit_mol import rdkit_mol_from_ligand_atom_array
+
+    component = atom_array_from_ccd_code("VYZ")
+    mol = rdkit_mol_from_ligand_atom_array(component[component.element != "H"])
+    assert Chem.MolToSmiles(mol) == "CC(=O)Nc1ccc([N+](=O)[O-])cc1"

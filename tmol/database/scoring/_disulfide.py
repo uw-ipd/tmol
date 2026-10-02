@@ -1,4 +1,4 @@
-from tmol.database._yaml import safe_load
+from tmol.database._yaml import load_yaml
 
 import attr
 import cattr
@@ -54,6 +54,4 @@ class DisulfideDatabase:
 
     @classmethod
     def from_file(cls, path):
-        with open(path, "r") as infile:
-            raw = safe_load(infile)
-        return cattr.structure(raw, cls)
+        return cattr.structure(load_yaml(path), cls)

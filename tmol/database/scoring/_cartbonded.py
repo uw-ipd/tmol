@@ -1,8 +1,6 @@
-import os
-
 import attr
 import cattr
-from tmol.database._yaml import safe_load
+from tmol.database._yaml import load_yaml, existing_paths
 import json
 import hashlib
 
@@ -97,20 +95,14 @@ class CartBondedDatabase:
 
     @classmethod
     def from_file(cls, path, generated=()):
-        with open(path, "r") as infile:
-            resparam_dict = safe_load(infile)
-        for extra in generated:
-            if not os.path.exists(extra):
-                continue
-            with open(extra, "r") as infile:
-                extension = safe_load(infile)
-                resparam_dict["residue_params"].update(
-                    extension.get("residue_params", {})
+        resparam_dict = load_yaml(path)
+        for extra in existing_paths(generated):
+            extension = load_yaml(extra)
+            resparam_dict["residue_params"].update(extension.get("residue_params", {}))
+            if extension.get("connection_params"):
+                resparam_dict.setdefault("connection_params", []).extend(
+                    extension["connection_params"]
                 )
-                if extension.get("connection_params"):
-                    resparam_dict.setdefault("connection_params", []).extend(
-                        extension["connection_params"]
-                    )
         # A serialized cache key is derived data, not part of its own input.
         resparam_dict.pop("hash", None)
         resparam_dict["hash"] = cls._generate_hash(resparam_dict)

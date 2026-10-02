@@ -743,8 +743,22 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
 
         newres = attr.evolve(res, name=res.name + ":" + variant.display_name)
 
+        # hydrogens on removed atoms go with them; a prepared residue can carry
+        #    some where canonical ones do not (7KW4 A:2 XY7's HOP1/HOP2)
+        removed = {namemap[a] for a in variant.remove_atoms if a in namemap}
+        stranded = sorted(
+            name
+            for name, element in resgraph.nodes(data="element")
+            if element in ("H", "D")
+            and name not in removed
+            and resgraph[name]
+            and set(resgraph[name]) <= removed
+        )
+        namemap = {**namemap, **{name: name for name in stranded}}
+        remove_atoms = (*variant.remove_atoms, *stranded)
+
         # 1. remove atoms
-        for atom in variant.remove_atoms:
+        for atom in remove_atoms:
             atom = namemap[atom]
             newres = remove_atom(newres, atom)
 
@@ -755,8 +769,17 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
         # 2. add atoms
         newres.atoms = (*newres.atoms, *variant.add_atoms)
 
-        # 2b. add atom alias
-        newres.atom_aliases = (*newres.atom_aliases, *variant.add_atom_aliases)
+        # 2b. add atom alias; a source name the base residue already aliases keeps
+        #     that meaning, since input names are read per name3 (1MWI D:7 AAB O3P)
+        claimed = {a.alt_name: a.name for a in res.atom_aliases}
+        newres.atom_aliases = (
+            *newres.atom_aliases,
+            *(
+                a
+                for a in variant.add_atom_aliases
+                if claimed.get(a.alt_name, a.name) == a.name
+            ),
+        )
 
         # 3. add connections
         newconnections = []
@@ -780,14 +803,14 @@ def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
 
         # 5. update icoors
         newres.icoors = update_icoor(
-            newres.icoors, variant.icoors, variant.remove_atoms, namemap
+            newres.icoors, variant.icoors, remove_atoms, namemap
         )
         assert_no_orphaned_icoors(
             newres.icoors,
             # an atom the patch removes and adds again under the same name --
             #    a carboxy terminus does that with its carbonyl oxygen -- has
             #    not gone anywhere
-            {namemap[i] for i in variant.remove_atoms if i in namemap}
+            {namemap[i] for i in remove_atoms if i in namemap}
             - {a.name for a in variant.add_atoms},
             newres.name,
         )

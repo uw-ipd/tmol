@@ -69,21 +69,3 @@ def get_polar_classes() -> frozenset[str]:
     """
     available = {at.name for at in _default_atom_types()}
     return frozenset(name for name in _LEGACY_POLAR_CLASSES if name in available)
-
-
-def get_sp2_atom_types() -> frozenset[str]:
-    """Collect atom-type names treated as sp2-like for typing helpers.
-
-    Returns:
-        Set of atom-type names considered sp2-like.
-    """
-    sp2_types = set()
-    for at in _default_atom_types():
-        if at.name.startswith(("CD", "CR")):
-            sp2_types.add(at.name)
-        if at.element in ("O", "N") and str(at.acceptor_hybridization) in (
-            "sp2",
-            "ring",
-        ):
-            sp2_types.add(at.name)
-    return frozenset(sp2_types)

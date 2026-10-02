@@ -1,21 +1,30 @@
 """Contracts every noncanonical fixture must satisfy.
 
-Checked across the whole noncanonical corpus rather than on one hand-picked
-structure: a component's name does not change its chemistry. Once the atoms and
-bonds are in hand, renaming a residue to something no dictionary knows must
-produce the same structure -- otherwise a name is silently supplying chemistry
-the file was supposed to carry.
+Two properties, checked across the whole noncanonical corpus rather than on one
+hand-picked structure:
+
+a. Parameters prepared from a CIF make a *coordinate-only* PDB sufficient. A
+   caller who prepares chemistry once must be able to load plain coordinates
+   afterwards and get the same complete structure back.
+
+b. A component's name does not change its chemistry. Once the atoms and bonds
+   are in hand, renaming a residue to something no dictionary knows must
+   produce the same structure -- otherwise a name is silently supplying
+   chemistry the file was supposed to carry.
 """
 
 import biotite.structure as struc
 import numpy as np
 import pytest
 import torch
+from biotite.structure.io import pdb
 
 from tmol.io import (
     atom_array_from_cif,
     canonical_ordering_for_biotite,
     pose_stack_from_biotite,
+    pose_stack_from_cif,
+    pose_stack_from_file,
 )
 from tmol.tests.data import data_path
 
@@ -26,7 +35,8 @@ def _fixtures(directory):
     return sorted(f"{directory}/{p.name}" for p in data_path(directory).glob("*.cif*"))
 
 
-FIXTURES = sorted(_fixtures("ncaa_fixtures") + _fixtures("covalent_fixtures"))
+RESIDUE_FIXTURES = _fixtures("ncaa_fixtures")
+FIXTURES = sorted(RESIDUE_FIXTURES + _fixtures("covalent_fixtures"))
 
 
 def _described_from_an_unplaced_copy(array, names):
@@ -61,6 +71,17 @@ def _described_from_an_unplaced_copy(array, names):
         ):
             return True
     return False
+
+
+def _unresolved_atom_names(array):
+    """Atoms the file declares but never places.
+
+    ``atom_array_from_cif`` leaves a declared heavy atom at NaN when the
+    structure resolves no position for it. A PDB record *is* a position, so
+    these are exactly the atoms no coordinate-only file can carry.
+    """
+    absent = ~np.isfinite(array.coord).all(axis=-1)
+    return sorted({str(name) for name in array.atom_name[absent]})
 
 
 def _noncanonical_names(array):
@@ -101,6 +122,54 @@ def _heavy_atoms(pose):
             n_atoms = pose.packed_block_types.n_atoms[index]
             heavy[p, offset : offset + n_atoms] &= ~is_h[index, :n_atoms]
     return heavy
+
+
+@pytest.mark.parametrize("fixture", RESIDUE_FIXTURES)
+def test_prepared_parameters_make_coordinate_only_pdb_complete(
+    fixture, tmp_path, torch_device
+):
+    """Parameters prepared from the CIF load a bare PDB of the same structure."""
+    cif = data_path(*fixture.split("/"))
+    prepared, context = pose_stack_from_cif(
+        cif,
+        torch_device,
+        prepare_ligands=True,
+        ligand_seed=SEED,
+        no_optH=True,
+        return_context=True,
+    )
+    assert torch.isfinite(prepared.coords[prepared.real_atoms]).all()
+
+    # A PDB with coordinates only: no CONECT records, no component blocks.
+    source = atom_array_from_cif(cif)
+    unresolved = _unresolved_atom_names(source)
+    source.bonds = None
+    pdb_path = tmp_path / "coordinates.pdb"
+    written = pdb.PDBFile()
+    if unresolved:
+        # This file declares atoms it never places, and a PDB record is a
+        # position -- there is no way to write them. Replaying it from
+        # coordinates alone is not something the format can express, and
+        # placing them would assert geometry nothing observed. Assert that
+        # boundary rather than a round trip that cannot happen.
+        with pytest.raises(struc.BadStructureError):
+            written.set_structure(source)
+            written.write(pdb_path)
+        return
+    written.set_structure(source)
+    written.write(pdb_path)
+
+    reloaded = pose_stack_from_file(
+        pdb_path,
+        torch_device,
+        param_db=context.parameter_database,
+        no_optH=True,
+    )
+
+    assert torch.isfinite(reloaded.coords[reloaded.real_atoms]).all()
+    assert reloaded.n_poses == prepared.n_poses
+    assert _pose_atom_composition(reloaded) == _pose_atom_composition(prepared)
+    assert int(reloaded.real_atoms.sum()) == int(prepared.real_atoms.sum())
 
 
 @pytest.mark.parametrize("fixture", FIXTURES)
