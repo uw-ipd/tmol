@@ -459,6 +459,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">metal_table</span><span class="p">,</span> <span class="n">site_connections</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._atomworks_reader</span><span class="w"> </span><span class="kn">import</span> <span class="n">renumbered_decreasing_chains</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._input_geometry</span><span class="w"> </span><span class="kn">import</span> <span class="n">rebuild_coincident_hydrogens</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._canonical_ordering</span><span class="w"> </span><span class="kn">import</span> <span class="n">_only_coordinates_a_metal</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._protonation</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">PROTONATION_VARIANT</span><span class="p">,</span>
@@ -1121,7 +1122,8 @@
 <span class="sd">        no_optH: Residues the input gives no hydrogens take AtomWorks'</span>
 <span class="sd">            protonation state: database residues then get hydrogens built by</span>
 <span class="sd">            tmol, other residues those AtomWorks places. When True (default),</span>
-<span class="sd">            preserve finite input hydrogen coordinates</span>
+<span class="sd">            preserve finite input hydrogen coordinates, except coincident</span>
+<span class="sd">            hydrogen-parent pairs, which are rebuilt with a warning,</span>
 <span class="sd">            and build only missing hydrogens and heavy-atom sidechains. When</span>
 <span class="sd">            False, residues with complete heavy atoms are packed with OptHSampler</span>
 <span class="sd">            to optimize hydrogen positions and NHQ flips, while residues with</span>
@@ -1316,6 +1318,10 @@
 <span class="sd">      fragment_mapping: Mapping produced when fragmented ligands were expanded.</span>
 <span class="sd">      return_context: Also return the context used.</span>
 
+<span class="sd">    For ordinary structure inputs, coincident bonded heavy atoms raise before</span>
+<span class="sd">    packing; hydrogens coincident with their parent are rebuilt without changing</span>
+<span class="sd">    protonation. Differentiable ``atom37_coords`` retain their supplied geometry.</span>
+
 <span class="sd">    Returns:</span>
 <span class="sd">      The constructed pose, optionally with atom mappings or the context.</span>
 <span class="sd">    """</span>
@@ -1363,6 +1369,8 @@
     <span class="p">)</span>
 
     <span class="n">pose_stack</span><span class="p">,</span> <span class="n">opt_return_vals</span> <span class="o">=</span> <span class="n">result</span>
+    <span class="k">if</span> <span class="n">atom37_coords</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">rebuild_coincident_hydrogens</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">fragment_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand</span><span class="w"> </span><span class="kn">import</span> <span class="n">apply_fragment_connections</span>
 
@@ -1934,8 +1942,11 @@
 <span class="sd">    """</span>
     <span class="n">ion_for_element</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">ion</span> <span class="ow">in</span> <span class="n">metal_table</span><span class="p">()[</span><span class="s2">"ions"</span><span class="p">]:</span>
-        <span class="n">ion_for_element</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">ion</span><span class="p">[</span><span class="s2">"element"</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span> <span class="n">ion</span><span class="p">[</span><span class="s2">"name3"</span><span class="p">])</span>
+        <span class="n">element</span> <span class="o">=</span> <span class="n">ion</span><span class="p">[</span><span class="s2">"element"</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="n">ion_for_element</span><span class="o">.</span><span class="n">setdefault</span><span class="p">((</span><span class="n">element</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">ion</span><span class="p">[</span><span class="s2">"name3"</span><span class="p">])</span>
+        <span class="n">ion_for_element</span><span class="p">[</span><span class="n">element</span><span class="p">,</span> <span class="n">ion</span><span class="p">[</span><span class="s2">"oxidation_state"</span><span class="p">]]</span> <span class="o">=</span> <span class="n">ion</span><span class="p">[</span><span class="s2">"name3"</span><span class="p">]</span>
     <span class="n">elements</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">upper</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">element</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">))</span>
+    <span class="n">charge</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="s2">"charge"</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">template</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">))</span>
     <span class="n">starts</span> <span class="o">=</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_residue_starts</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">add_exclusive_stop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">bonds</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">bonds</span>
     <span class="n">moved</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1943,7 +1954,7 @@
         <span class="k">if</span> <span class="n">stop</span> <span class="o">-</span> <span class="n">start</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
             <span class="k">continue</span>
         <span class="n">members</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">))</span>
-        <span class="n">metals</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">members</span> <span class="k">if</span> <span class="n">elements</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">in</span> <span class="n">ion_for_element</span><span class="p">]</span>
+        <span class="n">metals</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">members</span> <span class="k">if</span> <span class="p">(</span><span class="n">elements</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">in</span> <span class="n">ion_for_element</span><span class="p">]</span>
         <span class="n">rest</span> <span class="o">=</span> <span class="n">members</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">metals</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">metals</span> <span class="ow">or</span> <span class="s2">"C"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">elements</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">rest</span><span class="p">)]:</span>
             <span class="k">continue</span>
@@ -1966,7 +1977,7 @@
         <span class="k">if</span> <span class="n">seen</span> <span class="o">!=</span> <span class="n">rest</span><span class="p">:</span>
             <span class="k">continue</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">metals</span><span class="p">:</span>
-            <span class="n">name3</span> <span class="o">=</span> <span class="n">ion_for_element</span><span class="p">[</span><span class="n">elements</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+            <span class="n">name3</span> <span class="o">=</span> <span class="n">ion_for_element</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">elements</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">charge</span><span class="p">[</span><span class="n">i</span><span class="p">])))</span>
             <span class="k">if</span> <span class="n">name3</span> <span class="ow">in</span> <span class="n">metal_atom</span> <span class="ow">and</span> <span class="n">numpy</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">coord</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
                 <span class="n">moved</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">name3</span><span class="p">,</span> <span class="n">metal_atom</span><span class="p">[</span><span class="n">name3</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">moved</span>
