@@ -856,21 +856,8 @@ def apply_fragment_connections(pose_stack, mapping: FragmentedLigandPoseMapping)
             )
 
     real_res = pose_stack.block_type_ind64 >= 0
-    (
-        pconn_matrix,
-        pconn_offsets,
-        block_n_conn,
-        _,
-    ) = PoseStackBuilder._take_real_conn_conn_intrablock_pairs(
-        pbt, pose_stack.block_type_ind64, real_res
-    )
-    PoseStackBuilder._incorporate_inter_residue_connections_into_connectivity_graph(
-        inter_residue_connections64, pconn_offsets, pconn_matrix
-    )
-    inter_block_bondsep = (
-        PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph(
-            pbt, pconn_offsets, block_n_conn, pconn_matrix
-        )
+    inter_block_bondsep = PoseStackBuilder._inter_block_bondsep_from_connections(
+        pbt, pose_stack.block_type_ind64, real_res, inter_residue_connections64
     )
     result = attr.evolve(
         pose_stack,
@@ -1267,14 +1254,8 @@ def unsplit_pose_stack(pose_stack):
         device,
     )
 
-    pconn_matrix, pconn_offsets, block_n_conn, _ = (
-        PoseStackBuilder._take_real_conn_conn_intrablock_pairs(pbt, new_bt64, real_new)
-    )
-    PoseStackBuilder._incorporate_inter_residue_connections_into_connectivity_graph(
-        new_irc64, pconn_offsets, pconn_matrix
-    )
-    new_ibs64 = PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph(
-        pbt, pconn_offsets, block_n_conn, pconn_matrix
+    new_ibs = PoseStackBuilder._inter_block_bondsep_from_connections(
+        pbt, new_bt64, real_new, new_irc64
     )
 
     new_chain_id, new_pdb_info = _unsplit_chain_and_pdb(
@@ -1296,7 +1277,7 @@ def unsplit_pose_stack(pose_stack):
         block_coord_offset64=new_bco.to(torch.int64),
         inter_residue_connections=new_irc64.to(torch.int32),
         inter_residue_connections64=new_irc64,
-        inter_block_bondsep=new_ibs64.to(torch.int32),
+        inter_block_bondsep=new_ibs,
         block_type_ind=new_bt32,
         block_type_ind64=new_bt64,
         chain_id=new_chain_id,

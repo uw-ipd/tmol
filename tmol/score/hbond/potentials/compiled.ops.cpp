@@ -51,7 +51,7 @@ class HBondPoseScoresOp
 
       // term specific params
       Tensor pose_stack_inter_residue_connections,
-      Tensor pose_stack_min_bond_separation,
+      Tensor pose_stack_near_blocks,
       Tensor pose_stack_inter_block_bondsep,
 
       // packed block type params
@@ -118,7 +118,7 @@ class HBondPoseScoresOp
 
                   // term specific params
                   TCAST(pose_stack_inter_residue_connections),
-                  TCAST(pose_stack_min_bond_separation),
+                  TCAST(pose_stack_near_blocks),
                   TCAST(pose_stack_inter_block_bondsep),
 
                   // packed block type params
@@ -183,7 +183,7 @@ class HBondPoseScoresOp
 
            // term specific params
            pose_stack_inter_residue_connections,
-           pose_stack_min_bond_separation,
+           pose_stack_near_blocks,
            pose_stack_inter_block_bondsep,
 
            // packed block type params
@@ -266,7 +266,7 @@ class HBondPoseScoresOp
 
       // term specific params
       auto pose_stack_inter_residue_connections = saved[i++];
-      auto pose_stack_min_bond_separation = saved[i++];
+      auto pose_stack_near_blocks = saved[i++];
       auto pose_stack_inter_block_bondsep = saved[i++];
 
       // packed block type params
@@ -332,7 +332,7 @@ class HBondPoseScoresOp
 
                     // term specific params
                     TCAST(pose_stack_inter_residue_connections),
-                    TCAST(pose_stack_min_bond_separation),
+                    TCAST(pose_stack_near_blocks),
                     TCAST(pose_stack_inter_block_bondsep),
 
                     // packed block type params
@@ -399,7 +399,7 @@ class HBondRotamerScoresOp
 
       // term specific params
       Tensor pose_stack_inter_residue_connections,
-      Tensor pose_stack_min_bond_separation,
+      Tensor pose_stack_near_blocks,
       Tensor pose_stack_inter_block_bondsep,
 
       // packed block type params
@@ -467,7 +467,7 @@ class HBondRotamerScoresOp
 
                       // term specific params
                       TCAST(pose_stack_inter_residue_connections),
-                      TCAST(pose_stack_min_bond_separation),
+                      TCAST(pose_stack_near_blocks),
                       TCAST(pose_stack_inter_block_bondsep),
 
                       // packed block type params
@@ -529,7 +529,7 @@ class HBondRotamerScoresOp
 
            // term specific params
            pose_stack_inter_residue_connections,
-           pose_stack_min_bond_separation,
+           pose_stack_near_blocks,
            pose_stack_inter_block_bondsep,
 
            // packed block type params
@@ -608,7 +608,7 @@ class HBondRotamerScoresOp
 
       // term specific params
       auto pose_stack_inter_residue_connections = saved[i++];
-      auto pose_stack_min_bond_separation = saved[i++];
+      auto pose_stack_near_blocks = saved[i++];
       auto pose_stack_inter_block_bondsep = saved[i++];
 
       // packed block type params
@@ -674,7 +674,7 @@ class HBondRotamerScoresOp
 
                     // term specific params
                     TCAST(pose_stack_inter_residue_connections),
-                    TCAST(pose_stack_min_bond_separation),
+                    TCAST(pose_stack_near_blocks),
                     TCAST(pose_stack_inter_block_bondsep),
 
                     // packed block type params
@@ -737,7 +737,7 @@ std::vector<Tensor> hbond_pose_scores_op(
 
     // term specific params
     Tensor pose_stack_inter_residue_connections,
-    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_near_blocks,
     Tensor pose_stack_inter_block_bondsep,
 
     // packed block type params
@@ -789,7 +789,7 @@ std::vector<Tensor> hbond_pose_scores_op(
 
       // term specific params
       pose_stack_inter_residue_connections,
-      pose_stack_min_bond_separation,
+      pose_stack_near_blocks,
       pose_stack_inter_block_bondsep,
 
       // packed block type params
@@ -845,7 +845,7 @@ std::vector<Tensor> hbond_rotamer_scores_op(
 
     // term specific params
     Tensor pose_stack_inter_residue_connections,
-    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_near_blocks,
     Tensor pose_stack_inter_block_bondsep,
 
     // packed block type params
@@ -898,7 +898,7 @@ std::vector<Tensor> hbond_rotamer_scores_op(
 
       // term specific params
       pose_stack_inter_residue_connections,
-      pose_stack_min_bond_separation,
+      pose_stack_near_blocks,
       pose_stack_inter_block_bondsep,
 
       // packed block type params
@@ -950,7 +950,7 @@ std::vector<Tensor> hbond_rotamer_scores_shared_op(
     Tensor lockstep_group_for_block,
     int64_t max_n_rots_per_pose,
     Tensor pose_stack_inter_residue_connections,
-    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_near_blocks,
     Tensor pose_stack_inter_block_bondsep,
     Tensor block_type_n_atoms,
     Tensor block_type_n_interblock_bonds,
@@ -1000,7 +1000,7 @@ std::vector<Tensor> hbond_rotamer_scores_shared_op(
       lockstep_group_for_block,
       max_n_rots_per_pose,
       pose_stack_inter_residue_connections,
-      pose_stack_min_bond_separation,
+      pose_stack_near_blocks,
       pose_stack_inter_block_bondsep,
       block_type_n_atoms,
       block_type_n_interblock_bonds,
