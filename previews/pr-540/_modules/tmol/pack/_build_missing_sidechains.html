@@ -464,6 +464,7 @@
     <span class="n">no_optH</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">na_sampler</span><span class="p">:</span> <span class="n">NaChiRotamerSampler</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">has_missing_atoms</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Build missing sidechains and place hydrogens using per-block sampler assignment.</span>
 
@@ -499,6 +500,7 @@
 <span class="sd">        no_optH: When True, skip OptH and preserve old Dunbrack-only behavior.</span>
 <span class="sd">        has_missing_atoms: Cached value of ``block_has_missing_atoms.any()``.</span>
 <span class="sd">            Supplying it avoids a device synchronization in repeated builds.</span>
+<span class="sd">        seed: Packer seed, as for :func:`~tmol.pack.pack_rotamers`.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        PoseStack with missing sidechains built and (by default) hydrogens</span>
@@ -550,7 +552,7 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">task</span><span class="o">.</span><span class="n">disable_packing_by_block_mask</span><span class="p">(</span><span class="n">block_does_not_have_missing_atoms</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">pack_rotamers</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">pack_rotamers</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span></div>
 
 </pre></div>
 

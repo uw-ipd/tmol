@@ -448,10 +448,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">ResidueTypeSet</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._build_context</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseBuildContext</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._pose_stack_from_atom37</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">atom37_slot_map_for_ordering</span><span class="p">,</span>
-    <span class="n">canonical_form_from_atom37</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._pose_stack_from_atom37</span><span class="w"> </span><span class="kn">import</span> <span class="n">canonical_form_from_atom37</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">CanonicalForm</span><span class="p">,</span>
     <span class="n">CanonicalOrdering</span><span class="p">,</span>
@@ -666,14 +663,11 @@
 
     <span class="c1"># Only the residue-index space is atomworks-specific. Once the tokens are</span>
     <span class="c1"># expressed as tmol residue types, the coordinate scatter is the shared one.</span>
-    <span class="n">co</span> <span class="o">=</span> <span class="n">canonical_ordering_for_atomworks</span><span class="p">()</span>
-    <span class="n">aw2t_rtmap</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_get_aw_2_tmol_mappings</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">canonical_form_from_atom37</span><span class="p">(</span>
         <span class="n">coords</span><span class="p">,</span>
-        <span class="n">aw2t_rtmap</span><span class="p">[</span><span class="n">residue_type</span><span class="p">],</span>
+        <span class="n">_aw_2_tmol_restype_map</span><span class="p">(</span><span class="n">device</span><span class="p">)[</span><span class="n">residue_type</span><span class="p">],</span>
         <span class="n">chain_iid</span><span class="p">,</span>
-        <span class="n">co</span><span class="p">,</span>
-        <span class="n">slot_map</span><span class="o">=</span><span class="n">atom37_slot_map_for_ordering</span><span class="p">(</span><span class="n">co</span><span class="p">,</span> <span class="n">ATOMWORKS_ATOM37_NAMES</span><span class="p">,</span> <span class="n">device</span><span class="p">),</span>
+        <span class="n">canonical_ordering_for_atomworks</span><span class="p">(),</span>
     <span class="p">)</span></div>
 
 
@@ -803,24 +797,14 @@
 
 
 <span class="nd">@toolz</span><span class="o">.</span><span class="n">functoolz</span><span class="o">.</span><span class="n">memoize</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">_get_aw_2_tmol_mappings</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Build forward mapping tensors: atomworks index -&gt; tmol canonical.</span>
-
-<span class="sd">    OXT is deliberately excluded: it only exists on C-terminal residue</span>
-<span class="sd">    variants in tmol, and its presence on non-terminal residues would</span>
-<span class="sd">    prevent block-type resolution.  tmol determines termini</span>
-<span class="sd">    automatically from the chain_iid boundaries.</span>
-<span class="sd">    """</span>
-    <span class="n">co</span> <span class="o">=</span> <span class="n">canonical_ordering_for_atomworks</span><span class="p">()</span>
-
-    <span class="c1"># Strip OXT from the atom-name lists so that it is never mapped</span>
-    <span class="c1"># into the canonical form (tmol handles termini via patches).</span>
-    <span class="n">aw_atom_names_no_oxt</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="n">name3</span><span class="p">:</span> <span class="p">[</span><span class="n">at</span> <span class="k">if</span> <span class="n">at</span> <span class="o">!=</span> <span class="s2">"OXT"</span> <span class="k">else</span> <span class="s2">""</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">]</span>
-        <span class="k">for</span> <span class="n">name3</span><span class="p">,</span> <span class="n">atoms</span> <span class="ow">in</span> <span class="n">ATOMWORKS_ATOM37_NAMES</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-    <span class="p">}</span>
-
-    <span class="k">return</span> <span class="n">co</span><span class="o">.</span><span class="n">create_src_2_tmol_mappings</span><span class="p">(</span><span class="n">ATOMWORKS_NAME3S</span><span class="p">,</span> <span class="n">aw_atom_names_no_oxt</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_aw_2_tmol_restype_map</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Atomworks residue index -&gt; tmol canonical residue type (-1 if tmol has none)."""</span>
+    <span class="n">classes</span> <span class="o">=</span> <span class="n">canonical_ordering_for_atomworks</span><span class="p">()</span><span class="o">.</span><span class="n">restype_io_equiv_classes</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">classes</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">if</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">classes</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ATOMWORKS_NAME3S</span><span class="p">],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span>
 
 
 <span class="nd">@toolz</span><span class="o">.</span><span class="n">functoolz</span><span class="o">.</span><span class="n">memoize</span>

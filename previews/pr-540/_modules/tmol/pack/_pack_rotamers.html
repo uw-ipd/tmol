@@ -468,18 +468,31 @@
     <span class="n">sfxn</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span>
     <span class="n">task</span><span class="p">:</span> <span class="n">PackerTask</span><span class="p">,</span>
     <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Optimize side-chain conformers for a pose stack.</span>
+
+<span class="sd">    The annealer draws from torch's generator on the pose device, so</span>
+<span class="sd">    ``torch.manual_seed`` controls it on the CPU as on CUDA.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        pose_stack: Poses whose task-enabled blocks will be packed.</span>
 <span class="sd">        sfxn: Score function used to rank rotamer assignments.</span>
 <span class="sd">        task: Allowed block types, conformers, and packing positions.</span>
 <span class="sd">        verbose: Print synchronized stage timings when true.</span>
+<span class="sd">        seed: Seed for this call only, leaving torch's global random state unchanged.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        A new pose stack containing the lowest-ranked assignment per pose.</span>
 <span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cuda</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cuda"</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">fork_rng</span><span class="p">(</span><span class="n">devices</span><span class="o">=</span><span class="p">[</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="k">if</span> <span class="n">cuda</span> <span class="k">else</span> <span class="p">[]):</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_generator</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">cuda</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">pack_rotamers</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
 
     <span class="n">max_poses_per_chunk</span> <span class="o">=</span> <span class="n">_max_poses_per_packing_chunk</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span> <span class="o">&gt;</span> <span class="n">max_poses_per_chunk</span><span class="p">:</span>
@@ -706,7 +719,9 @@
         <span class="n">block_coord_offset64</span><span class="o">=</span><span class="n">view</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset64</span><span class="p">),</span>
         <span class="n">inter_residue_connections</span><span class="o">=</span><span class="n">view</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="p">),</span>
         <span class="n">inter_residue_connections64</span><span class="o">=</span><span class="n">view</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections64</span><span class="p">),</span>
-        <span class="n">inter_block_bondsep</span><span class="o">=</span><span class="n">view</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_block_bondsep</span><span class="p">),</span>
+        <span class="n">inter_block_bondsep</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_block_bondsep</span><span class="o">.</span><span class="n">select_poses</span><span class="p">(</span>
+            <span class="n">first_pose</span><span class="p">,</span> <span class="n">last_pose</span>
+        <span class="p">),</span>
         <span class="n">block_type_ind</span><span class="o">=</span><span class="n">view</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">),</span>
         <span class="n">block_type_ind64</span><span class="o">=</span><span class="n">view</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">),</span>
         <span class="n">chain_id</span><span class="o">=</span><span class="n">view</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">chain_id</span><span class="p">),</span>

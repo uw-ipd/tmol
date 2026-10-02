@@ -454,12 +454,12 @@
     <span class="n">validate_args</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">MAX_SIG_BOND_SEPARATION</span><span class="p">,</span>
     <span class="n">RefinedResidueType</span><span class="p">,</span>
     <span class="n">three2one</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">InterBlockBondsep</span><span class="p">,</span>
     <span class="n">PackedBlockTypes</span><span class="p">,</span>
     <span class="n">PDBInfo</span><span class="p">,</span>
     <span class="n">DEFAULT_ATOM_B_FACTOR</span><span class="p">,</span>
@@ -471,8 +471,6 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.tensor</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">exclusive_cumsum1d</span><span class="p">,</span>
     <span class="n">exclusive_cumsum2d</span><span class="p">,</span>
-    <span class="n">exclusive_cumsum2d_and_totals</span><span class="p">,</span>
-    <span class="n">stretch</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility._device</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
 
@@ -563,8 +561,10 @@
         <span class="n">inter_residue_connections</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_inter_residue_connections_from_pose_stacks</span><span class="p">(</span>
             <span class="n">packed_block_types</span><span class="p">,</span> <span class="n">pose_stacks</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="n">ps_offset</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">device</span>
         <span class="p">)</span>
-        <span class="n">inter_block_bondsep</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_interblock_bondsep_from_pose_stacks</span><span class="p">(</span>
-            <span class="n">packed_block_types</span><span class="p">,</span> <span class="n">pose_stacks</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="n">ps_offset</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">device</span>
+        <span class="n">inter_block_bondsep</span> <span class="o">=</span> <span class="n">InterBlockBondsep</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">ps</span><span class="o">.</span><span class="n">inter_block_bondsep</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">ps</span> <span class="ow">in</span> <span class="n">pose_stacks</span><span class="p">],</span>
+            <span class="n">max_n_blocks</span><span class="p">,</span>
+            <span class="n">packed_block_types</span><span class="o">.</span><span class="n">max_n_conn</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">block_type_ind</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_resolve_block_type_ind</span><span class="p">(</span>
             <span class="n">packed_block_types</span><span class="p">,</span> <span class="n">pose_stacks</span><span class="p">,</span> <span class="n">n_poses</span><span class="p">,</span> <span class="n">ps_offset</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">device</span>
@@ -667,7 +667,6 @@
 <span class="sd">        AA[CYD--dslf-second]AAAA[CYD--dslf-first]AAA</span>
 <span class="sd">        """</span>
         <span class="bp">cls</span><span class="o">.</span><span class="n">_annotate_pbt_w_canonical_aa1lc_lookup</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">)</span>
-        <span class="bp">cls</span><span class="o">.</span><span class="n">_annotate_pbt_w_polymeric_down_up_bondsep_dist</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">)</span>
 
         <span class="n">pbt</span> <span class="o">=</span> <span class="n">packed_block_types</span>
         <span class="n">device</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">device</span>
@@ -706,14 +705,8 @@
         <span class="c1"># in the connection-annotated sequence. c. Then we will remove the</span>
         <span class="c1"># chemical bonds for i-to-i+1 connections that span chains</span>
         <span class="c1">#</span>
-        <span class="c1"># 3) Then, we will construct a graph representing the edge weights</span>
-        <span class="c1"># between all pairs of connection points. a) Intra-residue connection</span>
-        <span class="c1"># distances are read out of the PBT object (after an initial annotation)</span>
-        <span class="c1"># b) the inter-residue connections will then be added from the inter-residue</span>
-        <span class="c1"># connections noted in the inter_residue_connections64 tensor.</span>
-        <span class="c1">#</span>
-        <span class="c1"># 4) Finally, we invoke all-pairs-shortest-path and then read out the</span>
-        <span class="c1"># intra-block bond separations</span>
+        <span class="c1"># 3) Finally, we search the connection graph (intra-residue distances plus</span>
+        <span class="c1"># inter_residue_connections64 bonds) for the bond separations below the cap</span>
 
         <span class="c1"># 1</span>
         <span class="n">resolved_expoly_connections</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_find_connection_pairs_for_residue_subset</span><span class="p">(</span>
@@ -731,22 +724,9 @@
             <span class="n">resolved_expoly_connections</span><span class="p">,</span> <span class="n">inter_residue_connections64</span>
         <span class="p">)</span>
 
-        <span class="c1"># 3a</span>
-        <span class="p">(</span>
-            <span class="n">pconn_matrix</span><span class="p">,</span>
-            <span class="n">pconn_offsets</span><span class="p">,</span>
-            <span class="n">block_n_conn</span><span class="p">,</span>
-            <span class="n">_</span><span class="p">,</span>
-        <span class="p">)</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_take_real_conn_conn_intrablock_pairs</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="n">block_type_ind64</span><span class="p">,</span> <span class="n">real_res</span><span class="p">)</span>
-
-        <span class="c1"># 3b</span>
-        <span class="bp">cls</span><span class="o">.</span><span class="n">_incorporate_inter_residue_connections_into_connectivity_graph</span><span class="p">(</span>
-            <span class="n">inter_residue_connections64</span><span class="p">,</span> <span class="n">pconn_offsets</span><span class="p">,</span> <span class="n">pconn_matrix</span>
-        <span class="p">)</span>
-
-        <span class="c1"># 4</span>
-        <span class="n">inter_block_bondsep</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_calculate_interblock_bondsep_from_connectivity_graph</span><span class="p">(</span>
-            <span class="n">pbt</span><span class="p">,</span> <span class="n">pconn_offsets</span><span class="p">,</span> <span class="n">block_n_conn</span><span class="p">,</span> <span class="n">pconn_matrix</span>
+        <span class="c1"># 3</span>
+        <span class="n">inter_block_bondsep</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_inter_block_bondsep_from_connections</span><span class="p">(</span>
+            <span class="n">pbt</span><span class="p">,</span> <span class="n">block_type_ind64</span><span class="p">,</span> <span class="n">real_res</span><span class="p">,</span> <span class="n">inter_residue_connections64</span>
         <span class="p">)</span>
 
         <span class="n">n_atoms</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_res</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
@@ -874,142 +854,6 @@
 
     <span class="nd">@classmethod</span>
     <span class="nd">@validate_args</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_read_intra_block_connection_atom_separations</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">pbt_conn_at_intrablock_bond_sep</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:],</span>
-        <span class="n">block_types64</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:],</span>
-        <span class="n">real_blocks</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:],</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]:</span>
-        <span class="n">n_poses</span> <span class="o">=</span> <span class="n">block_types64</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">max_n_blocks</span> <span class="o">=</span> <span class="n">block_types64</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">max_n_conn</span> <span class="o">=</span> <span class="n">pbt_conn_at_intrablock_bond_sep</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="k">assert</span> <span class="n">pbt_conn_at_intrablock_bond_sep</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="n">max_n_conn</span>
-
-        <span class="n">intra_block_conn_dists</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-            <span class="n">device</span><span class="o">=</span><span class="n">pbt_conn_at_intrablock_bond_sep</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">intra_block_conn_dists</span><span class="p">[</span><span class="n">real_blocks</span><span class="p">]</span> <span class="o">=</span> <span class="n">pbt_conn_at_intrablock_bond_sep</span><span class="p">[</span>
-            <span class="n">block_types64</span><span class="p">[</span><span class="n">real_blocks</span><span class="p">]</span>
-        <span class="p">]</span>
-        <span class="k">return</span> <span class="n">intra_block_conn_dists</span>
-
-    <span class="nd">@classmethod</span>
-    <span class="c1"># @validate_args</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_take_real_conn_conn_intrablock_pairs</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pbt</span><span class="p">,</span> <span class="n">block_types64</span><span class="p">,</span> <span class="n">real_blocks</span><span class="p">):</span>
-        <span class="bp">cls</span><span class="o">.</span><span class="n">_annotate_pbt_w_intraresidue_connection_atom_distances</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_take_real_conn_conn_intrablock_pairs_heavy</span><span class="p">(</span>
-            <span class="n">pbt</span><span class="o">.</span><span class="n">n_conn</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">conn_at_intrablock_bond_sep</span><span class="p">,</span> <span class="n">block_types64</span><span class="p">,</span> <span class="n">real_blocks</span>
-        <span class="p">)</span>
-
-    <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_take_real_conn_conn_intrablock_pairs_heavy</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">pbt_n_conn</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
-        <span class="n">pbt_conn_at_intrablock_bond_sep</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:],</span>
-        <span class="n">block_types64</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:],</span>
-        <span class="n">real_blocks</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:],</span>
-    <span class="p">):</span>
-        <span class="n">n_poses</span> <span class="o">=</span> <span class="n">block_types64</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">max_n_blocks</span> <span class="o">=</span> <span class="n">block_types64</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="c1"># n_blocks_per_pose = torch.sum(real_blocks, axis=1)</span>
-        <span class="n">pbt_device</span> <span class="o">=</span> <span class="n">pbt_n_conn</span><span class="o">.</span><span class="n">device</span>
-        <span class="n">pbt_max_n_conn</span> <span class="o">=</span> <span class="n">pbt_conn_at_intrablock_bond_sep</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="k">assert</span> <span class="n">pbt_conn_at_intrablock_bond_sep</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="n">pbt_max_n_conn</span>
-
-        <span class="n">n_conn_for_block</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">block_types64</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-        <span class="n">n_conn_for_block</span><span class="p">[</span><span class="n">real_blocks</span><span class="p">]</span> <span class="o">=</span> <span class="n">pbt_n_conn</span><span class="p">[</span><span class="n">block_types64</span><span class="p">[</span><span class="n">real_blocks</span><span class="p">]]</span>
-        <span class="n">n_conn_for_block_offset</span><span class="p">,</span> <span class="n">n_conn_totals</span> <span class="o">=</span> <span class="n">exclusive_cumsum2d_and_totals</span><span class="p">(</span>
-            <span class="n">n_conn_for_block</span>
-        <span class="p">)</span>
-        <span class="n">n_conn_for_block_offset64</span> <span class="o">=</span> <span class="n">n_conn_for_block_offset</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-        <span class="n">max_n_pose_conn</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">n_conn_totals</span><span class="p">)</span>
-
-        <span class="n">pconn_matrix</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_pose_conn</span><span class="p">,</span> <span class="n">max_n_pose_conn</span><span class="p">),</span>
-            <span class="n">MAX_SIG_BOND_SEPARATION</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-            <span class="n">device</span><span class="o">=</span><span class="n">pbt_device</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">max_n_pose_conn</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="c1"># early exit: we are looking at either an empty pose</span>
-            <span class="c1"># or a bunch of residues with no inter-residue connections;</span>
-            <span class="c1"># in either case, no work remains.</span>
-            <span class="k">return</span> <span class="p">(</span>
-                <span class="n">pconn_matrix</span><span class="p">,</span>
-                <span class="n">n_conn_for_block_offset64</span><span class="p">,</span>
-                <span class="n">n_conn_for_block</span><span class="p">,</span>
-                <span class="n">n_conn_totals</span><span class="p">,</span>
-            <span class="p">)</span>
-
-        <span class="c1"># Not all blocks have inter-residue connections! We want the subset</span>
-        <span class="c1"># of real blocks that do.</span>
-        <span class="n">block_has_conn</span> <span class="o">=</span> <span class="n">n_conn_for_block</span> <span class="o">&gt;</span> <span class="mi">0</span>
-
-        <span class="c1"># let's identify which pairs of connections are part</span>
-        <span class="c1"># of the same block</span>
-        <span class="n">pose_for_block</span> <span class="o">=</span> <span class="n">stretch</span><span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt_device</span><span class="p">),</span> <span class="n">max_n_blocks</span>
-        <span class="p">)</span>
-
-        <span class="c1"># mark the first connection in each block with a 1</span>
-        <span class="n">first_pconn_for_block</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_pose_conn</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt_device</span>
-        <span class="p">)</span>
-        <span class="n">first_pconn_for_block</span><span class="p">[</span>
-            <span class="n">pose_for_block</span><span class="p">[</span><span class="n">block_has_conn</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)],</span>
-            <span class="n">n_conn_for_block_offset64</span><span class="p">[</span><span class="n">block_has_conn</span><span class="p">],</span>
-        <span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
-        <span class="c1"># then an inclusive cummulative sum will label all of the</span>
-        <span class="c1"># connections coming from the same block the same; this</span>
-        <span class="c1"># will be 1 more than the actual block index for the</span>
-        <span class="c1"># connection, but that's ok for our purposes</span>
-        <span class="n">pseudo_block_for_pconn</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">first_pconn_for_block</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">are_pconns_from_same_block</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">pseudo_block_for_pconn</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">==</span> <span class="n">pseudo_block_for_pconn</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span>
-        <span class="p">)</span>
-
-        <span class="c1"># Now let's go to the PackedBlockTypes' data describing intra-residue</span>
-        <span class="c1"># distances for pairs of inter-residue connections on the same block:</span>
-        <span class="c1"># Read out the intra-block path distances from the PBT annotation</span>
-        <span class="c1"># which will give us a tensor of [ n-real-blocks x max-n-conn x max-n-conn ]</span>
-        <span class="c1"># After, we will have to be clever in order to save this data into the</span>
-        <span class="c1"># fledgling [ n-poses x max-n-pose-conn x max-n-pose-conn ] tensor that</span>
-        <span class="c1"># will be input into our all-pairs-shortest-path function.</span>
-        <span class="n">intra_block_bconn_dists</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_read_intra_block_connection_atom_separations</span><span class="p">(</span>
-            <span class="n">pbt_conn_at_intrablock_bond_sep</span><span class="p">,</span> <span class="n">block_types64</span><span class="p">,</span> <span class="n">real_blocks</span>
-        <span class="p">)</span>
-
-        <span class="n">bconn_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">pbt_max_n_conn</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt_device</span><span class="p">)</span>
-        <span class="n">valid_local_bconn_pair</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
-            <span class="n">bconn_inds</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">&lt;</span> <span class="n">n_conn_for_block</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
-            <span class="n">bconn_inds</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">n_conn_for_block</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
-        <span class="p">)</span>
-
-        <span class="c1"># Exclude padded pose-connection rows and columns.</span>
-        <span class="n">pconn_real</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_n_pose_conn</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt_device</span><span class="p">)</span>
-            <span class="o">&lt;</span> <span class="n">n_conn_totals</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
-        <span class="p">)</span>
-        <span class="n">valid_pconn_pair</span> <span class="o">=</span> <span class="n">pconn_real</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">&amp;</span> <span class="n">pconn_real</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
-
-        <span class="n">real_pconns_from_same_block</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
-            <span class="n">are_pconns_from_same_block</span><span class="p">,</span> <span class="n">valid_pconn_pair</span>
-        <span class="p">)</span>
-
-        <span class="c1"># here we are at last! fancy indexing to take the subset of</span>
-        <span class="c1"># real interresidue connection pairs from the</span>
-        <span class="n">pconn_matrix</span><span class="p">[</span><span class="n">real_pconns_from_same_block</span><span class="p">]</span> <span class="o">=</span> <span class="n">intra_block_bconn_dists</span><span class="p">[</span>
-            <span class="n">valid_local_bconn_pair</span>
-        <span class="p">]</span>
-
-        <span class="k">return</span> <span class="n">pconn_matrix</span><span class="p">,</span> <span class="n">n_conn_for_block_offset64</span><span class="p">,</span> <span class="n">n_conn_for_block</span><span class="p">,</span> <span class="n">n_conn_totals</span>
-
-    <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_pack_pose_stack_coords</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
@@ -1060,39 +904,6 @@
                 <span class="p">:</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
             <span class="p">]</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span>
         <span class="k">return</span> <span class="n">inter_residue_connections</span>
-
-    <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_interblock_bondsep_from_pose_stacks</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
-        <span class="n">pose_stacks</span><span class="p">,</span>  <span class="c1"># : List["PoseStack"],</span>
-        <span class="n">n_poses</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">ps_offsets</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
-        <span class="n">max_n_blocks</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]:</span>
-        <span class="n">max_n_conn</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
-            <span class="nb">len</span><span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">connections</span><span class="p">)</span> <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
-        <span class="p">)</span>
-        <span class="n">inter_block_bondsep</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">),</span>
-            <span class="mi">6</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">pose_stack</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pose_stacks</span><span class="p">):</span>
-            <span class="n">offset</span> <span class="o">=</span> <span class="n">ps_offsets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-            <span class="n">i_nblocks</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_block_bondsep</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-            <span class="n">i_nconn</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_block_bondsep</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
-            <span class="n">inter_block_bondsep</span><span class="p">[</span>
-                <span class="n">offset</span> <span class="p">:</span> <span class="p">(</span><span class="n">offset</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)),</span>
-                <span class="p">:</span><span class="n">i_nblocks</span><span class="p">,</span>
-                <span class="p">:</span><span class="n">i_nblocks</span><span class="p">,</span>
-                <span class="p">:</span><span class="n">i_nconn</span><span class="p">,</span>
-                <span class="p">:</span><span class="n">i_nconn</span><span class="p">,</span>
-            <span class="p">]</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_block_bondsep</span>
-        <span class="k">return</span> <span class="n">inter_block_bondsep</span>
 
     <span class="nd">@classmethod</span>
     <span class="nd">@validate_args</span>
@@ -1223,25 +1034,6 @@
 
     <span class="nd">@classmethod</span>
     <span class="nd">@validate_args</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_chain_labels_from_pose_stacks</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">pose_stacks</span><span class="p">,</span>  <span class="c1"># : List["PoseStack"],</span>
-        <span class="n">ps_offsets</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:],</span>
-        <span class="n">max_n_blocks</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">[</span><span class="nb">object</span><span class="p">][:,</span> <span class="p">:]:</span>
-        <span class="n">n_poses</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ps</span><span class="p">)</span> <span class="k">for</span> <span class="n">ps</span> <span class="ow">in</span> <span class="n">pose_stacks</span><span class="p">)</span>
-        <span class="n">chain_labels</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">max_n_blocks</span><span class="p">),</span> <span class="s2">""</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">pose_stack</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pose_stacks</span><span class="p">):</span>
-            <span class="n">offset</span> <span class="o">=</span> <span class="n">ps_offsets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-            <span class="n">i_nblocks</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">chain_labels</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-            <span class="n">chain_labels</span><span class="p">[</span><span class="n">offset</span> <span class="p">:</span> <span class="p">(</span><span class="n">offset</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)),</span> <span class="p">:</span><span class="n">i_nblocks</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">pose_stack</span><span class="o">.</span><span class="n">chain_labels</span>
-            <span class="p">)</span>
-        <span class="k">return</span> <span class="n">chain_labels</span>
-
-    <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_annotate_pbt_w_canonical_aa1lc_lookup</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Annotate the PBT with a pandas dictionary mapping the (unique!) names</span>
 <span class="sd">        of each of the block types to their index in the active_block_types list,</span>
@@ -1279,30 +1071,6 @@
 
     <span class="nd">@classmethod</span>
     <span class="nd">@validate_args</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_annotate_pbt_w_polymeric_down_up_bondsep_dist</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"polymeric_down_to_up_nbonds"</span><span class="p">):</span>
-            <span class="k">return</span>
-
-        <span class="n">polymeric_down_to_up_nbonds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
-            <span class="p">[</span>
-                <span class="p">(</span>
-                    <span class="n">bt</span><span class="o">.</span><span class="n">path_distance</span><span class="p">[</span>
-                        <span class="n">bt</span><span class="o">.</span><span class="n">ordered_connection_atoms</span><span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">down_connection_ind</span><span class="p">],</span>
-                        <span class="n">bt</span><span class="o">.</span><span class="n">ordered_connection_atoms</span><span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">up_connection_ind</span><span class="p">],</span>
-                    <span class="p">]</span>
-                    <span class="k">if</span> <span class="n">bt</span><span class="o">.</span><span class="n">down_connection_ind</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">bt</span><span class="o">.</span><span class="n">up_connection_ind</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
-                    <span class="k">else</span> <span class="mi">0</span>
-                <span class="p">)</span>
-                <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span>
-            <span class="p">],</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-            <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="nb">setattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"polymeric_down_to_up_nbonds"</span><span class="p">,</span> <span class="n">polymeric_down_to_up_nbonds</span><span class="p">)</span>
-
-    <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_annotate_bt_w_intraresidue_connection_atom_distances</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">bt</span><span class="p">:</span> <span class="n">RefinedResidueType</span>
     <span class="p">):</span>
@@ -1325,30 +1093,26 @@
         <span class="bp">cls</span><span class="p">,</span> <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Note the number of chemical bonds that separate all pairs of</span>
-<span class="sd">        connection atoms. This information is needed in order to construct the</span>
-<span class="sd">        starting (weighted) graph describing the chemical bonds in the system</span>
-<span class="sd">        from which either the limited-Dijkstra or the all-pairs-shortest-paths</span>
-<span class="sd">        algorithms will generate the chemical separation of the connection</span>
-<span class="sd">        atoms.</span>
-<span class="sd">        """</span>
+<span class="sd">        connection atoms: the intra-block weights of the connection graph."""</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"conn_at_intrablock_bond_sep"</span><span class="p">):</span>
             <span class="k">return</span>
         <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">:</span>
             <span class="bp">cls</span><span class="o">.</span><span class="n">_annotate_bt_w_intraresidue_connection_atom_distances</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span>
 
         <span class="n">max_n_conn</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_conn</span>
-        <span class="n">conn_at_intrablock_bond_sep</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">),</span>
-            <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-            <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">conn_at_intrablock_bond_sep</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span>
         <span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">):</span>
             <span class="n">i_n_conn</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">connections</span><span class="p">)</span>
-            <span class="n">conn_at_intrablock_bond_sep</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">i_n_conn</span><span class="p">,</span> <span class="p">:</span><span class="n">i_n_conn</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
-                <span class="n">bt</span><span class="o">.</span><span class="n">conn_at_intrablock_bond_sep</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span>
+            <span class="n">conn_at_intrablock_bond_sep</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">i_n_conn</span><span class="p">,</span> <span class="p">:</span><span class="n">i_n_conn</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">bt</span><span class="o">.</span><span class="n">conn_at_intrablock_bond_sep</span>
             <span class="p">)</span>
-        <span class="nb">setattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"conn_at_intrablock_bond_sep"</span><span class="p">,</span> <span class="n">conn_at_intrablock_bond_sep</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span>
+            <span class="n">pbt</span><span class="p">,</span>
+            <span class="s2">"conn_at_intrablock_bond_sep"</span><span class="p">,</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">conn_at_intrablock_bond_sep</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+        <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="nd">@validate_args</span>
@@ -1659,285 +1423,21 @@
         <span class="p">]</span> <span class="o">=</span> <span class="n">expoly_conn1_conn_ind</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_incorporate_inter_residue_connections_into_connectivity_graph</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span> <span class="n">inter_residue_connections</span><span class="p">,</span> <span class="n">pconn_offset</span><span class="p">,</span> <span class="n">pconn_matrix</span>
-    <span class="p">):</span>
-        <span class="n">real_connections</span> <span class="o">=</span> <span class="n">inter_residue_connections</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
-        <span class="p">(</span>
-            <span class="n">nz_real_conn_pose_ind</span><span class="p">,</span>
-            <span class="n">nz_real_conn_block_ind</span><span class="p">,</span>
-            <span class="n">nz_real_conn_conn_ind</span><span class="p">,</span>
-        <span class="p">)</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">real_connections</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-        <span class="n">pconn_from</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">pconn_offset</span><span class="p">[</span><span class="n">nz_real_conn_pose_ind</span><span class="p">,</span> <span class="n">nz_real_conn_block_ind</span><span class="p">]</span>
-            <span class="o">+</span> <span class="n">nz_real_conn_conn_ind</span>
-        <span class="p">)</span>
-        <span class="n">real_to_block</span> <span class="o">=</span> <span class="n">inter_residue_connections</span><span class="p">[</span>
-            <span class="n">nz_real_conn_pose_ind</span><span class="p">,</span> <span class="n">nz_real_conn_block_ind</span><span class="p">,</span> <span class="n">nz_real_conn_conn_ind</span><span class="p">,</span> <span class="mi">0</span>
-        <span class="p">]</span>
-        <span class="n">pconn_to</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">pconn_offset</span><span class="p">[</span><span class="n">nz_real_conn_pose_ind</span><span class="p">,</span> <span class="n">real_to_block</span><span class="p">]</span>
-            <span class="o">+</span> <span class="n">inter_residue_connections</span><span class="p">[</span>
-                <span class="n">nz_real_conn_pose_ind</span><span class="p">,</span> <span class="n">nz_real_conn_block_ind</span><span class="p">,</span> <span class="n">nz_real_conn_conn_ind</span><span class="p">,</span> <span class="mi">1</span>
-            <span class="p">]</span>
-        <span class="p">)</span>
-
-        <span class="n">pconn_matrix</span><span class="p">[</span><span class="n">nz_real_conn_pose_ind</span><span class="p">,</span> <span class="n">pconn_from</span><span class="p">,</span> <span class="n">pconn_to</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
-
-    <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_interblock_bondsep_from_connectivity_graph</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_inter_block_bondsep_from_connections</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
-        <span class="n">pconn_offsets</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:],</span>
-        <span class="n">block_n_conn</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:],</span>
-        <span class="n">pconn_matrix</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:],</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]:</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_calculate_interblock_bondsep_from_connectivity_graph_heavy</span><span class="p">(</span>
-            <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_conn</span><span class="p">,</span> <span class="n">pconn_offsets</span><span class="p">,</span> <span class="n">block_n_conn</span><span class="p">,</span> <span class="n">pconn_matrix</span>
-        <span class="p">)</span>
-
-    <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_interblock_bondsep_from_connectivity_graph_heavy</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">pbt_max_n_conn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">pconn_offsets</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:],</span>
-        <span class="n">block_n_conn</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:],</span>
-        <span class="n">pconn_matrix</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:],</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]:</span>
-<span class="w">        </span><span class="sd">"""Map shortest paths between pose connections onto block pairs.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            pbt_max_n_conn: Maximum connection count for any block type.</span>
-<span class="sd">            pconn_offsets: First pose-connection index for each block.</span>
-<span class="sd">            block_n_conn: Number of real connections for each block.</span>
-<span class="sd">            pconn_matrix: Pose-connection adjacency matrices, updated in place</span>
-<span class="sd">                with their all-pairs shortest paths.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            Connection-to-connection bond separations indexed by pose and</span>
-<span class="sd">            block pair.</span>
-<span class="sd">        """</span>
-        <span class="n">n_poses</span> <span class="o">=</span> <span class="n">block_n_conn</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">max_n_blocks</span> <span class="o">=</span> <span class="n">block_n_conn</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">max_n_conn</span> <span class="o">=</span> <span class="n">pbt_max_n_conn</span>
-        <span class="n">max_n_pconn</span> <span class="o">=</span> <span class="n">pconn_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="k">assert</span> <span class="n">pconn_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">n_poses</span>
-        <span class="k">assert</span> <span class="n">pconn_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">pconn_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-        <span class="k">assert</span> <span class="n">pconn_offsets</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">block_n_conn</span><span class="o">.</span><span class="n">shape</span>
-
-        <span class="n">output_shape</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">n_poses</span><span class="p">,</span>
-            <span class="n">max_n_blocks</span><span class="p">,</span>
-            <span class="n">max_n_blocks</span><span class="p">,</span>
-            <span class="n">max_n_conn</span><span class="p">,</span>
-            <span class="n">max_n_conn</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="k">if</span> <span class="n">max_n_pconn</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-                <span class="n">output_shape</span><span class="p">,</span>
-                <span class="n">MAX_SIG_BOND_SEPARATION</span><span class="p">,</span>
-                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-                <span class="n">device</span><span class="o">=</span><span class="n">pconn_matrix</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-            <span class="p">)</span>
-
-        <span class="bp">cls</span><span class="o">.</span><span class="n">_shortest_paths_for_connectivity_graph</span><span class="p">(</span><span class="n">pconn_matrix</span><span class="p">)</span>
-
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose.compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">block_bondsep</span>
-
-        <span class="k">return</span> <span class="n">block_bondsep</span><span class="p">(</span>
-            <span class="n">pconn_matrix</span><span class="p">,</span>
-            <span class="n">pconn_offsets</span><span class="p">,</span>
-            <span class="n">block_n_conn</span><span class="p">,</span>
-            <span class="n">max_n_conn</span><span class="p">,</span>
-            <span class="n">MAX_SIG_BOND_SEPARATION</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_shortest_paths_for_connectivity_graph</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pconn_matrix</span><span class="p">):</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose.compiled</span><span class="w"> </span><span class="kn">import</span> <span class="n">stacked_apsp</span>
-
-        <span class="n">stacked_apsp</span><span class="p">(</span><span class="n">pconn_matrix</span><span class="p">,</span> <span class="n">MAX_SIG_BOND_SEPARATION</span><span class="p">)</span>
-
-    <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_find_inter_block_separation_for_polymeric_monomers</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>
-        <span class="n">n_chains</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">max_n_res</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">real_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:],</span>
         <span class="n">block_type_ind64</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:],</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]:</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_find_inter_block_separation_for_polymeric_monomers_heavy</span><span class="p">(</span>
-            <span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-            <span class="n">pbt</span><span class="o">.</span><span class="n">polymeric_down_to_up_nbonds</span><span class="p">,</span>
-            <span class="n">pbt</span><span class="o">.</span><span class="n">up_conn_inds</span><span class="p">,</span>
-            <span class="n">pbt</span><span class="o">.</span><span class="n">down_conn_inds</span><span class="p">,</span>
-            <span class="n">n_chains</span><span class="p">,</span>
-            <span class="n">max_n_res</span><span class="p">,</span>
-            <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_conn</span><span class="p">,</span>
-            <span class="n">real_res</span><span class="p">,</span>
-            <span class="n">block_type_ind64</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="nd">@classmethod</span>
-    <span class="nd">@validate_args</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_find_inter_block_separation_for_polymeric_monomers_heavy</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-        <span class="n">bt_polymeric_down_to_up_nbonds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
-        <span class="n">bt_up_conn_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
-        <span class="n">bt_down_conn_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:],</span>
-        <span class="n">n_chains</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">max_n_res</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">max_n_conn</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">real_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:],</span>
-        <span class="n">block_type_ind64</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:],</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]:</span>
-        <span class="k">assert</span> <span class="n">real_res</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">n_chains</span>
-        <span class="k">assert</span> <span class="n">real_res</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">max_n_res</span>
-        <span class="k">assert</span> <span class="n">block_type_ind64</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">n_chains</span>
-        <span class="k">assert</span> <span class="n">block_type_ind64</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">max_n_res</span>
-
-        <span class="c1"># Let's take an example of a single four residue alpha amino acid chain:</span>
-        <span class="c1">#    "MT[Beta-Ala]Q"</span>
-        <span class="c1"># (This example has been chosen to  ensure that our logic is sound; if</span>
-        <span class="c1"># all the backbone types had the same number of atoms, then we might</span>
-        <span class="c1"># compute the right answer for the wrong reason if we worked only with</span>
-        <span class="c1"># alpha amino acids, but then fail once we attempt to build this</span>
-        <span class="c1"># tensor for a mix of alpha- and beta amino acids.)</span>
-        <span class="c1">#</span>
-        <span class="c1"># What we want is the connection-point distance tensor of:</span>
-        <span class="c1">#</span>
-        <span class="c1"># [ [ [[0,2],[2,0]],   [[3,5],[1,3]], [[6,9],[4,7]], [[10,12],[8,10]] ]</span>
-        <span class="c1">#   [ [[3,1],[5,3]],   [[0,2],[2,0]], [[3,6],[1,4]], [[7,9],[5,7]]    ]</span>
-        <span class="c1">#   [ [[6,4],[9,7]],   [[3,1],[6,4]], [[0,3],[3,0]], [[4,6],[1,3]]    ]</span>
-        <span class="c1">#   [ [[10,8],[12,10], [[7,5],[9,7]], [[4,1],[6,3]], [[0, 2],[2,0]]   ]]</span>
-        <span class="c1">#</span>
-        <span class="c1"># Where, e.g., the [0, 2, :, :] matrix [[6,9],[4,7]] says:</span>
-        <span class="c1"># - N on residue 0 is 6 chemical bonds from N on residue 2</span>
-        <span class="c1"># - N on residue 0 is 9 chemical bonds from C on residue 2</span>
-        <span class="c1"># - C on residue 0 is 4 chemical bonds from N on residue 2</span>
-        <span class="c1"># - C on residue 0 is 7 chemical bonds from C on residue 2</span>
-        <span class="c1">#</span>
-        <span class="c1"># What about if we have [Met:NTerm]T[Beta-Ala][GLN:CTerm] ?</span>
-        <span class="c1"># Then we would want this tensor instead</span>
-        <span class="c1"># (note that "up" on res 0 and "down" on res 3 are both ind 0)</span>
-        <span class="c1"># [ [ [[0,-1],[-1,-1]],  [[1,3],[-1,-1]], [[4,7],[-1,-1]], [[8,-1],[-1,-1]]  ]   # noqa: B950</span>
-        <span class="c1">#   [ [[1,-1],[3,-1]],   [[0,2],[2,0]],   [[3,6],[1,4]],   [[7,-1],[5,-1]]   ]   # noqa: B950</span>
-        <span class="c1">#   [ [[4,-1],[7,-1]],   [[3,1],[6,4]],   [[0,3],[3,0]],   [[4,-1],[1,-1]]   ]   # noqa: B950</span>
-        <span class="c1">#   [ [[8,-1],[-1,-1],   [[7,5],[-1,-1]], [[4,1],[-1,-1]], [[0, -1],[-1,-1]] ]]  # noqa: B950</span>
-        <span class="c1">#</span>
-        <span class="c1"># So how do we build this tensor? Let's think about it in terms of a</span>
-        <span class="c1"># single chain. We will add an extra dimension later to talk about</span>
-        <span class="c1"># multiple chains. Let's start by reading out the length of the down-to-up path</span>
-        <span class="c1"># separation for each block type. In the former case, A = [2, 2, 3, 2] and in</span>
-        <span class="c1"># the latter case, A = [0, 2, 3, 0] with zero entries for the residues missing</span>
-        <span class="c1"># one of the connections. What the two cases will have in common is the subset</span>
-        <span class="c1"># of residues that contain both up and down connections. Let's focus on the</span>
-        <span class="c1"># former case and return later to the latter. If we were to add 1 to A, we</span>
-        <span class="c1"># would have the chemical bond path distance between down-to-down or up-to-up</span>
-        <span class="c1"># pairs. An exclusive cumulative sum of A+1 would give B = [0, 3, 6, 10]:</span>
-        <span class="c1"># the down-to-down path distance from residue 0 to residue i.</span>
-        <span class="c1"># We can do a broadcast subtraction C = B[None,:] - B[:, None]</span>
-        <span class="c1"># giving</span>
-        <span class="c1">#</span>
-        <span class="c1"># [[0,    3,  6, 10],</span>
-        <span class="c1">#  [-3,   0,  3,  7],</span>
-        <span class="c1">#  [-6,  -3,  0,  4],</span>
-        <span class="c1">#  [-10, -7, -4,  0]]</span>
-        <span class="c1">#</span>
-        <span class="c1"># so that the absolute value of each entry represents the down-to-down</span>
-        <span class="c1"># path distance.</span>
-        <span class="c1">#</span>
-        <span class="c1"># Then we can compute the output tensor D:</span>
-        <span class="c1"># D[i, j, down, down] = abs(C[i,j])</span>
-        <span class="c1"># when i &lt; j, D[i,j,down,up] = C[i,j] + A[j] = abs(C[i,j] + A[j])</span>
-        <span class="c1">#             D[i,j,up,down] = C[i,j] - A[i]) = abs(C[i,j] - A[i]))</span>
-        <span class="c1">#             D[i,j, up, up] = C[i,j] - A[i] + A[j]</span>
-        <span class="c1"># when j &lt; i, D[i,j,down,up] = -1 * C[i,j] - A[j]</span>
-        <span class="c1">#                            = -1 * (C[i,j] + A[j])</span>
-        <span class="c1">#                            = abs(C[i,j] + A[j])</span>
-        <span class="c1">#             D[i,j,up,down] = -1 * C[i,j] + A[i]</span>
-        <span class="c1">#                            = -1 * (C[i,j] - A[i])</span>
-        <span class="c1">#                            = abs(C[i,j] - A[i])</span>
-        <span class="c1">#             D[i,j, up, up] = -1 * C[i,j] + A[i] - A[j])</span>
-        <span class="c1">#</span>
-        <span class="c1"># therefore D[i, j, down, up] = abs(C[i,j] + A[j])</span>
-        <span class="c1">#       and D[i, j, up, down] = abs(C[i,j] - A[i])</span>
-        <span class="c1">#           D[i, j,  up,  up] = abs(C[i,j] - A[i] + A[j])</span>
-
-        <span class="c1"># A: down_up_separation</span>
-        <span class="n">down_up_separation</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">n_chains</span><span class="p">,</span> <span class="n">max_n_res</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
-        <span class="p">)</span>
-        <span class="n">down_up_separation</span><span class="p">[</span><span class="n">real_res</span><span class="p">]</span> <span class="o">=</span> <span class="n">bt_polymeric_down_to_up_nbonds</span><span class="p">[</span>
-            <span class="n">block_type_ind64</span><span class="p">[</span><span class="n">real_res</span><span class="p">]</span>
-        <span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-
-        <span class="c1"># B: down_to_down_chain_distance</span>
-        <span class="n">down_to_down_chain_distance</span> <span class="o">=</span> <span class="n">exclusive_cumsum2d</span><span class="p">(</span><span class="n">down_up_separation</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-
-        <span class="c1"># C: pair_distances</span>
-        <span class="n">pair_distances</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">down_to_down_chain_distance</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
-            <span class="o">-</span> <span class="n">down_to_down_chain_distance</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span>
-        <span class="p">)</span>
-
-        <span class="c1"># D: inter_block_bondsep. Held as int32: this is the largest tensor a pose</span>
-        <span class="c1">#    carries, and a capped bond separation never needs the width.</span>
-        <span class="n">inter_block_bondsep</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">n_chains</span><span class="p">,</span> <span class="n">max_n_res</span><span class="p">,</span> <span class="n">max_n_res</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">,</span> <span class="n">max_n_conn</span><span class="p">),</span>
-            <span class="mi">100</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="n">down_up_distance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">pair_distances</span> <span class="o">+</span> <span class="n">down_up_separation</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:])</span>
-        <span class="n">up_down_distance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">pair_distances</span> <span class="o">-</span> <span class="n">down_up_separation</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">])</span>
-        <span class="n">up_up_distance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span>
-            <span class="n">pair_distances</span>
-            <span class="o">-</span> <span class="n">down_up_separation</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span>
-            <span class="o">+</span> <span class="n">down_up_separation</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
-        <span class="p">)</span>
-
-        <span class="n">both_res_real</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">real_res</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">real_res</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:])</span>
-        <span class="n">nz_brr</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">both_res_real</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
-        <span class="n">nz_brr_bt_1</span> <span class="o">=</span> <span class="n">block_type_ind64</span><span class="p">[</span><span class="n">nz_brr</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">nz_brr</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]]</span>
-        <span class="n">nz_brr_bt_2</span> <span class="o">=</span> <span class="n">block_type_ind64</span><span class="p">[</span><span class="n">nz_brr</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">nz_brr</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]]</span>
-
-        <span class="c1"># now we need the indices for the down and up connections that correspond to</span>
-        <span class="c1"># the nz_brr indices</span>
-        <span class="n">nz_brr_upconn_1</span> <span class="o">=</span> <span class="n">bt_up_conn_inds</span><span class="p">[</span><span class="n">nz_brr_bt_1</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-        <span class="n">nz_brr_upconn_2</span> <span class="o">=</span> <span class="n">bt_up_conn_inds</span><span class="p">[</span><span class="n">nz_brr_bt_2</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-        <span class="n">nz_brr_downconn_1</span> <span class="o">=</span> <span class="n">bt_down_conn_inds</span><span class="p">[</span><span class="n">nz_brr_bt_1</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-        <span class="n">nz_brr_downconn_2</span> <span class="o">=</span> <span class="n">bt_down_conn_inds</span><span class="p">[</span><span class="n">nz_brr_bt_2</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-
-        <span class="c1"># finally we can enter the information for these connections into their</span>
-        <span class="c1"># positions in the output tensor</span>
-        <span class="n">inter_block_bondsep</span><span class="p">[</span>
-            <span class="n">nz_brr</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">nz_brr</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">nz_brr</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">nz_brr_upconn_1</span><span class="p">,</span> <span class="n">nz_brr_downconn_2</span>
-        <span class="p">]</span> <span class="o">=</span> <span class="n">up_down_distance</span><span class="p">[</span><span class="n">both_res_real</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-        <span class="n">inter_block_bondsep</span><span class="p">[</span>
-            <span class="n">nz_brr</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">nz_brr</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">nz_brr</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">nz_brr_downconn_1</span><span class="p">,</span> <span class="n">nz_brr_upconn_2</span>
-        <span class="p">]</span> <span class="o">=</span> <span class="n">down_up_distance</span><span class="p">[</span><span class="n">both_res_real</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-        <span class="n">inter_block_bondsep</span><span class="p">[</span>
-            <span class="n">nz_brr</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
-            <span class="n">nz_brr</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
-            <span class="n">nz_brr</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span>
-            <span class="n">nz_brr_downconn_1</span><span class="p">,</span>
-            <span class="n">nz_brr_downconn_2</span><span class="p">,</span>
-        <span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">pair_distances</span><span class="p">[</span><span class="n">both_res_real</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-        <span class="n">inter_block_bondsep</span><span class="p">[</span>
-            <span class="n">nz_brr</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">nz_brr</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">nz_brr</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">nz_brr_upconn_1</span><span class="p">,</span> <span class="n">nz_brr_upconn_2</span>
-        <span class="p">]</span> <span class="o">=</span> <span class="n">up_up_distance</span><span class="p">[</span><span class="n">both_res_real</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">inter_block_bondsep</span></div>
+        <span class="n">real_blocks</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">][:,</span> <span class="p">:],</span>
+        <span class="n">inter_residue_connections64</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InterBlockBondsep</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Bond separations below the cap between the connections of nearby blocks."""</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">_annotate_pbt_w_intraresidue_connection_atom_distances</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
+        <span class="c1"># padding blocks have no connections, so their intra separations go unread</span>
+        <span class="k">return</span> <span class="n">InterBlockBondsep</span><span class="o">.</span><span class="n">from_bonded_graph</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">real_blocks</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_conn</span><span class="p">[</span><span class="n">block_type_ind64</span><span class="p">],</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">pbt</span><span class="o">.</span><span class="n">conn_at_intrablock_bond_sep</span><span class="p">[</span><span class="n">block_type_ind64</span><span class="p">],</span>
+            <span class="n">inter_residue_connections64</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
 </pre></div>
 

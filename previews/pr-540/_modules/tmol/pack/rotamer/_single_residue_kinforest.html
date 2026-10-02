@@ -561,7 +561,8 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">c1_children</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">kfo_parents</span> <span class="o">==</span> <span class="n">c1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">c1_children</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">c1_children</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">sort_key</span><span class="p">)</span>
-            <span class="n">c2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">c1_children</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="c1"># a two-atom residue (1GJ2 O: O, HO) has no grandchild to frame on</span>
+            <span class="n">c2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">c1_children</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">c1_children</span><span class="p">)</span> <span class="k">else</span> <span class="mi">0</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="c1"># Ligand / non-polymer: no mainchain to prefer. Use the root's children</span>
         <span class="c1">#   (and grandchildren) in the order produced by the params-file icoor</span>

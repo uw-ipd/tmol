@@ -1041,7 +1041,7 @@
         <span class="p">):</span>
             <span class="k">return</span> <span class="n">_default_pose_build_context_for</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">)</span>
 
-        <span class="n">rts</span> <span class="o">=</span> <span class="n">ResidueTypeSet</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
+        <span class="n">rts</span> <span class="o">=</span> <span class="n">_restype_set_sharing_default</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
         <span class="n">pbt</span> <span class="o">=</span> <span class="n">PackedBlockTypes</span><span class="o">.</span><span class="n">from_restype_list</span><span class="p">(</span>
             <span class="n">rts</span><span class="o">.</span><span class="n">chem_db</span><span class="p">,</span> <span class="n">rts</span><span class="p">,</span> <span class="n">rts</span><span class="o">.</span><span class="n">residue_types</span><span class="p">,</span> <span class="n">torch_device</span>
         <span class="p">)</span>
@@ -1084,6 +1084,7 @@
     <span class="n">ligand_params_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">chem_comp_types</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">ligand_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">packer_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">return_context</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">context</span><span class="p">:</span> <span class="n">PoseBuildContext</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">atom37_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1116,9 +1117,9 @@
 <span class="sd">            construction use this database. If prepare_ligands=True, it is</span>
 <span class="sd">            extended with ligand data. Mutually exclusive with ``context``.</span>
 <span class="sd">        missing_density_distance_threshold: Distance threshold in Angstroms.</span>
-<span class="sd">            Adjacent residues whose closest inter-atom distance exceeds this</span>
-<span class="sd">            value are treated as disconnected (upper/lower connects broken).</span>
-<span class="sd">            Set to 0 to disable. Default is 2.4.</span>
+<span class="sd">            Adjacent polymer residues whose connection atoms (C-N, O3'-P) are</span>
+<span class="sd">            farther apart are treated as disconnected (upper/lower connects</span>
+<span class="sd">            broken), even if a bond is declared. Set to 0 to disable. Default 2.4.</span>
 <span class="sd">        no_optH: Residues the input gives no hydrogens take AtomWorks'</span>
 <span class="sd">            protonation state: database residues then get hydrogens built by</span>
 <span class="sd">            tmol, other residues those AtomWorks places. When True (default),</span>
@@ -1148,6 +1149,8 @@
 <span class="sd">        ligand_seed: Fixed RNG seed for the conformer each prepared residue</span>
 <span class="sd">            is built from, making preparation reproducible. Only used when</span>
 <span class="sd">            prepare_ligands=True.</span>
+<span class="sd">        packer_seed: Seed of the packer that places hydrogens and builds missing</span>
+<span class="sd">            side chains; unseeded, it continues torch's global random state.</span>
 <span class="sd">        return_context: If True, return ``(pose_stack, PoseBuildContext)``.</span>
 <span class="sd">        context: Reusable context from ``build_context_from_biotite``. It must</span>
 <span class="sd">            be on ``torch_device`` and is mutually exclusive with ``param_db``</span>
@@ -1275,6 +1278,7 @@
         <span class="n">atom37_coords</span><span class="o">=</span><span class="n">atom37_coords</span><span class="p">,</span>
         <span class="n">fragment_mapping</span><span class="o">=</span><span class="n">fragment_mapping</span><span class="p">,</span>
         <span class="n">return_context</span><span class="o">=</span><span class="n">return_context</span><span class="p">,</span>
+        <span class="n">packer_seed</span><span class="o">=</span><span class="n">packer_seed</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span></div>
 
@@ -1290,6 +1294,7 @@
     <span class="n">atom37_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">fragment_mapping</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">return_context</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">packer_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="n">PoseBuildContext</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Build a pose from a canonical form and a reusable build context.</span>
@@ -1317,6 +1322,7 @@
 <span class="sd">        coordinates; retained so gradients survive hydrogen rebuilding.</span>
 <span class="sd">      fragment_mapping: Mapping produced when fragmented ligands were expanded.</span>
 <span class="sd">      return_context: Also return the context used.</span>
+<span class="sd">      packer_seed: Seed of the packer, as for ``pose_stack_from_biotite``.</span>
 
 <span class="sd">    For ordinary structure inputs, coincident bonded heavy atoms raise before</span>
 <span class="sd">    packing; hydrogens coincident with their parent are rebuilt without changing</span>
@@ -1359,6 +1365,9 @@
         <span class="c1"># input coordinates can be restored afterward without name matching.</span>
         <span class="n">kwargs</span><span class="p">[</span><span class="s2">"return_atom_mapping"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
 
+    <span class="n">return_block_has_missing_atoms</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"return_block_has_missing_atoms"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="p">)</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">pose_stack_from_canonical_form</span><span class="p">(</span>
         <span class="n">context</span><span class="o">.</span><span class="n">canonical_ordering</span><span class="p">,</span>
         <span class="n">context</span><span class="o">.</span><span class="n">packed_block_types</span><span class="p">,</span>
@@ -1409,6 +1418,7 @@
             <span class="n">no_optH</span><span class="o">=</span><span class="n">no_optH</span><span class="p">,</span>
             <span class="n">na_sampler</span><span class="o">=</span><span class="n">na_sampler</span><span class="p">,</span>
             <span class="n">has_missing_atoms</span><span class="o">=</span><span class="n">has_missing_atoms</span><span class="p">,</span>
+            <span class="n">seed</span><span class="o">=</span><span class="n">packer_seed</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">atom37_coords</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">needs_packing</span><span class="p">:</span>
@@ -1429,11 +1439,6 @@
     <span class="c1"># This code tries to faithfully return what the caller expects based on the optional</span>
     <span class="c1"># return values that they requested. Since we override the return_block_has_missing_atoms</span>
     <span class="c1"># bool to True, we cannot just count on the existence or absence of optional returned vals</span>
-    <span class="n">return_block_has_missing_atoms</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"return_block_has_missing_atoms"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="p">(</span><span class="s2">"return_block_has_missing_atoms"</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">)</span>
-        <span class="k">else</span> <span class="kc">False</span>
-    <span class="p">)</span>
     <span class="k">if</span> <span class="n">return_context</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">context</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">opt_return_vals</span><span class="p">)</span> <span class="o">&gt;</span> <span class="p">(</span><span class="mi">0</span> <span class="k">if</span> <span class="n">return_block_has_missing_atoms</span> <span class="k">else</span> <span class="mi">1</span><span class="p">):</span>
@@ -2024,7 +2029,7 @@
 <span class="w">    </span><span class="sd">"""Rewrite an inter-residue C=N link whose C carries a single-bonded, uncharged</span>
 <span class="sd">    terminal O/S as the amide (C=X, hydrogens on X dropped), as 1MRO's GL3 reads."""</span>
     <span class="n">template</span> <span class="o">=</span> <span class="n">_template_array</span><span class="p">(</span><span class="n">structure</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">template</span><span class="o">.</span><span class="n">bonds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">template</span><span class="o">.</span><span class="n">bonds</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">template</span><span class="o">.</span><span class="n">array_length</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">structure</span>
     <span class="n">bonds</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">bonds</span><span class="o">.</span><span class="n">as_array</span><span class="p">()</span>
     <span class="n">elements</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">upper</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">element</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">))</span>
@@ -2421,6 +2426,7 @@
     <span class="c1"># Only atoms present in every variant count as required, so an atom a terminus</span>
     <span class="c1"># patch removes (the DNA 5' phosphate) does not disqualify the residue.</span>
     <span class="c1"># Residues with no mainchain definition (non-polymer) are skipped.</span>
+    <span class="n">n_missing_mainchain</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">if</span> <span class="n">filter_missing_mainchain</span><span class="p">:</span>
         <span class="n">atom_names</span> <span class="o">=</span> <span class="n">biotite_structure</span><span class="o">.</span><span class="n">atom_name</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">):</span>
@@ -2455,6 +2461,15 @@
                     <span class="nb">sorted</span><span class="p">(</span><span class="n">missing</span><span class="p">),</span>
                 <span class="p">)</span>
                 <span class="n">valid_res</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">n_missing_mainchain</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">n_missing_mainchain</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">valid_res</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="c1"># 1A1D: a CA-only trace leaves no residue with its mainchain</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"No residue remains: </span><span class="si">{</span><span class="n">n_missing_mainchain</span><span class="si">}</span><span class="s2"> polymer residues lack "</span>
+            <span class="s2">"mainchain atoms (a CA-only or P-only trace model?) and were dropped. "</span>
+            <span class="s2">"A PoseStack needs resolved backbones; rebuild them first or pass "</span>
+            <span class="s2">"complete coordinates."</span>
+        <span class="p">)</span>
 
     <span class="n">atom_res</span> <span class="o">=</span> <span class="n">get_all_residue_positions</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">)</span>
     <span class="n">_validate_filtered_covalent_partners</span><span class="p">(</span>
@@ -2485,80 +2500,35 @@
     <span class="k">return</span> <span class="n">biotite_structure</span><span class="p">,</span> <span class="n">not_connected</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_break_connections_for_missing_density</span><span class="p">(</span>
-    <span class="n">not_connected</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-    <span class="n">biotite_chain_id_for_res</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-    <span class="n">tmol_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-    <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-    <span class="n">is_polymeric</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Break inter-residue connections where upper/lower atoms are too far apart.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_break_polymer_gaps</span><span class="p">(</span><span class="n">not_connected</span><span class="p">,</span> <span class="n">bonds</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">restypes</span><span class="p">,</span> <span class="n">chain_id</span><span class="p">,</span> <span class="n">co</span><span class="p">,</span> <span class="n">cut</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Disconnect polymer residues of a chain whose connection atoms are apart.</span>
 
-<span class="sd">    Modifies ``not_connected`` in-place. For each pair of adjacent residues</span>
-<span class="sd">    (i, i+1) that are currently marked as connected and belong to the same</span>
-<span class="sd">    chain, the minimum distance between any atom in residue i and any atom in</span>
-<span class="sd">    residue i+1 is compared across all poses. If that minimum distance exceeds</span>
-<span class="sd">    ``threshold`` (in Angstroms), the connection is broken by setting</span>
-<span class="sd">    not_connected[i, 1] = True and not_connected[i+1, 0] = True.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        not_connected: Shape (n_res, 2) boolean array. True = no connection</span>
-<span class="sd">            (terminus or explicitly broken); False = connected.</span>
-<span class="sd">        biotite_chain_id_for_res: Shape (n_res,) integer chain IDs.</span>
-<span class="sd">        tmol_coords: Shape (n_poses, n_res, max_atoms, 3) coordinate tensor.</span>
-<span class="sd">        threshold: Distance threshold in Angstroms. Connections where the</span>
-<span class="sd">            closest inter-residue atom pair exceeds this distance are broken.</span>
-<span class="sd">        is_polymeric: Shape (n_res,) boolean array; pairs where either residue</span>
-<span class="sd">            is not a chain member are left alone.</span>
+<span class="sd">    Consecutive residues are apart when those atoms, either way round, are</span>
+<span class="sd">    farther than ``cut`` in every pose (1GPK pocket 119/121, 3.0 A); unresolved</span>
+<span class="sd">    ones count as joined. Returns ``bonds`` without a polymer bond declared</span>
+<span class="sd">    across such a gap (3KGP 37/38, bonded from their numbering).</span>
 <span class="sd">    """</span>
-    <span class="n">n_res</span> <span class="o">=</span> <span class="n">not_connected</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">coords_np</span> <span class="o">=</span> <span class="n">tmol_coords</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">ports</span> <span class="o">=</span> <span class="n">co</span><span class="o">.</span><span class="n">polymer_conn_inds</span>
+    <span class="n">up</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ports</span><span class="o">.</span><span class="n">up_atom_for_co_restype</span><span class="p">)[</span><span class="n">restypes</span><span class="p">]</span>
+    <span class="n">down</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ports</span><span class="o">.</span><span class="n">down_atom_for_co_restype</span><span class="p">)[</span><span class="n">restypes</span><span class="p">]</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">pair</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">restypes</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
 
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_res</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
-        <span class="c1"># Skip already-disconnected pairs</span>
-        <span class="k">if</span> <span class="n">not_connected</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="ow">or</span> <span class="n">not_connected</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]:</span>
-            <span class="k">continue</span>
-        <span class="c1"># Skip cross-chain pairs (handled separately by chain-break logic)</span>
-        <span class="k">if</span> <span class="n">biotite_chain_id_for_res</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="n">biotite_chain_id_for_res</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]:</span>
-            <span class="k">continue</span>
-        <span class="c1"># A ligand numbered in the chain it sits in is not the next link of</span>
-        <span class="c1">#    that chain, so its distance says nothing about a break. Marking</span>
-        <span class="c1">#    one would take the C-terminus off the residue before it.</span>
-        <span class="k">if</span> <span class="n">is_polymeric</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">is_polymeric</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">and</span> <span class="n">is_polymeric</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]):</span>
-            <span class="k">continue</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">linked</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[:,</span> <span class="n">pair</span><span class="p">,</span> <span class="n">a</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span> <span class="o">-</span> <span class="n">coords</span><span class="p">[:,</span> <span class="n">pair</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">a</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="o">~</span><span class="p">(</span><span class="n">d</span> <span class="o">&gt;</span> <span class="n">cut</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
-        <span class="c1"># Compute minimum inter-residue distance across all poses.</span>
-        <span class="c1"># A connection is kept if *any* pose shows atoms within threshold.</span>
-        <span class="n">min_dist</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">inf</span>
-        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">coords_np</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
-            <span class="n">c_i</span> <span class="o">=</span> <span class="n">coords_np</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span>  <span class="c1"># (max_atoms, 3)</span>
-            <span class="n">c_j</span> <span class="o">=</span> <span class="n">coords_np</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
-
-            <span class="n">valid_i</span> <span class="o">=</span> <span class="o">~</span><span class="n">numpy</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">c_i</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
-            <span class="n">valid_j</span> <span class="o">=</span> <span class="o">~</span><span class="n">numpy</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">c_j</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">valid_i</span><span class="o">.</span><span class="n">any</span><span class="p">()</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">valid_j</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-                <span class="k">continue</span>
-
-            <span class="n">ci_v</span> <span class="o">=</span> <span class="n">c_i</span><span class="p">[</span><span class="n">valid_i</span><span class="p">]</span>
-            <span class="n">cj_v</span> <span class="o">=</span> <span class="n">c_j</span><span class="p">[</span><span class="n">valid_j</span><span class="p">]</span>
-            <span class="n">diffs</span> <span class="o">=</span> <span class="n">ci_v</span><span class="p">[:,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">cj_v</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
-            <span class="n">pose_min</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">diffs</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
-            <span class="k">if</span> <span class="n">pose_min</span> <span class="o">&lt;</span> <span class="n">min_dist</span><span class="p">:</span>
-                <span class="n">min_dist</span> <span class="o">=</span> <span class="n">pose_min</span>
-            <span class="k">if</span> <span class="n">min_dist</span> <span class="o">&lt;=</span> <span class="n">threshold</span><span class="p">:</span>
-                <span class="k">break</span>  <span class="c1"># already within range; no need to check more poses</span>
-
-        <span class="k">if</span> <span class="n">min_dist</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-                <span class="s2">"Breaking connection between residues </span><span class="si">%d</span><span class="s2"> and </span><span class="si">%d</span><span class="s2"> "</span>
-                <span class="s2">"(closest atom distance </span><span class="si">%.3f</span><span class="s2"> Å &gt; threshold </span><span class="si">%.3f</span><span class="s2"> Å)"</span><span class="p">,</span>
-                <span class="n">i</span><span class="p">,</span>
-                <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
-                <span class="n">min_dist</span><span class="p">,</span>
-                <span class="n">threshold</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="n">not_connected</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-            <span class="n">not_connected</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">polymer</span> <span class="o">=</span> <span class="p">(</span><span class="n">up</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">down</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">gap</span> <span class="o">=</span> <span class="p">(</span><span class="n">chain_id</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">chain_id</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span> <span class="o">&amp;</span> <span class="n">polymer</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&amp;</span> <span class="n">polymer</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="n">gap</span> <span class="o">&amp;=</span> <span class="o">~</span><span class="n">linked</span><span class="p">(</span><span class="n">up</span><span class="p">,</span> <span class="n">down</span><span class="p">)</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">linked</span><span class="p">(</span><span class="n">down</span><span class="p">,</span> <span class="n">up</span><span class="p">)</span>
+    <span class="n">not_connected</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">|=</span> <span class="n">gap</span>
+    <span class="n">not_connected</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">|=</span> <span class="n">gap</span>
+    <span class="n">first</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">second</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">bonds</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">joined</span> <span class="o">=</span> <span class="p">((</span><span class="n">a</span> <span class="o">==</span> <span class="n">up</span><span class="p">[</span><span class="n">first</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">b</span> <span class="o">==</span> <span class="n">down</span><span class="p">[</span><span class="n">second</span><span class="p">]))</span> <span class="o">|</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">a</span> <span class="o">==</span> <span class="n">down</span><span class="p">[</span><span class="n">first</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">b</span> <span class="o">==</span> <span class="n">up</span><span class="p">[</span><span class="n">second</span><span class="p">])</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">bonds</span><span class="p">[</span><span class="o">~</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">r_</span><span class="p">[</span><span class="n">gap</span><span class="p">,</span> <span class="kc">False</span><span class="p">][</span><span class="n">first</span><span class="p">]</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">second</span> <span class="o">==</span> <span class="n">first</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">joined</span><span class="p">)]</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_orient_polymer_gap_flags</span><span class="p">(</span><span class="n">not_connected</span><span class="p">,</span> <span class="n">chain_id</span><span class="p">,</span> <span class="n">restypes</span><span class="p">,</span> <span class="n">bonds</span><span class="p">,</span> <span class="n">co</span><span class="p">):</span>
@@ -2972,9 +2942,10 @@
         <span class="n">names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">co</span><span class="o">.</span><span class="n">restype_io_equiv_classes</span><span class="p">)</span>
         <span class="n">names</span> <span class="o">|=</span> <span class="p">{</span><span class="n">alias</span> <span class="k">for</span> <span class="n">alias</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">aliases</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">}</span>
     <span class="n">template</span> <span class="o">=</span> <span class="n">_template_array</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">)</span>
+    <span class="n">forms</span> <span class="o">=</span> <span class="n">database_forms</span><span class="p">(</span><span class="n">chemdb</span><span class="p">)</span>
     <span class="k">if</span> <span class="p">(</span>
         <span class="n">PROTONATION_VARIANT</span> <span class="ow">in</span> <span class="n">template</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">()</span>
-        <span class="ow">or</span> <span class="ow">not</span> <span class="n">residues_lacking_hydrogens</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">names</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>
+        <span class="ow">or</span> <span class="ow">not</span> <span class="n">residues_lacking_hydrogens</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">forms</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>
     <span class="p">):</span>
         <span class="k">return</span> <span class="n">biotite_structure</span>
     <span class="n">metal_atom</span> <span class="o">=</span> <span class="n">_metal_atom_names</span><span class="p">(</span><span class="n">chemdb</span><span class="o">=</span><span class="n">chemdb</span><span class="p">)</span>
@@ -3001,7 +2972,7 @@
         <span class="n">residue_names</span><span class="o">=</span><span class="n">names</span><span class="p">,</span>
         <span class="n">coordination</span><span class="o">=</span><span class="n">coordination</span><span class="p">,</span>
         <span class="n">backbone</span><span class="o">=</span><span class="n">backbone</span><span class="p">,</span>
-        <span class="n">forms</span><span class="o">=</span><span class="n">database_forms</span><span class="p">(</span><span class="n">chemdb</span><span class="p">),</span>
+        <span class="n">forms</span><span class="o">=</span><span class="n">forms</span><span class="p">,</span>
     <span class="p">)</span>
 
 
@@ -3267,20 +3238,14 @@
         <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">biotite_residues</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
         <span class="ow">and</span> <span class="n">atom37_coords</span> <span class="ow">is</span> <span class="kc">None</span>
     <span class="p">):</span>
-        <span class="n">conn_inds</span> <span class="o">=</span> <span class="n">co</span><span class="o">.</span><span class="n">polymer_conn_inds</span>
-        <span class="n">polymeric</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-            <span class="p">[</span>
-                <span class="n">conn_inds</span><span class="o">.</span><span class="n">down_atom_for_co_restype</span><span class="p">[</span><span class="n">restype</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span>
-                <span class="ow">or</span> <span class="n">conn_inds</span><span class="o">.</span><span class="n">up_atom_for_co_restype</span><span class="p">[</span><span class="n">restype</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span>
-                <span class="k">for</span> <span class="n">restype</span> <span class="ow">in</span> <span class="n">tmol_restypes</span>
-            <span class="p">]</span>
-        <span class="p">)</span>
-        <span class="n">_break_connections_for_missing_density</span><span class="p">(</span>
+        <span class="n">covalent_bonds_np</span> <span class="o">=</span> <span class="n">_break_polymer_gaps</span><span class="p">(</span>
             <span class="n">not_connected</span><span class="p">,</span>
-            <span class="n">biotite_chain_id_for_res</span><span class="p">,</span>
+            <span class="n">covalent_bonds_np</span><span class="p">,</span>
             <span class="n">tmol_coords</span><span class="p">,</span>
+            <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tmol_restypes</span><span class="p">),</span>
+            <span class="n">biotite_chain_id_for_res</span><span class="p">,</span>
+            <span class="n">co</span><span class="p">,</span>
             <span class="n">missing_density_distance_threshold</span><span class="p">,</span>
-            <span class="n">polymeric</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="n">_orient_polymer_gap_flags</span><span class="p">(</span>
         <span class="n">not_connected</span><span class="p">,</span> <span class="n">biotite_chain_id_for_res</span><span class="p">,</span> <span class="n">tmol_restypes</span><span class="p">,</span> <span class="n">covalent_bonds_np</span><span class="p">,</span> <span class="n">co</span>
@@ -3391,6 +3356,15 @@
     <span class="k">return</span> <span class="n">_default_pose_build_context</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="nb">bool</span><span class="p">(</span><span class="n">_is_metal</span><span class="p">(</span><span class="n">structure</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">()))</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_restype_set_sharing_default</span><span class="p">(</span><span class="n">chemical_db</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ResidueTypeSet</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""chemical_db's residue types, reusing the default set's objects (and their</span>
+<span class="sd">    cached annotations) where chemical_db extends the default database."""</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_restype_set_for_biotite</span><span class="p">()</span><span class="o">.</span><span class="n">extended</span><span class="p">(</span><span class="n">chemical_db</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ResidueTypeSet</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">chemical_db</span><span class="p">)</span>
+
+
 <span class="nd">@validate_args</span>
 <span class="nd">@toolz</span><span class="o">.</span><span class="n">functoolz</span><span class="o">.</span><span class="n">memoize</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">_default_pose_build_context</span><span class="p">(</span>
@@ -3415,7 +3389,7 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">CanonicalOrdering</span><span class="p">,</span> <span class="n">ResidueTypeSet</span><span class="p">,</span> <span class="n">PackedBlockTypes</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Build canonical ordering and packed block types from a DB."""</span>
     <span class="n">co</span> <span class="o">=</span> <span class="n">CanonicalOrdering</span><span class="o">.</span><span class="n">from_chemdb</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
-    <span class="n">rts</span> <span class="o">=</span> <span class="n">ResidueTypeSet</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
+    <span class="n">rts</span> <span class="o">=</span> <span class="n">_restype_set_sharing_default</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
     <span class="n">pbt</span> <span class="o">=</span> <span class="n">PackedBlockTypes</span><span class="o">.</span><span class="n">from_restype_list</span><span class="p">(</span>
         <span class="n">rts</span><span class="o">.</span><span class="n">chem_db</span><span class="p">,</span> <span class="n">rts</span><span class="p">,</span> <span class="n">rts</span><span class="o">.</span><span class="n">residue_types</span><span class="p">,</span> <span class="n">device</span>
     <span class="p">)</span>

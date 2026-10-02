@@ -456,7 +456,6 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">rdkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chem</span>
@@ -583,33 +582,10 @@
     <span class="k">return</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromMolBlock</span><span class="p">(</span><span class="n">sdf</span><span class="p">,</span> <span class="n">sanitize</span><span class="o">=</span><span class="n">sanitize</span><span class="p">,</span> <span class="n">removeHs</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">obabel_read_mol2</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""Read a TRIPOS mol2 file via OpenBabel and return an RDKit ``Chem.Mol``.</span>
-
-<span class="sd">    Use as a fallback when ``Chem.MolFromMol2File`` returns ``None`` on</span>
-<span class="sd">    valid mol2 files that RDKit's parser rejects.</span>
-
-<span class="sd">    Returns ``None`` if OB could not parse the file. Raises</span>
-<span class="sd">    :class:`OpenBabelUnavailableError` if OpenBabel is not installed.</span>
-<span class="sd">    """</span>
-    <span class="n">openbabel</span><span class="p">,</span> <span class="n">pybel</span> <span class="o">=</span> <span class="n">_import_openbabel</span><span class="p">()</span>
-    <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">pymol</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">pybel</span><span class="o">.</span><span class="n">readfile</span><span class="p">(</span><span class="s2">"mol2"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)))</span>
-    <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"OpenBabel could not read any molecule from </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"OpenBabel failed to parse mol2 file </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">return</span> <span class="n">_obmol_to_rdkit_mol</span><span class="p">(</span><span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="p">)</span>
-
-
 <span class="k">def</span><span class="w"> </span><span class="nf">obabel_read_mol2_block</span><span class="p">(</span><span class="n">mol2_block</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Chem</span><span class="o">.</span><span class="n">Mol</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Read a TRIPOS mol2 *string* via OpenBabel and return an RDKit ``Chem.Mol``.</span>
 
-<span class="sd">    In-memory analogue of :func:`obabel_read_mol2` — use as a fallback when</span>
-<span class="sd">    ``Chem.MolFromMol2Block`` returns ``None``. Returns ``None`` if OB could not</span>
+<span class="sd">    Use as a fallback when ``Chem.MolFromMol2Block`` returns ``None``. Returns ``None`` if OB could not</span>
 <span class="sd">    parse the block. Raises :class:`OpenBabelUnavailableError` if OB is missing.</span>
 <span class="sd">    """</span>
     <span class="n">_</span><span class="p">,</span> <span class="n">pybel</span> <span class="o">=</span> <span class="n">_import_openbabel</span><span class="p">()</span>
@@ -723,19 +699,11 @@
     <span class="k">return</span> <span class="n">chosen</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_build_charged_3d_mol2_mol</span><span class="p">(</span>
-    <span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="o">*</span><span class="p">,</span>
-    <span class="n">forcefield</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"mmff94"</span><span class="p">,</span>
-    <span class="n">minimize_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
-    <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_charged_3d_mol2_mol</span><span class="p">(</span><span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Parse a SMILES, 3D-embed, charge, and rename atoms; return the pybel mol.</span>
 
-<span class="sd">    Shared core of :func:`obabel_smiles_to_mol2` (file) and</span>
-<span class="sd">    :func:`obabel_smiles_to_mol2_block` (string). Coordinates come from the</span>
-<span class="sd">    distance-geometry builder (:func:`tmol.ligand._conformer_generation.</span>
-<span class="sd">    generate_conformer`); this then computes MMFF94 partial charges (so the mol2</span>
+<span class="sd">    Coordinates come from the distance-geometry builder</span>
+<span class="sd">    (:func:`tmol.ligand._conformer_generation.generate_conformer`); this then computes MMFF94 partial charges (so the mol2</span>
 <span class="sd">    ``charge_type`` is normally ``MMFF94_CHARGES``) and assigns generic atom</span>
 <span class="sd">    names. MMFF94 charges are topological, so the conformer does not affect them.</span>
 
@@ -744,7 +712,6 @@
 <span class="sd">    :func:`_compute_charges_with_fallback`, which warns loudly.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        minimize_steps: OpenBabel conjugate-gradient cleanup steps.</span>
 <span class="sd">        seed: Fixed RNG seed for reproducible coordinates; ``None`` is random.</span>
 
 <span class="sd">    Raises:</span>
@@ -757,59 +724,14 @@
     <span class="n">openbabel</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_import_openbabel</span><span class="p">()</span>
     <span class="n">smiles</span> <span class="o">=</span> <span class="n">normalize_azide</span><span class="p">(</span><span class="n">strip_nontetrahedral_stereo</span><span class="p">(</span><span class="n">smiles</span><span class="p">))</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">pymol</span> <span class="o">=</span> <span class="n">generate_conformer</span><span class="p">(</span><span class="n">smiles</span><span class="p">,</span> <span class="n">minimize_steps</span><span class="o">=</span><span class="n">minimize_steps</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+        <span class="n">pymol</span> <span class="o">=</span> <span class="n">generate_conformer</span><span class="p">(</span><span class="n">smiles</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">"failed to generate 3D coordinates for SMILES </span><span class="si">{</span><span class="n">smiles</span><span class="si">!r}</span><span class="s2">"</span>
         <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
-    <span class="n">_compute_charges_with_fallback</span><span class="p">(</span><span class="n">openbabel</span><span class="p">,</span> <span class="n">pymol</span><span class="p">,</span> <span class="n">forcefield</span><span class="p">,</span> <span class="n">smiles</span><span class="p">)</span>
+    <span class="n">_compute_charges_with_fallback</span><span class="p">(</span><span class="n">openbabel</span><span class="p">,</span> <span class="n">pymol</span><span class="p">,</span> <span class="s2">"mmff94"</span><span class="p">,</span> <span class="n">smiles</span><span class="p">)</span>
     <span class="n">_assign_generic_atom_names</span><span class="p">(</span><span class="n">openbabel</span><span class="p">,</span> <span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">pymol</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">obabel_smiles_to_mol2_block</span><span class="p">(</span>
-    <span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="o">*</span><span class="p">,</span>
-    <span class="n">forcefield</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"mmff94"</span><span class="p">,</span>
-    <span class="n">minimize_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
-    <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Return a 3D MMFF94 mol2 as an in-memory TRIPOS string (no disk I/O).</span>
-
-<span class="sd">    Preferred over :func:`obabel_smiles_to_mol2` for high-throughput batches</span>
-<span class="sd">    (e.g. millions of SMILES): the mol2 is handed downstream as a string rather</span>
-<span class="sd">    than written to and re-read from a temp file. See</span>
-<span class="sd">    :func:`_build_charged_3d_mol2_mol` for the protocol and raised errors.</span>
-<span class="sd">    """</span>
-    <span class="n">pymol</span> <span class="o">=</span> <span class="n">_build_charged_3d_mol2_mol</span><span class="p">(</span>
-        <span class="n">smiles</span><span class="p">,</span> <span class="n">forcefield</span><span class="o">=</span><span class="n">forcefield</span><span class="p">,</span> <span class="n">minimize_steps</span><span class="o">=</span><span class="n">minimize_steps</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span>
-    <span class="p">)</span>
-    <span class="k">return</span> <span class="n">pymol</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">"mol2"</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">obabel_smiles_to_mol2</span><span class="p">(</span>
-    <span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">out_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
-    <span class="o">*</span><span class="p">,</span>
-    <span class="n">forcefield</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"mmff94"</span><span class="p">,</span>
-    <span class="n">minimize_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
-    <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Generate a 3D MMFF94 mol2 from a SMILES and write it to ``out_path``.</span>
-
-<span class="sd">    File-writing wrapper around :func:`obabel_smiles_to_mol2_block`; prefer the</span>
-<span class="sd">    block form when no on-disk mol2 is required. See</span>
-<span class="sd">    :func:`_build_charged_3d_mol2_mol` for the protocol and raised errors.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        The ``out_path`` written.</span>
-<span class="sd">    """</span>
-    <span class="n">pymol</span> <span class="o">=</span> <span class="n">_build_charged_3d_mol2_mol</span><span class="p">(</span>
-        <span class="n">smiles</span><span class="p">,</span> <span class="n">forcefield</span><span class="o">=</span><span class="n">forcefield</span><span class="p">,</span> <span class="n">minimize_steps</span><span class="o">=</span><span class="n">minimize_steps</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span>
-    <span class="p">)</span>
-    <span class="n">out_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">out_path</span><span class="p">)</span>
-    <span class="n">pymol</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">"mol2"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">out_path</span><span class="p">),</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">out_path</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_assign_generic_atom_names</span><span class="p">(</span><span class="n">openbabel</span><span class="p">,</span> <span class="n">obmol</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>

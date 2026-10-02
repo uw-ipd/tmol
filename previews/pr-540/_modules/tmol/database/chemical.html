@@ -491,6 +491,12 @@
 <span class="c1"># protonation_state of the forms a residue takes without its titratable hydrogen</span>
 <span class="n">DEPROTONATED_STATE</span> <span class="o">=</span> <span class="s2">"negatively_charged"</span>
 
+<span class="c1"># display name of the neutral amino terminus, whose forms sit on the variant</span>
+<span class="c1">#    axis past the metal geometries, each at this base plus its sidechain index</span>
+<span class="n">NEUTRAL_TERMINUS</span> <span class="o">=</span> <span class="s2">"nterm_neutral"</span>
+<span class="n">NEUTRAL_TERMINUS_VAR_BASE</span> <span class="o">=</span> <span class="n">METAL_GEOMETRY_VAR_BASE</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">GEOMETRY_NAMES</span><span class="p">)</span>
+<span class="n">N_VARIANT_INDICES</span> <span class="o">=</span> <span class="n">NEUTRAL_TERMINUS_VAR_BASE</span> <span class="o">+</span> <span class="n">DEPROTONATED_VAR_IND</span> <span class="o">+</span> <span class="mi">1</span>
+
 
 <span class="k">def</span><span class="w"> </span><span class="nf">metal_geometry_variant_index</span><span class="p">(</span><span class="n">geometry</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""The res_type_variant index selecting this coordination geometry."""</span>
@@ -941,14 +947,19 @@
 <span class="w">    </span><span class="sd">"""Where a residue type sits on the res_type_variant axis of its class."""</span>
     <span class="k">if</span> <span class="n">restype</span><span class="o">.</span><span class="n">metal_sites</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">metal_geometry_variant_index</span><span class="p">(</span><span class="n">restype</span><span class="o">.</span><span class="n">metal_sites</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">geometry</span><span class="p">)</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">NEUTRAL_TERMINUS_VAR_BASE</span>
+        <span class="k">if</span> <span class="n">NEUTRAL_TERMINUS</span> <span class="ow">in</span> <span class="n">restype</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">":"</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="k">else</span> <span class="mi">0</span>
+    <span class="p">)</span>
     <span class="k">if</span> <span class="n">restype</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">protonation</span><span class="o">.</span><span class="n">protonation_state</span> <span class="o">==</span> <span class="n">DEPROTONATED_STATE</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">DEPROTONATED_VAR_IND</span>
+        <span class="k">return</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">DEPROTONATED_VAR_IND</span>
     <span class="n">base</span> <span class="o">=</span> <span class="n">l_base_name</span><span class="p">(</span><span class="n">restype</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">base</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"CYD"</span><span class="p">,</span> <span class="s2">"HIS_D"</span><span class="p">):</span>
-        <span class="k">return</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">offset</span> <span class="o">+</span> <span class="mi">1</span>
     <span class="k">if</span> <span class="n">base</span> <span class="o">==</span> <span class="s2">"HIS_POS"</span><span class="p">:</span>
-        <span class="k">return</span> <span class="mi">2</span>
-    <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="n">offset</span> <span class="o">+</span> <span class="mi">2</span>
+    <span class="k">return</span> <span class="n">offset</span>
 
 
 <span class="n">GENERATED_RESIDUE_FILES</span> <span class="o">=</span> <span class="p">(</span>

@@ -440,7 +440,9 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.score.cartbonded._cartbonded_energy_term</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">attrs</span>
 
@@ -461,6 +463,8 @@
     <span class="n">PoseStack</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.common</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_hashtable_keys_values</span><span class="p">,</span> <span class="n">add_to_hashtable</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 <span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span>
 
@@ -691,6 +695,8 @@
         <span class="c1"># variants and other score terms can retain their existing parameters.</span>
         <span class="n">parameter_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_name</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
         <span class="n">cartbonded_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_params_for_res</span><span class="p">(</span><span class="n">parameter_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">parameter_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cart_database</span><span class="o">.</span><span class="n">residue_params</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_warn_unparameterized</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="n">lengths</span><span class="p">)</span>
         <span class="n">cb_block_ann</span> <span class="o">=</span> <span class="n">CartBondedBlockAnnotations</span><span class="p">(</span>
             <span class="n">cartbonded_subgraphs</span><span class="o">=</span><span class="n">cart_subgraphs</span><span class="p">,</span>
             <span class="n">cartbonded_subgraph_type_counts</span><span class="o">=</span><span class="n">cart_subgraph_type_counts</span><span class="p">,</span>
@@ -702,6 +708,29 @@
             <span class="s2">"_cartbonded_annotation"</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span><span class="p">,</span>
             <span class="n">cb_block_ann</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">_warned_unparameterized</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_warn_unparameterized</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">block_type</span><span class="p">,</span> <span class="n">lengths</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Warn once per type whose own bonds have no rows, as HIS_POS had; HOH (the</span>
+<span class="sd">        readers drop water) and bonds to virtual atoms are exempt."""</span>
+        <span class="n">virtual</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">i</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">atom</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">block_type</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">atom_type</span> <span class="o">==</span> <span class="s2">"Vrt"</span> <span class="ow">or</span> <span class="n">atom</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">block_type</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">virtual</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">block_type</span><span class="o">.</span><span class="n">base_name</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_warned_unparameterized</span> <span class="o">|</span> <span class="p">{</span><span class="s2">"HOH"</span><span class="p">}</span> <span class="ow">or</span> <span class="nb">all</span><span class="p">(</span>
+            <span class="p">{</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">}</span> <span class="o">&amp;</span> <span class="n">virtual</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">lengths</span>
+        <span class="p">):</span>
+            <span class="k">return</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">_warned_unparameterized</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">block_type</span><span class="o">.</span><span class="n">base_name</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">"cart_bonded has no parameters for </span><span class="si">%s</span><span class="s2"> or its variants (first seen: </span><span class="si">%s</span><span class="s2">): "</span>
+            <span class="s2">"their bond lengths and angles are unrestrained"</span><span class="p">,</span>
+            <span class="n">block_type</span><span class="o">.</span><span class="n">base_name</span><span class="p">,</span>
+            <span class="n">block_type</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_parameter_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_type</span><span class="p">):</span>

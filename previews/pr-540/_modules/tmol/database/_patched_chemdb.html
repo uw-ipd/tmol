@@ -1185,8 +1185,22 @@
 
         <span class="n">newres</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">":"</span> <span class="o">+</span> <span class="n">variant</span><span class="o">.</span><span class="n">display_name</span><span class="p">)</span>
 
+        <span class="c1"># hydrogens on removed atoms go with them; a prepared residue can carry</span>
+        <span class="c1">#    some where canonical ones do not (7KW4 A:2 XY7's HOP1/HOP2)</span>
+        <span class="n">removed</span> <span class="o">=</span> <span class="p">{</span><span class="n">namemap</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">variant</span><span class="o">.</span><span class="n">remove_atoms</span> <span class="k">if</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">namemap</span><span class="p">}</span>
+        <span class="n">stranded</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+            <span class="n">name</span>
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">resgraph</span><span class="o">.</span><span class="n">nodes</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="s2">"element"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">element</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"H"</span><span class="p">,</span> <span class="s2">"D"</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">removed</span>
+            <span class="ow">and</span> <span class="n">resgraph</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="ow">and</span> <span class="nb">set</span><span class="p">(</span><span class="n">resgraph</span><span class="p">[</span><span class="n">name</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="n">removed</span>
+        <span class="p">)</span>
+        <span class="n">namemap</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">namemap</span><span class="p">,</span> <span class="o">**</span><span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">stranded</span><span class="p">}}</span>
+        <span class="n">remove_atoms</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">variant</span><span class="o">.</span><span class="n">remove_atoms</span><span class="p">,</span> <span class="o">*</span><span class="n">stranded</span><span class="p">)</span>
+
         <span class="c1"># 1. remove atoms</span>
-        <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">variant</span><span class="o">.</span><span class="n">remove_atoms</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">remove_atoms</span><span class="p">:</span>
             <span class="n">atom</span> <span class="o">=</span> <span class="n">namemap</span><span class="p">[</span><span class="n">atom</span><span class="p">]</span>
             <span class="n">newres</span> <span class="o">=</span> <span class="n">remove_atom</span><span class="p">(</span><span class="n">newres</span><span class="p">,</span> <span class="n">atom</span><span class="p">)</span>
 
@@ -1197,8 +1211,17 @@
         <span class="c1"># 2. add atoms</span>
         <span class="n">newres</span><span class="o">.</span><span class="n">atoms</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">newres</span><span class="o">.</span><span class="n">atoms</span><span class="p">,</span> <span class="o">*</span><span class="n">variant</span><span class="o">.</span><span class="n">add_atoms</span><span class="p">)</span>
 
-        <span class="c1"># 2b. add atom alias</span>
-        <span class="n">newres</span><span class="o">.</span><span class="n">atom_aliases</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">newres</span><span class="o">.</span><span class="n">atom_aliases</span><span class="p">,</span> <span class="o">*</span><span class="n">variant</span><span class="o">.</span><span class="n">add_atom_aliases</span><span class="p">)</span>
+        <span class="c1"># 2b. add atom alias; a source name the base residue already aliases keeps</span>
+        <span class="c1">#     that meaning, since input names are read per name3 (1MWI D:7 AAB O3P)</span>
+        <span class="n">claimed</span> <span class="o">=</span> <span class="p">{</span><span class="n">a</span><span class="o">.</span><span class="n">alt_name</span><span class="p">:</span> <span class="n">a</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">atom_aliases</span><span class="p">}</span>
+        <span class="n">newres</span><span class="o">.</span><span class="n">atom_aliases</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="o">*</span><span class="n">newres</span><span class="o">.</span><span class="n">atom_aliases</span><span class="p">,</span>
+            <span class="o">*</span><span class="p">(</span>
+                <span class="n">a</span>
+                <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">variant</span><span class="o">.</span><span class="n">add_atom_aliases</span>
+                <span class="k">if</span> <span class="n">claimed</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">alt_name</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="o">==</span> <span class="n">a</span><span class="o">.</span><span class="n">name</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
 
         <span class="c1"># 3. add connections</span>
         <span class="n">newconnections</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1222,14 +1245,14 @@
 
         <span class="c1"># 5. update icoors</span>
         <span class="n">newres</span><span class="o">.</span><span class="n">icoors</span> <span class="o">=</span> <span class="n">update_icoor</span><span class="p">(</span>
-            <span class="n">newres</span><span class="o">.</span><span class="n">icoors</span><span class="p">,</span> <span class="n">variant</span><span class="o">.</span><span class="n">icoors</span><span class="p">,</span> <span class="n">variant</span><span class="o">.</span><span class="n">remove_atoms</span><span class="p">,</span> <span class="n">namemap</span>
+            <span class="n">newres</span><span class="o">.</span><span class="n">icoors</span><span class="p">,</span> <span class="n">variant</span><span class="o">.</span><span class="n">icoors</span><span class="p">,</span> <span class="n">remove_atoms</span><span class="p">,</span> <span class="n">namemap</span>
         <span class="p">)</span>
         <span class="n">assert_no_orphaned_icoors</span><span class="p">(</span>
             <span class="n">newres</span><span class="o">.</span><span class="n">icoors</span><span class="p">,</span>
             <span class="c1"># an atom the patch removes and adds again under the same name --</span>
             <span class="c1">#    a carboxy terminus does that with its carbonyl oxygen -- has</span>
             <span class="c1">#    not gone anywhere</span>
-            <span class="p">{</span><span class="n">namemap</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">variant</span><span class="o">.</span><span class="n">remove_atoms</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">namemap</span><span class="p">}</span>
+            <span class="p">{</span><span class="n">namemap</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">remove_atoms</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">namemap</span><span class="p">}</span>
             <span class="o">-</span> <span class="p">{</span><span class="n">a</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">variant</span><span class="o">.</span><span class="n">add_atoms</span><span class="p">},</span>
             <span class="n">newres</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
         <span class="p">)</span>

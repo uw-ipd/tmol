@@ -468,11 +468,11 @@
     <span class="n">chain_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"L"</span><span class="p">,</span>
     <span class="n">res_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Read a Tripos MOL2 ligand as an AtomArray with the file's bond orders, formal</span>
-<span class="sd">    charges and aromatic flags, registered as its own component template.</span>
+<span class="w">    </span><span class="sd">"""Read a Tripos MOL2 (or MDL SDF/MOL) ligand as an AtomArray with the file's bond</span>
+<span class="sd">    orders, formal charges and aromatic flags, registered as its own component template.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        mol2_path: Path to the MOL2 file.</span>
+<span class="sd">        mol2_path: Path to the MOL2, SDF or MOL file.</span>
 <span class="sd">        res_name: Component code to give the ligand. Taken from the file's</span>
 <span class="sd">            substructure record when None.</span>
 <span class="sd">        chain_id: Chain to place the ligand on.</span>
@@ -482,18 +482,21 @@
 <span class="sd">        A single-residue AtomArray with a populated bond list.</span>
 
 <span class="sd">    Examples:</span>
-<span class="sd">        &gt;&gt;&gt; ligand = atom_array_from_mol2("ligand.mol2", res_name="LIG")</span>
+<span class="sd">        &gt;&gt;&gt; ligand = atom_array_from_mol2("ligand.mol2")</span>
 <span class="sd">        &gt;&gt;&gt; ligand.bonds.get_bond_count() &gt; 0</span>
 <span class="sd">        True</span>
 <span class="sd">    """</span>
     <span class="c1"># tmol.ligand imports tmol.io</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._detect</span><span class="w"> </span><span class="kn">import</span> <span class="n">nonstandard_residue_info_from_mol2</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._detect</span><span class="w"> </span><span class="kn">import</span> <span class="n">nonstandard_residue_info_from_file</span>
 
-    <span class="n">info</span> <span class="o">=</span> <span class="n">nonstandard_residue_info_from_mol2</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span><span class="p">)</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">nonstandard_residue_info_from_file</span><span class="p">(</span><span class="n">mol2_path</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="n">res_name</span><span class="p">)</span>
     <span class="n">atom_array</span> <span class="o">=</span> <span class="n">as_atom_array_plus</span><span class="p">(</span><span class="n">info</span><span class="o">.</span><span class="n">atom_array</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">chain_id</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">chain_id</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">res_id</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">res_id</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">hetero</span><span class="p">[:]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="c1"># The file's molecule is its own component, whatever its name: PDBbind 3URI names</span>
+    <span class="c1"># a 65-atom ligand PRO, whose CCD entry is a peptide-linking amino acid</span>
+    <span class="n">atom_array</span><span class="o">.</span><span class="n">set_annotation</span><span class="p">(</span><span class="s2">"chem_comp_type"</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">atom_array</span><span class="p">),</span> <span class="s2">"NON-POLYMER"</span><span class="p">))</span>
     <span class="c1"># a placeholder code can be a real entry ("LG1"): the file, not the name, decides</span>
     <span class="n">atom_array</span><span class="o">.</span><span class="n">_custom_ccd_registry</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">upper</span><span class="p">()]</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">_component_template</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span>

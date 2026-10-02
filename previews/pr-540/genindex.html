@@ -666,16 +666,20 @@
       </ul></li>
       <li><a href="api/pose.html#tmol.pose.PoseStack.clone_sharing_topology">clone_sharing_topology() (tmol.pose.PoseStack method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/io.html#tmol.io.component_chemistry_from_cif">component_chemistry_from_cif() (in module tmol.io)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/analysis.html#tmol.ops.compute_block_adjacency">compute_block_adjacency() (in module tmol.ops)</a>
 </li>
       <li><a href="api/analysis.html#tmol.ops.compute_block_centroids_and_furthest_dist">compute_block_centroids_and_furthest_dist() (in module tmol.ops)</a>
 </li>
       <li><a href="api/pose.html#tmol.pose.ConstraintSet.concatenate">concatenate() (tmol.pose.ConstraintSet class method)</a>
+
+      <ul>
+        <li><a href="api/pose.html#tmol.pose.InterBlockBondsep.concatenate">(tmol.pose.InterBlockBondsep class method)</a>
 </li>
+      </ul></li>
       <li><a href="api/pack.html#tmol.pack.rotamer.ConformerSampler">ConformerSampler (class in tmol.pack.rotamer)</a>
 </li>
       <li><a href="api/pack.html#tmol.pack.rotamer.ConjugatedSCSampler">ConjugatedSCSampler (class in tmol.pack.rotamer)</a>
@@ -796,6 +800,8 @@
 </li>
       <li><a href="api/score_terms.html#tmol.score.terms.ElecTermCreator">ElecTermCreator (class in tmol.score.terms)</a>
 </li>
+      <li><a href="api/pose.html#tmol.pose.InterBlockBondsep.empty">empty() (tmol.pose.InterBlockBondsep class method)</a>
+</li>
       <li><a href="api/score.html#tmol.score.WholePoseScoringModule.enable_cuda_graphs">enable_cuda_graphs() (tmol.score.WholePoseScoringModule method)</a>
 </li>
       <li><a href="api/score_terms.html#tmol.score.na_torsion.eval_na_torsion_for_pose">eval_na_torsion_for_pose() (in module tmol.score.na_torsion)</a>
@@ -808,14 +814,14 @@
         <li><a href="api/utility.html#tmol.utility.tensor.exclusive_cumsum1d">(in module tmol.utility.tensor)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/utility.html#tmol.utility.exclusive_cumsum2d">exclusive_cumsum2d() (in module tmol.utility)</a>
 
       <ul>
         <li><a href="api/utility.html#tmol.utility.tensor.exclusive_cumsum2d">(in module tmol.utility.tensor)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/utility.html#tmol.utility.tensor.exclusive_cumsum2d_and_totals">exclusive_cumsum2d_and_totals() (in module tmol.utility.tensor)</a>
 </li>
       <li><a href="api/utility.html#tmol.utility.exclusive_cumsum2d_w_totals">exclusive_cumsum2d_w_totals() (in module tmol.utility)</a>
@@ -899,6 +905,8 @@
       <li><a href="api/chemical.html#tmol.chemical.frame_from_coords">frame_from_coords() (in module tmol.chemical)</a>
 </li>
       <li><a href="api/pose.html#tmol.pose.PoseStackBuilder.from_block_type_names">from_block_type_names() (tmol.pose.PoseStackBuilder class method)</a>
+</li>
+      <li><a href="api/pose.html#tmol.pose.InterBlockBondsep.from_bonded_graph">from_bonded_graph() (tmol.pose.InterBlockBondsep class method)</a>
 </li>
       <li><a href="api/numeric.html#tmol.numeric.BSplineInterpolation.from_coordinates">from_coordinates() (tmol.numeric.BSplineInterpolation class method)</a>
 </li>
@@ -1005,6 +1013,8 @@
       <li><a href="api/ligand.html#tmol.ligand.inject_params_files">inject_params_files() (in module tmol.ligand)</a>
 </li>
       <li><a href="api/database.html#tmol.database.inject_residue_params">inject_residue_params() (in module tmol.database)</a>
+</li>
+      <li><a href="api/pose.html#tmol.pose.InterBlockBondsep">InterBlockBondsep (class in tmol.pose)</a>
 </li>
       <li><a href="api/numeric.html#tmol.numeric.BSplineInterpolation.interpolate">interpolate() (tmol.numeric.BSplineInterpolation method)</a>
 </li>
@@ -1427,6 +1437,8 @@
 </li>
       <li><a href="api/database.html#tmol.database.ScoringDatabase">ScoringDatabase (class in tmol.database)</a>
 </li>
+      <li><a href="api/pose.html#tmol.pose.InterBlockBondsep.select_poses">select_poses() (tmol.pose.InterBlockBondsep method)</a>
+</li>
       <li><a href="api/io.html#tmol.io.selection_gallery">selection_gallery() (in module tmol.io)</a>
 </li>
       <li><a href="api/pose.html#tmol.pose.SeqToken">SeqToken (class in tmol.pose)</a>
@@ -1466,6 +1478,8 @@
       <li><a href="api/pack.html#tmol.pack.SetPackerTask">SetPackerTask (class in tmol.pack)</a>
 </li>
       <li><a href="api/types.html#tmol.types.Shape">Shape (class in tmol.types)</a>
+</li>
+      <li><a href="api/pose.html#tmol.pose.InterBlockBondsep.shape">shape (tmol.pose.InterBlockBondsep property)</a>
 </li>
       <li><a href="api/types.html#tmol.types.Shape.Factory">Shape.Factory (class in tmol.types)</a>
 </li>
@@ -1667,6 +1681,8 @@
 </li>
       </ul></li>
       <li><a href="api/io.html#tmol.io.to_atom_lines">to_atom_lines() (in module tmol.io)</a>
+</li>
+      <li><a href="api/pose.html#tmol.pose.InterBlockBondsep.to_dense">to_dense() (tmol.pose.InterBlockBondsep method)</a>
 </li>
       <li><a href="api/score.html#tmol.score.IndexedBonds.to_directed">to_directed() (tmol.score.IndexedBonds class method)</a>
 </li>

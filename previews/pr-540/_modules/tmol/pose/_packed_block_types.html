@@ -460,14 +460,6 @@
 <span class="n">MAX_N_CONN</span> <span class="o">=</span> <span class="mi">12</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">residue_types_from_residues</span><span class="p">(</span><span class="n">residues</span><span class="p">):</span>
-    <span class="n">rt_dict</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">residues</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">id</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">residue_type</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">rt_dict</span><span class="p">:</span>
-            <span class="n">rt_dict</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">residue_type</span><span class="p">)]</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">residue_type</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">rt</span> <span class="k">for</span> <span class="n">addr</span><span class="p">,</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">rt_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
-
-
 <div class="viewcode-block" id="PackedBlockTypes">
 <a class="viewcode-back" href="../../../api/pose.html#tmol.pose.PackedBlockTypes">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
