@@ -21,6 +21,11 @@ Tests live in `tmol/tests/io/test_atomworks_corpus_regressions.py`,
 `tmol/tests/ligand/test_atomworks_modified_components.py`.
 Successful numerical checks do not independently validate the force field.
 
+`his_pos_ring_1yg0.cif.zst` keeps 1YG0 (NMR, model 1) chain A ASN 13–HIS 14–CYS 15
+with deposited hydrogens. HIS 14 carries HD1 and HE2, so it builds as HIS_POS; OptH
+must flip its ring back when given the ring turned 180 degrees
+(`tmol/tests/pack/rotamer/test_opth_sampler.py`).
+
 `plp_cap_5t4j.cif.zst` retains the complete RCSB entry referenced by the AtomWorks
 IO suite. Its PLP C4A=N ABU external aldimine is a conjugate attachment, not a
 peptide bond: C4A keeps one hydrogen, N none, and the link its imine length.
@@ -216,6 +221,8 @@ Attached H2S and S2H exercise small-component coordinate frames and retained
 hydrogen references after a conjugation patch displaces a hydrogen.
 
 `phosphate_attachment_8ch1.cif.zst` retains the complete RCSB entry.
+Its VDF is the altloc B alternate of LAO, and the reader keeps altloc A, so
+`vdf_attachment_8ch1_b.cif.zst` holds conformer B alone, cropped 8 A around VDF.
 The VDF phosphate attachment oxygen has no departing H after free-component
 protonation. Its construction frame must use the complete conjugate's angle
 target and a stable local plane. Both readers retain every resolved non-water

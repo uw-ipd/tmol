@@ -44,6 +44,7 @@ def test_states_by_context_match_the_whole_structure(path, monkeypatch):
     )
     count = numpy.bincount(parent, minlength=len(marked))
     count[free] = -1
+    count[~numpy.isfinite(marked.coord).all(axis=-1)] = -1
     charges = numpy.zeros(len(marked), dtype=int)
     charges[charged] = charge
 
@@ -98,6 +99,151 @@ def test_a_ligand_numbered_after_its_chain_is_not_bonded_to_it():
         protonated.atom_name, ("O1A", "O2A", "O1P", "O2P")
     )
     assert protonated.charge[phosphate].sum() == -2
+
+
+def test_free_nucleotides_of_one_chain_are_not_linked():
+    """Two AMP ligands of one chain and entity (8gpb) are no dinucleotide: each O3' is a hydroxyl."""
+    structure = atom_array_from_cif(
+        data_path("sweep_regressions", "free_nucleotides_8gpb.cif.zst")
+    )
+    protonated = protonation.with_atomworks_hydrogens(
+        structure[structure.element != "H"]
+    )
+    for o3 in numpy.flatnonzero(protonated.atom_name == "O3'"):
+        partners = protonated.element[protonated.bonds.get_bonds(o3)[0]]
+        assert sorted(partners) == ["C", "H"]
+
+
+def _hydrogens_on(pose, chain, number):
+    """Block type, class and {heavy atom: hydrogens} of residue ``chain`` ``number``."""
+    info, pbt = pose.pdb_info, pose.packed_block_types
+    block = next(
+        b
+        for b in range(pose.max_n_blocks)
+        if (str(info.chain_labels[0, b]), int(info.residue_labels[0, b]))
+        == (chain, number)
+    )
+    index = int(pose.block_type_ind[0, block])
+    bt, is_h = pbt.active_block_types[index], pbt.atom_is_hydrogen[index].tolist()
+    got = {a.name: 0 for a, h in zip(bt.atoms, is_h) if not h}
+    for a, b in numpy.asarray(bt.bond_indices).reshape(-1, 2):
+        if is_h[b] and not is_h[a]:
+            got[bt.atoms[a].name] += 1
+    return bt.name, bt.io_equiv_class, got
+
+
+@pytest.mark.parametrize(
+    "fixture, residues",
+    [
+        ("metal_lysine_2r1w.cif.zst", [("B", 62)]),  # LYS NZ on Mg: a neutral amine
+        ("metal_amine_terminus_3ppd.cif.zst", [("A", 1)]),  # GLY 1 amine on Zn
+        ("cysteine_heme_1cch.cif.zst", [("A", 83)]),  # pyrroles of a Cys-bonded heme
+        ("metal_phosphate_7bad.cif.zst", [("A", 103)]),  # PO4 O2 on Mg
+        # a free PO4 and two on metals, each its own state
+        ("per_copy_phosphate_6m8q.cif.zst", [("A", 504), ("A", 505), ("B", 504)]),
+        ("polar_hydrogens_10gs.pdb.zst", [("A", 47), ("A", 71), ("A", 101)]),
+    ],
+    ids=[
+        "2r1w_lys",
+        "3ppd_nterm",
+        "1cch_heme",
+        "7bad_po4",
+        "6m8q_po4s",
+        "10gs_polar_h",
+    ],
+)
+def test_residue_types_take_the_atomworks_state(
+    fixture, residues, monkeypatch, torch_device
+):
+    """Each residue's type carries the hydrogens AtomWorks gives each heavy atom.
+
+    AtomWorks is asked about the whole input once, with the bonds and drawn
+    hydrogens tmol hands it; a histidine tautomer it leaves free is summed.
+    """
+    from tmol.io import atom_array_from_file, pose_stack_from_biotite
+
+    placed, reference = protonation._placed_hydrogens, []
+
+    def whole(model, heavy, ph, extra, *declared):
+        if not reference:
+            every = ~numpy.isin(model.element, ("H", "D")) & (model.res_name != "HOH")
+            parent, *_, free = placed(model, every, ph, extra, *declared)
+            count = numpy.bincount(parent, minlength=len(model))
+            reference.append((model, count, set(free.tolist())))
+        return placed(model, heavy, ph, extra, *declared)
+
+    monkeypatch.setattr(protonation, "_placed_hydrogens", whole)
+    protonation._STATES.clear()
+    structure = atom_array_from_file(data_path("sweep_regressions", fixture))
+    pose = pose_stack_from_biotite(
+        structure, torch_device, prepare_ligands=True, ligand_seed=0
+    )
+    model, count, free = reference[0]
+    for chain, number in residues:
+        name, equiv, got = _hydrogens_on(pose, chain, number)
+        mine = numpy.flatnonzero(
+            (model.chain_id == chain)
+            & (model.res_id == number)
+            & (model.res_name == equiv)
+            & ~numpy.isin(model.element, ("H", "D"))
+        )
+        fixed = {str(model.atom_name[i]): int(count[i]) for i in mine if i not in free}
+        assert {a: got[a] for a in fixed} == fixed, name
+        ring = [i for i in mine if i in free]
+        assert sum(got[str(model.atom_name[i])] for i in ring) == count[ring].sum()
+
+
+@pytest.mark.parametrize(
+    "fixture, chain, number, name",
+    [
+        ("unresolved_tyrosine_4ndz.cif.zst", "B", 171, "TYR"),  # ring not drawn
+        ("plm_copies_8trb.cif.zst", "A", 607, "PLM"),  # every copy bonded
+    ],
+)
+def test_residues_without_a_free_resolved_state_keep_their_type(
+    fixture, chain, number, name, torch_device
+):
+    """Unresolved atoms carry no state (4NDZ TYR B:171 was read as TYR_DEP), and
+    only free ligand copies get state types (8TRB prepared unused PLM_ types)."""
+    import re
+
+    from tmol.io import atom_array_from_file, pose_stack_from_biotite
+
+    structure = atom_array_from_file(data_path("sweep_regressions", fixture))
+    pose, context = pose_stack_from_biotite(
+        structure,
+        torch_device,
+        prepare_ligands=True,
+        ligand_seed=0,
+        return_context=True,
+    )
+    assert _hydrogens_on(pose, chain, number)[0].split(":")[0] == name
+    state = re.compile(rf"{name}_[0-9A-F]{{6}}")
+    residues = context.parameter_database.chemical.residues
+    assert not any(state.match(r.name) for r in residues)
+
+
+def test_a_capped_peptide_after_an_on_demand_terminus_builds(torch_device):
+    """3PPD adds GLY's on-demand nterm_neutral to the database; 1J8Z, prepared next
+    in that database, must not take it as a terminus template for its ACE cap."""
+    import attr
+
+    from tmol.io import atom_array_from_file, pose_stack_from_biotite
+
+    database = None
+    for fixture in ("metal_amine_terminus_3ppd.cif.zst", "capped_peptide_1j8z.cif.zst"):
+        pose, context = pose_stack_from_biotite(
+            atom_array_from_file(data_path("sweep_regressions", fixture)),
+            torch_device,
+            prepare_ligands=True,
+            ligand_seed=0,
+            param_db=database,
+            return_context=True,
+        )
+        database = context.parameter_database
+        if pose.packed_block_types.chem_db is not database.chemical:
+            database = attr.evolve(database, chemical=pose.packed_block_types.chem_db)
+    assert pose.coords.isfinite().all()
 
 
 def test_a_heme_split_from_its_iron_keeps_the_porphyrin_dianion():

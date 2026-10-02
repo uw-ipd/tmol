@@ -57,30 +57,17 @@ def left_justify_canonical_form(
     np_nz_cinds = nz_cinds.cpu().numpy()
 
     def lj(x, fill):
-        # kinda surprised I don't already have this??
         selected_values = torch.full_like(x, fill)
-        if len(x.shape) > 2:
-            selected_values[nz_cinds[:, 0], nz_cinds[:, 1], :] = x[
-                nz_cinds[:, 0], good_cinds, :
-            ]
-        else:
-            selected_values[nz_cinds[:, 0], nz_cinds[:, 1]] = x[
-                nz_cinds[:, 0], good_cinds
-            ]
+        selected_values[nz_cinds[:, 0], nz_cinds[:, 1]] = x[nz_cinds[:, 0], good_cinds]
         return selected_values
 
     np_good_cinds = good_cinds.cpu().numpy()
 
     def lj_np(x, fill):
         new_x = numpy.full_like(x, fill)
-        if len(x.shape) > 2:
-            new_x[np_nz_cinds[:, 0], np_nz_cinds[:, 1], :] = x[
-                np_nz_cinds[:, 0], np_good_cinds, :
-            ]
-        else:
-            new_x[np_nz_cinds[:, 0], np_nz_cinds[:, 1]] = x[
-                np_nz_cinds[:, 0], np_good_cinds
-            ]
+        new_x[np_nz_cinds[:, 0], np_nz_cinds[:, 1]] = x[
+            np_nz_cinds[:, 0], np_good_cinds
+        ]
         return new_x
 
     chain_id = lj(chain_id, -1)

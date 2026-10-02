@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import biotite.structure as struc
 import numpy as np
 import pytest
 import torch
@@ -294,6 +295,112 @@ def test_ccd_isolated_atom_charge_provenance(
     assert source.charge.tolist() == [expected_charge]
     assert source.tmol_source_formal_charge.tolist() == ["?"]
     assert source.tmol_formal_charge_specified.tolist() == [True]
+
+
+@pytest.mark.parametrize(
+    "fixture,atom",
+    [
+        ("bonded_bromide_1mhk", ("BR", "BR")),
+        ("unsigned_carboxylate_charge_3zlp", ("GLU", "OE1")),
+        ("oxygen_charge_seven_7tjm", ("GLU", "OE2")),
+    ],
+)
+def test_deposited_charge_its_bonded_atom_cannot_carry_is_ignored(
+    fixture, atom, torch_device
+):
+    """1MHK states a bromide's -1 on a Br bonded to a uridine C5, 3ZLP a
+    carboxylate's -1 as +1 and 7TJM +7 on a carboxylate O; the pH decides them."""
+    path = DATA / "sweep_regressions" / f"{fixture}.cif.zst"
+    array = atom_array_from_cif(path)
+    site = (array.res_name == atom[0]) & (array.atom_name == atom[1])
+
+    assert array.charge[site].tolist() == [0]
+    assert array.tmol_formal_charge_specified[site].tolist() == [False]
+    pose = pose_stack_from_cif(path, torch_device, prepare_ligands=True, no_optH=True)
+    assert torch.isfinite(pose.coords).all()
+
+
+def test_declared_disulfides_sharing_a_sulfur_keep_the_nearest(torch_device, recwarn):
+    """6CNB declares CYS L:51 in disulfides to L:34 (2.90 A) and L:48 (2.48 A)."""
+    path = DATA / "sweep_regressions" / "shared_disulfide_sulfur_6cnb.cif.zst"
+    array = atom_array_from_cif(path)
+    sulfur = np.flatnonzero(array.atom_name == "SG")
+    pairs = {
+        tuple(sorted(int(array.res_id[a]) for a in bond[:2]))
+        for bond in array.bonds.as_array()
+        if bond[0] in sulfur and bond[1] in sulfur
+    }
+
+    assert pairs == {(48, 51)}
+    assert any("L:34-L:51" in str(w.message) for w in recwarn)
+    pose = pose_stack_from_cif(path, torch_device, no_optH=True)
+    assert torch.isfinite(pose.coords).all()
+
+
+@pytest.mark.parametrize(
+    "fixture, names, kept, dropped",
+    [
+        ("ion_alternates_8a7k", ["MN", "MG"], {501, 502, 503}, {504, 505, 506}),
+        ("ion_alternates_3f7l", ["CU", "CU1"], {201}, {202}),
+        ("glycerol_alternates_1p4k", ["GOL"], {296}, {297}),
+    ],
+)
+def test_residues_occupying_one_site_keep_one(
+    fixture, names, kept, dropped, torch_device
+):
+    """8A7K models Mn and Mg at half occupancy on each site, and 1P4K two
+    half-occupied GOL its struct_conn bonds to each other, without altloc ids;
+    3F7L writes the conformers of a Cu (0.8 and 0.2) in two chains."""
+    path = DATA / "sweep_regressions" / f"{fixture}.cif.zst"
+    with pytest.warns(UserWarning, match="one residue per site"):
+        array = atom_array_from_cif(path)
+    read = set(array.res_id[np.isin(array.res_name, names)].tolist())
+
+    assert kept <= read and not dropped & read
+    pose = pose_stack_from_cif(path, torch_device, prepare_ligands=True, no_optH=True)
+    assert torch.isfinite(pose.coords).all()
+
+
+def test_coincident_alternate_chains_require_an_assembly_choice(torch_device):
+    from tmol.tests.io.test_atomworks_corpus_regressions import _score_and_minimize
+
+    path = DATA / "sweep_regressions" / "alternate_polymer_chains_1gtv.cif.zst"
+    array = atom_array_from_cif(path)
+    assert set(array.chain_id[array.is_polymer]) == {"A", "B"}
+    with pytest.raises(ValueError, match="Coincident bonded heavy atoms"):
+        pose_stack_from_cif(path, torch_device, prepare_ligands=True, no_optH=True)
+    for assembly_id in ("1", "2"):
+        pose, context = pose_stack_from_cif(
+            path,
+            torch_device,
+            assembly_id=assembly_id,
+            prepare_ligands=True,
+            no_optH=True,
+            return_context=True,
+        )
+        _score_and_minimize(pose, context)
+
+
+def test_label_chains_sharing_an_author_site_keep_one_residue(torch_device):
+    path = DATA / "sweep_regressions" / "shared_author_site_3bln.cif.zst"
+    with pytest.warns(UserWarning, match="one residue per site"):
+        array = atom_array_from_cif(path)
+    site = (array.chain_id == "A") & (array.res_id == 147)
+    assert set(array.res_name[site]) == {"MPD"}
+    assert len(set(array.atom_name[site])) == site.sum() == 8
+    assert set(array.res_id[array.res_name == "MRD"]) == {145, 146}
+
+    pose, context = pose_stack_from_cif(
+        path, torch_device, prepare_ligands=True, no_optH=True, return_context=True
+    )
+    coords = pose.coords.detach().clone().requires_grad_()
+    energy = beta2016_score_function(
+        torch_device, param_db=context.parameter_database
+    ).render_whole_pose_scoring_module(pose)(coords)
+    energy.sum().backward()
+    assert torch.isfinite(coords).all()
+    assert torch.isfinite(energy).all()
+    assert torch.isfinite(coords.grad).all()
 
 
 @pytest.mark.parametrize(
@@ -641,3 +748,141 @@ def test_known_and_unknown_chemistry_share_file_contract(
             _score_and_minimize(reloaded, reloaded_context, max_iter=1)
         with pytest.raises(LigandPreparationError, match="ZZQ.*chemical bond orders"):
             pose_stack_from_biotite(array, torch_device, prepare_ligands=True)
+
+
+def test_pdb_link_records_reach_the_pose(tmp_path, torch_device):
+    """A PDB's LINK records are bonds, and its HETATM residues keep their numbers.
+
+    1HZY cropped around the two Zn of chain A, with LINK and no CONECT records; its
+    HETATM records list ZN 401 and 402 before FMT 369, which carbamylates LYS 169.
+    """
+    import re
+
+    import biotite.structure as struc
+    import zstandard
+    from tmol.io import atom_array_from_file, pose_stack_from_file
+
+    fixture = DATA / "sweep_regressions" / "zn_link_records_1hzy.pdb.zst"
+    coordination, single = struc.BondType.COORDINATION, struc.BondType.SINGLE
+    links = {
+        ("HIS55.NE2", "ZN401.ZN"): coordination,
+        ("HIS57.NE2", "ZN401.ZN"): coordination,
+        ("ASP301.OD2", "ZN401.ZN"): coordination,
+        ("HIS201.ND1", "ZN402.ZN"): coordination,
+        ("HIS230.NE2", "ZN402.ZN"): coordination,
+        ("FMT369.O1", "ZN401.ZN"): coordination,
+        ("FMT369.O2", "ZN402.ZN"): coordination,
+        ("LYS169.NZ", "FMT369.C"): single,
+        ("HOH876.O", "ZN401.ZN"): coordination,
+        ("HOH876.O", "ZN402.ZN"): coordination,
+        ("HOH897.O", "ZN402.ZN"): coordination,
+    }
+
+    def read_links(path):
+        array = atom_array_from_file(path)
+        label = [
+            f"{r}{i}.{a}"
+            for r, i, a in zip(array.res_name, array.res_id, array.atom_name)
+        ]
+        residue = struc.get_all_residue_positions(array)
+        found = {
+            frozenset((label[i], label[j])): struc.BondType(t)
+            for i, j, t in array.bonds.as_array()
+            if residue[i] != residue[j]
+        }
+        return array, found
+
+    array, found = read_links(fixture)
+    assert found == {frozenset(pair): kind for pair, kind in links.items()}
+    hetero = array[array.hetero]
+    assert (np.diff(hetero.res_id) >= 0).all()
+    assert [
+        (int(i), str(n)) for i, n in zip(*struc.get_residues(hetero), strict=True)
+    ] == [
+        (369, "FMT"),
+        (401, "ZN"),
+        (402, "ZN"),
+        (408, "EDO"),
+        (425, "EDO"),
+        (876, "HOH"),
+        (897, "HOH"),
+    ]
+
+    # A LINK longer than a covalent bond, or to a symmetry mate, is no bond.
+    text = zstandard.decompress(fixture.read_bytes()).decode()
+    hydrogen_bond = (
+        "LINK         OD1 ASP A 301                 O   HOH A 876     1555   1555  2.60"
+    )
+    symmetry_mate = (
+        "LINK         OD1 ASP A 301                ZN    ZN A 402     1555   2555  2.30"
+    )
+    extra = tmp_path / "extra_links.pdb"
+    extra.write_text(text.replace("LINK", f"{hydrogen_bond}\n{symmetry_mate}\nLINK", 1))
+    assert read_links(extra)[1] == found
+
+    pose = pose_stack_from_file(
+        fixture, torch_device, prepare_ligands=True, ligand_seed=17, no_optH=True
+    )
+    labels = pose.pdb_info.residue_labels[0]
+    joined = set()
+    types = pose.packed_block_types.active_block_types
+    for block, index in enumerate(pose.block_type_ind[0].tolist()):
+        block_type = types[index]
+        backbone = {block_type.up_connection_ind, block_type.down_connection_ind}
+        for connection in range(len(block_type.connections)):
+            other = int(pose.inter_residue_connections[0, block, connection, 0])
+            if connection not in backbone and other >= 0:
+                joined.add(frozenset((int(labels[block]), int(labels[other]))))
+    # The pose drops the waters; every other link joins two blocks.
+    assert joined == {
+        frozenset(int(re.search(r"\d+", atom)[0]) for atom in pair)
+        for pair in links
+        if not pair[0].startswith("HOH")
+    }
+
+
+@pytest.mark.parametrize(
+    "fixture, res_ids, names",
+    [
+        # heme (altloc A) and Zn-porphyrin (B) as two residues on CYS A:14 and A:17
+        ("heme_alternates_1i54", [1104, 1105], {"HEC"}),
+        # KGQ A:201 (altloc A) over A:202 (altloc B)
+        ("kgq_alternates_4m8y", [201, 202], {"KGQ"}),
+    ],
+)
+def test_pdb_keeps_one_alternate_per_linked_group(
+    fixture, res_ids, names, torch_device
+):
+    """Alternates written as separate residues are read as one: no heavy atoms of
+    two residues overlap."""
+    from scipy.spatial import cKDTree
+
+    from tmol.io import atom_array_from_file, pose_stack_from_file
+
+    path = DATA / "sweep_regressions" / f"{fixture}.pdb.zst"
+    array = atom_array_from_file(path)
+    assert set(array.res_name[np.isin(array.res_id, res_ids)]) == names
+    heavy = ~np.isin(np.char.upper(array.element.astype(str)), ("H", "D"))
+    heavy = array[heavy & np.isfinite(array.coord).all(-1)]
+    residue = struc.get_all_residue_positions(heavy)
+    pairs = cKDTree(heavy.coord).query_pairs(1.2, output_type="ndarray")
+    assert (residue[pairs[:, 0]] == residue[pairs[:, 1]]).all()
+    pose = pose_stack_from_file(
+        path, torch_device, prepare_ligands=True, ligand_seed=0, no_optH=True
+    )
+    assert torch.isfinite(pose.coords).all()
+
+
+def test_coordinate_only_pdb_keeps_its_caps_in_the_chain(torch_device):
+    """1COI with its coordinates only, no LINK or CONECT records: the HETATM caps
+    ACE A:0 and NH2 A:30 bond to GLU A:1 N and GLY A:29 C, so they stay in chain A."""
+    from tmol.io import pose_stack_from_file
+
+    fixture = DATA / "sweep_regressions" / "capped_peptide_1coi.pdb.zst"
+    pose = pose_stack_from_file(
+        fixture, torch_device, prepare_ligands=True, ligand_seed=0, no_optH=True
+    )
+    types = pose.packed_block_types.active_block_types
+    names = [types[i].name for i in pose.block_type_ind64[0].tolist() if i >= 0]
+    assert names[:2] == ["ACE", "GLU"]
+    assert names[-3:] == ["GLY", "NH2", "SO4"]

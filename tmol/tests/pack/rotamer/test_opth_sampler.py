@@ -2,6 +2,7 @@
 import math
 from types import SimpleNamespace
 
+import numpy
 import torch
 from tmol.pose import PoseStackBuilder
 
@@ -13,7 +14,8 @@ from tmol.pack.rotamer import (
     IncludeCurrentSampler,
     OptHSampler,
 )
-from tmol.io import pose_stack_from_pdb
+from tmol.io import atom_array_from_cif, pose_stack_from_biotite, pose_stack_from_pdb
+from tmol.tests.data import data_path
 
 
 def test_opth_builds_cartesian_product_for_multiple_proton_chis():
@@ -117,6 +119,31 @@ def test_optH_rotamer_sampler_flipNHQ(ubq_pdb, torch_device):
             n_rots = int(rotamer_set.n_rots_for_block[pose_i, block_i].item())
             # n_proton_chi_samples + 1 for include current
             assert cache.n_proton_samples == 0 or n_rots == cache.n_proton_samples + 1
+
+
+def test_optH_flips_a_doubly_protonated_histidine_ring_back(torch_device):
+    # 1YG0 ASN13-HIS14-CYS15; His14 is deposited with HD1 and HE2 (HIS_POS).
+    array = atom_array_from_cif(
+        data_path("atomworks_regressions/his_pos_ring_1yg0.cif.zst")
+    )
+    his = array.res_id == 14
+    ring_names = ["ND1", "CD2", "CE1", "NE2", "HD1", "HD2", "HE1", "HE2"]
+    ring = his & numpy.isin(array.atom_name, ring_names)
+    cb, cg = (array.coord[his & (array.atom_name == n)][0] for n in ("CB", "CG"))
+    axis = (cg - cb) / numpy.linalg.norm(cg - cb)
+    arm = array.coord[ring] - cg
+    flipped = array.copy()
+    flipped.coord[ring] = cg + 2 * numpy.outer(arm @ axis, axis) - arm
+    rings = []
+    for structure in (array, flipped):
+        pose = pose_stack_from_biotite(structure, torch_device, no_optH=False)
+        bt = pose.packed_block_types.active_block_types[int(pose.block_type_ind[0, 1])]
+        assert bt.name == "HIS_POS"
+        start = int(pose.block_coord_offset[0, 1])
+        rings.append(
+            pose.coords[0, [start + bt.atom_to_idx[n] for n in ("ND1", "NE2")]]
+        )
+    torch.testing.assert_close(*rings, atol=0.1, rtol=0)
 
 
 def test_optH_rotamer_sampler_no_flipNHQ(ubq_pdb, torch_device):

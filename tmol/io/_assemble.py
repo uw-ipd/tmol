@@ -24,11 +24,11 @@ def atom_array_from_mol2(
     chain_id: str = "L",
     res_id: int = 1,
 ) -> struc.AtomArray:
-    """Read a Tripos MOL2 ligand as an AtomArray with the file's bond orders, formal
-    charges and aromatic flags, registered as its own component template.
+    """Read a Tripos MOL2 (or MDL SDF/MOL) ligand as an AtomArray with the file's bond
+    orders, formal charges and aromatic flags, registered as its own component template.
 
     Args:
-        mol2_path: Path to the MOL2 file.
+        mol2_path: Path to the MOL2, SDF or MOL file.
         res_name: Component code to give the ligand. Taken from the file's
             substructure record when None.
         chain_id: Chain to place the ligand on.
@@ -38,18 +38,21 @@ def atom_array_from_mol2(
         A single-residue AtomArray with a populated bond list.
 
     Examples:
-        >>> ligand = atom_array_from_mol2("ligand.mol2", res_name="LIG")
+        >>> ligand = atom_array_from_mol2("ligand.mol2")
         >>> ligand.bonds.get_bond_count() > 0
         True
     """
     # tmol.ligand imports tmol.io
-    from tmol.ligand._detect import nonstandard_residue_info_from_mol2
+    from tmol.ligand._detect import nonstandard_residue_info_from_file
 
-    info = nonstandard_residue_info_from_mol2(mol2_path, res_name=res_name)
+    info = nonstandard_residue_info_from_file(mol2_path, res_name=res_name)
     atom_array = as_atom_array_plus(info.atom_array.copy())
     atom_array.chain_id[:] = chain_id
     atom_array.res_id[:] = res_id
     atom_array.hetero[:] = True
+    # The file's molecule is its own component, whatever its name: PDBbind 3URI names
+    # a 65-atom ligand PRO, whose CCD entry is a peptide-linking amino acid
+    atom_array.set_annotation("chem_comp_type", np.full(len(atom_array), "NON-POLYMER"))
     # a placeholder code can be a real entry ("LG1"): the file, not the name, decides
     atom_array._custom_ccd_registry[str(atom_array.res_name[0]).upper()] = (
         _component_template(atom_array)

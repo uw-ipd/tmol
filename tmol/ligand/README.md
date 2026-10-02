@@ -33,7 +33,7 @@ param_db, co = prepare_ligand_from_cif("ligand.cif")
 
 # 3) SMILES — no input geometry. Dimorphite-DL protonates at the target pH and
 #    a 3D conformer + MMFF94 charges are generated.
-param_db, co = prepare_ligand_from_smiles("c1ccccc1C(=O)O", res_name="BEN")
+param_db, co = prepare_ligand_from_smiles("c1ccccc1C(=O)O", res_name="L_1")
 ```
 
 To detect and prepare **every** non-standard residue in a structure at once

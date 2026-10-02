@@ -15,6 +15,7 @@ dunbrack_lookup:
   - { *n: ile ,*r: ILE }
   - { *n: leu ,*r: LEU }
   - { *n: lys ,*r: LYS }
+  - { *n: lys ,*r: LYS_DEP }
   - { *n: met ,*r: MET }
   - { *n: phe ,*r: PHE }
   - { *n: pro ,*r: PRO }

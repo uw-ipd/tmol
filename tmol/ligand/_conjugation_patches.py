@@ -117,6 +117,10 @@ def declared_heavy_leaving_groups(atom_array, chemdb):
     residues = np.searchsorted(starts, bonds, side="right") - 1
     endpoints = np.unique(bonds[residues[:, 0] != residues[:, 1]])
     groups, present, result = {}, {}, {}
+    # only names and coordinates are read per residue; slicing the full array
+    #    would copy its bond list at every site
+    names_coords = struc.AtomArray(len(atom_array))
+    names_coords.atom_name, names_coords.coord = atom_array.atom_name, atom_array.coord
     for index in endpoints:
         name, atom = str(atom_array.res_name[index]), str(atom_array.atom_name[index])
         restype = types.get(name)
@@ -145,7 +149,7 @@ def declared_heavy_leaving_groups(atom_array, chemdb):
                 for missing in group
             )
             absent = get_absent_substitution_leaving_groups(
-                templates[name], atom_array[starts[ri] : starts[ri + 1]], {atom}
+                templates[name], names_coords[starts[ri] : starts[ri + 1]], {atom}
             )
             removed |= frozenset(absent.get(atom, ())) & heavy
         key = (name, atom)
