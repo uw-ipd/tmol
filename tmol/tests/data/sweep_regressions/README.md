@@ -64,3 +64,5 @@ compressed file) and exercises one failure class; each test fails without its fi
 - `supplied_terminus_2gyi.pdb`: PDBbind 2GYI prepared protein, author chain A, residues [64, 65]. ATOM/HETATM and retained CONECT records preserve original order, names, coordinates, charges and bond declarations; no other edits. Source SHA-256 `b7a2e291987114fc56ebddb2bed8604554cac537d79a115528287706fb814297`.
 
 - `supplied_terminus_1hdq.pdb`: PDBbind 1HDQ prepared protein, author chain A, residues [273, 274]. ATOM/HETATM and retained CONECT records preserve original order, names, coordinates, charges and bond declarations; no other edits. Source SHA-256 `304b450671db888b175cbfb3738e459ed0f5cf90a0ff39684ee95e9167956af1`.
+
+- `terminal_pocket_2jdm.pdb`: complete, unchanged PDBbind v2013-core 2JDM pocket; source SHA-256 `1de0ea35f6ee8b532791cbd27faaed781877337e54d8f8fbc3faca2640a29cfb`. The first GLY114 has a supplied OXT and one generic polar H, and precedes ASN21. Retaining OXT must not be blocked by an unrelated hydrogen name already incompatible with the inferred amino terminus.

@@ -234,3 +234,77 @@ def test_pdb_explicit_connection_does_not_erase_supplied_terminus(tmp_path):
     )
     with pytest.raises(ValueError, match="Stated terminus.*THR/N -- A:273:ASP/C"):
         atom_array_from_file(path)
+
+
+def test_pocket_terminal_oxygen_survives_unrelated_hydrogen_name(torch_device):
+    structure = atom_array_from_file(
+        data_path("sweep_regressions", "terminal_pocket_2jdm.pdb")
+    )
+    pose, context = pose_stack_from_biotite(
+        structure,
+        torch_device,
+        prepare_ligands=True,
+        no_optH=True,
+        ligand_seed=0,
+        return_context=True,
+    )
+    block_type = pose.packed_block_types.active_block_types[
+        int(pose.block_type_ind[0, 0])
+    ]
+    assert "OXT" in block_type.atom_to_idx
+    assert not {"up", "down"} & {c.name for c in block_type.connections}
+    source = structure[
+        (structure.res_name == "GLY")
+        & (structure.res_id == structure.res_id[0])
+        & (structure.element != "H")
+    ]
+    assert len(source) == 5
+    offset = int(pose.block_coord_offset[0, 0])
+    actual = pose.coords[
+        0, [offset + block_type.atom_to_idx[n] for n in source.atom_name]
+    ]
+    np.testing.assert_allclose(actual.cpu(), source.coord, atol=1e-5)
+    # The cropped pocket's default amino-terminus convention is unchanged.
+    assert (
+        _hydrogens_on(
+            pose,
+            str(pose.pdb_info.chain_labels[0, 0]),
+            int(pose.pdb_info.residue_labels[0, 0]),
+        )[2]["N"]
+        == 3
+    )
+    _score_and_minimize_ligand(pose, context.parameter_database)
+
+
+@pytest.mark.parametrize("trade_heavy", [False, True])
+def test_terminal_selection_never_trades_a_supplied_atom(trade_heavy):
+    """More hydrogen-name matches cannot compensate for losing a supplied oxygen."""
+    from types import SimpleNamespace
+    import torch
+    from tmol.io.details._select_from_canonical import _termini_the_atoms_state
+
+    # Supplied atoms: backbone O, generic H, H2, H3, terminal OXT.
+    # Original amino terminus cannot hold H, H2, H3 or OXT. A compatible
+    # carboxyl terminus may recover OXT; an unusual patch that drops O must lose.
+    absent = torch.tensor(
+        [[False, True, True, True, True], [trade_heavy, True, False, False, False]]
+    )
+    candidates = torch.zeros((1, 4, 1, 1), dtype=torch.int64)
+    candidates[0, 3, 0, 0] = 1
+    pbt = SimpleNamespace(
+        canonical_ordering_annotation=SimpleNamespace(
+            var_combo_candidate_bt_index=candidates,
+            var_combo_is_real_candidate=torch.ones_like(candidates, dtype=torch.bool),
+            bt_canonical_atom_is_absent=absent,
+        )
+    )
+    result = _termini_the_atoms_state(
+        pbt,
+        torch.ones((1, 1, 5), dtype=torch.bool),
+        torch.zeros((1, 1), dtype=torch.int64),
+        torch.zeros((1, 1), dtype=torch.int64),
+        torch.zeros((1, 1), dtype=torch.int64),
+        torch.tensor([[[False, True]]]),
+        torch.ones((1, 1), dtype=torch.bool),
+    )
+    assert result.item() == (0 if trade_heavy else 3)
