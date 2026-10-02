@@ -489,6 +489,30 @@ def test_declared_bond_beyond_cutoff_is_kept(built):
     assert labeled_metal_bonds(pose_stack) <= bonds
 
 
+def test_a_declared_bond_to_a_hydroxide_ligand_is_kept():
+    structure = struc.AtomArray(3)
+    structure.atom_name = ["ZN", "O", "H"]
+    structure.element = ["ZN", "O", "H"]
+    structure.res_name = ["ZN", "HXO", "HXO"]
+    structure.res_id = [1, 2, 2]
+    structure.chain_id[:] = "A"
+    structure.hetero[:] = True
+    structure.coord = numpy.array(
+        [[0.0, 0.0, 0.0], [1.98, 0.0, 0.0], [2.3, 0.91, 0.0]], dtype=numpy.float32
+    )
+    structure.set_annotation("charge", numpy.array([2, -1, 0]))
+    structure.bonds = struc.BondList(3, numpy.array([(0, 1, 1), (1, 2, 1)]))
+
+    pose_stack = pose_stack_from_biotite(
+        structure,
+        torch.device("cpu"),
+        prepare_ligands=True,
+        ligand_seed=0,
+        find_additional_metal_coordination=False,
+    )
+    assert labeled_metal_bonds(pose_stack) == {(("A", 1), ("A", 2), "O")}
+
+
 def test_only_declared_bonds_without_detection(built):
     structure, _ = zinc_with_declared_bonds(
         EXPECTED_ZINC_DONORS[:2], struc.BondType.ANY

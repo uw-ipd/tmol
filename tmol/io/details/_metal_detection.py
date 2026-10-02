@@ -271,13 +271,17 @@ def _build_canonical_metal_tables(
                     continue
                 j = index_of.get(atom.name)
                 if j is not None:
-                    # the donor_radii key: the type's own (Owat), else its element
                     donor_element[i, j] = at.name if at.name in radii else at.element
-        # a donor's hydrogens come from every type, also those it cannot donate in
+        # Bound H excludes donors only in types where that atom cannot donate.
         for res in members.get(equiv_class, ()):
             element_of = {
                 a.name: getattr(atom_type.get(a.atom_type), "element", "")
                 for a in res.atoms
+            }
+            donates = {
+                a.name
+                for a in res.atoms
+                if getattr(atom_type.get(a.atom_type), "is_metal_donor", False)
             }
             for a, b, *_ in res.bonds:
                 for heavy, h in ((a, b), (b, a)):
@@ -286,6 +290,7 @@ def _build_canonical_metal_tables(
                         and heavy in index_of
                         and h in index_of
                         and donor_element[i, index_of[heavy]]
+                        and heavy not in donates
                     ):
                         hydrogens_on[i, index_of[heavy]].add(index_of[h])
         if equiv_class in ion_for_name3:
