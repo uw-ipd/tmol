@@ -773,3 +773,84 @@ def test_prepare_ligands_with_params_files_skips_reprep(tmp_path) -> None:
         params_files=[str(tmol_file)],
     )
     assert any(r.name == "LG1" for r in param_db.chemical.residues)
+
+
+def test_a_component_of_unbonded_fragments_builds_scores_packs_and_minimizes(
+    torch_device,
+):
+    import biotite.structure as struc
+    import numpy as np
+    import torch
+    from tmol import FoldForest, MoveMap, beta2016_score_function, run_kin_min
+    from tmol.io import pose_stack_from_biotite
+
+    # ethanol and a hydroxide that is not bonded to it, both in residue ZZF
+    names = ["C1", "C2", "O1", "O2", "H1", "H2", "H3", "H4", "H5", "H6", "H7"]
+    array = struc.AtomArray(len(names))
+    array.atom_name = names
+    array.element = [n[0] for n in names]
+    array.coord = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [1.52, 0.0, 0.0],
+            [2.02, 1.34, 0.0],
+            [5.5, 0.0, 0.0],
+            [-0.37, 1.03, 0.0],
+            [-0.37, -0.51, 0.89],
+            [-0.37, -0.51, -0.89],
+            [1.88, -0.51, 0.89],
+            [1.88, -0.51, -0.89],
+            [2.99, 1.33, 0.0],
+            [5.83, 0.93, 0.0],
+        ],
+        dtype=np.float32,
+    )
+    array.res_name[:], array.res_id[:], array.chain_id[:] = "ZZF", 1, "A"
+    array.hetero[:] = True
+    array.set_annotation("charge", np.array([0, 0, 0, -1] + [0] * 7))
+    bonds = [(0, 1), (1, 2), (0, 4), (0, 5), (0, 6), (1, 7), (1, 8), (2, 9), (3, 10)]
+    array.bonds = struc.BondList(
+        len(names), np.array([(a, b, struc.BondType.SINGLE) for a, b in bonds])
+    )
+    pose, context = pose_stack_from_biotite(
+        array,
+        torch_device,
+        prepare_ligands=True,
+        return_context=True,
+        ligand_seed=0,
+    )
+    database = context.parameter_database
+    (residue,) = [r for r in database.chemical.residues if r.name == "ZZF"]
+    assert {a.name for a in residue.atoms} == set(names)
+    assert {a.name for a in residue.atoms} == {i.name for i in residue.icoors}
+    # the tree joins the fragments, but no bond does
+    hydroxide = {"O2", "H7"}
+    assert all((a in hydroxide) == (b in hydroxide) for a, b, *_ in residue.bonds)
+
+    block_type = pose.packed_block_types.active_block_types[
+        int(pose.block_type_ind[0, 0])
+    ]
+    heavy = ["C1", "C2", "O1", "O2"]
+    observed = pose.coords[0, [block_type.atom_to_idx[n] for n in heavy]]
+    np.testing.assert_allclose(observed.cpu(), array.coord[:4], atol=1e-4)
+    _score_and_minimize_ligand(pose, database)
+
+    # the packer's rotamer tree and the torsion-space minimizer reach both
+    #    fragments through the same tree-only edge
+    packed = pose_stack_from_biotite(
+        array, torch_device, param_db=database, no_optH=False
+    )
+    assert torch.isfinite(packed.coords[packed.real_atoms]).all()
+
+    sfxn = beta2016_score_function(pose.device, param_db=database)
+    move_map = MoveMap.from_pose_stack(pose)
+    move_map.move_all_jumps = True
+    move_map.move_all_named_torsions = True
+    minimized = run_kin_min(
+        pose, sfxn, FoldForest.reasonable_fold_forest(pose), move_map
+    )
+    energy = sfxn.render_whole_pose_scoring_module(pose)
+    assert torch.isfinite(minimized.coords[minimized.real_atoms]).all()
+    assert (
+        float(energy(minimized.coords).sum()) <= float(energy(pose.coords).sum()) + 1e-3
+    )
