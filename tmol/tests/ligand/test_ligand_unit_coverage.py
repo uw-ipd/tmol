@@ -475,7 +475,12 @@ class TestDetectHelpers:
         monkeypatch.setattr(
             detect, "nonstandard_residue_info_from_mol2", lambda *_a, **_k: info
         )
-        monkeypatch.setattr(preparation, "prepare_single_ligand", lambda _info: "kept")
+
+        def keep(_info, *, name_source):
+            assert name_source is _info
+            return "kept"
+
+        monkeypatch.setattr(preparation, "prepare_single_ligand", keep)
         monkeypatch.setattr(
             preparation,
             "_prepare_ligand_via_smiles",

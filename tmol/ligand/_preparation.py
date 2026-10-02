@@ -2511,7 +2511,7 @@ def _prepare_mol2(mol2_path, res_name=None, *, ph=7.4, mode="auto", seed=None):
     lig = nonstandard_residue_info_from_file(mol2_path, res_name=res_name)
     try:
         return (
-            prepare_single_ligand(lig)
+            prepare_single_ligand(lig, name_source=lig)
             if mode == "keep" or (mode == "auto" and lig.skip_protonation)
             else _prepare_ligand_via_smiles(lig, ph=ph, seed=seed)
         )

@@ -46,13 +46,16 @@ _FIELDS = [
 ]
 
 
-def _polymer_from_backbone_bonds(array):
+def _polymer_from_backbone_bonds(array, *, declared_pairs=None):
     """Mark as polymer the residues a polymer bond joins to a neighbour in their chain.
 
     A PDB writes a modified residue in a chain as HETATM, as a free ligand (5EMA SEP).
     """
     residue_of = struc.get_all_residue_positions(array)
-    polymer = ~array.hetero[struc.get_residue_starts(array)]
+    starts = struc.get_residue_starts(array, add_exclusive_stop=True)
+    polymer = ~array.hetero[starts[:-1]]
+    anchors = np.flatnonzero(polymer)
+    backbone_links = []
 
     if array.bonds is not None and not polymer.all():
         bonds = array.bonds.as_array()[:, :2]
@@ -68,9 +71,77 @@ def _polymer_from_backbone_bonds(array):
             near, far = ports[str(array.res_name[i])], ports[str(array.res_name[j])]
             joined = (str(array.atom_name[i]), str(array.atom_name[j]))
             if joined in ((near[0], far[1]), (near[1], far[0])):
+                if (
+                    declared_pairs is not None
+                    and frozenset((int(i), int(j))) not in declared_pairs
+                ):
+                    # The loader bonds adjacent records before HETATM residues
+                    # are restored to their sequence positions. Infer later.
+                    array.bonds.remove_bond(int(i), int(j))
+                    continue
                 polymer[residue_of[[i, j]]] = True
+                left, right = residue_of[[i, j]]
+                # CCD ports are (leaving, entering): C -> N for a peptide.
+                if joined == (near[1], far[0]):
+                    left, right = right, left
+                backbone_links.append((left, right))
 
     array.set_annotation("is_polymer", polymer[residue_of])
+    if declared_pairs is not None and backbone_links:
+        return _rejoin_declared_polymer_residues(array, starts, anchors, backbone_links)
+
+    return array
+
+
+def _rejoin_declared_polymer_residues(array, starts, anchors, backbone_links):
+    """Insert linked HETATM residues at their ATOM anchors, preserving their order."""
+    from scipy.sparse import coo_matrix
+    from scipy.sparse.csgraph import connected_components
+
+    graph = coo_matrix(
+        (np.ones(len(backbone_links)), np.array(backbone_links).T),
+        shape=(len(starts) - 1, len(starts) - 1),
+    )
+    component = connected_components(graph, directed=False)[1]
+    owners = {}
+    for label in np.unique(component[np.asarray(backbone_links).ravel()]):
+        anchored = anchors[component[anchors] == label]
+        chains = np.unique(array.chain_id[starts[anchored]])
+        if len(chains) == 1:
+            owners[label] = chains[0]
+    movable = np.isin(component, list(owners))
+    movable[anchors] = False
+    if movable.any():
+        previous, following = {}, {}
+        for left, right in backbone_links:
+            if following.get(left, right) != right or previous.get(right, left) != left:
+                raise ValueError("Multiple partners for a declared polymer attachment")
+            following[left], previous[right] = right, left
+        placed = set()
+
+        def walk(anchor, neighbors):
+            path = []
+            residue = neighbors.get(anchor)
+            while residue is not None and movable[residue] and residue not in placed:
+                placed.add(residue)
+                path.append(residue)
+                array.chain_id[starts[residue] : starts[residue + 1]] = owners[
+                    component[residue]
+                ]
+                residue = neighbors.get(residue)
+            return path
+
+        # Insert only explicitly connected HETATM residues at their anchors.
+        # Author numbering cannot order a chain whose numbers decrease.
+        order = []
+        for residue in np.flatnonzero(~movable):
+            order.extend(reversed(walk(residue, previous)))
+            order.append(residue)
+            order.extend(walk(residue, following))
+        assert len(order) == len(starts) - 1
+        return array[
+            np.concatenate([np.arange(starts[r], starts[r + 1]) for r in order])
+        ]
     return array
 
 
@@ -261,7 +332,7 @@ def _link_bonds(array, lines):
 
 
 def _stated_hetero_bonds(array, lines):
-    """The bond table with only the CONECT bonds, of no stated order, within HETATM residues.
+    """The bond table plus declared CONECT pairs, removing unstated bonds in shared HETATM names.
 
     The loader also bonds a HETATM residue by the CCD entry of its name when an ATOM
     residue shares it (3URI's 65-atom PRO ligand gains 179 bonds).
@@ -270,8 +341,6 @@ def _stated_hetero_bonds(array, lines):
     shared = array.hetero & np.isin(array.res_name, array.res_name[~array.hetero])
     bonds = array.bonds.as_array()
     inside = shared[bonds[:, 0]] & (residue[bonds[:, 0]] == residue[bonds[:, 1]])
-    if not inside.any():
-        return array.bonds
     index = {int(i): n for n, i in enumerate(array.atom_id.tolist())}
     stated = set()
     for line in lines:
@@ -279,10 +348,12 @@ def _stated_hetero_bonds(array, lines):
             ids = [line[k : k + 5] for k in range(6, 31, 5) if line[k : k + 5].strip()]
             at = [index.get(decode_hybrid36(i), -1) for i in ids]
             stated |= {frozenset((at[0], j)) for j in at[1:]}
+    if not inside.any():
+        return array.bonds, stated
     kept = [frozenset((int(i), int(j))) in stated for i, j in bonds[inside, :2]]
     bonds[np.flatnonzero(inside)[kept], 2] = struc.BondType.ANY
     inside[np.flatnonzero(inside)[kept]] = False
-    return struc.BondList(len(array), bonds[~inside])
+    return struc.BondList(len(array), bonds[~inside]), stated
 
 
 def _extends_polymer(array, starts, anchor, residue, step):
@@ -311,7 +382,11 @@ def _read_pdb(path, model):
     if array.coord.ndim == 3:
         array = array[0]
     array = _with_pdb_author_chains(array, io.StringIO(text), model)
-    array.bonds = _stated_hetero_bonds(array, lines).merge(_link_bonds(array, lines))
+    array.bonds, declared_pairs = _stated_hetero_bonds(array, lines)
+    links = _link_bonds(array, lines)
+    array.bonds = array.bonds.merge(links)
+    declared_pairs.update(frozenset((int(i), int(j))) for i, j, _ in links.as_array())
+    array = _polymer_from_backbone_bonds(array, declared_pairs=declared_pairs)
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)
     author = array.auth_asym_id[starts[:-1]]
     for chain in np.unique(author[~array.hetero[starts[:-1]]]):

@@ -18,6 +18,7 @@ from tmol.database import ParameterDatabase
 from tmol.database.chemical import metal_table, site_connections
 from tmol.io._atomworks_reader import renumbered_decreasing_chains
 from tmol.io._input_geometry import rebuild_coincident_hydrogens
+from tmol.io._input_termini import EXPLICIT_TERMINI, with_stated_termini
 from tmol.io._canonical_ordering import _only_coordinates_a_metal
 from tmol.io._protonation import (
     PROTONATION_VARIANT,
@@ -2473,6 +2474,7 @@ def _normalize_input_identifiers(biotite_structure, name3_aliases):
 def _with_input_hydrogens(biotite_structure, ph, co, chemdb, find_metal_coordination):
     """The input with AtomWorks' protonation of residues lacking hydrogens (only
     ``co``'s if given), seeing detected metal bonds and ``chemdb`` backbone links."""
+    biotite_structure = with_stated_termini(biotite_structure, chemdb, co)
     aliases = {a.name3: a.read_as for a in chemdb.name3_aliases}
     names = None
     if co is not None:
@@ -2480,9 +2482,9 @@ def _with_input_hydrogens(biotite_structure, ph, co, chemdb, find_metal_coordina
         names |= {alias for alias, name in aliases.items() if name in names}
     template = _template_array(biotite_structure)
     forms = database_forms(chemdb)
-    if (
-        PROTONATION_VARIANT in template.get_annotation_categories()
-        or not residues_lacking_hydrogens(biotite_structure, names, forms)[1].any()
+    if PROTONATION_VARIANT in template.get_annotation_categories() or (
+        EXPLICIT_TERMINI not in template.get_annotation_categories()
+        and not residues_lacking_hydrogens(biotite_structure, names, forms)[1].any()
     ):
         return biotite_structure
     metal_atom = _metal_atom_names(chemdb=chemdb)
@@ -2680,6 +2682,22 @@ def canonical_form_from_biotite(
         biotite_name_for_atom,
         biotite_structure.element,
     )
+    # The neutral amino patch calls its first H "H1"; CCD inputs call it "H".
+    # Map that supplied coordinate into the selected terminal state's slot.
+    if PROTONATION_VARIANT in biotite_structure.get_annotation_categories():
+        from tmol.database.chemical import NEUTRAL_TERMINUS_VAR_BASE
+
+        neutral = (
+            biotite_structure.get_annotation(PROTONATION_VARIANT)
+            >= NEUTRAL_TERMINUS_VAR_BASE
+        )
+        for atom in numpy.flatnonzero(neutral & (biotite_name_for_atom == "H")):
+            mapping = co.restypes_atom_index_mapping[biotite_res_name_for_atom[atom]]
+            residue = atom_res_inds == atom_res_inds[atom]
+            if "H1" in mapping and not numpy.any(
+                residue & (biotite_name_for_atom == "H1")
+            ):
+                valid_atom_inds[valid_atom_mask.nonzero()[0] == atom] = mapping["H1"]
     covalent_bonds_np, disulfides_np = _covalent_bonds_from_biotite(
         _template_array(biotite_structure),
         co,
@@ -2763,6 +2781,14 @@ def canonical_form_from_biotite(
         .unsqueeze(0)
         .repeat(n_poses, 1)
     )
+    if EXPLICIT_TERMINI in biotite_structure.get_annotation_categories():
+        stated = biotite_structure.get_annotation(EXPLICIT_TERMINI)[
+            biotite.structure.get_residue_starts(biotite_structure)
+        ]
+        same_chain = biotite_chain_id_for_res[:-1] == biotite_chain_id_for_res[1:]
+        closed = same_chain & (((stated[:-1] & 2) != 0) | ((stated[1:] & 1) != 0))
+        not_connected[:-1, 1] |= closed
+        not_connected[1:, 0] |= closed
     # Geometry-based missing density detection: break connections where the
     # upper atom of residue i and lower atom of residue i+1 are too far apart.
     # Skipped for the differentiable atom37 path: topology there is derived from

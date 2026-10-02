@@ -44,3 +44,17 @@ compressed file) and exercises one failure class; each test fails without its fi
 | `glycine_ca_conjugate_5wrh.cif.zst` | A glycine whose CA is conjugated (GLY:conj_CA, no HA3) rebuilds only the alpha hydrogen it has. |
 | `unresolved_frozen_chi_6sm6.cif.zst` | A frozen chi whose defining atoms are unresolved (4HH tail beyond CM) takes its ideal value. |
 | `renumbered_chloride_4eu8.cif.zst` | Renumbering decreasing water author IDs preserves component definitions and charge provenance for the structure’s chloride ions. |
+
+| `localized_oxyacid_1akw.mol2` | PDBbind1AKW FMN | Original MOL2; preserve localized phosphate O.co2 charges through the aromatic reader fallback. |
+
+- `stated_terminus_5lh4.pdb`: original SER130/ALA132 coordinates from PDBbind; a 1.94 Å gap must preserve the supplied neutral H1/H2 terminus. Cropping and source hash are in `provenance.json`.
+
+- `aromatic_charge_{3djf,1tou,4yt6}.{mol2,sdf}`: complete paired prepared ligands from the CoreWeave PDBbind v2020 corpus. The MOL2 files omit formal charges needed for aromatic localization; their prepared partial-charge sums constrain the missing total. Companion SDF graphs independently check the recovered resonance class. No atoms, bonds, coordinates, hydrogens or charges were edited; only trailing whitespace was removed.
+  - `aromatic_charge_3djf.mol2`: original `v2020-other-PL_5/3djf/3djf_prot/3djf_l.mol2`; SHA-256 `05e780d9891ac1e9e9c082cad05c4c761d4a9752b2f132118463d92c44b076ae`.
+  - `aromatic_charge_3djf.sdf`: original `v2020-other-PL_5/3djf/3djf_prot/3djf_l.sdf`; SHA-256 `fc3d77b30ebb380100f68880f553a19c4d300cd39b913cd37451ddb22b5ce1ba`.
+  - `aromatic_charge_1tou.mol2`: original `v2020-other-PL_5/1tou/1tou_prot/1tou_l.mol2`; SHA-256 `93a520982cc048d4191aaf73e923c986329509528c88ee679f2fcb3b455a15c3`.
+  - `aromatic_charge_1tou.sdf`: original `v2020-other-PL_5/1tou/1tou_prot/1tou_l.sdf`; SHA-256 `646939697bda584434c141f3ded2b636a3e18252958032a2ef9dff5c366fcfb5`.
+  - `aromatic_charge_4yt6.mol2`: original `v2020-other-PL_5/4yt6/4yt6_prot/4yt6_l.mol2`; SHA-256 `f2d03b4efb63a3abd4e35040ea679f26952959932dd544e35b1ea39ae861c50c`.
+  - `aromatic_charge_4yt6.sdf`: original `v2020-other-PL_5/4yt6/4yt6_prot/4yt6_l.sdf`; SHA-256 `f36d30d079cce2f925cb208fec9ad4f4b846ebc37b7d25ab780d66bcf731c55c`.
+
+- `backbone_hetero_order_4fut.pdb`: PDBbind 4FUT prepared protein, author chain A residues 11–13 and 17–19. ATOM/HETATM records remain in original file order; CONECT records retain only these atoms. No coordinates, names, charges or retained bond declarations were changed. Original source SHA-256: `f5bab11d54d06a2e4e025fc1c773769f2a491e9f9fbdd2dea65538e913a05d1f`. The two modified lysines are explicitly linked into the protein despite being listed after all ATOM records.
