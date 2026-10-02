@@ -458,6 +458,8 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">BondType</span> <span class="k">as</span> <span class="n">ChemBondType</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">metal_table</span><span class="p">,</span> <span class="n">site_connections</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._atomworks_reader</span><span class="w"> </span><span class="kn">import</span> <span class="n">renumbered_decreasing_chains</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._input_geometry</span><span class="w"> </span><span class="kn">import</span> <span class="n">rebuild_coincident_hydrogens</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._canonical_ordering</span><span class="w"> </span><span class="kn">import</span> <span class="n">_only_coordinates_a_metal</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._protonation</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">PROTONATION_VARIANT</span><span class="p">,</span>
@@ -937,7 +939,6 @@
     <span class="n">strict_ligands</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">ligand_params_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">chem_comp_types</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">use_ccd</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">ligand_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseBuildContext</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Build the structure-independent construction context.</span>
@@ -975,10 +976,6 @@
 <span class="sd">            ``tmol.ligand.chem_comp_types_from_cif``), which says whether a</span>
 <span class="sd">            residue belongs to a polymer where the file does not number it</span>
 <span class="sd">            along a sequence. Only used when prepare_ligands=True.</span>
-<span class="sd">        use_ccd: Whether a residue the input declares no chemistry for may be</span>
-<span class="sd">            completed from the component dictionary by its code. Pass False for</span>
-<span class="sd">            a source that supplies whole molecules under codes of its own, such</span>
-<span class="sd">            as a mol2. Only used when prepare_ligands=True.</span>
 <span class="sd">        ligand_seed: Fixed RNG seed for the conformer each prepared residue</span>
 <span class="sd">            is built from, making preparation reproducible. Only used when</span>
 <span class="sd">            prepare_ligands=True.</span>
@@ -1010,8 +1007,9 @@
         <span class="n">biotite_structure</span> <span class="o">=</span> <span class="n">_with_input_hydrogens</span><span class="p">(</span>
             <span class="n">biotite_structure</span><span class="p">,</span> <span class="n">ligand_ph</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">,</span> <span class="kc">True</span>
         <span class="p">)</span>
-    <span class="n">coordinating_atoms</span> <span class="o">=</span> <span class="n">_metal_bound_atoms</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">)</span>
-    <span class="n">biotite_structure</span> <span class="o">=</span> <span class="n">_without_metal_coordination_bonds</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">)</span>
+    <span class="n">biotite_structure</span><span class="p">,</span> <span class="n">coordinating_atoms</span> <span class="o">=</span> <span class="n">_without_metal_coordination_bonds</span><span class="p">(</span>
+        <span class="n">biotite_structure</span>
+    <span class="p">)</span>
     <span class="k">if</span> <span class="n">prepare_ligands</span><span class="p">:</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand</span><span class="w"> </span><span class="kn">import</span> <span class="n">prepare_ligands</span> <span class="k">as</span> <span class="n">_prepare_ligands</span>
 
@@ -1033,7 +1031,6 @@
             <span class="n">return_fragment_definitions</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">return_cut_partners</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">chem_comp_types</span><span class="o">=</span><span class="n">chem_comp_types</span><span class="p">,</span>
-            <span class="n">use_ccd</span><span class="o">=</span><span class="n">use_ccd</span><span class="p">,</span>
             <span class="n">seed</span><span class="o">=</span><span class="n">ligand_seed</span><span class="p">,</span>
             <span class="n">coordinating_atoms</span><span class="o">=</span><span class="n">coordinating_atoms</span><span class="p">,</span>
         <span class="p">)</span>
@@ -1086,7 +1083,6 @@
     <span class="n">strict_ligands</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">ligand_params_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">chem_comp_types</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">use_ccd</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">ligand_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">return_context</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">context</span><span class="p">:</span> <span class="n">PoseBuildContext</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1126,7 +1122,8 @@
 <span class="sd">        no_optH: Residues the input gives no hydrogens take AtomWorks'</span>
 <span class="sd">            protonation state: database residues then get hydrogens built by</span>
 <span class="sd">            tmol, other residues those AtomWorks places. When True (default),</span>
-<span class="sd">            preserve finite input hydrogen coordinates</span>
+<span class="sd">            preserve finite input hydrogen coordinates, except coincident</span>
+<span class="sd">            hydrogen-parent pairs, which are rebuilt with a warning,</span>
 <span class="sd">            and build only missing hydrogens and heavy-atom sidechains. When</span>
 <span class="sd">            False, residues with complete heavy atoms are packed with OptHSampler</span>
 <span class="sd">            to optimize hydrogen positions and NHQ flips, while residues with</span>
@@ -1148,10 +1145,6 @@
 <span class="sd">            ``_chem_comp`` table, which says whether a residue belongs to a</span>
 <span class="sd">            polymer where the file does not number it along a sequence. Only</span>
 <span class="sd">            used when prepare_ligands=True.</span>
-<span class="sd">        use_ccd: Whether a residue the input declares no chemistry for may be</span>
-<span class="sd">            completed from the component dictionary by its code. Pass False for</span>
-<span class="sd">            a source that supplies whole molecules under codes of its own, such</span>
-<span class="sd">            as a mol2. Only used when prepare_ligands=True.</span>
 <span class="sd">        ligand_seed: Fixed RNG seed for the conformer each prepared residue</span>
 <span class="sd">            is built from, making preparation reproducible. Only used when</span>
 <span class="sd">            prepare_ligands=True.</span>
@@ -1220,7 +1213,6 @@
             <span class="n">strict_ligands</span><span class="o">=</span><span class="n">strict_ligands</span><span class="p">,</span>
             <span class="n">ligand_params_files</span><span class="o">=</span><span class="n">ligand_params_files</span><span class="p">,</span>
             <span class="n">chem_comp_types</span><span class="o">=</span><span class="n">chem_comp_types</span><span class="p">,</span>
-            <span class="n">use_ccd</span><span class="o">=</span><span class="n">use_ccd</span><span class="p">,</span>
             <span class="n">ligand_seed</span><span class="o">=</span><span class="n">ligand_seed</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">if</span> <span class="n">atom37_coords</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1326,6 +1318,10 @@
 <span class="sd">      fragment_mapping: Mapping produced when fragmented ligands were expanded.</span>
 <span class="sd">      return_context: Also return the context used.</span>
 
+<span class="sd">    For ordinary structure inputs, coincident bonded heavy atoms raise before</span>
+<span class="sd">    packing; hydrogens coincident with their parent are rebuilt without changing</span>
+<span class="sd">    protonation. Differentiable ``atom37_coords`` retain their supplied geometry.</span>
+
 <span class="sd">    Returns:</span>
 <span class="sd">      The constructed pose, optionally with atom mappings or the context.</span>
 <span class="sd">    """</span>
@@ -1373,6 +1369,8 @@
     <span class="p">)</span>
 
     <span class="n">pose_stack</span><span class="p">,</span> <span class="n">opt_return_vals</span> <span class="o">=</span> <span class="n">result</span>
+    <span class="k">if</span> <span class="n">atom37_coords</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">rebuild_coincident_hydrogens</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">fragment_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand</span><span class="w"> </span><span class="kn">import</span> <span class="n">apply_fragment_connections</span>
 
@@ -1645,11 +1643,6 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_with_metals_rejoined</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">block_for_atom</span><span class="p">,</span> <span class="n">origins</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Put each split-out metal back in the component it came from."""</span>
     <span class="n">block_for_atom</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">block_for_atom</span><span class="p">)</span>
-    <span class="n">ins</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">structure</span><span class="o">.</span><span class="n">ins_code</span>
-        <span class="k">if</span> <span class="s2">"ins_code"</span> <span class="ow">in</span> <span class="n">structure</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">()</span>
-        <span class="k">else</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">structure</span><span class="o">.</span><span class="n">array_length</span><span class="p">(),</span> <span class="s2">""</span><span class="p">)</span>
-    <span class="p">)</span>
     <span class="n">after</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">numpy</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">([</span><span class="n">o</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">origins</span><span class="p">]):</span>
         <span class="n">res_id</span><span class="p">,</span> <span class="n">ins_code</span><span class="p">,</span> <span class="n">res_name</span><span class="p">,</span> <span class="n">atom_name</span> <span class="o">=</span> <span class="n">origins</span><span class="p">[</span><span class="n">block</span><span class="p">]</span>
@@ -1660,7 +1653,7 @@
         <span class="n">component</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span>
             <span class="p">(</span><span class="n">structure</span><span class="o">.</span><span class="n">chain_id</span> <span class="o">==</span> <span class="n">structure</span><span class="o">.</span><span class="n">chain_id</span><span class="p">[</span><span class="n">metal</span><span class="p">])</span>
             <span class="o">&amp;</span> <span class="p">(</span><span class="n">structure</span><span class="o">.</span><span class="n">res_id</span> <span class="o">==</span> <span class="n">res_id</span><span class="p">)</span>
-            <span class="o">&amp;</span> <span class="p">(</span><span class="n">ins</span> <span class="o">==</span> <span class="n">ins_code</span><span class="p">)</span>
+            <span class="o">&amp;</span> <span class="p">(</span><span class="n">structure</span><span class="o">.</span><span class="n">ins_code</span> <span class="o">==</span> <span class="n">ins_code</span><span class="p">)</span>
             <span class="o">&amp;</span> <span class="p">(</span><span class="n">structure</span><span class="o">.</span><span class="n">res_name</span> <span class="o">==</span> <span class="n">res_name</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">component</span><span class="p">):</span>
@@ -1668,10 +1661,8 @@
         <span class="n">structure</span><span class="o">.</span><span class="n">res_id</span><span class="p">[</span><span class="n">metal</span><span class="p">]</span> <span class="o">=</span> <span class="n">res_id</span>
         <span class="n">structure</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">metal</span><span class="p">]</span> <span class="o">=</span> <span class="n">res_name</span>
         <span class="n">structure</span><span class="o">.</span><span class="n">atom_name</span><span class="p">[</span><span class="n">metal</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_name</span>
-        <span class="k">if</span> <span class="s2">"ins_code"</span> <span class="ow">in</span> <span class="n">structure</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">():</span>
-            <span class="n">structure</span><span class="o">.</span><span class="n">ins_code</span><span class="p">[</span><span class="n">metal</span><span class="p">]</span> <span class="o">=</span> <span class="n">ins_code</span>
-        <span class="k">if</span> <span class="s2">"hetero"</span> <span class="ow">in</span> <span class="n">structure</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">():</span>
-            <span class="n">structure</span><span class="o">.</span><span class="n">hetero</span><span class="p">[</span><span class="n">metal</span><span class="p">]</span> <span class="o">=</span> <span class="n">structure</span><span class="o">.</span><span class="n">hetero</span><span class="p">[</span><span class="n">component</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="n">structure</span><span class="o">.</span><span class="n">ins_code</span><span class="p">[</span><span class="n">metal</span><span class="p">]</span> <span class="o">=</span> <span class="n">ins_code</span>
+        <span class="n">structure</span><span class="o">.</span><span class="n">hetero</span><span class="p">[</span><span class="n">metal</span><span class="p">]</span> <span class="o">=</span> <span class="n">structure</span><span class="o">.</span><span class="n">hetero</span><span class="p">[</span><span class="n">component</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
         <span class="n">after</span><span class="p">[</span><span class="n">metal</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">component</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
         <span class="c1"># within a residue CIF has no coordination order; the split retypes them</span>
         <span class="n">bonds</span> <span class="o">=</span> <span class="n">structure</span><span class="o">.</span><span class="n">bonds</span><span class="o">.</span><span class="n">as_array</span><span class="p">()</span>
@@ -1698,13 +1689,8 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_chemical_bond_orders</span><span class="p">(</span><span class="n">bt</span><span class="p">,</span> <span class="n">element_of</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""One Lewis structure for a block type's bonds, by atom-name pair.</span>
-
-<span class="sd">    io_bond_orders restore the orders a prepared ligand's typing promoted. What</span>
-<span class="sd">    remains of tmol's delocalized convention, AROMATIC outside a ring, is</span>
-<span class="sd">    resolved by rule: at an atom whose delocalized bonds reach terminal</span>
-<span class="sd">    heteroatoms (carboxylate, guanidinium, phosphate), the first by name is</span>
-<span class="sd">    double unless the atom already has one, and every other such bond is single.</span>
+<span class="w">    </span><span class="sd">"""One Lewis structure for a block type's bonds, by atom-name pair: io_bond_orders,</span>
+<span class="sd">    then non-ring AROMATIC: one double to a terminal heteroatom per atom, rest single.</span>
 <span class="sd">    """</span>
     <span class="n">order_of</span><span class="p">,</span> <span class="n">in_ring</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span> <span class="ow">in</span> <span class="n">bt</span><span class="o">.</span><span class="n">bonds</span><span class="p">:</span>
@@ -1749,12 +1735,8 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_bonds_from_pose_stack</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">structure</span><span class="p">,</span> <span class="n">block_for_atom</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""The bond table of an exported structure, from the pose's residue types.</span>
-
-<span class="sd">    Bond orders are one Lewis structure: see _chemical_bond_orders. Every pose of</span>
-<span class="sd">    a stack shares one bond table, so their residue types and connections must</span>
-<span class="sd">    agree. Bonds to atoms the export left out are dropped.</span>
-<span class="sd">    """</span>
+<span class="w">    </span><span class="sd">"""The bond table of an exported structure, from the pose's residue types, which</span>
+<span class="sd">    every pose of the stack must share; bonds to atoms left out are dropped."""</span>
     <span class="n">block_types</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span>
     <span class="n">connections</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections64</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
@@ -1872,40 +1854,25 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_renumbered_for_cif</span><span class="p">(</span><span class="n">structure</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Renumber the chains a biotite CIF round trip cannot carry, with a warning.</span>
+<span class="w">    </span><span class="sd">"""Renumber, with a warning, the chains biotite's CIF round trip cannot carry.</span>
 
-<span class="sd">    biotite writes res_id as both label_seq_id and auth_seq_id, and reads a</span>
-<span class="sd">    label_seq_id of -1 as missing; label-based readers such as atomworks also</span>
-<span class="sd">    reject numbering that decreases within a chain. A chain containing -1 is</span>
-<span class="sd">    shifted to start at 1; a chain whose numbering decreases is renumbered 1..N.</span>
+<span class="sd">    biotite reads a label_seq_id of -1 as missing, and atomworks rejects numbering</span>
+<span class="sd">    that decreases within a chain: the first is shifted to start at 1, the second 1..N.</span>
 <span class="sd">    """</span>
     <span class="n">template</span> <span class="o">=</span> <span class="n">_template_array</span><span class="p">(</span><span class="n">structure</span><span class="p">)</span>
-    <span class="n">res_id</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">res_id</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-    <span class="n">ins_code</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">ins_code</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-    <span class="n">starts</span> <span class="o">=</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_residue_starts</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">add_exclusive_stop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">changed</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">res_id</span><span class="p">,</span> <span class="n">ins_code</span><span class="p">,</span> <span class="n">decreasing</span> <span class="o">=</span> <span class="n">renumbered_decreasing_chains</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
+    <span class="n">reasons</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">decreasing</span><span class="p">,</span> <span class="s2">"numbering that decreases within a chain"</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">chain</span> <span class="ow">in</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">chain_id</span><span class="o">.</span><span class="n">tolist</span><span class="p">()):</span>
         <span class="n">in_chain</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">chain_id</span> <span class="o">==</span> <span class="n">chain</span>
-        <span class="n">ids</span> <span class="o">=</span> <span class="n">res_id</span><span class="p">[</span><span class="n">in_chain</span><span class="p">]</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-            <span class="n">reason</span> <span class="o">=</span> <span class="s2">"numbering that decreases within a chain"</span>
-            <span class="n">number</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="k">for</span> <span class="n">begin</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">starts</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">starts</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
-                <span class="k">if</span> <span class="n">template</span><span class="o">.</span><span class="n">chain_id</span><span class="p">[</span><span class="n">begin</span><span class="p">]</span> <span class="o">==</span> <span class="n">chain</span><span class="p">:</span>
-                    <span class="n">number</span> <span class="o">+=</span> <span class="mi">1</span>
-                    <span class="n">res_id</span><span class="p">[</span><span class="n">begin</span><span class="p">:</span><span class="n">end</span><span class="p">]</span> <span class="o">=</span> <span class="n">number</span>
-            <span class="n">ins_code</span><span class="p">[</span><span class="n">in_chain</span><span class="p">]</span> <span class="o">=</span> <span class="s2">""</span>
-        <span class="k">elif</span> <span class="p">(</span><span class="n">ids</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-            <span class="n">reason</span> <span class="o">=</span> <span class="s2">"a residue id of -1"</span>
-            <span class="n">res_id</span><span class="p">[</span><span class="n">in_chain</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">ids</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">chain</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">reasons</span> <span class="ow">and</span> <span class="p">(</span><span class="n">res_id</span><span class="p">[</span><span class="n">in_chain</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">reasons</span><span class="p">[</span><span class="n">chain</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"a residue id of -1"</span>
+            <span class="n">res_id</span><span class="p">[</span><span class="n">in_chain</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">res_id</span><span class="p">[</span><span class="n">in_chain</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">chain</span><span class="p">,</span> <span class="n">reason</span> <span class="ow">in</span> <span class="n">reasons</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">"Renumbering chain </span><span class="si">{</span><span class="n">chain</span><span class="si">}</span><span class="s2"> of the output AtomArray: biotite's CIF "</span>
             <span class="sa">f</span><span class="s2">"writer does not support </span><span class="si">{</span><span class="n">reason</span><span class="si">}</span><span class="s2">"</span>
         <span class="p">)</span>
-        <span class="n">changed</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">changed</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">reasons</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">structure</span>
     <span class="n">structure</span> <span class="o">=</span> <span class="n">structure</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">structure</span><span class="o">.</span><span class="n">res_id</span> <span class="o">=</span> <span class="n">res_id</span>
@@ -1914,11 +1881,8 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_metal_coordination_bond_mask</span><span class="p">(</span><span class="n">structure</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Which rows of the bond table are metal coordination.</span>
-
-<span class="sd">    These are bonds typed COORDINATION (a CIF's metalc) and bonds from a metal</span>
-<span class="sd">    to another residue, as a PDB's CONECT lists them.</span>
-<span class="sd">    """</span>
+<span class="w">    </span><span class="sd">"""Which bond rows are metal coordination: typed COORDINATION (CIF metalc), or from</span>
+<span class="sd">    a metal to another residue (PDB CONECT)."""</span>
     <span class="n">bonds</span> <span class="o">=</span> <span class="n">structure</span><span class="o">.</span><span class="n">bonds</span><span class="o">.</span><span class="n">as_array</span><span class="p">()</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">bonds</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">bonds</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
@@ -1934,32 +1898,25 @@
     <span class="k">return</span> <span class="n">bonds</span><span class="p">,</span> <span class="n">coordination</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_metal_bound_atoms</span><span class="p">(</span><span class="n">structure</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""{residue name: names of its atoms with a declared metal bond}."""</span>
-    <span class="k">if</span> <span class="n">structure</span><span class="o">.</span><span class="n">bonds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="p">{}</span>
-    <span class="n">bonds</span><span class="p">,</span> <span class="n">coordination</span> <span class="o">=</span> <span class="n">_metal_coordination_bond_mask</span><span class="p">(</span><span class="n">structure</span><span class="p">)</span>
-    <span class="n">template</span> <span class="o">=</span> <span class="n">_template_array</span><span class="p">(</span><span class="n">structure</span><span class="p">)</span>
-    <span class="n">is_metal</span> <span class="o">=</span> <span class="n">_is_metal</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
-    <span class="n">out</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">bonds</span><span class="p">[</span><span class="n">coordination</span><span class="p">,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">():</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_metal</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
-            <span class="n">out</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">i</span><span class="p">])]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">atom_name</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
-    <span class="k">return</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">atoms</span> <span class="ow">in</span> <span class="n">out</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
-
-
 <span class="k">def</span><span class="w"> </span><span class="nf">_without_metal_coordination_bonds</span><span class="p">(</span><span class="n">structure</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Drop metal coordination bonds, which ligand preparation does not read."""</span>
+<span class="w">    </span><span class="sd">"""(structure without its metal coordination bonds, which ligand preparation does</span>
+<span class="sd">    not read, {residue name: its atoms with a declared metal bond})."""</span>
     <span class="k">if</span> <span class="n">structure</span><span class="o">.</span><span class="n">bonds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">structure</span>
+        <span class="k">return</span> <span class="n">structure</span><span class="p">,</span> <span class="p">{}</span>
     <span class="n">bonds</span><span class="p">,</span> <span class="n">coordination</span> <span class="o">=</span> <span class="n">_metal_coordination_bond_mask</span><span class="p">(</span><span class="n">structure</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">coordination</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-        <span class="k">return</span> <span class="n">structure</span>
+        <span class="k">return</span> <span class="n">structure</span><span class="p">,</span> <span class="p">{}</span>
+    <span class="n">template</span> <span class="o">=</span> <span class="n">_template_array</span><span class="p">(</span><span class="n">structure</span><span class="p">)</span>
+    <span class="n">is_metal</span> <span class="o">=</span> <span class="n">_is_metal</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
+    <span class="n">bound</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">bonds</span><span class="p">[</span><span class="n">coordination</span><span class="p">,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">():</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_metal</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+            <span class="n">bound</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">i</span><span class="p">])]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">atom_name</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
     <span class="n">structure</span> <span class="o">=</span> <span class="n">structure</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">structure</span><span class="o">.</span><span class="n">bonds</span> <span class="o">=</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">BondList</span><span class="p">(</span>
-        <span class="n">_template_array</span><span class="p">(</span><span class="n">structure</span><span class="p">)</span><span class="o">.</span><span class="n">array_length</span><span class="p">(),</span> <span class="n">bonds</span><span class="p">[</span><span class="o">~</span><span class="n">coordination</span><span class="p">]</span>
+        <span class="n">template</span><span class="o">.</span><span class="n">array_length</span><span class="p">(),</span> <span class="n">bonds</span><span class="p">[</span><span class="o">~</span><span class="n">coordination</span><span class="p">]</span>
     <span class="p">)</span>
-    <span class="k">return</span> <span class="n">structure</span>
+    <span class="k">return</span> <span class="n">structure</span><span class="p">,</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">atoms</span> <span class="ow">in</span> <span class="n">bound</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_metal_atom_names</span><span class="p">(</span><span class="n">chemdb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">co</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -1980,17 +1937,16 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_chelated_metals</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">metal_atom</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Metal atoms to move out of their components, with the ion each becomes.</span>
-
-<span class="sd">    A metal leaves its component when it is a supported ion, bonds only to N, O</span>
-<span class="sd">    or S of that component, and what remains is one carbon-containing molecule:</span>
-<span class="sd">    a tetrapyrrole's iron or magnesium, not an inorganic cluster. One with no</span>
-<span class="sd">    coordinates stays: it was not observed, so it is no ion.</span>
+<span class="w">    </span><span class="sd">"""{atom: (ion, atom name)} for resolved supported metals bonded only to N/O/S of a</span>
+<span class="sd">    component that stays one organic molecule without them (a heme's Fe, not a cluster).</span>
 <span class="sd">    """</span>
     <span class="n">ion_for_element</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">ion</span> <span class="ow">in</span> <span class="n">metal_table</span><span class="p">()[</span><span class="s2">"ions"</span><span class="p">]:</span>
-        <span class="n">ion_for_element</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">ion</span><span class="p">[</span><span class="s2">"element"</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span> <span class="n">ion</span><span class="p">[</span><span class="s2">"name3"</span><span class="p">])</span>
+        <span class="n">element</span> <span class="o">=</span> <span class="n">ion</span><span class="p">[</span><span class="s2">"element"</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="n">ion_for_element</span><span class="o">.</span><span class="n">setdefault</span><span class="p">((</span><span class="n">element</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">ion</span><span class="p">[</span><span class="s2">"name3"</span><span class="p">])</span>
+        <span class="n">ion_for_element</span><span class="p">[</span><span class="n">element</span><span class="p">,</span> <span class="n">ion</span><span class="p">[</span><span class="s2">"oxidation_state"</span><span class="p">]]</span> <span class="o">=</span> <span class="n">ion</span><span class="p">[</span><span class="s2">"name3"</span><span class="p">]</span>
     <span class="n">elements</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">upper</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">element</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">))</span>
+    <span class="n">charge</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="s2">"charge"</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">template</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">))</span>
     <span class="n">starts</span> <span class="o">=</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_residue_starts</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">add_exclusive_stop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">bonds</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">bonds</span>
     <span class="n">moved</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1998,7 +1954,7 @@
         <span class="k">if</span> <span class="n">stop</span> <span class="o">-</span> <span class="n">start</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
             <span class="k">continue</span>
         <span class="n">members</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">))</span>
-        <span class="n">metals</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">members</span> <span class="k">if</span> <span class="n">elements</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">in</span> <span class="n">ion_for_element</span><span class="p">]</span>
+        <span class="n">metals</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">members</span> <span class="k">if</span> <span class="p">(</span><span class="n">elements</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">in</span> <span class="n">ion_for_element</span><span class="p">]</span>
         <span class="n">rest</span> <span class="o">=</span> <span class="n">members</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">metals</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">metals</span> <span class="ow">or</span> <span class="s2">"C"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">elements</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">rest</span><span class="p">)]:</span>
             <span class="k">continue</span>
@@ -2021,7 +1977,7 @@
         <span class="k">if</span> <span class="n">seen</span> <span class="o">!=</span> <span class="n">rest</span><span class="p">:</span>
             <span class="k">continue</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">metals</span><span class="p">:</span>
-            <span class="n">name3</span> <span class="o">=</span> <span class="n">ion_for_element</span><span class="p">[</span><span class="n">elements</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+            <span class="n">name3</span> <span class="o">=</span> <span class="n">ion_for_element</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">elements</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">charge</span><span class="p">[</span><span class="n">i</span><span class="p">])))</span>
             <span class="k">if</span> <span class="n">name3</span> <span class="ow">in</span> <span class="n">metal_atom</span> <span class="ow">and</span> <span class="n">numpy</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">coord</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
                 <span class="n">moved</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">name3</span><span class="p">,</span> <span class="n">metal_atom</span><span class="p">[</span><span class="n">name3</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">moved</span>
@@ -2065,13 +2021,8 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_with_peptide_tautomers</span><span class="p">(</span><span class="n">structure</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Rewrite an iminol or iminothiol peptide link as the amide it stands for.</span>
-
-<span class="sd">    Where a link between residues is drawn C=N and the carbon also carries a</span>
-<span class="sd">    singly bonded, uncharged terminal X (X = O, S), as a thioamide read with its</span>
-<span class="sd">    leaving oxygen gone comes out, the double bond moves to X and any hydrogen</span>
-<span class="sd">    on X is dropped.</span>
-<span class="sd">    """</span>
+<span class="w">    </span><span class="sd">"""Rewrite an inter-residue C=N link whose C carries a single-bonded, uncharged</span>
+<span class="sd">    terminal O/S as the amide (C=X, hydrogens on X dropped), as 1MRO's GL3 reads."""</span>
     <span class="n">template</span> <span class="o">=</span> <span class="n">_template_array</span><span class="p">(</span><span class="n">structure</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">template</span><span class="o">.</span><span class="n">bonds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">structure</span>
@@ -2129,12 +2080,8 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_with_chelated_metals_split</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">metal_atom</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Move each chelated metal into an ion residue of its own.</span>
-
-<span class="sd">    Its bonds to the component become metal coordination, so the component is</span>
-<span class="sd">    prepared as an organic molecule and the metal is an ordinary ion. Where it</span>
-<span class="sd">    sat is kept in the METAL_ORIGIN annotation, for export to put it back.</span>
-<span class="sd">    """</span>
+<span class="w">    </span><span class="sd">"""Move each chelated metal into an ion residue of its own, bonded by coordination;</span>
+<span class="sd">    METAL_ORIGIN keeps where it sat, for export to put it back."""</span>
     <span class="n">template</span> <span class="o">=</span> <span class="n">_template_array</span><span class="p">(</span><span class="n">structure</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">template</span><span class="o">.</span><span class="n">bonds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">structure</span>
@@ -2157,18 +2104,14 @@
     <span class="n">origin</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">array_length</span><span class="p">(),</span> <span class="s2">""</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">METAL_ORIGIN</span> <span class="ow">in</span> <span class="n">structure</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">():</span>
         <span class="n">origin</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">structure</span><span class="o">.</span><span class="n">get_annotation</span><span class="p">(</span><span class="n">METAL_ORIGIN</span><span class="p">)</span>
-    <span class="n">ins</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">structure</span><span class="o">.</span><span class="n">ins_code</span>
-        <span class="k">if</span> <span class="s2">"ins_code"</span> <span class="ow">in</span> <span class="n">structure</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">()</span>
-        <span class="k">else</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">array_length</span><span class="p">(),</span> <span class="s2">""</span><span class="p">)</span>
-    <span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">name3</span><span class="p">,</span> <span class="n">atom_name</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">moved</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
         <span class="n">origin</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\t</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="p">(</span>
-                <span class="nb">str</span><span class="p">(</span><span class="n">structure</span><span class="o">.</span><span class="n">res_id</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
-                <span class="nb">str</span><span class="p">(</span><span class="n">ins</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
-                <span class="nb">str</span><span class="p">(</span><span class="n">structure</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
-                <span class="nb">str</span><span class="p">(</span><span class="n">structure</span><span class="o">.</span><span class="n">atom_name</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="p">(</span>
+                <span class="n">structure</span><span class="o">.</span><span class="n">res_id</span><span class="p">,</span>
+                <span class="n">structure</span><span class="o">.</span><span class="n">ins_code</span><span class="p">,</span>
+                <span class="n">structure</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span>
+                <span class="n">structure</span><span class="o">.</span><span class="n">atom_name</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="p">)</span>
         <span class="n">chain</span> <span class="o">=</span> <span class="n">structure</span><span class="o">.</span><span class="n">chain_id</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
@@ -2176,8 +2119,7 @@
         <span class="n">structure</span><span class="o">.</span><span class="n">atom_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_name</span>
         <span class="n">structure</span><span class="o">.</span><span class="n">res_id</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">next_id</span><span class="p">[</span><span class="n">chain</span><span class="p">]</span>
         <span class="n">next_id</span><span class="p">[</span><span class="n">chain</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="k">if</span> <span class="s2">"hetero"</span> <span class="ow">in</span> <span class="n">structure</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">():</span>
-            <span class="n">structure</span><span class="o">.</span><span class="n">hetero</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">structure</span><span class="o">.</span><span class="n">hetero</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">structure</span><span class="o">.</span><span class="n">bonds</span> <span class="o">=</span> <span class="n">bond_list</span>
     <span class="n">structure</span><span class="o">.</span><span class="n">set_annotation</span><span class="p">(</span><span class="n">METAL_ORIGIN</span><span class="p">,</span> <span class="n">origin</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">))</span>
     <span class="c1"># each ion follows the component it came from, so residues stay contiguous</span>
@@ -2211,11 +2153,8 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_without_chelated_metals</span><span class="p">(</span><span class="n">registry</span><span class="p">,</span> <span class="n">components</span><span class="p">,</span> <span class="n">elements</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Component templates as their split residues are: no metal, no metal stereo.</span>
-
-<span class="sd">    An atom a metal made a stereocenter, such as a heme pyrrole nitrogen, is</span>
-<span class="sd">    planar once the metal is gone, so its declared configuration is dropped.</span>
-<span class="sd">    """</span>
+<span class="w">    </span><span class="sd">"""Component templates as their split residues are: no metal, and no declared</span>
+<span class="sd">    stereo on its partners (a heme pyrrole N is planar without it)."""</span>
     <span class="n">out</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">registry</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">components</span><span class="p">:</span>
         <span class="n">template</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
@@ -2262,9 +2201,6 @@
     <span class="k">if</span> <span class="n">array</span><span class="o">.</span><span class="n">bonds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
     <span class="n">bonds</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">bonds</span><span class="o">.</span><span class="n">as_array</span><span class="p">()</span>
-    <span class="c1"># Almost every bond in a structure is an ordinary one, and a structure with no</span>
-    <span class="c1"># metal has none of these at all; finding that out should not cost a pass over</span>
-    <span class="c1"># the whole table in Python.</span>
     <span class="n">declared</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">COORDINATION</span><span class="p">]</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">declared</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
@@ -3028,14 +2964,8 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_with_input_hydrogens</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">ph</span><span class="p">,</span> <span class="n">co</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">,</span> <span class="n">find_metal_coordination</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""The input with AtomWorks' protonation of the residues tmol reads that lack hydrogens.</span>
-
-<span class="sd">    With ``co`` only its residues are read; without it every residue is, as</span>
-<span class="sd">    when ligands are being prepared. An input already protonated here is</span>
-<span class="sd">    returned as it is. AtomWorks sees the metal bonds detection would add as</span>
-<span class="sd">    coordination, and consecutive residues of a chain bonded through the up</span>
-<span class="sd">    and down connections of their ``chemdb`` types.</span>
-<span class="sd">    """</span>
+<span class="w">    </span><span class="sd">"""The input with AtomWorks' protonation of residues lacking hydrogens (only</span>
+<span class="sd">    ``co``'s if given), seeing detected metal bonds and ``chemdb`` backbone links."""</span>
     <span class="n">aliases</span> <span class="o">=</span> <span class="p">{</span><span class="n">a</span><span class="o">.</span><span class="n">name3</span><span class="p">:</span> <span class="n">a</span><span class="o">.</span><span class="n">read_as</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">name3_aliases</span><span class="p">}</span>
     <span class="n">names</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">co</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -3068,7 +2998,7 @@
     <span class="k">return</span> <span class="n">with_atomworks_hydrogens</span><span class="p">(</span>
         <span class="n">biotite_structure</span><span class="p">,</span>
         <span class="n">ph</span><span class="o">=</span><span class="n">ph</span><span class="p">,</span>
-        <span class="n">residue_names</span><span class="o">=</span><span class="kc">None</span> <span class="k">if</span> <span class="n">co</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">set</span><span class="p">(</span><span class="n">co</span><span class="o">.</span><span class="n">restype_io_equiv_classes</span><span class="p">),</span>
+        <span class="n">residue_names</span><span class="o">=</span><span class="n">names</span><span class="p">,</span>
         <span class="n">coordination</span><span class="o">=</span><span class="n">coordination</span><span class="p">,</span>
         <span class="n">backbone</span><span class="o">=</span><span class="n">backbone</span><span class="p">,</span>
         <span class="n">forms</span><span class="o">=</span><span class="n">database_forms</span><span class="p">(</span><span class="n">chemdb</span><span class="p">),</span>
@@ -3109,11 +3039,7 @@
         <span class="n">find_additional</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">required_donors</span><span class="o">=</span><span class="n">required</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">ins</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">template</span><span class="o">.</span><span class="n">ins_code</span>
-        <span class="k">if</span> <span class="s2">"ins_code"</span> <span class="ow">in</span> <span class="n">template</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">()</span>
-        <span class="k">else</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">template</span><span class="p">),</span> <span class="s2">""</span><span class="p">)</span>
-    <span class="p">)</span>
+    <span class="n">ins</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">ins_code</span>
     <span class="n">index</span> <span class="o">=</span> <span class="p">{</span>
         <span class="n">key</span><span class="p">:</span> <span class="n">i</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
@@ -3426,9 +3352,7 @@
 
     <span class="n">restype_set</span> <span class="o">=</span> <span class="n">_restype_set_for_biotite</span><span class="p">()</span>
 
-    <span class="c1"># A twelve-site cluster makes every pose packed beside it as wide as itself --</span>
-    <span class="c1"># the bond-separation table by the square of that, the cartbonded dispatch by</span>
-    <span class="c1"># it directly -- so a structure with no metal in it is not packed with them.</span>
+    <span class="c1"># metal-only types widen every pose packed with them; see default_packed_block_types</span>
     <span class="n">active</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">rt</span> <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">restype_set</span><span class="o">.</span><span class="n">residue_types</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">_only_coordinates_a_metal</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span>
     <span class="p">]</span>
@@ -3443,12 +3367,8 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">packed_block_types_for_biotite_with_metals</span><span class="p">(</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PackedBlockTypes</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""The Biotite packed block types, plus the ions and clusters.</span>
-
-<span class="sd">    A metal the structure carries needs its block type here whether or not</span>
-<span class="sd">    anything coordinates it: a coordinated one arrives with the donor patches, an</span>
-<span class="sd">    uncoordinated one has nothing to bring it.</span>
-<span class="sd">    """</span>
+<span class="w">    </span><span class="sd">"""The Biotite packed block types, plus the ions and clusters a structure's</span>
+<span class="sd">    metals need whether or not anything coordinates them."""</span>
     <span class="n">restype_set</span> <span class="o">=</span> <span class="n">_restype_set_for_biotite</span><span class="p">()</span>
 
     <span class="k">return</span> <span class="n">PackedBlockTypes</span><span class="o">.</span><span class="n">from_restype_list</span><span class="p">(</span>

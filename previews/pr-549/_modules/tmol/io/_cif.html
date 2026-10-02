@@ -494,11 +494,11 @@
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">component_chemistry_from_block</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">use_ccd</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Read authored chemistry, optionally supplementing missing annotations."""</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">component_chemistry_from_block</span><span class="p">(</span><span class="n">block</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Read authored chemistry, supplementing name-compatible CCD components."""</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.ccd</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_ccd_entries_from_cif_block</span>
 
-    <span class="n">entries</span> <span class="o">=</span> <span class="n">build_ccd_entries_from_cif_block</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">use_ccd</span><span class="o">=</span><span class="n">use_ccd</span><span class="p">)</span>
+    <span class="n">entries</span> <span class="o">=</span> <span class="n">build_ccd_entries_from_cif_block</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">on_mismatch</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">_completion_templates</span><span class="p">(</span><span class="n">entries</span><span class="p">)</span>
 
 
@@ -530,17 +530,6 @@
             <span class="p">],</span>
             <span class="n">dtype</span><span class="o">=</span><span class="s2">"U4"</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">bonds</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">bonds</span><span class="o">.</span><span class="n">as_array</span><span class="p">()</span>
-        <span class="n">aromatic</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span>
-            <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span>
-            <span class="p">[</span>
-                <span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">AROMATIC_SINGLE</span><span class="p">,</span>
-                <span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">AROMATIC_DOUBLE</span><span class="p">,</span>
-                <span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">AROMATIC_TRIPLE</span><span class="p">,</span>
-            <span class="p">],</span>
-        <span class="p">)</span>
-        <span class="n">bonds</span><span class="p">[</span><span class="n">aromatic</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">AROMATIC</span>
-        <span class="n">array</span><span class="o">.</span><span class="n">bonds</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">BondList</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">array</span><span class="p">),</span> <span class="n">bonds</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">entries</span>
 
 
@@ -571,14 +560,12 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">model</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">assembly_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">use_ccd</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Read a PDB, CIF, compressed CIF or binary CIF into an AtomArray.</span>
 
 <span class="sd">    Preserve supplied names, coordinates, hydrogens and covalent connections.</span>
-<span class="sd">    Declared unresolved heavy atoms have NaN coordinates. ``use_ccd`` controls</span>
-<span class="sd">    whether missing chemistry may be supplemented from the component dictionary;</span>
-<span class="sd">    False never consults it, including for PDB input and custom residue codes.</span>
+<span class="sd">    Declared unresolved heavy atoms have NaN coordinates. Chemistry the file</span>
+<span class="sd">    leaves out is supplemented from the component dictionary.</span>
 
 <span class="sd">    Missing chemical metadata is allowed here. Pose construction uses existing</span>
 <span class="sd">    parameters for known residues and requires additional chemistry only when</span>
@@ -591,9 +578,7 @@
         <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">assembly_id</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">assembly_id</span>
     <span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"assembly_id must be a nonempty string or None"</span><span class="p">)</span>
-    <span class="n">array</span><span class="p">,</span> <span class="n">block</span> <span class="o">=</span> <span class="n">read_structure</span><span class="p">(</span>
-        <span class="n">cif_path</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">assembly_id</span><span class="o">=</span><span class="n">assembly_id</span><span class="p">,</span> <span class="n">use_ccd</span><span class="o">=</span><span class="n">use_ccd</span>
-    <span class="p">)</span>
+    <span class="n">array</span><span class="p">,</span> <span class="n">block</span> <span class="o">=</span> <span class="n">read_structure</span><span class="p">(</span><span class="n">cif_path</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">assembly_id</span><span class="o">=</span><span class="n">assembly_id</span><span class="p">)</span>
     <span class="n">array</span> <span class="o">=</span> <span class="n">_with_polymer_entity_flag</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">block</span><span class="p">)</span>
     <span class="n">array</span> <span class="o">=</span> <span class="n">_with_component_type_annotation</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">block</span><span class="p">)</span>
     <span class="n">templates</span> <span class="o">=</span> <span class="n">_completion_templates</span><span class="p">(</span>
@@ -604,10 +589,10 @@
         <span class="n">custom_ccd_residues</span><span class="p">,</span>
         <span class="n">get_available_ccd_codes</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.leaving_atoms</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_leaving_atoms</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.link_chemistry</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_leaving_atoms</span>
 
     <span class="n">authored_charges</span> <span class="o">=</span> <span class="n">_component_formal_charges</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
-    <span class="n">available_ccds</span> <span class="o">=</span> <span class="n">get_available_ccd_codes</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span> <span class="k">if</span> <span class="n">use_ccd</span> <span class="k">else</span> <span class="p">()</span>
+    <span class="n">available_ccds</span> <span class="o">=</span> <span class="n">get_available_ccd_codes</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
     <span class="n">authoritative_charges</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">authored_charges</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">template</span> <span class="ow">in</span> <span class="n">templates</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
         <span class="n">charge_specified</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
@@ -651,14 +636,13 @@
             <span class="n">array</span><span class="o">.</span><span class="n">res_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">_custom_ccd_registry</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">missing</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">use_ccd</span><span class="p">:</span>
-                <span class="n">supplement</span> <span class="o">=</span> <span class="n">add_annotations_from_ccd</span><span class="p">(</span>
-                    <span class="n">array</span><span class="p">[</span><span class="n">missing</span><span class="p">],</span>
-                    <span class="n">annotations</span><span class="o">=</span><span class="p">[</span><span class="s2">"charge"</span><span class="p">],</span>
-                    <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                    <span class="n">ccd_mirror_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                <span class="p">)</span>
-                <span class="n">array</span><span class="o">.</span><span class="n">charge</span><span class="p">[</span><span class="n">missing</span><span class="p">]</span> <span class="o">=</span> <span class="n">supplement</span><span class="o">.</span><span class="n">charge</span>
+            <span class="n">supplement</span> <span class="o">=</span> <span class="n">add_annotations_from_ccd</span><span class="p">(</span>
+                <span class="n">array</span><span class="p">[</span><span class="n">missing</span><span class="p">],</span>
+                <span class="n">annotations</span><span class="o">=</span><span class="p">[</span><span class="s2">"charge"</span><span class="p">],</span>
+                <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">ccd_mirror_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">array</span><span class="o">.</span><span class="n">charge</span><span class="p">[</span><span class="n">missing</span><span class="p">]</span> <span class="o">=</span> <span class="n">supplement</span><span class="o">.</span><span class="n">charge</span>
             <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">missing</span><span class="p">):</span>
                 <span class="n">key</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="nb">str</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">index</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span>
@@ -672,8 +656,8 @@
         <span class="n">array</span><span class="o">.</span><span class="n">set_annotation</span><span class="p">(</span><span class="n">_FORMAL_CHARGE_SPECIFIED</span><span class="p">,</span> <span class="n">charge_specified</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="s2">"pdbx_formal_charge"</span><span class="p">):</span>
             <span class="n">array</span><span class="o">.</span><span class="n">del_annotation</span><span class="p">(</span><span class="s2">"pdbx_formal_charge"</span><span class="p">)</span>
-        <span class="n">array</span> <span class="o">=</span> <span class="n">with_unresolved_atoms</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">templates</span><span class="p">,</span> <span class="n">use_ccd</span><span class="o">=</span><span class="n">use_ccd</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">resolve_leaving_atoms</span><span class="p">(</span><span class="n">array</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">use_ccd</span> <span class="k">else</span> <span class="n">array</span></div>
+        <span class="n">array</span> <span class="o">=</span> <span class="n">with_unresolved_atoms</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">templates</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">resolve_leaving_atoms</span><span class="p">(</span><span class="n">array</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
 
 
 
@@ -756,7 +740,7 @@
     <span class="k">return</span> <span class="n">atom_array</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">with_unresolved_atoms</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">declared</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">use_ccd</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">with_unresolved_atoms</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">declared</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""``atom_array`` plus the declared atoms it does not resolve, at NaN.</span>
 
 <span class="sd">    Declared leaving groups and unobserved carbonyl/phosphoryl substitution branches are</span>
@@ -777,7 +761,7 @@
     <span class="n">finite</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">coord</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">ri</span><span class="p">,</span> <span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">starts</span><span class="p">,</span> <span class="n">boundaries</span><span class="p">[</span><span class="mi">1</span><span class="p">:])):</span>
         <span class="n">res_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">start</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">res_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">templates</span> <span class="ow">and</span> <span class="n">use_ccd</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">res_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">templates</span><span class="p">:</span>
             <span class="n">templates</span><span class="p">[</span><span class="n">res_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_component_dictionary_template</span><span class="p">(</span><span class="n">res_name</span><span class="p">)</span>
         <span class="n">template</span> <span class="o">=</span> <span class="n">templates</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">res_name</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">template</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -806,11 +790,8 @@
     <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">residue</span><span class="p">,</span> <span class="n">template</span><span class="p">,</span> <span class="n">linked</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">,</span> <span class="n">chemistry</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">warned</span><span class="p">:</span> <span class="nb">set</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Sorted heavy template atoms ``residue`` lacks; ``None`` if taken as resolved.</span>
-
-<span class="sd">    ``chemistry`` caches each component's heavy atoms and leaving groups, and</span>
-<span class="sd">    ``warned`` holds the components already reported as unaccounted for.</span>
-<span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.leaving_atoms</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_leaving_atom_groups</span>
+<span class="sd">    ``chemistry`` caches heavy atoms and leaving groups; ``warned``, reported names."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.link_chemistry</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_leaving_atom_groups</span>
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._input_repair</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_absent_substitution_leaving_groups</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._polymer_profile</span><span class="w"> </span><span class="kn">import</span> <span class="n">completed_connection_atoms</span>
@@ -965,7 +946,6 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">model</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">assembly_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">use_ccd</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">residue_start</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">residue_end</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
@@ -979,22 +959,12 @@
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._pose_stack_from_biotite</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_biotite</span>
 
-    <span class="n">array</span> <span class="o">=</span> <span class="n">atom_array_from_cif</span><span class="p">(</span>
-        <span class="n">cif_path</span><span class="p">,</span>
-        <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
-        <span class="n">assembly_id</span><span class="o">=</span><span class="n">assembly_id</span><span class="p">,</span>
-        <span class="n">use_ccd</span><span class="o">=</span><span class="n">use_ccd</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">atom_array_from_cif</span><span class="p">(</span><span class="n">cif_path</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">assembly_id</span><span class="o">=</span><span class="n">assembly_id</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">residue_start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">residue_end</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">boundaries</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">get_residue_starts</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">add_exclusive_stop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">residue_start</span><span class="p">,</span> <span class="n">residue_end</span><span class="p">)</span><span class="o">.</span><span class="n">indices</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">boundaries</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
         <span class="n">array</span> <span class="o">=</span> <span class="n">array</span><span class="p">[</span><span class="n">boundaries</span><span class="p">[</span><span class="n">start</span><span class="p">]</span> <span class="p">:</span> <span class="n">boundaries</span><span class="p">[</span><span class="n">stop</span><span class="p">]]</span>
-    <span class="k">return</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span>
-        <span class="n">array</span><span class="p">,</span>
-        <span class="n">device</span><span class="p">,</span>
-        <span class="n">use_ccd</span><span class="o">=</span><span class="n">use_ccd</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-    <span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
 

@@ -650,11 +650,8 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_declared_connections</span><span class="p">(</span><span class="n">co</span><span class="p">:</span> <span class="n">CanonicalOrdering</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Metal sites, filled metal sites and conjugation bonds, in canonical terms.</span>
-
-<span class="sd">    Each is None when the stack has none. Ligand-fragment connections are</span>
-<span class="sd">    left to the fragment mapping that restores them.</span>
-<span class="sd">    """</span>
+<span class="w">    </span><span class="sd">"""Metal sites, filled metal sites and conjugation bonds in canonical terms (None if</span>
+<span class="sd">    none); ligand-fragment connections are left to the fragment mapping."""</span>
     <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
     <span class="n">bt_inds</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
     <span class="n">irc</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections64</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
