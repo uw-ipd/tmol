@@ -1197,7 +1197,8 @@ def test_full_9ewf_conjugate_survives_export_and_minimization(torch_device, tmp_
     "fixture,components",
     [
         ("sulfur_attachments_3t14", {"H2S", "S2H"}),
-        ("phosphate_attachment_8ch1", {"VDF"}),
+        # VDF is 8CH1's altloc B ligand; the reader keeps altloc A (LAO)
+        ("vdf_attachment_8ch1_b", {"VDF"}),
     ],
 )
 def test_small_attachment_frames_and_minimization(fixture, components, torch_device):

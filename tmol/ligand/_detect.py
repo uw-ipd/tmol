@@ -97,6 +97,22 @@ class NonStandardResidueInfo:
     connection_partners: Optional[dict] = attr.ib(default=None, eq=False, hash=False)
 
 
+def _missing_declared_atoms(residue):
+    """Refuse a truncated free component, such as 184L I4B without its ring C1."""
+    template = getattr(residue, "_custom_ccd_registry", {}).get(
+        str(residue.res_name[0])
+    )
+    if template is None:
+        return None
+    required = ~np.isin(template.element, ("H", "D", "T"))
+    if "is_leaving_atom" in template.get_annotation_categories():
+        required &= ~template.is_leaving_atom
+    missing = set(template.atom_name[required]) - set(residue.atom_name)
+    if missing:
+        return f"{residue.res_name[0]}: missing declared heavy atoms: {', '.join(sorted(missing))}"
+    return None
+
+
 def _formal_charge(residue: struc.AtomArray, index: int = 0) -> int:
     """Formal charge of one atom, or zero when the array declares none.
 
@@ -942,8 +958,11 @@ def detect_nonstandard_residues(
                     atom: frozenset(far_side)
                     for atom, far_side in partners_by_name.get(res_name, {}).items()
                 },
-                chemistry_problem=_isolated_atom_charge_problem(
-                    atom_array, sub, covalently_linked=covalently_linked
+                chemistry_problem=(
+                    _isolated_atom_charge_problem(
+                        atom_array, sub, covalently_linked=covalently_linked
+                    )
+                    or (None if covalently_linked else _missing_declared_atoms(sub))
                 ),
             )
         )
