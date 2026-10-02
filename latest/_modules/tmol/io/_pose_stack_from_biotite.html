@@ -460,6 +460,11 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">metal_table</span><span class="p">,</span> <span class="n">site_connections</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._atomworks_reader</span><span class="w"> </span><span class="kn">import</span> <span class="n">renumbered_decreasing_chains</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._input_geometry</span><span class="w"> </span><span class="kn">import</span> <span class="n">rebuild_coincident_hydrogens</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._input_termini</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">EXPLICIT_TERMINI</span><span class="p">,</span>
+    <span class="n">validate_connection_hydrogens</span><span class="p">,</span>
+    <span class="n">with_stated_termini</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._canonical_ordering</span><span class="w"> </span><span class="kn">import</span> <span class="n">_only_coordinates_a_metal</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._protonation</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">PROTONATION_VARIANT</span><span class="p">,</span>
@@ -2936,6 +2941,8 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_with_input_hydrogens</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">ph</span><span class="p">,</span> <span class="n">co</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">,</span> <span class="n">find_metal_coordination</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""The input with AtomWorks' protonation of residues lacking hydrogens (only</span>
 <span class="sd">    ``co``'s if given), seeing detected metal bonds and ``chemdb`` backbone links."""</span>
+    <span class="n">biotite_structure</span> <span class="o">=</span> <span class="n">with_stated_termini</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">,</span> <span class="n">co</span><span class="p">)</span>
+    <span class="n">validate_connection_hydrogens</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">chemdb</span><span class="p">)</span>
     <span class="n">aliases</span> <span class="o">=</span> <span class="p">{</span><span class="n">a</span><span class="o">.</span><span class="n">name3</span><span class="p">:</span> <span class="n">a</span><span class="o">.</span><span class="n">read_as</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">chemdb</span><span class="o">.</span><span class="n">name3_aliases</span><span class="p">}</span>
     <span class="n">names</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">co</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -2943,9 +2950,9 @@
         <span class="n">names</span> <span class="o">|=</span> <span class="p">{</span><span class="n">alias</span> <span class="k">for</span> <span class="n">alias</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">aliases</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">}</span>
     <span class="n">template</span> <span class="o">=</span> <span class="n">_template_array</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">)</span>
     <span class="n">forms</span> <span class="o">=</span> <span class="n">database_forms</span><span class="p">(</span><span class="n">chemdb</span><span class="p">)</span>
-    <span class="k">if</span> <span class="p">(</span>
-        <span class="n">PROTONATION_VARIANT</span> <span class="ow">in</span> <span class="n">template</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">()</span>
-        <span class="ow">or</span> <span class="ow">not</span> <span class="n">residues_lacking_hydrogens</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">forms</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">PROTONATION_VARIANT</span> <span class="ow">in</span> <span class="n">template</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">()</span> <span class="ow">or</span> <span class="p">(</span>
+        <span class="n">EXPLICIT_TERMINI</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">template</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">()</span>
+        <span class="ow">and</span> <span class="ow">not</span> <span class="n">residues_lacking_hydrogens</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">forms</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>
     <span class="p">):</span>
         <span class="k">return</span> <span class="n">biotite_structure</span>
     <span class="n">metal_atom</span> <span class="o">=</span> <span class="n">_metal_atom_names</span><span class="p">(</span><span class="n">chemdb</span><span class="o">=</span><span class="n">chemdb</span><span class="p">)</span>
@@ -3145,6 +3152,22 @@
         <span class="n">biotite_name_for_atom</span><span class="p">,</span>
         <span class="n">biotite_structure</span><span class="o">.</span><span class="n">element</span><span class="p">,</span>
     <span class="p">)</span>
+    <span class="c1"># The neutral amino patch calls its first H "H1"; CCD inputs call it "H".</span>
+    <span class="c1"># Map that supplied coordinate into the selected terminal state's slot.</span>
+    <span class="k">if</span> <span class="n">PROTONATION_VARIANT</span> <span class="ow">in</span> <span class="n">biotite_structure</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">():</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">NEUTRAL_TERMINUS_VAR_BASE</span>
+
+        <span class="n">neutral</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">biotite_structure</span><span class="o">.</span><span class="n">get_annotation</span><span class="p">(</span><span class="n">PROTONATION_VARIANT</span><span class="p">)</span>
+            <span class="o">&gt;=</span> <span class="n">NEUTRAL_TERMINUS_VAR_BASE</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">numpy</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">neutral</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">biotite_name_for_atom</span> <span class="o">==</span> <span class="s2">"H"</span><span class="p">)):</span>
+            <span class="n">mapping</span> <span class="o">=</span> <span class="n">co</span><span class="o">.</span><span class="n">restypes_atom_index_mapping</span><span class="p">[</span><span class="n">biotite_res_name_for_atom</span><span class="p">[</span><span class="n">atom</span><span class="p">]]</span>
+            <span class="n">residue</span> <span class="o">=</span> <span class="n">atom_res_inds</span> <span class="o">==</span> <span class="n">atom_res_inds</span><span class="p">[</span><span class="n">atom</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s2">"H1"</span> <span class="ow">in</span> <span class="n">mapping</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">numpy</span><span class="o">.</span><span class="n">any</span><span class="p">(</span>
+                <span class="n">residue</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">biotite_name_for_atom</span> <span class="o">==</span> <span class="s2">"H1"</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="n">valid_atom_inds</span><span class="p">[</span><span class="n">valid_atom_mask</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">atom</span><span class="p">]</span> <span class="o">=</span> <span class="n">mapping</span><span class="p">[</span><span class="s2">"H1"</span><span class="p">]</span>
     <span class="n">covalent_bonds_np</span><span class="p">,</span> <span class="n">disulfides_np</span> <span class="o">=</span> <span class="n">_covalent_bonds_from_biotite</span><span class="p">(</span>
         <span class="n">_template_array</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">),</span>
         <span class="n">co</span><span class="p">,</span>
@@ -3228,6 +3251,14 @@
         <span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">n_poses</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
     <span class="p">)</span>
+    <span class="k">if</span> <span class="n">EXPLICIT_TERMINI</span> <span class="ow">in</span> <span class="n">biotite_structure</span><span class="o">.</span><span class="n">get_annotation_categories</span><span class="p">():</span>
+        <span class="n">stated</span> <span class="o">=</span> <span class="n">biotite_structure</span><span class="o">.</span><span class="n">get_annotation</span><span class="p">(</span><span class="n">EXPLICIT_TERMINI</span><span class="p">)[</span>
+            <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">get_residue_starts</span><span class="p">(</span><span class="n">biotite_structure</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">same_chain</span> <span class="o">=</span> <span class="n">biotite_chain_id_for_res</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">biotite_chain_id_for_res</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">closed</span> <span class="o">=</span> <span class="n">same_chain</span> <span class="o">&amp;</span> <span class="p">(((</span><span class="n">stated</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&amp;</span> <span class="mi">2</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">|</span> <span class="p">((</span><span class="n">stated</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">&amp;</span> <span class="mi">1</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">not_connected</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">|=</span> <span class="n">closed</span>
+        <span class="n">not_connected</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">|=</span> <span class="n">closed</span>
     <span class="c1"># Geometry-based missing density detection: break connections where the</span>
     <span class="c1"># upper atom of residue i and lower atom of residue i+1 are too far apart.</span>
     <span class="c1"># Skipped for the differentiable atom37 path: topology there is derived from</span>
