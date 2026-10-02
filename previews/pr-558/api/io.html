@@ -1233,8 +1233,13 @@ coordinates; retained so gradients survive hydrogen rebuilding.</p></li>
 <li><p><strong>return_context</strong> – Also return the context used.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The constructed pose, optionally with atom mappings or the context.</p>
+</dl>
+<p>For ordinary structure inputs, coincident bonded heavy atoms raise before
+packing; hydrogens coincident with their parent are rebuilt without changing
+protonation. Differentiable <code class="docutils literal notranslate"><span class="pre">atom37_coords</span></code> retain their supplied geometry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The constructed pose, optionally with atom mappings or the context.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1348,7 +1353,8 @@ broken), even if a bond is declared. Set to 0 to disable. Default 2.4.</p></li>
 <li><p><strong>no_optH</strong> – Residues the input gives no hydrogens take AtomWorks’
 protonation state: database residues then get hydrogens built by
 tmol, other residues those AtomWorks places. When True (default),
-preserve finite input hydrogen coordinates
+preserve finite input hydrogen coordinates, except coincident
+hydrogen-parent pairs, which are rebuilt with a warning,
 and build only missing hydrogens and heavy-atom sidechains. When
 False, residues with complete heavy atoms are packed with OptHSampler
 to optimize hydrogen positions and NHQ flips, while residues with
