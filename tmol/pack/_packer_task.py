@@ -192,18 +192,34 @@ def _mainchain_elements(block_type, element_for_atom_type):
     )
 
 
-def _exchangeable(orig_bt, alt_bt, orig_mc_elements, alt_mc_elements) -> bool:
-    """Whether the default palette may replace ``orig_bt`` by ``alt_bt``, protonation aside."""
+def _backbone_signatures(pbt: PackedBlockTypes):
+    """Mainchain elements and applied terminal chemistry for each block type."""
+    element_for_atom_type = {at.name: at.element for at in pbt.chem_db.atom_types}
+    terminal_patches = {
+        patch.display_name
+        for patch in pbt.chem_db.variants
+        if {"<{down}>", "<{up}>"}.intersection(patch.remove_atoms)
+    }
+    return [
+        (
+            _mainchain_elements(bt, element_for_atom_type),
+            frozenset(bt.name.split(":")[1:]) & terminal_patches,
+        )
+        for bt in pbt.active_block_types
+    ]
+
+
+def _exchangeable(orig_bt, alt_bt, orig_backbone, alt_backbone) -> bool:
+    """Whether block types can exchange, aside from side-chain protonation."""
     return (
         alt_bt.properties.polymer.is_polymer == orig_bt.properties.polymer.is_polymer
         and alt_bt.properties.polymer.polymer_type
         == orig_bt.properties.polymer.polymer_type
         and alt_bt.properties.polymer.backbone_type
         == orig_bt.properties.polymer.backbone_type
-        and alt_bt.connections
-        == orig_bt.connections  # fd  use this instead of terminal variant check
+        and alt_bt.connections == orig_bt.connections
         and alt_bt.conjugation_context == orig_bt.conjugation_context
-        and orig_mc_elements == alt_mc_elements
+        and orig_backbone == alt_backbone
         and set_compare(
             alt_bt.properties.chemical_modifications,
             orig_bt.properties.chemical_modifications,
@@ -216,10 +232,7 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
     # Annotate the PackedBlockTypes object with the block-type to block-type comparisons
     if hasattr(pbt, "default_packer_palette_annotations"):
         return
-    element_for_atom_type = {at.name: at.element for at in pbt.chem_db.atom_types}
-    mc_elements = [
-        _mainchain_elements(bt, element_for_atom_type) for bt in pbt.active_block_types
-    ]
+    backbones = _backbone_signatures(pbt)
     allowed_block_types_for_block_type = [list() for _ in range(pbt.n_types)]
     allowed_block_is_orig = [list() for _ in range(pbt.n_types)]
     restrict_to_repacking_masks = [list() for _ in range(pbt.n_types)]
@@ -240,7 +253,7 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
             polymer.backbone_type,
             bt.properties.protonation.protonation_state,
             len(bt.connections),
-            mc_elements[j],
+            backbones[j],
         )
         groups.setdefault(key, []).append(j)
     group_of = {j: members for members in groups.values() for j in members}
@@ -250,11 +263,7 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
             if i != j and (selected_by_detection[i] or selected_by_detection[j]):
                 continue
             j_allowed_for_restrict_to_repack = alt_bt.name3 == orig_bt.name3
-            if (
-                _exchangeable(orig_bt, alt_bt, mc_elements[i], mc_elements[j])
-                and alt_bt.properties.protonation.protonation_state
-                == orig_bt.properties.protonation.protonation_state
-            ):
+            if _exchangeable(orig_bt, alt_bt, backbones[i], backbones[j]):
                 if (
                     alt_bt.properties.polymer.sidechain_chirality
                     == orig_bt.properties.polymer.sidechain_chirality

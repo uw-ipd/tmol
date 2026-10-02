@@ -25,8 +25,8 @@ from tmol.io._protonation_alternatives import parse_protonation_alternatives
 from tmol.pack._packer_task import (
     PackerTask,
     SetPackerTask,
+    _backbone_signatures,
     _exchangeable,
-    _mainchain_elements,
 )
 from tmol.pack.rotamer import RotamerSet
 from tmol.pose import PoseStack
@@ -81,14 +81,7 @@ def add_protonation_alternatives(task: PackerTask, pose_stack: PoseStack) -> Non
         return
     pbt = pose_stack.packed_block_types
     types = pbt.active_block_types
-    element_for_atom_type = {at.name: at.element for at in pbt.chem_db.atom_types}
-    mc_elements = {}
-
-    def elements(j):
-        if j not in mc_elements:
-            mc_elements[j] = _mainchain_elements(types[j], element_for_atom_type)
-        return mc_elements[j]
-
+    backbones = _backbone_signatures(pbt)
     by_base_name = {}
     for j, bt in enumerate(types):
         by_base_name.setdefault(bt.base_name, []).append(j)
@@ -111,7 +104,7 @@ def add_protonation_alternatives(task: PackerTask, pose_stack: PoseStack) -> Non
             and not types[j].metal_sites
             and types[j].properties.polymer.sidechain_chirality
             == orig_bt.properties.polymer.sidechain_chirality
-            and _exchangeable(orig_bt, types[j], elements(orig), elements(j))
+            and _exchangeable(orig_bt, types[j], backbones[orig], backbones[j])
         ]
         if added:
             extra[(pose, block)] = added

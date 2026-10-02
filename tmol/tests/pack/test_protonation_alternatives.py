@@ -20,6 +20,7 @@ from tmol.pack.rotamer import (
     build_rotamers,
 )
 from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
+from tmol.pose import PoseStackBuilder
 from tmol.score import beta2016_score_function
 from tmol.score import ScoreFunction
 from tmol.relax import accept_best
@@ -167,6 +168,47 @@ def test_charged_histidine_offers_both_neutral_tautomers(torch_device):
     for options in alternatives.values():
         assert options == pytest.approx(expected)
     assert all(choice.charge == 1 for choice in chosen_protonation_variants(pose))
+
+
+def test_sidechain_alternatives_preserve_terminal_protonation(torch_device):
+    """The same open N connection can have two or three H; keep the input state."""
+    structure = atom_array_from_cif(data_path("cif", "3N0I.cif"))
+    structure = structure[
+        (structure.chain_id == "A")
+        & numpy.isin(structure.res_id, [196, 197])
+        & (structure.element != "H")
+    ]
+    neutral, context = pose_stack_from_biotite(
+        structure,
+        torch_device,
+        ligand_ph=CYS_PH,
+        protonation_alternatives=True,
+        return_context=True,
+    )
+    charged = pose_stack_from_biotite(
+        structure,
+        torch_device,
+        ligand_ph=7.0,
+        protonation_alternatives=True,
+        context=context,
+    )
+    # Share a type catalog containing both terminal forms, in both directions.
+    poses = PoseStackBuilder.from_poses([neutral, charged], torch_device)
+    for alternatives in (False, True):
+        task = PackerTask(poses, PackerPalette(protonation_alternatives=alternatives))
+        task.restrict_to_repacking()
+        types = task.pbt.active_block_types
+        for pose, suffix in enumerate(("nterm_neutral", "nterm")):
+            assert types[int(poses.block_type_ind64[pose, 0])].name == f"CYS:{suffix}"
+            allowed = task.per_block_is_block_type_allowed[pose, 0]
+            names = {
+                types[int(j)].name
+                for j in task.per_block_considered_block_types[pose, 0, allowed]
+            }
+            expected = {f"CYS:{suffix}"}
+            if alternatives and pose == 0:
+                expected.add(f"CYS_DEP:{suffix}")
+            assert names == expected
 
 
 def _packer_tables(pose_stack, palette, offsets=True):
