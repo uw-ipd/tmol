@@ -38,7 +38,7 @@ def atom_array_from_mol2(
         A single-residue AtomArray with a populated bond list.
 
     Examples:
-        >>> ligand = atom_array_from_mol2("ligand.mol2", res_name="LIG")
+        >>> ligand = atom_array_from_mol2("ligand.mol2")
         >>> ligand.bonds.get_bond_count() > 0
         True
     """
@@ -50,6 +50,9 @@ def atom_array_from_mol2(
     atom_array.chain_id[:] = chain_id
     atom_array.res_id[:] = res_id
     atom_array.hetero[:] = True
+    # The file's molecule is its own component, whatever its name: PDBbind 3URI names
+    # a 65-atom ligand PRO, whose CCD entry is a peptide-linking amino acid
+    atom_array.set_annotation("chem_comp_type", np.full(len(atom_array), "NON-POLYMER"))
     # a placeholder code can be a real entry ("LG1"): the file, not the name, decides
     atom_array._custom_ccd_registry[str(atom_array.res_name[0]).upper()] = (
         _component_template(atom_array)

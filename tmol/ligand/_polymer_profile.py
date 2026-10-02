@@ -804,17 +804,7 @@ def mainchain_path(atom_array, connection_atoms) -> Optional[Tuple[str, ...]]:
     start, end = _orient_connections(sorted(connection_atoms), double, element)
     if start not in adj or end not in adj:
         return None
-    queue = deque([(start, (start,))])
-    seen = {start}
-    while queue:
-        current, path = queue.popleft()
-        if current == end:
-            return path
-        for neighbour in sorted(adj.get(current, ())):
-            if neighbour not in seen:
-                seen.add(neighbour)
-                queue.append((neighbour, path + (neighbour,)))
-    return None
+    return _shortest_path(adj, start, end)
 
 
 def _orient_connections(ends, double, element):
@@ -2025,7 +2015,9 @@ def complete_backbone_from_reference(atom_array, profile, param_db):
     )
     if donor_type is None:
         return atom_array
-    coords = _ideal_coords_for(donor_type)
+    from tmol.ligand._preparation import _ideal_coords_by_name
+
+    coords = _ideal_coords_by_name(donor_type)
     shared = sorted(present & set(coords))
     if len(shared) < 3 or not wanted <= set(coords):
         return atom_array
@@ -2109,17 +2101,6 @@ def _localized_bonds(residue_type, existing_orders=None):
             seen.add(bond)
             localized.append((bond[0], bond[1], 2 if bond in doubled else 1))
     return localized
-
-
-def _ideal_coords_for(residue_type):
-    """A canonical residue's ideal coordinates, by atom name."""
-    import cattr
-
-    from tmol.chemical._restypes import RefinedResidueType
-
-    refined = cattr.structure(cattr.unstructure(residue_type), RefinedResidueType)
-    xyz = refined.compute_ideal_coords()
-    return {ic.name: numpy.asarray(xyz[i]) for i, ic in enumerate(refined.icoors)}
 
 
 def _element_of(residue_type, name):

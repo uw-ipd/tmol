@@ -338,8 +338,8 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         parameters = self.setup_packed_block_types(pose_stack.packed_block_types)
 
         return [
-            pose_stack.min_block_bondsep,
-            pose_stack.inter_block_bondsep,
+            pose_stack.inter_block_bondsep.near_blocks,
+            pose_stack.inter_block_bondsep.bondsep,
             pose_stack.packed_block_types.n_atoms,
             parameters.charges,
             pose_stack.packed_block_types.n_conn,

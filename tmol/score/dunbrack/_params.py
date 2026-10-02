@@ -168,8 +168,6 @@ class DunbrackParamResolver(ValidateAttrs):
     @validate_args
     def from_database(cls, dun_database: DunbrackRotamerLibrary, device: torch.device):
         device = resolve_device(device)
-        if device.type == "cpu":
-            device = torch.device("cpu")
         return cls._from_dun_db_cache.get_or_create(
             dun_database,
             (cls, device),

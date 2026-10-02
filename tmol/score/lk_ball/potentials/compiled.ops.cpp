@@ -388,7 +388,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
       int64_t max_n_rots_per_pose,
       Tensor pose_stack_inter_residue_connections,
 
-      Tensor pose_stack_min_bond_separation,
+      Tensor pose_stack_near_blocks,
       Tensor pose_stack_inter_block_bondsep,
       Tensor block_type_n_atoms,
       Tensor block_type_n_interblock_bonds,
@@ -438,7 +438,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
                   max_n_rots_per_pose,
                   TCAST(pose_stack_inter_residue_connections),
 
-                  TCAST(pose_stack_min_bond_separation),
+                  TCAST(pose_stack_near_blocks),
                   TCAST(pose_stack_inter_block_bondsep),
                   TCAST(block_type_n_atoms),
                   TCAST(block_type_n_interblock_bonds),
@@ -484,7 +484,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
          max_n_rots_per_pose_tp.tensor,
          pose_stack_inter_residue_connections,
 
-         pose_stack_min_bond_separation,
+         pose_stack_near_blocks,
          pose_stack_inter_block_bondsep,
          block_type_n_atoms,
          block_type_n_interblock_bonds,
@@ -538,7 +538,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
         TPack<int32_t, 1, tmol::Device::CPU>(saved[i++]).view[0];
     auto pose_stack_inter_residue_connections = saved[i++];
 
-    auto pose_stack_min_bond_separation = saved[i++];
+    auto pose_stack_near_blocks = saved[i++];
     auto pose_stack_inter_block_bondsep = saved[i++];
     auto block_type_n_atoms = saved[i++];
     auto block_type_n_interblock_bonds = saved[i++];
@@ -593,7 +593,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
                   max_n_rots_per_pose,
                   TCAST(pose_stack_inter_residue_connections),
 
-                  TCAST(pose_stack_min_bond_separation),
+                  TCAST(pose_stack_near_blocks),
                   TCAST(pose_stack_inter_block_bondsep),
                   TCAST(block_type_n_atoms),
                   TCAST(block_type_n_interblock_bonds),
@@ -645,7 +645,7 @@ class LKBallRotamerScoreOp
       int64_t max_n_rots_per_pose,
       Tensor pose_stack_inter_residue_connections,
 
-      Tensor pose_stack_min_bond_separation,
+      Tensor pose_stack_near_blocks,
       Tensor pose_stack_inter_block_bondsep,
       Tensor block_type_n_atoms,
       Tensor block_type_n_interblock_bonds,
@@ -695,7 +695,7 @@ class LKBallRotamerScoreOp
                   max_n_rots_per_pose,
                   TCAST(pose_stack_inter_residue_connections),
 
-                  TCAST(pose_stack_min_bond_separation),
+                  TCAST(pose_stack_near_blocks),
                   TCAST(pose_stack_inter_block_bondsep),
                   TCAST(block_type_n_atoms),
                   TCAST(block_type_n_interblock_bonds),
@@ -736,7 +736,7 @@ class LKBallRotamerScoreOp
          max_n_rots_per_pose_tp.tensor,
          pose_stack_inter_residue_connections,
 
-         pose_stack_min_bond_separation,
+         pose_stack_near_blocks,
          pose_stack_inter_block_bondsep,
          block_type_n_atoms,
          block_type_n_interblock_bonds,
@@ -776,7 +776,7 @@ class LKBallRotamerScoreOp
         TPack<int32_t, 1, tmol::Device::CPU>(saved[i++]).view[0];
     auto pose_stack_inter_residue_connections = saved[i++];
 
-    auto pose_stack_min_bond_separation = saved[i++];
+    auto pose_stack_near_blocks = saved[i++];
     auto pose_stack_inter_block_bondsep = saved[i++];
     auto block_type_n_atoms = saved[i++];
     auto block_type_n_interblock_bonds = saved[i++];
@@ -825,7 +825,7 @@ class LKBallRotamerScoreOp
                   max_n_rots_per_pose,
                   TCAST(pose_stack_inter_residue_connections),
 
-                  TCAST(pose_stack_min_bond_separation),
+                  TCAST(pose_stack_near_blocks),
                   TCAST(pose_stack_inter_block_bondsep),
                   TCAST(block_type_n_atoms),
                   TCAST(block_type_n_interblock_bonds),
@@ -877,7 +877,7 @@ std::vector<Tensor> lkball_pose_score(
 
     Tensor pose_stack_inter_residue_connections,
 
-    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_near_blocks,
     Tensor pose_stack_inter_block_bondsep,
     Tensor block_type_n_atoms,
     Tensor block_type_n_interblock_bonds,
@@ -912,7 +912,7 @@ std::vector<Tensor> lkball_pose_score(
       max_n_rots_per_pose,
       pose_stack_inter_residue_connections,
 
-      pose_stack_min_bond_separation,
+      pose_stack_near_blocks,
       pose_stack_inter_block_bondsep,
       block_type_n_atoms,
       block_type_n_interblock_bonds,
@@ -951,7 +951,7 @@ std::vector<Tensor> lkball_rotamer_score(
 
     Tensor pose_stack_inter_residue_connections,
 
-    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_near_blocks,
     Tensor pose_stack_inter_block_bondsep,
     Tensor block_type_n_atoms,
     Tensor block_type_n_interblock_bonds,
@@ -987,7 +987,7 @@ std::vector<Tensor> lkball_rotamer_score(
       max_n_rots_per_pose,
       pose_stack_inter_residue_connections,
 
-      pose_stack_min_bond_separation,
+      pose_stack_near_blocks,
       pose_stack_inter_block_bondsep,
       block_type_n_atoms,
       block_type_n_interblock_bonds,
@@ -1022,7 +1022,7 @@ std::vector<Tensor> lkball_rotamer_score_shared(
     Tensor lockstep_group_for_block,
     int64_t max_n_rots_per_pose,
     Tensor pose_stack_inter_residue_connections,
-    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_near_blocks,
     Tensor pose_stack_inter_block_bondsep,
     Tensor block_type_n_atoms,
     Tensor block_type_n_interblock_bonds,
@@ -1065,7 +1065,7 @@ std::vector<Tensor> lkball_rotamer_score_shared(
       lockstep_group_for_block,
       max_n_rots_per_pose,
       pose_stack_inter_residue_connections,
-      pose_stack_min_bond_separation,
+      pose_stack_near_blocks,
       pose_stack_inter_block_bondsep,
       block_type_n_atoms,
       block_type_n_interblock_bonds,

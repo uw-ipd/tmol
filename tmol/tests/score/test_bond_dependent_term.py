@@ -18,8 +18,3 @@ def test_create_pose_bond_separation_two_ubq(
         max_n_conn,
     )
     assert ubq_40_60_pose_stack.inter_block_bondsep.device == torch_device
-
-    assert hasattr(ubq_40_60_pose_stack, "min_block_bondsep")
-
-    assert ubq_40_60_pose_stack.min_block_bondsep.shape == (2, 60, 60)
-    assert ubq_40_60_pose_stack.min_block_bondsep.device == torch_device

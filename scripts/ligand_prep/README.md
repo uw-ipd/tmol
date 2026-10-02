@@ -20,7 +20,7 @@ from tmol.ligand import (
 
 ```bash
 python scripts/ligand_prep/smiles_to_params.py "<SMILES>" <out_prefix> \
-    [--res-name LG1] [--ph 7.4] [--no-protonate] \
+    [--res-name L_1] [--ph 7.4] [--no-protonate] \
     [--heavy-chi-samples] [--seed N]
 # writes <out_prefix>.tmol
 ```

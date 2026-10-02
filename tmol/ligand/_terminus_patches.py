@@ -65,7 +65,12 @@ def terminus_templates(chemdb, profile):
     grouped: dict = {}
     for variant in chemdb.variants:
         types = variant.applies_to.backbone_types
-        if types is None or base not in types:
+        # a patch scoped to named types is theirs alone (nterm_neutral, built per type)
+        if (
+            types is None
+            or base not in types
+            or variant.applies_to.base_names is not None
+        ):
             continue
         removed = " ".join(str(a) for a in variant.remove_atoms)
         if "{down}" in removed:
@@ -80,6 +85,11 @@ def terminus_templates(chemdb, profile):
     return grouped
 
 
+def _added_heavy_elements(template, element_of):
+    """The elements of the heavy atoms a patch template adds."""
+    return {element_of.get(a.atom_type, "") for a in template.add_atoms} - {"", "H"}
+
+
 def _template_for(residue_type, connection_atom, candidates):
     """Which of several patches sharing a display name this residue takes.
 
@@ -87,8 +97,6 @@ def _template_for(residue_type, connection_atom, candidates):
     amine's. The pattern is not matched here, so they are told apart by the
     same thing it tests: whether the connection carries a hydrogen.
     """
-    if not candidates:
-        return None
     if len(candidates) == 1:
         return candidates[0]
     hydrogens = {a.name for a in residue_type.atoms if a.atom_type.startswith("H")}
@@ -316,11 +324,7 @@ def _atoms_the_patch_strips(template, residue_type, binding, chemdb):
     if binding is None:
         return frozenset()
     element_of = {at.name: at.element for at in chemdb.atom_types}
-    added = {
-        element_of.get(a.atom_type, "")
-        for a in template.add_atoms
-        if element_of.get(a.atom_type, "") not in ("", "H")
-    }
+    added = _added_heavy_elements(template, element_of)
     removed = {binding.get(str(a)) for a in template.remove_atoms}
     types = {a.name: a.atom_type for a in residue_type.atoms}
     return frozenset(
@@ -399,11 +403,7 @@ def _terminal_chemistry(
         "measured": True,
         "element_of": element_of,
         "mainchain": frozenset(profile.mainchain_atoms or ()),
-        "added_elements": {
-            element_of.get(a.atom_type, "")
-            for a in template.add_atoms
-            if element_of.get(a.atom_type, "") not in ("", "H")
-        },
+        "added_elements": _added_heavy_elements(template, element_of),
         "n_hydrogens": len(hydrogens),
         "hydrogen_type": (
             by_index[hydrogens[0].GetIdx()].atom_type if hydrogens else None
@@ -551,11 +551,7 @@ def _fallback_chemistry(residue_type, base_charges, template, connection_atom, c
     """
     element_of = {at.name: at.element for at in chemdb.atom_types}
     types = {a.name: a.atom_type for a in residue_type.atoms}
-    added_elements = {
-        element_of.get(a.atom_type, "")
-        for a in template.add_atoms
-        if element_of.get(a.atom_type, "") not in ("", "H")
-    }
+    added_elements = _added_heavy_elements(template, element_of)
     neighbours = [
         other
         for bond in residue_type.bonds
@@ -634,16 +630,6 @@ def terminus_patches(
         chemdb, profile
     ).items():
         template = _template_for(residue_type, connection[1], candidates)
-        if template is None:
-            logger.warning(
-                "%s %s patch: no template. The database describes no %s for a "
-                "connection at %s, so the residue cannot sit at that end.",
-                residue_type.name,
-                display_name,
-                display_name,
-                connection[1],
-            )
-            continue
         chemistry = None
         if atom_array is not None:
             try:

@@ -588,7 +588,7 @@ def build_context_from_biotite(
         ):
             return _default_pose_build_context_for(biotite_structure, torch_device)
 
-        rts = ResidueTypeSet.from_database(param_db.chemical)
+        rts = _restype_set_sharing_default(param_db.chemical)
         pbt = PackedBlockTypes.from_restype_list(
             rts.chem_db, rts, rts.residue_types, torch_device
         )
@@ -2472,9 +2472,10 @@ def _with_input_hydrogens(biotite_structure, ph, co, chemdb, find_metal_coordina
         names = set(co.restype_io_equiv_classes)
         names |= {alias for alias, name in aliases.items() if name in names}
     template = _template_array(biotite_structure)
+    forms = database_forms(chemdb)
     if (
         PROTONATION_VARIANT in template.get_annotation_categories()
-        or not residues_lacking_hydrogens(biotite_structure, names)[1].any()
+        or not residues_lacking_hydrogens(biotite_structure, names, forms)[1].any()
     ):
         return biotite_structure
     metal_atom = _metal_atom_names(chemdb=chemdb)
@@ -2501,7 +2502,7 @@ def _with_input_hydrogens(biotite_structure, ph, co, chemdb, find_metal_coordina
         residue_names=names,
         coordination=coordination,
         backbone=backbone,
-        forms=database_forms(chemdb),
+        forms=forms,
     )
 
 
@@ -2882,6 +2883,15 @@ def _default_pose_build_context_for(
     return _default_pose_build_context(device, bool(_is_metal(structure).any()))
 
 
+def _restype_set_sharing_default(chemical_db) -> ResidueTypeSet:
+    """chemical_db's residue types, reusing the default set's objects (and their
+    cached annotations) where chemical_db extends the default database."""
+    try:
+        return _restype_set_for_biotite().extended(chemical_db)
+    except ValueError:
+        return ResidueTypeSet.from_database(chemical_db)
+
+
 @validate_args
 @toolz.functoolz.memoize
 def _default_pose_build_context(
@@ -2906,7 +2916,7 @@ def _derived_types_for_param_db(
 ) -> tuple[CanonicalOrdering, ResidueTypeSet, PackedBlockTypes]:
     """Build canonical ordering and packed block types from a DB."""
     co = CanonicalOrdering.from_chemdb(param_db.chemical)
-    rts = ResidueTypeSet.from_database(param_db.chemical)
+    rts = _restype_set_sharing_default(param_db.chemical)
     pbt = PackedBlockTypes.from_restype_list(
         rts.chem_db, rts, rts.residue_types, device
     )
