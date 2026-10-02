@@ -679,9 +679,12 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
         }
       }
       if (first_nonjump_child == -1) {
-        // No non-jump children. "Recurse" to parent.
+        // No non-jump children. "Recurse" to parent, but not past the root
+        // (its own parent): a lone atom, e.g. a metal ion, has no frame atoms.
         int jump_parent = parents[jump_atom];
-        assert(jump_parent != jump_atom);
+        if (jump_parent == jump_atom) {
+          return std::make_tuple(-1, -1);
+        }
         jump_atom = jump_parent;
         continue;
       }
@@ -696,11 +699,31 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
       if (second_nonjump_child == -1) {
         // Insufficient non-jump descendants. "Recurse" to parent
         int jump_parent = parents[jump_atom];
-        assert(jump_parent != jump_atom);
+        if (jump_parent == jump_atom) {
+          return std::make_tuple(-1, -1);
+        }
         jump_atom = jump_parent;
         continue;
       }
       return std::make_tuple(first_nonjump_child, second_nonjump_child);
+    }
+  });
+
+  // A jump with too few atoms below it (up to the root) gets the frame of its
+  // own position, parent and grandparent; the collinear guard in
+  // hts_from_frames keeps that frame defined. So do its non-jump children.
+  auto fallback_jump_frame = ([=] TMOL_DEVICE_FUNC(int i) {
+    int parent = parents[i];
+    frame_x[i] = i;
+    frame_y[i] = parent;
+    frame_z[i] = parents[parent];
+    for (int j = child_list_span[i]; j < child_list_span[i + 1]; ++j) {
+      int child = child_list[j];
+      if (!is_atom_jump[child]) {
+        frame_x[child] = child;
+        frame_y[child] = i;
+        frame_z[child] = parent;
+      }
     }
   });
 
@@ -713,6 +736,10 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
         auto result = get_c1_and_c2_atoms(i);
         c1 = std::get<0>(result);
         c2 = std::get<1>(result);
+        if (c1 < 0) {
+          fallback_jump_frame(i);
+          return;
+        }
 
         frame_x[i] = c1;
         frame_y[i] = i;
@@ -767,6 +794,10 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
           auto result = get_c1_and_c2_atoms(parent);
           c1 = std::get<0>(result);
           c2 = std::get<1>(result);
+          if (c1 < 0) {
+            fallback_jump_frame(i);
+            return;
+          }
 
           frame_x[i] = c1;
           frame_y[i] = i;

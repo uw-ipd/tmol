@@ -615,3 +615,39 @@ def test_atom37_coordinate_shape_and_pose_count_validation(biotite_1ubq, torch_d
             torch_device,
             atom37_coords=atom37,
         )
+
+
+def test_geometric_gap_drops_bond_inferred_from_consecutive_numbering(
+    tmp_path, torch_device
+):
+    """A residue deleted and the rest renumbered leaves consecutive numbering over
+    a gap; the reader's inferred peptide bond must not reconnect it.
+
+    Guards canonical_form_from_biotite in io/_pose_stack_from_biotite.py, where
+    _break_connections_for_missing_density flagged the gap but covalent_bonds_np
+    kept the bond inferred from numbering.
+    """
+    from tmol.io import atom_array_from_cif
+
+    lines = []
+    for line in data_path("pdb", "1ubq.pdb").read_text().splitlines():
+        if not line.startswith("ATOM"):
+            continue
+        resnum = int(line[22:26])
+        if resnum > 10 or resnum == 5:
+            continue
+        if resnum > 5:
+            line = f"{line[:22]}{resnum - 1:4d}{line[26:]}"
+        lines.append(line)
+    path = tmp_path / "ubq_gap.pdb"
+    path.write_text("\n".join(lines + ["END"]) + "\n")
+
+    cf = canonical_form_from_biotite(atom_array_from_cif(path), torch_device)
+
+    # residues 4 and 5 (0-based 3 and 4) are the old 4 and 6
+    assert bool(cf.res_not_connected[0, 3, 1]) and bool(cf.res_not_connected[0, 4, 0])
+    bonds = cf.covalent_bonds
+    across = ((bonds[:, 1] == 3) & (bonds[:, 3] == 4)) | (
+        (bonds[:, 1] == 4) & (bonds[:, 3] == 3)
+    )
+    assert not bool(across.any())

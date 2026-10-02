@@ -53,7 +53,7 @@ def get_relax_sfxn(default_database, torch_device):
     sfxn.set_weight(ScoreType.cart_impropers, 0.5)
     sfxn.set_weight(ScoreType.cart_hxltorsions, 0.5)
     sfxn.set_weight(ScoreType.omega, 0.48)
-    sfxn.set_weight(ScoreType.rama, 0.50)
+    sfxn.set_weight(ScoreType.rama, 1.0)
     sfxn.set_weight(ScoreType.ref, 1.0)
     sfxn.set_weight(ScoreType.disulfide, 1.0)
 

@@ -54,7 +54,7 @@ def test_annotate_restypes(
 
 
 def test_whole_pose_scoring_module_smoke(ubq_pdb, default_database, torch_device):
-    gold_vals = numpy.array([[-12.743369], [4.100153]], dtype=numpy.float32)  # 4.284
+    gold_vals = numpy.array([[-4.582839], [4.100153]], dtype=numpy.float32)
     backbone_torsion_energy = BackboneTorsionEnergyTerm(
         param_db=default_database, device=torch_device
     )

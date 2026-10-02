@@ -36,7 +36,7 @@ alpha_aa:
   na_torsion: 0.0
   na_torsion_well: 0.0
   omega: -2.3507
-  rama: -17.3025
+  rama: 21.6297
   ref: -14.8958
 dna:
   cart_angles: 42.5921

@@ -21,7 +21,11 @@ from tmol.database.chemical import (
     ProtonationProperties,
     RawResidueType,
 )
-from tmol.ligand._atom_typing import AtomTypeAssignment, RosettaTypingState
+from tmol.ligand._atom_typing import (
+    AMIDE_BOND_PROP,
+    AtomTypeAssignment,
+    RosettaTypingState,
+)
 from tmol.ligand._chi_topology import build_chi_topology
 from tmol.ligand._icoor_tree import (
     build_atom_tree,
@@ -174,7 +178,9 @@ def build_residue_type(  # noqa: C901
         # branch only fires when the bond type is still AROMATIC at this
         # point, i.e. kekulization was skipped or failed.
         bt = bond.GetBondType()
-        if bt == Chem.BondType.SINGLE:
+        if bond.HasProp(AMIDE_BOND_PROP):
+            b_type = "AROMATIC"
+        elif bt == Chem.BondType.SINGLE:
             b_type = "SINGLE"
         elif bt == Chem.BondType.DOUBLE:
             b_type = "DOUBLE"

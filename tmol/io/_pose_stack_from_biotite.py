@@ -2810,6 +2810,7 @@ def canonical_form_from_biotite(
                 for restype in tmol_restypes
             ]
         )
+        was_connected = ~not_connected[:-1, 1]
         _break_connections_for_missing_density(
             not_connected,
             biotite_chain_id_for_res,
@@ -2817,6 +2818,14 @@ def canonical_form_from_biotite(
             missing_density_distance_threshold,
             polymeric,
         )
+        # The reader infers peptide bonds from consecutive numbering; a pair the
+        # check just broke has no atoms within bonding distance, so drop them.
+        broken = numpy.flatnonzero(was_connected & not_connected[:-1, 1])
+        if len(broken) and len(covalent_bonds_np):
+            lo = numpy.minimum(covalent_bonds_np[:, 0], covalent_bonds_np[:, 2])
+            hi = numpy.maximum(covalent_bonds_np[:, 0], covalent_bonds_np[:, 2])
+            across = (hi == lo + 1) & numpy.isin(lo, broken)
+            covalent_bonds_np = covalent_bonds_np[~across]
     _orient_polymer_gap_flags(
         not_connected, biotite_chain_id_for_res, tmol_restypes, covalent_bonds_np, co
     )

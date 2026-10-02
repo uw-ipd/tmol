@@ -174,6 +174,50 @@ def test_fixed_iterations_skips_early_convergence():
     assert optimizer.state[x]["n_iter"] == 4
 
 
+def test_default_tolerances_do_not_stop_a_descending_run():
+    """Many small gradients can still mean a large energy drop.
+
+    Guards LBFGS_Armijo's defaults in optimization/_lbfgs_armijo.py, which had
+    gradtol=1.0: a segment with max |dE/dx| <= 1 was converged however much
+    energy each iteration still removed.
+    """
+    x = torch.nn.Parameter(torch.zeros(10000, dtype=torch.float64))
+    optimizer = LBFGS_Armijo([x], max_iter=50)
+
+    def closure():
+        optimizer.zero_grad()
+        loss = 0.25 * ((x - 1.0) ** 2).sum()
+        loss.backward()
+        return loss
+
+    optimizer.step(closure)
+
+    torch.testing.assert_close(x.detach(), torch.ones_like(x), rtol=0, atol=1e-3)
+
+
+@pytest.mark.parametrize("patience", [1, 3, 5])
+def test_convergence_needs_patience_small_iterations(patience):
+    """A segment converges only after patience consecutive small iterations.
+
+    Guards _check_segment_convergence in optimization/_lbfgs_armijo.py, which
+    stopped on the first iteration whose energy change was under atol or rtol.
+    """
+    x = torch.nn.Parameter(torch.tensor([3.0, -2.0, 1.0], dtype=torch.float64))
+    scale = torch.tensor([1.0, 10.0, 100.0], dtype=torch.float64)
+    # every iteration counts as small
+    optimizer = LBFGS_Armijo([x], max_iter=50, atol=1e9, patience=patience)
+
+    def closure():
+        optimizer.zero_grad()
+        loss = ((x * scale) ** 2).sum()
+        loss.backward()
+        return loss
+
+    optimizer.step(closure)
+
+    assert optimizer.state[x]["n_iter"] == patience
+
+
 @pytest.mark.xfail(reason="sparse tensor _copy failure in torch 1.6")
 def test_lbfgs_armijo_sparse():
     indices = torch.LongTensor([[0, 0, 1], [0, 1, 1]])

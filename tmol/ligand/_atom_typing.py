@@ -750,17 +750,6 @@ def _classify_N_hetero(  # noqa: C901
 ) -> str:
     """Classify nitrogen with non-C/H neighbors (lone pairs, heteroatoms)."""
     state = _state_for_atom(atom, state)
-    sub = state.source_subtype_by_idx.get(atom.GetIdx(), "").lower()
-
-    def _in_5_or_6_ring() -> bool:
-        """Return whether atom belongs to any 5/6-membered ring."""
-        ring_ids = state.ring_membership_by_idx.get(atom.GetIdx(), set())
-        for rid in ring_ids:
-            if rid < len(state.rings):
-                n = len(state.rings[rid])
-                if n in (5, 6):
-                    return True
-        return False
 
     if hyb == 3:
         if ntot <= 3 and nH >= 1:
@@ -770,27 +759,6 @@ def _classify_N_hetero(  # noqa: C901
         return "NG3"
 
     if hyb in (2, 8, 9):
-        # DUD/reference parity: ring-conjugated tertiary N.pl3/N.am sites
-        # with one+ N neighbor and no hydrogens are Nim-like.
-        if (
-            sub in {"pl3", "am"}
-            and nH == 0
-            and nN >= 1
-            and nC <= 2
-            and _in_5_or_6_ring()
-        ):
-            return "Nim"
-        # Reference parity: aromatic 5/6-ring tertiary N(=C)-N motifs with
-        # subtype ``N.2`` are Nim-like rather than Nad3.
-        if (
-            sub in {"2", "ar"}
-            and nH == 0
-            and nN >= 1
-            and nC == 2
-            and atom.GetIdx() in state.atms_aro
-            and _in_5_or_6_ring()
-        ):
-            return "Nim"
         if nO >= 2:
             return "NG2"
         if nH == 0 and nN >= 1:
@@ -1255,8 +1223,8 @@ def _correct_amide_bond_orders(
     """Rosetta-style amide bond correction.
 
     When a Nad/Nad3 nitrogen is single-bonded to CDp carbon, promote the
-    bond order to double-like to match Rosetta's post-classification
-    amide-bond correction semantics.
+    bond order to double for typing and tag it AMIDE_BOND_PROP; the residue
+    type writes tagged bonds as aromatic (Rosetta's amide order 4).
     """
     type_by_idx = {a.index: a.atom_type for a in assignments}
 
@@ -1275,6 +1243,7 @@ def _correct_amide_bond_orders(
         if is_amide:
             bond.SetBondType(Chem.BondType.DOUBLE)
             bond.SetIsAromatic(False)
+            bond.SetBoolProp(AMIDE_BOND_PROP, True)
 
 
 def _bond_is_planar(mol: Chem.Mol, i: int, j: int, cutoff_deg: float = 40.0) -> bool:
@@ -1320,6 +1289,81 @@ def _bond_is_planar(mol: Chem.Mol, i: int, j: int, cutoff_deg: float = 40.0) -> 
     return False
 
 
+# RDKit bond property marking a Rosetta-corrected amide C-N bond.
+AMIDE_BOND_PROP = "tmol_rosetta_amide"
+
+# Rosetta search_special_biaryl_ring special_biaryl_to_ring: ordered (a2, a3) class
+# pairs, a2 a non-ring atom bonded to aromatic ring atom a1 and a3 a further
+# neighbour of a2. A match (with a3 connected on) makes a1-a2 a rotatable pivot.
+SPECIAL_BIARYL_PAIRS = frozenset(
+    {
+        ("CDp", "OG2"),
+        ("CDp", "Oal"),
+        ("CDp", "Oad"),
+        ("NG21", "CR"),
+        ("NG21", "CRp"),
+        ("NG21", "CD"),
+        ("NG21", "CDp"),
+        ("NG21", "CSp"),
+        ("NG21", "CS"),
+        ("NG21", "CS1"),
+        ("NG21", "CS2"),
+        ("NG21", "SG5"),
+        ("Nad", "CDp"),
+        ("CDp", "Nad"),
+        ("CDp", "Nam2"),
+        ("CDp", "NG2"),
+        ("CDp", "Nin"),
+        ("CD1", "CD1"),
+        ("CD1", "CD"),
+        ("CD", "CD"),
+        ("CD", "CD1"),
+        ("CD", "CR"),
+        ("CD1", "CR"),
+        ("CDp", "CR"),
+        ("CD", "F"),
+        ("CD", "Cl"),
+        ("CD", "Br"),
+        ("CD", "I"),
+    }
+)
+
+
+def special_biaryl_pivots(
+    mol: Chem.Mol,
+    atype_by_idx: dict[int, str],
+    atms_aro,
+    ring_membership: dict[int, set[int]],
+    valid=None,
+) -> set[frozenset]:
+    """Ring-to-functional-group pivot bonds, as Rosetta search_special_biaryl_ring.
+
+    Pivots stay rotatable and are never conjugated.
+    """
+    pivots: set[frozenset] = set()
+    for a1 in atms_aro:
+        for nb2 in mol.GetAtomWithIdx(a1).GetNeighbors():
+            a2 = nb2.GetIdx()
+            if valid is not None and a2 not in valid:
+                continue
+            if ring_membership.get(a1, set()) & ring_membership.get(a2, set()):
+                continue
+            a2c = atype_by_idx.get(a2)
+            special = False
+            further_connected = False
+            for nb3 in nb2.GetNeighbors():
+                a3 = nb3.GetIdx()
+                if a3 == a1:
+                    continue
+                if (a2c, atype_by_idx.get(a3)) in SPECIAL_BIARYL_PAIRS:
+                    special = True
+                if nb3.GetDegree() > 1:
+                    further_connected = True
+            if special and further_connected:
+                pivots.add(frozenset((a1, a2)))
+    return pivots
+
+
 def _correct_conjugated_single_bond_orders(  # noqa: C901
     assignments: list[AtomTypeAssignment],
     mol: Chem.Mol,
@@ -1331,6 +1375,9 @@ def _correct_conjugated_single_bond_orders(  # noqa: C901
     assign_bond_conjugation: single + conjugated => output bond order 2.
     """
     type_by_idx = {a.index: a.atom_type for a in assignments}
+    pivots = special_biaryl_pivots(
+        mol, type_by_idx, state.atms_aro, state.ring_membership_by_idx
+    )
 
     def _is_aromatic_ring(ring: tuple[int, ...]) -> bool:
         """Return whether all atoms in a ring are aromatic-classified."""
@@ -1413,11 +1460,13 @@ def _correct_conjugated_single_bond_orders(  # noqa: C901
             continue
 
         # Rosetta biaryl/special pivots: avoid forcing conjugation across
-        # ring-to-ring aromatic junctions except the ring(N=C)-N-H exception.
+        # ring-to-ring aromatic junctions or ring-to-group pivots, except the
+        # ring(N=C)-N-H exception.
         if not shared_ring_ids and (i in state.atms_aro or j in state.atms_aro):
             i_in_ring = bool(state.ring_membership_by_idx.get(i, set()))
             j_in_ring = bool(state.ring_membership_by_idx.get(j, set()))
-            if i_in_ring and j_in_ring and not _is_ring_ncnh(i, j):
+            pivot = (i_in_ring and j_in_ring) or frozenset((i, j)) in pivots
+            if pivot and not _is_ring_ncnh(i, j):
                 continue
 
         bond.SetBondType(Chem.BondType.DOUBLE)
