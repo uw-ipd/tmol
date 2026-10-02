@@ -1,0 +1,187 @@
+{
+  "pdb": "3t0x",
+  "site": "B:106:VAL",
+  "deposited_url": "https://files.rcsb.org/download/3T0X.cif.gz",
+  "deposited_snapshot": "2026-01-06",
+  "deposited_sha256": "f7402e6f95f83688aa5bb194d2301baf4c0dbd52eaf55e51784b92dec4e1107e",
+  "prepared_sha256": "89bc2a39b2ba932614811350409ee2cafb9c7f8e81930ab183aeb5809591486a",
+  "prepared_header": [
+    "REMARK   4      COMPLIES WITH FORMAT V. 3.0, 1-DEC-2006",
+    "REMARK 888",
+    "REMARK 888 WRITTEN BY MAESTRO (A PRODUCT OF SCHRODINGER, LLC)",
+    "TITLE     :3t0x_ligand"
+  ],
+  "deposited_label_asym_id": "B",
+  "deposited_label_seq_id": 109,
+  "deposited_entity_length": 123,
+  "deposited_atom_names": [
+    "N",
+    "CA",
+    "C",
+    "O",
+    "CB",
+    "CG1",
+    "CG2"
+  ],
+  "prepared_atom_names": [
+    "N",
+    "CA",
+    "C",
+    "O",
+    "CB",
+    "CG1",
+    "CG2",
+    "H",
+    "HA",
+    "HXT",
+    "HB",
+    "HG11",
+    "HG12",
+    "HG13",
+    "HG21",
+    "HG22",
+    "HG23"
+  ],
+  "prepared_added_atoms": [
+    "H",
+    "HA",
+    "HB",
+    "HG11",
+    "HG12",
+    "HG13",
+    "HG21",
+    "HG22",
+    "HG23",
+    "HXT"
+  ],
+  "retained_heavy_coordinate_max_error": 0.0,
+  "following_polymer_sequence": [
+    {
+      "asym_id": "B",
+      "entity_id": "1",
+      "seq_id": "110",
+      "mon_id": "LEU",
+      "ndb_seq_num": "110",
+      "pdb_seq_num": "106",
+      "auth_seq_num": "?",
+      "pdb_mon_id": "?",
+      "auth_mon_id": "?",
+      "pdb_strand_id": "B",
+      "pdb_ins_code": "A",
+      "hetero": "n"
+    },
+    {
+      "asym_id": "B",
+      "entity_id": "1",
+      "seq_id": "111",
+      "mon_id": "ASP",
+      "ndb_seq_num": "111",
+      "pdb_seq_num": "107",
+      "auth_seq_num": "?",
+      "pdb_mon_id": "?",
+      "auth_mon_id": "?",
+      "pdb_strand_id": "B",
+      "pdb_ins_code": ".",
+      "hetero": "n"
+    },
+    {
+      "asym_id": "B",
+      "entity_id": "1",
+      "seq_id": "112",
+      "mon_id": "ALA",
+      "ndb_seq_num": "112",
+      "pdb_seq_num": "108",
+      "auth_seq_num": "?",
+      "pdb_mon_id": "?",
+      "auth_mon_id": "?",
+      "pdb_strand_id": "B",
+      "pdb_ins_code": ".",
+      "hetero": "n"
+    },
+    {
+      "asym_id": "B",
+      "entity_id": "1",
+      "seq_id": "113",
+      "mon_id": "ALA",
+      "ndb_seq_num": "113",
+      "pdb_seq_num": "109",
+      "auth_seq_num": "?",
+      "pdb_mon_id": "?",
+      "auth_mon_id": "?",
+      "pdb_strand_id": "B",
+      "pdb_ins_code": ".",
+      "hetero": "n"
+    }
+  ],
+  "following_explicitly_unobserved": [
+    {
+      "id": "13",
+      "PDB_model_num": "1",
+      "polymer_flag": "Y",
+      "occupancy_flag": "1",
+      "auth_asym_id": "B",
+      "auth_comp_id": "LEU",
+      "auth_seq_id": "106",
+      "PDB_ins_code": "A",
+      "label_asym_id": "B",
+      "label_comp_id": "LEU",
+      "label_seq_id": "110"
+    },
+    {
+      "id": "14",
+      "PDB_model_num": "1",
+      "polymer_flag": "Y",
+      "occupancy_flag": "1",
+      "auth_asym_id": "B",
+      "auth_comp_id": "ASP",
+      "auth_seq_id": "107",
+      "PDB_ins_code": "?",
+      "label_asym_id": "B",
+      "label_comp_id": "ASP",
+      "label_seq_id": "111"
+    },
+    {
+      "id": "15",
+      "PDB_model_num": "1",
+      "polymer_flag": "Y",
+      "occupancy_flag": "1",
+      "auth_asym_id": "B",
+      "auth_comp_id": "ALA",
+      "auth_seq_id": "108",
+      "PDB_ins_code": "?",
+      "label_asym_id": "B",
+      "label_comp_id": "ALA",
+      "label_seq_id": "112"
+    },
+    {
+      "id": "16",
+      "PDB_model_num": "1",
+      "polymer_flag": "Y",
+      "occupancy_flag": "1",
+      "auth_asym_id": "B",
+      "auth_comp_id": "ALA",
+      "auth_seq_id": "109",
+      "PDB_ins_code": "?",
+      "label_asym_id": "B",
+      "label_comp_id": "ALA",
+      "label_seq_id": "113"
+    }
+  ],
+  "carbon_xyz": [
+    12.293,
+    -17.133,
+    13.352
+  ],
+  "prepared_hxt_xyz": [
+    12.676,
+    -17.973,
+    13.93
+  ],
+  "hxt_conect": [
+    "CONECT 3206 3213",
+    "CONECT 3213 3206"
+  ],
+  "deposited_site_connections": [],
+  "classification": "Preparation adds a carbon-bound hydrogen at an unresolved continuation of a standard protein residue; experimental aldehyde chemistry is not established.",
+  "caveat": "No preparation command or atom-level edit history is available. Source metadata supports a truncation/capping artifact, not its exact generating algorithm. Absence of deposited H alone would not suffice."
+}

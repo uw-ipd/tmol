@@ -1,0 +1,63 @@
+{
+  "fixture_sha256": "587b4cc7a457ac10cea23c25b1f2e0f47a34fc0c674c8571f15a6d1c202eec15",
+  "source_atom_count": 17,
+  "source_carbon_hydrogen_distance_angstrom": 1.089207410812378,
+  "source_carbon_neighbors": [
+    {
+      "name": "CA",
+      "element": "C",
+      "bond_order": 1
+    },
+    {
+      "name": "O",
+      "element": "O",
+      "bond_order": 2
+    },
+    {
+      "name": "HXT",
+      "element": "H",
+      "bond_order": 0
+    }
+  ],
+  "source_formal_charges": null,
+  "source_pdb_charge_fields": "blank / not explicitly declared",
+  "outcome": "converted_to_different_chemistry",
+  "block_type": "VAL:cterm:nterm",
+  "output_atom_names": [
+    "N",
+    "CA",
+    "C",
+    "CB",
+    "CG1",
+    "CG2",
+    "HA",
+    "HB",
+    "HG11",
+    "HG12",
+    "HG13",
+    "HG21",
+    "HG22",
+    "HG23",
+    "O",
+    "OXT",
+    "H1",
+    "H2",
+    "H3"
+  ],
+  "output_carbon_neighbors": [
+    "CA",
+    "OXT",
+    "O"
+  ],
+  "supplied_HXT_retained": false,
+  "new_OXT_added": true,
+  "generated_OXT_coordinates": [
+    12.616761207580566,
+    -18.061763763427734,
+    14.039441108703613
+  ],
+  "max_retained_heavy_coordinate_error": 0.0,
+  "caller_input_unmodified": true,
+  "tmol_commit": "c15881279316a0d1b4613838e2071a38f34443d8",
+  "atomworks_commit": "e0f2e4da0aef2cf6c81a2c506eece3bc4204b75d"
+}

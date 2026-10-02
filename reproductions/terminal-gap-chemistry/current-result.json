@@ -1,0 +1,29 @@
+{
+  "fixture_sha256": "587b4cc7a457ac10cea23c25b1f2e0f47a34fc0c674c8571f15a6d1c202eec15",
+  "source_atom_count": 17,
+  "source_carbon_hydrogen_distance_angstrom": 1.089207410812378,
+  "source_carbon_neighbors": [
+    {
+      "name": "CA",
+      "element": "C",
+      "bond_order": 1
+    },
+    {
+      "name": "O",
+      "element": "O",
+      "bond_order": 2
+    },
+    {
+      "name": "HXT",
+      "element": "H",
+      "bond_order": 0
+    }
+  ],
+  "source_formal_charges": null,
+  "source_pdb_charge_fields": "blank / not explicitly declared",
+  "outcome": "rejected",
+  "error": "Unsupported terminal hydrogen count at B:106:VAL/C: supplied 1, database forms support at most 0; provide parameters for the declared terminal chemistry",
+  "caller_input_unmodified": true,
+  "tmol_commit": "0d834c2a362d6882a0cedf61c1771823ef8ab68f",
+  "atomworks_commit": "e0f2e4da0aef2cf6c81a2c506eece3bc4204b75d"
+}
