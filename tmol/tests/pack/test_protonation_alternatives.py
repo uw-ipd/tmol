@@ -283,6 +283,23 @@ def test_packing_reports_the_protonation_it_chose(
     assert choice.offset == offsets[label]
 
 
+def test_reporting_after_mutation_omits_unrelated_residue_types(torch_device):
+    pose = _pose(DMZ, torch_device, alternatives=True, ph=HIS_PH)
+    task = PackerTask(pose, PackerPalette(protonation_alternatives=True))
+    selected = torch.tensor(pose.pdb_info.residue_labels == 8, device=torch_device)
+    task.restrict_absent_name3s(["ALA"], selected)
+    task.disable_packing_by_block_mask(~selected)
+    task.add_conformer_sampler(FixedAAChiSampler())
+    task.add_conformer_sampler(IncludeCurrentSampler())
+    packed = pack_rotamers(pose, beta2016_score_function(torch_device), task)
+    types = packed.packed_block_types.active_block_types
+    assert all(
+        types[index].base_name == "ALA"
+        for index in packed.block_type_ind64[selected].tolist()
+    )
+    assert {choice.res_label for choice in chosen_protonation_variants(packed)} == {46}
+
+
 def test_recording_alternatives_leaves_the_default_path_unchanged(
     torch_device, identical_physical_graph
 ):

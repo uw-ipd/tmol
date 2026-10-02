@@ -2,8 +2,8 @@
 
 A pose built with ``pose_stack_from_biotite(..., protonation_alternatives=True)``
 records, per residue, AtomWorks' protonation alternatives: block-type base names
-(such as HIS, HIS_D, HIS_POS, CYS_DEP and LYS_DEP) and their free-energy offsets relative to the
-assigned state, ``1.364 * (pH - pKa)`` kcal/mol for a protonated form. A
+(such as HIS, HIS_D, HIS_POS, CYS_DEP and LYS_DEP) and their free-energy offsets
+relative to the assigned state, ``1.364 * (pH - pKa)`` kcal/mol for a protonated form. A
 ``PackerPalette(protonation_alternatives=True)`` lets each such residue take the
 block types of its alternatives across protonation states, and the packer adds
 each block type's offset to its rotamers' one-body energies.
@@ -225,7 +225,7 @@ def _hydrogen_counts(
 def chosen_protonation_variants(pose_stack: PoseStack) -> list[ProtonationChoice]:
     """The variant each block recording protonation alternatives holds.
 
-    Empty when the pose records none.
+    Empty when the pose records none. Mutations to other residue types are omitted.
     """
     alternatives = block_alternatives(pose_stack) or {}
     pbt = pose_stack.packed_block_types
@@ -244,6 +244,8 @@ def chosen_protonation_variants(pose_stack: PoseStack) -> list[ProtonationChoice
     out = []
     for (pose, block), offsets in sorted(alternatives.items()):
         bt = types[int(block_types[pose, block])]
+        if bt.base_name not in offsets:
+            continue
         counts = [hydrogen_counts[name] for name in offsets if name in by_base_name]
         mine = _hydrogen_counts(bt, is_hydrogen_type)
         varying = sorted(
