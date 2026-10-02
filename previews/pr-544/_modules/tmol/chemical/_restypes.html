@@ -508,39 +508,38 @@
 <span class="n">IcoorIndex</span> <span class="o">=</span> <span class="n">NewType</span><span class="p">(</span><span class="s2">"AtomIndex"</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
 
 
+<span class="n">_ONE_LETTER_CODE</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"ALA"</span><span class="p">:</span> <span class="s2">"A"</span><span class="p">,</span>
+    <span class="s2">"CYS"</span><span class="p">:</span> <span class="s2">"C"</span><span class="p">,</span>
+    <span class="s2">"ASP"</span><span class="p">:</span> <span class="s2">"D"</span><span class="p">,</span>
+    <span class="s2">"GLU"</span><span class="p">:</span> <span class="s2">"E"</span><span class="p">,</span>
+    <span class="s2">"PHE"</span><span class="p">:</span> <span class="s2">"F"</span><span class="p">,</span>
+    <span class="s2">"GLY"</span><span class="p">:</span> <span class="s2">"G"</span><span class="p">,</span>
+    <span class="s2">"HIS"</span><span class="p">:</span> <span class="s2">"H"</span><span class="p">,</span>
+    <span class="s2">"ILE"</span><span class="p">:</span> <span class="s2">"I"</span><span class="p">,</span>
+    <span class="s2">"LYS"</span><span class="p">:</span> <span class="s2">"K"</span><span class="p">,</span>
+    <span class="s2">"LEU"</span><span class="p">:</span> <span class="s2">"L"</span><span class="p">,</span>
+    <span class="s2">"MET"</span><span class="p">:</span> <span class="s2">"M"</span><span class="p">,</span>
+    <span class="s2">"ASN"</span><span class="p">:</span> <span class="s2">"N"</span><span class="p">,</span>
+    <span class="s2">"PRO"</span><span class="p">:</span> <span class="s2">"P"</span><span class="p">,</span>
+    <span class="s2">"GLN"</span><span class="p">:</span> <span class="s2">"Q"</span><span class="p">,</span>
+    <span class="s2">"ARG"</span><span class="p">:</span> <span class="s2">"R"</span><span class="p">,</span>
+    <span class="s2">"SER"</span><span class="p">:</span> <span class="s2">"S"</span><span class="p">,</span>
+    <span class="s2">"THR"</span><span class="p">:</span> <span class="s2">"T"</span><span class="p">,</span>
+    <span class="s2">"VAL"</span><span class="p">:</span> <span class="s2">"V"</span><span class="p">,</span>
+    <span class="s2">"TRP"</span><span class="p">:</span> <span class="s2">"W"</span><span class="p">,</span>
+    <span class="s2">"TYR"</span><span class="p">:</span> <span class="s2">"Y"</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">_THREE_LETTER_CODE</span> <span class="o">=</span> <span class="p">{</span><span class="n">one</span><span class="p">:</span> <span class="n">three</span> <span class="k">for</span> <span class="n">three</span><span class="p">,</span> <span class="n">one</span> <span class="ow">in</span> <span class="n">_ONE_LETTER_CODE</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+
 <div class="viewcode-block" id="three2one">
 <a class="viewcode-back" href="../../../api/chemical.html#tmol.chemical.three2one">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">three2one</span><span class="p">(</span><span class="n">three</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Return the one-letter amino acid code given its three letter code,</span>
 <span class="sd">    or None if not a valid three-letter code</span>
 <span class="sd">    """</span>
-    <span class="c1"># 'static'</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">three2one</span><span class="p">,</span> <span class="s2">"_mapping"</span><span class="p">):</span>
-        <span class="n">three2one</span><span class="o">.</span><span class="n">_mapping</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">"ALA"</span><span class="p">:</span> <span class="s2">"A"</span><span class="p">,</span>
-            <span class="s2">"CYS"</span><span class="p">:</span> <span class="s2">"C"</span><span class="p">,</span>
-            <span class="s2">"ASP"</span><span class="p">:</span> <span class="s2">"D"</span><span class="p">,</span>
-            <span class="s2">"GLU"</span><span class="p">:</span> <span class="s2">"E"</span><span class="p">,</span>
-            <span class="s2">"PHE"</span><span class="p">:</span> <span class="s2">"F"</span><span class="p">,</span>
-            <span class="s2">"GLY"</span><span class="p">:</span> <span class="s2">"G"</span><span class="p">,</span>
-            <span class="s2">"HIS"</span><span class="p">:</span> <span class="s2">"H"</span><span class="p">,</span>
-            <span class="s2">"ILE"</span><span class="p">:</span> <span class="s2">"I"</span><span class="p">,</span>
-            <span class="s2">"LYS"</span><span class="p">:</span> <span class="s2">"K"</span><span class="p">,</span>
-            <span class="s2">"LEU"</span><span class="p">:</span> <span class="s2">"L"</span><span class="p">,</span>
-            <span class="s2">"MET"</span><span class="p">:</span> <span class="s2">"M"</span><span class="p">,</span>
-            <span class="s2">"ASN"</span><span class="p">:</span> <span class="s2">"N"</span><span class="p">,</span>
-            <span class="s2">"PRO"</span><span class="p">:</span> <span class="s2">"P"</span><span class="p">,</span>
-            <span class="s2">"GLN"</span><span class="p">:</span> <span class="s2">"Q"</span><span class="p">,</span>
-            <span class="s2">"ARG"</span><span class="p">:</span> <span class="s2">"R"</span><span class="p">,</span>
-            <span class="s2">"SER"</span><span class="p">:</span> <span class="s2">"S"</span><span class="p">,</span>
-            <span class="s2">"THR"</span><span class="p">:</span> <span class="s2">"T"</span><span class="p">,</span>
-            <span class="s2">"VAL"</span><span class="p">:</span> <span class="s2">"V"</span><span class="p">,</span>
-            <span class="s2">"TRP"</span><span class="p">:</span> <span class="s2">"W"</span><span class="p">,</span>
-            <span class="s2">"TYR"</span><span class="p">:</span> <span class="s2">"Y"</span><span class="p">,</span>
-        <span class="p">}</span>
-    <span class="k">if</span> <span class="n">three</span> <span class="ow">in</span> <span class="n">three2one</span><span class="o">.</span><span class="n">_mapping</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">three2one</span><span class="o">.</span><span class="n">_mapping</span><span class="p">[</span><span class="n">three</span><span class="p">]</span>
-    <span class="k">return</span> <span class="kc">None</span></div>
+    <span class="k">return</span> <span class="n">_ONE_LETTER_CODE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">three</span><span class="p">)</span></div>
 
 
 
@@ -550,33 +549,7 @@
 <span class="w">    </span><span class="sd">"""Return the three-letter amino acid code given its one-letter code,</span>
 <span class="sd">    or None if not a valid one-letter code.</span>
 <span class="sd">    """</span>
-    <span class="c1"># 'static'</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">one2three</span><span class="p">,</span> <span class="s2">"_mapping"</span><span class="p">):</span>
-        <span class="n">one2three</span><span class="o">.</span><span class="n">_mapping</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">"A"</span><span class="p">:</span> <span class="s2">"ALA"</span><span class="p">,</span>
-            <span class="s2">"C"</span><span class="p">:</span> <span class="s2">"CYS"</span><span class="p">,</span>
-            <span class="s2">"D"</span><span class="p">:</span> <span class="s2">"ASP"</span><span class="p">,</span>
-            <span class="s2">"E"</span><span class="p">:</span> <span class="s2">"GLU"</span><span class="p">,</span>
-            <span class="s2">"F"</span><span class="p">:</span> <span class="s2">"PHE"</span><span class="p">,</span>
-            <span class="s2">"G"</span><span class="p">:</span> <span class="s2">"GLY"</span><span class="p">,</span>
-            <span class="s2">"H"</span><span class="p">:</span> <span class="s2">"HIS"</span><span class="p">,</span>
-            <span class="s2">"I"</span><span class="p">:</span> <span class="s2">"ILE"</span><span class="p">,</span>
-            <span class="s2">"K"</span><span class="p">:</span> <span class="s2">"LYS"</span><span class="p">,</span>
-            <span class="s2">"L"</span><span class="p">:</span> <span class="s2">"LEU"</span><span class="p">,</span>
-            <span class="s2">"M"</span><span class="p">:</span> <span class="s2">"MET"</span><span class="p">,</span>
-            <span class="s2">"N"</span><span class="p">:</span> <span class="s2">"ASN"</span><span class="p">,</span>
-            <span class="s2">"P"</span><span class="p">:</span> <span class="s2">"PRO"</span><span class="p">,</span>
-            <span class="s2">"Q"</span><span class="p">:</span> <span class="s2">"GLN"</span><span class="p">,</span>
-            <span class="s2">"R"</span><span class="p">:</span> <span class="s2">"ARG"</span><span class="p">,</span>
-            <span class="s2">"S"</span><span class="p">:</span> <span class="s2">"SER"</span><span class="p">,</span>
-            <span class="s2">"T"</span><span class="p">:</span> <span class="s2">"THR"</span><span class="p">,</span>
-            <span class="s2">"V"</span><span class="p">:</span> <span class="s2">"VAL"</span><span class="p">,</span>
-            <span class="s2">"W"</span><span class="p">:</span> <span class="s2">"TRP"</span><span class="p">,</span>
-            <span class="s2">"Y"</span><span class="p">:</span> <span class="s2">"TYR"</span><span class="p">,</span>
-        <span class="p">}</span>
-    <span class="k">if</span> <span class="n">one</span> <span class="ow">in</span> <span class="n">one2three</span><span class="o">.</span><span class="n">_mapping</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">one2three</span><span class="o">.</span><span class="n">_mapping</span><span class="p">[</span><span class="n">one</span><span class="p">]</span>
-    <span class="k">return</span> <span class="kc">None</span></div>
+    <span class="k">return</span> <span class="n">_THREE_LETTER_CODE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">one</span><span class="p">)</span></div>
 
 
 
@@ -927,9 +900,8 @@
         <span class="c1"># 3 paths coming from that atom, followed by the 3 coming out</span>
         <span class="c1"># of each of those in turn. If a path doesn't exist, it is</span>
         <span class="c1"># filled with -1s to ensure deterministic indexing of the paths.</span>
-        <span class="c1"># a convenient datastructure for following connections; virtual atoms have</span>
-        <span class="c1">#    no bonded geometry to reach. Neither this nor the virtual set depends</span>
-        <span class="c1">#    on the connection, and a cluster metal asks for them twelve times.</span>
+        <span class="c1"># bonds to follow, built once for every connection; virtual atoms have no</span>
+        <span class="c1">#    bonded geometry to reach</span>
         <span class="n">virtual</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">atom_to_idx</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">virtual</span><span class="p">}</span>
         <span class="n">bondmap</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">bond</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bond_indices</span><span class="p">:</span>
@@ -1165,18 +1137,18 @@
 <div class="viewcode-block" id="ResidueTypeSet.extended">
 <a class="viewcode-back" href="../../../api/chemical.html#tmol.chemical.ResidueTypeSet.extended">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">extended</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chemical_db</span><span class="p">:</span> <span class="n">PatchedChemicalDatabase</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"ResidueTypeSet"</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""This set grown to ``chemical_db``, whose residues begin with this set's.</span>
-
-<span class="sd">        The residue types already here stay the same objects, so packed block</span>
-<span class="sd">        types built from either set share them.</span>
+<span class="w">        </span><span class="sd">"""This set grown to ``chemical_db``, whose residues begin with this set's; the</span>
+<span class="sd">        types already here stay the same objects.</span>
 
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: If this set does not hold one type per residue of its</span>
 <span class="sd">                database, or ``chemical_db`` does not begin with those residues.</span>
 <span class="sd">        """</span>
         <span class="n">old</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chem_db</span><span class="o">.</span><span class="n">residues</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">residue_types</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">old</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span>
-            <span class="n">a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">chemical_db</span><span class="o">.</span><span class="n">residues</span><span class="p">,</span> <span class="n">old</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">residue_types</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">old</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">chemical_db</span><span class="o">.</span><span class="n">residues</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">old</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span><span class="n">a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">chemical_db</span><span class="o">.</span><span class="n">residues</span><span class="p">,</span> <span class="n">old</span><span class="p">))</span>
         <span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"chemical_db does not extend this residue type set"</span><span class="p">)</span>
         <span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_refined_cache</span><span class="p">()</span>

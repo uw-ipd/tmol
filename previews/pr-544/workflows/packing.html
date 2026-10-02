@@ -537,9 +537,8 @@ task instead of this fixed-sequence recipe. <a class="reference internal" href="
 NA-specific chi sampler and explicit masks.</p>
 <section id="protonation-alternatives">
 <h2>Protonation alternatives<a class="headerlink" href="#protonation-alternatives" title="Link to this heading">#</a></h2>
-<p>Packing keeps each residue’s protonation state by default. To let free
-histidines and cysteines also take the other states AtomWorks lists for them
-(<code class="docutils literal notranslate"><span class="pre">HIS</span></code>, <code class="docutils literal notranslate"><span class="pre">HIS_D</span></code>, <code class="docutils literal notranslate"><span class="pre">HIS_POS</span></code>; <code class="docutils literal notranslate"><span class="pre">CYS</span></code>, <code class="docutils literal notranslate"><span class="pre">CYS_DEP</span></code>), record the alternatives when
+<p>Packing keeps each residue’s protonation state by default. To let free titratable side chains take other states supported by AtomWorks
+and the chemical database, record the alternatives when
 building the pose and turn them on in the palette:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.protonation_alternatives</span><span class="w"> </span><span class="kn">import</span> <span class="n">chosen_protonation_variants</span>
 
@@ -553,14 +552,21 @@ building the pose and turn them on in the palette:</p>
     <span class="nb">print</span><span class="p">(</span><span class="n">choice</span><span class="o">.</span><span class="n">chain</span><span class="p">,</span> <span class="n">choice</span><span class="o">.</span><span class="n">res_label</span><span class="p">,</span> <span class="n">choice</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="n">choice</span><span class="o">.</span><span class="n">charge</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Only residues without input hydrogens and not bound to a metal or another
-residue record alternatives. Each alternative’s block type gets its offset,
-<code class="docutils literal notranslate"><span class="pre">1.364</span> <span class="pre">*</span> <span class="pre">(pH</span> <span class="pre">-</span> <span class="pre">pKa)</span></code> kcal/mol for the protonated form relative to the assigned
-state (model pKa 6.5 for histidine, 8.3 for cysteine), as a one-body energy in
-the packer. The offset is not part of score-function totals. The score
-function is not calibrated for proton transfer, so treat the chosen states as
-hypotheses. N termini keep their assigned state: the database has no neutral
-alpha-amino terminus type.</p>
+<p>Only sites without input hydrogens or external bonds record alternatives; metal
+coordination and disulfides remain fixed. Candidate states come from calling
+AtomWorks on either side of its Dimorphite-DL titration boundaries within one pH
+unit of <code class="docutils literal notranslate"><span class="pre">ligand_ph</span></code>. Candidates must match a database hydrogen-count pattern;
+free histidine tautomers are also offered with equal offsets. This uses the
+current AtomWorks model, including its aromatic-nitrogen pKa of about 4.35,
+thiol pKa of 9.12 and amine pKa of 8.16, rather than separate protein estimates.</p>
+<p>Each proton gained contributes <code class="docutils literal notranslate"><span class="pre">1.364</span> <span class="pre">*</span> <span class="pre">(pH</span> <span class="pre">-</span> <span class="pre">pKa)</span></code> kcal/mol relative to the
+assigned state. Packing adds these offsets to one-body energies. FastRelax
+uses the same offsets when accepting poses if the palette enables alternatives;
+within a fixed state they are constant and do not affect coordinate gradients.
+<code class="docutils literal notranslate"><span class="pre">protonation_state_energy(pose_stack)</span></code> exposes the offsets separately from raw
+score-function totals. The score function is not calibrated for proton transfer,
+so chosen states remain hypotheses. Terminal states are held fixed during this
+side-chain search, including neutral amino termini supported by the database.</p>
 </section>
 </section>
 

@@ -445,6 +445,8 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.scoring</span><span class="w"> </span><span class="kn">import</span> <span class="n">NaTorsionDatabase</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility.weak_identity_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">WeakIdentityLRU</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">Tensor</span><span class="p">,</span>
     <span class="n">ValidateAttrs</span><span class="p">,</span>
@@ -606,6 +608,8 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">NaTorsionParams</span><span class="p">(</span><span class="n">ValidateAttrs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Device-resident nucleic-acid torsion distributions and well energies."""</span>
 
+    <span class="n">_from_db_cache</span> <span class="o">=</span> <span class="n">WeakIdentityLRU</span><span class="p">()</span>
+
     <span class="c1"># means in degrees; 3 bins for alpha/gamma, 2 for beta/epsilon/zeta</span>
     <span class="n">backbone_means</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][</span><span class="mi">2</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
     <span class="n">backbone_n_bins</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">][</span><span class="mi">2</span><span class="p">,</span> <span class="mi">6</span><span class="p">]</span>
@@ -634,7 +638,15 @@
     <span class="n">bin_blend_sdev</span><span class="p">:</span> <span class="nb">float</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">from_database</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_database</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">database</span><span class="p">:</span> <span class="n">NaTorsionDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
+        <span class="c1"># score functions built from one database share its tables</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">resolve_device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_from_db_cache</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span>
+            <span class="n">database</span><span class="p">,</span> <span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">device</span><span class="p">),</span> <span class="k">lambda</span><span class="p">:</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_from_database</span><span class="p">(</span><span class="n">database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_from_database</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">database</span><span class="p">:</span> <span class="n">NaTorsionDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
     <span class="p">):</span>  <span class="c1"># noqa: C901</span>
         <span class="k">def</span><span class="w"> </span><span class="nf">t</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">):</span>

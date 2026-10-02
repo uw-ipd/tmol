@@ -437,12 +437,12 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.pack._impose_rotamers</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">PDBInfo</span><span class="p">,</span>
     <span class="n">DEFAULT_ATOM_B_FACTOR</span><span class="p">,</span>
     <span class="n">DEFAULT_ATOM_OCCUPANCY</span><span class="p">,</span>
     <span class="n">PoseStack</span><span class="p">,</span>
@@ -689,14 +689,10 @@
             <span class="n">nz_is_real_block_ind_new</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
             <span class="n">nz_is_real_atom_ind_new</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
         <span class="p">]</span>
-        <span class="n">new_pdb_info</span> <span class="o">=</span> <span class="n">PDBInfo</span><span class="p">(</span>
-            <span class="n">residue_labels</span><span class="o">=</span><span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_labels</span><span class="p">,</span>
-            <span class="n">residue_insertion_codes</span><span class="o">=</span><span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_insertion_codes</span><span class="p">,</span>
-            <span class="n">chain_labels</span><span class="o">=</span><span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">chain_labels</span><span class="p">,</span>
+        <span class="n">new_pdb_info</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
+            <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="p">,</span>
             <span class="n">atom_occupancy</span><span class="o">=</span><span class="n">new_atom_occupancy</span><span class="p">,</span>
             <span class="n">atom_b_factor</span><span class="o">=</span><span class="n">new_atom_b_factor</span><span class="p">,</span>
-            <span class="n">metal_origins</span><span class="o">=</span><span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">metal_origins</span><span class="p">,</span>
-            <span class="n">residue_annotations</span><span class="o">=</span><span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_annotations</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">new_pdb_info</span> <span class="o">=</span> <span class="n">orig_pose_stack</span><span class="o">.</span><span class="n">pdb_info</span>

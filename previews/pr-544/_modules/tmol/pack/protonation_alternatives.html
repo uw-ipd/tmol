@@ -441,8 +441,8 @@
 
 <span class="sd">A pose built with ``pose_stack_from_biotite(..., protonation_alternatives=True)``</span>
 <span class="sd">records, per residue, AtomWorks' protonation alternatives: block-type base names</span>
-<span class="sd">(HIS, HIS_D, HIS_POS, CYS, CYS_DEP) and their free-energy offsets relative to the</span>
-<span class="sd">assigned state, ``1.364 * (pH - pKa)`` kcal/mol for a protonated form. A</span>
+<span class="sd">(such as HIS, HIS_D, HIS_POS, CYS_DEP and LYS_DEP) and their free-energy offsets</span>
+<span class="sd">relative to the assigned state, ``1.364 * (pH - pKa)`` kcal/mol for a protonated form. A</span>
 <span class="sd">``PackerPalette(protonation_alternatives=True)`` lets each such residue take the</span>
 <span class="sd">block types of its alternatives across protonation states, and the packer adds</span>
 <span class="sd">each block type's offset to its rotamers' one-body energies.</span>
@@ -459,8 +459,8 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._protonation</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">PROTONATION_ALTERNATIVES</span><span class="p">,</span>
-    <span class="n">parse_protonation_alternatives</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._protonation_alternatives</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_protonation_alternatives</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack._packer_task</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">PackerTask</span><span class="p">,</span>
     <span class="n">SetPackerTask</span><span class="p">,</span>
@@ -469,8 +469,6 @@
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">RotamerSet</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
-
-<span class="n">_NET_CHARGE</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"positively_charged"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"neutral"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"negatively_charged"</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">}</span>
 
 
 <div class="viewcode-block" id="block_alternatives">
@@ -494,7 +492,9 @@
         <span class="n">value</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">]</span>
         <span class="n">parsed</span> <span class="o">=</span> <span class="n">parse_protonation_alternatives</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parsed</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">out</span><span class="p">[(</span><span class="nb">int</span><span class="p">(</span><span class="n">pose</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">block</span><span class="p">))]</span> <span class="o">=</span> <span class="n">parsed</span>
+            <span class="n">out</span><span class="p">[(</span><span class="nb">int</span><span class="p">(</span><span class="n">pose</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">block</span><span class="p">))]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">name</span><span class="p">:</span> <span class="n">offset</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">offset</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="n">parsed</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
     <span class="k">return</span> <span class="n">out</span></div>
 
 
@@ -536,10 +536,11 @@
         <span class="n">by_base_name</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">base_name</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
 
     <span class="n">considered</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">per_block_considered_block_types</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">original</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
     <span class="n">n_considered</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">per_block_n_considered_block_types</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">extra</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="p">(</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">),</span> <span class="n">offsets</span> <span class="ow">in</span> <span class="n">alternatives</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="n">orig</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">])</span>
+        <span class="n">orig</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">original</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">])</span>
         <span class="n">orig_bt</span> <span class="o">=</span> <span class="n">types</span><span class="p">[</span><span class="n">orig</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">metal_sites</span><span class="p">:</span>
             <span class="k">continue</span>
@@ -579,7 +580,7 @@
         <span class="n">first</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_considered</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">])</span>
         <span class="n">columns</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">first</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">added</span><span class="p">))</span>
         <span class="n">new_considered</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">columns</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">added</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
-        <span class="n">name3</span> <span class="o">=</span> <span class="n">types</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">])]</span><span class="o">.</span><span class="n">name3</span>
+        <span class="n">name3</span> <span class="o">=</span> <span class="n">types</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">original</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">])]</span><span class="o">.</span><span class="n">name3</span>
         <span class="n">new_rtr</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">columns</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
             <span class="p">[</span><span class="n">types</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">name3</span> <span class="o">==</span> <span class="n">name3</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">added</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
         <span class="p">)</span>
@@ -612,6 +613,18 @@
     <span class="k">return</span> <span class="p">(</span><span class="n">offset</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">]</span> <span class="o">*</span> <span class="n">same</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">protonation_state_energy</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Per-pose pH offsets for the current block types, in kcal/mol."""</span>
+    <span class="n">energies</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span>
+    <span class="n">types</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+    <span class="n">block_types</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">),</span> <span class="n">offsets</span> <span class="ow">in</span> <span class="p">(</span><span class="n">block_alternatives</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">energies</span><span class="p">[</span><span class="n">pose</span><span class="p">]</span> <span class="o">+=</span> <span class="n">offsets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">types</span><span class="p">[</span><span class="n">block_types</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">]]</span><span class="o">.</span><span class="n">base_name</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">energies</span>
+
+
 <div class="viewcode-block" id="ProtonationChoice">
 <a class="viewcode-back" href="../../../api/pack.html#tmol.pack.protonation_alternatives.ProtonationChoice">[docs]</a>
 <span class="nd">@attr</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -625,7 +638,7 @@
 <span class="sd">        res_label: Input residue number.</span>
 <span class="sd">        label: Base name of the chosen block type (``"HIS_POS"``, ...).</span>
 <span class="sd">        offset: Its offset, kcal/mol relative to AtomWorks' assigned state.</span>
-<span class="sd">        charge: Net formal charge its protonation state implies.</span>
+<span class="sd">        charge: AtomWorks' formal charge on the titrating side-chain atoms.</span>
 <span class="sd">        hydrogens: Hydrogens on each heavy atom whose count differs among the</span>
 <span class="sd">            alternatives' block types.</span>
 <span class="sd">    """</span>
@@ -659,7 +672,7 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">chosen_protonation_variants</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">ProtonationChoice</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""The variant each block recording protonation alternatives holds.</span>
 
-<span class="sd">    Empty when the pose records none.</span>
+<span class="sd">    Empty when the pose records none. Mutations to other residue types are omitted.</span>
 <span class="sd">    """</span>
     <span class="n">alternatives</span> <span class="o">=</span> <span class="n">block_alternatives</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
     <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
@@ -670,17 +683,25 @@
     <span class="n">by_base_name</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">types</span><span class="p">:</span>
         <span class="n">by_base_name</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">base_name</span><span class="p">,</span> <span class="n">bt</span><span class="p">)</span>
+    <span class="n">hydrogen_counts</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">name</span><span class="p">:</span> <span class="n">_hydrogen_counts</span><span class="p">(</span><span class="n">bt</span><span class="p">,</span> <span class="n">is_hydrogen_type</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">by_base_name</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">}</span>
+    <span class="n">block_types</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
     <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="p">(</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">),</span> <span class="n">offsets</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">alternatives</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
-        <span class="n">bt</span> <span class="o">=</span> <span class="n">types</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">])]</span>
-        <span class="n">counts</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">_hydrogen_counts</span><span class="p">(</span><span class="n">by_base_name</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">is_hydrogen_type</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">offsets</span>
-            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">by_base_name</span>
-        <span class="p">]</span>
+        <span class="n">bt</span> <span class="o">=</span> <span class="n">types</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">block_types</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">])]</span>
+        <span class="k">if</span> <span class="n">bt</span><span class="o">.</span><span class="n">base_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">offsets</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">counts</span> <span class="o">=</span> <span class="p">[</span><span class="n">hydrogen_counts</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">offsets</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">by_base_name</span><span class="p">]</span>
         <span class="n">mine</span> <span class="o">=</span> <span class="n">_hydrogen_counts</span><span class="p">(</span><span class="n">bt</span><span class="p">,</span> <span class="n">is_hydrogen_type</span><span class="p">)</span>
         <span class="n">varying</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
             <span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">mine</span> <span class="k">if</span> <span class="nb">len</span><span class="p">({</span><span class="n">c</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">counts</span><span class="p">})</span> <span class="o">&gt;</span> <span class="mi">1</span>
+        <span class="p">)</span>
+        <span class="n">choices</span> <span class="o">=</span> <span class="n">parse_protonation_alternatives</span><span class="p">(</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_annotations</span><span class="p">[</span><span class="n">PROTONATION_ALTERNATIVES</span><span class="p">][</span>
+                <span class="n">pose</span><span class="p">,</span> <span class="n">block</span>
+            <span class="p">]</span>
         <span class="p">)</span>
         <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="n">ProtonationChoice</span><span class="p">(</span>
@@ -690,7 +711,7 @@
                 <span class="n">res_label</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_labels</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">]),</span>
                 <span class="n">label</span><span class="o">=</span><span class="n">bt</span><span class="o">.</span><span class="n">base_name</span><span class="p">,</span>
                 <span class="n">offset</span><span class="o">=</span><span class="n">offsets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">base_name</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s2">"nan"</span><span class="p">)),</span>
-                <span class="n">charge</span><span class="o">=</span><span class="n">_NET_CHARGE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">protonation</span><span class="o">.</span><span class="n">protonation_state</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="n">charge</span><span class="o">=</span><span class="n">choices</span><span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">base_name</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
                 <span class="n">hydrogens</span><span class="o">=</span><span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">mine</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">varying</span><span class="p">},</span>
             <span class="p">)</span>
         <span class="p">)</span>

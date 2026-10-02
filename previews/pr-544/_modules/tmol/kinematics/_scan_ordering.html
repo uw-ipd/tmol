@@ -1487,6 +1487,16 @@
                 <span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_bond_csgraph</span><span class="p">(</span><span class="n">bonds</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">n_atoms</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""A sparse n_atoms x n_atoms graph with one weighted edge per bond row."""</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span>
+        <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">1</span><span class="p">,),</span> <span class="n">weight</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">sparse</span><span class="o">.</span><span class="n">csr_matrix</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="p">(</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])),</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">n_atoms</span><span class="p">,</span> <span class="n">n_atoms</span><span class="p">)</span>
+    <span class="p">)</span>
+
+
 <span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ResidueKinforestData</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Per-block-type kinforest data rooted at the default jump connection</span>
@@ -1501,6 +1511,41 @@
     <span class="n">preds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">][:]</span>  <span class="c1"># BFS predecessors in TO; -9999 for root</span>
     <span class="n">bfto_2_orig</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">][:]</span>  <span class="c1"># BFS traversal order → TO (= KFO ordering)</span>
     <span class="n">dof_type</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">][:]</span>  <span class="c1"># NodeType per atom in TO</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_tree_bond_indices</span><span class="p">(</span><span class="n">bt</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""The block type's bonds plus one tree-only edge into each unbonded fragment.</span>
+
+<span class="sd">    A block type may hold several molecules, such as a ligand and a counter-ion.</span>
+<span class="sd">    Its icoors place each further fragment from an atom of another; that pair is</span>
+<span class="sd">    the edge the kinematic tree follows, though it is not a bond.</span>
+<span class="sd">    """</span>
+    <span class="n">bonds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">bond_indices</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">components</span><span class="p">(</span><span class="n">edges</span><span class="p">):</span>
+        <span class="n">graph</span> <span class="o">=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">csr_matrix</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">edges</span><span class="p">)),</span> <span class="p">(</span><span class="n">edges</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">edges</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])),</span>
+            <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">csgraph</span><span class="o">.</span><span class="n">connected_components</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">directed</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">n_fragments</span><span class="p">,</span> <span class="n">fragment</span> <span class="o">=</span> <span class="n">components</span><span class="p">(</span><span class="n">bonds</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">n_fragments</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">bonds</span>
+    <span class="n">joins</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">):</span>
+        <span class="n">parent_icoor</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">icoors_ancestors</span><span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">at_to_icoor_ind</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">parent</span> <span class="o">=</span> <span class="n">bt</span><span class="o">.</span><span class="n">atom_to_idx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">icoors</span><span class="p">[</span><span class="n">parent_icoor</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">fragment</span><span class="p">[</span><span class="n">parent</span><span class="p">]</span> <span class="o">!=</span> <span class="n">fragment</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+            <span class="n">joins</span> <span class="o">+=</span> <span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">parent</span><span class="p">),</span> <span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="n">i</span><span class="p">)]</span>
+    <span class="n">edges</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">bonds</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">joins</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)])</span>
+    <span class="k">if</span> <span class="n">components</span><span class="p">(</span><span class="n">edges</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">bt</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: its atoms form </span><span class="si">{</span><span class="n">n_fragments</span><span class="si">}</span><span class="s2"> unbonded fragments and its "</span>
+            <span class="s2">"icoors do not place each one from another, so no kinematic tree "</span>
+            <span class="s2">"reaches them all"</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">edges</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">block_group_kinforest_data</span><span class="p">(</span><span class="n">block_types</span><span class="p">,</span> <span class="n">links</span><span class="p">,</span> <span class="n">anchor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
@@ -1521,18 +1566,10 @@
     <span class="n">offsets</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cumsum</span><span class="p">([</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">block_types</span><span class="p">])</span>
     <span class="n">n_atoms</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">offsets</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_csgraph</span><span class="p">(</span><span class="n">bonds</span><span class="p">,</span> <span class="n">weight</span><span class="p">):</span>
-        <span class="n">weights</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span>
-            <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">1</span><span class="p">,),</span> <span class="n">weight</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
-        <span class="p">)</span>
-        <span class="k">return</span> <span class="n">sparse</span><span class="o">.</span><span class="n">csr_matrix</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="p">(</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])),</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">n_atoms</span><span class="p">,</span> <span class="n">n_atoms</span><span class="p">)</span>
-        <span class="p">)</span>
-
     <span class="n">all_bonds</span><span class="p">,</span> <span class="n">tor_bonds</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">block_types</span><span class="p">):</span>
         <span class="n">off</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">offsets</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-        <span class="n">all_bonds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">bond_indices</span><span class="p">)</span> <span class="o">+</span> <span class="n">off</span><span class="p">)</span>
+        <span class="n">all_bonds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_tree_bond_indices</span><span class="p">(</span><span class="n">bt</span><span class="p">)</span> <span class="o">+</span> <span class="n">off</span><span class="p">)</span>
         <span class="n">tor_bonds</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
             <span class="p">(</span><span class="n">uaids</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">off</span><span class="p">,</span> <span class="n">uaids</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">off</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">uaids</span> <span class="ow">in</span> <span class="n">bt</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
@@ -1558,7 +1595,9 @@
         <span class="k">else</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
     <span class="p">)</span>
 
-    <span class="n">bond_graph</span> <span class="o">=</span> <span class="n">_csgraph</span><span class="p">(</span><span class="n">all_bonds</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">_csgraph</span><span class="p">(</span><span class="n">tor_bonds</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.125</span><span class="p">)</span>
+    <span class="n">bond_graph</span> <span class="o">=</span> <span class="n">_bond_csgraph</span><span class="p">(</span><span class="n">all_bonds</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_atoms</span><span class="p">)</span> <span class="o">+</span> <span class="n">_bond_csgraph</span><span class="p">(</span>
+        <span class="n">tor_bonds</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.125</span><span class="p">,</span> <span class="n">n_atoms</span>
+    <span class="p">)</span>
     <span class="n">spanning_tree</span> <span class="o">=</span> <span class="n">csgraph</span><span class="o">.</span><span class="n">minimum_spanning_tree</span><span class="p">(</span><span class="n">bond_graph</span><span class="o">.</span><span class="n">tocsr</span><span class="p">())</span>
 
     <span class="n">jump_atom</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">offsets</span><span class="p">[</span><span class="n">anchor</span><span class="p">])</span> <span class="o">+</span> <span class="p">(</span>
@@ -1594,15 +1633,7 @@
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">bt</span><span class="p">,</span> <span class="s2">"residue_kinforest_data"</span><span class="p">):</span>
         <span class="k">return</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_bonds_to_csgraph</span><span class="p">(</span><span class="n">bonds</span><span class="p">,</span> <span class="n">edge_weight</span><span class="p">):</span>
-        <span class="n">weights_array</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">1</span><span class="p">,),</span> <span class="n">edge_weight</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-        <span class="n">weights</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">weights_array</span><span class="p">,</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">sparse</span><span class="o">.</span><span class="n">csr_matrix</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="p">(</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])),</span>
-            <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">),</span>
-        <span class="p">)</span>
-
-    <span class="n">potential_bonds</span> <span class="o">=</span> <span class="n">_bonds_to_csgraph</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">bond_indices</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">potential_bonds</span> <span class="o">=</span> <span class="n">_bond_csgraph</span><span class="p">(</span><span class="n">_tree_bond_indices</span><span class="p">(</span><span class="n">bt</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">)</span>
     <span class="n">tor_atoms</span> <span class="o">=</span> <span class="p">[</span>
         <span class="p">(</span><span class="n">uaids</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">uaids</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
         <span class="k">for</span> <span class="n">tor</span><span class="p">,</span> <span class="n">uaids</span> <span class="ow">in</span> <span class="n">bt</span><span class="o">.</span><span class="n">torsion_to_uaids</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
@@ -1613,7 +1644,7 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">tor_atoms</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">tor_atoms</span><span class="p">)</span>
 
-    <span class="n">prioritized_bonds</span> <span class="o">=</span> <span class="n">_bonds_to_csgraph</span><span class="p">(</span><span class="n">tor_atoms</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.125</span><span class="p">)</span>
+    <span class="n">prioritized_bonds</span> <span class="o">=</span> <span class="n">_bond_csgraph</span><span class="p">(</span><span class="n">tor_atoms</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.125</span><span class="p">,</span> <span class="n">bt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">)</span>
     <span class="n">bond_graph</span> <span class="o">=</span> <span class="n">potential_bonds</span> <span class="o">+</span> <span class="n">prioritized_bonds</span>
     <span class="n">bond_graph_spanning_tree</span> <span class="o">=</span> <span class="n">csgraph</span><span class="o">.</span><span class="n">minimum_spanning_tree</span><span class="p">(</span><span class="n">bond_graph</span><span class="o">.</span><span class="n">tocsr</span><span class="p">())</span>
 

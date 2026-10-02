@@ -587,7 +587,7 @@ workflow, and which of its steps have no counterpart here, see the
 
 <span class="n">param_db</span><span class="p">,</span> <span class="n">co</span> <span class="o">=</span> <span class="n">prepare_ligand_from_mol2</span><span class="p">(</span><span class="s2">"ligand.mol2"</span><span class="p">)</span>
 <span class="n">param_db</span><span class="p">,</span> <span class="n">co</span> <span class="o">=</span> <span class="n">prepare_ligand_from_cif</span><span class="p">(</span><span class="s2">"ligand.cif"</span><span class="p">)</span>
-<span class="n">param_db</span><span class="p">,</span> <span class="n">co</span> <span class="o">=</span> <span class="n">prepare_ligand_from_smiles</span><span class="p">(</span><span class="s2">"c1ccccc1C(=O)O"</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="s2">"BEN"</span><span class="p">)</span>
+<span class="n">param_db</span><span class="p">,</span> <span class="n">co</span> <span class="o">=</span> <span class="n">prepare_ligand_from_smiles</span><span class="p">(</span><span class="s2">"c1ccccc1C(=O)O"</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="s2">"L_1"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Each returns a new <code class="docutils literal notranslate"><span class="pre">(ParameterDatabase,</span> <span class="pre">CanonicalOrdering)</span></code>. The input database
@@ -634,7 +634,7 @@ prepare a ligand from MOL2 once, then load coordinate-only PDB or CIF complexes:
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand</span><span class="w"> </span><span class="kn">import</span> <span class="n">write_params_from_mol2</span>
 
 <span class="n">write_params_from_mol2</span><span class="p">(</span>
-    <span class="s2">"ligand.mol2"</span><span class="p">,</span> <span class="s2">"ligand.tmol"</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="s2">"LIG"</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"tmol"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"auto"</span>
+    <span class="s2">"ligand.mol2"</span><span class="p">,</span> <span class="s2">"ligand.tmol"</span><span class="p">,</span> <span class="n">res_name</span><span class="o">=</span><span class="s2">"L_1"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"auto"</span>
 <span class="p">)</span>
 <span class="n">pose_stack</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="n">pose_stack_from_file</span><span class="p">(</span>
     <span class="s2">"complex.pdb"</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span>
@@ -651,6 +651,9 @@ parameters are reused, and only unknown chemistry enters preparation. Unknown
 residues need chemical bond orders from the input or CCD; otherwise the error
 names the residue that needs more information. PDB <code class="docutils literal notranslate"><span class="pre">CONECT</span></code> records alone do not
 provide those orders.</p>
+<p>Name a custom ligand with a code containing <code class="docutils literal notranslate"><span class="pre">_</span></code> (TMol generates <code class="docutils literal notranslate"><span class="pre">L_1</span></code>, <code class="docutils literal notranslate"><span class="pre">L_2</span></code>, …):
+no CCD entry has one. A PDB or CIF residue whose atoms or bonds contradict the CCD
+entry of its name (PDBbind names ligands <code class="docutils literal notranslate"><span class="pre">MOL</span></code> or <code class="docutils literal notranslate"><span class="pre">ACT</span></code>) is read as its own component.</p>
 </section>
 <section id="reuse-prepared-context">
 <h2>Reuse Prepared Context<a class="headerlink" href="#reuse-prepared-context" title="Link to this heading">#</a></h2>
@@ -703,7 +706,7 @@ set, and packed block types for every structure.</p>
 <h2>SMILES to Params CLI<a class="headerlink" href="#smiles-to-params-cli" title="Link to this heading">#</a></h2>
 <p>The ligand-prep script writes a TMol <code class="docutils literal notranslate"><span class="pre">.tmol</span></code> parameter bundle:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>scripts/ligand_prep/smiles_to_params.py<span class="w"> </span><span class="s2">"&lt;SMILES&gt;"</span><span class="w"> </span>&lt;out_prefix&gt;<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--res-name<span class="w"> </span>LG1<span class="w"> </span>--ph<span class="w"> </span><span class="m">7</span>.4
+<span class="w">    </span>--res-name<span class="w"> </span>L_1<span class="w"> </span>--ph<span class="w"> </span><span class="m">7</span>.4
 </pre></div>
 </div>
 <p>Useful flags include <code class="docutils literal notranslate"><span class="pre">--no-protonate</span></code>, <code class="docutils literal notranslate"><span class="pre">--heavy-chi-samples</span></code>, and

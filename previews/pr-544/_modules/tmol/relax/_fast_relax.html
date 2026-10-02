@@ -468,7 +468,6 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">CartesianMinimizer</span><span class="p">,</span>
     <span class="n">run_cart_min</span><span class="p">,</span>
-    <span class="n">run_kin_min</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility._device</span><span class="w"> </span><span class="kn">import</span> <span class="n">synchronize_device</span>
@@ -558,25 +557,6 @@
                 <span class="sa">f</span><span class="s2">" 'fa_rep_pack_frac', 'fa_rep_min_frac', and optionally 'cst_frac', got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
             <span class="p">)</span>
     <span class="k">return</span> <span class="n">normalized</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_default_kin_min_fn</span><span class="p">(</span>
-    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
-    <span class="n">sfxn</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span>
-    <span class="o">*</span><span class="p">,</span>
-    <span class="n">fold_forest</span><span class="p">:</span> <span class="n">FoldForest</span><span class="p">,</span>
-    <span class="n">move_map</span><span class="p">:</span> <span class="n">MoveMap</span> <span class="o">|</span> <span class="n">CartesianMoveMap</span><span class="p">,</span>
-    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Default minimization function: kinematic (torsion-space) LBFGS."""</span>
-    <span class="k">return</span> <span class="n">run_kin_min</span><span class="p">(</span>
-        <span class="n">pose_stack</span><span class="p">,</span>
-        <span class="n">sfxn</span><span class="p">,</span>
-        <span class="n">fold_forest</span><span class="p">,</span>
-        <span class="n">move_map</span><span class="p">,</span>
-        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
-        <span class="n">optimizer_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">"verbose"</span><span class="p">:</span> <span class="n">verbose</span><span class="p">},</span>
-    <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_default_cart_min_fn</span><span class="p">(</span>
@@ -769,8 +749,13 @@
 
     <span class="n">fa_rep_start</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">sfxn</span><span class="o">.</span><span class="n">get_weight</span><span class="p">(</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">fa_ljrep</span><span class="p">))</span>
 
+    <span class="n">vary_protonation</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">packer_pallete</span><span class="p">,</span> <span class="s2">"protonation_alternatives"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
     <span class="n">wpsm</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
     <span class="n">best_score</span> <span class="o">=</span> <span class="n">wpsm</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">vary_protonation</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.protonation_alternatives</span><span class="w"> </span><span class="kn">import</span> <span class="n">protonation_state_energy</span>
+
+        <span class="n">best_score</span> <span class="o">=</span> <span class="n">best_score</span> <span class="o">+</span> <span class="n">protonation_state_energy</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
     <span class="k">del</span> <span class="n">wpsm</span>
     <span class="n">best_ps</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">clone_sharing_topology</span><span class="p">()</span>
 
@@ -797,7 +782,14 @@
                 <span class="n">release_between_stages</span><span class="o">=</span><span class="n">release_between_stages</span><span class="p">,</span>
             <span class="p">)</span>
 
-        <span class="n">best_ps</span><span class="p">,</span> <span class="n">best_score</span> <span class="o">=</span> <span class="n">accept_best</span><span class="p">(</span><span class="n">sfxn</span><span class="p">,</span> <span class="n">best_ps</span><span class="p">,</span> <span class="n">best_score</span><span class="p">,</span> <span class="n">ps</span><span class="p">,</span> <span class="n">verbose</span><span class="p">)</span>
+        <span class="n">best_ps</span><span class="p">,</span> <span class="n">best_score</span> <span class="o">=</span> <span class="n">accept_best</span><span class="p">(</span>
+            <span class="n">sfxn</span><span class="p">,</span>
+            <span class="n">best_ps</span><span class="p">,</span>
+            <span class="n">best_score</span><span class="p">,</span>
+            <span class="n">ps</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="p">,</span>
+            <span class="n">protonation_alternatives</span><span class="o">=</span><span class="n">vary_protonation</span><span class="p">,</span>
+        <span class="p">)</span>
         <span class="n">ps</span> <span class="o">=</span> <span class="n">best_ps</span><span class="o">.</span><span class="n">clone_sharing_topology</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">use_constraints</span><span class="p">:</span>
         <span class="c1"># Restore original constraint weight to the score function</span>
@@ -904,6 +896,8 @@
     <span class="n">best_pose_score</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:],</span>
     <span class="n">candidate_pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
     <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">protonation_alternatives</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:]]:</span>
 <span class="w">    </span><span class="sd">"""Keep the lower-scoring conformation independently for each pose.</span>
 
@@ -913,20 +907,34 @@
 <span class="sd">        best_pose_score: Best scores shaped ``[n_poses]``.</span>
 <span class="sd">        candidate_pose_stack: Newly minimized poses.</span>
 <span class="sd">        verbose: Print accepted scores.</span>
+<span class="sd">        protonation_alternatives: Include the same pH offsets used by packing;</span>
+<span class="sd">            ``best_pose_score`` must include them too.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Updated best poses and scores shaped ``[n_poses]``.</span>
 <span class="sd">    """</span>
     <span class="n">wpsm</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">candidate_pose_stack</span><span class="p">)</span>
     <span class="n">candidate_score</span> <span class="o">=</span> <span class="n">wpsm</span><span class="p">(</span><span class="n">candidate_pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">protonation_alternatives</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.protonation_alternatives</span><span class="w"> </span><span class="kn">import</span> <span class="n">protonation_state_energy</span>
+
+        <span class="n">candidate_score</span> <span class="o">=</span> <span class="n">candidate_score</span> <span class="o">+</span> <span class="n">protonation_state_energy</span><span class="p">(</span>
+            <span class="n">candidate_pose_stack</span>
+        <span class="p">)</span>
     <span class="n">better_mask</span> <span class="o">=</span> <span class="n">candidate_score</span> <span class="o">&lt;</span> <span class="n">best_pose_score</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">select_better</span><span class="p">(</span><span class="n">tensor_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="n">tensor</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">best_pose_stack</span><span class="p">,</span> <span class="n">tensor_name</span><span class="p">)</span>
+        <span class="n">candidate</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">candidate_pose_stack</span><span class="p">,</span> <span class="n">tensor_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tensor_name</span> <span class="o">==</span> <span class="s2">"coords"</span><span class="p">:</span>
+            <span class="c1"># A selected protonation state can add or remove hydrogens.</span>
+            <span class="n">width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">candidate</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">width</span> <span class="o">-</span> <span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="n">candidate</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+                <span class="n">candidate</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">width</span> <span class="o">-</span> <span class="n">candidate</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="p">)</span>
         <span class="n">new_tensor</span> <span class="o">=</span> <span class="n">tensor</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
-        <span class="n">new_tensor</span><span class="p">[</span><span class="n">better_mask</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">candidate_pose_stack</span><span class="p">,</span> <span class="n">tensor_name</span><span class="p">)[</span>
-            <span class="n">better_mask</span>
-        <span class="p">]</span>
+        <span class="n">new_tensor</span><span class="p">[</span><span class="n">better_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">candidate</span><span class="p">[</span><span class="n">better_mask</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">new_tensor</span>
 
     <span class="k">if</span> <span class="n">better_mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>

@@ -440,7 +440,9 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.score.cartbonded._cartbonded_energy_term</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">attrs</span>
 
@@ -461,6 +463,8 @@
     <span class="n">PoseStack</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.common</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_hashtable_keys_values</span><span class="p">,</span> <span class="n">add_to_hashtable</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 <span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span>
 
@@ -507,19 +511,13 @@
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_db</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">CartBondedEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">param_db</span><span class="o">=</span><span class="n">param_db</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 
-        <span class="c1"># Improper centres, kept keyed by the residue they were parameterised</span>
-        <span class="c1"># for. Flattened to bare names they match any block type that happens to</span>
-        <span class="c1"># share an atom name -- a calcium ion's atom is CA, as an alpha carbon</span>
-        <span class="c1"># is -- which would hand a ligand improper torsions built from protein</span>
-        <span class="c1"># parameters.</span>
+        <span class="c1"># Find the root of the improper torsions so that we can annotate them in the block types</span>
         <span class="k">def</span><span class="w"> </span><span class="nf">find_improper_roots</span><span class="p">(</span><span class="n">db</span><span class="p">):</span>
-            <span class="k">return</span> <span class="p">{</span>
-                <span class="n">res</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">(</span>
-                    <span class="n">imp</span><span class="o">.</span><span class="n">atm3</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="n">CROSS_RES_PREFIX</span><span class="p">)</span>
-                    <span class="k">for</span> <span class="n">imp</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">improper_parameters</span>
-                <span class="p">)</span>
-                <span class="k">for</span> <span class="n">res</span><span class="p">,</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">db</span><span class="o">.</span><span class="n">residue_params</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-            <span class="p">}</span>
+            <span class="n">roots</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">res</span><span class="p">,</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">db</span><span class="o">.</span><span class="n">residue_params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">imp</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">improper_parameters</span><span class="p">:</span>
+                    <span class="n">roots</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">imp</span><span class="o">.</span><span class="n">atm3</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="n">CROSS_RES_PREFIX</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">roots</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">improper_roots</span> <span class="o">=</span> <span class="n">find_improper_roots</span><span class="p">(</span><span class="n">param_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">cartbonded</span><span class="p">)</span>
 
@@ -594,20 +592,11 @@
                             <span class="k">continue</span>
                         <span class="n">torsions</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">atom1</span><span class="p">,</span> <span class="n">atom2</span><span class="p">,</span> <span class="n">atom3</span><span class="p">,</span> <span class="n">atom4</span><span class="p">))</span>
 
-        <span class="c1"># get improper torsions: those parameterised for this residue, plus the</span>
-        <span class="c1"># wildcard set that applies to every type. A wildcard root can still</span>
-        <span class="c1"># land on an atom with too few bonds to centre anything, so the degree</span>
-        <span class="c1"># is checked rather than assumed.</span>
-        <span class="n">roots</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">improper_roots</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_name</span><span class="p">(</span><span class="n">block_type</span><span class="p">),</span> <span class="nb">frozenset</span><span class="p">()</span>
-        <span class="p">)</span> <span class="o">|</span> <span class="bp">self</span><span class="o">.</span><span class="n">improper_roots</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"wildcard"</span><span class="p">,</span> <span class="nb">frozenset</span><span class="p">())</span>
-        <span class="k">for</span> <span class="n">improper_root</span> <span class="ow">in</span> <span class="n">roots</span><span class="p">:</span>
+        <span class="c1"># get improper torsions</span>
+        <span class="k">for</span> <span class="n">improper_root</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">improper_roots</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">improper_root</span> <span class="ow">in</span> <span class="n">block_type</span><span class="o">.</span><span class="n">atom_to_idx</span><span class="p">:</span>
                 <span class="n">atom3</span> <span class="o">=</span> <span class="n">block_type</span><span class="o">.</span><span class="n">atom_to_idx</span><span class="p">[</span><span class="n">improper_root</span><span class="p">]</span>
-                <span class="n">neighbors</span> <span class="o">=</span> <span class="n">bondmap</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">atom3</span><span class="p">,</span> <span class="p">())</span>
-                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">neighbors</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
-                    <span class="k">continue</span>
-                <span class="k">for</span> <span class="n">atom1</span><span class="p">,</span> <span class="n">atom2</span><span class="p">,</span> <span class="n">atom4</span> <span class="ow">in</span> <span class="n">permutations</span><span class="p">(</span><span class="n">neighbors</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">atom1</span><span class="p">,</span> <span class="n">atom2</span><span class="p">,</span> <span class="n">atom4</span> <span class="ow">in</span> <span class="n">permutations</span><span class="p">(</span><span class="n">bondmap</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">atom3</span><span class="p">,</span> <span class="p">()),</span> <span class="mi">3</span><span class="p">):</span>
                     <span class="n">improper</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">atom1</span><span class="p">,</span> <span class="n">atom2</span><span class="p">,</span> <span class="n">atom3</span><span class="p">,</span> <span class="n">atom4</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="p">(</span>
@@ -706,6 +695,8 @@
         <span class="c1"># variants and other score terms can retain their existing parameters.</span>
         <span class="n">parameter_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_name</span><span class="p">(</span><span class="n">block_type</span><span class="p">)</span>
         <span class="n">cartbonded_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_params_for_res</span><span class="p">(</span><span class="n">parameter_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">parameter_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cart_database</span><span class="o">.</span><span class="n">residue_params</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_warn_unparameterized</span><span class="p">(</span><span class="n">block_type</span><span class="p">,</span> <span class="n">lengths</span><span class="p">)</span>
         <span class="n">cb_block_ann</span> <span class="o">=</span> <span class="n">CartBondedBlockAnnotations</span><span class="p">(</span>
             <span class="n">cartbonded_subgraphs</span><span class="o">=</span><span class="n">cart_subgraphs</span><span class="p">,</span>
             <span class="n">cartbonded_subgraph_type_counts</span><span class="o">=</span><span class="n">cart_subgraph_type_counts</span><span class="p">,</span>
@@ -717,6 +708,29 @@
             <span class="s2">"_cartbonded_annotation"</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_block_annotation_key</span><span class="p">,</span>
             <span class="n">cb_block_ann</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">_warned_unparameterized</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_warn_unparameterized</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">block_type</span><span class="p">,</span> <span class="n">lengths</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Warn once per type whose own bonds have no rows, as HIS_POS had; HOH (the</span>
+<span class="sd">        readers drop water) and bonds to virtual atoms are exempt."""</span>
+        <span class="n">virtual</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">i</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">atom</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">block_type</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">atom</span><span class="o">.</span><span class="n">atom_type</span> <span class="o">==</span> <span class="s2">"Vrt"</span> <span class="ow">or</span> <span class="n">atom</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">block_type</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">virtual</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">block_type</span><span class="o">.</span><span class="n">base_name</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_warned_unparameterized</span> <span class="o">|</span> <span class="p">{</span><span class="s2">"HOH"</span><span class="p">}</span> <span class="ow">or</span> <span class="nb">all</span><span class="p">(</span>
+            <span class="p">{</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">}</span> <span class="o">&amp;</span> <span class="n">virtual</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">lengths</span>
+        <span class="p">):</span>
+            <span class="k">return</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">_warned_unparameterized</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">block_type</span><span class="o">.</span><span class="n">base_name</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">"cart_bonded has no parameters for </span><span class="si">%s</span><span class="s2"> or its variants (first seen: </span><span class="si">%s</span><span class="s2">): "</span>
+            <span class="s2">"their bond lengths and angles are unrestrained"</span><span class="p">,</span>
+            <span class="n">block_type</span><span class="o">.</span><span class="n">base_name</span><span class="p">,</span>
+            <span class="n">block_type</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_parameter_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_type</span><span class="p">):</span>

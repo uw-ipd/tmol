@@ -456,6 +456,7 @@
 <span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">struc</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -465,6 +466,13 @@
 <span class="n">_MISSING_CIF_VALUE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="s2">"."</span><span class="p">,</span> <span class="s2">"?"</span><span class="p">)</span>
 <span class="n">_FORMAL_CHARGE_SPECIFIED</span> <span class="o">=</span> <span class="s2">"tmol_formal_charge_specified"</span>
 <span class="n">_SOURCE_FORMAL_CHARGE</span> <span class="o">=</span> <span class="s2">"tmol_source_formal_charge"</span>
+<span class="c1"># neutral valence of the atoms whose deposited charge their bonds can contradict</span>
+<span class="n">_CHARGE_VALENCE</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"C"</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">"O"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">"F"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"CL"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"BR"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"I"</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
+<span class="c1"># (fewest, most) bond orders each BondType can stand for, indexed by its value</span>
+<span class="n">_BOND_ORDER_RANGE</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span>
+<span class="p">)</span>
 
 
 <div class="viewcode-block" id="component_chemistry_from_cif">
@@ -530,17 +538,6 @@
             <span class="p">],</span>
             <span class="n">dtype</span><span class="o">=</span><span class="s2">"U4"</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">bonds</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">bonds</span><span class="o">.</span><span class="n">as_array</span><span class="p">()</span>
-        <span class="n">aromatic</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span>
-            <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span>
-            <span class="p">[</span>
-                <span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">AROMATIC_SINGLE</span><span class="p">,</span>
-                <span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">AROMATIC_DOUBLE</span><span class="p">,</span>
-                <span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">AROMATIC_TRIPLE</span><span class="p">,</span>
-            <span class="p">],</span>
-        <span class="p">)</span>
-        <span class="n">bonds</span><span class="p">[</span><span class="n">aromatic</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">AROMATIC</span>
-        <span class="n">array</span><span class="o">.</span><span class="n">bonds</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">BondList</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">array</span><span class="p">),</span> <span class="n">bonds</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">entries</span>
 
 
@@ -572,7 +569,7 @@
     <span class="n">model</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">assembly_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Read a PDB, CIF, compressed CIF or binary CIF into an AtomArray.</span>
+<span class="w">    </span><span class="sd">"""Read a PDB, CIF, compressed CIF, binary CIF, MOL2 or SDF into an AtomArray.</span>
 
 <span class="sd">    Preserve supplied names, coordinates, hydrogens and covalent connections.</span>
 <span class="sd">    Declared unresolved heavy atoms have NaN coordinates. Chemistry the file</span>
@@ -585,6 +582,14 @@
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._atomworks_reader</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_structure</span>
 
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cif_path</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">))</span> <span class="ow">and</span> <span class="n">Path</span><span class="p">(</span><span class="n">cif_path</span><span class="p">)</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span>
+        <span class="s2">".mol2"</span><span class="p">,</span>
+        <span class="s2">".sdf"</span><span class="p">,</span>
+        <span class="s2">".mol"</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._assemble</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_mol2</span>
+
+        <span class="k">return</span> <span class="n">atom_array_from_mol2</span><span class="p">(</span><span class="n">cif_path</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">assembly_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
         <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">assembly_id</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">assembly_id</span>
     <span class="p">):</span>
@@ -600,7 +605,7 @@
         <span class="n">custom_ccd_residues</span><span class="p">,</span>
         <span class="n">get_available_ccd_codes</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.leaving_atoms</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_leaving_atoms</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.link_chemistry</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_leaving_atoms</span>
 
     <span class="n">authored_charges</span> <span class="o">=</span> <span class="n">_component_formal_charges</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
     <span class="n">available_ccds</span> <span class="o">=</span> <span class="n">get_available_ccd_codes</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
@@ -633,7 +638,11 @@
     <span class="c1"># AtomWorks skips sanitation when its own completion is disabled. Repair</span>
     <span class="c1"># the final author-view graph with the same shared attachment chemistry.</span>
     <span class="k">with</span> <span class="n">custom_ccd_residues</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">_custom_ccd_registry</span><span class="p">):</span>
-        <span class="n">specified</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="s2">"pdbx_formal_charge"</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">array</span><span class="p">),</span> <span class="s2">"?"</span><span class="p">))</span>
+        <span class="c1"># PoseBusters 6TW5 (Cl1-): a PDB states charges in its charge column,</span>
+        <span class="c1"># where blank reads as 0</span>
+        <span class="n">stated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">charge</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">array</span><span class="o">.</span><span class="n">charge</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">),</span> <span class="s2">"?"</span><span class="p">)</span>
+        <span class="n">stated</span> <span class="o">=</span> <span class="n">stated</span> <span class="k">if</span> <span class="n">block</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">array</span><span class="p">),</span> <span class="s2">"?"</span><span class="p">)</span>
+        <span class="n">specified</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="s2">"pdbx_formal_charge"</span><span class="p">,</span> <span class="n">stated</span><span class="p">)</span>
         <span class="n">charge_specified</span> <span class="o">=</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">specified</span><span class="p">,</span> <span class="n">_MISSING_CIF_VALUE</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">charge_specified</span><span class="p">):</span>
             <span class="n">array</span><span class="o">.</span><span class="n">charge</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">specified</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
@@ -668,8 +677,69 @@
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="s2">"pdbx_formal_charge"</span><span class="p">):</span>
             <span class="n">array</span><span class="o">.</span><span class="n">del_annotation</span><span class="p">(</span><span class="s2">"pdbx_formal_charge"</span><span class="p">)</span>
         <span class="n">array</span> <span class="o">=</span> <span class="n">with_unresolved_atoms</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">templates</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">resolve_leaving_atoms</span><span class="p">(</span><span class="n">array</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+        <span class="k">return</span> <span class="n">_without_misstated_charges</span><span class="p">(</span><span class="n">resolve_leaving_atoms</span><span class="p">(</span><span class="n">array</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">templates</span><span class="p">)</span></div>
 
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_without_misstated_charges</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">templates</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""``array`` with the charges its bonded C, N, O and halogen atoms cannot carry set to 0.</span>
+
+<span class="sd">    Off a metal, such a charge leaves too little room for the atom's bonds (1MHK</span>
+<span class="sd">    S:13 BR -1 bonded to a uridine C5), or the dictionary does not state it and it</span>
+<span class="sd">    is two or more where the bonds need none (7TJM 7:103 GLU OE2 +7) or +1 on an</span>
+<span class="sd">    oxygen with fewer than three bonds (3ZLP n:107 GLU OE1, a carboxylate's -1</span>
+<span class="sd">    deposited unsigned). The pH then decides the atom.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">METAL_ELEMENTS</span>
+
+    <span class="n">element</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">upper</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">element</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">))</span>
+    <span class="n">valence</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">_CHARGE_VALENCE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">element</span><span class="p">])</span>
+    <span class="n">charge</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">charge</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">array</span><span class="o">.</span><span class="n">bonds</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="p">((</span><span class="n">valence</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">charge</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">array</span>
+    <span class="n">bonds</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">bonds</span><span class="o">.</span><span class="n">as_array</span><span class="p">()</span>
+    <span class="n">fewest</span><span class="p">,</span> <span class="n">most</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">table</span><span class="p">[</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]],</span> <span class="nb">len</span><span class="p">(</span><span class="n">array</span><span class="p">))</span>
+        <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">table</span><span class="p">[</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]],</span> <span class="nb">len</span><span class="p">(</span><span class="n">array</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">_BOND_ORDER_RANGE</span>
+    <span class="p">)</span>
+    <span class="n">metal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">element</span><span class="p">,</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">METAL_ELEMENTS</span><span class="p">))</span>
+    <span class="n">by_metal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">array</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="n">by_metal</span><span class="p">[</span><span class="n">bonds</span><span class="p">[</span><span class="n">metal</span><span class="p">[</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]],</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">by_metal</span><span class="p">[</span><span class="n">bonds</span><span class="p">[</span><span class="n">metal</span><span class="p">[</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]],</span> <span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">room</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">element</span> <span class="o">==</span> <span class="s2">"C"</span><span class="p">,</span> <span class="n">valence</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">charge</span><span class="p">),</span> <span class="n">valence</span> <span class="o">+</span> <span class="n">charge</span><span class="p">)</span>
+    <span class="n">unstated</span> <span class="o">=</span> <span class="p">(</span><span class="n">valence</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span>
+        <span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">charge</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">fewest</span> <span class="o">&lt;=</span> <span class="n">valence</span><span class="p">))</span>
+        <span class="o">|</span> <span class="p">((</span><span class="n">element</span> <span class="o">==</span> <span class="s2">"O"</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">charge</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">most</span> <span class="o">&lt;</span> <span class="n">room</span><span class="p">))</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">unstated</span><span class="p">):</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+        <span class="n">template</span> <span class="o">=</span> <span class="n">templates</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">template</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">template</span> <span class="o">=</span> <span class="n">_component_dictionary_template</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">unstated</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">template</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">charge</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="n">template</span><span class="o">.</span><span class="n">charge</span><span class="p">[</span><span class="n">template</span><span class="o">.</span><span class="n">atom_name</span> <span class="o">==</span> <span class="n">array</span><span class="o">.</span><span class="n">atom_name</span><span class="p">[</span><span class="n">index</span><span class="p">]]</span>
+        <span class="p">)</span>
+    <span class="n">misstated</span> <span class="o">=</span> <span class="p">(</span><span class="n">valence</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">fewest</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">by_metal</span>
+    <span class="n">misstated</span> <span class="o">&amp;=</span> <span class="p">((</span><span class="n">room</span> <span class="o">&lt;</span> <span class="n">valence</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">fewest</span> <span class="o">&gt;</span> <span class="n">room</span><span class="p">))</span> <span class="o">|</span> <span class="n">unstated</span>
+    <span class="c1"># ligands are prepared by name, so a charge another copy of the atom keeps stays</span>
+    <span class="n">named</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">res_name</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">),</span> <span class="s2">"/"</span><span class="p">),</span> <span class="n">array</span><span class="o">.</span><span class="n">atom_name</span><span class="p">)</span>
+    <span class="n">named</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">named</span><span class="p">,</span> <span class="s2">"/"</span><span class="p">),</span> <span class="n">charge</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">))</span>
+    <span class="n">misstated</span> <span class="o">&amp;=</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">named</span><span class="p">,</span> <span class="n">named</span><span class="p">[</span><span class="o">~</span><span class="n">misstated</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">charge</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)])</span>
+    <span class="k">if</span> <span class="n">misstated</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">"Ignored the charges of </span><span class="si">%s</span><span class="s2">, which their bonded atoms cannot carry"</span><span class="p">,</span>
+            <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">array</span><span class="o">.</span><span class="n">chain_id</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">array</span><span class="o">.</span><span class="n">res_id</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">/"</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">array</span><span class="o">.</span><span class="n">atom_name</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">charge</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">:</span><span class="s2">+d</span><span class="si">}</span><span class="s2">"</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">misstated</span><span class="p">)</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">array</span><span class="o">.</span><span class="n">charge</span><span class="p">[</span><span class="n">misstated</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">specified</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">get_annotation</span><span class="p">(</span><span class="n">_FORMAL_CHARGE_SPECIFIED</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">specified</span><span class="p">[</span><span class="n">misstated</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">array</span><span class="o">.</span><span class="n">set_annotation</span><span class="p">(</span><span class="n">_FORMAL_CHARGE_SPECIFIED</span><span class="p">,</span> <span class="n">specified</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">array</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_component_formal_charges</span><span class="p">(</span><span class="n">block</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="nb">int</span><span class="p">]:</span>
@@ -801,11 +871,8 @@
     <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">residue</span><span class="p">,</span> <span class="n">template</span><span class="p">,</span> <span class="n">linked</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">,</span> <span class="n">chemistry</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">warned</span><span class="p">:</span> <span class="nb">set</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Sorted heavy template atoms ``residue`` lacks; ``None`` if taken as resolved.</span>
-
-<span class="sd">    ``chemistry`` caches each component's heavy atoms and leaving groups, and</span>
-<span class="sd">    ``warned`` holds the components already reported as unaccounted for.</span>
-<span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.leaving_atoms</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_leaving_atom_groups</span>
+<span class="sd">    ``chemistry`` caches heavy atoms and leaving groups; ``warned``, reported names."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.link_chemistry</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_leaving_atom_groups</span>
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._input_repair</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_absent_substitution_leaving_groups</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._polymer_profile</span><span class="w"> </span><span class="kn">import</span> <span class="n">completed_connection_atoms</span>

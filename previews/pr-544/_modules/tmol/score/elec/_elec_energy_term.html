@@ -782,8 +782,8 @@
         <span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">setup_packed_block_types</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="p">[</span>
-            <span class="n">pose_stack</span><span class="o">.</span><span class="n">min_block_bondsep</span><span class="p">,</span>
-            <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_block_bondsep</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_block_bondsep</span><span class="o">.</span><span class="n">near_blocks</span><span class="p">,</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_block_bondsep</span><span class="o">.</span><span class="n">bondsep</span><span class="p">,</span>
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span>
             <span class="n">parameters</span><span class="o">.</span><span class="n">charges</span><span class="p">,</span>
             <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">n_conn</span><span class="p">,</span>
