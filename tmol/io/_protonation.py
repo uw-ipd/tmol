@@ -26,6 +26,7 @@ from tmol.database.chemical import (
     special_case_variant_index,
 )
 from tmol.io._cif import _FORMAL_CHARGE_SPECIFIED
+from tmol.io._input_termini import EXPLICIT_TERMINI
 from tmol.utility.weak_identity_cache import WeakIdentityLRU
 
 # per atom, the res_type_variant its residue's protonation state selects; -1 for none
@@ -167,6 +168,38 @@ def hydrogens_by_parent(template: struc.AtomArray) -> numpy.ndarray:
     return numpy.bincount(parent, minlength=len(template))
 
 
+def _cache_protonation_states(keys, states):
+    """Update the bounded state cache under its lock."""
+    with _STATE_LOCK:
+        for key in keys:
+            _STATES[key] = states[key]
+            _STATES.move_to_end(key)
+        while len(_STATES) > _STATE_CAPACITY:
+            _STATES.popitem(last=False)
+
+
+def _stated_terminal_variants(template, starts, lacking, forms):
+    """Database variants for complete, explicitly supplied free amines."""
+    variant = numpy.full(len(template), -1, dtype=numpy.int8)
+    if EXPLICIT_TERMINI in template.get_annotation_categories():
+        stated = template.get_annotation(EXPLICIT_TERMINI)[starts[:-1]]
+        count = hydrogens_by_parent(template)
+        # Complete input states need no protonation call, including their zero
+        # hydrogens on the unprotonated atom of a histidine tautomer.
+        for r in numpy.flatnonzero(~lacking & ((stated & 1) != 0)):
+            begin, end = starts[r : r + 2]
+            name = template.res_name[begin]
+            if name in (forms or {}):
+                state = {
+                    str(template.atom_name[i]): (int(count[i]), 0)
+                    for i in range(begin, end)
+                }
+                chosen = _variant(forms[name], state, terminal=True)
+                if chosen >= NEUTRAL_TERMINUS_VAR_BASE:
+                    variant[begin:end] = chosen
+    return variant
+
+
 def with_atomworks_hydrogens(
     structure: struc.AtomArray | struc.AtomArrayStack,
     *,
@@ -205,7 +238,12 @@ def with_atomworks_hydrogens(
         ValueError: If the models of a stack are protonated differently.
     """
     starts, lacking = residues_lacking_hydrogens(structure, residue_names, forms)
+    template = _template(structure)
+    variant = _stated_terminal_variants(template, starts, lacking, forms)
     if not lacking.any():
+        if (variant >= 0).any():
+            structure = structure.copy()
+            structure.set_annotation(PROTONATION_VARIANT, variant)
         return structure
     bonds_given = _template(structure).bonds is not None
     if not bonds_given:
@@ -295,14 +333,8 @@ def with_atomworks_hydrogens(
                 for i in range(starts[r], starts[r + 1])
             }
         if cacheable:
-            with _STATE_LOCK:
-                for key in new:
-                    _STATES[key] = states[key]
-                    _STATES.move_to_end(key)
-                while len(_STATES) > _STATE_CAPACITY:
-                    _STATES.popitem(last=False)
+            _cache_protonation_states(new, states)
 
-    variant = numpy.full(n_atoms, -1, dtype=numpy.int8)
     for r, key in zip(asked, keys):
         variant[starts[r] : starts[r + 1]] = _variant(
             forms[res_name[r]], states[key], terminal[r]
@@ -534,6 +566,9 @@ def _polymer_gap_links(
     u, d = atom_by_residue(upper)[:-1], atom_by_residue(lower)[1:]
     gap = same_chain & (u >= 0) & (d >= 0)
     gap &= ~linked[u] & ~linked[d]
+    if EXPLICIT_TERMINI in template.get_annotation_categories():
+        stated = template.get_annotation(EXPLICIT_TERMINI)[starts[:-1]]
+        gap &= ((stated[:-1] & 2) == 0) & ((stated[1:] & 1) == 0)
     if "is_polymer" in template.get_annotation_categories():
         # 8GPB AMP A930/A940: free nucleotides of one chain are no neighbours
         polymer = template.is_polymer[starts[:-1]].astype(bool)

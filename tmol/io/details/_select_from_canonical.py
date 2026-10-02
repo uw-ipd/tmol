@@ -474,10 +474,12 @@ def determine_chain_ending_status(
 
 
 def _termini_the_atoms_state(pbt, present, restypes, variants, termini, broken, real):
-    """Termini with a gap side made a terminus where only that fits the given atoms.
+    """Termini at a gap when that explains more of the supplied atoms.
 
     PDBbind v2020 1ERR A:74 (PrepWizard) caps its chain break with H1 and H2,
     which no mid-chain ALA holds; a heavy-atom input still fits mid-chain.
+    A generic H already incompatible with an inferred amino terminus must not
+    hide a supplied OXT on its other end (2JDM's first pocket residue).
     """
     can_ann = pbt.canonical_ordering_annotation
     down = (termini == 0) | (termini == 3) | broken[..., 0]
@@ -485,14 +487,25 @@ def _termini_the_atoms_state(pbt, present, restypes, variants, termini, broken, 
     alt = torch.where(down & up, 3, torch.where(down, 0, torch.where(up, 2, 1)))
     restypes, variants = restypes.clamp(min=0), variants.clamp(min=0)
 
-    def unfit(t):
+    def unmatched(t):
         cands = can_ann.var_combo_candidate_bt_index[restypes, t, variants]
         real_cand = can_ann.var_combo_is_real_candidate[restypes, t, variants]
         absent = can_ann.bt_canonical_atom_is_absent[cands.clamp(min=0)]
-        absent |= ~real_cand[..., None]
-        return (present[:, :, None] & absent).any(-1).all(-1)
+        missing = present[:, :, None] & absent
+        count = missing.sum(-1).masked_fill(~real_cand, present.shape[-1] + 1)
+        fewest = count.min(-1).values
+        best = real_cand & (count == fewest[..., None])
+        return missing, best[..., None], fewest
 
-    switch = real & (alt != termini) & unfit(termini) & ~unfit(alt)
+    before, best_before, count_before = unmatched(termini)
+    after, best_after, count_after = unmatched(alt)
+    # Every best alternative must retain every atom any best original could keep.
+    # A smaller count alone could trade away a heavy atom for more hydrogen names.
+    allowed_missing = (before | ~best_before).all(-2)
+    could_lose = (after & best_after).any(-2) & ~allowed_missing
+    switch = (
+        real & (alt != termini) & (count_after < count_before) & ~could_lose.any(-1)
+    )
     return torch.where(switch, alt, termini)
 
 

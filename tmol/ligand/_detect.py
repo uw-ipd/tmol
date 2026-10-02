@@ -424,6 +424,20 @@ def _apply_mol2_metadata(mol, text):
     mol.GetConformer().SetPositions(np.asarray(coordinates, dtype=np.float64))
     synthesized_charges: dict = {}
     _infer_oxyacid_bonds(mol, declared_charges, delocalized_bonds, synthesized_charges)
+    # O.co2 also states an oxyanion when its bonds are already localized.
+    # OpenBabel otherwise leaves singly bonded phosphate oxygens as radicals.
+    for atom in mol.GetAtoms():
+        index = atom.GetIdx()
+        if (
+            index not in declared_charges
+            and atom.GetProp("_TriposAtomType") == "O.co2"
+            and atom.GetDegree() == 1
+        ):
+            bond = atom.GetBonds()[0]
+            if bond.GetBondType() in (Chem.BondType.SINGLE, Chem.BondType.DOUBLE):
+                charge = int(bond.GetBondTypeAsDouble()) - 2
+                atom.SetFormalCharge(charge)
+                synthesized_charges[index] = charge
     return declared_charges, synthesized_charges
 
 
@@ -530,20 +544,33 @@ def nonstandard_residue_info_from_mol2_block(
     probe = Chem.Mol(mol)
     invalid = bool(Chem.SanitizeMol(probe, catchErrors=True))
     charge_model = _mol2_charge_model_from_text(mol2_block)
-    # Tripos ``ar`` bonds carry no kekulization, so a reader that picks the
-    # wrong Kekule structure can return a sanitizable but different molecule --
-    # a pyrrole-type ring nitrogen comes back protonated and cationic. The mol2
-    # records every nonzero formal charge, so a net charge that disagrees with
-    # what was declared means the chemistry was rewritten, not just perceived.
-    # Localization legitimately adds charges the file never wrote, so the net to
-    # compare against is what the file declared plus what localization put
-    # there. Anything else is the reader having changed the molecule.
+    prepared_net = None
+    if _charge_model_is_authoritative(charge_model) and all(
+        atom.HasProp("_TriposPartialCharge") for atom in mol.GetAtoms()
+    ):
+        total = sum(
+            atom.GetDoubleProp("_TriposPartialCharge") for atom in mol.GetAtoms()
+        )
+        if np.isfinite(total) and abs(total - round(total)) <= 1e-3:
+            prepared_net = round(total)
+    # Aromatic bond types may omit the charge needed for a valid Kekule form.
+    # Prepared partial charges constrain the total; explicit formal charges
+    # constrain individual atoms. Without a prepared total, retain the source's
+    # declared charges plus those implied by oxyacid bond localization.
     declared_net = sum(declared_charges.values())
-    expected_net = declared_net + sum(synthesized_charges.values())
+    expected_net = (
+        prepared_net
+        if prepared_net is not None
+        else declared_net + sum(synthesized_charges.values())
+    )
     rewritten = not invalid and Chem.GetFormalCharge(probe) != expected_net
     if invalid or rewritten:
         try:
-            alternate = obabel_read_mol2_block(mol2_block)
+            alternate = obabel_read_mol2_block(
+                mol2_block,
+                net_charge=prepared_net,
+                atom_charges={**declared_charges, **synthesized_charges},
+            )
         except OpenBabelUnavailableError:
             alternate = None
         if alternate is not None and [
@@ -557,19 +584,20 @@ def nonstandard_residue_info_from_mol2_block(
                 alternate.GetAtomWithIdx(i).GetFormalCharge() == charge
                 for i, charge in declared_charges.items()
             )
+            expected_alternate_net = prepared_net
+            if expected_alternate_net is None and not invalid:
+                expected_alternate_net = declared_net + sum(
+                    alternate_synthesized.values()
+                )
             if (
                 preserves_charges
                 and not Chem.SanitizeMol(alternate, catchErrors=True)
                 and not any(
                     atom.GetNumRadicalElectrons() for atom in alternate.GetAtoms()
                 )
-                # When the primary reader is unusable the alternate is the only
-                # candidate; require the declared net charge only when we are
-                # rejecting a primary that parsed but rewrote the chemistry.
                 and (
-                    invalid
-                    or Chem.GetFormalCharge(alternate)
-                    == declared_net + sum(alternate_synthesized.values())
+                    expected_alternate_net is None
+                    or Chem.GetFormalCharge(alternate) == expected_alternate_net
                 )
             ):
                 mol = alternate

@@ -854,3 +854,43 @@ def test_a_component_of_unbonded_fragments_builds_scores_packs_and_minimizes(
     assert (
         float(energy(minimized.coords).sum()) <= float(energy(pose.coords).sum()) + 1e-3
     )
+
+
+def test_localized_mol2_oxyanions_survive_fallback_reader(torch_device):
+    """PDBbind 1AKW's FMN needs both the correct ring and its stated O.co2 charges."""
+    import numpy as np
+    from tmol.io import pose_stack_from_biotite
+    from tmol.ligand._detect import nonstandard_residue_info_from_mol2
+
+    path = DATA / "sweep_regressions" / "localized_oxyacid_1akw.mol2"
+    source = nonstandard_residue_info_from_mol2(path, res_name="FMN").atom_array
+    assert source.charge.sum() == -2
+    assert source.charge[source.atom_name == "O1P"].tolist() == [0]
+    assert source.charge[source.atom_name == "O2P"].tolist() == [-1]
+    assert source.charge[source.atom_name == "O3P"].tolist() == [-1]
+    pose, context = pose_stack_from_biotite(
+        source, torch_device, prepare_ligands=True, return_context=True, no_optH=True
+    )
+    block = pose.packed_block_types.active_block_types[int(pose.block_type_ind[0, 0])]
+    heavy = source[source.element != "H"]
+    coords = pose.coords[0, [block.atom_to_idx[name] for name in heavy.atom_name]]
+    np.testing.assert_allclose(coords.cpu(), heavy.coord, atol=1e-5)
+    _score_and_minimize_ligand(pose, context.parameter_database)
+
+
+@pytest.mark.parametrize("charge", [0, -1])
+def test_mol2_oxyacid_type_preserves_declared_charge(charge):
+    from rdkit import Chem
+    from tmol.ligand._detect import _apply_mol2_metadata
+
+    text = (
+        "@<TRIPOS>MOLECULE\noxygen\n2 1 0\nSMALL\nNO_CHARGES\n"
+        "@<TRIPOS>ATOM\n1 P 0 0 0 P.3\n2 O 1.5 0 0 O.co2\n"
+        "@<TRIPOS>BOND\n1 1 2 1\n"
+        f"@<TRIPOS>UNITY_ATOM_ATTR\n2 1\ncharge {charge}\n"
+    )
+    molecule = Chem.MolFromMol2Block(text, sanitize=False, removeHs=False)
+    declared, synthesized = _apply_mol2_metadata(molecule, text)
+    assert declared == {1: charge}
+    assert 1 not in synthesized
+    assert molecule.GetAtomWithIdx(1).GetFormalCharge() == charge

@@ -433,5 +433,21 @@
   "sha256": "320d2a30831fdd53e3d3e7e04a3db40dfc360455015b89b6b3abf50bb447da4f",
   "bytes": 3012,
   "compressed_sha256": "9ef8a9eb5d07ced7a9ad3cd7fddea8bf606abc4b91267b3530f825745194f4ec"
+ },
+ {
+  "fixture": "localized_oxyacid_1akw.mol2",
+  "source": "CoreWeave PDBbind v2020_partial/v2020-other-PL_5/1akw/1akw_prot/1akw_l.mol2",
+  "source_sha256": "93bff01b08d6b45dc0c84fd08705257e0cdd578b78aafb1015b5211680efd7b8",
+  "transformation": "Trimmed trailing whitespace only; all50atoms/52bonds, coordinates, types and charges retained. FMN ring requires OpenBabel fallback; localized O.co2 phosphate charges must remain0,-1,-1.",
+  "purpose": "Preserve oxyanion formal charges after aromatic fallback, independently of whether the source uses delocalized or localized bonds.",
+  "fixture_sha256": "47ac68ff15dc193b11e113dc220460fa0eec6bec0cbe799b64d69471e296e6a3"
+ },
+ {
+  "fixture": "stated_terminus_5lh4.pdb",
+  "source": "CoreWeave PDBbind v2020 5lh4_prot/5lh4_p.pdb",
+  "source_sha256": "a62c3a94a758d4b1ff83e41e646dd5cb33adf9f9bc5039e9e2c7a16469ebe51e",
+  "transformation": "Retained original ATOM/HETATM lines for chain A residues 130 and 132; trimmed trailing whitespace and added END. Names, coordinates and charges unchanged.",
+  "purpose": "A supplied neutral H1/H2 terminus must not be reconnected across a missing residue even at a 1.94 Angstrom C-N gap.",
+  "fixture_sha256": "2f9bb310f2e48dbc1236fd12d976dc496d539b3ef3662095f92f042f7c2509a3"
  }
 ]
