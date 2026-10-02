@@ -65,7 +65,12 @@ def terminus_templates(chemdb, profile):
     grouped: dict = {}
     for variant in chemdb.variants:
         types = variant.applies_to.backbone_types
-        if types is None or base not in types:
+        # a patch scoped to named types is theirs alone (nterm_neutral, built per type)
+        if (
+            types is None
+            or base not in types
+            or variant.applies_to.base_names is not None
+        ):
             continue
         removed = " ".join(str(a) for a in variant.remove_atoms)
         if "{down}" in removed:
