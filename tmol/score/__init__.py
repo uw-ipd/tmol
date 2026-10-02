@@ -38,21 +38,24 @@ if TYPE_CHECKING:
     pass
 
 
-def _non_memoized_beta2016(
-    device: torch.device, param_db: Optional[ParameterDatabase] = None
+def _load_score_function(
+    filename: str, device: torch.device, param_db: Optional[ParameterDatabase] = None
 ) -> "ScoreFunction":
-    """Build a beta_nov2016 score function without memoization."""
+    """Build a score function from a weights file in ``tmol/database/score_functions``."""
     if param_db is None:
         param_db = ParameterDatabase.get_default()
 
     _weights_path = os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "database",
-        "score_functions",
-        "beta2016.sfxn",
+        os.path.dirname(__file__), "..", "database", "score_functions", filename
     )
     return ScoreFunction.from_sfxn_file(_weights_path, param_db, device)
+
+
+def _non_memoized_beta2016(
+    device: torch.device, param_db: Optional[ParameterDatabase] = None
+) -> "ScoreFunction":
+    """Build a beta_nov2016 score function without memoization."""
+    return _load_score_function("beta2016.sfxn", device, param_db)
 
 
 @toolz.functoolz.memoize
@@ -93,6 +96,42 @@ def beta2016_score_function(
     return _memoized_beta2016(device)
 
 
+def beta_nov16_dens_score_function(
+    device: torch.device,
+    density_map: "ElectronDensityMap",  # noqa: F821
+    resolution: float,
+    param_db: Optional[ParameterDatabase] = None,
+    *,
+    scale_sidechains: bool = True,
+) -> "ScoreFunction":
+    """Return beta_nov2016 plus the ``elec_dens_fast`` fit-to-density term for one observed map.
+
+    The weights are those of Rosetta's cryo-EM refinement script: ``fa_rep`` 0.05, ``cart_angles`` and
+    ``cart_impropers`` 1.0, and ``elec_dens_fast`` 35. Rosetta's FastRelax scales ``fa_rep`` per stage; do that
+    with ``ScoreFunction.set_weight``.
+
+    Args:
+        device: Target torch device.
+        density_map: Observed map, e.g. from :func:`tmol.score.density.read_mrc`.
+        resolution: Map resolution in Angstrom; it sets the width of the atom kernel.
+        param_db: Optional parameter database; the process default is used when omitted.
+        scale_sidechains: Apply Rosetta's per-residue side-chain density scale.
+
+    Returns:
+        A new ScoreFunction. It is not memoized, because it is bound to ``density_map``.
+    """
+    sfxn = _load_score_function("beta_nov16_dens.sfxn", device, param_db)
+    sfxn.set_options(
+        {
+            **sfxn.term_options,
+            "density_map": density_map,
+            "density_resolution": resolution,
+            "density_scale_sidechains": scale_sidechains,
+        }
+    )
+    return sfxn
+
+
 __all__ = [
     "AcceptorHybridization",
     "AtomTypeParamResolver",
@@ -106,5 +145,6 @@ __all__ = [
     "ScoreType",
     "WholePoseScoringModule",
     "beta2016_score_function",
+    "beta_nov16_dens_score_function",
     "calculate_fragment_interactions",
 ]
