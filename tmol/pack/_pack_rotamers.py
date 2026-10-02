@@ -6,7 +6,7 @@ import time
 import attr
 import torch
 
-from tmol.pose import PDBInfo, PoseStack, PoseStackBuilder
+from tmol.pose import PoseStack, PoseStackBuilder
 from tmol.score import ScoreFunction
 
 from tmol.pack import (
@@ -27,18 +27,31 @@ def pack_rotamers(
     sfxn: ScoreFunction,
     task: PackerTask,
     verbose: bool = False,
+    seed: int | None = None,
 ) -> PoseStack:
     """Optimize side-chain conformers for a pose stack.
+
+    The annealer draws from torch's generator on the pose device, so
+    ``torch.manual_seed`` controls it on the CPU as on CUDA.
 
     Args:
         pose_stack: Poses whose task-enabled blocks will be packed.
         sfxn: Score function used to rank rotamer assignments.
         task: Allowed block types, conformers, and packing positions.
         verbose: Print synchronized stage timings when true.
+        seed: Seed for this call only, leaving torch's global random state unchanged.
 
     Returns:
         A new pose stack containing the lowest-ranked assignment per pose.
     """
+    if seed is not None:
+        cuda = pose_stack.device.type == "cuda"
+        with torch.random.fork_rng(devices=[pose_stack.device] if cuda else []):
+            torch.random.default_generator.manual_seed(seed)
+            if cuda:
+                with torch.cuda.device(pose_stack.device):
+                    torch.cuda.manual_seed(seed)
+            return pack_rotamers(pose_stack, sfxn, task, verbose=verbose)
 
     max_poses_per_chunk = _max_poses_per_packing_chunk(pose_stack)
     if pose_stack.n_poses > max_poses_per_chunk:
@@ -252,26 +265,7 @@ def _slice_pose_stack_for_packing(
             constraint_unique_blocks=chunk_unique_blocks,
         )
 
-    pdb_info = pose_stack.pdb_info
-    chunk_pdb_info = PDBInfo(
-        residue_labels=pdb_info.residue_labels[first_pose:last_pose].copy(),
-        residue_insertion_codes=pdb_info.residue_insertion_codes[
-            first_pose:last_pose
-        ].copy(),
-        chain_labels=pdb_info.chain_labels[first_pose:last_pose].copy(),
-        atom_occupancy=pdb_info.atom_occupancy[first_pose:last_pose].copy(),
-        atom_b_factor=pdb_info.atom_b_factor[first_pose:last_pose].copy(),
-        metal_origins=(
-            None
-            if pdb_info.metal_origins is None
-            else pdb_info.metal_origins[first_pose:last_pose].copy()
-        ),
-        residue_annotations=(
-            None
-            if pdb_info.residue_annotations is None
-            else pdb_info.residue_annotations[first_pose:last_pose].copy()
-        ),
-    )
+    chunk_pdb_info = pose_stack.pdb_info.sliced(first_pose, last_pose)
 
     def view(tensor):
         return tensor[first_pose:last_pose].detach()
@@ -283,7 +277,9 @@ def _slice_pose_stack_for_packing(
         block_coord_offset64=view(pose_stack.block_coord_offset64),
         inter_residue_connections=view(pose_stack.inter_residue_connections),
         inter_residue_connections64=view(pose_stack.inter_residue_connections64),
-        inter_block_bondsep=view(pose_stack.inter_block_bondsep),
+        inter_block_bondsep=pose_stack.inter_block_bondsep.select_poses(
+            first_pose, last_pose
+        ),
         block_type_ind=view(pose_stack.block_type_ind),
         block_type_ind64=view(pose_stack.block_type_ind64),
         chain_id=view(pose_stack.chain_id),

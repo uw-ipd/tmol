@@ -23,9 +23,8 @@ cattr.register_structure_hook(AcceptorHybridization, _parse_acceptor_hybridizati
 
 CoordinationGeometry = NewType("CoordinationGeometry", str)
 
-# Vertex count per coordination geometry. "irregular" has no fixed vertices:
-# its sites are not templated, so only metal-ligand distances are restrained
-# and the occupied count comes from the structure rather than from here.
+# vertices per coordination geometry; "irregular" is untemplated: only metal-ligand
+#    distances are restrained, and the structure sets how many sites are filled
 GEOMETRY_SITE_COUNT = {
     "linear": 2,
     "trigonal": 3,
@@ -38,22 +37,23 @@ GEOMETRY_SITE_COUNT = {
 }
 
 
-# Stable ordering for the geometry registry, used to encode which coordination
-# geometry a residue type carries into the res_type_variant axis that structure
-# input uses to choose among block types sharing an io equivalence class.
+# the geometries' order on the res_type_variant axis
 GEOMETRY_NAMES = tuple(GEOMETRY_SITE_COUNT)
 
-# Layout of that axis. 0-2 are the amino-acid special cases (CYD, the histidine
-# tautomers); 3 is what the histidine kernel writes for an unresolved tautomer
-# and must select nothing; 4 is the deprotonated forms only metal coordination
-# selects; metals take one index per geometry above those. The index is per
-# equivalence class, so a metal never meets a disulfide or a histidine state.
+# res_type_variant, per io class: 0-2 CYD and histidine tautomers, 3 an unresolved
+#    tautomer (selects nothing), 4 deprotonated donors, then one per metal geometry
 HIS_UNRESOLVED_VAR_IND = 3
 DEPROTONATED_VAR_IND = 4
 METAL_GEOMETRY_VAR_BASE = 5
 
 # protonation_state of the forms a residue takes without its titratable hydrogen
 DEPROTONATED_STATE = "negatively_charged"
+
+# display name of the neutral amino terminus, whose forms sit on the variant
+#    axis past the metal geometries, each at this base plus its sidechain index
+NEUTRAL_TERMINUS = "nterm_neutral"
+NEUTRAL_TERMINUS_VAR_BASE = METAL_GEOMETRY_VAR_BASE + len(GEOMETRY_NAMES)
+N_VARIANT_INDICES = NEUTRAL_TERMINUS_VAR_BASE + DEPROTONATED_VAR_IND + 1
 
 
 def metal_geometry_variant_index(geometry: str) -> int:
@@ -156,9 +156,8 @@ class AtomType:
     # electrostatic charge and the Lennard-Jones radius: Fe2p is not Fe3p.
     is_metal: bool = False
     oxidation_state: Optional[int] = None
-    # Can donate a lone pair to a metal. Deliberately separate from is_acceptor:
-    # thiolate and thioether sulfur coordinate metals while being poor hydrogen
-    # bond acceptors, and is_acceptor is pinned to Rosetta's hbond typing.
+    # donates a lone pair to a metal; not is_acceptor, which follows Rosetta's hbond
+    #    typing and excludes thiolate and thioether sulfur
     is_metal_donor: bool = False
     # the type this atom takes when a covalent bond replaces its hydrogen:
     #    a hydroxyl becomes an ether, a thiol a thioether
@@ -237,9 +236,8 @@ class Connection:
     # written for a ring bond. Only a cut that splits a ring sets this: a
     # polymer up/down bond and an ordinary attachment do not close one.
     in_ring: bool = False
-    # False for a bond that neither builds the kinematic tree nor ties its
-    # blocks into one packing group: a disulfide, a metal-ligand bond. It is
-    # still a bond for count-pair.
+    # False for a bond outside the kinematic tree and packing groups (a disulfide,
+    #    a metal-ligand bond); it still counts for count-pair
     kinematic: bool = True
 
 
@@ -321,27 +319,18 @@ class ChemicalProperties:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class MetalSite:
-    """The coordination sites on one metal atom of a residue type.
-
-    ``internal_satisfiers`` are in-block atoms already occupying sites: a
-    heme's four porphyrin nitrogens, an Fe-S cluster's bridging sulfurs. One
-    atom may satisfy sites on several metals, so a bridging sulfur is listed by
-    every iron it bridges. Detection fills only the sites left over.
-
-    ``site_virts`` mark the directions of the free sites, and are where lk_ball
-    builds its waters. A cofactor authors their internal coordinates; a free
-    ion has no internal geometry to orient against, so its fan is placed when
-    the site is assigned.
-
-    ``site_connections`` are the metal atom's connections a donor fills, one
-    per free site and parallel to ``site_virts``; an untemplated ion has
-    connections but no virtuals. An unfilled connection is an open site.
-    """
+    """The coordination sites on one metal atom of a residue type."""
 
     metal_atom: str
     geometry: CoordinationGeometry
+    # in-block atoms filling sites (heme nitrogens, a cluster's bridging sulfurs,
+    #    listed by every metal they bridge); detection fills only the rest
     internal_satisfiers: Tuple[str, ...] = ()
+    # free-site directions, where lk_ball builds waters; a free ion's are placed
+    #    when its sites are assigned
     site_virts: Tuple[str, ...] = ()
+    # connections a donor fills, parallel to site_virts (an untemplated ion has
+    #    no virtuals); an unfilled one is an open site
     site_connections: Tuple[str, ...] = ()
 
     @property
@@ -483,11 +472,8 @@ def l_base_name(restype) -> str:
 
 
 def site_connections(restype) -> Tuple[str, ...]:
-    """Every free-site connection of a residue's metals, numbered in order.
-
-    A metal site's index everywhere outside the residue type is its position
-    here, so a cluster's sites run on across its metals.
-    """
+    """Every free-site connection of a residue's metals; a site's index everywhere
+    is its position here, so a cluster's sites run on across its metals."""
     return tuple(name for site in restype.metal_sites for name in site.site_connections)
 
 
@@ -510,14 +496,19 @@ def special_case_variant_index(restype) -> int:
     """Where a residue type sits on the res_type_variant axis of its class."""
     if restype.metal_sites:
         return metal_geometry_variant_index(restype.metal_sites[0].geometry)
+    offset = (
+        NEUTRAL_TERMINUS_VAR_BASE
+        if NEUTRAL_TERMINUS in restype.name.split(":")[1:]
+        else 0
+    )
     if restype.properties.protonation.protonation_state == DEPROTONATED_STATE:
-        return DEPROTONATED_VAR_IND
+        return offset + DEPROTONATED_VAR_IND
     base = l_base_name(restype)
     if base in ("CYD", "HIS_D"):
-        return 1
+        return offset + 1
     if base == "HIS_POS":
-        return 2
-    return 0
+        return offset + 2
+    return offset
 
 
 GENERATED_RESIDUE_FILES = (

@@ -2,6 +2,8 @@
 
 import pytest
 import torch
+import attr
+import numpy
 
 from tmol.database import ParameterDatabase
 from tmol.io import atom_array_from_cif, pose_stack_from_biotite
@@ -19,20 +21,25 @@ from tmol.pack.rotamer import (
 )
 from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
 from tmol.score import beta2016_score_function
+from tmol.score import ScoreFunction
+from tmol.relax import accept_best
 from tmol.tests.data import data_path
 
-HIS_POS_OFFSET = 1.364 * (7.4 - 6.5)
-CYS_DEP_OFFSET = 1.364 * (8.3 - 7.4)
+# Current AtomWorks Dimorphite-DL model, not the retired protein-specific estimates.
+HIS_PH = 4.5
+CYS_PH = 8.7
+HIS_POS_OFFSET = 1.364 * (HIS_PH - 4.3535441240733945)
+CYS_DEP_OFFSET = 1.364 * (9.12448275862069 - CYS_PH)
 DMZ = ("pdb", "6DMZ_A.pdb")
 F8B = ("pdb", "bysize_300_res_6f8b.pdb")
 
 
-def _pose(path, device, alternatives):
+def _pose(path, device, alternatives, ph=7.4):
     """The structure without its hydrogens, which would state every residue's state."""
     structure = atom_array_from_cif(data_path(*path))
     structure = structure[structure.element != "H"]
     return pose_stack_from_biotite(
-        structure, device, protonation_alternatives=alternatives
+        structure, device, protonation_alternatives=alternatives, ligand_ph=ph
     )
 
 
@@ -72,39 +79,72 @@ def _repacking_task(pose_stack, palette, res_labels):
 
 
 @pytest.mark.parametrize(
-    ("path", "flagged", "added", "offset"),
+    ("path", "ph", "expected"),
     [
-        (DMZ, {("A", 8), ("A", 46)}, "HIS_POS", HIS_POS_OFFSET),
+        (DMZ, HIS_PH, {"HIS_POS": ({("A", 8), ("A", 46)}, HIS_POS_OFFSET)}),
         (
             ("cif", "3N0I.cif"),
-            {(c, r) for c in "ABC" for r in (196, 213, 333)},
-            "CYS_DEP",
-            CYS_DEP_OFFSET,
+            CYS_PH,
+            {
+                "CYS_DEP": (
+                    {(c, r) for c in "ABC" for r in (196, 213, 333)},
+                    CYS_DEP_OFFSET,
+                ),
+                "LYS": (
+                    {
+                        (c, r)
+                        for c in "ABC"
+                        for r in (
+                            202,
+                            205,
+                            212,
+                            229,
+                            236,
+                            242,
+                            247,
+                            264,
+                            295,
+                            300,
+                            301,
+                            316,
+                            324,
+                            345,
+                        )
+                    }
+                    | {(c, r) for c in "AC" for r in (240, 252)}
+                    | {(c, 282) for c in "BC"},
+                    1.364 * (CYS_PH - 8.159107682388349),
+                ),
+            },
         ),
     ],
-    ids=["6dmz_free_his_disulfide_cys", "3n0i_free_cys_zinc_his"],
+    ids=["6dmz_free_his_disulfide_cys", "3n0i_free_cys_lys_zinc_his"],
 )
 def test_the_palette_offers_alternatives_only_when_asked_and_where_recorded(
-    path, flagged, added, offset, torch_device
+    path, ph, expected, torch_device
 ):
-    """Disulfide cysteines and zinc-bound histidines record none."""
-    pose_stack = _pose(path, torch_device, alternatives=True)
+    """The current rules offer free lysines too; linked CYS and metal HIS stay fixed."""
+    pose_stack = _pose(path, torch_device, alternatives=True, ph=ph)
     alternatives = block_alternatives(pose_stack)
     info = pose_stack.pdb_info
     assert {
         (info.chain_labels[p, b], int(info.residue_labels[p, b]))
         for p, b in alternatives
-    } == flagged
+    } == set().union(*(sites for sites, _ in expected.values()))
+    assert all(choice.charge == 0 for choice in chosen_protonation_variants(pose_stack))
 
     default = PackerTask(pose_stack, PackerPalette())
     widened = PackerTask(pose_stack, PackerPalette(protonation_alternatives=True))
     assert default.per_block_considered_block_type_offset is None
     offsets = widened.per_block_considered_block_type_offset
     for pose, block in torch.nonzero(pose_stack.block_type_ind64 >= 0).tolist():
+        site = (info.chain_labels[pose, block], int(info.residue_labels[pose, block]))
         recorded = alternatives.get((pose, block), {})
         names = _names(widened, pose, block)
-        assert names == _names(default, pose, block) + [added] * bool(recorded)
-        assert recorded.get(added, offset) == pytest.approx(offset)
+        added = [name for name, (sites, _) in expected.items() if site in sites]
+        assert names == _names(default, pose, block) + added
+        for name in added:
+            assert recorded[name] == pytest.approx(expected[name][1])
         torch.testing.assert_close(
             offsets[pose, block, : len(names)].cpu(),
             torch.tensor([recorded.get(name, 0.0) for name in names]),
@@ -126,7 +166,7 @@ def _packer_tables(pose_stack, palette, offsets=True):
 
 
 def test_the_packer_adds_each_block_types_offset_to_its_rotamers(torch_device):
-    pose_stack = _pose(DMZ, torch_device, alternatives=True)
+    pose_stack = _pose(DMZ, torch_device, alternatives=True, ph=HIS_PH)
     palette = PackerPalette(protonation_alternatives=True)
     rotamer_set, offset, bc_rot_to_orig_rot = _packer_tables(pose_stack, palette)
     _, plain, _ = _packer_tables(pose_stack, palette, offsets=False)
@@ -159,7 +199,7 @@ def test_packing_reports_the_protonation_it_chose(
     6F8B's buried HIS 140, its ring 2.9 A from a carboxylate, takes the
     cation; 6DMZ's exposed HIS 46, 19 A from any, stays neutral.
     """
-    pose_stack = _pose(path, torch_device, alternatives=True)
+    pose_stack = _pose(path, torch_device, alternatives=True, ph=HIS_PH)
     palette = PackerPalette(protonation_alternatives=True)
     task = _repacking_task(pose_stack, palette, [res_label])
     sfxn = beta2016_score_function(torch_device)
@@ -192,3 +232,76 @@ def test_recording_alternatives_leaves_the_default_path_unchanged(torch_device):
     assert torch.equal(rotamers.coords, flagged_rotamers.coords)
     assert torch.equal(tables.energy1b, flagged_tables.energy1b)
     assert torch.equal(tables.energy2b, flagged_tables.energy2b)
+
+
+@pytest.mark.parametrize("cation_offset,accept", [(2.0, False), (-2.0, True)])
+def test_relax_acceptance_includes_state_energy_and_different_hydrogen_counts(
+    cation_offset, accept, torch_device, monkeypatch
+):
+    """A zero physical score isolates the exact state-energy decision."""
+    from tmol.pack.protonation_alternatives import protonation_state_energy
+
+    structure = atom_array_from_cif(data_path(*DMZ))
+    structure = structure[
+        (structure.chain_id == "A")
+        & numpy.isin(structure.res_id, (7, 8, 9))
+        & (structure.element != "H")
+    ]
+    neutral = pose_stack_from_biotite(structure, torch_device, ligand_ph=7.4)
+    cation = pose_stack_from_biotite(structure, torch_device, ligand_ph=3.9)
+    annotations = numpy.full(
+        neutral.block_type_ind64.shape, "", dtype=[(PROTONATION_ALTERNATIVES, "U100")]
+    )
+    annotations[PROTONATION_ALTERNATIVES][
+        neutral.pdb_info.residue_labels == 8
+    ] = f"HIS:0,HIS_D:0,HIS_POS:{cation_offset}"
+    info = attr.evolve(neutral.pdb_info, residue_annotations=annotations)
+    neutral = attr.evolve(neutral, pdb_info=info)
+    cation = attr.evolve(cation, pdb_info=info)
+    assert cation.coords.shape[1] != neutral.coords.shape[1]
+    torch.testing.assert_close(
+        protonation_state_energy(neutral), torch.zeros(1, device=torch_device)
+    )
+    torch.testing.assert_close(
+        protonation_state_energy(cation),
+        torch.tensor([cation_offset], device=torch_device),
+    )
+    sfxn = ScoreFunction(ParameterDatabase.get_default(), device=torch_device)
+    monkeypatch.setattr(
+        sfxn,
+        "render_whole_pose_scoring_module",
+        lambda pose: lambda coords: torch.zeros(pose.n_poses, device=coords.device),
+    )
+    result, score = accept_best(
+        sfxn,
+        neutral,
+        protonation_state_energy(neutral),
+        cation,
+        protonation_alternatives=True,
+    )
+    expected = cation if accept else neutral
+    torch.testing.assert_close(result.block_type_ind64, expected.block_type_ind64)
+    torch.testing.assert_close(
+        result.coords[:, : expected.coords.shape[1]], expected.coords
+    )
+    torch.testing.assert_close(score, protonation_state_energy(expected))
+
+    if cation_offset > 0:
+        from tmol.kinematics import CartesianMoveMap, FoldForest
+        from tmol.relax import fast_relax
+        import tmol.relax._fast_relax as relax_module
+
+        monkeypatch.setattr(
+            relax_module, "relax_pack_min_step", lambda **kwargs: neutral
+        )
+        relaxed = fast_relax(
+            cation,
+            sfxn,
+            PackerPalette(protonation_alternatives=True),
+            CartesianMoveMap(),
+            FoldForest.reasonable_fold_forest(cation),
+            num_repeats=1,
+            schedule=[1.0],
+            task_operations=[],
+        )
+        torch.testing.assert_close(relaxed.block_type_ind64, neutral.block_type_ind64)

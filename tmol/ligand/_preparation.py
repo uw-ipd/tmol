@@ -4,31 +4,34 @@ This module contains the concrete preparation pipeline implementation.
 `tmol.ligand.__init__` re-exports the public API from here.
 """
 
+import hashlib
 import itertools
 import logging
 from dataclasses import replace
 from typing import Optional
 
 import attr
+from atomworks.constants import METAL_ELEMENTS
 
 import biotite.structure as struc
 import numpy as np
 from rdkit import Chem
 
 from tmol.database import ParameterDatabase
-from tmol.database.chemical import DEPROTONATED_STATE, AtomAlias
+from tmol.database.chemical import AtomAlias
 from tmol.io import CanonicalOrdering
 from tmol.io._protonation import (
     PROTONATION_VARIANT,
+    _bonded_out,
     database_forms,
     hydrogen_names_by_parent,
+    hydrogens_by_parent,
     with_atomworks_hydrogens,
 )
 from tmol.ligand._atom_typing import AtomTypeAssignment, assign_tmol_atom_types
 from tmol.ligand._detect import (
     NonStandardResidueInfo,
     _FORMAL_CHARGE_SPECIFIED_ANNOTATION,
-    _METAL_SYMBOLS,
     detect_nonstandard_residues,
     is_polymer_linking_component_type,
     with_resolved_coordinates,
@@ -221,6 +224,40 @@ def _assert_fragment_names_available(param_db, fragment_preparations) -> None:
             )
 
 
+def _assert_prepared_names_cover(atom_array, param_db) -> None:
+    """Raise if a residue whose name ``param_db`` prepared has heavy atoms its
+    types lack.
+
+    A prepared name is not prepared again, so a type made from copies missing an
+    atom (2YOR: linked NAGs lack the leaving O1) cannot describe a copy that has
+    it (the free NAG B:511).
+    """
+    prepared = {r.io_equiv_class for r in param_db.chemical.residues} - {
+        r.io_equiv_class for r in ParameterDatabase.get_default().chemical.residues
+    }
+    if prepared.isdisjoint(np.char.strip(atom_array.res_name.astype(str))):
+        return
+    known = rebuild_canonical_ordering(param_db).restypes_atom_index_mapping
+    heavy = ~np.isin(np.char.upper(atom_array.element.astype(str)), ("H", "D"))
+    starts = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
+    uncovered: dict[str, set[str]] = {}
+    for start, stop in zip(starts[:-1], starts[1:]):
+        name = str(atom_array.res_name[start]).strip()
+        if name not in prepared:
+            continue
+        names = set(map(str, atom_array.atom_name[start:stop][heavy[start:stop]]))
+        if names - set(known[name]):
+            uncovered.setdefault(name, set()).update(names - set(known[name]))
+    if uncovered:
+        listing = "; ".join(f"{n}: {sorted(a)}" for n, a in sorted(uncovered.items()))
+        raise LigandPreparationError(
+            "The parameter database already prepared residue types that lack heavy "
+            f"atoms this input has ({listing}); a prepared name is not prepared "
+            "again. Build this structure's context from a database that does not "
+            "define them."
+        )
+
+
 def _kekule_bond_orders(mol: Chem.Mol) -> dict[frozenset, str]:
     """Bond orders of one Lewis structure of ``mol``, by atom index pair."""
     kekule = Chem.Mol(mol)
@@ -228,17 +265,25 @@ def _kekule_bond_orders(mol: Chem.Mol) -> dict[frozenset, str]:
         Chem.Kekulize(kekule, clearAromaticFlags=True)
     except Exception:
         logger.debug("kekulization failed; keeping aromatic orders", exc_info=True)
-    names = {
-        Chem.BondType.SINGLE: "SINGLE",
-        Chem.BondType.DOUBLE: "DOUBLE",
-        Chem.BondType.TRIPLE: "TRIPLE",
-        Chem.BondType.AROMATIC: "AROMATIC",
-    }
+    named = ("SINGLE", "DOUBLE", "TRIPLE", "AROMATIC")
     return {
-        frozenset((b.GetBeginAtomIdx(), b.GetEndAtomIdx())): names.get(
-            b.GetBondType(), "SINGLE"
+        frozenset((b.GetBeginAtomIdx(), b.GetEndAtomIdx())): (
+            str(b.GetBondType()) if str(b.GetBondType()) in named else "SINGLE"
         )
         for b in kekule.GetBonds()
+    }
+
+
+def _hydrogen_parents(mol: Chem.Mol, atom_types) -> dict[int, list[int]]:
+    """Each hydrogen's heavy neighbours, by atom index."""
+    return {
+        at.index: [
+            n.GetIdx()
+            for n in mol.GetAtomWithIdx(at.index).GetNeighbors()
+            if n.GetAtomicNum() != 1
+        ]
+        for at in atom_types
+        if at.element == "H"
     }
 
 
@@ -251,16 +296,9 @@ def _name_hydrogens_by_parent(
     """
     name_by_index = {at.index: at.atom_name for at in atom_types}
     hydrogens_of: dict[int, list[int]] = {}
-    for at in atom_types:
-        if at.element != "H":
-            continue
-        heavy = [
-            n.GetIdx()
-            for n in mol.GetAtomWithIdx(at.index).GetNeighbors()
-            if n.GetAtomicNum() != 1
-        ]
+    for h, heavy in _hydrogen_parents(mol, atom_types).items():
         if heavy:
-            hydrogens_of.setdefault(heavy[0], []).append(at.index)
+            hydrogens_of.setdefault(heavy[0], []).append(h)
     parents = sorted(hydrogens_of)
     given = hydrogen_names_by_parent(
         [
@@ -297,7 +335,7 @@ def _name_hydrogens_from_source(
     is_h = np.isin(array.element.astype(str), ("H", "D"))
     if not is_h.any() or array.bonds is None:
         return None
-    source_names: dict[str, list[str]] = {}
+    source_names: dict[str, list[tuple[int, str]]] = {}
     for a, b, _ in array.bonds.as_array():
         for h, heavy in ((a, b), (b, a)):
             if is_h[h] and not is_h[heavy]:
@@ -308,17 +346,10 @@ def _name_hydrogens_from_source(
         return None
     name_by_index = {at.index: at.atom_name for at in atom_types}
     prepared: dict[str, list[int]] = {}
-    for at in atom_types:
-        if at.element != "H":
-            continue
-        heavy = [
-            n.GetIdx()
-            for n in mol.GetAtomWithIdx(at.index).GetNeighbors()
-            if n.GetAtomicNum() != 1
-        ]
+    for h, heavy in _hydrogen_parents(mol, atom_types).items():
         if len(heavy) != 1:
             return None
-        prepared.setdefault(name_by_index[heavy[0]], []).append(at.index)
+        prepared.setdefault(name_by_index[heavy[0]], []).append(h)
     if {k: len(v) for k, v in prepared.items()} != {
         k: len(v) for k, v in source_names.items()
     }:
@@ -487,7 +518,6 @@ def prepare_single_ligand(
     index_by_name = {at.atom_name: at.index for at in atom_types}
     restype = attr.evolve(
         restype,
-        hydrogens_regenerated=from_source is None,
         io_bond_orders=tuple(
             (a, b, chemical)
             for a, b, order, *_ in restype.bonds
@@ -920,18 +950,6 @@ def _missing_cif_heavy_atom_names(
     return cif_heavy_names - restype_heavy
 
 
-def _residue_covers_cif_heavy_atoms(
-    prep: LigandPreparation, cif_heavy_names: set[str]
-) -> bool:
-    """Return True if the prepared residue carries every CIF heavy-atom name.
-
-    When the SMILES-derived residue's heavy-atom names are a superset of the
-    CIF ligand's heavy-atom names, pose-build can place every CIF heavy-atom
-    coordinate by ``(res_name, atom_name)`` match.
-    """
-    return not _missing_cif_heavy_atom_names(prep, cif_heavy_names)
-
-
 def _prepare_ligand_via_smiles(
     ligand_info: NonStandardResidueInfo,
     *,
@@ -974,7 +992,10 @@ def _prepare_ligand_via_smiles(
         coords=array.coord,
     )
     smiles = ligand_smiles_from_atom_array(
-        array, res_name=ligand_info.res_name, with_atom_map=True
+        array,
+        res_name=ligand_info.res_name,
+        with_atom_map=True,
+        keep_hydrogens=not protonate and not ligand_info.covalently_linked,
     )
 
     try:
@@ -1018,7 +1039,7 @@ def _supported_elements(param_db: ParameterDatabase) -> set[str]:
 
 
 def _polymer_connection_atoms(res_name, lig, canonical_ordering, chemdb):
-    """The atoms of a residue where a polymer chain attaches, or an empty set.
+    """{atom: "down" or "up"} where a polymer chain attaches to a residue.
 
     A canonical residue reports its own down and up connections; anything else
     is asked for its backbone, which a sugar or a free ligand does not have.
@@ -1033,16 +1054,16 @@ def _polymer_connection_atoms(res_name, lig, canonical_ordering, chemdb):
         conn_inds = canonical_ordering.polymer_conn_inds
         equiv_ind = classes.index(res_name)
         names = canonical_ordering.restypes_ordered_atom_names[res_name]
-        return frozenset(
-            names[atom_ind]
-            for atom_ind in (
-                conn_inds.down_atom_for_co_restype[equiv_ind],
-                conn_inds.up_atom_for_co_restype[equiv_ind],
+        return {
+            names[atom_ind]: name
+            for name, atom_ind in (
+                ("down", conn_inds.down_atom_for_co_restype[equiv_ind]),
+                ("up", conn_inds.up_atom_for_co_restype[equiv_ind]),
             )
             if atom_ind >= 0
-        )
+        }
     if lig is None:
-        return frozenset()
+        return {}
     profile = profile_for_atom_array(lig.atom_array, lig.connection_atom_names, chemdb)
     if profile is None and len(lig.connection_atom_names or ()) > 2:
         elements = dict(zip(lig.atom_array.atom_name, lig.atom_array.element))
@@ -1053,9 +1074,8 @@ def _polymer_connection_atoms(res_name, lig, canonical_ordering, chemdb):
             for carbonyl in (_chain_end_candidates(lig.atom_array, nitrogen) or ())
             if carbonyl in lig.connection_atom_names
         }
-        # Sidechain crosslinks do not erase a peptide backbone. Resolve every
-        # partner from its chemistry, independently of loop order; where two
-        # amines could each start one, the shortest mainchain (alpha) wins.
+        # Sidechain crosslinks do not erase a peptide backbone; where two amines
+        # could each start one, the shortest (alpha) mainchain wins (7AG5 DNP).
         candidates = (
             profile_for_atom_array(lig.atom_array, pair, chemdb) for pair in pairs
         )
@@ -1065,25 +1085,34 @@ def _polymer_connection_atoms(res_name, lig, canonical_ordering, chemdb):
         if len(best) == 1:
             profile = best[0]
     if profile is None:
-        return frozenset()
-    return frozenset(atom for _, atom in profile.connections)
+        return {}
+    return {atom: name for name, atom in profile.connections}
 
 
-def conjugation_atoms(lig, polymer_ports):
+def conjugation_atoms(lig, polymer_ports, any_instance=False):
     """Sites outside an ordinary connection between two polymer ports.
 
-    Both endpoints matter: an acyl cap's inferred polymer port does not turn
-    a glycan amine or a polymer sidechain into a backbone connection.
+    A bond is a polymer link only from one residue's up port to the other's
+    down port, as in the pose; an acyl cap's inferred port does not turn a
+    glycan amine or a polymer sidechain into a backbone connection. With
+    ``any_instance``, a port that some copy bonds otherwise is a site too (3W93
+    TYZ caps ARG A:1 N and acylates LYS B:21 NZ).
     """
+    from tmol.ligand._conjugate_model import is_polymer_link
+
     partners = lig.connection_partners
     if not partners:
         return frozenset()
+    own = polymer_ports.get(lig.res_name, {})
     conjugations = set()
     for atom, far_side in partners.items():
-        if atom not in polymer_ports.get(lig.res_name, ()) or not any(
-            partner_atom in polymer_ports[partner_name]
+        links = [
+            is_polymer_link(
+                own.get(atom), polymer_ports[partner_name].get(partner_atom)
+            )
             for partner_name, partner_atom in far_side
-        ):
+        ]
+        if not (all(links) if any_instance else any(links)):
             conjugations.add(atom)
     return frozenset(conjugations)
 
@@ -1117,9 +1146,7 @@ def _retain_polymer_connected_ports(ports, ligands):
         for partner in neighbors[pending.pop()] - members:
             members.add(partner)
             pending.append(partner)
-    return {
-        name: atoms if name in members else frozenset() for name, atoms in ports.items()
-    }
+    return {name: atoms if name in members else {} for name, atoms in ports.items()}
 
 
 def _bond_lengths_by_site(atom_array):
@@ -1266,7 +1293,7 @@ def _conjugation_chemistry(atom_array, chemical_database, ph):
 
     if atom_array.bonds is None:
         return {}, {}, {}
-    counts, bond_types, open_geometries, seen = {}, {}, {}, set()
+    counts, bond_types, open_geometries, seen, sites = {}, {}, {}, set(), {}
     free_types = {
         rt.io_equiv_class: rt
         for rt in chemical_database.residues
@@ -1295,13 +1322,21 @@ def _conjugation_chemistry(atom_array, chemical_database, ph):
                 )
                 atom = mol.GetAtomWithIdx(mapping[local_by_source[source]])
                 count = sum(n.GetAtomicNum() == 1 for n in atom.GetNeighbors())
+                site = (
+                    f"{atom_array.chain_id[source]}:{atom_array.res_id[source]}"
+                    f"{atom_array.ins_code[source]} {key[1]} bonded to "
+                    f"{atom_array.res_name[partner]} {atom_array.atom_name[partner]}"
+                )
                 previous = counts.setdefault(key, count)
                 previous_order = bond_types.setdefault(key, order)
+                previous_site = sites.setdefault(key, site)
                 if (previous, previous_order) != (count, order):
                     raise ValueError(
                         f"Incompatible conjugate chemistry for {key}: "
-                        f"{previous} H/{previous_order} and {count} H/{order}; "
-                        "distinct chemistry needs distinct residue identities"
+                        f"{previous_site} keeps {previous} H with a "
+                        f"{previous_order} attachment, {site} keeps {count} H with "
+                        f"a {order} attachment; distinct chemistry needs distinct "
+                        "residue identities"
                     )
                 if atom.GetAtomicNum() == 8 and atom.GetDegree() == 2 and count == 0:
                     restype = free_types.get(key[0])
@@ -1522,7 +1557,7 @@ def _ligand_unsupported_reason(
         {
             e.strip().capitalize()
             for e in lig.elements
-            if e.strip().capitalize() in _METAL_SYMBOLS
+            if e.strip().upper() in METAL_ELEMENTS
         }
     )
     if metals_present:
@@ -1575,7 +1610,7 @@ def _covalently_bonded_copy(lig, atom_array) -> bool:
     element = np.char.capitalize(atom_array.element[far].astype(str))
     return bool(
         np.any(
-            ~np.isin(element, list(_METAL_SYMBOLS))
+            ~np.isin(np.char.upper(element), sorted(METAL_ELEMENTS))
             & (kind[across] != int(struc.BondType.COORDINATION))
         )
     )
@@ -1591,17 +1626,18 @@ _BOND_ORDERS = {
 }
 
 
-def _has_open_valence(array: struc.AtomArray, bonded_out=frozenset()) -> bool:
-    """Whether a heavy atom of ``array`` has fewer hydrogens than its charge asks.
+def _open_valence(array: struc.AtomArray, bonded_out=frozenset()) -> np.ndarray:
+    """The heavy atoms of ``array`` with fewer hydrogens than their charge asks.
 
     Each atom's declared formal charge and bonds set how many hydrogens it
     carries. Atoms without a declared charge or named in ``bonded_out``
     (bonded outside ``array``, metals included), bonds without orders, and
     aromatic bonds with no Kekulé structure cannot tell and count as closed.
     """
+    closed = np.zeros(array.array_length(), dtype=bool)
     categories = array.get_annotation_categories()
     if array.bonds is None or "charge" not in categories:
-        return False
+        return closed
     is_h = np.isin(np.char.upper(array.element.astype(str)), ("H", "D"))
     carrier = np.isin(
         np.char.upper(array.element.astype(str)), ("C", "N", "O", "S", "P", "B", "SE")
@@ -1622,7 +1658,7 @@ def _has_open_valence(array: struc.AtomArray, bonded_out=frozenset()) -> bool:
             continue
         order = _BOND_ORDERS.get(struc.BondType(kind))
         if order is None:
-            return False
+            return closed
         mol.AddBond(int(a), int(b), order)
         if order == Chem.BondType.AROMATIC:
             mol.GetBondBetweenAtoms(int(a), int(b)).SetIsAromatic(True)
@@ -1635,19 +1671,13 @@ def _has_open_valence(array: struc.AtomArray, bonded_out=frozenset()) -> bool:
     try:
         Chem.Kekulize(mol, clearAromaticFlags=True)
     except Chem.KekulizeException:
-        return False
+        return closed
     mol.UpdatePropertyCache(strict=False)
-    return any(atom.GetNumImplicitHs() > 0 for atom in mol.GetAtoms())
+    return np.array([atom.GetNumImplicitHs() > 0 for atom in mol.GetAtoms()])
 
 
 def _placeholder_coords(array: struc.AtomArray) -> np.ndarray:
-    """Coordinates with each unresolved atom set 1.4 A out from a placed neighbor.
-
-    It points away from that neighbor's other placed atoms, hydrogens included,
-    so a stereocentre missing one substituent keeps the handedness its hydrogen
-    gives it. AtomWorks protonates only atoms it can place; the positions only
-    stand in for the chemistry and are discarded.
-    """
+    """Unresolved atoms 1.4 A from a placed neighbour, away from its placed atoms."""
     coord = array.coord.copy()
     placed = np.isfinite(coord).all(axis=-1)
     if placed.all() or not placed.any() or array.bonds is None:
@@ -1676,17 +1706,30 @@ def _placeholder_coords(array: struc.AtomArray) -> np.ndarray:
     return coord
 
 
-def _as_free_molecule(lig, ph):
+def _as_free_molecule(lig, ph, bonded_out=frozenset()):
     """``lig`` with the hydrogens AtomWorks gives it as a free molecule at ``ph``.
 
+    A resolved heavy atom keeps its hydrogens, a chelating donor's none included,
+    unless it has a connection, an unresolved neighbour or fewer hydrogens than
+    its charge asks; ``bonded_out`` names the atoms bonded outside ``lig``.
     Unresolved atoms take hydrogens too, at unresolved coordinates.
     """
-    is_h = np.isin(lig.atom_array.element, ("H", "D"))
-    heavy = lig.atom_array[~is_h]
+    array = lig.atom_array
+    is_h = np.isin(array.element, ("H", "D"))
+    heavy = array[~is_h]
     unresolved = ~np.isfinite(heavy.coord).all(axis=-1)
+    declared = None
+    if is_h.any() and array.bonds is not None:
+        reopened = unresolved | np.isin(
+            heavy.atom_name, list(lig.connection_atom_names or ())
+        )
+        reopened |= _open_valence(array, bonded_out)[~is_h]
+        a, b = heavy.bonds.as_array()[:, :2].T.astype(np.int64)
+        reopened[np.r_[a[unresolved[b]], b[unresolved[a]]]] = True
+        declared = np.where(reopened, -1, hydrogens_by_parent(array)[~is_h])
     stand_in = heavy.copy()
-    stand_in.coord = _placeholder_coords(lig.atom_array)[~is_h]
-    protonated = with_atomworks_hydrogens(stand_in, ph=ph)
+    stand_in.coord = _placeholder_coords(heavy)
+    protonated = with_atomworks_hydrogens(stand_in, ph=ph, hydrogens=declared)
     protonated.res_name[:] = heavy.res_name[0]
     names = {str(n) for n in heavy.atom_name[unresolved]}
     if names and protonated.bonds is not None:
@@ -1699,67 +1742,99 @@ def _as_free_molecule(lig, ph):
     return _with_ligand_array(lig, protonated)
 
 
-def _copy_without_donor_hydrogens(lig, donors, atom_array):
-    """A copy of ``lig`` in ``atom_array`` missing hydrogens ``lig`` has on ``donors``.
+def _hydrogen_state(array: struc.AtomArray, reopened) -> dict:
+    """{name: (hydrogens, heavy neighbours)} of each heavy atom not in ``reopened``.
 
-    Every hydrogen it lacks sits on a metal donor, and it has all other atoms.
+    Unresolved atoms, their neighbours and charges do not count: copies with
+    one set of hydrogens take one type.
     """
-    names = set(map(str, lig.atom_array.atom_name))
-    is_h = np.isin(lig.atom_array.element, ("H", "D"))
-    on_donor = set()
-    for i in np.flatnonzero(is_h):
-        partners = lig.atom_array.bonds.get_bonds(int(i))[0]
-        if any(str(lig.atom_array.atom_name[p]) in donors for p in partners):
-            on_donor.add(str(lig.atom_array.atom_name[i]))
-    if not on_donor:
-        return None
+    element = np.char.upper(array.element.astype(str))
+    heavy = ~np.isin(element, ("H", "D"))
+    resolved = np.isfinite(array.coord).all(axis=-1)
+    kept = heavy & resolved & ~np.isin(array.atom_name, list(reopened))
+    count = hydrogens_by_parent(array)
+    partners = array.bonds.get_all_bonds()[0]
+    # AtomWorks gives an atom next to an unresolved one the count it can place
+    kept &= ~((partners >= 0) & ~resolved[partners]).any(axis=-1)
+    return {
+        str(array.atom_name[i]): (
+            int(count[i]),
+            frozenset(
+                str(array.atom_name[j]) for j in partners[i] if j >= 0 and heavy[j]
+            ),
+        )
+        for i in np.flatnonzero(kept)
+    }
+
+
+def _same_state(a: dict, b: dict) -> bool:
+    """Whether every atom both copies resolve with the same heavy neighbours has one count."""
+    return all(b[n] == got for n, got in a.items() if n in b and b[n][1] == got[1])
+
+
+def _state_variants(lig, base, atom_array, ph, seed, generate_heavy_chi_samples):
+    """A type for each hydrogen state a free copy of ``lig`` presents that ``base`` lacks.
+
+    A copy's state is AtomWorks' in its own context: a metal donor may lose a
+    hydrogen, a phosphate keep one. Each type is named by its state and shares
+    the base's class and variant, so a copy selects the one whose hydrogens it
+    presents. A covalently bonded copy takes its conjugated form of the base,
+    and a copy without bond orders, or one that fails to prepare, the base.
+    """
+    residue_of = struc.get_all_residue_positions(atom_array)
+    out_of = _bonded_out(atom_array, residue_of, atom_array.bonds.as_array())
     starts = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
-    for start, stop in zip(starts[:-1], starts[1:]):
-        if str(atom_array.res_name[start]) != lig.res_name:
-            continue
+    copies = [
+        (start, stop)
+        for start, stop in zip(starts[:-1], starts[1:])
+        if str(atom_array.res_name[start]) == lig.res_name
+    ]
+    linked = frozenset(
+        atom_array.atom_name[out_of & (atom_array.res_name == lig.res_name)]
+    )
+    linked |= lig.connection_atom_names or frozenset()
+    states = [_hydrogen_state(lig.atom_array, linked)]
+    variants = []
+    for start, stop in copies:
         copy = atom_array[start:stop]
-        missing = names - set(map(str, copy.atom_name))
-        if missing and missing <= on_donor and set(map(str, copy.atom_name)) <= names:
-            return copy.copy()
-    return None
-
-
-def _deprotonated_variant(
-    lig, base, donors, atom_array, ph, seed, generate_heavy_chi_samples
-):
-    """The ligand as a copy coordinating a metal presents it, or None if unchanged.
-
-    The copy is one whose metal donors carry fewer hydrogens than ``lig``'s.
-    The type shares the base type's equivalence class and is marked
-    deprotonated, so detection selects it for copies presenting that state.
-    """
-    copy = _copy_without_donor_hydrogens(lig, donors, atom_array)
-    if copy is None:
-        return None
-    prep = _prepare_ligand_via_smiles(
-        _with_ligand_array(lig, copy),
-        ph=ph,
-        protonate=False,
-        seed=seed,
-        generate_heavy_chi_samples=generate_heavy_chi_samples,
-    )
-    if {a.name for a in prep.residue_type.atoms} == {
-        a.name for a in base.residue_type.atoms
-    }:
-        return None
-    residue = prep.residue_type
-    name = f"{residue.name}_DEP"
-    protonation = attr.evolve(
-        residue.properties.protonation, protonation_state=DEPROTONATED_STATE
-    )
-    residue = attr.evolve(
-        residue,
-        name=name,
-        base_name=name,
-        io_equiv_class=base.residue_type.io_equiv_class,
-        properties=attr.evolve(residue.properties, protonation=protonation),
-    )
-    return replace(prep, residue_type=residue)
+        state = _hydrogen_state(copy, linked)
+        kinds = copy.bonds.as_array()[:, 2]
+        if (
+            any(_same_state(state, known) for known in states)
+            or out_of[start:stop].any()
+            or not len(kinds)
+            or (kinds == struc.BondType.ANY).any()
+        ):
+            continue
+        info = _with_ligand_array(lig, copy.copy())
+        try:
+            if not np.isfinite(copy.coord).all() or _open_valence(copy).any():
+                info = _as_free_molecule(info, ph)
+            prep = _prepare_ligand_via_smiles(
+                info,
+                ph=ph,
+                protonate=False,
+                seed=seed,
+                generate_heavy_chi_samples=generate_heavy_chi_samples,
+            )
+        except Exception as err:  # noqa: BLE001  the copy keeps the base type
+            logger.warning(
+                "%s: no type for a copy's hydrogen state (%s)", lig.res_name, err
+            )
+            continue
+        # the name holds the heavy graph and its hydrogens: one name, one chemistry
+        graph = sorted((n, h, sorted(nb)) for n, (h, nb) in state.items())
+        digest = hashlib.sha1(repr(graph).encode()).hexdigest()[:6].upper()
+        name = f"{lig.res_name}_{digest}"
+        residue = attr.evolve(
+            prep.residue_type,
+            name=name,
+            base_name=name,
+            io_equiv_class=base.residue_type.io_equiv_class,
+        )
+        states.append(state)
+        variants.append(replace(prep, residue_type=residue))
+    return variants
 
 
 def prepare_ligands(  # noqa: C901
@@ -1824,10 +1899,9 @@ def prepare_ligands(  # noqa: C901
         seed: Fixed RNG seed for the 3D conformer each residue is built from.
             ``None`` is random, which makes the prepared residue types differ
             between runs.
-        coordinating_atoms: {residue name: atoms bonded to a metal}. A ligand
-            with a copy whose metal donors present fewer hydrogens than the
-            copy its type is prepared from gets a deprotonated variant, prepared
-            from that copy, beside its base type.
+        coordinating_atoms: {residue name: atoms bonded to a metal}, which a
+            residue's charges cannot account for. Each hydrogen state the copies
+            of a ligand present gets a type (see ``_state_variants``).
 
     Returns:
         A (ParameterDatabase, CanonicalOrdering) tuple. When
@@ -1851,11 +1925,12 @@ def prepare_ligands(  # noqa: C901
             )
     if param_db is None:
         param_db = ParameterDatabase.get_default()
-    # an input protonated in context (with its metal bonds) keeps that state
+    # an input protonated in context (with its metal bonds) keeps that state (5XNL)
     if PROTONATION_VARIANT not in atom_array.get_annotation_categories():
         atom_array = with_atomworks_hydrogens(
             atom_array, ph=ph, forms=database_forms(param_db.chemical)
         )
+    _assert_prepared_names_cover(atom_array, param_db)
 
     from tmol.ligand._fragmentation import (
         FRAGMENT_ID_ANNOTATION,
@@ -2055,22 +2130,25 @@ def prepare_ligands(  # noqa: C901
             else:
                 # a type describes the free molecule its bonded copies patch,
                 #    with every atom and hydrogen its copies may resolve
+                source = lig
+                bonded_out = (lig.connection_atom_names or frozenset()) | (
+                    coordinating_atoms or {}
+                ).get(lig.res_name, frozenset())
                 if (
                     _covalently_bonded_copy(lig, atom_array)
                     or not np.isfinite(lig.atom_array.coord).all()
-                    or _has_open_valence(
-                        lig.atom_array,
-                        (lig.connection_atom_names or frozenset())
-                        | (coordinating_atoms or {}).get(lig.res_name, frozenset()),
-                    )
+                    or _open_valence(lig.atom_array, bonded_out).any()
                 ):
-                    lig = _as_free_molecule(lig, ph)
+                    lig = _as_free_molecule(lig, ph, bonded_out)
                 prep = _prepare_ligand_via_smiles(
                     lig,
                     ph=ph,
                     protonate=False,
                     seed=seed,
                     generate_heavy_chi_samples=bool(conjugations),
+                )
+                variants = _state_variants(
+                    source, prep, atom_array, ph, seed, bool(conjugations)
                 )
         except LigandPreparationError as err:
             # strict_ligands=False means "drop what you cannot prepare". That has
@@ -2102,13 +2180,7 @@ def prepare_ligands(  # noqa: C901
             prepared_polymers.append(prep)
         else:
             prepared_ligands.append((lig, prep))
-            donors = (coordinating_atoms or {}).get(lig.res_name, frozenset())
-            if donors:
-                deprotonated = _deprotonated_variant(
-                    lig, prep, donors, atom_array, ph, seed, bool(conjugations)
-                )
-                if deprotonated is not None:
-                    preparations.append(deprotonated)
+            preparations.extend(variants)
 
     from tmol.ligand._conjugation_patches import declared_heavy_leaving_groups
 
@@ -2132,7 +2204,7 @@ def prepare_ligands(  # noqa: C901
         )
         cut_partners |= cut
         # a database residue bonded to a prepared residue's sidechain is only
-        # classified once that residue's definition exists
+        # classified once that residue's definition exists (7AG5 PRO on DNP)
         known = {
             n for r in param_db.chemical.residues for n in (r.name, r.io_equiv_class)
         }
@@ -2146,7 +2218,9 @@ def prepare_ligands(  # noqa: C901
         for prep in preparations:
             # a deprotonated variant is looked up as the residue it varies
             name = prep.residue_type.io_equiv_class
-            atoms = conjugation_atoms(ligands_by_name[name], polymer_ports)
+            atoms = conjugation_atoms(
+                ligands_by_name[name], polymer_ports, any_instance=True
+            )
             prepared_by_name[prep.residue_type.name] = _with_conjugation(
                 prep,
                 atoms,
@@ -2430,11 +2504,11 @@ def prepare_ligands_from_smiles(
 
 
 def _prepare_mol2(mol2_path, res_name=None, *, ph=7.4, mode="auto", seed=None):
-    from tmol.ligand._detect import nonstandard_residue_info_from_mol2
+    from tmol.ligand._detect import nonstandard_residue_info_from_file
 
     if mode not in ("keep", "auto", "regenerate"):
         raise ValueError("MOL2 mode must be keep, auto, or regenerate")
-    lig = nonstandard_residue_info_from_mol2(mol2_path, res_name=res_name)
+    lig = nonstandard_residue_info_from_file(mol2_path, res_name=res_name)
     try:
         return (
             prepare_single_ligand(lig)
@@ -2462,7 +2536,7 @@ def prepare_ligand_from_mol2(
     to apply the requested pH even to a neutralized, fully hydrogenated input.
 
     Args:
-        mol2_path: Path to the ligand mol2 file.
+        mol2_path: Path to the ligand MOL2 or SDF file.
         param_db: Base database (not modified); defaults to the tmol default.
         ph: Target pH for protonation.
         mode: ``"keep"`` requires prepared input and retains its protonation and

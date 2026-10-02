@@ -1045,6 +1045,16 @@ def _gather_scan_path_data(scan_path_segment_data, i, j, bt_gen_seg_scan_path_se
                 )
 
 
+def _bond_csgraph(bonds, weight, n_atoms):
+    """A sparse n_atoms x n_atoms graph with one weighted edge per bond row."""
+    weights = numpy.broadcast_to(
+        numpy.full((1,), weight, dtype=numpy.float32), bonds[:, 0].shape
+    )
+    return sparse.csr_matrix(
+        (weights, (bonds[:, 0], bonds[:, 1])), shape=(n_atoms, n_atoms)
+    )
+
+
 @attr.s(auto_attribs=True)
 class ResidueKinforestData:
     """Per-block-type kinforest data rooted at the default jump connection
@@ -1059,6 +1069,41 @@ class ResidueKinforestData:
     preds: NDArray[numpy.int64][:]  # BFS predecessors in TO; -9999 for root
     bfto_2_orig: NDArray[numpy.int64][:]  # BFS traversal order → TO (= KFO ordering)
     dof_type: NDArray[numpy.int64][:]  # NodeType per atom in TO
+
+
+def _tree_bond_indices(bt):
+    """The block type's bonds plus one tree-only edge into each unbonded fragment.
+
+    A block type may hold several molecules, such as a ligand and a counter-ion.
+    Its icoors place each further fragment from an atom of another; that pair is
+    the edge the kinematic tree follows, though it is not a bond.
+    """
+    bonds = numpy.asarray(bt.bond_indices, dtype=numpy.int64).reshape(-1, 2)
+
+    def components(edges):
+        graph = sparse.csr_matrix(
+            (numpy.ones(len(edges)), (edges[:, 0], edges[:, 1])),
+            shape=(bt.n_atoms, bt.n_atoms),
+        )
+        return csgraph.connected_components(graph, directed=False)
+
+    n_fragments, fragment = components(bonds)
+    if n_fragments == 1:
+        return bonds
+    joins = []
+    for i in range(bt.n_atoms):
+        parent_icoor = bt.icoors_ancestors[bt.at_to_icoor_ind[i], 0]
+        parent = bt.atom_to_idx.get(bt.icoors[parent_icoor].name)
+        if parent is not None and fragment[parent] != fragment[i]:
+            joins += [(i, parent), (parent, i)]
+    edges = numpy.concatenate([bonds, numpy.array(joins, dtype=numpy.int64)])
+    if components(edges)[0] != 1:
+        raise ValueError(
+            f"{bt.name}: its atoms form {n_fragments} unbonded fragments and its "
+            "icoors do not place each one from another, so no kinematic tree "
+            "reaches them all"
+        )
+    return edges
 
 
 def block_group_kinforest_data(block_types, links, anchor: int = 0):
@@ -1079,18 +1124,10 @@ def block_group_kinforest_data(block_types, links, anchor: int = 0):
     offsets = numpy.cumsum([0] + [bt.n_atoms for bt in block_types])
     n_atoms = int(offsets[-1])
 
-    def _csgraph(bonds, weight):
-        weights = numpy.broadcast_to(
-            numpy.full((1,), weight, dtype=numpy.float32), bonds[:, 0].shape
-        )
-        return sparse.csr_matrix(
-            (weights, (bonds[:, 0], bonds[:, 1])), shape=(n_atoms, n_atoms)
-        )
-
     all_bonds, tor_bonds = [], []
     for i, bt in enumerate(block_types):
         off = int(offsets[i])
-        all_bonds.append(numpy.asarray(bt.bond_indices) + off)
+        all_bonds.append(_tree_bond_indices(bt) + off)
         tor_bonds.extend(
             (uaids[1][0] + off, uaids[2][0] + off)
             for uaids in bt.torsion_to_uaids.values()
@@ -1116,7 +1153,9 @@ def block_group_kinforest_data(block_types, links, anchor: int = 0):
         else numpy.zeros((0, 2), dtype=numpy.int64)
     )
 
-    bond_graph = _csgraph(all_bonds, -1) + _csgraph(tor_bonds, -0.125)
+    bond_graph = _bond_csgraph(all_bonds, -1, n_atoms) + _bond_csgraph(
+        tor_bonds, -0.125, n_atoms
+    )
     spanning_tree = csgraph.minimum_spanning_tree(bond_graph.tocsr())
 
     jump_atom = int(offsets[anchor]) + (
@@ -1152,15 +1191,7 @@ def annotate_block_type_with_residue_kinforest_data(bt):
     if hasattr(bt, "residue_kinforest_data"):
         return
 
-    def _bonds_to_csgraph(bonds, edge_weight):
-        weights_array = numpy.full((1,), edge_weight, dtype=numpy.float32)
-        weights = numpy.broadcast_to(weights_array, bonds[:, 0].shape)
-        return sparse.csr_matrix(
-            (weights, (bonds[:, 0], bonds[:, 1])),
-            shape=(bt.n_atoms, bt.n_atoms),
-        )
-
-    potential_bonds = _bonds_to_csgraph(bt.bond_indices, -1)
+    potential_bonds = _bond_csgraph(_tree_bond_indices(bt), -1, bt.n_atoms)
     tor_atoms = [
         (uaids[1][0], uaids[2][0])
         for tor, uaids in bt.torsion_to_uaids.items()
@@ -1171,7 +1202,7 @@ def annotate_block_type_with_residue_kinforest_data(bt):
     else:
         tor_atoms = numpy.array(tor_atoms)
 
-    prioritized_bonds = _bonds_to_csgraph(tor_atoms, -0.125)
+    prioritized_bonds = _bond_csgraph(tor_atoms, -0.125, bt.n_atoms)
     bond_graph = potential_bonds + prioritized_bonds
     bond_graph_spanning_tree = csgraph.minimum_spanning_tree(bond_graph.tocsr())
 

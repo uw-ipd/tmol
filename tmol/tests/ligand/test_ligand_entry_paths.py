@@ -264,14 +264,14 @@ def test_neutralized_mol2_protonation_workflow(
     # 2FZC; this is not the unavailable original PDBbind addH MOL2 file.
     path = tmp_path / "neutralized_addH.mol2"
     path.write_text(_build_charged_3d_mol2_mol(smiles, seed=17).write("mol2"))
-    source = nonstandard_residue_info_from_mol2(path, res_name="LG1")
+    source = nonstandard_residue_info_from_mol2(path, res_name="L_1")
     assert source.skip_protonation  # Auto preserves complete, prepared input.
     assert source.atom_array.charge.sum() == 0
     assert sum(source.partial_charges.values()) == pytest.approx(0, abs=2e-4)
     heavy = source.atom_array[source.atom_array.element != "H"]
     cif_path = tmp_path / "neutralized.cif"
-    to_cif_file(source.atom_array, cif_path, ccd_entries={"LG1": source.atom_array})
-    cif_database, _ = prepare_ligand_from_cif(cif_path, res_name="LG1", seed=17)
+    to_cif_file(source.atom_array, cif_path, ccd_entries={"L_1": source.atom_array})
+    cif_database, _ = prepare_ligand_from_cif(cif_path, res_name="L_1", seed=17)
 
     damaged = tmp_path / "untrusted_addH.mol2"
     lines = path.read_text().splitlines()
@@ -288,23 +288,23 @@ def test_neutralized_mol2_protonation_workflow(
         (damaged, {}, expected_charge),
     ):
         database, _ = prepare_ligand_from_mol2(
-            input_path, res_name="LG1", seed=17, **options
+            input_path, res_name="L_1", seed=17, **options
         )
         charges = {
             row.atom: row.charge
             for row in database.scoring.elec.atom_charge_parameters
-            if row.res == "LG1"
+            if row.res == "L_1"
         }
         assert sum(charges.values()) == pytest.approx(charge, abs=2e-4)
         if options.get("mode") == "regenerate":
             assert charges == {
                 row.atom: row.charge
                 for row in cif_database.scoring.elec.atom_charge_parameters
-                if row.res == "LG1"
+                if row.res == "L_1"
             }
             assert next(
-                r for r in database.chemical.residues if r.name == "LG1"
-            ) == next(r for r in cif_database.chemical.residues if r.name == "LG1")
+                r for r in database.chemical.residues if r.name == "L_1"
+            ) == next(r for r in cif_database.chemical.residues if r.name == "L_1")
         if charge == 0:
             assert sorted(charges.values()) == sorted(source.partial_charges.values())
             for name in heavy.atom_name:
@@ -337,7 +337,7 @@ def test_neutralized_mol2_protonation_workflow(
         )
         _score_and_minimize_ligand(pose, database)
         output = tmp_path / "ligand.tmol"
-        write_params_from_mol2(input_path, output, res_name="LG1", seed=17, **options)
+        write_params_from_mol2(input_path, output, res_name="L_1", seed=17, **options)
         loaded = load_params_file(output)[0]
         assert loaded.partial_charges == charges
         assert set(loaded.partial_charges) == {atom.name for atom in bt.atoms}
@@ -740,7 +740,7 @@ def test_prepare_ligands_rejects_incomplete_generated_chemistry(
     base = ParameterDatabase.get_default()
 
     if strict_ligands:
-        with pytest.raises(LigandPreparationError, match=r"LG1.*C1"):
+        with pytest.raises(LigandPreparationError, match=r"L_1.*C1"):
             prepare_ligands(arr, param_db=base, strict_ligands=True, seed=1234)
     else:
         with caplog.at_level(logging.WARNING, logger=_preparation.__name__):
@@ -748,7 +748,7 @@ def test_prepare_ligands_rejects_incomplete_generated_chemistry(
                 arr, param_db=base, strict_ligands=False, seed=1234
             )
         assert prepared is base
-        assert "Skipping LG1" in caplog.text
+        assert "Skipping L_1" in caplog.text
         assert "C1" in caplog.text
 
     assert (arr.atom_name == source_atom_names).all()
@@ -773,3 +773,84 @@ def test_prepare_ligands_with_params_files_skips_reprep(tmp_path) -> None:
         params_files=[str(tmol_file)],
     )
     assert any(r.name == "LG1" for r in param_db.chemical.residues)
+
+
+def test_a_component_of_unbonded_fragments_builds_scores_packs_and_minimizes(
+    torch_device,
+):
+    import biotite.structure as struc
+    import numpy as np
+    import torch
+    from tmol import FoldForest, MoveMap, beta2016_score_function, run_kin_min
+    from tmol.io import pose_stack_from_biotite
+
+    # ethanol and a hydroxide that is not bonded to it, both in residue ZZF
+    names = ["C1", "C2", "O1", "O2", "H1", "H2", "H3", "H4", "H5", "H6", "H7"]
+    array = struc.AtomArray(len(names))
+    array.atom_name = names
+    array.element = [n[0] for n in names]
+    array.coord = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [1.52, 0.0, 0.0],
+            [2.02, 1.34, 0.0],
+            [5.5, 0.0, 0.0],
+            [-0.37, 1.03, 0.0],
+            [-0.37, -0.51, 0.89],
+            [-0.37, -0.51, -0.89],
+            [1.88, -0.51, 0.89],
+            [1.88, -0.51, -0.89],
+            [2.99, 1.33, 0.0],
+            [5.83, 0.93, 0.0],
+        ],
+        dtype=np.float32,
+    )
+    array.res_name[:], array.res_id[:], array.chain_id[:] = "ZZF", 1, "A"
+    array.hetero[:] = True
+    array.set_annotation("charge", np.array([0, 0, 0, -1] + [0] * 7))
+    bonds = [(0, 1), (1, 2), (0, 4), (0, 5), (0, 6), (1, 7), (1, 8), (2, 9), (3, 10)]
+    array.bonds = struc.BondList(
+        len(names), np.array([(a, b, struc.BondType.SINGLE) for a, b in bonds])
+    )
+    pose, context = pose_stack_from_biotite(
+        array,
+        torch_device,
+        prepare_ligands=True,
+        return_context=True,
+        ligand_seed=0,
+    )
+    database = context.parameter_database
+    (residue,) = [r for r in database.chemical.residues if r.name == "ZZF"]
+    assert {a.name for a in residue.atoms} == set(names)
+    assert {a.name for a in residue.atoms} == {i.name for i in residue.icoors}
+    # the tree joins the fragments, but no bond does
+    hydroxide = {"O2", "H7"}
+    assert all((a in hydroxide) == (b in hydroxide) for a, b, *_ in residue.bonds)
+
+    block_type = pose.packed_block_types.active_block_types[
+        int(pose.block_type_ind[0, 0])
+    ]
+    heavy = ["C1", "C2", "O1", "O2"]
+    observed = pose.coords[0, [block_type.atom_to_idx[n] for n in heavy]]
+    np.testing.assert_allclose(observed.cpu(), array.coord[:4], atol=1e-4)
+    _score_and_minimize_ligand(pose, database)
+
+    # the packer's rotamer tree and the torsion-space minimizer reach both
+    #    fragments through the same tree-only edge
+    packed = pose_stack_from_biotite(
+        array, torch_device, param_db=database, no_optH=False
+    )
+    assert torch.isfinite(packed.coords[packed.real_atoms]).all()
+
+    sfxn = beta2016_score_function(pose.device, param_db=database)
+    move_map = MoveMap.from_pose_stack(pose)
+    move_map.move_all_jumps = True
+    move_map.move_all_named_torsions = True
+    minimized = run_kin_min(
+        pose, sfxn, FoldForest.reasonable_fold_forest(pose), move_map
+    )
+    energy = sfxn.render_whole_pose_scoring_module(pose)
+    assert torch.isfinite(minimized.coords[minimized.real_atoms]).all()
+    assert (
+        float(energy(minimized.coords).sum()) <= float(energy(pose.coords).sum()) + 1e-3
+    )

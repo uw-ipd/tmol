@@ -16,6 +16,8 @@ from tmol.chemical import ResidueTypeSet
 from tmol.chemical import BondType as ChemBondType
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import metal_table, site_connections
+from tmol.io._atomworks_reader import renumbered_decreasing_chains
+from tmol.io._input_geometry import rebuild_coincident_hydrogens
 from tmol.io._canonical_ordering import _only_coordinates_a_metal
 from tmol.io._protonation import (
     PROTONATION_ALTERNATIVES,
@@ -553,8 +555,9 @@ def build_context_from_biotite(
         biotite_structure = _with_input_hydrogens(
             biotite_structure, ligand_ph, None, chemdb, True
         )
-    coordinating_atoms = _metal_bound_atoms(biotite_structure)
-    biotite_structure = _without_metal_coordination_bonds(biotite_structure)
+    biotite_structure, coordinating_atoms = _without_metal_coordination_bonds(
+        biotite_structure
+    )
     if prepare_ligands:
         from tmol.ligand import prepare_ligands as _prepare_ligands
 
@@ -586,7 +589,7 @@ def build_context_from_biotite(
         ):
             return _default_pose_build_context_for(biotite_structure, torch_device)
 
-        rts = ResidueTypeSet.from_database(param_db.chemical)
+        rts = _restype_set_sharing_default(param_db.chemical)
         pbt = PackedBlockTypes.from_restype_list(
             rts.chem_db, rts, rts.residue_types, torch_device
         )
@@ -626,6 +629,7 @@ def pose_stack_from_biotite(  # noqa: C901
     ligand_params_files: list[str] | None = None,
     chem_comp_types: dict | None = None,
     ligand_seed: int | None = None,
+    packer_seed: int | None = None,
     return_context: bool = False,
     context: PoseBuildContext | None = None,
     atom37_coords: torch.Tensor | None = None,
@@ -659,13 +663,14 @@ def pose_stack_from_biotite(  # noqa: C901
             construction use this database. If prepare_ligands=True, it is
             extended with ligand data. Mutually exclusive with ``context``.
         missing_density_distance_threshold: Distance threshold in Angstroms.
-            Adjacent residues whose closest inter-atom distance exceeds this
-            value are treated as disconnected (upper/lower connects broken).
-            Set to 0 to disable. Default is 2.4.
+            Adjacent polymer residues whose connection atoms (C-N, O3'-P) are
+            farther apart are treated as disconnected (upper/lower connects
+            broken), even if a bond is declared. Set to 0 to disable. Default 2.4.
         no_optH: Residues the input gives no hydrogens take AtomWorks'
             protonation state: database residues then get hydrogens built by
             tmol, other residues those AtomWorks places. When True (default),
-            preserve finite input hydrogen coordinates
+            preserve finite input hydrogen coordinates, except coincident
+            hydrogen-parent pairs, which are rebuilt with a warning,
             and build only missing hydrogens and heavy-atom sidechains. When
             False, residues with complete heavy atoms are packed with OptHSampler
             to optimize hydrogen positions and NHQ flips, while residues with
@@ -690,6 +695,8 @@ def pose_stack_from_biotite(  # noqa: C901
         ligand_seed: Fixed RNG seed for the conformer each prepared residue
             is built from, making preparation reproducible. Only used when
             prepare_ligands=True.
+        packer_seed: Seed of the packer that places hydrogens and builds missing
+            side chains; unseeded, it continues torch's global random state.
         return_context: If True, return ``(pose_stack, PoseBuildContext)``.
         context: Reusable context from ``build_context_from_biotite``. It must
             be on ``torch_device`` and is mutually exclusive with ``param_db``
@@ -706,8 +713,8 @@ def pose_stack_from_biotite(  # noqa: C901
             autograd. Geometry-based missing-density and
             additional-disulfide detection are disabled so topology is fixed.
         protonation_alternatives: Record, in ``pdb_info.residue_annotations``,
-            AtomWorks' protonation alternatives at ``ligand_ph`` of each free
-            histidine and cysteine lacking input hydrogens, for a
+            database-supported AtomWorks states within one pKa unit of ``ligand_ph``
+            for free side chains lacking input hydrogens, for a
             ``PackerPalette(protonation_alternatives=True)`` to offer.
         **kwargs: Additional arguments passed to pose_stack_from_canonical_form.
 
@@ -823,6 +830,7 @@ def pose_stack_from_biotite(  # noqa: C901
         atom37_coords=atom37_coords,
         fragment_mapping=fragment_mapping,
         return_context=return_context,
+        packer_seed=packer_seed,
         **kwargs,
     )
 
@@ -835,6 +843,7 @@ def pose_stack_from_canonical_form_and_context(
     atom37_coords: torch.Tensor | None,
     fragment_mapping=None,
     return_context: bool = False,
+    packer_seed: int | None = None,
     **kwargs: object,
 ) -> PoseStack | tuple[PoseStack, dict] | tuple[PoseStack, PoseBuildContext]:
     """Build a pose from a canonical form and a reusable build context.
@@ -862,6 +871,11 @@ def pose_stack_from_canonical_form_and_context(
         coordinates; retained so gradients survive hydrogen rebuilding.
       fragment_mapping: Mapping produced when fragmented ligands were expanded.
       return_context: Also return the context used.
+      packer_seed: Seed of the packer, as for ``pose_stack_from_biotite``.
+
+    For ordinary structure inputs, coincident bonded heavy atoms raise before
+    packing; hydrogens coincident with their parent are rebuilt without changing
+    protonation. Differentiable ``atom37_coords`` retain their supplied geometry.
 
     Returns:
       The constructed pose, optionally with atom mappings or the context.
@@ -900,6 +914,9 @@ def pose_stack_from_canonical_form_and_context(
         # input coordinates can be restored afterward without name matching.
         kwargs["return_atom_mapping"] = True
 
+    return_block_has_missing_atoms = bool(
+        kwargs.pop("return_block_has_missing_atoms", False)
+    )
     result = pose_stack_from_canonical_form(
         context.canonical_ordering,
         context.packed_block_types,
@@ -910,6 +927,8 @@ def pose_stack_from_canonical_form_and_context(
     )
 
     pose_stack, opt_return_vals = result
+    if atom37_coords is None:
+        pose_stack = rebuild_coincident_hydrogens(pose_stack)
     if fragment_mapping is not None:
         from tmol.ligand import apply_fragment_connections
 
@@ -948,6 +967,7 @@ def pose_stack_from_canonical_form_and_context(
             no_optH=no_optH,
             na_sampler=na_sampler,
             has_missing_atoms=has_missing_atoms,
+            seed=packer_seed,
         )
 
     if atom37_coords is not None and needs_packing:
@@ -968,11 +988,6 @@ def pose_stack_from_canonical_form_and_context(
     # This code tries to faithfully return what the caller expects based on the optional
     # return values that they requested. Since we override the return_block_has_missing_atoms
     # bool to True, we cannot just count on the existence or absence of optional returned vals
-    return_block_has_missing_atoms = (
-        kwargs.get("return_block_has_missing_atoms")
-        if ("return_block_has_missing_atoms" in kwargs)
-        else False
-    )
     if return_context:
         return pose_stack, context
     if len(opt_return_vals) > (0 if return_block_has_missing_atoms else 1):
@@ -1178,11 +1193,6 @@ def biotite_from_pose_stack(
 def _with_metals_rejoined(structure, block_for_atom, origins):
     """Put each split-out metal back in the component it came from."""
     block_for_atom = numpy.asarray(block_for_atom)
-    ins = (
-        structure.ins_code
-        if "ins_code" in structure.get_annotation_categories()
-        else numpy.full(structure.array_length(), "")
-    )
     after = {}
     for block in numpy.flatnonzero([o is not None for o in origins]):
         res_id, ins_code, res_name, atom_name = origins[block]
@@ -1193,7 +1203,7 @@ def _with_metals_rejoined(structure, block_for_atom, origins):
         component = numpy.flatnonzero(
             (structure.chain_id == structure.chain_id[metal])
             & (structure.res_id == res_id)
-            & (ins == ins_code)
+            & (structure.ins_code == ins_code)
             & (structure.res_name == res_name)
         )
         if not len(component):
@@ -1201,10 +1211,8 @@ def _with_metals_rejoined(structure, block_for_atom, origins):
         structure.res_id[metal] = res_id
         structure.res_name[metal] = res_name
         structure.atom_name[metal] = atom_name
-        if "ins_code" in structure.get_annotation_categories():
-            structure.ins_code[metal] = ins_code
-        if "hetero" in structure.get_annotation_categories():
-            structure.hetero[metal] = structure.hetero[component[0]]
+        structure.ins_code[metal] = ins_code
+        structure.hetero[metal] = structure.hetero[component[0]]
         after[metal] = int(component[-1])
         # within a residue CIF has no coordination order; the split retypes them
         bonds = structure.bonds.as_array()
@@ -1231,13 +1239,8 @@ def _order_name(order):
 
 
 def _chemical_bond_orders(bt, element_of):
-    """One Lewis structure for a block type's bonds, by atom-name pair.
-
-    io_bond_orders restore the orders a prepared ligand's typing promoted. What
-    remains of tmol's delocalized convention, AROMATIC outside a ring, is
-    resolved by rule: at an atom whose delocalized bonds reach terminal
-    heteroatoms (carboxylate, guanidinium, phosphate), the first by name is
-    double unless the atom already has one, and every other such bond is single.
+    """One Lewis structure for a block type's bonds, by atom-name pair: io_bond_orders,
+    then non-ring AROMATIC: one double to a terminal heteroatom per atom, rest single.
     """
     order_of, in_ring = {}, {}
     for a, b, order, *rest in bt.bonds:
@@ -1282,12 +1285,8 @@ def _chemical_bond_orders(bt, element_of):
 
 
 def _bonds_from_pose_stack(pose_stack, structure, block_for_atom):
-    """The bond table of an exported structure, from the pose's residue types.
-
-    Bond orders are one Lewis structure: see _chemical_bond_orders. Every pose of
-    a stack shares one bond table, so their residue types and connections must
-    agree. Bonds to atoms the export left out are dropped.
-    """
+    """The bond table of an exported structure, from the pose's residue types, which
+    every pose of the stack must share; bonds to atoms left out are dropped."""
     block_types = pose_stack.block_type_ind64
     connections = pose_stack.inter_residue_connections64
     if not (
@@ -1405,40 +1404,25 @@ def _map_atoms_to_canonical(co, atom_res_inds, res_names, atom_names, elements):
 
 
 def _renumbered_for_cif(structure):
-    """Renumber the chains a biotite CIF round trip cannot carry, with a warning.
+    """Renumber, with a warning, the chains biotite's CIF round trip cannot carry.
 
-    biotite writes res_id as both label_seq_id and auth_seq_id, and reads a
-    label_seq_id of -1 as missing; label-based readers such as atomworks also
-    reject numbering that decreases within a chain. A chain containing -1 is
-    shifted to start at 1; a chain whose numbering decreases is renumbered 1..N.
+    biotite reads a label_seq_id of -1 as missing, and atomworks rejects numbering
+    that decreases within a chain: the first is shifted to start at 1, the second 1..N.
     """
     template = _template_array(structure)
-    res_id = template.res_id.copy()
-    ins_code = template.ins_code.copy()
-    starts = biotite.structure.get_residue_starts(template, add_exclusive_stop=True)
-    changed = False
+    res_id, ins_code, decreasing = renumbered_decreasing_chains(template)
+    reasons = dict.fromkeys(decreasing, "numbering that decreases within a chain")
     for chain in dict.fromkeys(template.chain_id.tolist()):
         in_chain = template.chain_id == chain
-        ids = res_id[in_chain]
-        if (numpy.diff(ids) < 0).any():
-            reason = "numbering that decreases within a chain"
-            number = 0
-            for begin, end in zip(starts[:-1], starts[1:]):
-                if template.chain_id[begin] == chain:
-                    number += 1
-                    res_id[begin:end] = number
-            ins_code[in_chain] = ""
-        elif (ids == -1).any():
-            reason = "a residue id of -1"
-            res_id[in_chain] += 1 - ids.min()
-        else:
-            continue
+        if chain not in reasons and (res_id[in_chain] == -1).any():
+            reasons[chain] = "a residue id of -1"
+            res_id[in_chain] += 1 - res_id[in_chain].min()
+    for chain, reason in reasons.items():
         warnings.warn(
             f"Renumbering chain {chain} of the output AtomArray: biotite's CIF "
             f"writer does not support {reason}"
         )
-        changed = True
-    if not changed:
+    if not reasons:
         return structure
     structure = structure.copy()
     structure.res_id = res_id
@@ -1447,11 +1431,8 @@ def _renumbered_for_cif(structure):
 
 
 def _metal_coordination_bond_mask(structure):
-    """Which rows of the bond table are metal coordination.
-
-    These are bonds typed COORDINATION (a CIF's metalc) and bonds from a metal
-    to another residue, as a PDB's CONECT lists them.
-    """
+    """Which bond rows are metal coordination: typed COORDINATION (CIF metalc), or from
+    a metal to another residue (PDB CONECT)."""
     bonds = structure.bonds.as_array()
     if not len(bonds):
         return bonds, numpy.zeros(0, dtype=bool)
@@ -1467,32 +1448,25 @@ def _metal_coordination_bond_mask(structure):
     return bonds, coordination
 
 
-def _metal_bound_atoms(structure):
-    """{residue name: names of its atoms with a declared metal bond}."""
-    if structure.bonds is None:
-        return {}
-    bonds, coordination = _metal_coordination_bond_mask(structure)
-    template = _template_array(structure)
-    is_metal = _is_metal(template)
-    out = defaultdict(set)
-    for i in bonds[coordination, :2].ravel():
-        if not is_metal[i]:
-            out[str(template.res_name[i])].add(str(template.atom_name[i]))
-    return {name: frozenset(atoms) for name, atoms in out.items()}
-
-
 def _without_metal_coordination_bonds(structure):
-    """Drop metal coordination bonds, which ligand preparation does not read."""
+    """(structure without its metal coordination bonds, which ligand preparation does
+    not read, {residue name: its atoms with a declared metal bond})."""
     if structure.bonds is None:
-        return structure
+        return structure, {}
     bonds, coordination = _metal_coordination_bond_mask(structure)
     if not coordination.any():
-        return structure
+        return structure, {}
+    template = _template_array(structure)
+    is_metal = _is_metal(template)
+    bound = defaultdict(set)
+    for i in bonds[coordination, :2].ravel():
+        if not is_metal[i]:
+            bound[str(template.res_name[i])].add(str(template.atom_name[i]))
     structure = structure.copy()
     structure.bonds = biotite.structure.BondList(
-        _template_array(structure).array_length(), bonds[~coordination]
+        template.array_length(), bonds[~coordination]
     )
-    return structure
+    return structure, {name: frozenset(atoms) for name, atoms in bound.items()}
 
 
 def _metal_atom_names(chemdb=None, co=None):
@@ -1513,17 +1487,16 @@ def _metal_atom_names(chemdb=None, co=None):
 
 
 def _chelated_metals(template, metal_atom):
-    """Metal atoms to move out of their components, with the ion each becomes.
-
-    A metal leaves its component when it is a supported ion, bonds only to N, O
-    or S of that component, and what remains is one carbon-containing molecule:
-    a tetrapyrrole's iron or magnesium, not an inorganic cluster. One with no
-    coordinates stays: it was not observed, so it is no ion.
+    """{atom: (ion, atom name)} for resolved supported metals bonded only to N/O/S of a
+    component that stays one organic molecule without them (a heme's Fe, not a cluster).
     """
     ion_for_element = {}
     for ion in metal_table()["ions"]:
-        ion_for_element.setdefault(ion["element"].upper(), ion["name3"])
+        element = ion["element"].upper()
+        ion_for_element.setdefault((element, 0), ion["name3"])
+        ion_for_element[element, ion["oxidation_state"]] = ion["name3"]
     elements = numpy.char.upper(template.element.astype(str))
+    charge = getattr(template, "charge", numpy.zeros(len(template), dtype=int))
     starts = biotite.structure.get_residue_starts(template, add_exclusive_stop=True)
     bonds = template.bonds
     moved = {}
@@ -1531,7 +1504,7 @@ def _chelated_metals(template, metal_atom):
         if stop - start < 2:
             continue
         members = set(range(start, stop))
-        metals = [i for i in members if elements[i] in ion_for_element]
+        metals = [i for i in members if (elements[i], 0) in ion_for_element]
         rest = members - set(metals)
         if not metals or "C" not in elements[list(rest)]:
             continue
@@ -1554,7 +1527,7 @@ def _chelated_metals(template, metal_atom):
         if seen != rest:
             continue
         for i in metals:
-            name3 = ion_for_element[elements[i]]
+            name3 = ion_for_element.get((elements[i], int(charge[i])))
             if name3 in metal_atom and numpy.isfinite(template.coord[i]).all():
                 moved[i] = (name3, metal_atom[name3])
     return moved
@@ -1601,15 +1574,10 @@ def _metal_origins(structure):
 
 
 def _with_peptide_tautomers(structure):
-    """Rewrite an iminol or iminothiol peptide link as the amide it stands for.
-
-    Where a link between residues is drawn C=N and the carbon also carries a
-    singly bonded, uncharged terminal X (X = O, S), as a thioamide read with its
-    leaving oxygen gone comes out, the double bond moves to X and any hydrogen
-    on X is dropped.
-    """
+    """Rewrite an inter-residue C=N link whose C carries a single-bonded, uncharged
+    terminal O/S as the amide (C=X, hydrogens on X dropped), as 1MRO's GL3 reads."""
     template = _template_array(structure)
-    if template.bonds is None:
+    if template.bonds is None or template.array_length() == 0:
         return structure
     bonds = template.bonds.as_array()
     elements = numpy.char.upper(template.element.astype(str))
@@ -1665,12 +1633,8 @@ def _with_input_chemistry_normalized(structure, metal_atom):
 
 
 def _with_chelated_metals_split(structure, metal_atom):
-    """Move each chelated metal into an ion residue of its own.
-
-    Its bonds to the component become metal coordination, so the component is
-    prepared as an organic molecule and the metal is an ordinary ion. Where it
-    sat is kept in the METAL_ORIGIN annotation, for export to put it back.
-    """
+    """Move each chelated metal into an ion residue of its own, bonded by coordination;
+    METAL_ORIGIN keeps where it sat, for export to put it back."""
     template = _template_array(structure)
     if template.bonds is None:
         return structure
@@ -1693,18 +1657,14 @@ def _with_chelated_metals_split(structure, metal_atom):
     origin = numpy.full(template.array_length(), "", dtype=object)
     if METAL_ORIGIN in structure.get_annotation_categories():
         origin[:] = structure.get_annotation(METAL_ORIGIN)
-    ins = (
-        structure.ins_code
-        if "ins_code" in structure.get_annotation_categories()
-        else numpy.full(template.array_length(), "")
-    )
     for i, (name3, atom_name) in sorted(moved.items()):
         origin[i] = "\t".join(
-            (
-                str(structure.res_id[i]),
-                str(ins[i]),
-                str(structure.res_name[i]),
-                str(structure.atom_name[i]),
+            str(a[i])
+            for a in (
+                structure.res_id,
+                structure.ins_code,
+                structure.res_name,
+                structure.atom_name,
             )
         )
         chain = structure.chain_id[i]
@@ -1712,8 +1672,7 @@ def _with_chelated_metals_split(structure, metal_atom):
         structure.atom_name[i] = atom_name
         structure.res_id[i] = next_id[chain]
         next_id[chain] += 1
-        if "hetero" in structure.get_annotation_categories():
-            structure.hetero[i] = True
+        structure.hetero[i] = True
     structure.bonds = bond_list
     structure.set_annotation(METAL_ORIGIN, origin.astype(str))
     # each ion follows the component it came from, so residues stay contiguous
@@ -1747,11 +1706,8 @@ def _ion_elements(metal_atom):
 
 
 def _without_chelated_metals(registry, components, elements):
-    """Component templates as their split residues are: no metal, no metal stereo.
-
-    An atom a metal made a stereocenter, such as a heme pyrrole nitrogen, is
-    planar once the metal is gone, so its declared configuration is dropped.
-    """
+    """Component templates as their split residues are: no metal, and no declared
+    stereo on its partners (a heme pyrrole N is planar without it)."""
     out = dict(registry)
     for name in components:
         template = registry.get(name)
@@ -1798,9 +1754,6 @@ def _metal_coordination_from_biotite(
     if array.bonds is None:
         return numpy.zeros((0, 4), dtype=numpy.int64)
     bonds = array.bonds.as_array()
-    # Almost every bond in a structure is an ordinary one, and a structure with no
-    # metal has none of these at all; finding that out should not cost a pass over
-    # the whole table in Python.
     declared = bonds[bonds[:, 2] == biotite.structure.BondType.COORDINATION]
     if not len(declared):
         return numpy.zeros((0, 4), dtype=numpy.int64)
@@ -2021,6 +1974,7 @@ def _filter_supported_atoms_and_connectivity(  # noqa: C901
     # Only atoms present in every variant count as required, so an atom a terminus
     # patch removes (the DNA 5' phosphate) does not disqualify the residue.
     # Residues with no mainchain definition (non-polymer) are skipped.
+    n_missing_mainchain = 0
     if filter_missing_mainchain:
         atom_names = biotite_structure.atom_name
         if isinstance(biotite_structure, biotite.structure.AtomArrayStack):
@@ -2055,6 +2009,15 @@ def _filter_supported_atoms_and_connectivity(  # noqa: C901
                     sorted(missing),
                 )
                 valid_res[i] = False
+                n_missing_mainchain += 1
+    if n_missing_mainchain and not valid_res.any():
+        # 1A1D: a CA-only trace leaves no residue with its mainchain
+        raise ValueError(
+            f"No residue remains: {n_missing_mainchain} polymer residues lack "
+            "mainchain atoms (a CA-only or P-only trace model?) and were dropped. "
+            "A PoseStack needs resolved backbones; rebuild them first or pass "
+            "complete coordinates."
+        )
 
     atom_res = get_all_residue_positions(biotite_structure)
     _validate_filtered_covalent_partners(
@@ -2085,80 +2048,35 @@ def _filter_supported_atoms_and_connectivity(  # noqa: C901
     return biotite_structure, not_connected
 
 
-def _break_connections_for_missing_density(
-    not_connected: numpy.ndarray,
-    biotite_chain_id_for_res: numpy.ndarray,
-    tmol_coords: torch.Tensor,
-    threshold: float,
-    is_polymeric: numpy.ndarray | None = None,
-) -> None:
-    """Break inter-residue connections where upper/lower atoms are too far apart.
+def _break_polymer_gaps(not_connected, bonds, coords, restypes, chain_id, co, cut):
+    """Disconnect polymer residues of a chain whose connection atoms are apart.
 
-    Modifies ``not_connected`` in-place. For each pair of adjacent residues
-    (i, i+1) that are currently marked as connected and belong to the same
-    chain, the minimum distance between any atom in residue i and any atom in
-    residue i+1 is compared across all poses. If that minimum distance exceeds
-    ``threshold`` (in Angstroms), the connection is broken by setting
-    not_connected[i, 1] = True and not_connected[i+1, 0] = True.
-
-    Args:
-        not_connected: Shape (n_res, 2) boolean array. True = no connection
-            (terminus or explicitly broken); False = connected.
-        biotite_chain_id_for_res: Shape (n_res,) integer chain IDs.
-        tmol_coords: Shape (n_poses, n_res, max_atoms, 3) coordinate tensor.
-        threshold: Distance threshold in Angstroms. Connections where the
-            closest inter-residue atom pair exceeds this distance are broken.
-        is_polymeric: Shape (n_res,) boolean array; pairs where either residue
-            is not a chain member are left alone.
+    Consecutive residues are apart when those atoms, either way round, are
+    farther than ``cut`` in every pose (1GPK pocket 119/121, 3.0 A); unresolved
+    ones count as joined. Returns ``bonds`` without a polymer bond declared
+    across such a gap (3KGP 37/38, bonded from their numbering).
     """
-    n_res = not_connected.shape[0]
-    coords_np = tmol_coords.cpu().numpy()
+    ports = co.polymer_conn_inds
+    up = numpy.asarray(ports.up_atom_for_co_restype)[restypes]
+    down = numpy.asarray(ports.down_atom_for_co_restype)[restypes]
+    coords = coords.cpu().numpy()
+    pair = numpy.arange(len(restypes) - 1)
 
-    for i in range(n_res - 1):
-        # Skip already-disconnected pairs
-        if not_connected[i, 1] or not_connected[i + 1, 0]:
-            continue
-        # Skip cross-chain pairs (handled separately by chain-break logic)
-        if biotite_chain_id_for_res[i] != biotite_chain_id_for_res[i + 1]:
-            continue
-        # A ligand numbered in the chain it sits in is not the next link of
-        #    that chain, so its distance says nothing about a break. Marking
-        #    one would take the C-terminus off the residue before it.
-        if is_polymeric is not None and not (is_polymeric[i] and is_polymeric[i + 1]):
-            continue
+    def linked(a, b):
+        d = coords[:, pair, a[:-1]] - coords[:, pair + 1, b[1:]]
+        d = numpy.linalg.norm(d, axis=-1)
+        return (a[:-1] >= 0) & (b[1:] >= 0) & ~(d > cut).all(axis=0)
 
-        # Compute minimum inter-residue distance across all poses.
-        # A connection is kept if *any* pose shows atoms within threshold.
-        min_dist = numpy.inf
-        for p in range(coords_np.shape[0]):
-            c_i = coords_np[p, i]  # (max_atoms, 3)
-            c_j = coords_np[p, i + 1]
-
-            valid_i = ~numpy.isnan(c_i[:, 0])
-            valid_j = ~numpy.isnan(c_j[:, 0])
-            if not valid_i.any() or not valid_j.any():
-                continue
-
-            ci_v = c_i[valid_i]
-            cj_v = c_j[valid_j]
-            diffs = ci_v[:, numpy.newaxis, :] - cj_v[numpy.newaxis, :, :]
-            pose_min = numpy.sqrt((diffs**2).sum(axis=-1)).min()
-            if pose_min < min_dist:
-                min_dist = pose_min
-            if min_dist <= threshold:
-                break  # already within range; no need to check more poses
-
-        if min_dist > threshold:
-            logger.debug(
-                "Breaking connection between residues %d and %d "
-                "(closest atom distance %.3f Å > threshold %.3f Å)",
-                i,
-                i + 1,
-                min_dist,
-                threshold,
-            )
-            not_connected[i, 1] = True
-            not_connected[i + 1, 0] = True
+    polymer = (up >= 0) | (down >= 0)
+    gap = (chain_id[:-1] == chain_id[1:]) & polymer[:-1] & polymer[1:]
+    gap &= ~linked(up, down) & ~linked(down, up)
+    not_connected[:-1, 1] |= gap
+    not_connected[1:, 0] |= gap
+    first, a, second, b = bonds.T
+    joined = ((a == up[first]) & (b == down[second])) | (
+        (a == down[first]) & (b == up[second])
+    )
+    return bonds[~(numpy.r_[gap, False][first] & (second == first + 1) & joined)]
 
 
 def _orient_polymer_gap_flags(not_connected, chain_id, restypes, bonds, co):
@@ -2566,24 +2484,17 @@ def _normalize_input_identifiers(biotite_structure, name3_aliases):
 def _with_input_hydrogens(
     biotite_structure, ph, co, chemdb, find_metal_coordination, alternatives=False
 ):
-    """The input with AtomWorks' protonation of the residues tmol reads that lack hydrogens.
-
-    With ``co`` only its residues are read; without it every residue is, as
-    when ligands are being prepared. An input already protonated here is
-    returned as it is. AtomWorks sees the metal bonds detection would add as
-    coordination, and consecutive residues of a chain bonded through the up
-    and down connections of their ``chemdb`` types. ``alternatives`` also
-    records their protonation alternatives (see ``with_atomworks_hydrogens``).
-    """
+    """Protonate missing input states, optionally recording database alternatives."""
     aliases = {a.name3: a.read_as for a in chemdb.name3_aliases}
     names = None
     if co is not None:
         names = set(co.restype_io_equiv_classes)
         names |= {alias for alias, name in aliases.items() if name in names}
     template = _template_array(biotite_structure)
+    forms = database_forms(chemdb)
     if (
         PROTONATION_VARIANT in template.get_annotation_categories()
-        or not residues_lacking_hydrogens(biotite_structure, names)[1].any()
+        or not residues_lacking_hydrogens(biotite_structure, names, forms)[1].any()
     ):
         return biotite_structure
     metal_atom = _metal_atom_names(chemdb=chemdb)
@@ -2607,11 +2518,11 @@ def _with_input_hydrogens(
     return with_atomworks_hydrogens(
         biotite_structure,
         ph=ph,
-        residue_names=None if co is None else set(co.restype_io_equiv_classes),
+        residue_names=names,
         coordination=coordination,
         backbone=backbone,
-        forms=database_forms(chemdb),
-        alternatives=alternatives,
+        forms=forms,
+        alternative_types=chemdb.residues if alternatives else (),
     )
 
 
@@ -2649,11 +2560,7 @@ def _detected_metal_bonds(biotite_structure, co, chemdb):
         find_additional=True,
         required_donors=required,
     )
-    ins = (
-        template.ins_code
-        if "ins_code" in template.get_annotation_categories()
-        else numpy.full(len(template), "")
-    )
+    ins = template.ins_code
     index = {
         key: i
         for i, key in enumerate(
@@ -2879,20 +2786,14 @@ def canonical_form_from_biotite(
         and len(biotite_residues) > 1
         and atom37_coords is None
     ):
-        conn_inds = co.polymer_conn_inds
-        polymeric = numpy.array(
-            [
-                conn_inds.down_atom_for_co_restype[restype] >= 0
-                or conn_inds.up_atom_for_co_restype[restype] >= 0
-                for restype in tmol_restypes
-            ]
-        )
-        _break_connections_for_missing_density(
+        covalent_bonds_np = _break_polymer_gaps(
             not_connected,
-            biotite_chain_id_for_res,
+            covalent_bonds_np,
             tmol_coords,
+            numpy.asarray(tmol_restypes),
+            biotite_chain_id_for_res,
+            co,
             missing_density_distance_threshold,
-            polymeric,
         )
     _orient_polymer_gap_flags(
         not_connected, biotite_chain_id_for_res, tmol_restypes, covalent_bonds_np, co
@@ -2963,9 +2864,7 @@ def packed_block_types_for_biotite(device: torch.device) -> PackedBlockTypes:
 
     restype_set = _restype_set_for_biotite()
 
-    # A twelve-site cluster makes every pose packed beside it as wide as itself --
-    # the bond-separation table by the square of that, the cartbonded dispatch by
-    # it directly -- so a structure with no metal in it is not packed with them.
+    # metal-only types widen every pose packed with them; see default_packed_block_types
     active = [
         rt for rt in restype_set.residue_types if not _only_coordinates_a_metal(rt)
     ]
@@ -2980,12 +2879,8 @@ def packed_block_types_for_biotite(device: torch.device) -> PackedBlockTypes:
 def packed_block_types_for_biotite_with_metals(
     device: torch.device,
 ) -> PackedBlockTypes:
-    """The Biotite packed block types, plus the ions and clusters.
-
-    A metal the structure carries needs its block type here whether or not
-    anything coordinates it: a coordinated one arrives with the donor patches, an
-    uncoordinated one has nothing to bring it.
-    """
+    """The Biotite packed block types, plus the ions and clusters a structure's
+    metals need whether or not anything coordinates them."""
     restype_set = _restype_set_for_biotite()
 
     return PackedBlockTypes.from_restype_list(
@@ -3006,6 +2901,15 @@ def _default_pose_build_context_for(
 ) -> PoseBuildContext:
     """The process-wide context, packed wide enough for what this structure holds."""
     return _default_pose_build_context(device, bool(_is_metal(structure).any()))
+
+
+def _restype_set_sharing_default(chemical_db) -> ResidueTypeSet:
+    """chemical_db's residue types, reusing the default set's objects (and their
+    cached annotations) where chemical_db extends the default database."""
+    try:
+        return _restype_set_for_biotite().extended(chemical_db)
+    except ValueError:
+        return ResidueTypeSet.from_database(chemical_db)
 
 
 @validate_args
@@ -3032,7 +2936,7 @@ def _derived_types_for_param_db(
 ) -> tuple[CanonicalOrdering, ResidueTypeSet, PackedBlockTypes]:
     """Build canonical ordering and packed block types from a DB."""
     co = CanonicalOrdering.from_chemdb(param_db.chemical)
-    rts = ResidueTypeSet.from_database(param_db.chemical)
+    rts = _restype_set_sharing_default(param_db.chemical)
     pbt = PackedBlockTypes.from_restype_list(
         rts.chem_db, rts, rts.residue_types, device
     )

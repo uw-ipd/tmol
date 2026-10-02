@@ -18,10 +18,11 @@ import numpy
 import torch
 
 from tmol.chemical import RefinedResidueType
+from tmol.database.chemical import special_case_variant_index
 from tmol.io._protonation import (
     PROTONATION_ALTERNATIVES,
-    parse_protonation_alternatives,
 )
+from tmol.io._protonation_alternatives import parse_protonation_alternatives
 from tmol.pack._packer_task import (
     PackerTask,
     SetPackerTask,
@@ -94,10 +95,11 @@ def add_protonation_alternatives(task: PackerTask, pose_stack: PoseStack) -> Non
         by_base_name.setdefault(bt.base_name, []).append(j)
 
     considered = task.per_block_considered_block_types.cpu().numpy()
+    original = pose_stack.block_type_ind64.cpu().numpy()
     n_considered = task.per_block_n_considered_block_types.cpu().numpy().copy()
     extra = {}
     for (pose, block), offsets in alternatives.items():
-        orig = int(pose_stack.block_type_ind64[pose, block])
+        orig = int(original[pose, block])
         orig_bt = types[orig]
         if orig_bt.metal_sites:
             continue
@@ -137,7 +139,7 @@ def add_protonation_alternatives(task: PackerTask, pose_stack: PoseStack) -> Non
         first = int(n_considered[pose, block])
         columns = slice(first, first + len(added))
         new_considered[pose, block, columns] = torch.tensor(added, device=device)
-        name3 = types[int(pose_stack.block_type_ind64[pose, block])].name3
+        name3 = types[int(original[pose, block])].name3
         new_rtr[pose, block, columns] = torch.tensor(
             [types[j].name3 == name3 for j in added], device=device
         )
@@ -168,6 +170,18 @@ def rotamer_offsets(
     block_type = rotamer_set.block_type_ind_for_rot.to(torch.int64)
     same = task.per_block_considered_block_types[pose, block] == block_type[:, None]
     return (offset[pose, block] * same).sum(dim=1)
+
+
+def protonation_state_energy(pose_stack: PoseStack) -> torch.Tensor:
+    """Per-pose pH offsets for the current block types, in kcal/mol."""
+    energies = torch.zeros(
+        pose_stack.n_poses, dtype=pose_stack.coords.dtype, device=pose_stack.device
+    )
+    types = pose_stack.packed_block_types.active_block_types
+    block_types = pose_stack.block_type_ind64.cpu().numpy()
+    for (pose, block), offsets in (block_alternatives(pose_stack) or {}).items():
+        energies[pose] += offsets.get(types[block_types[pose, block]].base_name, 0.0)
+    return energies
 
 
 @attr.define(frozen=True)
@@ -221,20 +235,28 @@ def chosen_protonation_variants(pose_stack: PoseStack) -> list[ProtonationChoice
         at.name: at.element.upper() in ("H", "D") for at in pbt.chem_db.atom_types
     }
     by_base_name = {}
+    reference_by_class = {}
     for bt in types:
         by_base_name.setdefault(bt.base_name, bt)
+        if special_case_variant_index(bt) == 0:
+            reference_by_class.setdefault(bt.io_equiv_class, bt)
+    hydrogen_counts = {
+        name: _hydrogen_counts(bt, is_hydrogen_type)
+        for name, bt in by_base_name.items()
+    }
+    block_types = pose_stack.block_type_ind64.cpu().numpy()
     out = []
     for (pose, block), offsets in sorted(alternatives.items()):
-        bt = types[int(pose_stack.block_type_ind64[pose, block])]
-        counts = [
-            _hydrogen_counts(by_base_name[name], is_hydrogen_type)
-            for name in offsets
-            if name in by_base_name
-        ]
+        bt = types[int(block_types[pose, block])]
+        counts = [hydrogen_counts[name] for name in offsets if name in by_base_name]
         mine = _hydrogen_counts(bt, is_hydrogen_type)
         varying = sorted(
             name for name in mine if len({c.get(name, -1) for c in counts}) > 1
         )
+        reference = reference_by_class[bt.io_equiv_class]
+        reference_counts = hydrogen_counts[reference.base_name]
+        charge = _NET_CHARGE.get(reference.properties.protonation.protonation_state, 0)
+        charge += sum(mine[name] - reference_counts[name] for name in varying)
         out.append(
             ProtonationChoice(
                 pose=pose,
@@ -243,7 +265,7 @@ def chosen_protonation_variants(pose_stack: PoseStack) -> list[ProtonationChoice
                 res_label=int(pose_stack.pdb_info.residue_labels[pose, block]),
                 label=bt.base_name,
                 offset=offsets.get(bt.base_name, float("nan")),
-                charge=_NET_CHARGE.get(bt.properties.protonation.protonation_state, 0),
+                charge=charge,
                 hydrogens={name: mine[name] for name in varying},
             )
         )

@@ -5,7 +5,6 @@ from itertools import combinations
 import numpy
 import torch
 
-from tmol.chemical import RefinedResidueType
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import ideal_distances, metal_table
 from tmol.pose import PackedBlockTypes, PoseStack
@@ -21,18 +20,8 @@ MAX_INTERNAL_METALS = 4
 
 
 class MetalCoordinationEnergyTerm(EnergyTerm):
-    """Hold each donor on its site's vertex ray and each site fan rigid.
-
-    Per occupied site: a harmonic on the metal-donor distance and on the
-    donor's displacement off the ray from the metal through the site virtual,
-    plus a constant well depth. Untemplated ions keep only the distance. The
-    fan term holds metal and virtual separations at ideal; it is zero whenever
-    the fan is built from its icoors.
-
-    A site is occupied when its connection on the metal is filled; the donor
-    is the atom on the partner's side of that connection. Two metals in
-    different residues bonded to one donor atom get a one-sided wall on their
-    separation, scored between the two metals' residues.
+    """Per filled site, harmonics on donor distance and off-ray displacement plus a
+    well depth; site fans held rigid; metals bridged across residues kept apart.
     """
 
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
@@ -62,9 +51,6 @@ class MetalCoordinationEnergyTerm(EnergyTerm):
 
     def n_bodies(self):
         return 2
-
-    def setup_block_type(self, block_type: RefinedResidueType):
-        super().setup_block_type(block_type)
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super().setup_packed_block_types(packed_block_types)

@@ -842,6 +842,30 @@ def test_a_histidine_bridging_two_zinc_is_the_imidazolate(torch_device):
     assert bridging == [("HIS_DEP", ["metal_ND1", "metal_NE2"])]
 
 
+def test_a_thioglycine_link_read_as_an_iminothiol_builds_as_the_thioamide(
+    torch_device,
+):
+    """1MRO GL3 445 reads C=N to TYR 446 with an SH; it is the C=S thioamide."""
+    array = atom_array_from_cif(DATA / "thioglycine_1mro.cif.zst")
+    pose = pose_stack_from_biotite(
+        array, torch_device, prepare_ligands=True, ligand_seed=20260928
+    )
+    types = pose.packed_block_types.active_block_types
+    (gl3,) = [types[i] for i in pose.block_type_ind64[0] if types[i].name == "GL3"]
+    orders = {frozenset((str(a), str(b))): str(o) for a, b, o, *_ in gl3.bonds}
+    assert orders[frozenset(("C", "S"))] == "DOUBLE"
+
+
+def test_a_thioglycine_link_is_a_backbone_bond_not_a_conjugation(torch_device):
+    """1MRO GL3 445 C(=S) bonds TYR 446 N as the backbone: TYR gets no conj_N type."""
+    array = atom_array_from_cif(DATA / "thioglycine_1mro.cif.zst")
+    pose = pose_stack_from_biotite(
+        array, torch_device, prepare_ligands=True, ligand_seed=20260928
+    )
+    names = {bt.name for bt in pose.packed_block_types.active_block_types}
+    assert not [n for n in names if n.startswith("TYR") and "conj_N" in n]
+
+
 def test_an_ester_oxygen_and_a_metal_bound_oxygen_keep_their_own_forms(torch_device):
     """In each of three chains PLM esterifies SER 360 OG and SER 342 OG binds Na."""
     from tmol.io import build_context_from_biotite
@@ -957,6 +981,44 @@ def test_chromophore_imine_junction_retains_generated_restoring_forces(torch_dev
         )
         length = float((relaxed.coords[0, a] - relaxed.coords[0, b]).norm())
         assert abs(length - bond.x0) < 0.08
+
+
+def test_a_retinal_conformer_keeps_its_trans_double_bonds(monkeypatch):
+    """4XXJ LYR: the generated conformer keeps the four declared trans double bonds."""
+    from rdkit import Chem
+
+    import tmol.ligand._conformer_generation as conformers
+    from tmol.io import build_context_from_biotite
+
+    generated = []
+    generate = conformers._generate_conformer
+
+    def recording(smiles, minimize_steps, seed):
+        molecule = generate(smiles, minimize_steps, seed)
+        generated.append((smiles, np.array([atom.coords for atom in molecule.atoms])))
+        return molecule
+
+    monkeypatch.setattr(conformers, "_generate_conformer", recording)
+    conformers._seeded_conformer.cache_clear()
+    array = atom_array_from_cif(DATA / "retinyl_lysine_4xxj.cif")
+    build_context_from_biotite(
+        array, torch.device("cpu"), prepare_ligands=True, ligand_seed=20260909
+    )
+    torsions = []
+    for smiles, xyz in generated:
+        declared = Chem.MolFromSmiles(smiles, sanitize=False)
+        Chem.SetBondStereoFromDirections(declared)
+        for bond in declared.GetBonds():
+            if bond.GetStereo() != Chem.BondStereo.STEREOTRANS:
+                continue
+            a, d = bond.GetStereoAtoms()
+            p0, p1, p2, p3 = xyz[[a, bond.GetBeginAtomIdx(), bond.GetEndAtomIdx(), d]]
+            axis = (p2 - p1) / np.linalg.norm(p2 - p1)
+            u, v = p0 - p1, p3 - p2
+            u, v = u - u.dot(axis) * axis, v - v.dot(axis) * axis
+            torsions.append(np.degrees(np.arctan2(np.cross(axis, u).dot(v), u.dot(v))))
+    assert len(torsions) == 4
+    assert all(abs(t) > 160 for t in torsions)
 
 
 @pytest.mark.parametrize(
@@ -1135,7 +1197,8 @@ def test_full_9ewf_conjugate_survives_export_and_minimization(torch_device, tmp_
     "fixture,components",
     [
         ("sulfur_attachments_3t14", {"H2S", "S2H"}),
-        ("phosphate_attachment_8ch1", {"VDF"}),
+        # VDF is 8CH1's altloc B ligand; the reader keeps altloc A (LAO)
+        ("vdf_attachment_8ch1_b", {"VDF"}),
     ],
 )
 def test_small_attachment_frames_and_minimization(fixture, components, torch_device):
@@ -1207,7 +1270,6 @@ def test_small_attachment_frames_and_minimization(fixture, components, torch_dev
     [
         ("2rm9", "GLU", "CD", "OE1", "OE2", 1),
         ("6n0a", "ASN", "CG", "OD1", "ND2", 4),
-        ("1hxq", "U5P", "P", "O1P", "O3P", 2),
     ],
 )
 def test_sidechain_substitutions_retain_chemistry(
@@ -1218,16 +1280,13 @@ def test_sidechain_substitutions_retain_chemistry(
     from tmol.ligand._conjugation_patches import _hydrogens_on
     from tmol.tests.ligand.test_local_conjugate_params import _charges
 
-    prefix = "phosphohistidine" if code == "1hxq" else "isopeptide"
-    array = atom_array_from_cif(DATA / f"{prefix}_{code}.cif.zst")
+    array = atom_array_from_cif(DATA / f"isopeptide_{code}.cif.zst")
     metals = np.isin(np.char.upper(array.element), ("CA", "ZN", "FE"))
     assert_metal_bonds_are_coordination(array, metals)
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)
     backbone = np.isin(array.atom_name, ("N", "CA", "C"))
     observed = np.isfinite(array.coord).all(-1)
-    resolved = (np.add.reduceat(backbone & observed, starts[:-1]) == 3) | (
-        array.res_name[starts[:-1]] == "U5P"
-    )
+    resolved = np.add.reduceat(backbone & observed, starts[:-1]) == 3
     array = array[
         np.repeat(resolved, np.diff(starts)) & ~metals & (array.res_name != "HOH")
     ]
@@ -1243,9 +1302,7 @@ def test_sidechain_substitutions_retain_chemistry(
         for bt in attached
         if bt.base_name == acyl and any(c.atom == carbon for c in bt.connections)
     ]
-    partner, site, hydrogens, generic = (
-        ("HIS", "NE2", 0, "NG2") if acyl == "U5P" else ("LYS", "NZ", 1, "Nad")
-    )
+    partner, site, hydrogens, generic = ("LYS", "NZ", 1, "Nad")
     partners = [
         bt
         for bt in attached

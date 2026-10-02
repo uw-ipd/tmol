@@ -21,6 +21,11 @@ Tests live in `tmol/tests/io/test_atomworks_corpus_regressions.py`,
 `tmol/tests/ligand/test_atomworks_modified_components.py`.
 Successful numerical checks do not independently validate the force field.
 
+`his_pos_ring_1yg0.cif.zst` keeps 1YG0 (NMR, model 1) chain A ASN 13–HIS 14–CYS 15
+with deposited hydrogens. HIS 14 carries HD1 and HE2, so it builds as HIS_POS; OptH
+must flip its ring back when given the ring turned 180 degrees
+(`tmol/tests/pack/rotamer/test_opth_sampler.py`).
+
 `plp_cap_5t4j.cif.zst` retains the complete RCSB entry referenced by the AtomWorks
 IO suite. Its PLP C4A=N ABU external aldimine is a conjugate attachment, not a
 peptide bond: C4A keeps one hydrogen, N none, and the link its imine length.
@@ -199,7 +204,7 @@ also undergo the external 1,000-CIF scoring/minimization/FastRelax audit.
 | --- | --- | --- |
 | `missing_ribose_oxygen_6dp5.cif` | 6DP5 chains B/C, residues 1–3 (five residues) | Rebuild fixed RNA 2′ oxygen and its hydrogen from observed sugar atoms. |
 | `missing_sugar_carbon_7n5v.cif` | 7N5V chain E, residues 15–16 | Rebuild missing C2′ without losing the observed sugar/backbone during packing. |
-| `retinyl_lysine_4xxj.cif` | 4XXJ chain A, residues 216–218 | Complete and pack retinyl lysine with overlapping side-chain roots. |
+| `retinyl_lysine_4xxj.cif` | 4XXJ chain A, residues 216–218 | Complete and pack retinyl lysine with overlapping side-chain roots; its generated conformer keeps the four trans double bonds. |
 
 Source compressed-file SHA256 values, respectively:
 `f55a9df09f93d0b85c9705f5ec39df55aca5918f266dffa15e3a202e67c2958a`,
@@ -216,6 +221,8 @@ Attached H2S and S2H exercise small-component coordinate frames and retained
 hydrogen references after a conjugation patch displaces a hydrogen.
 
 `phosphate_attachment_8ch1.cif.zst` retains the complete RCSB entry.
+Its VDF is the altloc B alternate of LAO, and the reader keeps altloc A, so
+`vdf_attachment_8ch1_b.cif.zst` holds conformer B alone, cropped 8 A around VDF.
 The VDF phosphate attachment oxygen has no departing H after free-component
 protonation. Its construction frame must use the complete conjugate's angle
 target and a stable local plane. Both readers retain every resolved non-water
@@ -229,13 +236,6 @@ Their GLU–LYS and ASN–LYS sidechain amides must displace absent OE2/ND2, ret
 the carbonyl double bond, and leave one lysine amide H. Tests retain every
 resolved non-water residue, explicitly exclude free calcium and unresolved
 residues, and verify both readers, all links, scoring, gradients and minimization.
-
-`phosphohistidine_1hxq.cif.zst` retains the complete nucleotidylated GALT structure.
-The shared sidechain-substitution workflow excludes free zinc/iron and water,
-checks both HIS NE2–U5P P bonds, removal of absent O3P, retained P=O,
-and a substituted histidine nitrogen with no hydrogen or donor/acceptor role.
-It then checks conserved residue charge, parameter export/reload, scoring,
-gradients and minimization. This does not validate metal coordination.
 
 `attachment_contexts_8trb.cif.zst` retains the complete structure containing both
 PLM C1–SER OG esters and PLM C1–CYS SG thioesters. Their carbonyl oxygen
@@ -261,3 +261,7 @@ Frank scoring and gradients; and runs focused Cartesian minimization.
 `bridging_histidine_6iu8.cif.zst` retains the complete entry. HIS C89 binds
 Zn C201 through ND1 and Zn B201 through NE2, so neither ring nitrogen keeps a
 proton: it must build as the imidazolate `HIS_DEP` coordinating at both.
+
+`thioglycine_1mro.cif.zst` keeps 1MRO chain A TYR 444–GL3 445–TYR 446. GL3's
+thioamide link reads as C=N with a thiol; it must build as the amide tautomer.
+The C(=S)-N bond is the backbone link, so TYR 446 gets no conjugation type.

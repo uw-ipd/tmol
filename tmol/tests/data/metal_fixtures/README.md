@@ -24,6 +24,8 @@ them with `tmol.io.atom_array_from_cif`.
 | `feo_myohemerythrin_2mhr.cif.zst` | 2MHR myohemerythrin | 1.30 | Fe-O-Fe, one internal satisfier per Fe |
 | `cua_ba3_2cua.cif.zst` | 2CUA CuA domain of cytochrome ba3 | 1.60 | Cu2 with no internal satisfiers, Cys bridging both Cu |
 | `clf_nitrogenase_7adr.cif.zst` | 7ADR vanadium nitrogenase | 1.00 | P-cluster, Cys bridging two Fe |
+| `zn_cterm_oxt_1yjo.cif.zst` | 1YJO NNQQNY peptide with zinc acetate | 1.30 | Zn on a C-terminal OXT |
+| `mg_three_prime_2g8f.cif.zst` | 2G8F RNase H with RNA/DNA hybrid | 1.65 | Mg on a 3'-terminal O3' |
 
 Crystallographic waters are stripped by structure input, so the expected
 donors are what remains without them.
@@ -41,9 +43,9 @@ FE1-FE4 and S1-S4 can be assigned to its corners in either of two mirror-image
 ways with the same bonds; deposited SF4 uses both, so a cluster's free-site
 directions cannot be read from its template by name.
 
-Every entry is also reduced to one conformer with no hydrogens: each residue
-keeps only its highest-occupancy altloc, set to occupancy 1.00, and all H and
-D atoms are removed so they are rebuilt.
+Every entry except 1YJO and 2G8F (as deposited) is also reduced to one conformer
+with no hydrogens: each residue keeps only its highest-occupancy altloc, set to
+occupancy 1.00, and all H and D atoms are removed so they are rebuilt.
 
 `feo_myohemerythrin_2mhr.cif.zst` is edited: its azide (AZI) is removed.
 

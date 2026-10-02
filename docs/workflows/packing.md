@@ -63,9 +63,8 @@ NA-specific chi sampler and explicit masks.
 
 ## Protonation alternatives
 
-Packing keeps each residue's protonation state by default. To let free
-histidines and cysteines also take the other states AtomWorks lists for them
-(`HIS`, `HIS_D`, `HIS_POS`; `CYS`, `CYS_DEP`), record the alternatives when
+Packing keeps each residue's protonation state by default. To let free titratable side chains take other states supported by AtomWorks
+and the chemical database, record the alternatives when
 building the pose and turn them on in the palette:
 
 ```python
@@ -81,11 +80,19 @@ for choice in chosen_protonation_variants(packed_pose_stack):
     print(choice.chain, choice.res_label, choice.label, choice.charge)
 ```
 
-Only residues without input hydrogens and not bound to a metal or another
-residue record alternatives. Each alternative's block type gets its offset,
-`1.364 * (pH - pKa)` kcal/mol for the protonated form relative to the assigned
-state (model pKa 6.5 for histidine, 8.3 for cysteine), as a one-body energy in
-the packer. The offset is not part of score-function totals. The score
-function is not calibrated for proton transfer, so treat the chosen states as
-hypotheses. N termini keep their assigned state: the database has no neutral
-alpha-amino terminus type.
+Only sites without input hydrogens or external bonds record alternatives; metal
+coordination and disulfides remain fixed. Candidate states come from calling
+AtomWorks on either side of its Dimorphite-DL titration boundaries within one pH
+unit of `ligand_ph`. Candidates must match a database hydrogen-count pattern;
+free histidine tautomers are also offered with equal offsets. This uses the
+current AtomWorks model, including its aromatic-nitrogen pKa of about 4.35,
+thiol pKa of 9.12 and amine pKa of 8.16, rather than separate protein estimates.
+
+Each proton gained contributes `1.364 * (pH - pKa)` kcal/mol relative to the
+assigned state. Packing adds these offsets to one-body energies. FastRelax
+uses the same offsets when accepting poses if the palette enables alternatives;
+within a fixed state they are constant and do not affect coordinate gradients.
+`protonation_state_energy(pose_stack)` exposes the offsets separately from raw
+score-function totals. The score function is not calibrated for proton transfer,
+so chosen states remain hypotheses. Terminal states are held fixed during this
+side-chain search, including neutral amino termini supported by the database.

@@ -229,8 +229,24 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
         or bt.properties.protonation.protonation_state == DEPROTONATED_STATE
         for bt in pbt.active_block_types
     ]
+    # types can exchange only within a group that agrees on these fields; each
+    #    type's candidates keep the order of the full n^2 scan
+    groups = {}
+    for j, bt in enumerate(pbt.active_block_types):
+        polymer = bt.properties.polymer
+        key = (
+            polymer.is_polymer,
+            polymer.polymer_type,
+            polymer.backbone_type,
+            bt.properties.protonation.protonation_state,
+            len(bt.connections),
+            mc_elements[j],
+        )
+        groups.setdefault(key, []).append(j)
+    group_of = {j: members for members in groups.values() for j in members}
     for i, orig_bt in enumerate(pbt.active_block_types):
-        for j, alt_bt in enumerate(pbt.active_block_types):
+        for j in group_of[i]:
+            alt_bt = pbt.active_block_types[j]
             if i != j and (selected_by_detection[i] or selected_by_detection[j]):
                 continue
             j_allowed_for_restrict_to_repack = alt_bt.name3 == orig_bt.name3

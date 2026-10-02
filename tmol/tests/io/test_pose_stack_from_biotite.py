@@ -850,3 +850,24 @@ def test_export_rebuilds_without_its_context(path, route, tmp_path):
     )
     heavy = _heavy_atom_mask(pose_stack)
     torch.testing.assert_close(rebuilt.coords[heavy], pose_stack.coords[heavy])
+
+
+def test_nothing_buildable_is_refused_with_the_reason():
+    """A CA-only trace (1a1d) and an empty structure leave no residue to build."""
+    trace = atom_array_from_cif(data_path("sweep_regressions", "ca_trace_1a1d.cif.zst"))
+    with pytest.raises(ValueError, match="3 polymer residues lack mainchain atoms"):
+        pose_stack_from_biotite(trace, torch.device("cpu"))
+    with pytest.raises(ValueError, match="no recognized residues"):
+        pose_stack_from_biotite(trace[:0], torch.device("cpu"), prepare_ligands=True)
+
+
+def test_return_block_has_missing_atoms_is_honoured(biotite_1ubq, torch_device):
+    pose_stack, extra = pose_stack_from_biotite(
+        biotite_1ubq, torch_device, return_block_has_missing_atoms=True
+    )
+    assert list(extra) == ["block_has_missing_atoms"]
+    assert extra["block_has_missing_atoms"].shape == pose_stack.block_type_ind.shape
+    alone = pose_stack_from_biotite(
+        biotite_1ubq, torch_device, return_block_has_missing_atoms=False
+    )
+    assert isinstance(alone, type(pose_stack))

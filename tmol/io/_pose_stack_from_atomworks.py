@@ -6,10 +6,7 @@ from tmol.types import validate_args
 from tmol.chemical import ResidueTypeSet
 from tmol.database import ParameterDatabase
 from tmol.io._build_context import PoseBuildContext
-from tmol.io._pose_stack_from_atom37 import (
-    atom37_slot_map_for_ordering,
-    canonical_form_from_atom37,
-)
+from tmol.io._pose_stack_from_atom37 import canonical_form_from_atom37
 from tmol.io import (
     CanonicalForm,
     CanonicalOrdering,
@@ -216,14 +213,11 @@ def canonical_form_from_atomworks(
 
     # Only the residue-index space is atomworks-specific. Once the tokens are
     # expressed as tmol residue types, the coordinate scatter is the shared one.
-    co = canonical_ordering_for_atomworks()
-    aw2t_rtmap, _, _ = _get_aw_2_tmol_mappings(device)
     return canonical_form_from_atom37(
         coords,
-        aw2t_rtmap[residue_type],
+        _aw_2_tmol_restype_map(device)[residue_type],
         chain_iid,
-        co,
-        slot_map=atom37_slot_map_for_ordering(co, ATOMWORKS_ATOM37_NAMES, device),
+        canonical_ordering_for_atomworks(),
     )
 
 
@@ -349,24 +343,14 @@ def packed_block_types_for_atomworks(device: torch.device) -> PackedBlockTypes:
 
 
 @toolz.functoolz.memoize
-def _get_aw_2_tmol_mappings(device: torch.device):
-    """Build forward mapping tensors: atomworks index -> tmol canonical.
-
-    OXT is deliberately excluded: it only exists on C-terminal residue
-    variants in tmol, and its presence on non-terminal residues would
-    prevent block-type resolution.  tmol determines termini
-    automatically from the chain_iid boundaries.
-    """
-    co = canonical_ordering_for_atomworks()
-
-    # Strip OXT from the atom-name lists so that it is never mapped
-    # into the canonical form (tmol handles termini via patches).
-    aw_atom_names_no_oxt = {
-        name3: [at if at != "OXT" else "" for at in atoms]
-        for name3, atoms in ATOMWORKS_ATOM37_NAMES.items()
-    }
-
-    return co.create_src_2_tmol_mappings(ATOMWORKS_NAME3S, aw_atom_names_no_oxt, device)
+def _aw_2_tmol_restype_map(device: torch.device):
+    """Atomworks residue index -> tmol canonical residue type (-1 if tmol has none)."""
+    classes = canonical_ordering_for_atomworks().restype_io_equiv_classes
+    return torch.tensor(
+        [classes.index(n) if n in classes else -1 for n in ATOMWORKS_NAME3S],
+        dtype=torch.int64,
+        device=device,
+    )
 
 
 @toolz.functoolz.memoize

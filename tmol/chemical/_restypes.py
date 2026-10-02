@@ -66,70 +66,43 @@ ResName3 = typing.NewType("ResName3", str)
 IcoorIndex = NewType("AtomIndex", int)
 
 
+_ONE_LETTER_CODE = {
+    "ALA": "A",
+    "CYS": "C",
+    "ASP": "D",
+    "GLU": "E",
+    "PHE": "F",
+    "GLY": "G",
+    "HIS": "H",
+    "ILE": "I",
+    "LYS": "K",
+    "LEU": "L",
+    "MET": "M",
+    "ASN": "N",
+    "PRO": "P",
+    "GLN": "Q",
+    "ARG": "R",
+    "SER": "S",
+    "THR": "T",
+    "VAL": "V",
+    "TRP": "W",
+    "TYR": "Y",
+}
+_THREE_LETTER_CODE = {one: three for three, one in _ONE_LETTER_CODE.items()}
+
+
 def three2one(three: str) -> Union[str, None]:
     """Return the one-letter amino acid code given its three letter code,
     or None if not a valid three-letter code
     """
-    # 'static'
-    if not hasattr(three2one, "_mapping"):
-        three2one._mapping = {
-            "ALA": "A",
-            "CYS": "C",
-            "ASP": "D",
-            "GLU": "E",
-            "PHE": "F",
-            "GLY": "G",
-            "HIS": "H",
-            "ILE": "I",
-            "LYS": "K",
-            "LEU": "L",
-            "MET": "M",
-            "ASN": "N",
-            "PRO": "P",
-            "GLN": "Q",
-            "ARG": "R",
-            "SER": "S",
-            "THR": "T",
-            "VAL": "V",
-            "TRP": "W",
-            "TYR": "Y",
-        }
-    if three in three2one._mapping:
-        return three2one._mapping[three]
-    return None
+    return _ONE_LETTER_CODE.get(three)
 
 
 def one2three(one: str) -> Union[str, None]:
     """Return the three-letter amino acid code given its one-letter code,
     or None if not a valid one-letter code.
     """
-    # 'static'
-    if not hasattr(one2three, "_mapping"):
-        one2three._mapping = {
-            "A": "ALA",
-            "C": "CYS",
-            "D": "ASP",
-            "E": "GLU",
-            "F": "PHE",
-            "G": "GLY",
-            "H": "HIS",
-            "I": "ILE",
-            "K": "LYS",
-            "L": "LEU",
-            "M": "MET",
-            "N": "ASN",
-            "P": "PRO",
-            "Q": "GLN",
-            "R": "ARG",
-            "S": "SER",
-            "T": "THR",
-            "V": "VAL",
-            "W": "TRP",
-            "Y": "TYR",
-        }
-    if one in one2three._mapping:
-        return one2three._mapping[one]
-    return None
+    return _THREE_LETTER_CODE.get(one)
 
 
 def get_element_from_atom_name(atom_name: str) -> str:
@@ -477,9 +450,8 @@ class RefinedResidueType(RawResidueType):
         # 3 paths coming from that atom, followed by the 3 coming out
         # of each of those in turn. If a path doesn't exist, it is
         # filled with -1s to ensure deterministic indexing of the paths.
-        # a convenient datastructure for following connections; virtual atoms have
-        #    no bonded geometry to reach. Neither this nor the virtual set depends
-        #    on the connection, and a cluster metal asks for them twelve times.
+        # bonds to follow, built once for every connection; virtual atoms have no
+        #    bonded geometry to reach
         virtual = {self.atom_to_idx[name] for name in self.properties.virtual}
         bondmap = defaultdict(list)
         for bond in self.bond_indices:
@@ -707,18 +679,18 @@ class ResidueTypeSet:
         )
 
     def extended(self, chemical_db: PatchedChemicalDatabase) -> "ResidueTypeSet":
-        """This set grown to ``chemical_db``, whose residues begin with this set's.
-
-        The residue types already here stay the same objects, so packed block
-        types built from either set share them.
+        """This set grown to ``chemical_db``, whose residues begin with this set's; the
+        types already here stay the same objects.
 
         Raises:
             ValueError: If this set does not hold one type per residue of its
                 database, or ``chemical_db`` does not begin with those residues.
         """
         old = self.chem_db.residues
-        if len(self.residue_types) != len(old) or any(
-            a is not b for a, b in zip(chemical_db.residues, old)
+        if (
+            len(self.residue_types) != len(old)
+            or len(chemical_db.residues) < len(old)
+            or any(a is not b for a, b in zip(chemical_db.residues, old))
         ):
             raise ValueError("chemical_db does not extend this residue type set")
         cache = self._default_refined_cache()

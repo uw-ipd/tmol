@@ -15,12 +15,12 @@ from tmol.types import (
     validate_args,
 )
 from tmol.chemical import (
-    MAX_SIG_BOND_SEPARATION,
     RefinedResidueType,
     three2one,
 )
 
 from tmol.pose import (
+    InterBlockBondsep,
     PackedBlockTypes,
     PDBInfo,
     DEFAULT_ATOM_B_FACTOR,
@@ -32,18 +32,13 @@ from tmol.pose import (
 from tmol.utility.tensor import (
     exclusive_cumsum1d,
     exclusive_cumsum2d,
-    exclusive_cumsum2d_and_totals,
-    stretch,
 )
 from tmol.utility._device import resolve_device
 
 
-def _is_leading_run(block_types, pbt) -> bool:
-    """Whether block_types begin pbt's active block types, as the same objects."""
-    active = pbt.active_block_types
-    return len(block_types) <= len(active) and all(
-        a is b for a, b in zip(block_types, active)
-    )
+def _is_leading_run(items, of) -> bool:
+    """Whether ``items`` begin ``of``, as the same objects."""
+    return len(items) <= len(of) and all(a is b for a, b in zip(items, of))
 
 
 class PoseStackBuilder:
@@ -53,24 +48,15 @@ class PoseStackBuilder:
     def _widest_packed_block_types(pose_stacks):
         """The packed block types over the largest chemical database.
 
-        Databases only grow by appending residues, whether ligands or metal
-        donor forms, so a database whose residues are a leading run of
-        another's, as the same objects, names nothing the larger one does not
-        mean identically. Any other pair was built from unrelated sources.
+        Databases grow only by appending residues; each must be a leading run of it.
         """
         widest = max(
             (ps.packed_block_types for ps in pose_stacks),
             key=lambda pbt: (len(pbt.chem_db.residues), pbt.n_types),
         )
-        residues = widest.chem_db.residues
         for ps in pose_stacks:
-            chem_db = ps.packed_block_types.chem_db
-            if chem_db is widest.chem_db:
-                continue
-            shared = residues[: len(chem_db.residues)]
-            if len(shared) != len(chem_db.residues) or any(
-                a is not b for a, b in zip(shared, chem_db.residues)
-            ):
+            residues = ps.packed_block_types.chem_db.residues
+            if not _is_leading_run(residues, widest.chem_db.residues):
                 raise ValueError(
                     "pose stacks were built from chemical databases neither of "
                     "which extends the other; build them from one context"
@@ -97,7 +83,9 @@ class PoseStackBuilder:
         pbt0 = cls._widest_packed_block_types(pose_stacks)
         # a grown generation keeps every earlier block type at its index
         reuse_pbt = all(
-            _is_leading_run(ps.packed_block_types.active_block_types, pbt0)
+            _is_leading_run(
+                ps.packed_block_types.active_block_types, pbt0.active_block_types
+            )
             for ps in pose_stacks
         )
         if reuse_pbt:
@@ -130,8 +118,10 @@ class PoseStackBuilder:
         inter_residue_connections = cls._inter_residue_connections_from_pose_stacks(
             packed_block_types, pose_stacks, n_poses, ps_offset, max_n_blocks, device
         )
-        inter_block_bondsep = cls._interblock_bondsep_from_pose_stacks(
-            packed_block_types, pose_stacks, n_poses, ps_offset, max_n_blocks, device
+        inter_block_bondsep = InterBlockBondsep.concatenate(
+            [ps.inter_block_bondsep.to(device) for ps in pose_stacks],
+            max_n_blocks,
+            packed_block_types.max_n_conn,
         )
         block_type_ind = cls._resolve_block_type_ind(
             packed_block_types, pose_stacks, n_poses, ps_offset, max_n_blocks, device
@@ -231,7 +221,6 @@ class PoseStackBuilder:
         AA[CYD--dslf-second]AAAA[CYD--dslf-first]AAA
         """
         cls._annotate_pbt_w_canonical_aa1lc_lookup(packed_block_types)
-        cls._annotate_pbt_w_polymeric_down_up_bondsep_dist(packed_block_types)
 
         pbt = packed_block_types
         device = pbt.device
@@ -270,14 +259,8 @@ class PoseStackBuilder:
         # in the connection-annotated sequence. c. Then we will remove the
         # chemical bonds for i-to-i+1 connections that span chains
         #
-        # 3) Then, we will construct a graph representing the edge weights
-        # between all pairs of connection points. a) Intra-residue connection
-        # distances are read out of the PBT object (after an initial annotation)
-        # b) the inter-residue connections will then be added from the inter-residue
-        # connections noted in the inter_residue_connections64 tensor.
-        #
-        # 4) Finally, we invoke all-pairs-shortest-path and then read out the
-        # intra-block bond separations
+        # 3) Finally, we search the connection graph (intra-residue distances plus
+        # inter_residue_connections64 bonds) for the bond separations below the cap
 
         # 1
         resolved_expoly_connections = cls._find_connection_pairs_for_residue_subset(
@@ -295,22 +278,9 @@ class PoseStackBuilder:
             resolved_expoly_connections, inter_residue_connections64
         )
 
-        # 3a
-        (
-            pconn_matrix,
-            pconn_offsets,
-            block_n_conn,
-            _,
-        ) = cls._take_real_conn_conn_intrablock_pairs(pbt, block_type_ind64, real_res)
-
-        # 3b
-        cls._incorporate_inter_residue_connections_into_connectivity_graph(
-            inter_residue_connections64, pconn_offsets, pconn_matrix
-        )
-
-        # 4
-        inter_block_bondsep = cls._calculate_interblock_bondsep_from_connectivity_graph(
-            pbt, pconn_offsets, block_n_conn, pconn_matrix
+        # 3
+        inter_block_bondsep = cls._inter_block_bondsep_from_connections(
+            pbt, block_type_ind64, real_res, inter_residue_connections64
         )
 
         n_atoms = torch.zeros((n_poses, max_n_res), dtype=torch.int32, device=device)
@@ -437,142 +407,6 @@ class PoseStackBuilder:
 
     @classmethod
     @validate_args
-    def _read_intra_block_connection_atom_separations(
-        cls,
-        pbt_conn_at_intrablock_bond_sep: Tensor[torch.int32][:, :, :],
-        block_types64: Tensor[torch.int64][:, :],
-        real_blocks: Tensor[torch.bool][:, :],
-    ) -> Tensor[torch.int32][:, :, :, :]:
-        n_poses = block_types64.shape[0]
-        max_n_blocks = block_types64.shape[1]
-        max_n_conn = pbt_conn_at_intrablock_bond_sep.shape[1]
-        assert pbt_conn_at_intrablock_bond_sep.shape[2] == max_n_conn
-
-        intra_block_conn_dists = torch.zeros(
-            (n_poses, max_n_blocks, max_n_conn, max_n_conn),
-            dtype=torch.int32,
-            device=pbt_conn_at_intrablock_bond_sep.device,
-        )
-        intra_block_conn_dists[real_blocks] = pbt_conn_at_intrablock_bond_sep[
-            block_types64[real_blocks]
-        ]
-        return intra_block_conn_dists
-
-    @classmethod
-    # @validate_args
-    def _take_real_conn_conn_intrablock_pairs(cls, pbt, block_types64, real_blocks):
-        cls._annotate_pbt_w_intraresidue_connection_atom_distances(pbt)
-        return cls._take_real_conn_conn_intrablock_pairs_heavy(
-            pbt.n_conn, pbt.conn_at_intrablock_bond_sep, block_types64, real_blocks
-        )
-
-    @classmethod
-    @validate_args
-    def _take_real_conn_conn_intrablock_pairs_heavy(
-        cls,
-        pbt_n_conn: Tensor[torch.int32][:],
-        pbt_conn_at_intrablock_bond_sep: Tensor[torch.int32][:, :, :],
-        block_types64: Tensor[torch.int64][:, :],
-        real_blocks: Tensor[torch.bool][:, :],
-    ):
-        n_poses = block_types64.shape[0]
-        max_n_blocks = block_types64.shape[1]
-        # n_blocks_per_pose = torch.sum(real_blocks, axis=1)
-        pbt_device = pbt_n_conn.device
-        pbt_max_n_conn = pbt_conn_at_intrablock_bond_sep.shape[1]
-        assert pbt_conn_at_intrablock_bond_sep.shape[2] == pbt_max_n_conn
-
-        n_conn_for_block = torch.full_like(block_types64, 0, dtype=torch.int32)
-        n_conn_for_block[real_blocks] = pbt_n_conn[block_types64[real_blocks]]
-        n_conn_for_block_offset, n_conn_totals = exclusive_cumsum2d_and_totals(
-            n_conn_for_block
-        )
-        n_conn_for_block_offset64 = n_conn_for_block_offset.to(torch.int64)
-        max_n_pose_conn = torch.max(n_conn_totals)
-
-        pconn_matrix = torch.full(
-            (n_poses, max_n_pose_conn, max_n_pose_conn),
-            MAX_SIG_BOND_SEPARATION,
-            dtype=torch.int32,
-            device=pbt_device,
-        )
-
-        if max_n_pose_conn == 0:
-            # early exit: we are looking at either an empty pose
-            # or a bunch of residues with no inter-residue connections;
-            # in either case, no work remains.
-            return (
-                pconn_matrix,
-                n_conn_for_block_offset64,
-                n_conn_for_block,
-                n_conn_totals,
-            )
-
-        # Not all blocks have inter-residue connections! We want the subset
-        # of real blocks that do.
-        block_has_conn = n_conn_for_block > 0
-
-        # let's identify which pairs of connections are part
-        # of the same block
-        pose_for_block = stretch(
-            torch.arange(n_poses, dtype=torch.int64, device=pbt_device), max_n_blocks
-        )
-
-        # mark the first connection in each block with a 1
-        first_pconn_for_block = torch.zeros(
-            (n_poses, max_n_pose_conn), dtype=torch.int32, device=pbt_device
-        )
-        first_pconn_for_block[
-            pose_for_block[block_has_conn.view(-1)],
-            n_conn_for_block_offset64[block_has_conn],
-        ] = 1
-        # then an inclusive cummulative sum will label all of the
-        # connections coming from the same block the same; this
-        # will be 1 more than the actual block index for the
-        # connection, but that's ok for our purposes
-        pseudo_block_for_pconn = torch.cumsum(first_pconn_for_block, dim=1)
-        are_pconns_from_same_block = (
-            pseudo_block_for_pconn[:, None, :] == pseudo_block_for_pconn[:, :, None]
-        )
-
-        # Now let's go to the PackedBlockTypes' data describing intra-residue
-        # distances for pairs of inter-residue connections on the same block:
-        # Read out the intra-block path distances from the PBT annotation
-        # which will give us a tensor of [ n-real-blocks x max-n-conn x max-n-conn ]
-        # After, we will have to be clever in order to save this data into the
-        # fledgling [ n-poses x max-n-pose-conn x max-n-pose-conn ] tensor that
-        # will be input into our all-pairs-shortest-path function.
-        intra_block_bconn_dists = cls._read_intra_block_connection_atom_separations(
-            pbt_conn_at_intrablock_bond_sep, block_types64, real_blocks
-        )
-
-        bconn_inds = torch.arange(pbt_max_n_conn, dtype=torch.int64, device=pbt_device)
-        valid_local_bconn_pair = torch.logical_and(
-            bconn_inds[None, None, None, :] < n_conn_for_block[:, :, None, None],
-            bconn_inds[None, None, :, None] < n_conn_for_block[:, :, None, None],
-        )
-
-        # Exclude padded pose-connection rows and columns.
-        pconn_real = (
-            torch.arange(max_n_pose_conn, dtype=torch.int64, device=pbt_device)
-            < n_conn_totals[:, None]
-        )
-        valid_pconn_pair = pconn_real[:, :, None] & pconn_real[:, None, :]
-
-        real_pconns_from_same_block = torch.logical_and(
-            are_pconns_from_same_block, valid_pconn_pair
-        )
-
-        # here we are at last! fancy indexing to take the subset of
-        # real interresidue connection pairs from the
-        pconn_matrix[real_pconns_from_same_block] = intra_block_bconn_dists[
-            valid_local_bconn_pair
-        ]
-
-        return pconn_matrix, n_conn_for_block_offset64, n_conn_for_block, n_conn_totals
-
-    @classmethod
-    @validate_args
     def _pack_pose_stack_coords(
         cls,
         packed_block_types: PackedBlockTypes,
@@ -623,39 +457,6 @@ class PoseStackBuilder:
                 : pose_stack.inter_residue_connections.shape[2],
             ] = pose_stack.inter_residue_connections
         return inter_residue_connections
-
-    @classmethod
-    @validate_args
-    def _interblock_bondsep_from_pose_stacks(
-        cls,
-        packed_block_types: PackedBlockTypes,
-        pose_stacks,  # : List["PoseStack"],
-        n_poses: int,
-        ps_offsets: Tensor[torch.int64][:],
-        max_n_blocks: int,
-        device: torch.device,
-    ) -> Tensor[torch.int32][:, :, :, :, :]:
-        max_n_conn = max(
-            len(rt.connections) for rt in packed_block_types.active_block_types
-        )
-        inter_block_bondsep = torch.full(
-            (n_poses, max_n_blocks, max_n_blocks, max_n_conn, max_n_conn),
-            6,
-            dtype=torch.int32,
-            device=device,
-        )
-        for i, pose_stack in enumerate(pose_stacks):
-            offset = ps_offsets[i]
-            i_nblocks = pose_stack.inter_block_bondsep.shape[1]
-            i_nconn = pose_stack.inter_block_bondsep.shape[3]
-            inter_block_bondsep[
-                offset : (offset + len(pose_stack)),
-                :i_nblocks,
-                :i_nblocks,
-                :i_nconn,
-                :i_nconn,
-            ] = pose_stack.inter_block_bondsep
-        return inter_block_bondsep
 
     @classmethod
     @validate_args
@@ -786,25 +587,6 @@ class PoseStackBuilder:
 
     @classmethod
     @validate_args
-    def _chain_labels_from_pose_stacks(
-        cls,
-        pose_stacks,  # : List["PoseStack"],
-        ps_offsets: Tensor[torch.int64][:],
-        max_n_blocks: int,
-        device: torch.device,
-    ) -> NDArray[object][:, :]:
-        n_poses = sum(len(ps) for ps in pose_stacks)
-        chain_labels = numpy.full((n_poses, max_n_blocks), "", dtype=object)
-        for i, pose_stack in enumerate(pose_stacks):
-            offset = ps_offsets[i]
-            i_nblocks = pose_stack.chain_labels.shape[1]
-            chain_labels[offset : (offset + len(pose_stack)), :i_nblocks] = (
-                pose_stack.chain_labels
-            )
-        return chain_labels
-
-    @classmethod
-    @validate_args
     def _annotate_pbt_w_canonical_aa1lc_lookup(cls, pbt: PackedBlockTypes):
         """Annotate the PBT with a pandas dictionary mapping the (unique!) names
         of each of the block types to their index in the active_block_types list,
@@ -842,30 +624,6 @@ class PoseStackBuilder:
 
     @classmethod
     @validate_args
-    def _annotate_pbt_w_polymeric_down_up_bondsep_dist(cls, pbt: PackedBlockTypes):
-        if hasattr(pbt, "polymeric_down_to_up_nbonds"):
-            return
-
-        polymeric_down_to_up_nbonds = torch.tensor(
-            [
-                (
-                    bt.path_distance[
-                        bt.ordered_connection_atoms[bt.down_connection_ind],
-                        bt.ordered_connection_atoms[bt.up_connection_ind],
-                    ]
-                    if bt.down_connection_ind != -1 and bt.up_connection_ind != -1
-                    else 0
-                )
-                for bt in pbt.active_block_types
-            ],
-            dtype=torch.int32,
-            device=pbt.device,
-        )
-
-        setattr(pbt, "polymeric_down_to_up_nbonds", polymeric_down_to_up_nbonds)
-
-    @classmethod
-    @validate_args
     def _annotate_bt_w_intraresidue_connection_atom_distances(
         cls, bt: RefinedResidueType
     ):
@@ -888,30 +646,26 @@ class PoseStackBuilder:
         cls, pbt: PackedBlockTypes
     ):
         """Note the number of chemical bonds that separate all pairs of
-        connection atoms. This information is needed in order to construct the
-        starting (weighted) graph describing the chemical bonds in the system
-        from which either the limited-Dijkstra or the all-pairs-shortest-paths
-        algorithms will generate the chemical separation of the connection
-        atoms.
-        """
+        connection atoms: the intra-block weights of the connection graph."""
         if hasattr(pbt, "conn_at_intrablock_bond_sep"):
             return
         for bt in pbt.active_block_types:
             cls._annotate_bt_w_intraresidue_connection_atom_distances(bt)
 
         max_n_conn = pbt.max_n_conn
-        conn_at_intrablock_bond_sep = torch.full(
-            (pbt.n_types, max_n_conn, max_n_conn),
-            -1,
-            dtype=torch.int32,
-            device=pbt.device,
+        conn_at_intrablock_bond_sep = numpy.full(
+            (pbt.n_types, max_n_conn, max_n_conn), -1, dtype=numpy.int32
         )
         for i, bt in enumerate(pbt.active_block_types):
             i_n_conn = len(bt.connections)
-            conn_at_intrablock_bond_sep[i, :i_n_conn, :i_n_conn] = torch.tensor(
-                bt.conn_at_intrablock_bond_sep, device=pbt.device
+            conn_at_intrablock_bond_sep[i, :i_n_conn, :i_n_conn] = (
+                bt.conn_at_intrablock_bond_sep
             )
-        setattr(pbt, "conn_at_intrablock_bond_sep", conn_at_intrablock_bond_sep)
+        setattr(
+            pbt,
+            "conn_at_intrablock_bond_sep",
+            torch.from_numpy(conn_at_intrablock_bond_sep).to(pbt.device),
+        )
 
     @classmethod
     @validate_args
@@ -1222,282 +976,18 @@ class PoseStackBuilder:
         ] = expoly_conn1_conn_ind
 
     @classmethod
-    def _incorporate_inter_residue_connections_into_connectivity_graph(
-        cls, inter_residue_connections, pconn_offset, pconn_matrix
-    ):
-        real_connections = inter_residue_connections[:, :, :, 0] != -1
-        (
-            nz_real_conn_pose_ind,
-            nz_real_conn_block_ind,
-            nz_real_conn_conn_ind,
-        ) = torch.nonzero(real_connections, as_tuple=True)
-
-        pconn_from = (
-            pconn_offset[nz_real_conn_pose_ind, nz_real_conn_block_ind]
-            + nz_real_conn_conn_ind
-        )
-        real_to_block = inter_residue_connections[
-            nz_real_conn_pose_ind, nz_real_conn_block_ind, nz_real_conn_conn_ind, 0
-        ]
-        pconn_to = (
-            pconn_offset[nz_real_conn_pose_ind, real_to_block]
-            + inter_residue_connections[
-                nz_real_conn_pose_ind, nz_real_conn_block_ind, nz_real_conn_conn_ind, 1
-            ]
-        )
-
-        pconn_matrix[nz_real_conn_pose_ind, pconn_from, pconn_to] = 1
-
-    @classmethod
-    @validate_args
-    def _calculate_interblock_bondsep_from_connectivity_graph(
+    def _inter_block_bondsep_from_connections(
         cls,
         pbt: PackedBlockTypes,
-        pconn_offsets: Tensor[torch.int64][:, :],
-        block_n_conn: Tensor[torch.int32][:, :],
-        pconn_matrix: Tensor[torch.int32][:, :, :],
-    ) -> Tensor[torch.int32][:, :, :, :, :]:
-        return cls._calculate_interblock_bondsep_from_connectivity_graph_heavy(
-            pbt.max_n_conn, pconn_offsets, block_n_conn, pconn_matrix
-        )
-
-    @classmethod
-    @validate_args
-    def _calculate_interblock_bondsep_from_connectivity_graph_heavy(
-        cls,
-        pbt_max_n_conn: int,
-        pconn_offsets: Tensor[torch.int64][:, :],
-        block_n_conn: Tensor[torch.int32][:, :],
-        pconn_matrix: Tensor[torch.int32][:, :, :],
-    ) -> Tensor[torch.int32][:, :, :, :, :]:
-        """Map shortest paths between pose connections onto block pairs.
-
-        Args:
-            pbt_max_n_conn: Maximum connection count for any block type.
-            pconn_offsets: First pose-connection index for each block.
-            block_n_conn: Number of real connections for each block.
-            pconn_matrix: Pose-connection adjacency matrices, updated in place
-                with their all-pairs shortest paths.
-
-        Returns:
-            Connection-to-connection bond separations indexed by pose and
-            block pair.
-        """
-        n_poses = block_n_conn.shape[0]
-        max_n_blocks = block_n_conn.shape[1]
-        max_n_conn = pbt_max_n_conn
-        max_n_pconn = pconn_matrix.shape[1]
-        assert pconn_matrix.shape[0] == n_poses
-        assert pconn_matrix.shape[1] == pconn_matrix.shape[2]
-        assert pconn_offsets.shape == block_n_conn.shape
-
-        output_shape = (
-            n_poses,
-            max_n_blocks,
-            max_n_blocks,
-            max_n_conn,
-            max_n_conn,
-        )
-        if max_n_pconn == 0:
-            return torch.full(
-                output_shape,
-                MAX_SIG_BOND_SEPARATION,
-                dtype=torch.int32,
-                device=pconn_matrix.device,
-            )
-
-        cls._shortest_paths_for_connectivity_graph(pconn_matrix)
-
-        from tmol.pose.compiled import block_bondsep
-
-        return block_bondsep(
-            pconn_matrix,
-            pconn_offsets,
-            block_n_conn,
-            max_n_conn,
-            MAX_SIG_BOND_SEPARATION,
-        )
-
-    @classmethod
-    @validate_args
-    def _shortest_paths_for_connectivity_graph(cls, pconn_matrix):
-        from tmol.pose.compiled import stacked_apsp
-
-        stacked_apsp(pconn_matrix, MAX_SIG_BOND_SEPARATION)
-
-    @classmethod
-    @validate_args
-    def _find_inter_block_separation_for_polymeric_monomers(
-        cls,
-        pbt: PackedBlockTypes,
-        n_chains: int,
-        max_n_res: int,
-        real_res: Tensor[torch.bool][:, :],
         block_type_ind64: Tensor[torch.int64][:, :],
-    ) -> Tensor[torch.int32][:, :, :, :, :]:
-        return cls._find_inter_block_separation_for_polymeric_monomers_heavy(
-            pbt.device,
-            pbt.polymeric_down_to_up_nbonds,
-            pbt.up_conn_inds,
-            pbt.down_conn_inds,
-            n_chains,
-            max_n_res,
-            pbt.max_n_conn,
-            real_res,
-            block_type_ind64,
+        real_blocks: Tensor[torch.bool][:, :],
+        inter_residue_connections64: Tensor[torch.int64][:, :, :, 2],
+    ) -> InterBlockBondsep:
+        """Bond separations below the cap between the connections of nearby blocks."""
+        cls._annotate_pbt_w_intraresidue_connection_atom_distances(pbt)
+        # padding blocks have no connections, so their intra separations go unread
+        return InterBlockBondsep.from_bonded_graph(
+            torch.where(real_blocks, pbt.n_conn[block_type_ind64], 0),
+            pbt.conn_at_intrablock_bond_sep[block_type_ind64],
+            inter_residue_connections64,
         )
-
-    @classmethod
-    @validate_args
-    def _find_inter_block_separation_for_polymeric_monomers_heavy(
-        cls,
-        device: torch.device,
-        bt_polymeric_down_to_up_nbonds: Tensor[torch.int32][:],
-        bt_up_conn_inds: Tensor[torch.int32][:],
-        bt_down_conn_inds: Tensor[torch.int32][:],
-        n_chains: int,
-        max_n_res: int,
-        max_n_conn: int,
-        real_res: Tensor[torch.bool][:, :],
-        block_type_ind64: Tensor[torch.int64][:, :],
-    ) -> Tensor[torch.int32][:, :, :, :, :]:
-        assert real_res.shape[0] == n_chains
-        assert real_res.shape[1] == max_n_res
-        assert block_type_ind64.shape[0] == n_chains
-        assert block_type_ind64.shape[1] == max_n_res
-
-        # Let's take an example of a single four residue alpha amino acid chain:
-        #    "MT[Beta-Ala]Q"
-        # (This example has been chosen to  ensure that our logic is sound; if
-        # all the backbone types had the same number of atoms, then we might
-        # compute the right answer for the wrong reason if we worked only with
-        # alpha amino acids, but then fail once we attempt to build this
-        # tensor for a mix of alpha- and beta amino acids.)
-        #
-        # What we want is the connection-point distance tensor of:
-        #
-        # [ [ [[0,2],[2,0]],   [[3,5],[1,3]], [[6,9],[4,7]], [[10,12],[8,10]] ]
-        #   [ [[3,1],[5,3]],   [[0,2],[2,0]], [[3,6],[1,4]], [[7,9],[5,7]]    ]
-        #   [ [[6,4],[9,7]],   [[3,1],[6,4]], [[0,3],[3,0]], [[4,6],[1,3]]    ]
-        #   [ [[10,8],[12,10], [[7,5],[9,7]], [[4,1],[6,3]], [[0, 2],[2,0]]   ]]
-        #
-        # Where, e.g., the [0, 2, :, :] matrix [[6,9],[4,7]] says:
-        # - N on residue 0 is 6 chemical bonds from N on residue 2
-        # - N on residue 0 is 9 chemical bonds from C on residue 2
-        # - C on residue 0 is 4 chemical bonds from N on residue 2
-        # - C on residue 0 is 7 chemical bonds from C on residue 2
-        #
-        # What about if we have [Met:NTerm]T[Beta-Ala][GLN:CTerm] ?
-        # Then we would want this tensor instead
-        # (note that "up" on res 0 and "down" on res 3 are both ind 0)
-        # [ [ [[0,-1],[-1,-1]],  [[1,3],[-1,-1]], [[4,7],[-1,-1]], [[8,-1],[-1,-1]]  ]   # noqa: B950
-        #   [ [[1,-1],[3,-1]],   [[0,2],[2,0]],   [[3,6],[1,4]],   [[7,-1],[5,-1]]   ]   # noqa: B950
-        #   [ [[4,-1],[7,-1]],   [[3,1],[6,4]],   [[0,3],[3,0]],   [[4,-1],[1,-1]]   ]   # noqa: B950
-        #   [ [[8,-1],[-1,-1],   [[7,5],[-1,-1]], [[4,1],[-1,-1]], [[0, -1],[-1,-1]] ]]  # noqa: B950
-        #
-        # So how do we build this tensor? Let's think about it in terms of a
-        # single chain. We will add an extra dimension later to talk about
-        # multiple chains. Let's start by reading out the length of the down-to-up path
-        # separation for each block type. In the former case, A = [2, 2, 3, 2] and in
-        # the latter case, A = [0, 2, 3, 0] with zero entries for the residues missing
-        # one of the connections. What the two cases will have in common is the subset
-        # of residues that contain both up and down connections. Let's focus on the
-        # former case and return later to the latter. If we were to add 1 to A, we
-        # would have the chemical bond path distance between down-to-down or up-to-up
-        # pairs. An exclusive cumulative sum of A+1 would give B = [0, 3, 6, 10]:
-        # the down-to-down path distance from residue 0 to residue i.
-        # We can do a broadcast subtraction C = B[None,:] - B[:, None]
-        # giving
-        #
-        # [[0,    3,  6, 10],
-        #  [-3,   0,  3,  7],
-        #  [-6,  -3,  0,  4],
-        #  [-10, -7, -4,  0]]
-        #
-        # so that the absolute value of each entry represents the down-to-down
-        # path distance.
-        #
-        # Then we can compute the output tensor D:
-        # D[i, j, down, down] = abs(C[i,j])
-        # when i < j, D[i,j,down,up] = C[i,j] + A[j] = abs(C[i,j] + A[j])
-        #             D[i,j,up,down] = C[i,j] - A[i]) = abs(C[i,j] - A[i]))
-        #             D[i,j, up, up] = C[i,j] - A[i] + A[j]
-        # when j < i, D[i,j,down,up] = -1 * C[i,j] - A[j]
-        #                            = -1 * (C[i,j] + A[j])
-        #                            = abs(C[i,j] + A[j])
-        #             D[i,j,up,down] = -1 * C[i,j] + A[i]
-        #                            = -1 * (C[i,j] - A[i])
-        #                            = abs(C[i,j] - A[i])
-        #             D[i,j, up, up] = -1 * C[i,j] + A[i] - A[j])
-        #
-        # therefore D[i, j, down, up] = abs(C[i,j] + A[j])
-        #       and D[i, j, up, down] = abs(C[i,j] - A[i])
-        #           D[i, j,  up,  up] = abs(C[i,j] - A[i] + A[j])
-
-        # A: down_up_separation
-        down_up_separation = torch.full(
-            (n_chains, max_n_res), 0, dtype=torch.int64, device=device
-        )
-        down_up_separation[real_res] = bt_polymeric_down_to_up_nbonds[
-            block_type_ind64[real_res]
-        ].to(torch.int64)
-
-        # B: down_to_down_chain_distance
-        down_to_down_chain_distance = exclusive_cumsum2d(down_up_separation + 1)
-
-        # C: pair_distances
-        pair_distances = (
-            down_to_down_chain_distance[:, None, :]
-            - down_to_down_chain_distance[:, :, None]
-        )
-
-        # D: inter_block_bondsep. Held as int32: this is the largest tensor a pose
-        #    carries, and a capped bond separation never needs the width.
-        inter_block_bondsep = torch.full(
-            (n_chains, max_n_res, max_n_res, max_n_conn, max_n_conn),
-            100,
-            dtype=torch.int32,
-            device=device,
-        )
-
-        down_up_distance = torch.abs(pair_distances + down_up_separation[:, None, :])
-        up_down_distance = torch.abs(pair_distances - down_up_separation[:, :, None])
-        up_up_distance = torch.abs(
-            pair_distances
-            - down_up_separation[:, :, None]
-            + down_up_separation[:, None, :]
-        )
-
-        both_res_real = torch.logical_and(real_res[:, :, None], real_res[:, None, :])
-        nz_brr = torch.nonzero(both_res_real, as_tuple=False)
-
-        nz_brr_bt_1 = block_type_ind64[nz_brr[:, 0], nz_brr[:, 1]]
-        nz_brr_bt_2 = block_type_ind64[nz_brr[:, 0], nz_brr[:, 2]]
-
-        # now we need the indices for the down and up connections that correspond to
-        # the nz_brr indices
-        nz_brr_upconn_1 = bt_up_conn_inds[nz_brr_bt_1].to(torch.int64)
-        nz_brr_upconn_2 = bt_up_conn_inds[nz_brr_bt_2].to(torch.int64)
-        nz_brr_downconn_1 = bt_down_conn_inds[nz_brr_bt_1].to(torch.int64)
-        nz_brr_downconn_2 = bt_down_conn_inds[nz_brr_bt_2].to(torch.int64)
-
-        # finally we can enter the information for these connections into their
-        # positions in the output tensor
-        inter_block_bondsep[
-            nz_brr[:, 0], nz_brr[:, 1], nz_brr[:, 2], nz_brr_upconn_1, nz_brr_downconn_2
-        ] = up_down_distance[both_res_real].to(torch.int32)
-        inter_block_bondsep[
-            nz_brr[:, 0], nz_brr[:, 1], nz_brr[:, 2], nz_brr_downconn_1, nz_brr_upconn_2
-        ] = down_up_distance[both_res_real].to(torch.int32)
-        inter_block_bondsep[
-            nz_brr[:, 0],
-            nz_brr[:, 1],
-            nz_brr[:, 2],
-            nz_brr_downconn_1,
-            nz_brr_downconn_2,
-        ] = torch.abs(pair_distances[both_res_real]).to(torch.int32)
-        inter_block_bondsep[
-            nz_brr[:, 0], nz_brr[:, 1], nz_brr[:, 2], nz_brr_upconn_1, nz_brr_upconn_2
-        ] = up_up_distance[both_res_real].to(torch.int32)
-
-        return inter_block_bondsep

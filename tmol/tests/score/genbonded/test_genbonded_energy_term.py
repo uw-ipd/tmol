@@ -176,3 +176,39 @@ def test_genbonded_parameter_lookups_are_reused(default_database, monkeypatch):
     assert second_impropers == first_impropers
     numpy.testing.assert_array_equal(second_torsion_params, first_torsion_params)
     numpy.testing.assert_array_equal(second_improper_params, first_improper_params)
+
+
+def test_gen_torsions_gradient_is_consistent_through_an_sp_centre(torch_device):
+    """7E9I J0C ends in a terminal alkyne. A torsion through its linear sp centre
+    has a singular derivative, which stalls line searches in minimization."""
+    from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+    from tmol.score import ScoreFunction
+    from tmol.score._score_types import ScoreType
+    from tmol.tests.data import data_path
+
+    structure = atom_array_from_cif(
+        data_path("sweep_regressions", "terminal_alkyne_7e9i.cif.zst")
+    )
+    pose_stack, context = pose_stack_from_biotite(
+        structure,
+        torch_device,
+        prepare_ligands=True,
+        ligand_seed=_CONFORMER_SEED,
+        return_context=True,
+    )
+    sfxn = ScoreFunction(context.parameter_database, torch_device)
+    sfxn.set_weight(ScoreType.gen_torsions, 1.0)
+    module = sfxn.render_whole_pose_scoring_module(pose_stack)
+
+    coords = pose_stack.coords.detach().clone().to(torch.float64)
+    x = coords.clone().requires_grad_(True)
+    (grad,) = torch.autograd.grad(module(x).sum(), x)
+    assert torch.isfinite(grad).all()
+    direction = -grad / grad.norm()
+    analytic = float((grad * direction).sum())
+    eps = 1e-3
+    with torch.no_grad():
+        up = module(coords + eps * direction).sum()
+        down = module(coords - eps * direction).sum()
+    numeric = float((up - down) / (2 * eps))
+    assert numeric == pytest.approx(analytic, rel=1e-3)

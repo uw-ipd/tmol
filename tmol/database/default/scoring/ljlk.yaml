@@ -43,7 +43,9 @@ atom_type_parameters:
 
   - { name: NtrR, *ljr: 1.802452, *ljw: 0.161725, *lkd:  -4.92802, *lkl: 3.500000, *lkv:  9.779200 }
   - { name: NH2O, *ljr: 1.802452, *ljw: 0.161725, *lkd:  -7.66671, *lkl: 3.500000, *lkv: 15.689000 }
-  - { name: Nlys, *ljr: 1.802452, *ljw: 0.161725, *lkd: -18.74326, *lkl: 3.500000, *lkv: 16.514000 }
+  - &Nlys
+    { name: Nlys, *ljr: 1.802452, *ljw: 0.161725, *lkd: -18.74326, *lkl: 3.500000, *lkv: 16.514000 }
+  - { <<: *Nlys, name: NlysDepro } # Deprotonated form in LYS_DEP
   - { name: Narg, *ljr: 1.802452, *ljw: 0.161725, *lkd:  -8.69602, *lkl: 3.500000, *lkv: 15.717000 }
   - { name: Npro, *ljr: 1.802452, *ljw: 0.161725, *lkd:  -1.51111, *lkl: 3.500000, *lkv:  3.718100 }
   - &OH
@@ -151,21 +153,10 @@ atom_type_parameters:
   - { name: BrR , *ljr: 2.197100, *ljw: 0.109000, *lkd:   2.79510, *lkl: 3.500000, *lkv: 19.687600 }
   - { name: IR  , *ljr: 2.360000, *ljw: 0.111000, *lkd:   3.13610, *lkl: 3.500000, *lkv: 22.089100 }
 
-  # Metal ions. Radii are CHARMM (toppar_water_ions) where that set has the
-  #    ion, and Shannon ionic radii scaled onto CHARMM's zinc otherwise; the two
-  #    scales agree to 3% on cadmium, which CHARMM fits independently.
-  # Well depth is the 5e-3 floor used when the energy function was trained:
-  #    CHARMM's own depths balance a full formal charge, which fa_elec does not
-  #    see here because metal_coordination carries the attraction instead.
-  # lk_dgfree is the bulk-water term only: an open coordination site is taken to
-  #    hold a water at zero energy, and occluding it pays for displacing that
-  #    water. It is set from that penalty rather than from the ion's hydration
-  #    free energy, which a short-range Gaussian cannot carry. With lk_fraction
-  #    saturating, a three-carbon face occluding a site costs about
-  #    0.08 * |lk_dgfree|, so -30 puts a divalent site near 2.4 kcal/mol --
-  #    several times the carboxylate reference, matching the ratio of a
-  #    metal-water interaction to a hydrogen bond. Linear in formal charge.
-  #    Provisional: fit jointly with the coordination well depth.
+  # Metal ions: CHARMM (toppar_water_ions) radii, else Shannon radii scaled onto CHARMM's Zn
+  #    (3% off on Cd); well depth is the 5e-3 floor, as metal_coordination carries attraction.
+  # lk_dgfree prices displacing an open site's water: ~0.08 * |lk_dgfree| per three-carbon
+  #    face, so -30 (linear in charge) is ~2.4 kcal/mol per divalent site; provisional.
   - { name: Mg2p, *ljr: 1.185000, *ljw: 0.005000, *lkd: -30.00000, *lkl: 3.500000, *lkv:  6.970175 }
   - { name: Ca2p, *ljr: 1.367000, *ljw: 0.005000, *lkd: -30.00000, *lkl: 3.500000, *lkv: 10.700256 }
   - { name: Na1p, *ljr: 1.410750, *ljw: 0.005000, *lkd: -15.00000, *lkl: 3.500000, *lkv: 11.760852 }

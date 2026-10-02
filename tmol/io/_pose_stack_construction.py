@@ -117,7 +117,10 @@ def pose_stack_from_canonical_form(  # noqa: C901
         place_site_virtuals,
         with_donor_patches,
     )
-    from tmol.io.details._protonation_variants import select_protonation_variants
+    from tmol.io.details._protonation_variants import (
+        neutral_terminus_patches,
+        select_protonation_variants,
+    )
     from tmol.io.details import resolve_his_tautomerization
     from tmol.io.details import (
         assign_block_types,
@@ -250,10 +253,8 @@ def pose_stack_from_canonical_form(  # noqa: C901
             find_additional_disulfides,
         )
 
-    # 3a: a metal's geometry cannot be read from the atoms it presents -- every
-    #     geometry of an ion shows the same single atom -- so it rides the same
-    #     variant axis a disulfide does. Metals and cysteines never collide.
-    #     A disulfide cysteine's state is already fixed, so it cannot donate.
+    # 3a: a metal's geometry rides the variant axis a disulfide does (they never
+    #     collide); a disulfide cysteine cannot donate.
     metal_variants, metal_assignments = find_metal_geometries(
         canonical_ordering,
         pbt.chem_db,
@@ -307,11 +308,14 @@ def pose_stack_from_canonical_form(  # noqa: C901
             res_type_variants.dtype
         )
 
-    # 4b: a coordinating atom needs a connection its metal can fill; those
-    #     forms are made for the donors this input has, not ahead of time
+    # 4b: a coordinating atom needs a connection its metal can fill, a neutral
+    #     amino terminus its own form; both are made for this input only
     pbt = with_donor_patches(
         pbt,
-        donor_patches(canonical_ordering, pbt.chem_db, res_types, metal_assignments),
+        donor_patches(canonical_ordering, pbt.chem_db, res_types, metal_assignments)
+        + neutral_terminus_patches(
+            canonical_ordering, pbt.chem_db, res_types, res_type_variants
+        ),
     )
 
     # 5
@@ -472,13 +476,8 @@ def pose_stack_from_canonical_form(  # noqa: C901
 
 
 def _declared_metal_sites(res_types, metal_sites, metal_coordination):
-    """Declared metal sites and declared metal bonds, left-justified.
-
-    Returns ({(pose, metal): (geometry, ((site, donor, atom), ...))},
-    {(pose, metal): {(donor, atom), ...}}). A bond is placed at its site only
-    when the metal's geometry is declared too; otherwise it is a required donor
-    and detection chooses the site.
-    """
+    """Left-justified {(pose, metal): (geometry, ((site, donor, atom), ...))}, and
+    {(pose, metal): {(donor, atom)}} for bonds whose metal has no declared geometry."""
     # tmol.io.details imports this module's package, as the builder above does
     from tmol.io.details import left_justify_residue_indices
 
