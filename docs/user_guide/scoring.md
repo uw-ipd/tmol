@@ -32,9 +32,11 @@ score.backward()
 
 ## Fitting to a cryo-EM map
 
-`beta_nov16_dens_score_function()` adds the `elec_dens_fast` fit-to-density term to
-beta_nov2016 with the weights of Rosetta's cryo-EM refinement script. The observed
-map is bound to the score function, so a new one is built for each map.
+`beta_nov16_dens_score_function()` is `beta2016_score_function()` plus the
+`elec_dens_fast` fit-to-density term at weight 35, the value Rosetta's cryo-EM
+refinement script uses; every other weight is unchanged. That script also reweights
+`fa_rep` and the bonded terms, which you do with `ScoreFunction.set_weight`. The
+observed map is bound to the score function, so a new one is built for each map.
 
 ```python
 from tmol.score import beta_nov16_dens_score_function

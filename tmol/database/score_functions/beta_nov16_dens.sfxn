@@ -1,24 +1,13 @@
-# beta_nov16_dens: beta_nov16_cart plus Rosetta's elec_dens_fast fit-to-density term, with the reweights of
-# Rosetta's cryo-EM refinement script (rosetta_scripts/public/cryoem/cryoem_glycan_refinement.xml).
-#
-# Rosetta adds every cart_bonded energy to its specific score type AND to the aggregate cart_bonded term, whose weight
-# (0.5 in beta_nov16_cart) the script does not change. The script reweights only the specific types, so the effective
-# weights are specific + aggregate:
-#   cart_bonded_length  0.5 + 0.5 = 1.0   -> cart_lengths
-#   cart_bonded_angle   1.0 + 0.5 = 1.5   -> cart_angles
-#   cart_bonded_torsion 0.5 + 0.5 = 1.0   -> cart_torsions, cart_impropers
-#     (Rosetta adds proper and improper torsions to cart_bonded_torsion; cart_bonded_ring covers ring geometry)
-# cart_hxltorsions keeps tmol's database weight: Rosetta scores hydroxyl torsions with a separate hxl_tors term
-# (weight 1.0) whose relation to this term is not established.
-# fa_rep 0.05 (default 0.55) is fa_ljrep. elec_dens_fast 35.0. Rosetta's pro_close and atom_pair_constraint terms do
-# not exist in tmol.
+# beta_nov16_dens: beta2016 (beta_nov2016_cart) plus the elec_dens_fast fit-to-density term and nothing else. Every other
+# weight is beta2016's. The density weight 35 is the value Rosetta's cryo-EM refinement script
+# (rosetta_scripts/public/cryoem/cryoem_glycan_refinement.xml) uses; that script also reweights fa_rep and the bonded terms
+# on top of its base weights, which a caller does with ScoreFunction.set_weight.
 #
 # The observed map is a score-function option (density_map, density_resolution); see tmol.score.density.
-# Rosetta's FastRelax scales fa_rep per stage; do that with ScoreFunction.set_weight(ScoreType.fa_ljrep, ...).
 version: "1.0"
 weights:
   fa_ljatr: 1.0
-  fa_ljrep: 0.05
+  fa_ljrep: 0.55
   fa_lk: 1.0
   fa_elec: 1.0
   hbond: 1.0
@@ -29,10 +18,10 @@ weights:
   omega: 0.48
   rama: 0.50
   disulfide: 1.25
-  cart_lengths: 1.0
-  cart_angles: 1.5
-  cart_torsions: 1.0
-  cart_impropers: 1.0
+  cart_lengths: 0.5
+  cart_angles: 0.5
+  cart_torsions: 0.5
+  cart_impropers: 0.5
   cart_hxltorsions: 0.5
   dunbrack_rot: 0.76
   dunbrack_rotdev: 0.69

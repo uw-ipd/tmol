@@ -106,8 +106,8 @@ def beta_nov16_dens_score_function(
 ) -> "ScoreFunction":
     """Return beta_nov2016 plus the ``elec_dens_fast`` fit-to-density term for one observed map.
 
-    The weights are those of Rosetta's cryo-EM refinement script: ``fa_rep`` 0.05, ``cart_angles`` and
-    ``cart_impropers`` 1.0, and ``elec_dens_fast`` 35. Rosetta's FastRelax scales ``fa_rep`` per stage; do that
+    The weights are those of :func:`beta2016_score_function` with ``elec_dens_fast`` added at 35, the value Rosetta's
+    cryo-EM refinement script uses. That script also reweights ``fa_rep`` (0.05) and the bonded terms; do the same
     with ``ScoreFunction.set_weight``.
 
     Args:

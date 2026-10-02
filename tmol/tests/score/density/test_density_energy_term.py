@@ -6,7 +6,11 @@ import torch
 from tmol import pose_stack_from_pdb
 from tmol.pack import PackerPalette, PackerTask, SetPackerTask
 from tmol.pack.rotamer import IncludeCurrentSampler, build_rotamers
-from tmol.score import ScoreType, beta_nov16_dens_score_function
+from tmol.score import (
+    ScoreType,
+    beta2016_score_function,
+    beta_nov16_dens_score_function,
+)
 from tmol.score.density import (
     DensityCorrelation,
     DensityEnergyTerm,
@@ -205,32 +209,38 @@ def test_missing_map_is_an_error(ubq_pdb, default_database, torch_device):
         term.render_whole_pose_scoring_module(pose_stack)
 
 
-def test_beta_nov16_dens_score_function(ubq_pdb, torch_device):
+def test_beta_nov16_dens_differs_from_beta2016_only_by_the_density_term(
+    ubq_pdb, torch_device
+):
     pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
     density_map = _map_around(pose_stack).to(torch_device)
     sfxn = beta_nov16_dens_score_function(torch_device, density_map, RESOLUTION)
+    plain = beta2016_score_function(torch_device)
 
-    # Rosetta's cryo-EM script: fa_rep 0.05 and elec_dens_fast 35; bonded terms carry the aggregate cart_bonded 0.5
-    expected = {
-        ScoreType.fa_ljrep: 0.05,
-        ScoreType.elec_dens_fast: 35.0,
-        ScoreType.cart_lengths: 1.0,
-        ScoreType.cart_angles: 1.5,
-        ScoreType.cart_torsions: 1.0,
-        ScoreType.fa_ljatr: 1.0,
-    }
-    for score_type, weight in expected.items():
-        assert float(sfxn.get_weight(score_type)) == pytest.approx(weight)
+    for score_type in ScoreType:
+        if score_type is ScoreType.n_score_types:
+            continue
+        expected = (
+            35.0
+            if score_type is ScoreType.elec_dens_fast
+            else float(plain.get_weight(score_type))
+        )
+        assert float(sfxn.get_weight(score_type)) == pytest.approx(expected), score_type
 
-    # the density term enters the total with its weight
+    # the density term enters the total with its weight, and nothing else changes
     coords = pose_stack.coords.detach()
     total = sfxn.render_whole_pose_scoring_module(pose_stack)(coords)
+    sfxn.set_weight(ScoreType.elec_dens_fast, 0.0)
+    without_density = sfxn.render_whole_pose_scoring_module(pose_stack)(coords)
+    torch.testing.assert_close(
+        without_density, plain.render_whole_pose_scoring_module(pose_stack)(coords)
+    )
     for score_type in ScoreType:
         if score_type not in (ScoreType.n_score_types, ScoreType.elec_dens_fast):
             sfxn.set_weight(score_type, 0.0)
-    only_density = sfxn.render_whole_pose_scoring_module(pose_stack)(coords)
     sfxn.set_weight(ScoreType.elec_dens_fast, 1.0)
     unit_density = sfxn.render_whole_pose_scoring_module(pose_stack)(coords)
-    torch.testing.assert_close(only_density, 35.0 * unit_density, rtol=1e-4, atol=1e-4)
-    assert float(only_density) < 0
-    assert total.shape == only_density.shape
+    torch.testing.assert_close(
+        total - without_density, 35.0 * unit_density, rtol=1e-4, atol=1e-3
+    )
+    assert float(unit_density) < 0
