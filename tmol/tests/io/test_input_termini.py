@@ -87,3 +87,150 @@ def test_stated_termini_use_database_residue_aliases(bonds_given):
     if not bonds_given:
         assert structure.bonds is None
         assert marked.bonds is not None
+
+
+@pytest.mark.parametrize("fixture,residue", [("2gyi", 65), ("1hdq", 274)])
+def test_pdb_reader_preserves_supplied_short_gap_termini(
+    torch_device, fixture, residue
+):
+    structure = atom_array_from_file(
+        data_path("sweep_regressions", f"supplied_terminus_{fixture}.pdb")
+    )
+    terminal = structure[
+        (structure.res_id == residue) & np.isfinite(structure.coord).all(-1)
+    ]
+    assert {"H1", "H2"} <= set(terminal.atom_name)
+    pose = pose_stack_from_biotite(structure, torch_device, no_optH=True)
+    assert _hydrogens_on(pose, "A", residue)[2]["N"] == 2
+    assert pose.inter_residue_connections[0, :, :, 0].lt(0).all()
+    block_type = pose.packed_block_types.active_block_types[
+        int(pose.block_type_ind[0, 1])
+    ]
+    offset = int(pose.block_coord_offset[0, 1])
+    actual = pose.coords[
+        0, [offset + block_type.atom_to_idx[n] for n in terminal.atom_name]
+    ]
+    np.testing.assert_allclose(actual.cpu(), terminal.coord, atol=1e-5)
+    _score_and_minimize_ligand(pose, ParameterDatabase.get_default())
+
+
+@pytest.mark.parametrize("renamed", ["hydrogen", "heavy_element", "heavy_parent"])
+def test_terminal_name_requires_chemical_identity(renamed):
+    from atomworks.io.utils.ccd import atom_array_from_ccd_code
+
+    structure = atom_array_from_ccd_code("SER")
+    structure = structure[~np.isin(structure.atom_name, ("H2", "H3", "OXT", "HXT"))]
+    if renamed == "hydrogen":
+        structure.atom_name[structure.atom_name == "HG"] = "H3"
+    elif renamed == "heavy_element":
+        structure.atom_name[structure.atom_name == "CB"] = "OXT"
+    else:
+        structure.atom_name[structure.atom_name == "OG"] = "OXT"
+    original = structure.copy()
+    marked = with_stated_termini(structure, ParameterDatabase.get_default().chemical)
+    if EXPLICIT_TERMINI in marked.get_annotation_categories():
+        assert not marked.get_annotation(EXPLICIT_TERMINI).any()
+    np.testing.assert_array_equal(marked.coord, original.coord)
+    np.testing.assert_array_equal(marked.bonds.as_array(), original.bonds.as_array())
+
+
+def test_generated_polymer_terminal_names_respect_supplied_parents(torch_device):
+    from tmol.io import biotite_from_pose_stack
+
+    structure = atom_array_from_file(
+        data_path("sweep_regressions", "terminal_name_collision_1a8i.pdb")
+    )
+    pose, context = pose_stack_from_biotite(
+        structure,
+        torch_device,
+        prepare_ligands=True,
+        no_optH=True,
+        ligand_seed=0,
+        return_context=True,
+    )
+    assert _hydrogens_on(pose, "A", 680)[2]["O3"] == 1
+    assert _hydrogens_on(pose, "A", 680)[2]["N"] == 1
+    assert (pose.inter_residue_connections[0, 1, :2, 0] >= 0).all()
+    actual = biotite_from_pose_stack(pose, context.canonical_ordering)
+    for mode in ("given", "partial", "absent"):
+        original = structure.copy()
+        h = int(
+            np.flatnonzero((original.res_id == 680) & (original.atom_name == "H3"))[0]
+        )
+        o = int(
+            np.flatnonzero((original.res_id == 680) & (original.atom_name == "O3"))[0]
+        )
+        if mode == "partial":
+            original.bonds.remove_bond(h, o)
+        elif mode == "absent":
+            original.bonds = None
+        marked = with_stated_termini(
+            original, context.parameter_database.chemical, context.canonical_ordering
+        )
+        if EXPLICIT_TERMINI in marked.get_annotation_categories():
+            assert not marked.get_annotation(EXPLICIT_TERMINI)[
+                marked.res_id == 680
+            ].any()
+        assert marked.bonds.get_bonds(h)[0].tolist() == [o]
+        np.testing.assert_array_equal(marked.coord, original.coord)
+    # Known generated names can explicitly retain the supplied O3-H coordinate.
+    named = structure.copy()
+    o3_h = (named.res_id == 680) & (named.atom_name == "H3")
+    named.atom_name[o3_h] = "HO3"
+    retained = pose_stack_from_biotite(
+        named, torch_device, context=context, no_optH=True, trust_hydrogen_names=True
+    )
+    retained_atoms = biotite_from_pose_stack(retained, context.canonical_ordering)
+    actual_h = retained_atoms[
+        (retained_atoms.res_id == 680) & (retained_atoms.atom_name == "HO3")
+    ]
+    np.testing.assert_allclose(actual_h.coord, named.coord[o3_h], atol=1e-5)
+    for residue in (679, 680, 681):
+        source = structure[(structure.res_id == residue) & (structure.element != "H")]
+        dest = actual[actual.res_id == residue]
+        by_name = dict(zip(dest.atom_name, dest.coord))
+        np.testing.assert_allclose(
+            [by_name[n] for n in source.atom_name], source.coord, atol=1e-5
+        )
+    _score_and_minimize_ligand(pose, context.parameter_database)
+
+
+def test_terminal_oxygen_coordinated_to_metal_still_closes_port():
+    import biotite.structure as struc
+    from atomworks.io.utils.ccd import atom_array_from_ccd_code
+
+    structure = atom_array_from_ccd_code("ALA")
+    structure = structure[~np.isin(structure.atom_name, ("H2", "H3", "HXT"))]
+    metal = struc.AtomArray(1)
+    metal.res_name[:] = "ZN"
+    metal.atom_name[:] = "ZN"
+    metal.element[:] = "ZN"
+    metal.res_id[:] = 2
+    metal.coord[:] = [10, 10, 10]
+    structure = struc.concatenate([structure, metal])
+    oxygen = int(np.flatnonzero(structure.atom_name == "OXT")[0])
+    structure.bonds.add_bond(oxygen, len(structure) - 1, struc.BondType.COORDINATION)
+    marked = with_stated_termini(structure, ParameterDatabase.get_default().chemical)
+    assert (marked.get_annotation(EXPLICIT_TERMINI)[:-1] == 2).all()
+    np.testing.assert_array_equal(marked.bonds.as_array(), structure.bonds.as_array())
+
+
+def test_pdb_explicit_connection_does_not_erase_supplied_terminus(tmp_path):
+    from pathlib import Path
+
+    source = Path(
+        data_path("sweep_regressions", "supplied_terminus_1hdq.pdb")
+    ).read_text()
+    serial = {
+        (int(line[22:26]), line[12:16].strip()): int(line[6:11])
+        for line in source.splitlines()
+        if line.startswith(("ATOM  ", "HETATM"))
+    }
+    path = tmp_path / "contradiction.pdb"
+    path.write_text(
+        source.replace(
+            "END\n", f"CONECT{serial[273, 'C']:5d}{serial[274, 'N']:5d}\nEND\n"
+        )
+    )
+    with pytest.raises(ValueError, match="Stated terminus.*THR/N -- A:273:ASP/C"):
+        atom_array_from_file(path)

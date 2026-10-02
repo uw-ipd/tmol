@@ -367,6 +367,58 @@ def _extends_polymer(array, starts, anchor, residue, step):
     return bool((distance <= BOND_DISTANCE_THRESHOLD_CHNO).any())
 
 
+def _mark_stated_polymer_ports(array, declared_pairs):
+    """Keep supplied ends of complete polymer residues ahead of sequence guesses.
+
+    Missing-backbone fragments need their own chemical definition; an amide cap
+    named as an incomplete amino acid must not become an unconnected free amine.
+    """
+    from tmol.io._input_termini import EXPLICIT_TERMINI, with_stated_termini
+    from tmol.io._pose_stack_from_biotite import (
+        _paramdb_for_biotite,
+        canonical_ordering_for_biotite,
+    )
+
+    residue = struc.get_all_residue_positions(array)
+    bonds = array.bonds.as_array()
+    inferred = np.array(
+        [
+            residue[i] != residue[j]
+            and frozenset((int(i), int(j))) not in declared_pairs
+            for i, j, _ in bonds
+        ],
+        dtype=bool,
+    )
+    co = canonical_ordering_for_biotite()
+    candidate = array.copy()
+    candidate.bonds = struc.BondList(len(array), bonds[~inferred])
+    marked = with_stated_termini(candidate, _paramdb_for_biotite().chemical, co)
+    if EXPLICIT_TERMINI not in marked.get_annotation_categories():
+        return array
+    flags = marked.get_annotation(EXPLICIT_TERMINI)
+    closed = set()
+    starts = struc.get_residue_starts(array, add_exclusive_stop=True)
+    for begin, end in zip(starts[:-1], starts[1:]):
+        name = str(array.res_name[begin])
+        required = co.restypes_required_mainchain_atoms.get(name)
+        resolved = np.isfinite(array.coord[begin:end]).all(-1)
+        if not required or not set(required) <= set(
+            array.atom_name[begin:end][resolved]
+        ):
+            continue
+        upper, lower = get_polymerization_atoms(name)
+        for side, port in ((1, lower), (2, upper)):
+            if flags[begin] & side:
+                closed.update(
+                    begin + np.flatnonzero(array.atom_name[begin:end] == port)
+                )
+    if closed:
+        array.set_annotation(
+            "_tmol_closed_polymer_port", np.isin(np.arange(len(array)), list(closed))
+        )
+    return array
+
+
 def _read_pdb(path, model):
     """A PDB's atoms with its LINK records as bonds, HETATM chains in residue-number order.
 
@@ -386,6 +438,7 @@ def _read_pdb(path, model):
     links = _link_bonds(array, lines)
     array.bonds = array.bonds.merge(links)
     declared_pairs.update(frozenset((int(i), int(j))) for i, j, _ in links.as_array())
+    array = _mark_stated_polymer_ports(array, declared_pairs)
     array = _polymer_from_backbone_bonds(array, declared_pairs=declared_pairs)
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)
     author = array.auth_asym_id[starts[:-1]]
@@ -632,6 +685,15 @@ def read_structure(path, *, model=1, assembly_id=None):
         if assembly_id is None
         else result["assemblies"][assembly_id]
     )
+    # AtomWorks also infers sequential links; restore the supplied ends before
+    # leaving-atom sanitation could consume their hydrogens.
+    if "_tmol_closed_polymer_port" in array.get_annotation_categories():
+        bonds = array.bonds.as_array()
+        residue = struc.get_all_residue_positions(array)
+        crossing = residue[bonds[:, 0]] != residue[bonds[:, 1]]
+        remove = crossing & array._tmol_closed_polymer_port[bonds[:, :2]].any(axis=1)
+        array.bonds = struc.BondList(array.array_length(), bonds[~remove])
+        array.del_annotation("_tmol_closed_polymer_port")
     array._custom_ccd_registry = {
         **getattr(array, "_custom_ccd_registry", {}),
         **templates,

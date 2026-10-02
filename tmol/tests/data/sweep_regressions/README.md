@@ -58,3 +58,9 @@ compressed file) and exercises one failure class; each test fails without its fi
   - `aromatic_charge_4yt6.sdf`: original `v2020-other-PL_5/4yt6/4yt6_prot/4yt6_l.sdf`; SHA-256 `f36d30d079cce2f925cb208fec9ad4f4b846ebc37b7d25ab780d66bcf731c55c`.
 
 - `backbone_hetero_order_4fut.pdb`: PDBbind 4FUT prepared protein, author chain A residues 11–13 and 17–19. ATOM/HETATM records remain in original file order; CONECT records retain only these atoms. No coordinates, names, charges or retained bond declarations were changed. Original source SHA-256: `f5bab11d54d06a2e4e025fc1c773769f2a491e9f9fbdd2dea65538e913a05d1f`. The two modified lysines are explicitly linked into the protein despite being listed after all ATOM records.
+
+- `terminal_name_collision_1a8i.pdb`: PDBbind 1A8I prepared protein, author chain A, residues [679, 680, 681]. ATOM/HETATM and retained CONECT records preserve original order, names, coordinates, charges and bond declarations; no other edits. Source SHA-256 `116abba54481889550476cfde8138a9abc3e1ae895c20c1dff978dac98bcfb34`.
+
+- `supplied_terminus_2gyi.pdb`: PDBbind 2GYI prepared protein, author chain A, residues [64, 65]. ATOM/HETATM and retained CONECT records preserve original order, names, coordinates, charges and bond declarations; no other edits. Source SHA-256 `b7a2e291987114fc56ebddb2bed8604554cac537d79a115528287706fb814297`.
+
+- `supplied_terminus_1hdq.pdb`: PDBbind 1HDQ prepared protein, author chain A, residues [273, 274]. ATOM/HETATM and retained CONECT records preserve original order, names, coordinates, charges and bond declarations; no other edits. Source SHA-256 `304b450671db888b175cbfb3738e459ed0f5cf90a0ff39684ee95e9167956af1`.
