@@ -167,6 +167,16 @@ def hydrogens_by_parent(template: struc.AtomArray) -> numpy.ndarray:
     return numpy.bincount(parent, minlength=len(template))
 
 
+def _cache_protonation_states(keys, states):
+    """Update the bounded state cache under its lock."""
+    with _STATE_LOCK:
+        for key in keys:
+            _STATES[key] = states[key]
+            _STATES.move_to_end(key)
+        while len(_STATES) > _STATE_CAPACITY:
+            _STATES.popitem(last=False)
+
+
 def _stated_terminal_variants(template, starts, lacking, forms):
     """Database variants for complete, explicitly supplied free amines."""
     variant = numpy.full(len(template), -1, dtype=numpy.int8)
@@ -321,12 +331,7 @@ def with_atomworks_hydrogens(
                 for i in range(starts[r], starts[r + 1])
             }
         if cacheable:
-            with _STATE_LOCK:
-                for key in new:
-                    _STATES[key] = states[key]
-                    _STATES.move_to_end(key)
-                while len(_STATES) > _STATE_CAPACITY:
-                    _STATES.popitem(last=False)
+            _cache_protonation_states(new, states)
 
     for r, key in zip(asked, keys):
         variant[starts[r] : starts[r + 1]] = _variant(
