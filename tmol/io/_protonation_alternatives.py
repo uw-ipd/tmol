@@ -13,13 +13,13 @@ from tmol.database.chemical import l_base_name, special_case_variant_index
 RT_LN10 = 1.364
 
 
-def parse_protonation_alternatives(value: str) -> dict[str, float]:
-    """Decode a residue's comma-separated ``base_name:offset`` annotation."""
+def parse_protonation_alternatives(value: str) -> dict[str, tuple[float, int]]:
+    """Decode a residue's ``base_name:offset:sidechain_charge`` entries."""
     return {
-        name: float(offset)
+        name: (float(offset), int(charge))
         for entry in value.split(",")
         if entry
-        for name, offset in [entry.rsplit(":", 1)]
+        for name, offset, charge in [entry.split(":")]
     }
 
 
@@ -107,25 +107,35 @@ def encode_protonation_alternatives(
             )
 
         current = state(assigned)
-        offsets = {current[0]: 0.0}
+        alternatives = {}
+
+        def add_state(array, offset):
+            counts, _ = state(array)
+            choice = (offset, int(array.charge[indices].sum()))
+            alternatives[counts] = choice
+            if array.tautomer_free[indices].all():
+                alternatives.update(
+                    (variant, choice)
+                    for variant in variants
+                    if sum(variant) == sum(counts)
+                )
+
+        add_state(assigned, 0.0)
         for pka, below, above in transitions:
             for near, far in ((below, above), (above, below)):
                 if state(near) == current:
                     counts, _ = state(far)
-                    offsets[counts] = (
-                        RT_LN10 * (ph - pka) * (sum(counts) - sum(current[0]))
+                    add_state(
+                        far, RT_LN10 * (ph - pka) * (sum(counts) - sum(current[0]))
                     )
-        if assigned.tautomer_free[indices].all():
-            for counts in variants:
-                if sum(counts) == sum(current[0]):
-                    offsets[counts] = 0.0
         options = {
-            labels[name][variants[counts]]: offset
-            for counts, offset in offsets.items()
+            labels[name][variants[counts]]: choice
+            for counts, choice in alternatives.items()
             if counts in variants and variants[counts] in labels.get(name, {})
         }
         if len(options) > 1:
             encoded[residue] = ",".join(
-                f"{label}:{offset!r}" for label, offset in options.items()
+                f"{label}:{offset!r}:{charge}"
+                for label, (offset, charge) in options.items()
             )
     return encoded[residue_of].astype(str)

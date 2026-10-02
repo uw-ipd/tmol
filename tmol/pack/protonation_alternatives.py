@@ -2,7 +2,7 @@
 
 A pose built with ``pose_stack_from_biotite(..., protonation_alternatives=True)``
 records, per residue, AtomWorks' protonation alternatives: block-type base names
-(HIS, HIS_D, HIS_POS, CYS, CYS_DEP) and their free-energy offsets relative to the
+(such as HIS, HIS_D, HIS_POS, CYS_DEP and LYS_DEP) and their free-energy offsets relative to the
 assigned state, ``1.364 * (pH - pKa)`` kcal/mol for a protonated form. A
 ``PackerPalette(protonation_alternatives=True)`` lets each such residue take the
 block types of its alternatives across protonation states, and the packer adds
@@ -18,7 +18,6 @@ import numpy
 import torch
 
 from tmol.chemical import RefinedResidueType
-from tmol.database.chemical import special_case_variant_index
 from tmol.io._protonation import (
     PROTONATION_ALTERNATIVES,
 )
@@ -31,8 +30,6 @@ from tmol.pack._packer_task import (
 )
 from tmol.pack.rotamer import RotamerSet
 from tmol.pose import PoseStack
-
-_NET_CHARGE = {"positively_charged": 1, "neutral": 0, "negatively_charged": -1}
 
 
 def block_alternatives(
@@ -54,7 +51,9 @@ def block_alternatives(
         value = values[pose, block]
         parsed = parse_protonation_alternatives(value) if isinstance(value, str) else {}
         if len(parsed) > 1:
-            out[(int(pose), int(block))] = parsed
+            out[(int(pose), int(block))] = {
+                name: offset for name, (offset, _) in parsed.items()
+            }
     return out
 
 
@@ -195,7 +194,7 @@ class ProtonationChoice:
         res_label: Input residue number.
         label: Base name of the chosen block type (``"HIS_POS"``, ...).
         offset: Its offset, kcal/mol relative to AtomWorks' assigned state.
-        charge: Net formal charge its protonation state implies.
+        charge: AtomWorks' formal charge on the titrating side-chain atoms.
         hydrogens: Hydrogens on each heavy atom whose count differs among the
             alternatives' block types.
     """
@@ -235,11 +234,8 @@ def chosen_protonation_variants(pose_stack: PoseStack) -> list[ProtonationChoice
         at.name: at.element.upper() in ("H", "D") for at in pbt.chem_db.atom_types
     }
     by_base_name = {}
-    reference_by_class = {}
     for bt in types:
         by_base_name.setdefault(bt.base_name, bt)
-        if special_case_variant_index(bt) == 0:
-            reference_by_class.setdefault(bt.io_equiv_class, bt)
     hydrogen_counts = {
         name: _hydrogen_counts(bt, is_hydrogen_type)
         for name, bt in by_base_name.items()
@@ -253,10 +249,11 @@ def chosen_protonation_variants(pose_stack: PoseStack) -> list[ProtonationChoice
         varying = sorted(
             name for name in mine if len({c.get(name, -1) for c in counts}) > 1
         )
-        reference = reference_by_class[bt.io_equiv_class]
-        reference_counts = hydrogen_counts[reference.base_name]
-        charge = _NET_CHARGE.get(reference.properties.protonation.protonation_state, 0)
-        charge += sum(mine[name] - reference_counts[name] for name in varying)
+        choices = parse_protonation_alternatives(
+            pose_stack.pdb_info.residue_annotations[PROTONATION_ALTERNATIVES][
+                pose, block
+            ]
+        )
         out.append(
             ProtonationChoice(
                 pose=pose,
@@ -265,7 +262,7 @@ def chosen_protonation_variants(pose_stack: PoseStack) -> list[ProtonationChoice
                 res_label=int(pose_stack.pdb_info.residue_labels[pose, block]),
                 label=bt.base_name,
                 offset=offsets.get(bt.base_name, float("nan")),
-                charge=charge,
+                charge=choices[bt.base_name][1],
                 hydrogens={name: mine[name] for name in varying},
             )
         )

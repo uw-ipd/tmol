@@ -131,7 +131,11 @@ def test_the_palette_offers_alternatives_only_when_asked_and_where_recorded(
         (info.chain_labels[p, b], int(info.residue_labels[p, b]))
         for p, b in alternatives
     } == set().union(*(sites for sites, _ in expected.values()))
-    assert all(choice.charge == 0 for choice in chosen_protonation_variants(pose_stack))
+    assert [
+        choice
+        for choice in chosen_protonation_variants(pose_stack)
+        if choice.charge != 0
+    ] == []
 
     default = PackerTask(pose_stack, PackerPalette())
     widened = PackerTask(pose_stack, PackerPalette(protonation_alternatives=True))
@@ -151,6 +155,20 @@ def test_the_palette_offers_alternatives_only_when_asked_and_where_recorded(
         )
 
 
+def test_charged_histidine_offers_both_neutral_tautomers(torch_device):
+    pose = _pose(DMZ, torch_device, alternatives=True, ph=3.9)
+    expected = {
+        "HIS_POS": 0,
+        "HIS": 1.364 * (4.3535441240733945 - 3.9),
+        "HIS_D": 1.364 * (4.3535441240733945 - 3.9),
+    }
+    alternatives = block_alternatives(pose)
+    assert len(alternatives) == 2
+    for options in alternatives.values():
+        assert options == pytest.approx(expected)
+    assert all(choice.charge == 1 for choice in chosen_protonation_variants(pose))
+
+
 def _packer_tables(pose_stack, palette, offsets=True):
     """The rotamers and packer energy tables of repacking around HIS 8 and 46."""
     db = ParameterDatabase.get_default()
@@ -165,7 +183,58 @@ def _packer_tables(pose_stack, palette, offsets=True):
     return rotamer_set, energies[0], energies[4].to(torch.int64)
 
 
-def test_the_packer_adds_each_block_types_offset_to_its_rotamers(torch_device):
+@pytest.fixture
+def identical_physical_graph(monkeypatch):
+    """Compare exact scorer inputs, then reuse one graph's atomic accumulation.
+
+    Repeating the same CUDA graph build changes rounding through atomics. These
+    tests isolate metadata and offset arithmetic, keeping their exact/tolerance
+    assertions independent of that already-present reduction-order variation.
+    """
+    import importlib
+
+    packing = importlib.import_module("tmol.pack._pack_rotamers")
+
+    from tmol.pack import compiled
+
+    def checked_graph(build, inputs):
+        saved = None
+
+        def same_graph(*args):
+            nonlocal saved
+            current = inputs(*args)
+            if saved is None:
+                saved = (current, build(*args))
+            else:
+                torch.testing.assert_close(saved[0], current, rtol=0, atol=0)
+            return saved[1]
+
+        return same_graph
+
+    def stream_inputs(module, coords, chunk_size, graph_inputs, verbose):
+        entries = tuple(
+            (indices.clone(), values.clone())
+            for _, indices, values in module._iter_weighted_sparse_entries(
+                coords, retain_shared_dispatch=False
+            )
+        )
+        return coords, chunk_size, graph_inputs, entries
+
+    monkeypatch.setattr(
+        compiled,
+        "build_interaction_graph",
+        checked_graph(compiled.build_interaction_graph, lambda *args: args),
+    )
+    monkeypatch.setattr(
+        packing,
+        "_build_streaming_interaction_graph",
+        checked_graph(packing._build_streaming_interaction_graph, stream_inputs),
+    )
+
+
+def test_the_packer_adds_each_block_types_offset_to_its_rotamers(
+    torch_device, identical_physical_graph
+):
     pose_stack = _pose(DMZ, torch_device, alternatives=True, ph=HIS_PH)
     palette = PackerPalette(protonation_alternatives=True)
     rotamer_set, offset, bc_rot_to_orig_rot = _packer_tables(pose_stack, palette)
@@ -214,7 +283,9 @@ def test_packing_reports_the_protonation_it_chose(
     assert choice.offset == offsets[label]
 
 
-def test_recording_alternatives_leaves_the_default_path_unchanged(torch_device):
+def test_recording_alternatives_leaves_the_default_path_unchanged(
+    torch_device, identical_physical_graph
+):
     """The default palette packs a pose recording alternatives from identical tables."""
     plain, flagged = (_pose(DMZ, torch_device, alternatives=a) for a in (False, True))
     names = plain.pdb_info.residue_annotations.dtype.names
@@ -254,7 +325,7 @@ def test_relax_acceptance_includes_state_energy_and_different_hydrogen_counts(
     )
     annotations[PROTONATION_ALTERNATIVES][
         neutral.pdb_info.residue_labels == 8
-    ] = f"HIS:0,HIS_D:0,HIS_POS:{cation_offset}"
+    ] = f"HIS:0:0,HIS_D:0:0,HIS_POS:{cation_offset}:1"
     info = attr.evolve(neutral.pdb_info, residue_annotations=annotations)
     neutral = attr.evolve(neutral, pdb_info=info)
     cation = attr.evolve(cation, pdb_info=info)
