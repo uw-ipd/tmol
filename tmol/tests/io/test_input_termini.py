@@ -2,10 +2,15 @@
 
 import numpy as np
 import pytest
+import torch
 
 from tmol.database import ParameterDatabase
 from tmol.io import atom_array_from_file, pose_stack_from_biotite
-from tmol.io._input_termini import EXPLICIT_TERMINI, with_stated_termini
+from tmol.io._input_termini import (
+    EXPLICIT_TERMINI,
+    validate_connection_hydrogens,
+    with_stated_termini,
+)
 from tmol.tests.data import data_path
 from tmol.tests.io.test_protonation import _hydrogens_on
 from tmol.tests.ligand.test_ligand_entry_paths import _score_and_minimize_ligand
@@ -15,6 +20,49 @@ def _short_gap():
     return atom_array_from_file(
         data_path("sweep_regressions", "stated_terminus_5lh4.pdb")
     )
+
+
+@pytest.mark.parametrize(
+    "source,chain,residue",
+    [
+        ("2f9b", "L", 142),
+        ("2f9b", "T", 109),
+        ("2f9b", "T", 155),
+        ("2f9b", "T", 205),
+        ("5myx", "B", 217),
+        ("3t0x", "A", 107),
+        ("3t0x", "B", 106),
+    ],
+)
+@pytest.mark.parametrize("rename_hydrogen", [False, True])
+def test_declared_aldehyde_does_not_become_a_carboxylate(
+    source, chain, residue, rename_hydrogen
+):
+    """PDBbind explicitly caps these carbonyls with C-H, not carboxylate OXT."""
+    from biotite.structure.io.pdb import PDBFile
+
+    path = data_path("sweep_regressions", f"terminal_aldehyde_{source}.pdb")
+    structure = PDBFile.read(path).get_structure(model=1, include_bonds=True)
+    structure = structure[(structure.chain_id == chain) & (structure.res_id == residue)]
+    hydrogen = np.flatnonzero(structure.atom_name == "HXT")[0]
+    carbon = np.flatnonzero(structure.atom_name == "C")[0]
+    assert structure.bonds.get_bonds(int(hydrogen))[0].tolist() == [carbon]
+    assert np.linalg.norm(structure.coord[carbon] - structure.coord[hydrogen]) == (
+        pytest.approx(1.09, abs=0.002)
+    )
+    assert "OXT" not in structure.atom_name
+    if rename_hydrogen:
+        structure.atom_name[hydrogen] = "Hcarbon"
+    original = structure.copy()
+    with pytest.raises(
+        ValueError,
+        match=rf"Unsupported terminal hydrogen count at {chain}:{residue}:\w+/C: "
+        "supplied 1, database forms support at most 0",
+    ):
+        pose_stack_from_biotite(structure, torch.device("cpu"), no_optH=True)
+    np.testing.assert_array_equal(structure.coord, original.coord)
+    np.testing.assert_array_equal(structure.atom_name, original.atom_name)
+    np.testing.assert_array_equal(structure.bonds.as_array(), original.bonds.as_array())
 
 
 @pytest.mark.parametrize("bondless_consecutive", [False, True])
@@ -100,18 +148,49 @@ def test_pdb_reader_preserves_supplied_short_gap_termini(
         (structure.res_id == residue) & np.isfinite(structure.coord).all(-1)
     ]
     assert {"H1", "H2"} <= set(terminal.atom_name)
-    pose = pose_stack_from_biotite(structure, torch_device, no_optH=True)
+    # The preceding residue is an unsupported aldehyde. Parsing preserves
+    # both sides of the gap; score the supported neutral amine independently.
+    bonds = structure.bonds.as_array()
+    assert (structure.res_id[bonds[:, 0]] == structure.res_id[bonds[:, 1]]).all()
+    with pytest.raises(ValueError, match="Unsupported terminal hydrogen count"):
+        pose_stack_from_biotite(structure, torch_device, no_optH=True)
+    pose = pose_stack_from_biotite(terminal, torch_device, no_optH=True)
     assert _hydrogens_on(pose, "A", residue)[2]["N"] == 2
     assert pose.inter_residue_connections[0, :, :, 0].lt(0).all()
     block_type = pose.packed_block_types.active_block_types[
-        int(pose.block_type_ind[0, 1])
+        int(pose.block_type_ind[0, 0])
     ]
-    offset = int(pose.block_coord_offset[0, 1])
+    offset = int(pose.block_coord_offset[0, 0])
     actual = pose.coords[
         0, [offset + block_type.atom_to_idx[n] for n in terminal.atom_name]
     ]
     np.testing.assert_allclose(actual.cpu(), terminal.coord, atol=1e-5)
     _score_and_minimize_ligand(pose, ParameterDatabase.get_default())
+
+
+def test_connection_hydrogen_capacity_includes_charged_terminal_forms():
+    import biotite.structure as struc
+
+    structure = _short_gap()
+    structure = structure[structure.res_id == 132]
+    structure = with_stated_termini(structure, ParameterDatabase.get_default().chemical)
+    n = int(np.flatnonzero(structure.atom_name == "N")[0])
+    hydrogen = structure[structure.atom_name == "H1"].copy()
+    for count in (3, 4):
+        hydrogen.atom_name[:] = f"addedH{count}"
+        structure = struc.concatenate([structure, hydrogen])
+        structure.bonds.add_bond(n, len(structure) - 1, struc.BondType.SINGLE)
+        if count == 3:
+            validate_connection_hydrogens(
+                structure, ParameterDatabase.get_default().chemical
+            )
+        else:
+            with pytest.raises(
+                ValueError, match="supplied 4, database forms support at most 3"
+            ):
+                validate_connection_hydrogens(
+                    structure, ParameterDatabase.get_default().chemical
+                )
 
 
 @pytest.mark.parametrize("renamed", ["hydrogen", "heavy_element", "heavy_parent"])

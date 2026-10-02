@@ -1,6 +1,6 @@
 """Preserve terminal chemistry stated by atoms, independently of gap geometry."""
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 import biotite.structure as struc
 import numpy as np
@@ -10,7 +10,70 @@ from tmol.utility.weak_identity_cache import WeakIdentityLRU
 
 EXPLICIT_TERMINI = "tmol_explicit_termini"  # lower=1, upper=2
 _TERMINAL_CHEMISTRY = WeakIdentityLRU()
+_CONNECTION_HYDROGEN_CAPACITIES = WeakIdentityLRU()
 _NONCOVALENT_NEIGHBORS = {*METAL_ELEMENTS, "H", "D"}
+
+
+def _connection_hydrogen_capacities(database):
+    """Maximum H count on each polymer connection atom across all database forms."""
+    element = {a.name: a.element.upper() for a in database.atom_types}
+    connections = {
+        (r.io_equiv_class, c.atom)
+        for r in database.residues
+        for c in r.connections
+        if c.name in ("up", "down")
+    }
+    capacity = defaultdict(int)
+    for residue in database.residues:
+        hydrogens = {
+            a.name for a in residue.atoms if element[a.atom_type] in ("H", "D")
+        }
+        counts = Counter(
+            parent
+            for a, b, *_ in residue.bonds
+            for parent, hydrogen in ((a, b), (b, a))
+            if hydrogen in hydrogens
+        )
+        for atom in residue.atoms:
+            key = residue.io_equiv_class, atom.name
+            if key in connections:
+                capacity[key] = max(capacity[key], counts[atom.name])
+    return capacity
+
+
+def validate_connection_hydrogens(structure, database):
+    """Reject stated terminal H that no available residue form can retain.
+
+    An aldehyde hydrogen on the backbone carbon must not silently become OXT.
+    Hydrogen names are irrelevant; supplied covalent bonds establish the parent.
+    """
+    template = (
+        structure[0] if isinstance(structure, struc.AtomArrayStack) else structure
+    )
+    if template.bonds is None:
+        return
+    is_h = np.isin(np.char.upper(template.element.astype(str)), ("H", "D"))
+    if not is_h.any():
+        return
+    capacities = _CONNECTION_HYDROGEN_CAPACITIES.get_or_create(
+        database, (), lambda: _connection_hydrogen_capacities(database)
+    )
+    aliases = {a.name3: a.read_as for a in database.name3_aliases}
+    bonds = template.bonds.as_array()
+    bonds = bonds[bonds[:, 2] != struc.BondType.COORDINATION, :2]
+    parents = np.r_[bonds[is_h[bonds[:, 1]], 0], bonds[is_h[bonds[:, 0]], 1]]
+    for parent, count in Counter(parents.tolist()).items():
+        name = str(template.res_name[parent])
+        atom = str(template.atom_name[parent])
+        maximum = capacities.get((aliases.get(name, name), atom))
+        if maximum is not None and count > maximum:
+            raise ValueError(
+                "Unsupported terminal hydrogen count at "
+                f"{template.chain_id[parent]}:{template.res_id[parent]}"
+                f"{template.ins_code[parent]}:{name}/{atom}: supplied {count}, "
+                f"database forms support at most {maximum}; provide parameters "
+                "for the declared terminal chemistry"
+            )
 
 
 def _terminal_chemistry(database, co):

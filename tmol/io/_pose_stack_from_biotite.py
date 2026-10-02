@@ -18,7 +18,11 @@ from tmol.database import ParameterDatabase
 from tmol.database.chemical import metal_table, site_connections
 from tmol.io._atomworks_reader import renumbered_decreasing_chains
 from tmol.io._input_geometry import rebuild_coincident_hydrogens
-from tmol.io._input_termini import EXPLICIT_TERMINI, with_stated_termini
+from tmol.io._input_termini import (
+    EXPLICIT_TERMINI,
+    validate_connection_hydrogens,
+    with_stated_termini,
+)
 from tmol.io._canonical_ordering import _only_coordinates_a_metal
 from tmol.io._protonation import (
     PROTONATION_VARIANT,
@@ -2475,6 +2479,7 @@ def _with_input_hydrogens(biotite_structure, ph, co, chemdb, find_metal_coordina
     """The input with AtomWorks' protonation of residues lacking hydrogens (only
     ``co``'s if given), seeing detected metal bonds and ``chemdb`` backbone links."""
     biotite_structure = with_stated_termini(biotite_structure, chemdb, co)
+    validate_connection_hydrogens(biotite_structure, chemdb)
     aliases = {a.name3: a.read_as for a in chemdb.name3_aliases}
     names = None
     if co is not None:
