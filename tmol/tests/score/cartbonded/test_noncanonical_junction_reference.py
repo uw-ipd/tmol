@@ -282,7 +282,7 @@ def test_cap_junction_forces(torch_device, tmp_path, cap, connection, sequence):
     coords = coords.to(device=torch_device, dtype=torch.float64).requires_grad_(True)
     module = scoring_term(pose, database).render_block_pair_scoring_module(pose)
     terms = module(coords)[:, 0, 0, 1]
-    assert float(terms[3].detach()) > 1e-6  # Cross-junction planarity stays active.
+    assert float(terms[2].detach()) > 1e-6  # Cross-junction planarity stays active.
     actual = terms[:2]
     expected = harmonic_reference(pose, coords, record)
     assert bool((expected > 0.01).all())

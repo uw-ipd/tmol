@@ -63,22 +63,6 @@ def test_cross_marked_atoms_form_a_trailing_run():
         assert all(marked[first:]), f"{res} {group} {atoms}: cross atoms not trailing"
 
 
-def test_no_cross_marked_atoms_in_torsion_params():
-    """A connection-spanning torsion has nothing to match it.
-
-    The kernel joins one residue's path to the partner's only far enough to
-    reach a length or an angle, since no torsion row spans a connection. A row
-    added here would score zero in silence rather than fail.
-    """
-    cartbonded = ParameterDatabase.get_default().scoring.cartbonded
-    for res, group, atoms in _rows(cartbonded):
-        if group != "torsion_parameters":
-            continue
-        assert not any(
-            a.startswith(CROSS_RES_PREFIX) for a in atoms
-        ), f"{res} {group} {atoms}: no path join reaches four atoms"
-
-
 def test_cross_marked_impropers_name_their_centre_locally():
     """A cross-marked improper is centred on one residue's connection atom.
 

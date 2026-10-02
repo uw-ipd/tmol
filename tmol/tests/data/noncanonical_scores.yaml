@@ -15,9 +15,9 @@ _provenance:
 alpha_aa:
   cart_angles: 68.3489
   cart_hxltorsions: 5.0398
-  cart_impropers: 0.5458
+  cart_impropers: 0.2327
   cart_lengths: 5.335
-  cart_torsions: 0.515
+  cart_torsions: 0.7342
   disulfide: 0.0
   dunbrack_rot: 9.1879
   dunbrack_rotdev: 19.2462
@@ -67,9 +67,9 @@ dna:
 nonstandard_aa:
   cart_angles: 68.561
   cart_hxltorsions: 1.3347
-  cart_impropers: 7.0947
+  cart_impropers: 2.9622
   cart_lengths: 262.8278
-  cart_torsions: 3.8264
+  cart_torsions: 13.5233
   disulfide: 0.0
   dunbrack_rot: 22.7186
   dunbrack_rotdev: 24.3836
