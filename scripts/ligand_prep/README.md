@@ -3,8 +3,7 @@
 `smiles_to_params.py` turns a SMILES string into a
 tmol `.tmol` params file, driving tmol's ligand pipeline (`tmol/ligand/`).
 
-Requires `tmol` to be importable and the optional **`openbabel`** package (the
-SMILES→mol2 step).
+The standard tmol installation includes all ligand-preparation dependencies.
 
 ### Python API (preferred)
 
