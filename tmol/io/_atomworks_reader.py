@@ -18,6 +18,7 @@ from atomworks.io.utils.ccd import (
     get_polymerization_atoms,
 )
 from atomworks.io.utils.io_utils import get_structure, read_any
+from atomworks.io.utils.link_chemistry import infer_link_order
 
 _AUTHOR_FIELDS = {
     "atom_name": "auth_atom_id",
@@ -89,6 +90,19 @@ def _pdb_declared_pairs(array, path, model):
             if None not in atoms:
                 pairs.add(frozenset(atoms))
     return pairs
+
+
+def _with_declared_pdb_bonds(array, declared):
+    """Retain LINK records even when numbering cannot infer their connection."""
+    if not declared:
+        return array.bonds
+    bonds = array.bonds if array.bonds is not None else struc.BondList(len(array))
+    existing = {frozenset(pair) for pair in bonds.as_array()[:, :2]}
+    for i, j in (sorted(pair) for pair in declared - existing):
+        bonds.add_bond(
+            i, j, infer_link_order(array, i, j, allow_missing_templates=True)
+        )
+    return bonds
 
 
 def _mark_inferred_polymer_bonds(array, declared_pairs):
@@ -316,13 +330,13 @@ def read_structure(path, *, model=1, assembly_id=None):
     if block is None:
         # A PDB, where the loader has moved off whatever its records called non-polymer.
         array = _with_pdb_author_chains(array, path, model)
+        declared = _pdb_declared_pairs(array, path, model)
+        array.bonds = _with_declared_pdb_bonds(array, declared)
         array = _polymer_from_backbone_bonds(array)
     elif assembly_id is None and "struct_conn" in block:
         array.bonds = _with_metal_coordination(array, block)
     if assembly_id is None:
-        if block is None:
-            declared = _pdb_declared_pairs(array, path, model)
-        else:
+        if block is not None:
             connections = category_to_dict(block, "struct_conn")
             for partner in (1, 2):
                 connections.pop(f"pdbx_ptnr{partner}_label_alt_id", None)

@@ -25,12 +25,22 @@ def _gapped_dipeptide():
 
 
 @pytest.mark.parametrize(
-    "source", ["array", "CONECT", "LINK", "LINK_decreasing", "struct_conn"]
+    "source",
+    [
+        "array",
+        "CONECT",
+        "LINK",
+        "LINK_decreasing",
+        "LINK_nonconsecutive",
+        "struct_conn",
+    ],
 )
 def test_supplied_polymer_bond_is_not_silently_cut(tmp_path, torch_device, source):
     atoms, carbon, nitrogen = _gapped_dipeptide()
     if source == "LINK_decreasing":
         atoms.res_id = 3 - atoms.res_id
+    elif source == "LINK_nonconsecutive":
+        atoms.res_id = 2 * atoms.res_id + 8
     if source == "struct_conn":
         file = CIFFile()
         set_structure(file, atoms, include_bonds=True)
