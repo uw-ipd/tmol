@@ -511,10 +511,20 @@
 <div class="viewcode-block" id="PackerPalette">
 <a class="viewcode-back" href="../../../api/pack.html#tmol.pack.PackerPalette">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">PackerPalette</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Define which residue types may replace each original residue type."""</span>
+<span class="w">    </span><span class="sd">"""Define which residue types may replace each original residue type.</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">pass</span>
+<span class="sd">    Args:</span>
+<span class="sd">        protonation_alternatives: Also let each residue whose pose records</span>
+<span class="sd">            AtomWorks' protonation alternatives (see ``pose_stack_from_biotite``)</span>
+<span class="sd">            take the block types of those alternatives, across protonation</span>
+<span class="sd">            states, each with its free-energy offset as a one-body packer</span>
+<span class="sd">            energy. The packer's energies are not calibrated for proton</span>
+<span class="sd">            transfer, so this is off by default. See</span>
+<span class="sd">            ``tmol.pack.protonation_alternatives`` for the chosen variants.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">protonation_alternatives</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">protonation_alternatives</span> <span class="o">=</span> <span class="n">protonation_alternatives</span>
 
 <div class="viewcode-block" id="PackerPalette.block_types_from_original">
 <a class="viewcode-back" href="../../../api/pack.html#tmol.pack.PackerPalette.block_types_from_original">[docs]</a>
@@ -639,14 +649,47 @@
     <span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_backbone_signatures</span><span class="p">(</span><span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Mainchain elements and applied terminal chemistry for each block type."""</span>
+    <span class="n">element_for_atom_type</span> <span class="o">=</span> <span class="p">{</span><span class="n">at</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">at</span><span class="o">.</span><span class="n">element</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">chem_db</span><span class="o">.</span><span class="n">atom_types</span><span class="p">}</span>
+    <span class="n">terminal_patches</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">patch</span><span class="o">.</span><span class="n">display_name</span>
+        <span class="k">for</span> <span class="n">patch</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">chem_db</span><span class="o">.</span><span class="n">variants</span>
+        <span class="k">if</span> <span class="p">{</span><span class="s2">"&lt;</span><span class="si">{down}</span><span class="s2">&gt;"</span><span class="p">,</span> <span class="s2">"&lt;</span><span class="si">{up}</span><span class="s2">&gt;"</span><span class="p">}</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">patch</span><span class="o">.</span><span class="n">remove_atoms</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="p">(</span>
+            <span class="n">_mainchain_elements</span><span class="p">(</span><span class="n">bt</span><span class="p">,</span> <span class="n">element_for_atom_type</span><span class="p">),</span>
+            <span class="nb">frozenset</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">":"</span><span class="p">)[</span><span class="mi">1</span><span class="p">:])</span> <span class="o">&amp;</span> <span class="n">terminal_patches</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span>
+    <span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_exchangeable</span><span class="p">(</span><span class="n">orig_bt</span><span class="p">,</span> <span class="n">alt_bt</span><span class="p">,</span> <span class="n">orig_backbone</span><span class="p">,</span> <span class="n">alt_backbone</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Whether block types can exchange, aside from side-chain protonation."""</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">alt_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">is_polymer</span> <span class="o">==</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">is_polymer</span>
+        <span class="ow">and</span> <span class="n">alt_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">polymer_type</span>
+        <span class="o">==</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">polymer_type</span>
+        <span class="ow">and</span> <span class="n">alt_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">backbone_type</span>
+        <span class="o">==</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">backbone_type</span>
+        <span class="ow">and</span> <span class="n">alt_bt</span><span class="o">.</span><span class="n">connections</span> <span class="o">==</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">connections</span>
+        <span class="ow">and</span> <span class="n">alt_bt</span><span class="o">.</span><span class="n">conjugation_context</span> <span class="o">==</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">conjugation_context</span>
+        <span class="ow">and</span> <span class="n">orig_backbone</span> <span class="o">==</span> <span class="n">alt_backbone</span>
+        <span class="ow">and</span> <span class="n">set_compare</span><span class="p">(</span>
+            <span class="n">alt_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">chemical_modifications</span><span class="p">,</span>
+            <span class="n">orig_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">chemical_modifications</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="ow">and</span> <span class="n">set_compare</span><span class="p">(</span><span class="n">alt_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">connectivity</span><span class="p">,</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">connectivity</span><span class="p">)</span>
+    <span class="p">)</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_annotate_packed_block_types_for_default_packer_palette</span><span class="p">(</span><span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
     <span class="c1"># Annotate the PackedBlockTypes object with the block-type to block-type comparisons</span>
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"default_packer_palette_annotations"</span><span class="p">):</span>
         <span class="k">return</span>
-    <span class="n">element_for_atom_type</span> <span class="o">=</span> <span class="p">{</span><span class="n">at</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">at</span><span class="o">.</span><span class="n">element</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">chem_db</span><span class="o">.</span><span class="n">atom_types</span><span class="p">}</span>
-    <span class="n">mc_elements</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">_mainchain_elements</span><span class="p">(</span><span class="n">bt</span><span class="p">,</span> <span class="n">element_for_atom_type</span><span class="p">)</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span>
-    <span class="p">]</span>
+    <span class="n">backbones</span> <span class="o">=</span> <span class="n">_backbone_signatures</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
     <span class="n">allowed_block_types_for_block_type</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">)]</span>
     <span class="n">allowed_block_is_orig</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">)]</span>
     <span class="n">restrict_to_repacking_masks</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">)]</span>
@@ -667,7 +710,7 @@
             <span class="n">polymer</span><span class="o">.</span><span class="n">backbone_type</span><span class="p">,</span>
             <span class="n">bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">protonation</span><span class="o">.</span><span class="n">protonation_state</span><span class="p">,</span>
             <span class="nb">len</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">connections</span><span class="p">),</span>
-            <span class="n">mc_elements</span><span class="p">[</span><span class="n">j</span><span class="p">],</span>
+            <span class="n">backbones</span><span class="p">[</span><span class="n">j</span><span class="p">],</span>
         <span class="p">)</span>
         <span class="n">groups</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
     <span class="n">group_of</span> <span class="o">=</span> <span class="p">{</span><span class="n">j</span><span class="p">:</span> <span class="n">members</span> <span class="k">for</span> <span class="n">members</span> <span class="ow">in</span> <span class="n">groups</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">members</span><span class="p">}</span>
@@ -677,18 +720,7 @@
             <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">j</span> <span class="ow">and</span> <span class="p">(</span><span class="n">selected_by_detection</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">or</span> <span class="n">selected_by_detection</span><span class="p">[</span><span class="n">j</span><span class="p">]):</span>
                 <span class="k">continue</span>
             <span class="n">j_allowed_for_restrict_to_repack</span> <span class="o">=</span> <span class="n">alt_bt</span><span class="o">.</span><span class="n">name3</span> <span class="o">==</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">name3</span>
-            <span class="k">if</span> <span class="p">(</span>
-                <span class="n">alt_bt</span><span class="o">.</span><span class="n">connections</span>
-                <span class="o">==</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">connections</span>  <span class="c1"># fd  use this instead of terminal variant check</span>
-                <span class="ow">and</span> <span class="n">alt_bt</span><span class="o">.</span><span class="n">conjugation_context</span> <span class="o">==</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">conjugation_context</span>
-                <span class="ow">and</span> <span class="n">set_compare</span><span class="p">(</span>
-                    <span class="n">alt_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">chemical_modifications</span><span class="p">,</span>
-                    <span class="n">orig_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">chemical_modifications</span><span class="p">,</span>
-                <span class="p">)</span>
-                <span class="ow">and</span> <span class="n">set_compare</span><span class="p">(</span>
-                    <span class="n">alt_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">connectivity</span><span class="p">,</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">connectivity</span>
-                <span class="p">)</span>
-            <span class="p">):</span>
+            <span class="k">if</span> <span class="n">_exchangeable</span><span class="p">(</span><span class="n">orig_bt</span><span class="p">,</span> <span class="n">alt_bt</span><span class="p">,</span> <span class="n">backbones</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">backbones</span><span class="p">[</span><span class="n">j</span><span class="p">]):</span>
                 <span class="k">if</span> <span class="p">(</span>
                     <span class="n">alt_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">sidechain_chirality</span>
                     <span class="o">==</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">sidechain_chirality</span>
@@ -804,6 +836,15 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">restrict_to_repacking_masks</span> <span class="o">=</span> <span class="n">palette</span><span class="o">.</span><span class="n">create_restrict_to_repacking_mask</span><span class="p">(</span>
             <span class="n">systems</span><span class="o">.</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="n">systems</span><span class="o">.</span><span class="n">block_type_ind64</span>
         <span class="p">)</span>
+        <span class="c1"># kcal/mol added to each considered block type's rotamers; None for none</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">per_block_considered_block_type_offset</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">palette</span><span class="p">,</span> <span class="s2">"protonation_alternatives"</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="c1"># imports tmol.io and AtomWorks, which packing otherwise never loads</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.protonation_alternatives</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+                <span class="n">add_protonation_alternatives</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">add_protonation_alternatives</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">systems</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">per_block_is_block_type_allowed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">per_block_considered_block_types</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span>
         <span class="p">)</span>
@@ -1087,6 +1128,9 @@
             <span class="n">task</span><span class="o">.</span><span class="n">per_block_conformer_sampler_allowed</span>
         <span class="p">)</span>
         <span class="n">set_task</span><span class="o">.</span><span class="n">per_block_chi_expansion</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">per_block_chi_expansion</span>
+        <span class="n">set_task</span><span class="o">.</span><span class="n">per_block_considered_block_type_offset</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">task</span><span class="p">,</span> <span class="s2">"per_block_considered_block_type_offset"</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="p">)</span>
 
         <span class="n">max_n_blocks</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">per_block_considered_block_types</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">is_real_cbt</span> <span class="o">=</span> <span class="n">set_task</span><span class="o">.</span><span class="n">per_block_considered_block_types</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>

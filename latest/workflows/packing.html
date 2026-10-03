@@ -535,6 +535,39 @@ identity. Mutation or design therefore needs an explicitly constructed identity
 task instead of this fixed-sequence recipe. <a class="reference internal" href="../tutorial/06_fast_relax.html"><span class="doc">FastRelax</span></a> composes packing with minimization, while
 <a class="reference internal" href="../tutorial/08_nucleic_acids.html"><span class="doc">08 — Working with DNA and RNA</span></a> uses an
 NA-specific chi sampler and explicit masks.</p>
+<section id="protonation-alternatives">
+<h2>Protonation alternatives<a class="headerlink" href="#protonation-alternatives" title="Link to this heading">#</a></h2>
+<p>Packing keeps each residue’s protonation state by default. To let free titratable side chains take other states supported by AtomWorks
+and the chemical database, record the alternatives when
+building the pose and turn them on in the palette:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.protonation_alternatives</span><span class="w"> </span><span class="kn">import</span> <span class="n">chosen_protonation_variants</span>
+
+<span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span>
+    <span class="n">structure</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">protonation_alternatives</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+<span class="n">task</span> <span class="o">=</span> <span class="n">PackerTask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">PackerPalette</span><span class="p">(</span><span class="n">protonation_alternatives</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+<span class="c1"># ... restrict_to_repacking and samplers as above ...</span>
+<span class="n">packed_pose_stack</span> <span class="o">=</span> <span class="n">pack_rotamers</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">task</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">choice</span> <span class="ow">in</span> <span class="n">chosen_protonation_variants</span><span class="p">(</span><span class="n">packed_pose_stack</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">choice</span><span class="o">.</span><span class="n">chain</span><span class="p">,</span> <span class="n">choice</span><span class="o">.</span><span class="n">res_label</span><span class="p">,</span> <span class="n">choice</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="n">choice</span><span class="o">.</span><span class="n">charge</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Only sites without input hydrogens or external bonds record alternatives; metal
+coordination and disulfides remain fixed. Candidate states come from calling
+AtomWorks on either side of its Dimorphite-DL titration boundaries within one pH
+unit of <code class="docutils literal notranslate"><span class="pre">ligand_ph</span></code>. Candidates must match a database hydrogen-count pattern;
+free histidine tautomers are also offered with equal offsets. This uses the
+current AtomWorks model, including its aromatic-nitrogen pKa of about 4.35,
+thiol pKa of 9.12 and amine pKa of 8.16, rather than separate protein estimates.</p>
+<p>Each proton gained contributes <code class="docutils literal notranslate"><span class="pre">1.364</span> <span class="pre">*</span> <span class="pre">(pH</span> <span class="pre">-</span> <span class="pre">pKa)</span></code> kcal/mol relative to the
+assigned state. Packing adds these offsets to one-body energies. FastRelax
+uses the same offsets when accepting poses if the palette enables alternatives;
+within a fixed state they are constant and do not affect coordinate gradients.
+<code class="docutils literal notranslate"><span class="pre">protonation_state_energy(pose_stack)</span></code> exposes the offsets separately from raw
+score-function totals. The score function is not calibrated for proton transfer,
+so chosen states remain hypotheses. Terminal states are held fixed during this
+side-chain search, including neutral amino termini supported by the database.</p>
+</section>
 </section>
 
 
@@ -575,6 +608,18 @@ NA-specific chi sampler and explicit masks.</p>
                 <dialog id="pst-secondary-sidebar-modal"></dialog>
                 <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
 
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#protonation-alternatives">Protonation alternatives</a></li>
+</ul>
+  </nav></div>
 
   <div class="sidebar-secondary-item">
 
