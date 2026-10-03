@@ -347,20 +347,25 @@ def test_metal_cluster_block_types_are_loaded(
                 assert connections[name].atom == site.metal_atom
 
 
-def test_every_metal_atom_has_a_zero_elec_charge(
+def test_every_metal_atom_has_its_nominal_elec_charge(
     default_database: tmol.database.ParameterDatabase,
 ):
-    # a missing charge raises at block-type setup, and a nonzero one would
-    # double-count the attraction metal_coordination is meant to carry
+    # a missing charge raises at block-type setup; a free ion's metal carries
+    # its oxidation state, and cluster atoms and site virtuals carry none
     charges = default_database.scoring.elec.atom_charge_parameters
-    generated = {r.name for r in default_database.chemical.residues if r.metal_sites}
-    seen = {c.res: [] for c in charges if c.res in generated}
+    types = {at.name: at for at in default_database.chemical.atom_types}
+    residues = [r for r in default_database.chemical.residues if r.metal_sites]
+    generated = {r.name: {a.name: a.atom_type for a in r.atoms} for r in residues}
+    free_ion = {r.name: not is_metal_cluster(r) for r in residues}
+    seen = {c.res for c in charges if c.res in generated}
+    assert seen == set(generated), "some metal ion types have no charge entries"
     for c in charges:
-        if c.res in generated:
-            seen[c.res].append(c.charge)
-    assert set(seen) == generated, "some metal ion types have no charge entries"
-    for res, values in seen.items():
-        assert all(v == 0.0 for v in values), f"{res} has a nonzero charge"
+        if c.res not in generated:
+            continue
+        at = types[generated[c.res][c.atom]]
+        nominal = free_ion[c.res] and at.is_metal
+        expected = float(at.oxidation_state) if nominal else 0.0
+        assert c.charge == expected, (c.res, c.atom, c.charge)
 
 
 def test_existing_residues_declare_no_metal_sites(

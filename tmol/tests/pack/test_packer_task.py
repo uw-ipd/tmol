@@ -1,3 +1,4 @@
+import pytest
 import torch
 
 from tmol.pack import PackerPalette, PackerTask, SetPackerTask
@@ -271,3 +272,47 @@ def test_types_only_metal_detection_selects_keep_their_own_palette(
     )
     offered = {names[j] for j in allowed_bts[0, 0, : n_allowed[0, 0]].tolist()}
     assert not any(pbt.active_block_types[names.index(n)].metal_sites for n in offered)
+
+
+def test_masked_name3_restriction_that_empties_a_block_raises(ubq_pdb, torch_device):
+    """Restricting a selected block to name3s none of its choices has is an error.
+
+    Guards PackerTask.restrict_absent_name3s in pack/_packer_task.py, which left
+    such a block with no allowed block type and no error.
+    """
+    poses = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
+    task = PackerTask(poses, PackerPalette())
+    mask = torch.zeros(
+        task.per_block_n_considered_block_types.shape,
+        dtype=torch.bool,
+        device=torch_device,
+    )
+    mask[0, 2] = True
+    before = task.per_block_is_block_type_allowed.clone()
+    with pytest.raises(ValueError, match="pose 0 block 2"):
+        task.restrict_absent_name3s({"DA"}, mask)
+    torch.testing.assert_close(task.per_block_is_block_type_allowed, before)
+
+    task.restrict_absent_name3s({"ALA"}, mask)
+    allowed = task.per_block_is_block_type_allowed
+    torch.testing.assert_close(allowed[~mask], before[~mask])
+    choices = task.per_block_considered_block_types[0, 2, allowed[0, 2]]
+    assert len(choices) > 0
+    assert {task.pbt.active_block_types[i].name3 for i in choices.tolist()} == {"ALA"}
+
+
+def test_masked_name3_restriction_of_a_fixed_block_does_not_raise(
+    ubq_pdb, torch_device
+):
+    """A block that already had no allowed block type is not reported."""
+    poses = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
+    task = PackerTask(poses, PackerPalette())
+    mask = torch.zeros(
+        task.per_block_n_considered_block_types.shape,
+        dtype=torch.bool,
+        device=torch_device,
+    )
+    mask[0, 2] = True
+    task.disable_packing_by_block_mask(mask)
+    task.restrict_absent_name3s({"DA"}, mask)
+    assert not bool(task.per_block_is_block_type_allowed[0, 2].any())

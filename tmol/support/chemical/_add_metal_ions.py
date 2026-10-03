@@ -159,11 +159,14 @@ def main():
                 ion, geometry, vertices_for[geometry], distances, n_sites_for[geometry]
             )
             residues.append(res)
-            # the metal carries no charge: metal_coordination supplies the
-            # attraction, so charging it here would count it twice
+            # the metal carries its nominal charge; virtuals carry none
             charges += [
-                {"res": res["name"], "atom": a["name"], "charge": 0.0}
-                for a in res["atoms"]
+                {
+                    "res": res["name"],
+                    "atom": a["name"],
+                    "charge": float(ion["oxidation_state"]) if i == 0 else 0.0,
+                }
+                for i, a in enumerate(res["atoms"])
             ]
 
     with open(os.path.join(CHEM_DIR, "metal_ions.yaml"), "w") as out:

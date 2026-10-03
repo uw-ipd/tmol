@@ -3,6 +3,7 @@
 import io
 import warnings
 from string import ascii_uppercase
+from uuid import uuid4
 
 import biotite.structure as struc
 import biotite.structure.io.pdbx as pdbx
@@ -28,6 +29,7 @@ from atomworks.io.utils.ccd import (
     get_polymerization_atoms,
 )
 from atomworks.io.utils.io_utils import get_structure, infer_pdb_file_type, read_any
+from atomworks.io.utils.link_chemistry import infer_link_order
 
 from tmol.io._alternates import one_residue_per_site, pdb_lines_with_one_alternate
 
@@ -44,6 +46,118 @@ _FIELDS = [
     "pdbx_formal_charge",
     "partial_charge",
 ]
+
+
+INFERRED_POLYMER_BOND = "_tmol_inferred_polymer_bond"
+
+
+def _pdb_declared_pairs(array, path, model):
+    """CONECT/LINK endpoints present in the selected conformer, without inference."""
+    serial = {int(value): i for i, value in enumerate(array.atom_id)}
+    file = read_any(path)
+    authored = file.get_structure(model=model, altloc="all", extra_fields=["atom_id"])
+    keys = zip(
+        authored.chain_id,
+        authored.res_id.astype(str),
+        authored.ins_code,
+        authored.res_name,
+        authored.atom_name,
+    )
+    # Serial numbers retain identity even when decreasing author IDs are repaired.
+    index = {
+        tuple(str(value).strip() for value in key): serial[int(atom_id)]
+        for atom_id, key in zip(authored.atom_id, keys)
+        if int(atom_id) in serial
+    }
+    pairs = set()
+    for line in file.lines:
+        if line.startswith("CONECT"):
+            atoms = [
+                serial.get(decode_hybrid36(line[k : k + 5]))
+                for k in range(6, 31, 5)
+                if line[k : k + 5].strip()
+            ]
+            if atoms and atoms[0] is not None:
+                pairs.update(
+                    frozenset((atoms[0], j)) for j in atoms[1:] if j is not None
+                )
+        elif line.startswith("LINK  "):
+            line = line.ljust(80)
+            if {line[59:65].strip(), line[66:72].strip()} - {"", "1555"}:
+                continue
+            atoms = [
+                index.get(
+                    tuple(
+                        value.strip()
+                        for value in (
+                            line[k + 9],
+                            line[k + 10 : k + 14],
+                            line[k + 14],
+                            line[k + 5 : k + 8],
+                            line[k : k + 4],
+                        )
+                    )
+                )
+                for k in (12, 42)
+            ]
+            if None not in atoms:
+                pairs.add(frozenset(atoms))
+    return pairs
+
+
+def _with_declared_pdb_bonds(array, declared):
+    """Restore declared polymer links even across nonconsecutive residue IDs."""
+    if not declared:
+        return array.bonds
+    bonds = array.bonds if array.bonds is not None else struc.BondList(len(array))
+    existing = {frozenset(pair) for pair in bonds.as_array()[:, :2]}
+    for i, j in (sorted(pair) for pair in declared - existing):
+        first = get_polymerization_atoms(str(array.res_name[i]))
+        second = get_polymerization_atoms(str(array.res_name[j]))
+        if (array.atom_name[i], array.atom_name[j]) in (
+            (first[0], second[1]),
+            (first[1], second[0]),
+        ):
+            # LINK can also describe metal contacts or hydrogen bonds. Only
+            # the CCD's polymer ports establish a missing polymer connection.
+            bonds.add_bond(
+                i, j, infer_link_order(array, i, j, allow_missing_templates=True)
+            )
+    return bonds
+
+
+def _mark_inferred_polymer_bonds(array, declared_pairs):
+    """Tag each unique inferred polymer edge at both endpoints.
+
+    Equal nonempty tags identify the original edge after slicing/reordering.
+    A per-read namespace prevents concatenated independent inputs from matching.
+    Ambiguous ports and supplied connections are never marked as inferred.
+    """
+    if array.bonds is None:
+        return
+    residue = struc.get_all_residue_positions(array)
+    bonds = array.bonds.as_array()
+    i, j, kind = bonds.T
+    crossing = bonds[(residue[i] != residue[j]) & (kind != struc.BondType.COORDINATION)]
+    degree = np.bincount(crossing[:, :2].ravel(), minlength=len(array))
+    ports = {
+        str(name): get_polymerization_atoms(str(name))
+        for name in np.unique(array.res_name)
+    }
+    tags = np.full(len(array), "", dtype=object)
+    namespace = uuid4().hex
+    for i, j, _ in crossing:
+        first, second = ports[str(array.res_name[i])], ports[str(array.res_name[j])]
+        if (
+            abs(int(residue[i]) - int(residue[j])) == 1
+            and array.chain_id[i] == array.chain_id[j]
+            and degree[i] == degree[j] == 1
+            and frozenset((int(i), int(j))) not in declared_pairs
+            and (array.atom_name[i], array.atom_name[j])
+            in ((first[0], second[1]), (first[1], second[0]))
+        ):
+            tags[[i, j]] = f"{namespace}:{i}:{j}"
+    array.set_annotation(INFERRED_POLYMER_BOND, tags)
 
 
 def _polymer_from_backbone_bonds(array, *, declared_pairs=None):
@@ -160,45 +274,55 @@ def _with_pdb_author_chains(array, path, model):
     return array
 
 
-def _with_metal_coordination(array, block):
-    """The bond table plus the file's metalc bonds, typed COORDINATION.
-
-    A row naming a conformer of an atom with alternates binds only that conformer
-    (3P1O: GLU A:86 conformer B to MG A:237; the kept A is 6 A away); one naming an
-    atom without alternates binds it (3F7L, 7ADR).
-    """
+def _declared_cif_bonds(array, block, bond_types=("covale", "disulf", "metalc")):
+    """File-declared links in the selected conformer, without distance filtering."""
     struct_conn = category_to_dict(block, "struct_conn")
-    lettered = set()
+    alternate_atoms = set()
     if "label_alt_id" in array.get_annotation_categories():
-        at = ~np.isin(array.label_alt_id, (".", "?", " ", ""))
+        with_altloc = ~np.isin(array.label_alt_id, (".", "?", " ", ""))
         fields = (array.chain_id, array.res_id.astype(str), array.res_name)
-        lettered = set(zip(*(f[at] for f in fields), array.atom_name[at], strict=True))
-    for p in (1, 2):
-        if f"pdbx_ptnr{p}_label_alt_id" in struct_conn:
-            # AtomWorks matches the alt id; it names no conformer of an atom without any
-            seq = struct_conn[f"ptnr{p}_label_seq_id"]
-            seq = np.where(
-                seq == ".", struct_conn.get(f"ptnr{p}_auth_seq_id", seq), seq
-            )
-            named = zip(
-                struct_conn[f"ptnr{p}_label_asym_id"],
-                seq,
-                struct_conn[f"ptnr{p}_label_comp_id"],
-                struct_conn[f"ptnr{p}_label_atom_id"],
+        alternate_atoms = set(
+            zip(
+                *(f[with_altloc] for f in fields),
+                array.atom_name[with_altloc],
                 strict=True,
             )
-            has = np.array([atom in lettered for atom in named], dtype=bool)
-            alt = struct_conn[f"pdbx_ptnr{p}_label_alt_id"]
-            struct_conn[f"pdbx_ptnr{p}_label_alt_id"] = np.where(has, alt, ".")
-    bonds = array.bonds if array.bonds is not None else struc.BondList(len(array))
-    return bonds.merge(
-        get_struct_conn_bonds(
-            array,
-            struct_conn,
-            add_bond_types=("metalc",),
-            distance_policy="keep",
         )
+    for partner in (1, 2):
+        if f"pdbx_ptnr{partner}_label_alt_id" in struct_conn:
+            # Ignore a row's conformer label only when the atom has no alternates.
+            residue_ids = struct_conn[f"ptnr{partner}_label_seq_id"]
+            residue_ids = np.where(
+                residue_ids == ".",
+                struct_conn.get(f"ptnr{partner}_auth_seq_id", residue_ids),
+                residue_ids,
+            )
+            partner_atoms = zip(
+                struct_conn[f"ptnr{partner}_label_asym_id"],
+                residue_ids,
+                struct_conn[f"ptnr{partner}_label_comp_id"],
+                struct_conn[f"ptnr{partner}_label_atom_id"],
+                strict=True,
+            )
+            has_alternate = np.array(
+                [atom in alternate_atoms for atom in partner_atoms], dtype=bool
+            )
+            alternate_ids = struct_conn[f"pdbx_ptnr{partner}_label_alt_id"]
+            struct_conn[f"pdbx_ptnr{partner}_label_alt_id"] = np.where(
+                has_alternate, alternate_ids, "."
+            )
+    return get_struct_conn_bonds(
+        array,
+        struct_conn,
+        add_bond_types=bond_types,
+        distance_policy="keep",
+        allow_missing_templates=True,
     )
+
+
+def _with_metal_coordination(array, block):
+    bonds = array.bonds if array.bonds is not None else struc.BondList(len(array))
+    return bonds.merge(_declared_cif_bonds(array, block, ("metalc",)))
 
 
 def _one_disulfide_per_sulfur(array):
@@ -725,9 +849,18 @@ def read_structure(path, *, model=1, assembly_id=None):
         array.bonds = _one_disulfide_per_sulfur(array)
     if block is None:
         # A PDB, where the loader has moved off whatever its records called non-polymer.
+        declared = _pdb_declared_pairs(array, path, model)
+        array.bonds = _with_declared_pdb_bonds(array, declared)
         array = _polymer_from_backbone_bonds(array)
     elif assembly_id is None and "struct_conn" in block:
         array.bonds = _with_metal_coordination(array, block)
+    if assembly_id is None:
+        if block is not None:
+            declared = {
+                frozenset((int(i), int(j)))
+                for i, j, _ in _declared_cif_bonds(array, block).as_array()
+            }
+        _mark_inferred_polymer_bonds(array, declared)
     if assembly_id is not None:
         array.set_annotation("chain_id", array.chain_iid.copy())
     # Separate label chains may occupy one author residue site (3BLN MPD/MRD).
@@ -744,6 +877,7 @@ def read_structure(path, *, model=1, assembly_id=None):
             array.set_annotation(target, array.get_annotation(source).copy())
     array.ins_code[np.isin(array.ins_code, (".", "?"))] = ""
     retained = {
+        INFERRED_POLYMER_BOND,
         "chain_id",
         "res_id",
         "ins_code",

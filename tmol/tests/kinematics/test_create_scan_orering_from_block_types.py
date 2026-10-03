@@ -1,3 +1,4 @@
+import pytest
 import torch
 
 from tmol.io import (
@@ -9,6 +10,7 @@ from tmol.io import (
 
 from tmol.kinematics import (
     EdgeType,
+    NodeType,
     construct_kin_module_data_for_pose,
     _annotate_block_type_with_gen_scan_path_segs,
     _annotate_packed_block_type_with_gen_scan_path_segs,
@@ -856,3 +858,179 @@ def test_kinmodule_construction_for_jagged_stack_star(
     )
 
     torch.testing.assert_close(kincoords, new_coords, rtol=1e-5, atol=1e-5)
+
+
+def _refold(kmd, kincoords):
+    """Coordinates after inverse then forward kinematics over kmd's forest."""
+    forest = kmd.forest
+    raw_dofs = inverse_kin(
+        kincoords,
+        forest.parent,
+        forest.frame_x,
+        forest.frame_y,
+        forest.frame_z,
+        forest.doftype,
+    )
+    kinforest = torch.nn.Parameter(
+        torch.stack(
+            [
+                t.to(torch.int32)
+                for t in (
+                    forest.id,
+                    forest.doftype,
+                    forest.parent,
+                    forest.frame_x,
+                    forest.frame_y,
+                    forest.frame_z,
+                )
+            ],
+            dim=1,
+        ),
+        requires_grad=False,
+    )
+    return forward_kin_op(
+        raw_dofs,
+        kmd.scan_data_fw.nodes,
+        kmd.scan_data_fw.scans,
+        kmd.scan_data_fw.gens,
+        kmd.scan_data_bw.nodes,
+        kmd.scan_data_bw.scans,
+        kmd.scan_data_bw.gens,
+        kinforest,
+    )
+
+
+def test_inverse_forward_kin_roundtrip_with_collinear_frame(
+    stack_of_two_six_res_ubqs, ff_2ubq_6res_H, torch_device
+):
+    """An atom collinear with its parent and grandparent gets a substituted frame
+    that is rotated about the bond; its phi_c must still round trip.
+
+    Guards invBondTransform in kinematics/compiled/common.hh, which took phi_c
+    from atan2(-M(2,0), -M(1,0)); bondTransform sets M(2,0) = sin(phi_c) sin(theta).
+    """
+    pose_stack = stack_of_two_six_res_ubqs
+    kmd = construct_kin_module_data_for_pose(pose_stack, torch.tensor(ff_2ubq_6res_H))
+    forest = kmd.forest
+    kincoords = torch.zeros(
+        (forest.id.shape[0], 3), dtype=torch.float32, device=torch_device
+    )
+    kincoords[1:] = pose_stack.coords.view(-1, 3)[forest.id[1:]]
+
+    parent = forest.parent.cpu()
+    n_children = torch.bincount(parent[1:], minlength=parent.shape[0])
+    k = next(
+        i
+        for i in range(1, parent.shape[0])
+        if int(forest.doftype[i]) == NodeType.bond
+        and n_children[i] > 0
+        and int(parent[i]) > 0
+        and int(parent[parent[i]]) > 0
+        and int(forest.frame_x[i]) == i
+        and int(forest.frame_y[i]) == int(parent[i])
+        and int(forest.frame_z[i]) == int(parent[parent[i]])
+    )
+    # 0.005 rad off the parent-grandparent line: inside the frame guard, but
+    # outside the theta == 0 special case of invBondTransform
+    p, g = int(parent[k]), int(parent[parent[k]])
+    axis = kincoords[p] - kincoords[g]
+    axis = axis / axis.norm()
+    perp = torch.linalg.cross(axis, torch.tensor([0.0, 0.0, 1.0], device=torch_device))
+    perp = perp / perp.norm()
+    direction = axis + 0.005 * perp
+    kincoords[k] = (
+        kincoords[p]
+        + direction / direction.norm() * (kincoords[k] - kincoords[p]).norm()
+    )
+
+    torch.testing.assert_close(kincoords, _refold(kmd, kincoords), rtol=1e-4, atol=1e-4)
+
+
+def test_kin_module_for_lone_ion_chain(torch_device):
+    """A one-atom residue (a calcium ion with no site atoms) rooting its own
+    chain has no atoms to define its jump frame; building must still finish.
+
+    Guards get_c1_and_c2_atoms in kinematics/compiled/compiled.impl.hh, which
+    climbed to the parent until frame atoms were found; at the root, its own
+    parent, it asserted, or looped forever with asserts compiled out.
+    """
+    from tmol.io import pose_stack_from_pdb
+    from tmol.kinematics import FoldForest, PoseStackKinematicsModule
+    from tmol.tests.data import data_path
+
+    lines = [
+        line
+        for line in data_path("pdb", "1ubq.pdb").read_text().splitlines()
+        if line.startswith("ATOM") and int(line[22:26]) <= 6
+    ]
+    lines.append(
+        "HETATM 9999 CA    CA B 101      60.000  60.000  60.000  1.00  0.00"
+        "          CA"
+    )
+    pose_stack = pose_stack_from_pdb("\n".join(lines + ["END"]) + "\n", torch_device)
+    kmd = PoseStackKinematicsModule(
+        pose_stack, FoldForest.reasonable_fold_forest(pose_stack)
+    ).kmd
+    kincoords = torch.zeros(
+        (kmd.forest.id.shape[0], 3), dtype=torch.float32, device=torch_device
+    )
+    kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]]
+
+    torch.testing.assert_close(kincoords, _refold(kmd, kincoords), rtol=1e-4, atol=1e-4)
+
+
+@pytest.mark.parametrize(
+    "parent_list, jump_list",
+    [
+        ([0], [True]),
+        ([0, 0], [True, True]),
+        ([0, 0, 1], [True, True, False]),
+        ([0, 0, 1], [True, True, True]),
+        ([0, 0, 1, 2], [True, True, True, False]),
+    ],
+    ids=["root", "lone-atom", "two-atoms", "nested-jumps", "nested-two-atoms"],
+)
+def test_roundtrip_without_jump_stub(parent_list, jump_list, torch_device):
+    """Jump stubs with fewer than three atoms still preserve all coordinates."""
+    from types import SimpleNamespace
+
+    from tmol.kinematics import KinForest, KinForestScanOrdering
+    from tmol.kinematics.compiled import get_id_and_frame_xyz
+
+    def ints(values):
+        return torch.tensor(values, dtype=torch.int32, device=torch_device)
+
+    parents = ints(parent_list)
+    jumps = torch.tensor(jump_list, dtype=torch.bool, device=torch_device)
+    n_atoms = len(parent_list)
+    children = [[] for _ in parent_list]
+    for child, parent in enumerate(parent_list[1:], 1):
+        children[parent].append(child)
+    child_span = ints([0] + [len(row) for row in children]).cumsum(0).int()
+    mapping = ints([[0, 0, atom - 1] for atom in range(n_atoms)])
+    ids, x, y, z, _ = get_id_and_frame_xyz(
+        n_atoms - 1,
+        ints([[0]]),
+        mapping,
+        parents,
+        child_span,
+        ints([child for row in children for child in row]),
+        jumps,
+    )
+    doftype = torch.where(jumps, NodeType.jump, NodeType.bond).int()
+    doftype[0] = NodeType.root
+    forest = KinForest(
+        id=ids, doftype=doftype, parent=parents, frame_x=x, frame_y=y, frame_z=z
+    )
+    scans = KinForestScanOrdering.for_kinforest(forest)
+    kmd = SimpleNamespace(
+        forest=forest,
+        scan_data_fw=scans.forward_scan_paths,
+        scan_data_bw=scans.backward_scan_paths,
+    )
+    coords = torch.tensor(
+        [[0.0, 0.0, 0.0], [3.0, 1.0, 2.0], [4.0, 2.0, 1.0], [5.0, 1.0, 3.0]],
+        dtype=torch.float64,
+        device=torch_device,
+    )[:n_atoms]
+    torch.testing.assert_close(_refold(kmd, coords), coords)
