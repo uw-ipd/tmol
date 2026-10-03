@@ -274,8 +274,8 @@ def _with_pdb_author_chains(array, path, model):
     return array
 
 
-def _declared_cif_bonds(array, block, bond_types=("covale", "disulf", "metalc")):
-    """File-declared links in the selected conformer, without distance filtering."""
+def _declared_cif_pairs(array, block, bond_types=("covale", "disulf", "metalc")):
+    """Declared atom pairs in the selected conformer, without chemistry inference."""
     struct_conn = category_to_dict(block, "struct_conn")
     alternate_atoms = set()
     if "label_alt_id" in array.get_annotation_categories():
@@ -311,18 +311,27 @@ def _declared_cif_bonds(array, block, bond_types=("covale", "disulf", "metalc"))
             struct_conn[f"pdbx_ptnr{partner}_label_alt_id"] = np.where(
                 has_alternate, alternate_ids, "."
             )
+    # Only match endpoints: placeholder orders are discarded below. Chemistry
+    # was already parsed; re-inferring it here can lose custom component data.
+    if struct_conn:
+        struct_conn["pdbx_value_order"] = np.full(
+            len(struct_conn["conn_type_id"]), "sing"
+        )
     return get_struct_conn_bonds(
         array,
         struct_conn,
         add_bond_types=bond_types,
         distance_policy="keep",
-        allow_missing_templates=True,
-    )
+    ).as_array()[:, :2]
 
 
 def _with_metal_coordination(array, block):
     bonds = array.bonds if array.bonds is not None else struc.BondList(len(array))
-    return bonds.merge(_declared_cif_bonds(array, block, ("metalc",)))
+    pairs = _declared_cif_pairs(array, block, ("metalc",))
+    coordination = np.column_stack(
+        (pairs, np.full(len(pairs), struc.BondType.COORDINATION))
+    )
+    return bonds.merge(struc.BondList(len(array), coordination))
 
 
 def _one_disulfide_per_sulfur(array):
@@ -858,7 +867,7 @@ def read_structure(path, *, model=1, assembly_id=None):
         if block is not None:
             declared = {
                 frozenset((int(i), int(j)))
-                for i, j, _ in _declared_cif_bonds(array, block).as_array()
+                for i, j in _declared_cif_pairs(array, block)
             }
         _mark_inferred_polymer_bonds(array, declared)
     if assembly_id is not None:

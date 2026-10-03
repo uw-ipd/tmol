@@ -9,7 +9,7 @@ import pytest
 from tmol.io import atom_array_from_cif, canonical_form_from_biotite
 from tmol.io._atomworks_reader import (
     INFERRED_POLYMER_BOND,
-    _declared_cif_bonds,
+    _declared_cif_pairs,
     _mark_inferred_polymer_bonds,
     _with_declared_pdb_bonds,
 )
@@ -144,9 +144,16 @@ def test_missing_polymer_link_is_restored_without_turning_contacts_into_bonds():
     [("A", "A", 1), ("A", "B", 0), (".", "B", 1)],
 )
 @pytest.mark.parametrize("reverse", [False, True])
-def test_declared_coordination_matches_the_selected_conformer(
-    selected_alt, declared_alt, expected, reverse
+@pytest.mark.parametrize("connection_type", ["metalc", "covale", "disulf"])
+def test_declared_pairs_match_conformer_without_inferring_chemistry(
+    selected_alt, declared_alt, expected, reverse, connection_type, monkeypatch
 ):
+    def unexpected_inference(*args, **kwargs):
+        pytest.fail("Matching declared endpoints must not infer chemistry")
+
+    monkeypatch.setattr(
+        "atomworks.io.utils.bonds.infer_link_order", unexpected_inference
+    )
     atoms = struc.AtomArray(2)
     atoms.chain_id = ["A", "B"]
     atoms.res_id = [86, 237]
@@ -155,7 +162,7 @@ def test_declared_coordination_matches_the_selected_conformer(
     atoms.element = ["O", "ZN"]
     atoms.coord = np.array([[0, 0, 0], [2.1, 0, 0]], dtype=np.float32)
     atoms.set_annotation("label_alt_id", np.array([selected_alt, "."]))
-    columns = {"id": ["coordination"], "conn_type_id": ["metalc"]}
+    columns = {"id": ["link"], "conn_type_id": [connection_type]}
     for partner, atom in enumerate([1, 0] if reverse else [0, 1], 1):
         for field, values in (
             ("asym_id", atoms.chain_id),
@@ -167,12 +174,12 @@ def test_declared_coordination_matches_the_selected_conformer(
         columns[f"pdbx_ptnr{partner}_label_alt_id"] = [
             declared_alt if atom == 0 else "A"
         ]
-    bonds = _declared_cif_bonds(atoms, CIFBlock({"struct_conn": CIFCategory(columns)}))
-    assert bonds.get_bond_count() == expected
+    block = CIFBlock({"struct_conn": CIFCategory(columns)})
+    pairs = _declared_cif_pairs(atoms, block)
+    assert len(pairs) == expected
+    assert "pdbx_value_order" not in block["struct_conn"]
     if expected:
-        np.testing.assert_array_equal(
-            bonds.as_array(), [[0, 1, struc.BondType.COORDINATION]]
-        )
+        np.testing.assert_array_equal(pairs, [[0, 1]])
 
 
 @pytest.mark.parametrize("inferred", [False, True])
