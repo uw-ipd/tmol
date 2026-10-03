@@ -182,23 +182,23 @@ def _with_pdb_author_chains(array, path, model):
     return array
 
 
-def _with_metal_coordination(array, block):
-    """The bond table plus the file's metalc bonds, typed COORDINATION.
-
-    The reader kept one conformer, so a row's alternate locations name it (3F7L, 7ADR).
-    """
-    struct_conn = category_to_dict(block, "struct_conn")
+def _declared_cif_bonds(array, block, bond_types=("covale", "disulf", "metalc")):
+    """File-declared links in the selected conformer, without distance filtering."""
+    connections = category_to_dict(block, "struct_conn")
     for partner in (1, 2):
-        struct_conn.pop(f"pdbx_ptnr{partner}_label_alt_id", None)
-    bonds = array.bonds if array.bonds is not None else struc.BondList(len(array))
-    return bonds.merge(
-        get_struct_conn_bonds(
-            array,
-            struct_conn,
-            add_bond_types=("metalc",),
-            distance_policy="keep",
-        )
+        connections.pop(f"pdbx_ptnr{partner}_label_alt_id", None)
+    return get_struct_conn_bonds(
+        array,
+        connections,
+        add_bond_types=bond_types,
+        distance_policy="keep",
+        allow_missing_templates=True,
     )
+
+
+def _with_metal_coordination(array, block):
+    bonds = array.bonds if array.bonds is not None else struc.BondList(len(array))
+    return bonds.merge(_declared_cif_bonds(array, block, ("metalc",)))
 
 
 def renumbered_decreasing_chains(array):
@@ -337,18 +337,9 @@ def read_structure(path, *, model=1, assembly_id=None):
         array.bonds = _with_metal_coordination(array, block)
     if assembly_id is None:
         if block is not None:
-            connections = category_to_dict(block, "struct_conn")
-            for partner in (1, 2):
-                connections.pop(f"pdbx_ptnr{partner}_label_alt_id", None)
             declared = {
                 frozenset((int(i), int(j)))
-                for i, j, _ in get_struct_conn_bonds(
-                    array,
-                    connections,
-                    add_bond_types=("covale", "disulf", "metalc"),
-                    distance_policy="keep",
-                    allow_missing_templates=True,
-                ).as_array()
+                for i, j, _ in _declared_cif_bonds(array, block).as_array()
             }
         _mark_inferred_polymer_bonds(array, declared)
     if assembly_id is not None:
