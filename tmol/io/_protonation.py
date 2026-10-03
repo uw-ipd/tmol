@@ -31,6 +31,7 @@ from tmol.utility.weak_identity_cache import WeakIdentityLRU
 
 # per atom, the res_type_variant its residue's protonation state selects; -1 for none
 PROTONATION_VARIANT = "tmol_protonation_variant"
+PROTONATION_ALTERNATIVES = "tmol_protonation_alternatives"
 _HYDROGEN = ("H", "D")
 _WATER = ("HOH", "DOD", "WAT")
 _CARRIES_HYDROGEN = ("C", "N", "O", "S", "P", "B", "SE")
@@ -208,6 +209,7 @@ def with_atomworks_hydrogens(
     backbone: Mapping[str, tuple[str | None, str | None]] | None = None,
     forms: Mapping[str, Forms] | None = None,
     hydrogens: numpy.ndarray | None = None,
+    alternative_types: Collection = (),
 ) -> struc.AtomArray | struc.AtomArrayStack:
     """``structure`` with AtomWorks' protonation of every residue lacking hydrogens.
 
@@ -336,6 +338,24 @@ def with_atomworks_hydrogens(
     for r, key in zip(asked, keys):
         variant[starts[r] : starts[r + 1]] = _variant(
             forms[res_name[r]], states[key], terminal[r]
+        )
+    if alternative_types:
+        from tmol.io._protonation_alternatives import encode_protonation_alternatives
+
+        structure = structure.copy()
+        structure.set_annotation(
+            PROTONATION_ALTERNATIVES,
+            encode_protonation_alternatives(
+                template,
+                starts,
+                residue_of,
+                extra,
+                declared,
+                asked,
+                forms,
+                alternative_types,
+                ph,
+            ),
         )
     if not placing.any():
         marked = structure.copy()
@@ -647,6 +667,31 @@ def _placed_hydrogens(
     """AtomWorks protonation of the ``heavy_mask`` atoms of one model, keeping the
     ``declared`` counts (-1 where none): hydrogen parents, names, (index, charge) of
     heavy atoms, coordinates, and tautomer-free atoms."""
+    source, sub, chelates, registry = _protonation_input(model, heavy_mask, extra_bonds)
+    with custom_ccd_residues(registry):
+        atom_array = assign_hydrogens(
+            sub, ph=ph, hydrogens=None if declared is None else declared[source]
+        )
+        protonated = place_hydrogens(atom_array)
+    # each placed hydrogen has one bond, to its parent
+    bonds = protonated.bonds.as_array()[:, :2]
+    is_new = protonated.atom_id[bonds] >= len(atom_array)
+    hydrogen = bonds[is_new]
+    parent = protonated.atom_id[bonds[is_new[:, ::-1]]]
+    order = numpy.lexsort((protonated.atom_id[hydrogen], parent))
+    hydrogen, parent = hydrogen[order], parent[order]
+    hydrogens = numpy.bincount(parent, minlength=len(atom_array))
+    return (
+        source[parent],
+        protonated.atom_name[hydrogen].astype(str),
+        (source, _charges_without_chelates(atom_array, hydrogens, chelates)),
+        protonated.coord[hydrogen],
+        source[atom_array.tautomer_free.astype(bool)],
+    )
+
+
+def _protonation_input(model, heavy_mask, extra_bonds):
+    """Select heavy atoms and supply the bonds/CCD context used by AtomWorks."""
     from tmol.io._pose_stack_from_biotite import _with_metal_coordination_typed
 
     source = numpy.flatnonzero(heavy_mask)
@@ -673,24 +718,5 @@ def _placed_hydrogens(
             hydrogen_policy="remove",
             ccd_mirror_path=None,
         )
-        # sub has no hydrogens; atom_id maps the protonated atoms back to sub
         sub.set_annotation("atom_id", numpy.arange(len(sub)))
-        atom_array = assign_hydrogens(
-            sub, ph=ph, hydrogens=None if declared is None else declared[source]
-        )
-        protonated = place_hydrogens(atom_array)
-    # each placed hydrogen has one bond, to its parent
-    bonds = protonated.bonds.as_array()[:, :2]
-    is_new = protonated.atom_id[bonds] >= len(atom_array)
-    hydrogen = bonds[is_new]
-    parent = protonated.atom_id[bonds[is_new[:, ::-1]]]
-    order = numpy.lexsort((protonated.atom_id[hydrogen], parent))
-    hydrogen, parent = hydrogen[order], parent[order]
-    hydrogens = numpy.bincount(parent, minlength=len(atom_array))
-    return (
-        source[parent],
-        protonated.atom_name[hydrogen].astype(str),
-        (source, _charges_without_chelates(atom_array, hydrogens, chelates)),
-        protonated.coord[hydrogen],
-        source[atom_array.tautomer_free.astype(bool)],
-    )
+    return source, sub, chelates, registry
