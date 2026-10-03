@@ -2436,8 +2436,7 @@ def prepare_ligand_from_smiles(
     the SMILES at ``ph``, OpenBabel generates a 3D mol2 with MMFF94 partial
     charges, and that mol2 is read verbatim (atom names, coordinates, charges,
     and bond orders preserved). The MMFF94 charges flow through untouched —
-    there is no biotite atom-array round-trip or MMFF recompute. This path
-    requires the optional ``openbabel`` package.
+    there is no biotite atom-array round-trip or MMFF recompute.
 
     Args:
         protonate: When ``True`` (default) Dimorphite protonates ``smiles``

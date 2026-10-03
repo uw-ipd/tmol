@@ -9,8 +9,6 @@ Pipeline (all in tmol.ligand):
        (residue_type + partial_charges + cartbonded_params).
   3. params_io.write_params_file(prep, path)  ->  tmol .tmol
 
-Requires the optional `openbabel` package (the SMILES->mol2 step).
-
 Usage:
   python smiles_to_params.py "<SMILES>" <out_prefix> [--res-name L_1]
                              [--ph 7.4] [--no-protonate] [--heavy-chi-samples]

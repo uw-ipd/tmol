@@ -68,18 +68,10 @@ dependencies = [
     "atomworks @ git+https://github.com/RosettaCommons/atomworks.git@e0f2e4da0aef2cf6c81a2c506eece3bc4204b75d",
     # Ligand preparation
     "rdkit>=2024.3",
+    "openbabel-wheel>=3.1.1.22,<4",
 ]
 
 [project.optional-dependencies]
-# Compatibility extra: shared chemistry and parsing are core dependencies.
-atomworks = []
-# OpenBabel powers the SMILES -> 3D mol2 ligand-preparation path (conformer
-# search + MMFF94 charges). The CIF/mol2 paths use RDKit and do not need it;
-# it is imported lazily by ligand preparation, so it stays an
-# opt-in extra rather than a core dependency.
-ligand = [
-    "openbabel-wheel==3.1.1.22",
-]
 dev = [
     # Linters & formatters
     # Keep in sync with the black pin in .pre-commit-config.yaml (CI lint)
@@ -101,8 +93,6 @@ dev = [
     "ipython>=8.0",
     # Visualization
     "seaborn>=0.13",
-    # Ligand SMILES-prep path and its tests require OpenBabel
-    "tmol[ligand]",
 ]
 cuda = [
     # CUDA nvcc compiler for JIT compilation of custom kernels.
@@ -127,7 +117,6 @@ docs = [
     "nbclient>=0.10,<1",
     "nbformat>=5.10,<6",
     "ipykernel>=6.29,<7",
-    "openbabel-wheel==3.1.1.22",
 ]
 
 [project.urls]

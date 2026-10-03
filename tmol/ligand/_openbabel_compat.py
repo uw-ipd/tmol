@@ -7,10 +7,8 @@ can ingest. The result is an ``rdkit.Chem.Mol`` indistinguishable from
 one produced by a successful RDKit parse, so downstream code (atom
 typing, residue building, scoring) needs no further changes.
 
-OpenBabel is a *soft* dependency. Import happens inside each helper, so
-the rest of ``tmol.ligand`` loads cleanly on systems without
-``openbabel-wheel``. The helpers raise a single descriptive error if a
-caller invokes them without OB installed.
+OpenBabel is installed with TMol. Its native bindings are loaded lazily
+when a helper needs them.
 """
 
 from __future__ import annotations
@@ -105,8 +103,7 @@ def source_atom_order_from_mapped_smiles(smiles: str) -> Optional[tuple[int, ...
 def _import_openbabel() -> tuple:
     """Return ``(openbabel, pybel)`` modules, or raise a clear error.
 
-    Imported lazily so that ``tmol.ligand`` can be loaded without the
-    optional ``openbabel-wheel`` dependency.
+    Defer loading the native bindings until ligand conversion needs them.
     """
     try:
         from openbabel import openbabel, pybel  # type: ignore[import-not-found]
