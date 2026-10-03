@@ -16,7 +16,10 @@ from tmol.chemical import ResidueTypeSet
 from tmol.chemical import BondType as ChemBondType
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import metal_table, site_connections
-from tmol.io._atomworks_reader import renumbered_decreasing_chains
+from tmol.io._atomworks_reader import (
+    INFERRED_POLYMER_BOND,
+    renumbered_decreasing_chains,
+)
 from tmol.io._input_geometry import rebuild_coincident_hydrogens
 from tmol.io._canonical_ordering import _only_coordinates_a_metal
 from tmol.io._protonation import (
@@ -660,9 +663,9 @@ def pose_stack_from_biotite(  # noqa: C901
             construction use this database. If prepare_ligands=True, it is
             extended with ligand data. Mutually exclusive with ``context``.
         missing_density_distance_threshold: Distance threshold in Angstroms.
-            Adjacent residues whose closest inter-atom distance exceeds this
-            value are treated as disconnected (upper/lower connects broken).
-            Set to 0 to disable. Default is 2.4.
+            Adjacent polymer residues whose connection atoms exceed this distance
+            are disconnected only where topology was inferred. A supplied bond
+            across a gap raises; set to 0 to retain it. Default is 2.4.
         no_optH: Residues the input gives no hydrogens take AtomWorks'
             protonation state: database residues then get hydrogens built by
             tmol, other residues those AtomWorks places. When True (default),
@@ -1791,7 +1794,7 @@ def _covalent_bonds_from_biotite(
     bonds even when the sulfur coordinates are unresolved or far apart.
     """
     if array.bonds is None:
-        return numpy.zeros((0, 4), dtype=numpy.int64), None
+        return numpy.zeros((0, 4), dtype=numpy.int64), None, numpy.zeros(0, dtype=bool)
 
     atom_canonical_ind = numpy.full(array.array_length(), -1, dtype=numpy.int64)
     atom_canonical_ind[valid_atom_mask] = valid_atom_inds
@@ -1799,6 +1802,11 @@ def _covalent_bonds_from_biotite(
     cys_classes = frozenset(co.cys_inds.cys_co_aa_inds)
     sg_atom = co.cys_inds.sg_atom_for_co_cys
 
+    tags = (
+        array.get_annotation(INFERRED_POLYMER_BOND)
+        if INFERRED_POLYMER_BOND in array.get_annotation_categories()
+        else numpy.full(array.array_length(), "", dtype=object)
+    )
     found = []
     disulfides = []
     for atom1, atom2, order in array.bonds.as_array():
@@ -1826,11 +1834,14 @@ def _covalent_bonds_from_biotite(
             continue
         if res1 > res2:
             res1, canonical1, res2, canonical2 = res2, canonical2, res1, canonical1
-        found.append((res1, canonical1, res2, canonical2))
+        inferred = bool(tags[atom1]) and tags[atom1] == tags[atom2]
+        found.append((res1, canonical1, res2, canonical2, inferred))
 
+    found = numpy.array(sorted(set(found)), dtype=numpy.int64).reshape(-1, 5)
     return (
-        numpy.array(sorted(set(found)), dtype=numpy.int64).reshape(-1, 4),
+        found[:, :4],
         numpy.array(sorted(set(disulfides)), dtype=numpy.int64).reshape(-1, 2),
+        found[:, 4].astype(bool),
     )
 
 
@@ -2022,80 +2033,51 @@ def _filter_supported_atoms_and_connectivity(  # noqa: C901
     return biotite_structure, not_connected
 
 
-def _break_connections_for_missing_density(
-    not_connected: numpy.ndarray,
-    biotite_chain_id_for_res: numpy.ndarray,
-    tmol_coords: torch.Tensor,
-    threshold: float,
-    is_polymeric: numpy.ndarray | None = None,
-) -> None:
-    """Break inter-residue connections where upper/lower atoms are too far apart.
+def _break_polymer_gaps(
+    not_connected, bonds, inferred, coords, restypes, chain_id, co, threshold
+):
+    """Break inferred polymer links across gaps; reject contradictory supplied bonds.
 
-    Modifies ``not_connected`` in-place. For each pair of adjacent residues
-    (i, i+1) that are currently marked as connected and belong to the same
-    chain, the minimum distance between any atom in residue i and any atom in
-    residue i+1 is compared across all poses. If that minimum distance exceeds
-    ``threshold`` (in Angstroms), the connection is broken by setting
-    not_connected[i, 1] = True and not_connected[i+1, 0] = True.
-
-    Args:
-        not_connected: Shape (n_res, 2) boolean array. True = no connection
-            (terminus or explicitly broken); False = connected.
-        biotite_chain_id_for_res: Shape (n_res,) integer chain IDs.
-        tmol_coords: Shape (n_poses, n_res, max_atoms, 3) coordinate tensor.
-        threshold: Distance threshold in Angstroms. Connections where the
-            closest inter-residue atom pair exceeds this distance are broken.
-        is_polymeric: Shape (n_res,) boolean array; pairs where either residue
-            is not a chain member are left alone.
+    Use connection atoms rather than side-chain contacts. A connection within
+    the cutoff in any pose (or unresolved) retains the shared topology.
+    Unknown bond provenance is treated as supplied, never silently discarded.
     """
-    n_res = not_connected.shape[0]
-    coords_np = tmol_coords.cpu().numpy()
+    ports = co.polymer_conn_inds
+    up = numpy.asarray(ports.up_atom_for_co_restype)[restypes]
+    down = numpy.asarray(ports.down_atom_for_co_restype)[restypes]
+    coords = coords.cpu().numpy()
+    pair = numpy.arange(len(restypes) - 1)
 
-    for i in range(n_res - 1):
-        # Skip already-disconnected pairs
-        if not_connected[i, 1] or not_connected[i + 1, 0]:
-            continue
-        # Skip cross-chain pairs (handled separately by chain-break logic)
-        if biotite_chain_id_for_res[i] != biotite_chain_id_for_res[i + 1]:
-            continue
-        # A ligand numbered in the chain it sits in is not the next link of
-        #    that chain, so its distance says nothing about a break. Marking
-        #    one would take the C-terminus off the residue before it.
-        if is_polymeric is not None and not (is_polymeric[i] and is_polymeric[i + 1]):
-            continue
+    def linked(a, b):
+        distance = coords[:, pair, a[:-1]] - coords[:, pair + 1, b[1:]]
+        distance = numpy.linalg.norm(distance, axis=-1)
+        return (a[:-1] >= 0) & (b[1:] >= 0) & ~(distance > threshold).all(axis=0)
 
-        # Compute minimum inter-residue distance across all poses.
-        # A connection is kept if *any* pose shows atoms within threshold.
-        min_dist = numpy.inf
-        for p in range(coords_np.shape[0]):
-            c_i = coords_np[p, i]  # (max_atoms, 3)
-            c_j = coords_np[p, i + 1]
-
-            valid_i = ~numpy.isnan(c_i[:, 0])
-            valid_j = ~numpy.isnan(c_j[:, 0])
-            if not valid_i.any() or not valid_j.any():
-                continue
-
-            ci_v = c_i[valid_i]
-            cj_v = c_j[valid_j]
-            diffs = ci_v[:, numpy.newaxis, :] - cj_v[numpy.newaxis, :, :]
-            pose_min = numpy.sqrt((diffs**2).sum(axis=-1)).min()
-            if pose_min < min_dist:
-                min_dist = pose_min
-            if min_dist <= threshold:
-                break  # already within range; no need to check more poses
-
-        if min_dist > threshold:
-            logger.debug(
-                "Breaking connection between residues %d and %d "
-                "(closest atom distance %.3f Å > threshold %.3f Å)",
-                i,
-                i + 1,
-                min_dist,
-                threshold,
-            )
-            not_connected[i, 1] = True
-            not_connected[i + 1, 0] = True
+    polymer = (up >= 0) | (down >= 0)
+    gap = (chain_id[:-1] == chain_id[1:]) & polymer[:-1] & polymer[1:]
+    gap &= ~linked(up, down) & ~linked(down, up)
+    first, a, second, b = bonds.T
+    joined = ((a == up[first]) & (b == down[second])) | (
+        (a == down[first]) & (b == up[second])
+    )
+    adjacent = (second == first + 1) & (chain_id[first] == chain_id[second]) & joined
+    distance = numpy.linalg.norm(coords[:, first, a] - coords[:, second, b], axis=-1)
+    across = adjacent & (distance > threshold).all(axis=0)
+    # A graph-specified orientation takes precedence over incidental contacts
+    # between the opposite pair of ports (e.g. N1--C2 instead of C1--N2).
+    gap[first[adjacent]] = True
+    gap[first[adjacent & ~across]] = False
+    if numpy.any(across & ~inferred):
+        row = numpy.flatnonzero(across & ~inferred)[0]
+        raise ValueError(
+            "Declared polymer bond crosses a geometry gap between residue indices "
+            f"{first[row]} and {second[row]} (cutoff {threshold:g} Angstrom). "
+            "Correct the supplied connectivity/coordinates, or set "
+            "missing_density_distance_threshold=0 to retain the declared topology."
+        )
+    not_connected[:-1, 1] |= gap
+    not_connected[1:, 0] |= gap
+    return bonds[~across]
 
 
 def _orient_polymer_gap_flags(not_connected, chain_id, restypes, bonds, co):
@@ -2709,7 +2691,7 @@ def canonical_form_from_biotite(
         biotite_name_for_atom,
         biotite_structure.element,
     )
-    covalent_bonds_np, disulfides_np = _covalent_bonds_from_biotite(
+    covalent_bonds_np, disulfides_np, inferred_bonds = _covalent_bonds_from_biotite(
         _template_array(biotite_structure),
         co,
         atom_res_inds,
@@ -2802,30 +2784,16 @@ def canonical_form_from_biotite(
         and len(biotite_residues) > 1
         and atom37_coords is None
     ):
-        conn_inds = co.polymer_conn_inds
-        polymeric = numpy.array(
-            [
-                conn_inds.down_atom_for_co_restype[restype] >= 0
-                or conn_inds.up_atom_for_co_restype[restype] >= 0
-                for restype in tmol_restypes
-            ]
-        )
-        was_connected = ~not_connected[:-1, 1]
-        _break_connections_for_missing_density(
+        covalent_bonds_np = _break_polymer_gaps(
             not_connected,
-            biotite_chain_id_for_res,
+            covalent_bonds_np,
+            inferred_bonds,
             tmol_coords,
+            numpy.asarray(tmol_restypes),
+            biotite_chain_id_for_res,
+            co,
             missing_density_distance_threshold,
-            polymeric,
         )
-        # The reader infers peptide bonds from consecutive numbering; a pair the
-        # check just broke has no atoms within bonding distance, so drop them.
-        broken = numpy.flatnonzero(was_connected & not_connected[:-1, 1])
-        if len(broken) and len(covalent_bonds_np):
-            lo = numpy.minimum(covalent_bonds_np[:, 0], covalent_bonds_np[:, 2])
-            hi = numpy.maximum(covalent_bonds_np[:, 0], covalent_bonds_np[:, 2])
-            across = (hi == lo + 1) & numpy.isin(lo, broken)
-            covalent_bonds_np = covalent_bonds_np[~across]
     _orient_polymer_gap_flags(
         not_connected, biotite_chain_id_for_res, tmol_restypes, covalent_bonds_np, co
     )

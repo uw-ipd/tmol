@@ -170,13 +170,8 @@ def build_residue_type(  # noqa: C901
         if atom_names[a] is None or atom_names[b] is None:
             continue
 
-        # Kekulé first — Frank's reference .tmol files emit DOUBLE/SINGLE
-        # for ring bonds when they carry a definite bond order, and only
-        # fall back to AROMATIC when the bond was never kekulized (e.g.
-        # acyclic resonance groups like amide N-C(=O)). Reading the bond
-        # order directly catches the kekulized case; the GetIsAromatic
-        # branch only fires when the bond type is still AROMATIC at this
-        # point, i.e. kekulization was skipped or failed.
+        # Preserve definite Kekulé orders, except Rosetta's tagged amide bonds,
+        # whose params representation uses AROMATIC even outside a ring.
         bt = bond.GetBondType()
         if bond.HasProp(AMIDE_BOND_PROP):
             b_type = "AROMATIC"

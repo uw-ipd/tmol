@@ -709,24 +709,6 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
     }
   });
 
-  // A jump with too few atoms below it (up to the root) gets the frame of its
-  // own position, parent and grandparent; the collinear guard in
-  // hts_from_frames keeps that frame defined. So do its non-jump children.
-  auto fallback_jump_frame = ([=] TMOL_DEVICE_FUNC(int i) {
-    int parent = parents[i];
-    frame_x[i] = i;
-    frame_y[i] = parent;
-    frame_z[i] = parents[parent];
-    for (int j = child_list_span[i]; j < child_list_span[i + 1]; ++j) {
-      int child = child_list[j];
-      if (!is_atom_jump[child]) {
-        frame_x[child] = child;
-        frame_y[child] = i;
-        frame_z[child] = parent;
-      }
-    }
-  });
-
   auto fix_jump_node = ([=] TMOL_DEVICE_FUNC(int i) {
     int c1 = 0;
     int c2 = 0;
@@ -737,7 +719,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
         c1 = std::get<0>(result);
         c2 = std::get<1>(result);
         if (c1 < 0) {
-          fallback_jump_frame(i);
+          // With too few atoms for a stub, retain the first-pass frames.
           return;
         }
 
@@ -795,7 +777,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
           c1 = std::get<0>(result);
           c2 = std::get<1>(result);
           if (c1 < 0) {
-            fallback_jump_frame(i);
+            // With too few atoms for a stub, retain the first-pass frames.
             return;
           }
 

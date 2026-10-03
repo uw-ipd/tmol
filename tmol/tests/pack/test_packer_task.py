@@ -270,8 +270,17 @@ def test_masked_name3_restriction_that_empties_a_block_raises(ubq_pdb, torch_dev
         device=torch_device,
     )
     mask[0, 2] = True
+    before = task.per_block_is_block_type_allowed.clone()
     with pytest.raises(ValueError, match="pose 0 block 2"):
         task.restrict_absent_name3s({"DA"}, mask)
+    torch.testing.assert_close(task.per_block_is_block_type_allowed, before)
+
+    task.restrict_absent_name3s({"ALA"}, mask)
+    allowed = task.per_block_is_block_type_allowed
+    torch.testing.assert_close(allowed[~mask], before[~mask])
+    choices = task.per_block_considered_block_types[0, 2, allowed[0, 2]]
+    assert len(choices) > 0
+    assert {task.pbt.active_block_types[i].name3 for i in choices.tolist()} == {"ALA"}
 
 
 def test_masked_name3_restriction_of_a_fixed_block_does_not_raise(

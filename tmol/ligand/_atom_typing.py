@@ -9,12 +9,12 @@ naming convention (H<bonded_element><count>).
 
 import logging
 import math
+from collections.abc import Collection
 from dataclasses import dataclass, field
 from typing import NamedTuple
 
 import numpy as np
 from rdkit import Chem
-from rdkit.Chem import rdMolTransforms
 
 from tmol.ligand._chemistry_tables import get_polar_classes
 
@@ -1246,49 +1246,6 @@ def _correct_amide_bond_orders(
             bond.SetBoolProp(AMIDE_BOND_PROP, True)
 
 
-def _bond_is_planar(mol: Chem.Mol, i: int, j: int, cutoff_deg: float = 40.0) -> bool:
-    """Rosetta-like planarity check around a bond.
-
-    Mirrors SetupTopology.is_planar usage as a secondary gate for promoting
-    conjugated single bonds.
-    """
-    if mol.GetNumConformers() == 0:
-        return True
-    conf = mol.GetConformer()
-    ai = mol.GetAtomWithIdx(i)
-    aj = mol.GetAtomWithIdx(j)
-    ni = [
-        n.GetIdx()
-        for n in ai.GetNeighbors()
-        if n.GetIdx() != j and n.GetAtomicNum() != 1
-    ]
-    nj = [
-        n.GetIdx()
-        for n in aj.GetNeighbors()
-        if n.GetIdx() != i and n.GetAtomicNum() != 1
-    ]
-    if not ni or not nj:
-        return True
-
-    def _is_near_planar(phi: float) -> bool:
-        """Return whether a dihedral angle is within planar cutoff."""
-        a = abs(phi)
-        delta = min(abs(a), abs(180.0 - a))
-        return delta <= cutoff_deg
-
-    for a in ni:
-        for b in nj:
-            try:
-                phi = rdMolTransforms.GetDihedralDeg(
-                    conf, int(a), int(i), int(j), int(b)
-                )
-            except Exception:
-                continue
-            if _is_near_planar(phi):
-                return True
-    return False
-
-
 # RDKit bond property marking a Rosetta-corrected amide C-N bond.
 AMIDE_BOND_PROP = "tmol_rosetta_amide"
 
@@ -1329,22 +1286,22 @@ SPECIAL_BIARYL_PAIRS = frozenset(
 )
 
 
-def special_biaryl_pivots(
+def find_special_biaryl_pivots(
     mol: Chem.Mol,
     atype_by_idx: dict[int, str],
-    atms_aro,
+    aromatic_atoms: Collection[int],
     ring_membership: dict[int, set[int]],
-    valid=None,
-) -> set[frozenset]:
+    retained_atoms: Collection[int] | None = None,
+) -> set[frozenset[int]]:
     """Ring-to-functional-group pivot bonds, as Rosetta search_special_biaryl_ring.
 
     Pivots stay rotatable and are never conjugated.
     """
-    pivots: set[frozenset] = set()
-    for a1 in atms_aro:
+    pivots: set[frozenset[int]] = set()
+    for a1 in aromatic_atoms:
         for nb2 in mol.GetAtomWithIdx(a1).GetNeighbors():
             a2 = nb2.GetIdx()
-            if valid is not None and a2 not in valid:
+            if retained_atoms is not None and a2 not in retained_atoms:
                 continue
             if ring_membership.get(a1, set()) & ring_membership.get(a2, set()):
                 continue
@@ -1375,7 +1332,7 @@ def _correct_conjugated_single_bond_orders(  # noqa: C901
     assign_bond_conjugation: single + conjugated => output bond order 2.
     """
     type_by_idx = {a.index: a.atom_type for a in assignments}
-    pivots = special_biaryl_pivots(
+    pivots = find_special_biaryl_pivots(
         mol, type_by_idx, state.atms_aro, state.ring_membership_by_idx
     )
 

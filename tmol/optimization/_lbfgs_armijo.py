@@ -1,4 +1,6 @@
 from contextlib import nullcontext
+from math import isfinite
+from numbers import Integral, Real
 from types import SimpleNamespace
 from typing import Any
 
@@ -322,15 +324,16 @@ class LBFGS_Armijo(Optimizer):
         params,
         lr=1,
         max_iter=200,
-        atol=1e-2,
-        patience=5,
         rtol=None,
+        atol=1e-2,
         gradtol=None,
         history_size=128,
         minstep=1e-12,
         verbose=False,
         segment_ids=None,
         fixed_iterations=False,
+        *,
+        patience=5,
     ):
         defaults = dict(
             lr=lr,
@@ -343,6 +346,21 @@ class LBFGS_Armijo(Optimizer):
             fixed_iterations=fixed_iterations,
         )
         super(LBFGS_Armijo, self).__init__(params, defaults)
+
+        group = self.param_groups[0]
+        patience = group["patience"]
+        if (
+            isinstance(patience, bool)
+            or not isinstance(patience, Integral)
+            or patience < 1
+        ):
+            raise ValueError("patience must be a positive integer")
+        for name in ("rtol", "atol", "gradtol"):
+            value = group[name]
+            if value is not None and (
+                not isinstance(value, Real) or not isfinite(value) or value < 0
+            ):
+                raise ValueError(f"{name} must be None or a finite nonnegative number")
 
         if len(self.param_groups) != 1:
             raise ValueError(
@@ -363,6 +381,18 @@ class LBFGS_Armijo(Optimizer):
                 device=self._params[0].device,
             )
         self._init_segments(segment_ids)
+
+    def __setstate__(self, state):
+        super().__setstate__(state)
+        group = self.param_groups[0]
+        if "patience" not in group:
+            # Older checkpoints stopped after one small step and used dtype
+            # tolerances for None; new checkpoints use None to disable them.
+            group["patience"] = 1
+            tolerance = float(torch.finfo(group["params"][0].dtype).eps ** 0.5)
+            for name in ("rtol", "atol"):
+                if group[name] is None:
+                    group[name] = tolerance
 
     def reset(self) -> None:
         """Reset trajectory state while retaining shape-compatible scratch.

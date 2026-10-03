@@ -10,7 +10,6 @@ from ._atom_typing import (  # noqa: F401
     HYB_SP3,
     RosettaTypingState,
     _assign_missing_hybridization,
-    _bond_is_planar,
     _build_rosetta_typing_state,
     _classify_H,
     _classify_N,
