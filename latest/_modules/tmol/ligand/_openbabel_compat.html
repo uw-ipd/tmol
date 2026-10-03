@@ -456,11 +456,15 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">threading</span><span class="w"> </span><span class="kn">import</span> <span class="n">Lock</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">rdkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chem</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="c1"># Charge assignment and minimization share OpenBabel's mutable force fields.</span>
+<span class="n">_OPENBABEL_FORCEFIELD_LOCK</span> <span class="o">=</span> <span class="n">Lock</span><span class="p">()</span>
 
 
 <div class="viewcode-block" id="OpenBabelUnavailableError">
@@ -620,11 +624,14 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_model_partial_charges</span><span class="p">(</span><span class="n">openbabel</span><span class="p">,</span> <span class="n">pymol</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">smiles</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Return this model's complete, finite charges, or None if unusable."""</span>
-    <span class="n">model</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBChargeModel</span><span class="o">.</span><span class="n">FindType</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-    <span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="o">.</span><span class="n">DeleteData</span><span class="p">(</span><span class="s2">"PartialCharges"</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">ComputeCharges</span><span class="p">(</span><span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="p">):</span>
-        <span class="k">return</span> <span class="kc">None</span>
-    <span class="n">charges</span> <span class="o">=</span> <span class="p">[</span><span class="n">atom</span><span class="o">.</span><span class="n">GetPartialCharge</span><span class="p">()</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBMolAtomIter</span><span class="p">(</span><span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="p">)]</span>
+    <span class="k">with</span> <span class="n">_OPENBABEL_FORCEFIELD_LOCK</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBChargeModel</span><span class="o">.</span><span class="n">FindType</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="o">.</span><span class="n">DeleteData</span><span class="p">(</span><span class="s2">"PartialCharges"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">ComputeCharges</span><span class="p">(</span><span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">charges</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">atom</span><span class="o">.</span><span class="n">GetPartialCharge</span><span class="p">()</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBMolAtomIter</span><span class="p">(</span><span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="p">)</span>
+        <span class="p">]</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">charges</span><span class="p">)</span> <span class="o">!=</span> <span class="n">pymol</span><span class="o">.</span><span class="n">OBMol</span><span class="o">.</span><span class="n">NumAtoms</span><span class="p">()</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span>
         <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">charges</span>
     <span class="p">):</span>
