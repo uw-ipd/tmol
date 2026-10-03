@@ -82,7 +82,7 @@ class PoseStackBuilder:
         device = resolve_device(device)
         pbt0 = cls._widest_packed_block_types(pose_stacks)
         # a grown generation keeps every earlier block type at its index
-        reuse_pbt = all(
+        reuse_pbt = pbt0.device == device and all(
             _is_leading_run(
                 ps.packed_block_types.active_block_types, pbt0.active_block_types
             )
@@ -136,7 +136,10 @@ class PoseStackBuilder:
 
         # Concatenate the constraint sets
         constraint_set = ConstraintSet.concatenate(
-            [ps.constraint_set for ps in pose_stacks],
+            [
+                ps.constraint_set.to(device) if ps.constraint_set is not None else None
+                for ps in pose_stacks
+            ],
             from_multiple_pose_stacks=True,
             n_poses=n_poses,
             ps_offset=ps_offset,
@@ -487,7 +490,7 @@ class PoseStackBuilder:
                     torch.full((1,), -1, dtype=torch.int32, device=device),
                 )
             )
-            remapped = mapping[pose_stack.block_type_ind.to(torch.int64)]
+            remapped = mapping[pose_stack.block_type_ind.to(device, torch.int64)]
 
             block_type_ind[offset : (offset + len(pose_stack)), : remapped.shape[1]] = (
                 remapped

@@ -257,3 +257,55 @@ def test_a_heme_split_from_its_iron_keeps_the_porphyrin_dianion():
     heme = protonated[protonated.res_name == "HEM"]
     nitrogens = numpy.isin(heme.atom_name, ("NA", "NB", "NC", "ND"))
     assert heme.charge[nitrogens].sum() == -2
+
+
+@pytest.mark.parametrize("lengths", [(2.3, 3.6), (3.6, 2.3)])
+@pytest.mark.parametrize("warm_cache", [False, True])
+def test_ensembles_reject_model_dependent_protonation(lengths, warm_cache):
+    """One stack cannot describe both a zinc thiolate and a free thiol."""
+    forms = protonation.database_forms(ParameterDatabase.get_default().chemical)
+    protonation._STATES.clear()
+    models = [_cysteine_on_zinc(length)[0] for length in lengths]
+    _, coordination = _cysteine_on_zinc(lengths[0])
+    if warm_cache:
+        for model in models:
+            protonation.with_atomworks_hydrogens(
+                model, coordination=coordination, forms=forms
+            )
+    with pytest.raises(ValueError, match="protonates the models.*differently"):
+        protonation.with_atomworks_hydrogens(
+            biotite.structure.stack(models), coordination=coordination, forms=forms
+        )
+
+
+def test_ensembles_preserve_metadata_coordinates_and_cached_states(monkeypatch):
+    model, coordination = _cysteine_on_zinc(2.3)
+    stack = biotite.structure.stack([model, model.copy()])
+    stack.box = numpy.array([numpy.eye(3) * 20, numpy.eye(3) * 21])
+    stack._custom_ccd_registry = {}
+    forms = protonation.database_forms(ParameterDatabase.get_default().chemical)
+    protonation._STATES.clear()
+    placed = protonation._placed_hydrogens
+    calls = []
+
+    def counted(*args, **kwargs):
+        calls.append(None)
+        return placed(*args, **kwargs)
+
+    monkeypatch.setattr(protonation, "_placed_hydrogens", counted)
+    for _ in range(2):
+        marked = protonation.with_atomworks_hydrogens(
+            stack, coordination=coordination, forms=forms
+        )
+        assert marked.get_annotation(protonation.PROTONATION_VARIANT)[0] == 4
+        numpy.testing.assert_array_equal(marked.coord, stack.coord)
+        numpy.testing.assert_array_equal(marked.box, stack.box)
+        assert marked.bonds == stack.bonds
+        assert marked._custom_ccd_registry is stack._custom_ccd_registry
+    assert len(calls) == 1
+
+
+def test_an_unchanged_protonated_ensemble_retains_identity():
+    model = atom_array_from_ccd_code("ALA")
+    stack = biotite.structure.stack([model, model.copy()])
+    assert protonation.with_atomworks_hydrogens(stack) is stack

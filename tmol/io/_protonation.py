@@ -200,6 +200,27 @@ def _stated_terminal_variants(template, starts, lacking, forms):
     return variant
 
 
+def _protonate_stack(structure, **kwargs):
+    """Keep an ensemble only when independently assigned models share chemistry."""
+    models = list(structure)
+    registry = getattr(structure, "_custom_ccd_registry", None)
+    if registry is not None:
+        for model in models:
+            model._custom_ccd_registry = registry
+    marked = [with_atomworks_hydrogens(model, **kwargs) for model in models]
+    if all(result is model for result, model in zip(marked, models)):
+        return structure
+    if any(
+        not model.equal_annotations(marked[0]) or model.bonds != marked[0].bonds
+        for model in marked[1:]
+    ):
+        raise ValueError("AtomWorks protonates the models of this stack differently")
+    result = struc.stack(marked)
+    if registry is not None:
+        result._custom_ccd_registry = registry
+    return result
+
+
 def with_atomworks_hydrogens(
     structure: struc.AtomArray | struc.AtomArrayStack,
     *,
@@ -237,6 +258,18 @@ def with_atomworks_hydrogens(
     Raises:
         ValueError: If the models of a stack are protonated differently.
     """
+    if isinstance(structure, struc.AtomArrayStack):
+        return _protonate_stack(
+            structure,
+            ph=ph,
+            residue_names=residue_names,
+            coordination=coordination,
+            backbone=backbone,
+            forms=forms,
+            hydrogens=hydrogens,
+            alternative_types=alternative_types,
+        )
+
     starts, lacking = residues_lacking_hydrogens(structure, residue_names, forms)
     template = _template(structure)
     variant = _stated_terminal_variants(template, starts, lacking, forms)
@@ -249,7 +282,6 @@ def with_atomworks_hydrogens(
     if not bonds_given:
         structure = structure.copy()
         structure.bonds = struc.connect_via_residue_names(_template(structure))
-    stack = isinstance(structure, struc.AtomArrayStack)
     template = _template(structure)
     n_atoms = len(template)
     residue_of = struc.get_all_residue_positions(template)
@@ -311,16 +343,10 @@ def with_atomworks_hydrogens(
         for a, b in (pairs.T, pairs.T[::-1]):
             selected[b[call[a]]] = True
         selected &= ~numpy.isin(res_name, _WATER)
-        models = (
-            [structure[i] for i in range(structure.stack_depth())]
-            if stack
-            else [structure]
+        placed = _placed_hydrogens(
+            structure, selected[residue_of] & ~is_h, ph, extra, declared
         )
-        placed = [
-            _placed_hydrogens(model, selected[residue_of] & ~is_h, ph, extra, declared)
-            for model in models
-        ]
-        parent, names, charge, _, free = placed[0]
+        parent, names, charge, _, free = placed
         count = numpy.bincount(parent, minlength=n_atoms)
         # a free tautomer and an unresolved atom (4NDZ B:171 TYR ring) say nothing
         count[free] = -1
@@ -362,15 +388,10 @@ def with_atomworks_hydrogens(
         marked.set_annotation(PROTONATION_VARIANT, variant)
         return marked if bonds_given else _unbonded(marked)
 
-    if any(
-        not numpy.array_equal(p[0], parent) or not numpy.array_equal(p[1], names)
-        for p in placed[1:]
-    ):
-        raise ValueError("AtomWorks protonates the models of this stack differently")
     keep_h = placing[residue_of[parent]]
     parent, names = parent[keep_h], names[keep_h]
     names = _names_by_parent(template, parent, names, residue_of)
-    coords = numpy.stack([p[3][keep_h] for p in placed])
+    coords = placed[3][keep_h]
 
     categories = template.get_annotation_categories()
     charges = (
@@ -391,14 +412,14 @@ def with_atomworks_hydrogens(
         base.set_annotation(_FORMAL_CHARGE_SPECIFIED, placing[residue_of])
     # a bond table cannot be indexed with repeated atoms
     base.bonds = None
-    hydrogens = base[:, parent] if stack else base[parent]
-    hydrogens.coord = coords if stack else coords[0]
+    hydrogens = base[parent]
+    hydrogens.coord = coords
     hydrogens.bonds = struc.BondList(len(parent))
     base.bonds = struc.BondList(n_atoms)
     hydrogens.atom_name = names
     hydrogens.element[:] = "H"
     hydrogens.charge[:] = 0
-    merged = (struc.concatenate if stack else concatenate_any)([base, hydrogens])
+    merged = concatenate_any([base, hydrogens])
     total = n_atoms + len(parent)
     h_bonds = numpy.c_[
         parent, n_atoms + numpy.arange(len(parent)), [single] * len(parent)
@@ -409,7 +430,7 @@ def with_atomworks_hydrogens(
     keep = numpy.r_[kept, numpy.ones(len(parent), dtype=bool)]
     order = numpy.lexsort((numpy.arange(total), is_new, residue_key))
     order = order[keep[order]]
-    merged = merged[:, order] if stack else merged[order]
+    merged = merged[order]
     if registry is not None:
         merged._custom_ccd_registry = registry
     return merged if bonds_given else _unbonded(merged)

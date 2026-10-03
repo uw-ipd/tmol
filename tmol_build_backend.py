@@ -392,14 +392,8 @@ def get_requires_for_build_sdist(
     )
 
 
-def prepare_metadata_for_build_wheel(
-    metadata_directory: str,
-    config_settings: dict[str, Any] | None = None,
-) -> str:
-    return _skbuild_backend.prepare_metadata_for_build_wheel(
-        metadata_directory,
-        config_settings=config_settings,
-    )
+# Let the frontend extract metadata from build_wheel's actual result. A fetched
+# ABI-qualified wheel can differ from the source project's version/dependencies.
 
 
 def prepare_metadata_for_build_editable(
