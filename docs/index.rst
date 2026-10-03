@@ -1,10 +1,12 @@
 TMol documentation
 ==================
 
-TMol is a PyTorch molecular-modeling library for batched, differentiable
-all-atom calculations on CPU and GPU. It provides Rosetta-inspired scoring,
-side-chain packing and design, Cartesian and kinematic minimization, FastRelax,
-ligand preparation, and nucleic-acid modeling primitives.
+.. container:: tmol-lead
+
+   TMol is a PyTorch molecular-modeling library for batched, differentiable
+   all-atom calculations on CPU and GPU. It provides Rosetta-inspired scoring,
+   side-chain packing and design, Cartesian and kinematic minimization, FastRelax,
+   ligand preparation, and nucleic-acid modeling primitives.
 
 TMol is not a PyRosetta compatibility layer. Weighted outputs are TMol score
 units—not kcal/mol or calibrated Rosetta score units—and matching Rosetta

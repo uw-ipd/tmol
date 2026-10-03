@@ -1,4 +1,9 @@
-<h1 align="center">TMol</h1>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/_static/brand/tmol-logo-dark.svg">
+    <img src="docs/_static/brand/tmol-logo-light.svg" alt="TMol" width="440">
+  </picture>
+</p>
 
 <p align="center"><em>Rosetta molecular modeling at PyTorch speed.</em></p>
 
