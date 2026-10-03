@@ -226,21 +226,25 @@ def chosen_protonation_variants(pose_stack: PoseStack) -> list[ProtonationChoice
     is_hydrogen_type = {
         at.name: at.element.upper() in ("H", "D") for at in pbt.chem_db.atom_types
     }
+    backbones = _backbone_signatures(pbt)
     by_base_name = {}
-    for bt in types:
-        by_base_name.setdefault(bt.base_name, bt)
-    hydrogen_counts = {
-        name: _hydrogen_counts(bt, is_hydrogen_type)
-        for name, bt in by_base_name.items()
-    }
+    for j, bt in enumerate(types):
+        by_base_name.setdefault(bt.base_name, []).append(j)
+    hydrogen_counts = [_hydrogen_counts(bt, is_hydrogen_type) for bt in types]
     block_types = pose_stack.block_type_ind64.cpu().numpy()
     out = []
     for (pose, block), offsets in sorted(alternatives.items()):
-        bt = types[int(block_types[pose, block])]
+        index = int(block_types[pose, block])
+        bt = types[index]
         if bt.base_name not in offsets:
             continue
-        counts = [hydrogen_counts[name] for name in offsets if name in by_base_name]
-        mine = _hydrogen_counts(bt, is_hydrogen_type)
+        counts = [
+            hydrogen_counts[j]
+            for name in offsets
+            for j in by_base_name.get(name, ())
+            if _exchangeable(bt, types[j], backbones[index], backbones[j])
+        ]
+        mine = hydrogen_counts[index]
         varying = sorted(
             name for name in mine if len({c.get(name, -1) for c in counts}) > 1
         )

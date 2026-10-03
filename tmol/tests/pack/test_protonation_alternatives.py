@@ -435,3 +435,42 @@ def test_relax_acceptance_includes_state_energy_and_different_hydrogen_counts(
             task_operations=[],
         )
         torch.testing.assert_close(relaxed.block_type_ind64, neutral.block_type_ind64)
+
+
+def test_protonation_report_ignores_catalog_order(torch_device):
+    """Terminal patches do not become reported side-chain titration sites."""
+    from tmol.pose import PackedBlockTypes
+
+    atoms = atom_array_from_cif(data_path("cif", "3N0I.cif"))
+    atoms = atoms[
+        (atoms.chain_id == "A")
+        & numpy.isin(atoms.res_id, [196, 197])
+        & (atoms.element != "H")
+    ]
+    pose = pose_stack_from_biotite(
+        atoms, torch_device, protonation_alternatives=True, ligand_ph=CYS_PH
+    )
+    before = chosen_protonation_variants(pose)
+    assert len(before) == 1
+    assert before[0].hydrogens == {"SG": 1}
+    pbt = pose.packed_block_types
+    types = pbt.active_block_types
+    first = next(i for i, bt in enumerate(types) if bt.name == "CYS:nterm_neutral")
+    order = [first] + [i for i in range(len(types)) if i != first]
+    reordered = PackedBlockTypes.from_restype_list(
+        pbt.chem_db, pbt.restype_set, [types[i] for i in order], pose.device
+    )
+    remap = torch.empty(len(types), dtype=torch.int64, device=pose.device)
+    remap[torch.tensor(order, device=pose.device)] = torch.arange(
+        len(types), device=pose.device
+    )
+    old = pose.block_type_ind64
+    indices = torch.where(old >= 0, remap[old.clamp_min(0)], old)
+    reordered_pose = attr.evolve(
+        pose,
+        packed_block_types=reordered,
+        block_type_ind=indices.to(torch.int32),
+        block_type_ind64=indices,
+    )
+    assert chosen_protonation_variants(reordered_pose) == before
+    assert torch.equal(reordered_pose.coords, pose.coords)
