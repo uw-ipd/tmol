@@ -450,13 +450,9 @@ class PackerTask:
         )
         if block_mask is not None:
             restriction = torch.logical_or(restriction, ~block_mask.unsqueeze(-1))
-        self.per_block_is_block_type_allowed = torch.logical_and(
-            self.per_block_is_block_type_allowed, restriction
-        )
+        allowed = torch.logical_and(self.per_block_is_block_type_allowed, restriction)
         if block_mask is not None:
-            emptied = (
-                block_mask & had_choice & ~self.per_block_is_block_type_allowed.any(-1)
-            )
+            emptied = block_mask & had_choice & ~allowed.any(-1)
             if bool(emptied.any()):
                 pose, block = (int(i) for i in torch.nonzero(emptied)[0])
                 orig = self.pbt.active_block_types[
@@ -466,6 +462,7 @@ class PackerTask:
                     f"pose {pose} block {block} ({orig.name}): no allowed block type "
                     f"has a name3 in {sorted(name3s)}"
                 )
+        self.per_block_is_block_type_allowed = allowed
 
     def add_conformer_sampler(self, sampler) -> None:
         """Enable this sampler everywhere, registering its identity once.

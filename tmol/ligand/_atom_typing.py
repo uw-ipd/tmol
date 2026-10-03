@@ -9,6 +9,7 @@ naming convention (H<bonded_element><count>).
 
 import logging
 import math
+from collections.abc import Collection
 from dataclasses import dataclass, field
 from typing import NamedTuple
 
@@ -1329,22 +1330,22 @@ SPECIAL_BIARYL_PAIRS = frozenset(
 )
 
 
-def special_biaryl_pivots(
+def find_special_biaryl_pivots(
     mol: Chem.Mol,
     atype_by_idx: dict[int, str],
-    atms_aro,
+    aromatic_atoms: Collection[int],
     ring_membership: dict[int, set[int]],
-    valid=None,
-) -> set[frozenset]:
+    retained_atoms: Collection[int] | None = None,
+) -> set[frozenset[int]]:
     """Ring-to-functional-group pivot bonds, as Rosetta search_special_biaryl_ring.
 
     Pivots stay rotatable and are never conjugated.
     """
-    pivots: set[frozenset] = set()
-    for a1 in atms_aro:
+    pivots: set[frozenset[int]] = set()
+    for a1 in aromatic_atoms:
         for nb2 in mol.GetAtomWithIdx(a1).GetNeighbors():
             a2 = nb2.GetIdx()
-            if valid is not None and a2 not in valid:
+            if retained_atoms is not None and a2 not in retained_atoms:
                 continue
             if ring_membership.get(a1, set()) & ring_membership.get(a2, set()):
                 continue
@@ -1375,7 +1376,7 @@ def _correct_conjugated_single_bond_orders(  # noqa: C901
     assign_bond_conjugation: single + conjugated => output bond order 2.
     """
     type_by_idx = {a.index: a.atom_type for a in assignments}
-    pivots = special_biaryl_pivots(
+    pivots = find_special_biaryl_pivots(
         mol, type_by_idx, state.atms_aro, state.ring_membership_by_idx
     )
 

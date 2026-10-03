@@ -13,7 +13,7 @@ from tmol.io import biotite_from_pose_stack, pose_stack_from_biotite
 
 def _tripeptide(middle):
     """GLY-<middle>-GLY, heavy atoms only, with the backbone joined."""
-    parts, offset = [], 0.0
+    parts = []
     for i, code in enumerate(("GLY", middle, "GLY")):
         residue = info.residue(code)
         residue = residue[residue.element != "H"]
@@ -21,8 +21,22 @@ def _tripeptide(middle):
             residue = residue[residue.atom_name != "OXT"]
         residue.res_id[:] = i + 1
         residue.chain_id[:] = "A"
-        residue.coord = residue.coord + np.array([offset, 0.0, 0.0])
-        offset += 3.5
+        if parts:
+            previous = parts[-1]
+            carbon, alpha, oxygen = (
+                previous.coord[previous.atom_name == name][0]
+                for name in ("C", "CA", "O")
+            )
+            direction = sum(
+                (carbon - neighbor) / np.linalg.norm(carbon - neighbor)
+                for neighbor in (alpha, oxygen)
+            )
+            # Join the actual ports; arbitrary residue offsets can leave a
+            # declared peptide bond several Angstroms longer than a real bond.
+            nitrogen = residue.coord[residue.atom_name == "N"][0]
+            residue.coord += (
+                carbon + 1.33 * direction / np.linalg.norm(direction) - nitrogen
+            )
         parts.append(residue)
 
     joined = struc.concatenate(parts)

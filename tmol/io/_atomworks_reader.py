@@ -1,8 +1,10 @@
 """Read supplied structure information before tmol validates parameter requirements."""
 
 import warnings
+from uuid import uuid4
 
 import biotite.structure as struc
+from biotite.structure.io.pdb.hybrid36 import decode_hybrid36
 import numpy as np
 
 from atomworks.io import load_pdb
@@ -30,6 +32,97 @@ _FIELDS = [
     "pdbx_formal_charge",
     "partial_charge",
 ]
+
+
+INFERRED_POLYMER_BOND = "_tmol_inferred_polymer_bond"
+
+
+def _pdb_declared_pairs(array, path, model):
+    """CONECT/LINK endpoints present in the selected conformer, without inference."""
+    serial = {int(value): i for i, value in enumerate(array.atom_id)}
+    file = read_any(path)
+    authored = file.get_structure(model=model, altloc="all", extra_fields=["atom_id"])
+    keys = zip(
+        authored.chain_id,
+        authored.res_id.astype(str),
+        authored.ins_code,
+        authored.res_name,
+        authored.atom_name,
+    )
+    # Serial numbers retain identity even when decreasing author IDs are repaired.
+    index = {
+        tuple(str(value).strip() for value in key): serial[int(atom_id)]
+        for atom_id, key in zip(authored.atom_id, keys)
+        if int(atom_id) in serial
+    }
+    pairs = set()
+    for line in file.lines:
+        if line.startswith("CONECT"):
+            atoms = [
+                serial.get(decode_hybrid36(line[k : k + 5]))
+                for k in range(6, 31, 5)
+                if line[k : k + 5].strip()
+            ]
+            if atoms and atoms[0] is not None:
+                pairs.update(
+                    frozenset((atoms[0], j)) for j in atoms[1:] if j is not None
+                )
+        elif line.startswith("LINK  "):
+            line = line.ljust(80)
+            if {line[59:65].strip(), line[66:72].strip()} - {"", "1555"}:
+                continue
+            atoms = [
+                index.get(
+                    tuple(
+                        value.strip()
+                        for value in (
+                            line[k + 9],
+                            line[k + 10 : k + 14],
+                            line[k + 14],
+                            line[k + 5 : k + 8],
+                            line[k : k + 4],
+                        )
+                    )
+                )
+                for k in (12, 42)
+            ]
+            if None not in atoms:
+                pairs.add(frozenset(atoms))
+    return pairs
+
+
+def _mark_inferred_polymer_bonds(array, declared_pairs):
+    """Tag each unique inferred polymer edge at both endpoints.
+
+    Equal nonempty tags identify the original edge after slicing/reordering.
+    A per-read namespace prevents concatenated independent inputs from matching.
+    Ambiguous ports and supplied connections are never marked as inferred.
+    """
+    if array.bonds is None:
+        return
+    residue = struc.get_all_residue_positions(array)
+    bonds = array.bonds.as_array()
+    i, j, kind = bonds.T
+    crossing = bonds[(residue[i] != residue[j]) & (kind != struc.BondType.COORDINATION)]
+    degree = np.bincount(crossing[:, :2].ravel(), minlength=len(array))
+    ports = {
+        str(name): get_polymerization_atoms(str(name))
+        for name in np.unique(array.res_name)
+    }
+    tags = np.full(len(array), "", dtype=object)
+    namespace = uuid4().hex
+    for i, j, _ in crossing:
+        first, second = ports[str(array.res_name[i])], ports[str(array.res_name[j])]
+        if (
+            abs(int(residue[i]) - int(residue[j])) == 1
+            and array.chain_id[i] == array.chain_id[j]
+            and degree[i] == degree[j] == 1
+            and frozenset((int(i), int(j))) not in declared_pairs
+            and (array.atom_name[i], array.atom_name[j])
+            in ((first[0], second[1]), (first[1], second[0]))
+        ):
+            tags[[i, j]] = f"{namespace}:{i}:{j}"
+    array.set_annotation(INFERRED_POLYMER_BOND, tags)
 
 
 def _polymer_from_backbone_bonds(array):
@@ -226,6 +319,24 @@ def read_structure(path, *, model=1, assembly_id=None):
         array = _polymer_from_backbone_bonds(array)
     elif assembly_id is None and "struct_conn" in block:
         array.bonds = _with_metal_coordination(array, block)
+    if assembly_id is None:
+        if block is None:
+            declared = _pdb_declared_pairs(array, path, model)
+        else:
+            connections = category_to_dict(block, "struct_conn")
+            for partner in (1, 2):
+                connections.pop(f"pdbx_ptnr{partner}_label_alt_id", None)
+            declared = {
+                frozenset((int(i), int(j)))
+                for i, j, _ in get_struct_conn_bonds(
+                    array,
+                    connections,
+                    add_bond_types=("covale", "disulf", "metalc"),
+                    distance_policy="keep",
+                    allow_missing_templates=True,
+                ).as_array()
+            }
+        _mark_inferred_polymer_bonds(array, declared)
     if assembly_id is not None:
         array.set_annotation("chain_id", array.chain_iid.copy())
     for target, source in _AUTHOR_FIELDS.items():
@@ -240,6 +351,7 @@ def read_structure(path, *, model=1, assembly_id=None):
             array.set_annotation(target, array.get_annotation(source).copy())
     array.ins_code[np.isin(array.ins_code, (".", "?"))] = ""
     retained = {
+        INFERRED_POLYMER_BOND,
         "chain_id",
         "res_id",
         "ins_code",

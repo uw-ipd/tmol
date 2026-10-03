@@ -1,3 +1,4 @@
+import pytest
 import torch
 
 from tmol.io import (
@@ -976,3 +977,60 @@ def test_kin_module_for_lone_ion_chain(torch_device):
     kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]]
 
     torch.testing.assert_close(kincoords, _refold(kmd, kincoords), rtol=1e-4, atol=1e-4)
+
+
+@pytest.mark.parametrize(
+    "parent_list, jump_list",
+    [
+        ([0], [True]),
+        ([0, 0], [True, True]),
+        ([0, 0, 1], [True, True, False]),
+        ([0, 0, 1], [True, True, True]),
+        ([0, 0, 1, 2], [True, True, True, False]),
+    ],
+    ids=["root", "lone-atom", "two-atoms", "nested-jumps", "nested-two-atoms"],
+)
+def test_roundtrip_without_jump_stub(parent_list, jump_list, torch_device):
+    """Jump stubs with fewer than three atoms still preserve all coordinates."""
+    from types import SimpleNamespace
+
+    from tmol.kinematics import KinForest, KinForestScanOrdering
+    from tmol.kinematics.compiled import get_id_and_frame_xyz
+
+    def ints(values):
+        return torch.tensor(values, dtype=torch.int32, device=torch_device)
+
+    parents = ints(parent_list)
+    jumps = torch.tensor(jump_list, dtype=torch.bool, device=torch_device)
+    n_atoms = len(parent_list)
+    children = [[] for _ in parent_list]
+    for child, parent in enumerate(parent_list[1:], 1):
+        children[parent].append(child)
+    child_span = ints([0] + [len(row) for row in children]).cumsum(0).int()
+    mapping = ints([[0, 0, atom - 1] for atom in range(n_atoms)])
+    ids, x, y, z, _ = get_id_and_frame_xyz(
+        n_atoms - 1,
+        ints([[0]]),
+        mapping,
+        parents,
+        child_span,
+        ints([child for row in children for child in row]),
+        jumps,
+    )
+    doftype = torch.where(jumps, NodeType.jump, NodeType.bond).int()
+    doftype[0] = NodeType.root
+    forest = KinForest(
+        id=ids, doftype=doftype, parent=parents, frame_x=x, frame_y=y, frame_z=z
+    )
+    scans = KinForestScanOrdering.for_kinforest(forest)
+    kmd = SimpleNamespace(
+        forest=forest,
+        scan_data_fw=scans.forward_scan_paths,
+        scan_data_bw=scans.backward_scan_paths,
+    )
+    coords = torch.tensor(
+        [[0.0, 0.0, 0.0], [3.0, 1.0, 2.0], [4.0, 2.0, 1.0], [5.0, 1.0, 3.0]],
+        dtype=torch.float64,
+        device=torch_device,
+    )[:n_atoms]
+    torch.testing.assert_close(_refold(kmd, coords), coords)

@@ -1,4 +1,5 @@
 import weakref
+from copy import deepcopy
 
 import torch
 import pytest
@@ -64,6 +65,105 @@ def test_lbfgs_accepts_one_named_parameter():
 
     assert optimizer.param_groups[0]["params"][0] is x
     assert optimizer.param_groups[0]["param_names"] == ["x"]
+
+
+def test_lbfgs_preserves_positional_arguments():
+    x = torch.nn.Parameter(torch.tensor([2.0, -3.0]))
+    segments = torch.tensor([0, 1])
+    optimizer = LBFGS_Armijo(
+        [x],
+        0.5,
+        3,
+        1e-5,
+        1e-6,
+        1e-3,
+        4,
+        1e-9,
+        False,
+        segments,
+        True,
+        patience=2,
+    )
+    group = optimizer.param_groups[0]
+    assert (group["lr"], group["max_iter"], group["history_size"]) == (0.5, 3, 4)
+    assert (group["rtol"], group["atol"], group["gradtol"]) == (1e-5, 1e-6, 1e-3)
+    assert group["patience"] == 2 and group["fixed_iterations"] is True
+    assert optimizer._minstep == 1e-9 and optimizer.verbose is False
+    assert optimizer._n_segments == 2
+
+
+@pytest.mark.parametrize("patience", [0, -1, 0.5, 2.0, True, None])
+def test_lbfgs_rejects_invalid_patience(patience):
+    x = torch.nn.Parameter(torch.ones(1))
+    with pytest.raises(ValueError, match="patience must be a positive integer"):
+        LBFGS_Armijo([x], patience=patience)
+
+
+@pytest.mark.parametrize("name", ["rtol", "atol", "gradtol"])
+@pytest.mark.parametrize("value", [-1, float("nan"), float("inf")])
+def test_lbfgs_rejects_invalid_tolerances(name, value):
+    x = torch.nn.Parameter(torch.ones(1))
+    with pytest.raises(ValueError, match=f"{name} must be None or a finite"):
+        LBFGS_Armijo([x], **{name: value})
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+@pytest.mark.parametrize("rtol,atol", [(None, None), (0.0, None), (None, 0.0)])
+def test_lbfgs_resumes_checkpoint_before_patience(dtype, rtol, atol):
+    """Legacy None tolerances and one-step stopping survive a checkpoint load."""
+    tolerance = float(torch.finfo(dtype).eps ** 0.5)
+    x = torch.nn.Parameter(torch.tensor([3.0, -2.0, 1.0], dtype=dtype))
+    optimizer = LBFGS_Armijo(
+        [x],
+        max_iter=1,
+        history_size=1,
+        gradtol=0.0,
+        patience=1,
+        rtol=tolerance if rtol is None else rtol,
+        atol=tolerance if atol is None else atol,
+    )
+
+    def step(opt, param):
+        def closure():
+            opt.zero_grad()
+            loss = (param.square() * param.new_tensor([1.0, 10.0, 100.0])).sum()
+            loss.backward()
+            return loss
+
+        opt.step(closure)
+
+    step(optimizer, x)
+    checkpoint = deepcopy(optimizer.state_dict())
+    # Recreate the old serialized schema after a real unfinished trajectory.
+    group = checkpoint["param_groups"][0]
+    del group["patience"]
+    group.update(rtol=rtol, atol=atol)
+    for state in checkpoint["state"].values():
+        del state["small_steps"]
+    resumed_x = torch.nn.Parameter(x.detach().clone())
+    resumed = LBFGS_Armijo([resumed_x])
+    resumed.load_state_dict(checkpoint)
+    loaded = resumed.param_groups[0]
+    assert loaded["patience"] == 1
+    for name in ("rtol", "atol"):
+        assert loaded[name] == optimizer.param_groups[0][name]
+    # Loading must not rewrite the caller's checkpoint or the new defaults.
+    assert "patience" not in checkpoint["param_groups"][0]
+    assert resumed.defaults["patience"] == 5
+    step(optimizer, x)
+    step(resumed, resumed_x)
+    torch.testing.assert_close(resumed_x, x)
+    assert resumed.state[resumed_x]["n_iter"] == optimizer.state[x]["n_iter"]
+
+
+def test_lbfgs_new_checkpoint_keeps_disabled_tolerances():
+    x = torch.nn.Parameter(torch.ones(1))
+    saved = LBFGS_Armijo([x], rtol=None, atol=None, gradtol=None, patience=7)
+    resumed = LBFGS_Armijo([torch.nn.Parameter(torch.ones(1))])
+    resumed.load_state_dict(saved.state_dict())
+    group = resumed.param_groups[0]
+    assert group["patience"] == 7
+    assert all(group[name] is None for name in ("rtol", "atol", "gradtol"))
 
 
 def test_lbfgs_zero_grad_supports_both_reset_modes():
