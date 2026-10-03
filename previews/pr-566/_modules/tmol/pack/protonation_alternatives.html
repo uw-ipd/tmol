@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tmol.pack.protonation_alternatives &#8212; TMol</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=0a30a683" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
+
+    <script src="../../../_static/documentation_options.js?v=393d09ac"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script>let toggleHintShow = 'show code';</script>
+    <script>let toggleHintHide = 'hide code';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../../../_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/pack/protonation_alternatives';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/pack/protonation_alternatives.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.1.57" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">TMol</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../agent_skills.html">
+    Agent skills
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../workflows/index.html">
+    Workflows
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples_index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../model_inputs.html">
+    Model input interfaces
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../agent_skills.html">
+    Agent skills
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api_reference.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributor_guide.html">
+    Contributing
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/uw-ipd/tmol" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.pack.protonation_alternatives</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for tmol.pack.protonation_alternatives</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Opt-in protonation alternatives in packing.</span>
+
+<span class="sd">A pose built with ``pose_stack_from_biotite(..., protonation_alternatives=True)``</span>
+<span class="sd">records, per residue, AtomWorks' protonation alternatives: block-type base names</span>
+<span class="sd">(such as HIS, HIS_D, HIS_POS, CYS_DEP and LYS_DEP) and their free-energy offsets</span>
+<span class="sd">relative to the assigned state, ``1.364 * (pH - pKa)`` kcal/mol for a protonated form. A</span>
+<span class="sd">``PackerPalette(protonation_alternatives=True)`` lets each such residue take the</span>
+<span class="sd">block types of its alternatives across protonation states, and the packer adds</span>
+<span class="sd">each block type's offset to its rotamers' one-body energies.</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">attr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._protonation</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PROTONATION_ALTERNATIVES</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._protonation_alternatives</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_protonation_alternatives</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack._packer_task</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PackerTask</span><span class="p">,</span>
+    <span class="n">SetPackerTask</span><span class="p">,</span>
+    <span class="n">_backbone_signatures</span><span class="p">,</span>
+    <span class="n">_exchangeable</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">RotamerSet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+
+
+<div class="viewcode-block" id="block_alternatives">
+<a class="viewcode-back" href="../../../api/pack.html#tmol.pack.protonation_alternatives.block_alternatives">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">block_alternatives</span><span class="p">(</span>
+    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""``{(pose, block): {base name: offset}}`` of every block recording alternatives.</span>
+
+<span class="sd">    ``None`` when the pose records no alternatives at all.</span>
+<span class="sd">    """</span>
+    <span class="n">annotations</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_annotations</span>
+    <span class="k">if</span> <span class="n">annotations</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">PROTONATION_ALTERNATIVES</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span>
+        <span class="n">annotations</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span> <span class="ow">or</span> <span class="p">()</span>
+    <span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">annotations</span><span class="p">[</span><span class="n">PROTONATION_ALTERNATIVES</span><span class="p">]</span>
+    <span class="n">real</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">pose</span><span class="p">,</span> <span class="n">block</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">numpy</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">real</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]])):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">]</span>
+        <span class="n">parsed</span> <span class="o">=</span> <span class="n">parse_protonation_alternatives</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parsed</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[(</span><span class="nb">int</span><span class="p">(</span><span class="n">pose</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">block</span><span class="p">))]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">name</span><span class="p">:</span> <span class="n">offset</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">offset</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="n">parsed</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
+    <span class="k">return</span> <span class="n">out</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">add_protonation_alternatives</span><span class="p">(</span><span class="n">task</span><span class="p">:</span> <span class="n">PackerTask</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Widen ``task``'s considered block types by each block's protonation alternatives.</span>
+
+<span class="sd">    A block whose pose records alternatives, and whose type holds no metal</span>
+<span class="sd">    site, also considers every block type named by an alternative that the</span>
+<span class="sd">    default palette would exchange it with were their protonation states</span>
+<span class="sd">    equal, with the same side-chain chirality. Its considered block types</span>
+<span class="sd">    each get the offset of the alternative naming them (0 for others) in</span>
+<span class="sd">    ``task.per_block_considered_block_type_offset``.</span>
+<span class="sd">    """</span>
+    <span class="n">alternatives</span> <span class="o">=</span> <span class="n">block_alternatives</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">alternatives</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">"PackerPalette(protonation_alternatives=True): the pose records no "</span>
+            <span class="s2">"protonation alternatives; build it with pose_stack_from_biotite(..., "</span>
+            <span class="s2">"protonation_alternatives=True) from a structure whose titratable "</span>
+            <span class="s2">"residues lack hydrogens."</span><span class="p">,</span>
+            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">alternatives</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+    <span class="n">types</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span>
+    <span class="n">backbones</span> <span class="o">=</span> <span class="n">_backbone_signatures</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
+    <span class="n">by_base_name</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">types</span><span class="p">):</span>
+        <span class="n">by_base_name</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">base_name</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+
+    <span class="n">considered</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">per_block_considered_block_types</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">original</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">n_considered</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">per_block_n_considered_block_types</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">extra</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">),</span> <span class="n">offsets</span> <span class="ow">in</span> <span class="n">alternatives</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">orig</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">original</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">])</span>
+        <span class="n">orig_bt</span> <span class="o">=</span> <span class="n">types</span><span class="p">[</span><span class="n">orig</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">metal_sites</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">present</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">considered</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="p">:</span> <span class="n">n_considered</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">]]</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+        <span class="n">added</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">j</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">offsets</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">by_base_name</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">())</span>
+            <span class="k">if</span> <span class="n">j</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">present</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="n">types</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">metal_sites</span>
+            <span class="ow">and</span> <span class="n">types</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">sidechain_chirality</span>
+            <span class="o">==</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">sidechain_chirality</span>
+            <span class="ow">and</span> <span class="n">_exchangeable</span><span class="p">(</span><span class="n">orig_bt</span><span class="p">,</span> <span class="n">types</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">backbones</span><span class="p">[</span><span class="n">orig</span><span class="p">],</span> <span class="n">backbones</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="n">added</span><span class="p">:</span>
+            <span class="n">extra</span><span class="p">[(</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">)]</span> <span class="o">=</span> <span class="n">added</span>
+
+    <span class="n">n_new</span> <span class="o">=</span> <span class="n">n_considered</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">),</span> <span class="n">added</span> <span class="ow">in</span> <span class="n">extra</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">n_new</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">]</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">added</span><span class="p">)</span>
+    <span class="n">width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">considered</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_new</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">initial</span><span class="o">=</span><span class="mi">0</span><span class="p">)))</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">per_block_considered_block_types</span><span class="o">.</span><span class="n">device</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">widened</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">fill</span><span class="p">):</span>
+        <span class="n">pad</span> <span class="o">=</span> <span class="n">width</span> <span class="o">-</span> <span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">pad</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">tensor</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">filler</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="o">*</span><span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span> <span class="n">pad</span><span class="p">),</span> <span class="n">fill</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tensor</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">tensor</span><span class="p">,</span> <span class="n">filler</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">new_considered</span> <span class="o">=</span> <span class="n">widened</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">per_block_considered_block_types</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">new_is_orig</span> <span class="o">=</span> <span class="n">widened</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">per_block_considered_block_types_is_orig</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">new_rtr</span> <span class="o">=</span> <span class="n">widened</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">restrict_to_repacking_masks</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">),</span> <span class="n">added</span> <span class="ow">in</span> <span class="n">extra</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">first</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_considered</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">])</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">first</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">added</span><span class="p">))</span>
+        <span class="n">new_considered</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">columns</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">added</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">name3</span> <span class="o">=</span> <span class="n">types</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">original</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">])]</span><span class="o">.</span><span class="n">name3</span>
+        <span class="n">new_rtr</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">columns</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">types</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">name3</span> <span class="o">==</span> <span class="n">name3</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">added</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+        <span class="p">)</span>
+
+    <span class="n">offset</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">new_considered</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">base_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">base_name</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">types</span><span class="p">]</span>
+    <span class="n">considered_now</span> <span class="o">=</span> <span class="n">new_considered</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">),</span> <span class="n">offsets</span> <span class="ow">in</span> <span class="n">alternatives</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">considered_now</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="n">j</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">base_names</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="ow">in</span> <span class="n">offsets</span><span class="p">:</span>
+                <span class="n">offset</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">offsets</span><span class="p">[</span><span class="n">base_names</span><span class="p">[</span><span class="n">j</span><span class="p">]]</span>
+
+    <span class="n">task</span><span class="o">.</span><span class="n">per_block_considered_block_types</span> <span class="o">=</span> <span class="n">new_considered</span>
+    <span class="n">task</span><span class="o">.</span><span class="n">per_block_considered_block_types_is_orig</span> <span class="o">=</span> <span class="n">new_is_orig</span>
+    <span class="n">task</span><span class="o">.</span><span class="n">restrict_to_repacking_masks</span> <span class="o">=</span> <span class="n">new_rtr</span>
+    <span class="n">task</span><span class="o">.</span><span class="n">per_block_n_considered_block_types</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+        <span class="n">n_new</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">task</span><span class="o">.</span><span class="n">per_block_n_considered_block_types</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+    <span class="p">)</span>
+    <span class="n">task</span><span class="o">.</span><span class="n">per_block_considered_block_type_offset</span> <span class="o">=</span> <span class="n">offset</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">rotamer_offsets</span><span class="p">(</span>
+    <span class="n">offset</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">SetPackerTask</span><span class="p">,</span> <span class="n">rotamer_set</span><span class="p">:</span> <span class="n">RotamerSet</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""``[n_rotamers]`` offset of each rotamer's block type at its block."""</span>
+    <span class="n">pose</span> <span class="o">=</span> <span class="n">rotamer_set</span><span class="o">.</span><span class="n">pose_for_rot</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">block</span> <span class="o">=</span> <span class="n">rotamer_set</span><span class="o">.</span><span class="n">block_ind_for_rot</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">block_type</span> <span class="o">=</span> <span class="n">rotamer_set</span><span class="o">.</span><span class="n">block_type_ind_for_rot</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">same</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">per_block_considered_block_types</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">]</span> <span class="o">==</span> <span class="n">block_type</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">offset</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">]</span> <span class="o">*</span> <span class="n">same</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">protonation_state_energy</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Per-pose pH offsets for the current block types, in kcal/mol."""</span>
+    <span class="n">energies</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">types</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+    <span class="n">block_types</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">),</span> <span class="n">offsets</span> <span class="ow">in</span> <span class="p">(</span><span class="n">block_alternatives</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">energies</span><span class="p">[</span><span class="n">pose</span><span class="p">]</span> <span class="o">+=</span> <span class="n">offsets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">types</span><span class="p">[</span><span class="n">block_types</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">]]</span><span class="o">.</span><span class="n">base_name</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">energies</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ProtonationChoice">
+<a class="viewcode-back" href="../../../api/pack.html#tmol.pack.protonation_alternatives.ProtonationChoice">[docs]</a>
+<span class="nd">@attr</span><span class="o">.</span><span class="n">define</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ProtonationChoice</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The protonation variant a packed block took.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        pose: Pose index.</span>
+<span class="sd">        block: Block index.</span>
+<span class="sd">        chain: Input chain label.</span>
+<span class="sd">        res_label: Input residue number.</span>
+<span class="sd">        label: Base name of the chosen block type (``"HIS_POS"``, ...).</span>
+<span class="sd">        offset: Its offset, kcal/mol relative to AtomWorks' assigned state.</span>
+<span class="sd">        charge: AtomWorks' formal charge on the titrating side-chain atoms.</span>
+<span class="sd">        hydrogens: Hydrogens on each heavy atom whose count differs among the</span>
+<span class="sd">            alternatives' block types.</span>
+<span class="sd">    """</span>
+
+    <span class="n">pose</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">block</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">chain</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">res_label</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">label</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">offset</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">charge</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">hydrogens</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_hydrogen_counts</span><span class="p">(</span>
+    <span class="n">block_type</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">,</span> <span class="n">is_hydrogen_type</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+    <span class="n">heavy</span> <span class="o">=</span> <span class="p">{</span><span class="n">a</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">block_type</span><span class="o">.</span><span class="n">atoms</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">is_hydrogen_type</span><span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">atom_type</span><span class="p">]}</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">heavy</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="p">{</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">a</span><span class="o">.</span><span class="n">atom_type</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">block_type</span><span class="o">.</span><span class="n">atoms</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="ow">in</span> <span class="n">block_type</span><span class="o">.</span><span class="n">bonds</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">parent</span><span class="p">,</span> <span class="n">child</span> <span class="ow">in</span> <span class="p">((</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">),</span> <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">parent</span> <span class="ow">in</span> <span class="n">heavy</span> <span class="ow">and</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">names</span> <span class="ow">and</span> <span class="n">is_hydrogen_type</span><span class="p">[</span><span class="n">names</span><span class="p">[</span><span class="n">child</span><span class="p">]]:</span>
+                <span class="n">counts</span><span class="p">[</span><span class="n">parent</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">counts</span>
+
+
+<div class="viewcode-block" id="chosen_protonation_variants">
+<a class="viewcode-back" href="../../../api/pack.html#tmol.pack.protonation_alternatives.chosen_protonation_variants">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">chosen_protonation_variants</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">ProtonationChoice</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""The variant each block recording protonation alternatives holds.</span>
+
+<span class="sd">    Empty when the pose records none. Mutations to other residue types are omitted.</span>
+<span class="sd">    """</span>
+    <span class="n">alternatives</span> <span class="o">=</span> <span class="n">block_alternatives</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+    <span class="n">types</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span>
+    <span class="n">is_hydrogen_type</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">at</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">at</span><span class="o">.</span><span class="n">element</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"H"</span><span class="p">,</span> <span class="s2">"D"</span><span class="p">)</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">chem_db</span><span class="o">.</span><span class="n">atom_types</span>
+    <span class="p">}</span>
+    <span class="n">backbones</span> <span class="o">=</span> <span class="n">_backbone_signatures</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
+    <span class="n">by_base_name</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">types</span><span class="p">):</span>
+        <span class="n">by_base_name</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">base_name</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+    <span class="n">hydrogen_counts</span> <span class="o">=</span> <span class="p">[</span><span class="n">_hydrogen_counts</span><span class="p">(</span><span class="n">bt</span><span class="p">,</span> <span class="n">is_hydrogen_type</span><span class="p">)</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">types</span><span class="p">]</span>
+    <span class="n">block_types</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">),</span> <span class="n">offsets</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">alternatives</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">block_types</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">])</span>
+        <span class="n">bt</span> <span class="o">=</span> <span class="n">types</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">bt</span><span class="o">.</span><span class="n">base_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">offsets</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">counts</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">hydrogen_counts</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">offsets</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">by_base_name</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">())</span>
+            <span class="k">if</span> <span class="n">_exchangeable</span><span class="p">(</span><span class="n">bt</span><span class="p">,</span> <span class="n">types</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">backbones</span><span class="p">[</span><span class="n">index</span><span class="p">],</span> <span class="n">backbones</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+        <span class="p">]</span>
+        <span class="n">mine</span> <span class="o">=</span> <span class="n">hydrogen_counts</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+        <span class="n">varying</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+            <span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">mine</span> <span class="k">if</span> <span class="nb">len</span><span class="p">({</span><span class="n">c</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">counts</span><span class="p">})</span> <span class="o">&gt;</span> <span class="mi">1</span>
+        <span class="p">)</span>
+        <span class="n">choices</span> <span class="o">=</span> <span class="n">parse_protonation_alternatives</span><span class="p">(</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_annotations</span><span class="p">[</span><span class="n">PROTONATION_ALTERNATIVES</span><span class="p">][</span>
+                <span class="n">pose</span><span class="p">,</span> <span class="n">block</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">ProtonationChoice</span><span class="p">(</span>
+                <span class="n">pose</span><span class="o">=</span><span class="n">pose</span><span class="p">,</span>
+                <span class="n">block</span><span class="o">=</span><span class="n">block</span><span class="p">,</span>
+                <span class="n">chain</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">chain_labels</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">]),</span>
+                <span class="n">res_label</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_labels</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">]),</span>
+                <span class="n">label</span><span class="o">=</span><span class="n">bt</span><span class="o">.</span><span class="n">base_name</span><span class="p">,</span>
+                <span class="n">offset</span><span class="o">=</span><span class="n">offsets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">base_name</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s2">"nan"</span><span class="p">)),</span>
+                <span class="n">charge</span><span class="o">=</span><span class="n">choices</span><span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">base_name</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">hydrogens</span><span class="o">=</span><span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">mine</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">varying</span><span class="p">},</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2018-2026, Institute for Protein Design.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.22.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
