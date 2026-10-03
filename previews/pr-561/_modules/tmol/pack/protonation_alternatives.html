@@ -464,8 +464,8 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack._packer_task</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">PackerTask</span><span class="p">,</span>
     <span class="n">SetPackerTask</span><span class="p">,</span>
+    <span class="n">_backbone_signatures</span><span class="p">,</span>
     <span class="n">_exchangeable</span><span class="p">,</span>
-    <span class="n">_mainchain_elements</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="n">RotamerSet</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
@@ -523,14 +523,7 @@
         <span class="k">return</span>
     <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
     <span class="n">types</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span>
-    <span class="n">element_for_atom_type</span> <span class="o">=</span> <span class="p">{</span><span class="n">at</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">at</span><span class="o">.</span><span class="n">element</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">chem_db</span><span class="o">.</span><span class="n">atom_types</span><span class="p">}</span>
-    <span class="n">mc_elements</span> <span class="o">=</span> <span class="p">{}</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">elements</span><span class="p">(</span><span class="n">j</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">j</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">mc_elements</span><span class="p">:</span>
-            <span class="n">mc_elements</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">_mainchain_elements</span><span class="p">(</span><span class="n">types</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">element_for_atom_type</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">mc_elements</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
-
+    <span class="n">backbones</span> <span class="o">=</span> <span class="n">_backbone_signatures</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
     <span class="n">by_base_name</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">bt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">types</span><span class="p">):</span>
         <span class="n">by_base_name</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">base_name</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
@@ -553,7 +546,7 @@
             <span class="ow">and</span> <span class="ow">not</span> <span class="n">types</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">metal_sites</span>
             <span class="ow">and</span> <span class="n">types</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">sidechain_chirality</span>
             <span class="o">==</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">sidechain_chirality</span>
-            <span class="ow">and</span> <span class="n">_exchangeable</span><span class="p">(</span><span class="n">orig_bt</span><span class="p">,</span> <span class="n">types</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">elements</span><span class="p">(</span><span class="n">orig</span><span class="p">),</span> <span class="n">elements</span><span class="p">(</span><span class="n">j</span><span class="p">))</span>
+            <span class="ow">and</span> <span class="n">_exchangeable</span><span class="p">(</span><span class="n">orig_bt</span><span class="p">,</span> <span class="n">types</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">backbones</span><span class="p">[</span><span class="n">orig</span><span class="p">],</span> <span class="n">backbones</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
         <span class="p">]</span>
         <span class="k">if</span> <span class="n">added</span><span class="p">:</span>
             <span class="n">extra</span><span class="p">[(</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">)]</span> <span class="o">=</span> <span class="n">added</span>
