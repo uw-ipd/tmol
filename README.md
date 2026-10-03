@@ -30,7 +30,14 @@ Four ways in:
 
 ## Install
 
-The shortest path is:
+Install the current protonation and ligand pipeline from GitHub:
+
+```bash
+pip install "tmol @ git+https://github.com/uw-ipd/tmol.git@master"
+```
+
+This builds from source and installs the tested public AtomWorks release-branch
+commit automatically. The older published release remains available with:
 
 ```bash
 pip install tmol

@@ -96,6 +96,7 @@ dev = [
     "pytest-repeat>=0.9",
     "pytest-watch>=4.2",
     "pytest-xdist>=3.6",
+    "pyproject-hooks>=1.2",  # Exercise the real frontend metadata/build contract.
     # Interactive
     "ipython>=8.0",
     # Visualization

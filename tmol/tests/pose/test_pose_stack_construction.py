@@ -1,9 +1,53 @@
+import pytest
 import torch
 
 from tmol.chemical import MAX_SIG_BOND_SEPARATION
 from tmol.io import pose_stack_from_pdb
 
-from tmol.pose import InterBlockBondsep, PoseStackBuilder
+from tmol.pose import ConstraintSet, InterBlockBondsep, PoseStackBuilder
+from tmol.score.constraint import ConstraintEnergyTerm
+
+
+@pytest.mark.parametrize("target_on_cpu", [False, True])
+def test_concatenate_pose_stacks_moves_metadata(ubq_pdb, torch_device, target_on_cpu):
+    target = torch.device("cpu") if target_on_cpu else torch_device
+    inputs = [
+        pose_stack_from_pdb(ubq_pdb, device, residue_end=n_res)
+        for device, n_res in [(torch_device, 3), (torch.device("cpu"), 2)]
+    ]
+    for pose in inputs:
+        atoms = torch.tensor([[[0, 0, 0], [0, 1, 0]]], dtype=torch.int32)
+        params = torch.tensor([[1.5, 0.1]], dtype=torch.float32)
+        pose.constraint_set = ConstraintSet.create_empty(
+            pose.device, 1
+        ).add_constraints(
+            ConstraintEnergyTerm.harmonic, atoms.to(pose.device), params.to(pose.device)
+        )
+
+    combined = PoseStackBuilder.from_poses(inputs, target)
+    assert combined.device == target
+    assert combined.packed_block_types.device == target
+    assert combined.packed_block_types.n_atoms.device == target
+    assert combined.constraint_set.device == target
+    assert combined.constraint_set.constraint_atoms.device == target
+    for index, pose in enumerate(inputs):
+        torch.testing.assert_close(
+            combined.coords[index, : pose.coords.shape[1]].cpu(),
+            pose.coords[0].cpu(),
+            rtol=0,
+            atol=0,
+        )
+        expected = pose.constraint_set.constraint_atoms[:, :2].clone().to(target)
+        expected[:, :, 0] = index
+        torch.testing.assert_close(
+            combined.constraint_set.constraint_atoms[index : index + 1, :2], expected
+        )
+        torch.testing.assert_close(
+            combined.constraint_set.constraint_params[index : index + 1],
+            pose.constraint_set.constraint_params.to(target),
+        )
+        assert pose.constraint_set.device == pose.device
+        assert pose.packed_block_types.device == pose.device
 
 
 def test_concatenate_pose_stacks_ctor(ubq_pdb, default_database, torch_device):

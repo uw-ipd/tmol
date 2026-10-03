@@ -474,3 +474,43 @@ def test_protonation_report_ignores_catalog_order(torch_device):
     )
     assert chosen_protonation_variants(reordered_pose) == before
     assert torch.equal(reordered_pose.coords, pose.coords)
+
+
+@pytest.mark.parametrize("dtype,expected", [(torch.float32, 0.0), (torch.float64, 1.0)])
+def test_state_energy_retains_dtype_rounding_and_device(dtype, expected, torch_device):
+    """Constants add in pose precision, without losing device or creating gradients."""
+    import biotite.structure as struc
+    from tmol.pack.protonation_alternatives import protonation_state_energy
+
+    source = atom_array_from_cif(data_path(*DMZ))
+    histidine = source[
+        (source.chain_id == "A") & (source.res_id == 8) & (source.element != "H")
+    ]
+    copies = []
+    for i, chain in enumerate("ABC"):
+        copy = histidine.copy()
+        copy.chain_id[:] = chain
+        copy.coord += 20 * i
+        copies.append(copy)
+    pose = pose_stack_from_biotite(
+        struc.concatenate(copies), torch_device, ligand_ph=3.9
+    )
+    assert all(
+        pose.packed_block_types.active_block_types[i].base_name == "HIS_POS"
+        for i in pose.block_type_ind64[0].tolist()
+    )
+    annotations = numpy.empty((1, 3), dtype=[(PROTONATION_ALTERNATIVES, "U100")])
+    for block, offset in enumerate((2**24, 1, -(2**24))):
+        annotations[PROTONATION_ALTERNATIVES][
+            0, block
+        ] = f"HIS:0:0,HIS_D:0:0,HIS_POS:{offset}:1"
+    pose = attr.evolve(
+        pose,
+        coords=pose.coords.to(dtype),
+        pdb_info=attr.evolve(pose.pdb_info, residue_annotations=annotations),
+    )
+    energy = protonation_state_energy(pose)
+    assert energy.device == pose.coords.device
+    assert energy.dtype == dtype
+    assert not energy.requires_grad
+    assert energy.item() == expected

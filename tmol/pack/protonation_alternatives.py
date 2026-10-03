@@ -166,14 +166,12 @@ def rotamer_offsets(
 
 def protonation_state_energy(pose_stack: PoseStack) -> torch.Tensor:
     """Per-pose pH offsets for the current block types, in kcal/mol."""
-    energies = torch.zeros(
-        pose_stack.n_poses, dtype=pose_stack.coords.dtype, device=pose_stack.device
-    )
+    energies = torch.zeros(pose_stack.n_poses, dtype=pose_stack.coords.dtype)
     types = pose_stack.packed_block_types.active_block_types
     block_types = pose_stack.block_type_ind64.cpu().numpy()
     for (pose, block), offsets in (block_alternatives(pose_stack) or {}).items():
         energies[pose] += offsets.get(types[block_types[pose, block]].base_name, 0.0)
-    return energies
+    return energies.to(pose_stack.device)
 
 
 @attr.define(frozen=True)

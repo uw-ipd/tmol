@@ -28,6 +28,7 @@ from rdkit import (
 from rdkit.Chem import AllChem
 
 from tmol.ligand._atom_typing import assign_tmol_atom_types
+from tmol.ligand._openbabel_compat import _OPENBABEL_FORCEFIELD_LOCK
 
 RDLogger.DisableLog("rdApp.*")
 
@@ -174,28 +175,30 @@ def _forcefield_minimize(obmol, *, steps: int, frozen=()) -> None:
     uff fallback (for chemistries mmff94 cannot type)
     'frozen' atoms are held fixed"""
     openbabel, _ = _import_openbabel()
-    for name in ("mmff94", "uff"):
-        ff = openbabel.OBForceField.FindForceField(name)
-        if ff is None:
-            continue
-        constraints = openbabel.OBFFConstraints()
-        for i in frozen:
-            constraints.AddAtomConstraint(int(i) + 1)  # OB is 1-indexed
-        # ff is an obabel global
-        # if called consecutively on _isomers_, connectivity of 1st is used
-        #    for both in minimization
-        # setting up an empty molecule invalidates and forces recomputation
-        ff.Setup(openbabel.OBMol())
-        if not ff.IsSetupNeeded(obmol):
-            raise ValueError(
-                f"{name} setup cache was not invalidated; the ligand would be "
-                "minimized against another molecule's connectivity"
-            )
-        if ff.Setup(obmol, constraints):
-            ff.ConjugateGradients(steps)
-            ff.GetCoordinates(obmol)
-            return
-    raise ValueError("no force field could minimize the ligand")
+    # OpenBabel shares one mutable force-field instance per model across threads.
+    with _OPENBABEL_FORCEFIELD_LOCK:
+        for name in ("mmff94", "uff"):
+            ff = openbabel.OBForceField.FindForceField(name)
+            if ff is None:
+                continue
+            constraints = openbabel.OBFFConstraints()
+            for i in frozen:
+                constraints.AddAtomConstraint(int(i) + 1)  # OB is 1-indexed
+            # ff is an obabel global
+            # if called consecutively on _isomers_, connectivity of 1st is used
+            #    for both in minimization
+            # setting up an empty molecule invalidates and forces recomputation
+            ff.Setup(openbabel.OBMol())
+            if not ff.IsSetupNeeded(obmol):
+                raise ValueError(
+                    f"{name} setup cache was not invalidated; the ligand would be "
+                    "minimized against another molecule's connectivity"
+                )
+            if ff.Setup(obmol, constraints):
+                ff.ConjugateGradients(steps)
+                ff.GetCoordinates(obmol)
+                return
+        raise ValueError("no force field could minimize the ligand")
 
 
 # Geometry targets (ideal distances / angles / chirality)
