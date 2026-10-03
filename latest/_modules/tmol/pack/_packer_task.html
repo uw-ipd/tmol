@@ -943,10 +943,16 @@
 <span class="sd">        If ``block_mask`` is omitted, restrict every block for backward compatibility.</span>
 <span class="sd">        This operation only disables choices and may therefore be composed safely with</span>
 <span class="sd">        other task restrictions.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: A block selected by ``block_mask`` had allowed block types</span>
+<span class="sd">                and none of them has one of ``name3s`` (for example, a residue</span>
+<span class="sd">                bonded to a metal, which only its own variant can replace).</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="n">block_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">block_mask</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">per_block_is_block_type_allowed</span><span class="o">.</span><span class="n">device</span>
             <span class="k">assert</span> <span class="n">block_mask</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">per_block_is_block_type_allowed</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">had_choice</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">per_block_is_block_type_allowed</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="n">bt_name3_matches</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
             <span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">name3</span> <span class="ow">in</span> <span class="n">name3s</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">],</span>
@@ -959,9 +965,19 @@
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">block_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">restriction</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">restriction</span><span class="p">,</span> <span class="o">~</span><span class="n">block_mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">per_block_is_block_type_allowed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">per_block_is_block_type_allowed</span><span class="p">,</span> <span class="n">restriction</span>
-        <span class="p">)</span></div>
+        <span class="n">allowed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">per_block_is_block_type_allowed</span><span class="p">,</span> <span class="n">restriction</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">block_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">emptied</span> <span class="o">=</span> <span class="n">block_mask</span> <span class="o">&amp;</span> <span class="n">had_choice</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">allowed</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">emptied</span><span class="o">.</span><span class="n">any</span><span class="p">()):</span>
+                <span class="n">pose</span><span class="p">,</span> <span class="n">block</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">emptied</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">orig</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">[</span>
+                    <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">per_block_orig_block_type</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">])</span>
+                <span class="p">]</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"pose </span><span class="si">{</span><span class="n">pose</span><span class="si">}</span><span class="s2"> block </span><span class="si">{</span><span class="n">block</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">orig</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">): no allowed block type "</span>
+                    <span class="sa">f</span><span class="s2">"has a name3 in </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">name3s</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">per_block_is_block_type_allowed</span> <span class="o">=</span> <span class="n">allowed</span></div>
 
 
 <div class="viewcode-block" id="PackerTask.add_conformer_sampler">

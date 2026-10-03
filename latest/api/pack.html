@@ -636,6 +636,13 @@ block type at that residue has an energy less than
 <p>If <code class="docutils literal notranslate"><span class="pre">block_mask</span></code> is omitted, restrict every block for backward compatibility.
 This operation only disables choices and may therefore be composed safely with
 other task restrictions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – A block selected by <code class="docutils literal notranslate"><span class="pre">block_mask</span></code> had allowed block types
+    and none of them has one of <code class="docutils literal notranslate"><span class="pre">name3s</span></code> (for example, a residue
+    bonded to a metal, which only its own variant can replace).</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">

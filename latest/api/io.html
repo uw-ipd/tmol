@@ -1348,9 +1348,9 @@ stay unchanged; insufficient or degenerate references still raise.</p>
 construction use this database. If prepare_ligands=True, it is
 extended with ligand data. Mutually exclusive with <code class="docutils literal notranslate"><span class="pre">context</span></code>.</p></li>
 <li><p><strong>missing_density_distance_threshold</strong> – Distance threshold in Angstroms.
-Adjacent polymer residues whose connection atoms (C-N, O3’-P) are
-farther apart are treated as disconnected (upper/lower connects
-broken), even if a bond is declared. Set to 0 to disable. Default 2.4.</p></li>
+Adjacent polymer residues whose connection atoms exceed this distance
+are disconnected only where topology was inferred. A supplied bond
+across a gap raises; set to 0 to retain it. Default is 2.4.</p></li>
 <li><p><strong>no_optH</strong> – Residues the input gives no hydrogens take AtomWorks’
 protonation state: database residues then get hydrogens built by
 tmol, other residues those AtomWorks places. When True (default),
