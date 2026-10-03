@@ -2,14 +2,16 @@
 
 import biotite.structure as struc
 from biotite.structure.io.pdb import PDBFile
-from biotite.structure.io.pdbx import CIFFile, CIFCategory, set_structure
+from biotite.structure.io.pdbx import CIFFile, CIFBlock, CIFCategory, set_structure
 import numpy as np
 import pytest
 
 from tmol.io import atom_array_from_cif, canonical_form_from_biotite
 from tmol.io._atomworks_reader import (
     INFERRED_POLYMER_BOND,
+    _declared_cif_bonds,
     _mark_inferred_polymer_bonds,
+    _with_declared_pdb_bonds,
 )
 from tmol.tests.data import data_path
 
@@ -121,6 +123,56 @@ def test_supplied_or_ambiguous_ports_are_not_marked_inferred():
     atoms.bonds.add_bond(carbon, sidechain, struc.BondType.SINGLE)
     _mark_inferred_polymer_bonds(atoms, set())
     assert not atoms.get_annotation(INFERRED_POLYMER_BOND).any()
+
+
+def test_missing_polymer_link_is_restored_without_turning_contacts_into_bonds():
+    atoms, carbon, nitrogen = _gapped_dipeptide()
+    atoms.bonds.remove_bond(carbon, nitrogen)
+    oxygens = np.flatnonzero(atoms.atom_name == "O")
+    coordinates = atoms.coord.copy()
+    expected = atoms.bonds.copy()
+    expected.add_bond(carbon, nitrogen, struc.BondType.SINGLE)
+    actual = _with_declared_pdb_bonds(
+        atoms, {frozenset((carbon, nitrogen)), frozenset(oxygens)}
+    )
+    assert actual == expected
+    np.testing.assert_array_equal(atoms.coord, coordinates)
+
+
+@pytest.mark.parametrize(
+    "selected_alt, declared_alt, expected",
+    [("A", "A", 1), ("A", "B", 0), (".", "B", 1)],
+)
+@pytest.mark.parametrize("reverse", [False, True])
+def test_declared_coordination_matches_the_selected_conformer(
+    selected_alt, declared_alt, expected, reverse
+):
+    atoms = struc.AtomArray(2)
+    atoms.chain_id = ["A", "B"]
+    atoms.res_id = [86, 237]
+    atoms.res_name = ["GLU", "ZN"]
+    atoms.atom_name = ["OE1", "ZN"]
+    atoms.element = ["O", "ZN"]
+    atoms.coord = np.array([[0, 0, 0], [2.1, 0, 0]], dtype=np.float32)
+    atoms.set_annotation("label_alt_id", np.array([selected_alt, "."]))
+    columns = {"id": ["coordination"], "conn_type_id": ["metalc"]}
+    for partner, atom in enumerate([1, 0] if reverse else [0, 1], 1):
+        for field, values in (
+            ("asym_id", atoms.chain_id),
+            ("seq_id", atoms.res_id.astype(str)),
+            ("comp_id", atoms.res_name),
+            ("atom_id", atoms.atom_name),
+        ):
+            columns[f"ptnr{partner}_label_{field}"] = [values[atom]]
+        columns[f"pdbx_ptnr{partner}_label_alt_id"] = [
+            declared_alt if atom == 0 else "A"
+        ]
+    bonds = _declared_cif_bonds(atoms, CIFBlock({"struct_conn": CIFCategory(columns)}))
+    assert bonds.get_bond_count() == expected
+    if expected:
+        np.testing.assert_array_equal(
+            bonds.as_array(), [[0, 1, struc.BondType.COORDINATION]]
+        )
 
 
 @pytest.mark.parametrize("inferred", [False, True])

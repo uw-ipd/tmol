@@ -93,15 +93,23 @@ def _pdb_declared_pairs(array, path, model):
 
 
 def _with_declared_pdb_bonds(array, declared):
-    """Retain LINK records even when numbering cannot infer their connection."""
+    """Restore declared polymer links even across nonconsecutive residue IDs."""
     if not declared:
         return array.bonds
     bonds = array.bonds if array.bonds is not None else struc.BondList(len(array))
     existing = {frozenset(pair) for pair in bonds.as_array()[:, :2]}
     for i, j in (sorted(pair) for pair in declared - existing):
-        bonds.add_bond(
-            i, j, infer_link_order(array, i, j, allow_missing_templates=True)
-        )
+        first = get_polymerization_atoms(str(array.res_name[i]))
+        second = get_polymerization_atoms(str(array.res_name[j]))
+        if (array.atom_name[i], array.atom_name[j]) in (
+            (first[0], second[1]),
+            (first[1], second[0]),
+        ):
+            # LINK can also describe metal contacts or hydrogen bonds. Only
+            # the CCD's polymer ports establish a missing polymer connection.
+            bonds.add_bond(
+                i, j, infer_link_order(array, i, j, allow_missing_templates=True)
+            )
     return bonds
 
 
@@ -184,12 +192,44 @@ def _with_pdb_author_chains(array, path, model):
 
 def _declared_cif_bonds(array, block, bond_types=("covale", "disulf", "metalc")):
     """File-declared links in the selected conformer, without distance filtering."""
-    connections = category_to_dict(block, "struct_conn")
+    struct_conn = category_to_dict(block, "struct_conn")
+    alternate_atoms = set()
+    if "label_alt_id" in array.get_annotation_categories():
+        with_altloc = ~np.isin(array.label_alt_id, (".", "?", " ", ""))
+        fields = (array.chain_id, array.res_id.astype(str), array.res_name)
+        alternate_atoms = set(
+            zip(
+                *(f[with_altloc] for f in fields),
+                array.atom_name[with_altloc],
+                strict=True,
+            )
+        )
     for partner in (1, 2):
-        connections.pop(f"pdbx_ptnr{partner}_label_alt_id", None)
+        if f"pdbx_ptnr{partner}_label_alt_id" in struct_conn:
+            # Ignore a row's conformer label only when the atom has no alternates.
+            residue_ids = struct_conn[f"ptnr{partner}_label_seq_id"]
+            residue_ids = np.where(
+                residue_ids == ".",
+                struct_conn.get(f"ptnr{partner}_auth_seq_id", residue_ids),
+                residue_ids,
+            )
+            partner_atoms = zip(
+                struct_conn[f"ptnr{partner}_label_asym_id"],
+                residue_ids,
+                struct_conn[f"ptnr{partner}_label_comp_id"],
+                struct_conn[f"ptnr{partner}_label_atom_id"],
+                strict=True,
+            )
+            has_alternate = np.array(
+                [atom in alternate_atoms for atom in partner_atoms], dtype=bool
+            )
+            alternate_ids = struct_conn[f"pdbx_ptnr{partner}_label_alt_id"]
+            struct_conn[f"pdbx_ptnr{partner}_label_alt_id"] = np.where(
+                has_alternate, alternate_ids, "."
+            )
     return get_struct_conn_bonds(
         array,
-        connections,
+        struct_conn,
         add_bond_types=bond_types,
         distance_policy="keep",
         allow_missing_templates=True,
