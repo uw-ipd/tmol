@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import logging
 import math
-from pathlib import Path
 from typing import Optional
 
 from rdkit import Chem
@@ -141,34 +140,19 @@ def _obmol_to_rdkit_mol(obmol, *, sanitize: bool = False) -> Optional[Chem.Mol]:
     return Chem.MolFromMolBlock(sdf, sanitize=sanitize, removeHs=False)
 
 
-def obabel_read_mol2(path: str | Path) -> Optional[Chem.Mol]:
-    """Read a TRIPOS mol2 file via OpenBabel and return an RDKit ``Chem.Mol``.
-
-    Use as a fallback when ``Chem.MolFromMol2File`` returns ``None`` on
-    valid mol2 files that RDKit's parser rejects.
-
-    Returns ``None`` if OB could not parse the file. Raises
-    :class:`OpenBabelUnavailableError` if OpenBabel is not installed.
-    """
-    openbabel, pybel = _import_openbabel()
-    path = Path(path)
-    try:
-        pymol = next(pybel.readfile("mol2", str(path)))
-    except StopIteration:
-        logger.warning("OpenBabel could not read any molecule from %s", path)
-        return None
-    except Exception:
-        logger.warning("OpenBabel failed to parse mol2 file %s", path, exc_info=True)
-        return None
-    return _obmol_to_rdkit_mol(pymol.OBMol)
-
-
-def obabel_read_mol2_block(mol2_block: str) -> Optional[Chem.Mol]:
+def obabel_read_mol2_block(
+    mol2_block: str,
+    *,
+    net_charge: int | None = None,
+    atom_charges: dict[int, int] | None = None,
+) -> Optional[Chem.Mol]:
     """Read a TRIPOS mol2 *string* via OpenBabel and return an RDKit ``Chem.Mol``.
 
-    In-memory analogue of :func:`obabel_read_mol2` — use as a fallback when
-    ``Chem.MolFromMol2Block`` returns ``None``. Returns ``None`` if OB could not
+    Use as a fallback when ``Chem.MolFromMol2Block`` returns ``None``. Returns ``None`` if OB could not
     parse the block. Raises :class:`OpenBabelUnavailableError` if OB is missing.
+    When supplied, ``net_charge`` constrains missing formal-charge assignment;
+    ``atom_charges`` restores known charges by zero-based atom index first.
+    The caller must validate the resulting valences and charge constraints.
     """
     _, pybel = _import_openbabel()
     try:
@@ -176,6 +160,10 @@ def obabel_read_mol2_block(mol2_block: str) -> Optional[Chem.Mol]:
     except Exception:
         logger.warning("OpenBabel failed to parse in-memory mol2 block", exc_info=True)
         return None
+    for index, charge in (atom_charges or {}).items():
+        pymol.OBMol.GetAtom(index + 1).SetFormalCharge(charge)
+    if net_charge is not None:
+        pymol.OBMol.AssignTotalChargeToAtoms(net_charge)
     return _obmol_to_rdkit_mol(pymol.OBMol)
 
 
@@ -281,19 +269,11 @@ def _compute_charges_with_fallback(openbabel, pymol, forcefield: str, smiles: st
     return chosen
 
 
-def _build_charged_3d_mol2_mol(
-    smiles: str,
-    *,
-    forcefield: str = "mmff94",
-    minimize_steps: int = 50,
-    seed: Optional[int] = None,
-):
+def _build_charged_3d_mol2_mol(smiles: str, *, seed: Optional[int] = None):
     """Parse a SMILES, 3D-embed, charge, and rename atoms; return the pybel mol.
 
-    Shared core of :func:`obabel_smiles_to_mol2` (file) and
-    :func:`obabel_smiles_to_mol2_block` (string). Coordinates come from the
-    distance-geometry builder (:func:`tmol.ligand._conformer_generation.
-    generate_conformer`); this then computes MMFF94 partial charges (so the mol2
+    Coordinates come from the distance-geometry builder
+    (:func:`tmol.ligand._conformer_generation.generate_conformer`); this then computes MMFF94 partial charges (so the mol2
     ``charge_type`` is normally ``MMFF94_CHARGES``) and assigns generic atom
     names. MMFF94 charges are topological, so the conformer does not affect them.
 
@@ -302,7 +282,6 @@ def _build_charged_3d_mol2_mol(
     :func:`_compute_charges_with_fallback`, which warns loudly.
 
     Args:
-        minimize_steps: OpenBabel conjugate-gradient cleanup steps.
         seed: Fixed RNG seed for reproducible coordinates; ``None`` is random.
 
     Raises:
@@ -315,59 +294,14 @@ def _build_charged_3d_mol2_mol(
     openbabel, _ = _import_openbabel()
     smiles = normalize_azide(strip_nontetrahedral_stereo(smiles))
     try:
-        pymol = generate_conformer(smiles, minimize_steps=minimize_steps, seed=seed)
+        pymol = generate_conformer(smiles, seed=seed)
     except Exception as exc:
         raise ValueError(
             f"failed to generate 3D coordinates for SMILES {smiles!r}"
         ) from exc
-    _compute_charges_with_fallback(openbabel, pymol, forcefield, smiles)
+    _compute_charges_with_fallback(openbabel, pymol, "mmff94", smiles)
     _assign_generic_atom_names(openbabel, pymol.OBMol)
     return pymol
-
-
-def obabel_smiles_to_mol2_block(
-    smiles: str,
-    *,
-    forcefield: str = "mmff94",
-    minimize_steps: int = 50,
-    seed: Optional[int] = None,
-) -> str:
-    """Return a 3D MMFF94 mol2 as an in-memory TRIPOS string (no disk I/O).
-
-    Preferred over :func:`obabel_smiles_to_mol2` for high-throughput batches
-    (e.g. millions of SMILES): the mol2 is handed downstream as a string rather
-    than written to and re-read from a temp file. See
-    :func:`_build_charged_3d_mol2_mol` for the protocol and raised errors.
-    """
-    pymol = _build_charged_3d_mol2_mol(
-        smiles, forcefield=forcefield, minimize_steps=minimize_steps, seed=seed
-    )
-    return pymol.write("mol2")
-
-
-def obabel_smiles_to_mol2(
-    smiles: str,
-    out_path: str | Path,
-    *,
-    forcefield: str = "mmff94",
-    minimize_steps: int = 50,
-    seed: Optional[int] = None,
-) -> Path:
-    """Generate a 3D MMFF94 mol2 from a SMILES and write it to ``out_path``.
-
-    File-writing wrapper around :func:`obabel_smiles_to_mol2_block`; prefer the
-    block form when no on-disk mol2 is required. See
-    :func:`_build_charged_3d_mol2_mol` for the protocol and raised errors.
-
-    Returns:
-        The ``out_path`` written.
-    """
-    pymol = _build_charged_3d_mol2_mol(
-        smiles, forcefield=forcefield, minimize_steps=minimize_steps, seed=seed
-    )
-    out_path = Path(out_path)
-    pymol.write("mol2", str(out_path), overwrite=True)
-    return out_path
 
 
 def _assign_generic_atom_names(openbabel, obmol) -> None:

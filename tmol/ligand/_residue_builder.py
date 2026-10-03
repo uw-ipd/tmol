@@ -49,6 +49,52 @@ def _mol_coords(mol: Chem.Mol) -> np.ndarray:
     return np.array(mol.GetConformer().GetPositions(), dtype=float)
 
 
+def _fragment_joins(
+    mol: Chem.Mol,
+    coords: np.ndarray,
+    is_heavy: list[bool],
+    root: int,
+    unusable: set[int],
+    res_name: str,
+) -> list[tuple[int, int]]:
+    """Atom-tree edges from the root's fragment to each unbonded fragment of mol.
+
+    A component may be several molecules, such as a counter-ion beside its
+    partner. The tree reaches each further fragment by one edge between the
+    closest pair of heavy atoms, so its atoms get internal coordinates; the edge
+    is not a bond. Fragments of dropped atoms only are left out, as those atoms
+    are.
+    """
+    fragments = [set(f) for f in Chem.GetMolFrags(mol)]
+    placed = next(f for f in fragments if root in f)
+    pending = [f for f in fragments if f is not placed and f - unusable]
+
+    def candidates(atoms):
+        return np.array(sorted(i for i in atoms if is_heavy[i] and i not in unusable))
+
+    joins = []
+    while pending:
+        here = candidates(placed)
+        best = None
+        for fragment in pending:
+            there = candidates(fragment)
+            if not len(there):
+                names = " ".join(mol.GetAtomWithIdx(i).GetSymbol() for i in fragment)
+                raise ValueError(
+                    f"{res_name}: an unbonded fragment ({names}) has no heavy atom "
+                    "to place it from. State its bonds or give it its own residue."
+                )
+            d = np.linalg.norm(coords[here][:, None] - coords[there][None], axis=-1)
+            i, j = np.unravel_index(np.argmin(d), d.shape)
+            if best is None or d[i, j] < best[0]:
+                best = (d[i, j], int(here[i]), int(there[j]), fragment)
+        _, a, b, fragment = best
+        joins.append((a, b))
+        placed |= fragment
+        pending.remove(fragment)
+    return joins
+
+
 _AMIDE_N_TYPES = {"Nad", "Nad3"}
 _GUANIDINIUM_N_TYPES = {"Ngu1", "Ngu2"}
 _PLANAR_N_TYPES = _AMIDE_N_TYPES | _GUANIDINIUM_N_TYPES
@@ -212,11 +258,11 @@ def build_residue_type(  # noqa: C901
     }
     mol_bonds = [(b.GetBeginAtomIdx(), b.GetEndAtomIdx()) for b in mol.GetBonds()]
     is_heavy = [a.GetAtomicNum() != 1 for a in mol.GetAtoms()]
-    nbr_idx = find_root_atom(
-        coords, mol_bonds, is_heavy, (dropped_indices or set()) | frame_excluded
-    )
+    unusable = (dropped_indices or set()) | frame_excluded
+    nbr_idx = find_root_atom(coords, mol_bonds, is_heavy, unusable)
+    joins = _fragment_joins(mol, coords, is_heavy, nbr_idx, unusable, res_name)
     order, parent, grandparents = build_atom_tree(
-        mol.GetNumAtoms(), mol_bonds, is_heavy, nbr_idx, frame_excluded
+        mol.GetNumAtoms(), mol_bonds + joins, is_heavy, nbr_idx, frame_excluded
     )
     if keep_indices is not None:
         order = [i for i in order if i in keep_indices]

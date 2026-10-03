@@ -14,6 +14,7 @@ through the usual sidechain path rather than through anything new.
 """
 
 import logging
+from pathlib import Path
 
 import biotite.structure as struc
 import numpy as np
@@ -23,6 +24,13 @@ logger = logging.getLogger(__name__)
 _MISSING_CIF_VALUE = ("", ".", "?")
 _FORMAL_CHARGE_SPECIFIED = "tmol_formal_charge_specified"
 _SOURCE_FORMAL_CHARGE = "tmol_source_formal_charge"
+# neutral valence of the atoms whose deposited charge their bonds can contradict
+_CHARGE_VALENCE = {"C": 4, "N": 3, "O": 2, "F": 1, "CL": 1, "BR": 1, "I": 1}
+# (fewest, most) bond orders each BondType can stand for, indexed by its value
+_BOND_ORDER_RANGE = (
+    np.array([1, 1, 2, 3, 4, 1, 2, 3, 0, 1]),
+    np.array([3, 1, 2, 3, 4, 1, 2, 3, 0, 2]),
+)
 
 
 def component_chemistry_from_cif(cif_path) -> dict:
@@ -114,7 +122,7 @@ def atom_array_from_cif(
     model: int = 1,
     assembly_id: str | None = None,
 ):
-    """Read a PDB, CIF, compressed CIF or binary CIF into an AtomArray.
+    """Read a PDB, CIF, compressed CIF, binary CIF, MOL2 or SDF into an AtomArray.
 
     Preserve supplied names, coordinates, hydrogens and covalent connections.
     Declared unresolved heavy atoms have NaN coordinates. Chemistry the file
@@ -127,6 +135,14 @@ def atom_array_from_cif(
     """
     from tmol.io._atomworks_reader import read_structure
 
+    if isinstance(cif_path, (str, Path)) and Path(cif_path).suffix.lower() in (
+        ".mol2",
+        ".sdf",
+        ".mol",
+    ):
+        from tmol.io._assemble import atom_array_from_mol2
+
+        return atom_array_from_mol2(cif_path)
     if assembly_id is not None and (
         not isinstance(assembly_id, str) or not assembly_id
     ):
@@ -175,7 +191,11 @@ def atom_array_from_cif(
     # AtomWorks skips sanitation when its own completion is disabled. Repair
     # the final author-view graph with the same shared attachment chemistry.
     with custom_ccd_residues(array._custom_ccd_registry):
-        specified = getattr(array, "pdbx_formal_charge", np.full(len(array), "?"))
+        # PoseBusters 6TW5 (Cl1-): a PDB states charges in its charge column,
+        # where blank reads as 0
+        stated = np.where(array.charge != 0, array.charge.astype(str), "?")
+        stated = stated if block is None else np.full(len(array), "?")
+        specified = getattr(array, "pdbx_formal_charge", stated)
         charge_specified = ~np.isin(specified, _MISSING_CIF_VALUE)
         for index in np.flatnonzero(charge_specified):
             array.charge[index] = int(specified[index])
@@ -210,7 +230,68 @@ def atom_array_from_cif(
         if hasattr(array, "pdbx_formal_charge"):
             array.del_annotation("pdbx_formal_charge")
         array = with_unresolved_atoms(array, templates)
-        return resolve_leaving_atoms(array)[0]
+        return _without_misstated_charges(resolve_leaving_atoms(array)[0], templates)
+
+
+def _without_misstated_charges(array, templates):
+    """``array`` with the charges its bonded C, N, O and halogen atoms cannot carry set to 0.
+
+    Off a metal, such a charge leaves too little room for the atom's bonds (1MHK
+    S:13 BR -1 bonded to a uridine C5), or the dictionary does not state it and it
+    is two or more where the bonds need none (7TJM 7:103 GLU OE2 +7) or +1 on an
+    oxygen with fewer than three bonds (3ZLP n:107 GLU OE1, a carboxylate's -1
+    deposited unsigned). The pH then decides the atom.
+    """
+    from atomworks.constants import METAL_ELEMENTS
+
+    element = np.char.upper(array.element.astype(str))
+    valence = np.array([_CHARGE_VALENCE.get(e, 0) for e in element])
+    charge = array.charge.astype(int)
+    if array.bonds is None or not ((valence > 0) & (charge != 0)).any():
+        return array
+    bonds = array.bonds.as_array()
+    fewest, most = (
+        np.bincount(bonds[:, 0], table[bonds[:, 2]], len(array))
+        + np.bincount(bonds[:, 1], table[bonds[:, 2]], len(array))
+        for table in _BOND_ORDER_RANGE
+    )
+    metal = np.isin(element, sorted(METAL_ELEMENTS))
+    by_metal = np.zeros(len(array), dtype=bool)
+    by_metal[bonds[metal[bonds[:, 1]], 0]] = True
+    by_metal[bonds[metal[bonds[:, 0]], 1]] = True
+    room = np.where(element == "C", valence - np.abs(charge), valence + charge)
+    unstated = (valence > 0) & (
+        ((np.abs(charge) > 1) & (fewest <= valence))
+        | ((element == "O") & (charge == 1) & (most < room))
+    )
+    for index in np.flatnonzero(unstated):
+        name = str(array.res_name[index])
+        template = templates.get(name)
+        if template is None:
+            template = _component_dictionary_template(name)
+        unstated[index] = template is None or charge[index] not in (
+            template.charge[template.atom_name == array.atom_name[index]]
+        )
+    misstated = (valence > 0) & (fewest > 0) & ~by_metal
+    misstated &= ((room < valence) & (fewest > room)) | unstated
+    # ligands are prepared by name, so a charge another copy of the atom keeps stays
+    named = np.char.add(np.char.add(array.res_name.astype(str), "/"), array.atom_name)
+    named = np.char.add(np.char.add(named, "/"), charge.astype(str))
+    misstated &= ~np.isin(named, named[~misstated & (charge != 0)])
+    if misstated.any():
+        logger.warning(
+            "Ignored the charges of %s, which their bonded atoms cannot carry",
+            ", ".join(
+                f"{array.chain_id[i]}:{array.res_id[i]}:{array.res_name[i]}/"
+                f"{array.atom_name[i]} {charge[i]:+d}"
+                for i in np.flatnonzero(misstated)
+            ),
+        )
+        array.charge[misstated] = 0
+        specified = array.get_annotation(_FORMAL_CHARGE_SPECIFIED).copy()
+        specified[misstated] = False
+        array.set_annotation(_FORMAL_CHARGE_SPECIFIED, specified)
+    return array
 
 
 def _component_formal_charges(block) -> dict[tuple[str, str], int]:

@@ -273,6 +273,29 @@ def test_a_donor_holding_its_hydrogen_is_known_by_that_hydrogen(
     assert {names[h] for h in row.tolist() if h >= 0} == hydrogens
 
 
+@pytest.mark.parametrize(
+    "res, atom, hydrogen, donates",
+    [
+        ("SER", "OG", "HG", True),
+        ("THR", "OG1", "HG1", True),
+        ("CYS", "SG", "HG", False),
+        ("TYR", "OH", "HH", False),
+    ],
+)
+def test_a_hydroxyl_donates_with_its_hydrogen_and_a_thiol_or_phenol_does_not(
+    default_database: tmol.database.ParameterDatabase, res, atom, hydrogen, donates
+):
+    # without its hydrogen stated every one of them donates
+    co = canonical_ordering(default_database)
+    donor = (1, co.restypes_atom_index_mapping[res][atom])
+    heavy = {atom: [2.2, 0.0, 0.0]}
+    for atoms in (heavy, {**heavy, hydrogen: [2.6, 0.9, 0.0]}):
+        _, ((_, got),) = find(
+            default_database, [("ZN", {"ZN": [0.0, 0.0, 0.0]}), (res, atoms)]
+        )
+        assert (donor in got.donor_atoms) == (donates or hydrogen not in atoms)
+
+
 def test_geometry_is_carried_as_a_res_type_variant(
     default_database: tmol.database.ParameterDatabase,
 ):

@@ -51,7 +51,7 @@ class LJLKPoseScoreOp
       Tensor rot_offset_for_block,
       int64_t max_n_rots_per_pose,
 
-      Tensor pose_stack_min_bond_separation,
+      Tensor pose_stack_near_blocks,
       Tensor pose_stack_inter_block_bondsep,
       Tensor block_type_n_atoms,
       Tensor block_type_n_heavy_atoms_in_tile,
@@ -95,7 +95,7 @@ class LJLKPoseScoreOp
                   TCAST(rot_offset_for_block),
                   max_n_rots_per_pose,
 
-                  TCAST(pose_stack_min_bond_separation),
+                  TCAST(pose_stack_near_blocks),
                   TCAST(pose_stack_inter_block_bondsep),
                   TCAST(block_type_n_atoms),
                   TCAST(block_type_n_heavy_atoms_in_tile),
@@ -140,7 +140,7 @@ class LJLKPoseScoreOp
            rot_offset_for_block,
            max_n_rots_per_pose_tp.tensor,
 
-           pose_stack_min_bond_separation,
+           pose_stack_near_blocks,
            pose_stack_inter_block_bondsep,
            block_type_n_atoms,
            block_type_n_heavy_atoms_in_tile,
@@ -201,7 +201,7 @@ class LJLKPoseScoreOp
       auto max_n_rots_per_pose =
           TPack<int32_t, 1, tmol::Device::CPU>(saved[i++]).view[0];
 
-      auto pose_stack_min_bond_separation = saved[i++];
+      auto pose_stack_near_blocks = saved[i++];
       auto pose_stack_inter_block_bondsep = saved[i++];
       auto block_type_n_atoms = saved[i++];
       auto block_type_n_heavy_atoms_in_tile = saved[i++];
@@ -248,7 +248,7 @@ class LJLKPoseScoreOp
                     TCAST(rot_offset_for_block),
                     max_n_rots_per_pose,
 
-                    TCAST(pose_stack_min_bond_separation),
+                    TCAST(pose_stack_near_blocks),
                     TCAST(pose_stack_inter_block_bondsep),
                     TCAST(block_type_n_atoms),
                     TCAST(block_type_n_heavy_atoms_in_tile),
@@ -294,7 +294,7 @@ class LJLKAndElecPoseScoreOp
       Tensor n_rots_for_block,
       Tensor rot_offset_for_block,
       int64_t max_n_rots_per_pose,
-      Tensor pose_stack_min_bond_separation,
+      Tensor pose_stack_near_blocks,
       Tensor pose_stack_inter_block_bondsep,
       Tensor block_type_n_atoms,
       Tensor block_type_atom_types,
@@ -336,9 +336,9 @@ class LJLKAndElecPoseScoreOp
       TCAST(block_type_ind_for_rot), TCAST(n_rots_for_pose),                 \
       TCAST(rot_offset_for_pose), TCAST(n_rots_for_block),                   \
       TCAST(rot_offset_for_block), max_n_rots_per_pose,                      \
-      TCAST(pose_stack_min_bond_separation),                                 \
-      TCAST(pose_stack_inter_block_bondsep), TCAST(block_type_n_atoms),      \
-      TCAST(block_type_atom_types), TCAST(block_type_n_interblock_bonds),    \
+      TCAST(pose_stack_near_blocks), TCAST(pose_stack_inter_block_bondsep),  \
+      TCAST(block_type_n_atoms), TCAST(block_type_atom_types),               \
+      TCAST(block_type_n_interblock_bonds),                                  \
       TCAST(block_type_atoms_forming_chemical_bonds),                        \
       TCAST(block_type_ljlk_path_distance),                                  \
       TCAST(block_type_all_atoms_ligand_typed), TCAST(ljlk_type_params),     \
@@ -497,7 +497,7 @@ class LJLKRotamerScoreOp
       Tensor lockstep_group_for_block,
       int64_t max_n_rots_per_pose,
 
-      Tensor pose_stack_min_bond_separation,
+      Tensor pose_stack_near_blocks,
       Tensor pose_stack_inter_block_bondsep,
       Tensor block_type_n_atoms,
       Tensor block_type_n_heavy_atoms_in_tile,
@@ -541,7 +541,7 @@ class LJLKRotamerScoreOp
                   TCAST(lockstep_group_for_block),
                   max_n_rots_per_pose,
 
-                  TCAST(pose_stack_min_bond_separation),
+                  TCAST(pose_stack_near_blocks),
                   TCAST(pose_stack_inter_block_bondsep),
                   TCAST(block_type_n_atoms),
                   TCAST(block_type_n_heavy_atoms_in_tile),
@@ -583,7 +583,7 @@ class LJLKRotamerScoreOp
            rot_offset_for_block,
            max_n_rots_per_pose_tp.tensor,
 
-           pose_stack_min_bond_separation,
+           pose_stack_near_blocks,
            pose_stack_inter_block_bondsep,
            block_type_n_atoms,
            block_type_n_heavy_atoms_in_tile,
@@ -641,7 +641,7 @@ class LJLKRotamerScoreOp
       auto max_n_rots_per_pose =
           TPack<int32_t, 1, tmol::Device::CPU>(saved[i++]).view[0];
 
-      auto pose_stack_min_bond_separation = saved[i++];
+      auto pose_stack_near_blocks = saved[i++];
       auto pose_stack_inter_block_bondsep = saved[i++];
       auto block_type_n_atoms = saved[i++];
       auto block_type_n_heavy_atoms_in_tile = saved[i++];
@@ -688,7 +688,7 @@ class LJLKRotamerScoreOp
                     TCAST(rot_offset_for_block),
                     max_n_rots_per_pose,
 
-                    TCAST(pose_stack_min_bond_separation),
+                    TCAST(pose_stack_near_blocks),
                     TCAST(pose_stack_inter_block_bondsep),
                     TCAST(block_type_n_atoms),
                     TCAST(block_type_n_heavy_atoms_in_tile),
@@ -745,7 +745,7 @@ std::vector<Tensor> ljlk_pose_scores_op(
     Tensor rot_offset_for_block,
     int64_t max_n_rots_per_pose,
 
-    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_near_blocks,
     Tensor pose_stack_inter_block_bondsep,
     Tensor block_type_n_atoms,
     Tensor block_type_n_heavy_atoms_in_tile,
@@ -778,7 +778,7 @@ std::vector<Tensor> ljlk_pose_scores_op(
       rot_offset_for_block,
       max_n_rots_per_pose,
 
-      pose_stack_min_bond_separation,
+      pose_stack_near_blocks,
       pose_stack_inter_block_bondsep,
       block_type_n_atoms,
       block_type_n_heavy_atoms_in_tile,
@@ -812,7 +812,7 @@ std::vector<Tensor> ljlk_elec_pose_scores_op(
     Tensor n_rots_for_block,
     Tensor rot_offset_for_block,
     int64_t max_n_rots_per_pose,
-    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_near_blocks,
     Tensor pose_stack_inter_block_bondsep,
     Tensor block_type_n_atoms,
     Tensor block_type_atom_types,
@@ -842,7 +842,7 @@ std::vector<Tensor> ljlk_elec_pose_scores_op(
       n_rots_for_block,
       rot_offset_for_block,
       max_n_rots_per_pose,
-      pose_stack_min_bond_separation,
+      pose_stack_near_blocks,
       pose_stack_inter_block_bondsep,
       block_type_n_atoms,
       block_type_atom_types,
@@ -876,7 +876,7 @@ std::vector<Tensor> ljlk_elec_weighted_pose_scores_op(
     Tensor n_rots_for_block,
     Tensor rot_offset_for_block,
     int64_t max_n_rots_per_pose,
-    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_near_blocks,
     Tensor pose_stack_inter_block_bondsep,
     Tensor block_type_n_atoms,
     Tensor block_type_atom_types,
@@ -907,7 +907,7 @@ std::vector<Tensor> ljlk_elec_weighted_pose_scores_op(
       n_rots_for_block,
       rot_offset_for_block,
       max_n_rots_per_pose,
-      pose_stack_min_bond_separation,
+      pose_stack_near_blocks,
       pose_stack_inter_block_bondsep,
       block_type_n_atoms,
       block_type_atom_types,
@@ -1011,7 +1011,7 @@ std::vector<Tensor> ljlk_rotamer_scores_op(
     Tensor lockstep_group_for_block,
     int64_t max_n_rots_per_pose,
 
-    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_near_blocks,
     Tensor pose_stack_inter_block_bondsep,
     Tensor block_type_n_atoms,
     Tensor block_type_n_heavy_atoms_in_tile,
@@ -1044,7 +1044,7 @@ std::vector<Tensor> ljlk_rotamer_scores_op(
       lockstep_group_for_block,
       max_n_rots_per_pose,
 
-      pose_stack_min_bond_separation,
+      pose_stack_near_blocks,
       pose_stack_inter_block_bondsep,
       block_type_n_atoms,
       block_type_n_heavy_atoms_in_tile,
@@ -1117,7 +1117,7 @@ std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
     Tensor rot_offset_for_block,
     Tensor lockstep_group_for_block,
     int64_t max_n_rots_per_pose,
-    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_near_blocks,
     Tensor pose_stack_inter_block_bondsep,
     Tensor block_type_n_atoms,
     Tensor block_type_atom_types,
@@ -1196,7 +1196,7 @@ std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
                     TCAST(rot_offset_for_block),
                     TCAST(lockstep_group_for_block),
                     max_n_rots_per_pose,
-                    TCAST(pose_stack_min_bond_separation),
+                    TCAST(pose_stack_near_blocks),
                     TCAST(pose_stack_inter_block_bondsep),
                     TCAST(block_type_n_atoms),
                     TCAST(block_type_atom_types),

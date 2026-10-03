@@ -1,5 +1,404 @@
 [
  {
+  "fixture": "kgq_alternates_4m8y.pdb.zst",
+  "source": "https://files.rcsb.org/download/4M8Y.cif.gz (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/m8/4m8y.cif.gz)",
+  "source_sha256": "ec882f14ed2bb8f2e89211050c327515fa8fb63a2edf5b539373070042897c51",
+  "transformation": "python3 /mnt/home/kdidi/scratch/protofix/crop.py 4m8y.cif.gz kgq_alternates_4m8y.cif 5 KGQ && python3 /mnt/home/kdidi/scratch/protofix/altloc_tmol/scripts/cif2pdb.py kgq_alternates_4m8y.cif kgq_alternates_4m8y.pdb && zstd -19 kgq_alternates_4m8y.pdb",
+  "sha256": "586feb4608147b34e2a854fdf8f541633890c9bcf59fe1a99218e97d1606af56",
+  "bytes": 28997,
+  "compressed_sha256": "7dd6425d91d38297d8831ae895b791e9222cab2d69f4318708a1d980f8e6939a"
+ },
+ {
+  "fixture": "metalc_alternate_3p1o.cif.zst",
+  "source": "https://files.rcsb.org/download/3P1O.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/p1/3p1o.cif.gz)",
+  "source_sha256": "f9736f2ad281d02ebc3b8cd63e3a63d09945974cc5fe0920020bbe46592dd322",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/p1/3p1o.cif.gz metalc_alternate_3p1o.cif 7 H:.; zstd -19 metalc_alternate_3p1o.cif",
+  "sha256": "ef6e1f02dd8d82a95bfcc3c0952bd391c5795fc6568d94e091c5fe03ba804be4",
+  "bytes": 59867,
+  "compressed_sha256": "13ee004203bd356433c178c4e9b8839a023dae0d2c93d2ad87ea255544ac45a2"
+ },
+ {
+  "fixture": "ion_alternates_8a7k.cif.zst",
+  "source": "https://files.rcsb.org/download/8A7K.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/a7/8a7k.cif.gz)",
+  "source_sha256": "1e79aff7a4d09ac09aabf1f670f1211319da618a6c76ed080443dd9b236478d8",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/a7/8a7k.cif.gz ion_alternates_8a7k.cif 5 L:.; zstd -19 ion_alternates_8a7k.cif",
+  "sha256": "2e69db5d383115d6b940d14b55d289d00cee393ea5df5fb9cd7e97b8cb9f18e4",
+  "bytes": 99356,
+  "compressed_sha256": "a5f4578fd1ec0a492b4f30e24f38d803c45c16dcf30ace8d58d282f6a82c8f47"
+ },
+ {
+  "fixture": "ion_alternates_3f7l.cif.zst",
+  "source": "https://files.rcsb.org/download/3F7L.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/f7/3f7l.cif.gz)",
+  "source_sha256": "c44e1113b8dd2db4475494a22daa4fade4d36dc28ae923649650f90830ffd656",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/f7/3f7l.cif.gz ion_alternates_3f7l.cif 5 B:. C:.; zstd -19 ion_alternates_3f7l.cif",
+  "sha256": "f452ec68152fd53ab8edeba1bcdeee6905cb5c05ea60af7d8c496f18b3aa9d45",
+  "bytes": 48927,
+  "compressed_sha256": "f389a99fd3c6623d9f0e6d03f7b08d0a1dc4adbf1207edf32f9577922415ae53"
+ },
+ {
+  "fixture": "heme_alternates_1i54.pdb.zst",
+  "source": "https://files.rcsb.org/download/1I54.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/i5/1i54.cif.gz)",
+  "source_sha256": "c98a1951b419da95b2abf0952bd0ce6c132ce827399b47bcc810f02805d2f538",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/i5/1i54.cif.gz heme_alternates_1i54.cif 5 C:.; python /mnt/home/kdidi/scratch/protofix/altloc_tmol/scripts/cif2pdb.py heme_alternates_1i54.cif heme_alternates_1i54.pdb (PDB-format records with author ids, altloc column and LINK records from struct_conn covale/metalc rows); zstd -19 heme_alternates_1i54.pdb",
+  "sha256": "386bc2900046e1d48a0a9cf72956d8da1376606342adbf41e07cdb6b1ebd3696",
+  "bytes": 30182,
+  "compressed_sha256": "91f161d421c83c52032e4d80b3f549d234c52ce64e0e5646786d506c2f0a1606"
+ },
+ {
+  "fixture": "microheterogeneity_1ejg.pdb.zst",
+  "source": "https://files.rcsb.org/download/1EJG.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/ej/1ejg.cif.gz)",
+  "source_sha256": "c59b29d7f079064d73667d3b510fdd9d39eb74e04cbd485022bcc9fc2383978d",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/altloc_tmol/scripts/cif2pdb.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/ej/1ejg.cif.gz microheterogeneity_1ejg.pdb (PDB-format records with author ids and altloc column, waters omitted); zstd -19 microheterogeneity_1ejg.pdb",
+  "sha256": "10e50f71ebd2d96c5bd24d84d820924962fc4dcc1d63b2f7a7abcd0c5d40fd71",
+  "bytes": 66601,
+  "compressed_sha256": "5dde4d3adf5d4d8ba14604a187daaeab260b977a887385bb8df31c86ee76b04a"
+ },
+ {
+  "fixture": "glycerol_alternates_1p4k.cif.zst",
+  "source": "https://files.rcsb.org/download/1P4K.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/p4/1p4k.cif.gz)",
+  "source_sha256": "864e242cff8e19aae7e19f8d7c16d8dd04fad5266f38b40230892cb9855680d1",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/p4/1p4k.cif.gz glycerol_alternates_1p4k.cif 5 C:.; zstd -19 glycerol_alternates_1p4k.cif",
+  "sha256": "169f1cc56605b7e317c843a25894aaf6256b20a99784a418e4fc0f0bd16a1a93",
+  "bytes": 70401,
+  "compressed_sha256": "8a9027d353127c7013a9d4b3d89d5c45390e1c886cc49f8adef64e4e271005c6"
+ },
+ {
+  "fixture": "zn_link_records_1hzy.pdb.zst",
+  "source": "https://files.rcsb.org/download/1HZY.pdb",
+  "source_sha256": "da24fbf4177897f2db3f1dff96543d1245a3bf943348f39d464d5547faae5ec8",
+  "origin": "atomworks-dev tests/data/io/zn_link_records_1hzy.pdb.zst (added 96b875e5/5fbee49f, removed 26ad6b5a); byte-identical to the recipe below",
+  "transformation": "python3 /mnt/home/kdidi/scratch/protofix/tmol2/pdb/crop_1hzy.py 1HZY.pdb zn_link_records_1hzy.pdb && python -c \"import zstandard; open('zn_link_records_1hzy.pdb.zst', 'wb').write(zstandard.ZstdCompressor(level=19).compress(open('zn_link_records_1hzy.pdb', 'rb').read()))\"",
+  "sha256": "fa2f705ae9dfb4f9593bccb3ab6347181ded4d1a3dbeb1f112eb08f536cc8c48",
+  "bytes": 8590,
+  "compressed_sha256": "2e607b3abdc5e426531797298cffe414a9eb8937c2dd84534d1b50b15ec55b0f"
+ },
+ {
+  "fixture": "capped_peptide_1coi.pdb.zst",
+  "source": "https://files.rcsb.org/download/1COI.pdb",
+  "source_sha256": "685390d4f6144f9a007a85d045fedb8b2e8a930ccf02222d6a29a95e6f2d6088",
+  "transformation": "grep -E '^(ATOM|HETATM|TER|END)' 1COI.pdb > capped_peptide_1coi.pdb && python -c \"import zstandard; open('capped_peptide_1coi.pdb.zst', 'wb').write(zstandard.ZstdCompressor(level=19).compress(open('capped_peptide_1coi.pdb', 'rb').read()))\"",
+  "sha256": "8c00a92891628ab476b7f7b1a6e84b1755fdc015858671126b161157cb9990c5",
+  "bytes": 20331,
+  "compressed_sha256": "f8bf3bca1c90a9efe1590d98aadadcba4c2a3ece999ca797a284587f5597fb85"
+ },
+ {
+  "fixture": "bonded_bromide_1mhk.cif.zst",
+  "source": "https://files.rcsb.org/download/1MHK.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/mh/1mhk.cif.gz)",
+  "source_sha256": "1b2f79a23d109ff0cc8bb64f05dd3efa58ee1b584b926360d012fc63f9757bb0",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/mh/1mhk.cif.gz bonded_bromide_1mhk.cif 0 BR; zstd -19 bonded_bromide_1mhk.cif",
+  "sha256": "889dda626aa044531c81f9bd38afe212704e5ccc5d603c2799f1dd2116de5050",
+  "bytes": 22767,
+  "compressed_sha256": "eab8a307eb1060ddbcf533ca7806ff17cab57843a81faeea0199b196cfcb647a"
+ },
+ {
+  "fixture": "unsigned_carboxylate_charge_3zlp.cif.zst",
+  "source": "https://files.rcsb.org/download/3ZLP.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/zl/3zlp.cif.gz)",
+  "source_sha256": "cf75abd5fc2996745b2e86fa986f6b5e4ac4ebea376bb41d9f11bff3169715a5",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/zl/3zlp.cif.gz unsigned_carboxylate_charge_3zlp.cif 0 NA:108; zstd -19 unsigned_carboxylate_charge_3zlp.cif",
+  "sha256": "60aeb40412dcdaf26b035176c377661562ed6c40c13996134e7a66d0c16eeb40",
+  "bytes": 325967,
+  "compressed_sha256": "db8c0ed327efc5842b2507d04de4826b64e85c2e9a15c09a4ab2e129e709583d"
+ },
+ {
+  "fixture": "oxygen_charge_seven_7tjm.cif.zst",
+  "source": "https://files.rcsb.org/download/7TJM.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/tj/7tjm.cif.gz)",
+  "source_sha256": "3b781217c9c25fd2f3b370df7a61debd2b3bbfc41cfabbcaf3bf4d4ad2ac1fca",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/tj/7tjm.cif.gz oxygen_charge_seven_7tjm.cif 0 EB:103; zstd -19 oxygen_charge_seven_7tjm.cif",
+  "sha256": "73d0ad90c7266609e51b6f2bba60ae3030729cb3c34eb28e1f93ccac89a0cf3c",
+  "bytes": 351357,
+  "compressed_sha256": "2dc344186d65d276dc161857520b1faf67227b565be28aa116c6477f3d7e9d6e"
+ },
+ {
+  "fixture": "shared_disulfide_sulfur_6cnb.cif.zst",
+  "source": "https://files.rcsb.org/download/6CNB.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/cn/6cnb.cif.gz)",
+  "source_sha256": "a9add7bdd2ca37e604dfdcb9a8005bb5bd47111ad18a6b26b608127c49dcd3d0",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/cn/6cnb.cif.gz shared_disulfide_sulfur_6cnb.cif 0 L:51 --no-poly-scheme; zstd -19 shared_disulfide_sulfur_6cnb.cif",
+  "sha256": "4f775076eb8ab58d3fc69207c9400c9fbc0ea64b01ed05e0e5dec7bf3dea7173",
+  "bytes": 226839,
+  "compressed_sha256": "0baa089d41746e9a870af8aeef4ec4401830c6f885f74f7b78a21683b630f02a"
+ },
+ {
+  "fixture": "metal_tyr_6yv5.cif.zst",
+  "source": "/mnt/data/frozen_pdb_copies/2026_01_06_pdb/yv/6yv5.cif.gz",
+  "source_repository": "RCSB PDB frozen mirror 2026_01_06",
+  "source_sha256": "3c0d09a87f04277a78822c2a17a67557bd06d50802df9bc3ca1432ae44c02695",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/yv/6yv5.cif.gz metal_tyr_6yv5.cif 0 NA; zstd level 19",
+  "sha256": "308b3e780d3ac16dfd30dd93031d1a671807d69eab179796296e1dcab872de07",
+  "bytes": 51149,
+  "compression": "zstd; decompressed bytes are the crop output",
+  "compressed_sha256": "9867bb43be8dfc3b4e3cd936b819e6a7617c91be07e3978f4fadb7e40e93fdbb"
+ },
+ {
+  "fixture": "ca_trace_1a1d.cif.zst",
+  "source": "/mnt/data/frozen_pdb_copies/2026_01_06_pdb/a1/1a1d.cif.gz",
+  "source_repository": "RCSB PDB frozen mirror 2026_01_06",
+  "source_sha256": "674a3343e0ef3a2a844c4736dbfe015c7d7d09b2842c859583491a097fc72609",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/a1/1a1d.cif.gz ca_trace_1a1d.cif 4 A:10; zstd level 19",
+  "sha256": "5c20a438b73c6b316cece422d83f585ff6bd4645aa5ec6f17c6315551e0808f0",
+  "bytes": 33338,
+  "compression": "zstd; decompressed bytes are the crop output",
+  "compressed_sha256": "522273085ba5b7d48b5a1c7487b046b8b39bb2978dbb227a169d9c7ca1094cb5"
+ },
+ {
+  "fixture": "glycan_o1_2yor.cif.zst",
+  "source": "/mnt/data/frozen_pdb_copies/2026_01_06_pdb/yo/2yor.cif.gz",
+  "source_repository": "RCSB PDB frozen mirror 2026_01_06",
+  "source_sha256": "cde1768426f41ae2a2ce098fee2ee5687234cca0e6c760f7a74a246fcde2db4c",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/yo/2yor.cif.gz glycan_o1_2yor.cif 0 C: AA:; zstd level 19",
+  "sha256": "546c5c15b9d1247fa2ed845a28013cffbc21c02f8df45056a392b51f7524cdcf",
+  "bytes": 85190,
+  "compression": "zstd; decompressed bytes are the crop output",
+  "compressed_sha256": "d87e9c512b088b7f543cd7c40299dcccba2fa7613cdec10913a455ba790be57b"
+ },
+ {
+  "fixture": "tyz_cap_and_conjugate_3w93.cif.zst",
+  "source": "/mnt/data/frozen_pdb_copies/2026_01_06_pdb/w9/3w93.cif.gz",
+  "source_url": "https://files.rcsb.org/download/3w93.cif.gz",
+  "source_repository": "RCSB PDB frozen mirror 2026_01_06",
+  "source_sha256": "058e9166f075d6aa559dd562375931680217f8088f617d9362b3688a79b2034d",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/w9/3w93.cif.gz tyz_cap_and_conjugate_3w93.cif 0 D: E:; zstd level 19",
+  "sha256": "a80a63c66faff491a2ca4113b9e0c06980e491b77dda704b73fd1e1a01ec4d73",
+  "bytes": 31942,
+  "compression": "zstd; decompressed bytes are the crop output",
+  "compressed_sha256": "a4f4a01a053aa5d1a1f0302e86f33fc80d143781356b45f9e7ba70536f05b6d4"
+ },
+ {
+  "fixture": "pyr_serine_amide_1i72.cif.zst",
+  "source": "/mnt/data/frozen_pdb_copies/2026_01_06_pdb/i7/1i72.cif.gz",
+  "source_url": "https://files.rcsb.org/download/1i72.cif.gz",
+  "source_repository": "RCSB PDB frozen mirror 2026_01_06",
+  "source_sha256": "0b4ba799989454bcdad9543ffbd5e1f74f8608b61bfd57af644990956b351837",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/i7/1i72.cif.gz pyr_serine_amide_1i72.cif 0 B:1; zstd level 19",
+  "sha256": "44403786b4370710de9160d106173844a67497d1f4f1692193b521d96a58a603",
+  "bytes": 60515,
+  "compression": "zstd; decompressed bytes are the crop output",
+  "compressed_sha256": "2acf1e22bb4177e8e8c66cf76865dbc7153287d02f1d546b7480ff2a753ef278"
+ },
+ {
+  "fixture": "kik_lysine_crosslink_5lnu.cif.zst",
+  "source": "/mnt/data/frozen_pdb_copies/2026_01_06_pdb/ln/5lnu.cif.gz",
+  "source_url": "https://files.rcsb.org/download/5lnu.cif.gz",
+  "source_repository": "RCSB PDB frozen mirror 2026_01_06",
+  "source_sha256": "a5bcdca17b739fd10551783ea9b2933402126b6ec374b46b1ebabee85b8b1ff4",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/ln/5lnu.cif.gz kik_lysine_crosslink_5lnu.cif 0 G:; zstd level 19",
+  "sha256": "2e8064cd364c28291db6b8431a887e2aeb7c960e44777f248de6aad409929e2f",
+  "bytes": 96351,
+  "compression": "zstd; decompressed bytes are the crop output",
+  "compressed_sha256": "c2f93fe00112fb3ec685364a4745bbb64b45ecda6e47693359c7f850c310315d"
+ },
+ {
+  "fixture": "mmt_5prime_ether_1cx5.cif.zst",
+  "source": "/mnt/data/frozen_pdb_copies/2026_01_06_pdb/cx/1cx5.cif.gz",
+  "source_url": "https://files.rcsb.org/download/1cx5.cif.gz",
+  "source_repository": "RCSB PDB frozen mirror 2026_01_06",
+  "source_sha256": "afdf223597fef9fbf39209f35b3953f16e15e016f861c235db298501561fffb8",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/cx/1cx5.cif.gz mmt_5prime_ether_1cx5.cif 0 A:7; zstd level 19",
+  "sha256": "6769db376135a51e3b43e66c26ff40d974ed12fa1bb722ab283cbaf41cec2470",
+  "bytes": 30601,
+  "compression": "zstd; decompressed bytes are the crop output",
+  "compressed_sha256": "d462b6634314b12cd54a4c290da5e1f65b29aade40ff9c0d15238cf67e6daa66"
+ },
+ {
+  "fixture": "lcc_leaving_atoms_6c8d.cif.zst",
+  "source": "/mnt/data/frozen_pdb_copies/2026_01_06_pdb/c8/6c8d.cif.gz",
+  "source_url": "https://files.rcsb.org/download/6c8d.cif.gz",
+  "source_repository": "RCSB PDB frozen mirror 2026_01_06",
+  "source_sha256": "43b02d7169da831fca2e51552f8f9faa7b0a1680222bda74ff4b288f4b4b86f1",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/c8/6c8d.cif.gz lcc_leaving_atoms_6c8d.cif 0 A:1; zstd level 19",
+  "sha256": "ce71772c1d8d3971881e8ff9626acf922bcee4c03fc1cb4822149b45e2b61c44",
+  "bytes": 43761,
+  "compression": "zstd; decompressed bytes are the crop output",
+  "compressed_sha256": "0fc7f25fdbd2c1fefa7bfbf3ee53a9fe43f4a2ecce25cc75298f96b9bfb4a4d6"
+ },
+ {
+  "fixture": "terminal_alkyne_7e9i.cif.zst",
+  "source": "https://files.rcsb.org/download/7E9I.cif.gz",
+  "source_mirror": "/mnt/data/frozen_pdb_copies/2026_01_06_pdb/e9/7e9i.cif.gz",
+  "source_sha256": "7bf7248db03632b3785992fc8a632ad7b9708ea86789ceb80c654353168f54ae",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/e9/7e9i.cif.gz terminal_alkyne_7e9i.cif 0 J0C && python -c \"import zstandard; open('terminal_alkyne_7e9i.cif.zst', 'wb').write(zstandard.ZstdCompressor(level=19).compress(open('terminal_alkyne_7e9i.cif', 'rb').read()))\"",
+  "sha256": "9acb0bbe3e7861d5937c244065e4dd799071245015a81a28ebe4ac39ff21745a",
+  "bytes": 26195,
+  "compressed_sha256": "5d0f4e98e37cd98610627295324c10108d54e57fc897a3fc9fbbc8b83f2ddd0f"
+ },
+ {
+  "fixture": "five_prime_phosphate_9cf0.cif.zst",
+  "source": "https://files.rcsb.org/download/9CF0.cif.gz",
+  "source_mirror": "/mnt/data/frozen_pdb_copies/2026_01_06_pdb/cf/9cf0.cif.gz",
+  "source_sha256": "966b179c70110e284129e9237a1c60458ef9bceec52fcd9d82259ea46d3d01b8",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/cf/9cf0.cif.gz five_prime_phosphate_9cf0.cif 0 B:2 B:3 E:4 E:5 && python -c \"import zstandard; open('five_prime_phosphate_9cf0.cif.zst', 'wb').write(zstandard.ZstdCompressor(level=19).compress(open('five_prime_phosphate_9cf0.cif', 'rb').read()))\"",
+  "sha256": "7541731ab76b9086bf2f0d0440ab99c9c6ec13c7840a75862fe22ff36ee4ad92",
+  "bytes": 160734,
+  "compressed_sha256": "b4c83201d031a56350e6dc2e9613e97a05536df955c217478722149416ded3a3"
+ },
+ {
+  "fixture": "free_nucleotides_8gpb.cif.zst",
+  "source": "https://files.rcsb.org/download/8GPB.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/gp/8gpb.cif.gz)",
+  "source_sha256": "377e96a142fc2fed7870f437f70996b8c48523c9df0d1dda85fd465b54be4cfa",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/gp/8gpb.cif.gz free_nucleotides_8gpb.cif 0 AMP; zstd -19 free_nucleotides_8gpb.cif",
+  "sha256": "271f6fdc882eb91d9a556b98c81c5410fd74f8a3b2f519df8623ab0be14979cd",
+  "bytes": 82024,
+  "compressed_sha256": "d5e7b8ad3d5a49ada775fb13e1c45a32c014e22a9b0a3c9acaa5624cc6e6f737"
+ },
+ {
+  "fixture": "cyclic_phosphate_3prime_1hq1.cif.zst",
+  "source": "https://files.rcsb.org/download/1HQ1.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/hq/1hq1.cif.gz)",
+  "source_sha256": "4ae72a693b11ebaa33d6a5248c6f02f5f50e3e1a17169c1fec105670c855a4af",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/hq/1hq1.cif.gz cyclic_phosphate_3prime_1hq1.cif 2.0 CCC; zstd -19 cyclic_phosphate_3prime_1hq1.cif",
+  "sha256": "39fca583efa112b2f47e474c2d04779aa6506376abe5663690192714223a7b82",
+  "bytes": 52915,
+  "compressed_sha256": "a943627b247bd1a6075d4ee50e5cb0f55cc1b3ec08ded964c1a7cfafdc27087c"
+ },
+ {
+  "fixture": "his_pos_nmr_2lny.cif.zst",
+  "source": "https://files.rcsb.org/download/2LNY.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/ln/2lny.cif.gz)",
+  "source_sha256": "12c2b7ed73c4a1f1a4de77976f4c291a22fd0b7fd767ba17c224f98bd69dba52",
+  "transformation": "zcat /mnt/data/frozen_pdb_copies/2026_01_06_pdb/ln/2lny.cif.gz > his_pos_nmr_2lny.cif; zstd -19 his_pos_nmr_2lny.cif",
+  "sha256": "12c2b7ed73c4a1f1a4de77976f4c291a22fd0b7fd767ba17c224f98bd69dba52",
+  "bytes": 51098,
+  "compressed_sha256": "c8a93c2d717fe918776b3ce5e0f1e930b141a1fe2d131d32cf63b211fc3fc9e2"
+ },
+ {
+  "fixture": "oxygen_acceptor_1mbo.cif.zst",
+  "source": "https://files.rcsb.org/download/1MBO.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/mb/1mbo.cif.gz)",
+  "source_sha256": "5f23b0a4a1679d51fa9fc5594bc9d2d8e5a491ef12496f0e31cd56152608520e",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/mb/1mbo.cif.gz oxygen_acceptor_1mbo.cif 8 OXY; zstd -19 oxygen_acceptor_1mbo.cif",
+  "sha256": "2da40fca6ea533b4125890a8283544a8501c6714a769da93b88b67bdfeca3b63",
+  "bytes": 58052,
+  "compressed_sha256": "e995a09aa3205ec88f65c3ab6db63b1e44f2132c3efff8d3d128dba52968cd4d"
+ },
+ {
+  "fixture": "metal_amine_terminus_3ppd.cif.zst",
+  "source": "https://files.rcsb.org/download/3PPD.cif.gz (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/pp/3ppd.cif.gz)",
+  "source_sha256": "a85d27246cf3af89ef1d98b4f8a8460ebc3d2e4c763da1f16b5425577e648ac1",
+  "transformation": "python3 /mnt/home/kdidi/scratch/protofix/crop.py 3ppd.cif.gz metal_amine_terminus_3ppd.cif 6 ZN && python -c \"import zstandard; open('metal_amine_terminus_3ppd.cif.zst', 'wb').write(zstandard.ZstdCompressor(level=19).compress(open('metal_amine_terminus_3ppd.cif', 'rb').read()))\"",
+  "sha256": "682eb1a70dcd94a53a156ed2dd6aceb29f7c1c48f8ec825c415de70e5c0a0e0d",
+  "bytes": 20048,
+  "compressed_sha256": "d4c3508b343b46b6dc594da24251ce5d5d860243802bfa4525caf53b94cc4422"
+ },
+ {
+  "fixture": "metal_lysine_2r1w.cif.zst",
+  "source": "https://files.rcsb.org/download/2R1W.cif.gz (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/r1/2r1w.cif.gz)",
+  "source_sha256": "b1f37c3e3fb01352dbba6177eea337188f13c8d9512206068db94e8f11aad930",
+  "transformation": "python3 /mnt/home/kdidi/scratch/protofix/crop.py 2r1w.cif.gz metal_lysine_2r1w.cif 5 MG && python -c \"import zstandard; open('metal_lysine_2r1w.cif.zst', 'wb').write(zstandard.ZstdCompressor(level=19).compress(open('metal_lysine_2r1w.cif', 'rb').read()))\"",
+  "sha256": "8bc0c9565568aa3e6172e010d72439c349d10b9b569b38c71d3e00201f154d4f",
+  "bytes": 67174,
+  "compressed_sha256": "d727044d999df72f95f0b867ed8f63771c5ac947d7e255b767b24cdb8b305e0c"
+ },
+ {
+  "fixture": "cysteine_heme_1cch.cif.zst",
+  "source": "https://files.rcsb.org/download/1CCH.cif.gz (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/cc/1cch.cif.gz)",
+  "source_sha256": "3ba1a04d66d634b39033b0df1aa61c211d53ac6b53f6a6f33fd1d846305ac4b1",
+  "transformation": "python3 /mnt/home/kdidi/scratch/protofix/crop.py 1cch.cif.gz cysteine_heme_1cch.cif 3 HEC && python -c \"import zstandard; open('cysteine_heme_1cch.cif.zst', 'wb').write(zstandard.ZstdCompressor(level=19).compress(open('cysteine_heme_1cch.cif', 'rb').read()))\"",
+  "sha256": "6b41a61e4d8358559418ebbdcbeebf868cc8105f601917ba03f6208be5829d0e",
+  "bytes": 44173,
+  "compressed_sha256": "44ece9d61c8692237c10e8460b4f83268bc40d2de9aa0823057c33819092fbc3"
+ },
+ {
+  "fixture": "metal_phosphate_7bad.cif.zst",
+  "source": "https://files.rcsb.org/download/7BAD.cif.gz (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/ba/7bad.cif.gz)",
+  "source_sha256": "615df7967d6b39f63acb00222a3c1f7ec92d0f94902a4d2d241bcacc79041354",
+  "transformation": "python3 /mnt/home/kdidi/scratch/protofix/crop.py 7bad.cif.gz metal_phosphate_7bad.cif 5 PO4 && python -c \"import zstandard; open('metal_phosphate_7bad.cif.zst', 'wb').write(zstandard.ZstdCompressor(level=19).compress(open('metal_phosphate_7bad.cif', 'rb').read()))\"",
+  "sha256": "e6d9189497c9d74f9b6d066b504f8ba5badf75f23e79bfad4e2ee72db15089d0",
+  "bytes": 44935,
+  "compressed_sha256": "ea5e04aae4fd624772584c95923ee18f202fcf1145f724ccbf38da89de9e3ec8"
+ },
+ {
+  "fixture": "polar_hydrogens_10gs.pdb.zst",
+  "source": "PDBbind v2013 core set, 10gs/10gs_protein.pdb",
+  "source_sha256": "656d888f576d06a5e9f9055b39e40fa4c94dae8a8672b649a4769c66faec3982",
+  "transformation": "awk '/^ATOM/ && substr($0,22,1)==\"A\" { r=substr($0,23,4)+0; if ((r>=44&&r<=50)||(r>=68&&r<=74)||(r>=98&&r<=104)) print } END {print \"END\"}' 10gs_protein.pdb > polar_hydrogens_10gs.pdb && python -c \"import zstandard; open('polar_hydrogens_10gs.pdb.zst', 'wb').write(zstandard.ZstdCompressor(level=19).compress(open('polar_hydrogens_10gs.pdb', 'rb').read()))\"",
+  "sha256": "4341bf4102e42cd025ecef8a80b3dd2194e658b3a3c67a96b2f53c078974f633",
+  "bytes": 17147,
+  "compressed_sha256": "22bb2f19d594593551842e86f5eb8865d78f48c061572b6f75a63d25a18f333d"
+ },
+ {
+  "fixture": "per_copy_phosphate_6m8q.cif.zst",
+  "source": "https://files.rcsb.org/download/6M8Q.cif.gz (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/m8/6m8q.cif.gz)",
+  "source_sha256": "c6a7b7bf1efe251aa49842326c8a07f87880bee83d96f9b1e95528b01e1d3231",
+  "transformation": "python3 /mnt/home/kdidi/scratch/protofix/crop.py 6m8q.cif.gz per_copy_phosphate_6m8q.cif 4 PO4 && python -c \"import zstandard; open('per_copy_phosphate_6m8q.cif.zst', 'wb').write(zstandard.ZstdCompressor(level=19).compress(open('per_copy_phosphate_6m8q.cif', 'rb').read()))\"",
+  "sha256": "5aafe36ea77f3feff4dce4ea375a9f75869649b843612d250ab72c3b3a16535e",
+  "bytes": 111358,
+  "compressed_sha256": "23976ffba621bf8ca54d47f78d3169cc8b938564c4443106884a3bec33028a1c"
+ },
+ {
+  "fixture": "unresolved_tyrosine_4ndz.cif.zst",
+  "source": "https://files.rcsb.org/download/4NDZ.cif.gz (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/nd/4ndz.cif.gz)",
+  "source_sha256": "3c86357cb63fcfd34efe300f21cd929332c823b2038aa4c2b91de8bd013d70ab",
+  "transformation": "python3 /mnt/home/kdidi/scratch/protofix/crop.py 4ndz.cif.gz unresolved_tyrosine_4ndz.cif 6 B:171 && zstd -19 unresolved_tyrosine_4ndz.cif",
+  "sha256": "255a965cfa07e76e333f09e87d479221280fa6853244a805e1b5183de5a9b7a3",
+  "bytes": 211527,
+  "compressed_sha256": "6c3515342d58e77aaf08e6920324c500a0652787efb152706cc8c195db9b3cf3"
+ },
+ {
+  "fixture": "plm_copies_8trb.cif.zst",
+  "source": "https://files.rcsb.org/download/8TRB.cif.gz (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/tr/8trb.cif.gz)",
+  "source_sha256": "7567c37c56a107386f75e982d9224adacc03d08778da465b410aee0d08351f23",
+  "transformation": "python3 /mnt/home/kdidi/scratch/protofix/crop.py 8trb.cif.gz plm_copies_8trb.cif 5 J:. K:. L:. M:. N:. && zstd -19 plm_copies_8trb.cif",
+  "sha256": "a33ca96da8ea29095894307fdca8850dea1b7563800bd1c8558dad043809e3b3",
+  "bytes": 156935,
+  "compressed_sha256": "adf5621b90c37c34a8d60690e4edb9e0a9dc40ca1b8606161e31d5360d38250c"
+ },
+ {
+  "fixture": "capped_peptide_1j8z.cif.zst",
+  "source": "https://files.rcsb.org/download/1J8Z.cif.gz (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/j8/1j8z.cif.gz)",
+  "source_sha256": "5f23702afebb608e7b41ef767ed6ef1869a9fe6b94886975cd66d10db361e082",
+  "transformation": "python3 /mnt/home/kdidi/scratch/protofix/crop.py 1j8z.cif.gz capped_peptide_1j8z.cif 30 ACE && zstd -19 capped_peptide_1j8z.cif",
+  "sha256": "a32f264c5e9c5d90d5c23548593fd0911940e62cf4b62c807e542c60f57a3c1a",
+  "bytes": 34112,
+  "compressed_sha256": "b4022894db4c0bc1cf33ecee18d28d1d97ff4f52d9f0cb4b14c8ef4b00c6c4ce"
+ },
+ {
+  "fixture": "xy7_phosphate_hydrogens_7kw4.cif.zst",
+  "source": "/mnt/data/frozen_pdb_copies/2026_01_06_pdb/kw/7kw4.cif.gz",
+  "source_url": "https://files.rcsb.org/download/7kw4.cif.gz",
+  "source_repository": "RCSB PDB frozen mirror 2026_01_06",
+  "source_sha256": "4727612ee989e8128c10abd8e7bce2798b745623fa8898cf51ecc4acec78cfa7",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/kw/7kw4.cif.gz xy7_phosphate_hydrogens_7kw4.cif 0 A:2; zstd level 19",
+  "sha256": "4e0bb4c8fec1f052e98fd4a54e7723236421415f990c4ecc752de52b1d3298b5",
+  "bytes": 46760,
+  "compression": "zstd; decompressed bytes are the crop output",
+  "compressed_sha256": "c9766815387aae621b939fcafe16dfc1ded81be712d049679e22ad82e9c225f0"
+ },
+ {
+  "fixture": "aab_phosphate_alias_1mwi.cif.zst",
+  "source": "/mnt/data/frozen_pdb_copies/2026_01_06_pdb/mw/1mwi.cif.gz",
+  "source_url": "https://files.rcsb.org/download/1mwi.cif.gz",
+  "source_repository": "RCSB PDB frozen mirror 2026_01_06",
+  "source_sha256": "d644540ee306c90d176fe9bdda96b5bfc1aa4583d2074ba7dac0b3bddb21e996",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/mw/1mwi.cif.gz aab_phosphate_alias_1mwi.cif 0 A:7; zstd level 19",
+  "sha256": "f06796527c002abae8d64916eabe856669af5ac0b65e8457fcfe6ce1b16de0f7",
+  "bytes": 60108,
+  "compression": "zstd; decompressed bytes are the crop output",
+  "compressed_sha256": "d3f3dc1467bc06ce3969783891f3e24cb8aa2fb25e08d90bec42b3717a5c5e60"
+ },
+ {
+  "fixture": "two_atom_residue_1gj2.cif.zst",
+  "source": "https://files.rcsb.org/download/1GJ2.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/gj/1gj2.cif.gz)",
+  "source_sha256": "b9fbad6985ba41151fdf97145ca0cef8534977143320c0f321009ba52dc63b67",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/gj/1gj2.cif.gz two_atom_residue_1gj2.cif 6 O; zstd -19 two_atom_residue_1gj2.cif",
+  "sha256": "b0ed8c38a3f0dda12cb35ec94e1c50364e4dfaf056c86ca2fec2a7b78c02caba",
+  "bytes": 19854,
+  "compressed_sha256": "bb0bc7f9661a4d12610e9c5f6ffbd2c65e3555641def9e0fdc1c06bbd6bf69d5"
+ },
+ {
+  "fixture": "glycine_ca_conjugate_5wrh.cif.zst",
+  "source": "https://files.rcsb.org/download/5WRH.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/wr/5wrh.cif.gz)",
+  "source_sha256": "9b082a4a94e54c8f4b3f23048eef17f3dc7fb73cbd09bd1bd3672c904353b987",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/wr/5wrh.cif.gz glycine_ca_conjugate_5wrh.cif 2 A:171; zstd -19 glycine_ca_conjugate_5wrh.cif",
+  "sha256": "f1cc7bd34ff5cde365d31322967e725ab98c13a50f598e346a7b920dc3843e99",
+  "bytes": 46528,
+  "compressed_sha256": "c9a3aa5e5a9a881b59dd2911a3d28b76464d45dc9c0998b6581d645fe3aaf4c9"
+ },
+ {
+  "fixture": "unresolved_frozen_chi_6sm6.cif.zst",
+  "source": "https://files.rcsb.org/download/6SM6.cif (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/sm/6sm6.cif.gz)",
+  "source_sha256": "d47ac1763fa674c9feb23c0263bf3b779d269d13e180f2bf1dedf120ac33ed13",
+  "transformation": "python /mnt/home/kdidi/scratch/protofix/crop.py /mnt/data/frozen_pdb_copies/2026_01_06_pdb/sm/6sm6.cif.gz unresolved_frozen_chi_6sm6.cif 0 4HH; zstd -19 unresolved_frozen_chi_6sm6.cif",
+  "sha256": "deec91efa7511445a862f6395758b344c2c94e9102cedf6fc7cae41671af0b90",
+  "bytes": 58629,
+  "compressed_sha256": "fa3e35142c754b5f65b8fea8c806e5614d78f8ca8d9e956a2fe26a5ff541407d"
+ },
+ {
   "fixture": "nitric_oxide_1koi.cif.zst",
   "source": "https://files.rcsb.org/download/1KOI.cif.gz (frozen PDB mirror 2026_01_06, ko/1koi.cif.gz)",
   "source_sha256": "145c520bdc18d1fa9aea4c8ef760f913443add4dbfe33c8c2a3b6bf1fed0373f",
@@ -9,6 +408,24 @@
   "compressed_sha256": "3ebafddadb1426b9ae85e5093d85f1a3bf5deee34b851bafbedb827de841cc86"
  },
  {
+  "fixture": "shared_author_site_3bln.cif.zst",
+  "source": "https://files.rcsb.org/download/3BLN.cif.gz (frozen PDB mirror 2026_01_06, bl/3bln.cif.gz)",
+  "source_sha256": "e21084861659a7e40592aaadfbd664956ab4ac5e2028ab0d3912532f0ff6d30e",
+  "transformation": "Decompress original gzip and recompress with zstandard level 12; preserve the full mmCIF byte-for-byte.",
+  "sha256": "514e647423265dbd831e85bf5c8371aa020ecb5e16ba3f7615697d8e90310726",
+  "bytes": 342174,
+  "compressed_sha256": "dd8cd077eadbd757d374ecc13c15427763b667237375d2763a4dbc02d725cfb4"
+ },
+ {
+  "fixture": "alternate_polymer_chains_1gtv.cif.zst",
+  "source": "https://files.rcsb.org/download/1GTV.cif.gz (frozen PDB mirror 2026_01_06, gt/1gtv.cif.gz)",
+  "source_sha256": "d20cc69a34da74599bd625ddf27edc9a266bef04eaa0e6167378b9a44cc9f586",
+  "transformation": "Decompress original gzip and recompress with zstandard level 12; preserve the full mmCIF byte-for-byte.",
+  "sha256": "92f27f714d374db6b23649449603e0da333c4486a22a6c309fd91956c8cc9a95",
+  "bytes": 472573,
+  "compressed_sha256": "e490a9cabb69bf1776b8ca434fbeb65206db2b514578d42c2b2589b9fb8a7fab"
+ },
+ {
   "fixture": "renumbered_chloride_4eu8.cif.zst",
   "source": "https://files.rcsb.org/download/4EU8.cif.gz (mirror /mnt/data/frozen_pdb_copies/2026_01_06_pdb/eu/4eu8.cif.gz)",
   "source_sha256": "2b5f50451bc023e3d143fde7b3449ea66a2428a6845537a0e7ce149c4825a19a",
@@ -16,5 +433,21 @@
   "sha256": "320d2a30831fdd53e3d3e7e04a3db40dfc360455015b89b6b3abf50bb447da4f",
   "bytes": 3012,
   "compressed_sha256": "9ef8a9eb5d07ced7a9ad3cd7fddea8bf606abc4b91267b3530f825745194f4ec"
+ },
+ {
+  "fixture": "localized_oxyacid_1akw.mol2",
+  "source": "CoreWeave PDBbind v2020_partial/v2020-other-PL_5/1akw/1akw_prot/1akw_l.mol2",
+  "source_sha256": "93bff01b08d6b45dc0c84fd08705257e0cdd578b78aafb1015b5211680efd7b8",
+  "transformation": "Trimmed trailing whitespace only; all50atoms/52bonds, coordinates, types and charges retained. FMN ring requires OpenBabel fallback; localized O.co2 phosphate charges must remain0,-1,-1.",
+  "purpose": "Preserve oxyanion formal charges after aromatic fallback, independently of whether the source uses delocalized or localized bonds.",
+  "fixture_sha256": "47ac68ff15dc193b11e113dc220460fa0eec6bec0cbe799b64d69471e296e6a3"
+ },
+ {
+  "fixture": "stated_terminus_5lh4.pdb",
+  "source": "CoreWeave PDBbind v2020 5lh4_prot/5lh4_p.pdb",
+  "source_sha256": "a62c3a94a758d4b1ff83e41e646dd5cb33adf9f9bc5039e9e2c7a16469ebe51e",
+  "transformation": "Retained original ATOM/HETATM lines for chain A residues 130 and 132; trimmed trailing whitespace and added END. Names, coordinates and charges unchanged.",
+  "purpose": "A supplied neutral H1/H2 terminus must not be reconnected across a missing residue even at a 1.94 Angstrom C-N gap.",
+  "fixture_sha256": "2f9bb310f2e48dbc1236fd12d976dc496d539b3ef3662095f92f042f7c2509a3"
  }
 ]

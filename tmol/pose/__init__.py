@@ -12,6 +12,7 @@ from ._pdb_info import (  # noqa: F401
     DEFAULT_ATOM_OCCUPANCY,
     PDBInfo,
 )  # noqa: F401
+from ._inter_block_bondsep import InterBlockBondsep  # noqa: F401
 from ._pose_stack import PoseStack  # noqa: F401
 from ._pose_stack_builder import PoseStackBuilder  # noqa: F401
 from ._sequence import (  # noqa: F401
@@ -26,6 +27,7 @@ __all__ = [
     "ConstraintSet",
     "DEFAULT_ATOM_B_FACTOR",
     "DEFAULT_ATOM_OCCUPANCY",
+    "InterBlockBondsep",
     "PackedBlockTypes",
     "annotate_packed_block_types_w_dslf_conn_inds",
     "annotate_packed_block_types_w_kinematic_conns",

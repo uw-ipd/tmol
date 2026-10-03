@@ -83,17 +83,17 @@ def test_connection_ownership_follows_term_and_module(
         torch.arange(coords.numel(), device=torch_device).reshape_as(coords)
     )
     coords.requires_grad_(True)
-    energies = {name: module(coords)[3, 0, 0, 1] for name, module in modules.items()}
+    energies = {name: module(coords)[2, 0, 0, 1] for name, module in modules.items()}
     assert energies["owned"].item() > 0.01
     assert energies["unowned"].item() == 0
     gradient = torch.autograd.grad(energies["unowned"], coords, retain_graph=True)[0]
     assert torch.count_nonzero(gradient) == 0
     for name, term in terms.items():
         assert (
-            term.render_block_pair_scoring_module(pose)(coords)[3, 0, 0, 1].item()
+            term.render_block_pair_scoring_module(pose)(coords)[2, 0, 0, 1].item()
             == energies[name].item()
         )
-        assert modules[name](coords)[3, 0, 0, 1].item() == energies[name].item()
+        assert modules[name](coords)[2, 0, 0, 1].item() == energies[name].item()
 
 
 def test_eviction_bounds_annotations_and_preserves_rendered_modules(

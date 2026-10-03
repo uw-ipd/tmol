@@ -119,18 +119,6 @@ def _elem_symbol(atomic_num: int) -> str:
     return Chem.GetPeriodicTable().GetElementSymbol(atomic_num)
 
 
-def _is_hydrogen(atom: Chem.Atom) -> bool:
-    """Return whether an RDKit atom is hydrogen.
-
-    Args:
-        atom: Atom to inspect.
-
-    Returns:
-        ``True`` if the atom atomic number is 1.
-    """
-    return atom.GetAtomicNum() == 1
-
-
 def sanitize_tolerant(mol: Chem.Mol) -> None:
     """Run ``Chem.SanitizeMol`` with a Kekulé/valence-tolerant fallback.
 
@@ -1148,7 +1136,7 @@ def _modify_polar_c(
             result.append(a)
             continue
 
-        n_heavy = sum(1 for nbr in atom.GetNeighbors() if not _is_hydrogen(nbr))
+        n_heavy = sum(1 for nbr in atom.GetNeighbors() if nbr.GetAtomicNum() != 1)
         if n_heavy <= 1:
             result.append(a)
             continue

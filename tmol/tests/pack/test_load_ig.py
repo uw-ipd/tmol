@@ -957,3 +957,35 @@ def test_run_two_poses_simA(ubq_ig, torch_device):
 
     assert rotamer_assignments.device == torch_device
     assert rotamer_assignments.shape == (2, n_traj, n_remaining)
+
+
+def test_no_bump_graph_takes_more_blocks_than_a_block_pair_table_indexes(
+    torch_device,
+):
+    """46,341 blocks square past 2^31 - 1. Only the bump check builds dense
+    block-pair tables, so only it may refuse; the no-bump graph (which the
+    streaming packer builds first to number rotamers) must not. Entries with
+    46-62k blocks (6QL7, 6TBA) failed to pack on that check."""
+    n_blocks = 46_341
+    assert n_blocks * n_blocks > 2**31 - 1
+
+    def build(bump_check):
+        return build_interaction_graph(
+            bump_check,
+            16,
+            1,
+            torch.tensor([n_blocks], dtype=torch.int64, device=torch_device),
+            torch.tensor([0], dtype=torch.int64, device=torch_device),
+            torch.ones((1, n_blocks), dtype=torch.int64, device=torch_device),
+            torch.arange(n_blocks, dtype=torch.int64, device=torch_device)[None],
+            torch.zeros(n_blocks, dtype=torch.int64, device=torch_device),
+            torch.zeros(n_blocks, dtype=torch.int64, device=torch_device),
+            torch.arange(n_blocks, dtype=torch.int32, device=torch_device),
+            torch.empty((3, 0), dtype=torch.int32, device=torch_device),
+            torch.empty(0, dtype=torch.float32, device=torch_device),
+            False,
+        )
+
+    assert len(build(False)) == 16
+    with pytest.raises((OverflowError, RuntimeError), match="block-pair dispatch"):
+        build(True)

@@ -59,7 +59,6 @@ RosettaVS even when a polar-H chi is counted but later skipped).
 
 from __future__ import annotations
 
-import attr
 from rdkit import Chem
 
 from tmol.database.chemical import ChiSamples, Torsion, UnresolvedAtom
@@ -67,15 +66,6 @@ from tmol.ligand._atom_typing import find_special_biaryl_pivots
 
 # RosettaVS hard-coded constant (Molecule.py): controls EXTRA expansion.
 MAX_CONFS = 5000
-
-# How many conformers a residue's own sampled chi may multiply its rotamers
-# by. The +/-20 degree expansions are kept while the product stays under the
-# first limit and dropped at the second; past it, chi are frozen from the tip
-# inward. A borrowed rotamer library multiplies this again, so its own count
-# is folded in as 3 ** n_library_chi -- exact for a rotameric library and low
-# by at most four for a semirotameric one, which is close enough to bound.
-EXPANDED_CONF_LIMIT = 100
-CONF_LIMIT = 1000
 
 # Heteroatoms that can carry a rotatable polar hydrogen (O, N, S).
 _POLAR_HEAVY = {7, 8, 16}
@@ -458,45 +448,3 @@ def build_chi_topology(  # noqa: C901
                 )
 
     return tuple(torsions), tuple(chi_samples)
-
-
-def _conformers(chi_samples, expanded: bool) -> int:
-    """How many conformers this set of sampled chi enumerates."""
-    total = 1
-    for cs in chi_samples:
-        if cs is None:  # frozen
-            continue
-        total *= len(cs.samples) * (1 + 2 * len(cs.expansions) if expanded else 1)
-    return total
-
-
-def apply_chi_sample_budget(chi_samples, n_library_chi: int = 0) -> tuple:
-    """Trim sampled chi so the rotamers they enumerate stay bounded.
-
-    A proton chi is never frozen: its hydrogen has no other source of
-    placement, and optH reads the same samples. Heavy chi are frozen from the
-    tip inward, since a chi near the backbone swings the whole sidechain where
-    one at the tip moves a couple of atoms.
-    """
-    # a chi the borrowed library defines is read from the library, not sampled
-    samples = [
-        cs
-        for cs in chi_samples
-        if cs.is_proton or int(cs.chi_dihedral[3:]) > n_library_chi
-    ]
-    library = 3**n_library_chi
-    if library * _conformers(samples, True) <= EXPANDED_CONF_LIMIT:
-        return tuple(samples)
-
-    samples = [attr.evolve(cs, expansions=()) for cs in samples]
-    # chi are numbered outward from the backbone, so the last is the tip
-    heavy = sorted(
-        (i for i, cs in enumerate(samples) if not cs.is_proton),
-        key=lambda i: int(samples[i].chi_dihedral[3:]),
-        reverse=True,
-    )
-    for index in heavy:
-        if library * _conformers(samples, False) <= CONF_LIMIT:
-            break
-        samples[index] = None
-    return tuple(cs for cs in samples if cs is not None)

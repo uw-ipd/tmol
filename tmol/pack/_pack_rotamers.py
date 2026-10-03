@@ -27,18 +27,31 @@ def pack_rotamers(
     sfxn: ScoreFunction,
     task: PackerTask,
     verbose: bool = False,
+    seed: int | None = None,
 ) -> PoseStack:
     """Optimize side-chain conformers for a pose stack.
+
+    The annealer draws from torch's generator on the pose device, so
+    ``torch.manual_seed`` controls it on the CPU as on CUDA.
 
     Args:
         pose_stack: Poses whose task-enabled blocks will be packed.
         sfxn: Score function used to rank rotamer assignments.
         task: Allowed block types, conformers, and packing positions.
         verbose: Print synchronized stage timings when true.
+        seed: Seed for this call only, leaving torch's global random state unchanged.
 
     Returns:
         A new pose stack containing the lowest-ranked assignment per pose.
     """
+    if seed is not None:
+        cuda = pose_stack.device.type == "cuda"
+        with torch.random.fork_rng(devices=[pose_stack.device] if cuda else []):
+            torch.random.default_generator.manual_seed(seed)
+            if cuda:
+                with torch.cuda.device(pose_stack.device):
+                    torch.cuda.manual_seed(seed)
+            return pack_rotamers(pose_stack, sfxn, task, verbose=verbose)
 
     max_poses_per_chunk = _max_poses_per_packing_chunk(pose_stack)
     if pose_stack.n_poses > max_poses_per_chunk:
@@ -264,7 +277,9 @@ def _slice_pose_stack_for_packing(
         block_coord_offset64=view(pose_stack.block_coord_offset64),
         inter_residue_connections=view(pose_stack.inter_residue_connections),
         inter_residue_connections64=view(pose_stack.inter_residue_connections64),
-        inter_block_bondsep=view(pose_stack.inter_block_bondsep),
+        inter_block_bondsep=pose_stack.inter_block_bondsep.select_poses(
+            first_pose, last_pose
+        ),
         block_type_ind=view(pose_stack.block_type_ind),
         block_type_ind64=view(pose_stack.block_type_ind64),
         chain_id=view(pose_stack.chain_id),
@@ -282,6 +297,9 @@ def _slice_packer_task(task: PackerTask, first_pose: int, last_pose: int) -> Pac
     for attribute in _PACKER_TASK_POSE_TENSORS:
         value = getattr(task, attribute)
         setattr(chunk_task, attribute, value[first_pose:last_pose])
+    offset = getattr(task, "per_block_considered_block_type_offset", None)
+    if offset is not None:
+        chunk_task.per_block_considered_block_type_offset = offset[first_pose:last_pose]
     chunk_task.real_block_pose, chunk_task.real_block_block = torch.nonzero(
         chunk_task.is_real_block, as_tuple=True
     )
@@ -422,6 +440,14 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
             collapse.compact_to_orig[rotamer_for_nonmolten_block.clamp(min=0)],
             rotamer_for_nonmolten_block,
         )
+    offset = getattr(task, "per_block_considered_block_type_offset", None)
+    if offset is not None:
+        # imports tmol.io and AtomWorks, which packing otherwise never loads
+        from tmol.pack.protonation_alternatives import rotamer_offsets
+
+        energy1b = energy1b + rotamer_offsets(offset, task, rotamer_set)[
+            bc_rot_to_orig_rot.to(torch.int64)
+        ].to(energy1b.dtype)
 
     packer_energy_tables = PackerEnergyTables(
         max_n_rotamers_per_pose=max_n_bump_checked_rotamers_per_pose_tensor.item(),

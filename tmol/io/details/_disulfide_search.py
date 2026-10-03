@@ -69,7 +69,6 @@ def find_disulfides(
             restype_variants,
         )
 
-    res_types_n = res_types.cpu().numpy()
     coords_n = coords.detach().cpu().numpy()
     cys_pose_ind_n = cys_pose_ind.cpu().numpy()
     cys_res_ind_n = cys_res_ind.cpu().numpy()
@@ -77,14 +76,12 @@ def find_disulfides(
     n_cys = cys_pose_ind.shape[0]
     found_disulfides = numpy.zeros((n_cys, 3), dtype=numpy.int64)
 
-    if disulfides is not None and disulfides.shape[0] != 0:
-        input_disulfides_n = disulfides.cpu().numpy()
-        n_input_dslf = input_disulfides_n.shape[0]
-        found_disulfides[:n_input_dslf] = input_disulfides_n
-        restype_variants = restype_variants.cpu().numpy()
-    else:
-        n_input_dslf = 0
-        restype_variants = numpy.full_like(res_types_n, 0)
+    # without declared disulfides the variants are still all zero
+    restype_variants = restype_variants.cpu().numpy()
+    n_input_dslf = 0
+    if disulfides is not None:
+        n_input_dslf = disulfides.shape[0]
+        found_disulfides[:n_input_dslf] = disulfides.cpu().numpy()
 
     found_disulfides = find_disulf_numba(
         coords_n,

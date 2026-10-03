@@ -1,4 +1,5 @@
 import attrs
+import ctypes
 import pytest
 import torch
 import math
@@ -352,6 +353,26 @@ def test_pack_rotamers_pose_chunks_preserve_pose_order_and_task(
     assert torch.equal(unchunked.block_type_ind, chunked.block_type_ind)
     assert unchunked.coords.shape == chunked.coords.shape
     assert torch.isfinite(chunked.coords).all()
+
+
+def test_seeded_packing_is_reproducible(
+    default_database, ubq_pdb, biotite_1ubq, dun_sampler, torch_device
+):
+    # Seeded packs agree whatever the C rand() state and the global torch state.
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=40)
+    pose_stack, task = setup_pose_stack_and_task([pose], torch_device, dun_sampler)
+    sfxn = get_packer_sfxn(default_database, torch_device)
+    packed = []
+    for c_seed in (1, 2):
+        ctypes.CDLL(None).srand(c_seed)
+        packed.append(pack_rotamers(pose_stack, sfxn, task, seed=11).coords)
+        pack_rotamers(pose_stack, sfxn, task)
+    torch.testing.assert_close(*packed, equal_nan=True)
+
+    state = torch.random.get_rng_state()
+    ubq = biotite_1ubq[~biotite_1ubq.hetero]
+    pose_stack_from_biotite(ubq, torch_device, no_optH=False, packer_seed=0)
+    assert torch.equal(torch.random.get_rng_state(), state)
 
 
 @pytest.mark.parametrize("n_blocks,expected", [(256, 25), (257, 10), (1025, 10)])

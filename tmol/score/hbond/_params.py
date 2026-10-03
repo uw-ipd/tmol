@@ -19,13 +19,8 @@ from tmol.database.chemical import ChemicalDatabase
 from tmol.database import PatchedChemicalDatabase
 
 from .._chemical_database import AcceptorHybridization
+from tmol.utility import resolve_device
 from tmol.utility.weak_identity_cache import WeakIdentityLRU
-
-
-def _resolved_device(device):
-    if device.type == "cuda" and device.index is None:
-        return torch.device("cuda", torch.cuda.current_device())
-    return torch.device("cpu") if device.type == "cpu" else device
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -101,7 +96,7 @@ class HBondParamResolver(ValidateAttrs):
         hbond_database: HBondDatabase,
         device: torch.device,
     ):
-        device = _resolved_device(device)
+        device = resolve_device(device)
         return cls._from_db_cache.get_or_create_many(
             (chemical_database, hbond_database),
             device,
@@ -242,7 +237,7 @@ class CompactedHBondDatabase(ValidateAttrs):
         hbond_database: HBondDatabase,
         device: torch.device,
     ):
-        device = _resolved_device(device)
+        device = resolve_device(device)
         return cls._from_db_cache.get_or_create_many(
             (chemical_database, hbond_database),
             device,

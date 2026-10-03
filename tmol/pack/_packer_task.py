@@ -64,10 +64,20 @@ class PackerPalleteAnnotation:
 
 
 class PackerPalette:
-    """Define which residue types may replace each original residue type."""
+    """Define which residue types may replace each original residue type.
 
-    def __init__(self):
-        pass
+    Args:
+        protonation_alternatives: Also let each residue whose pose records
+            AtomWorks' protonation alternatives (see ``pose_stack_from_biotite``)
+            take the block types of those alternatives, across protonation
+            states, each with its free-energy offset as a one-body packer
+            energy. The packer's energies are not calibrated for proton
+            transfer, so this is off by default. See
+            ``tmol.pack.protonation_alternatives`` for the chosen variants.
+    """
+
+    def __init__(self, protonation_alternatives: bool = False):
+        self.protonation_alternatives = protonation_alternatives
 
     def block_types_from_original(
         self, pbt: PackedBlockTypes, orig: Tensor[torch.int64][:, :]
@@ -182,14 +192,47 @@ def _mainchain_elements(block_type, element_for_atom_type):
     )
 
 
+def _backbone_signatures(pbt: PackedBlockTypes):
+    """Mainchain elements and applied terminal chemistry for each block type."""
+    element_for_atom_type = {at.name: at.element for at in pbt.chem_db.atom_types}
+    terminal_patches = {
+        patch.display_name
+        for patch in pbt.chem_db.variants
+        if {"<{down}>", "<{up}>"}.intersection(patch.remove_atoms)
+    }
+    return [
+        (
+            _mainchain_elements(bt, element_for_atom_type),
+            frozenset(bt.name.split(":")[1:]) & terminal_patches,
+        )
+        for bt in pbt.active_block_types
+    ]
+
+
+def _exchangeable(orig_bt, alt_bt, orig_backbone, alt_backbone) -> bool:
+    """Whether block types can exchange, aside from side-chain protonation."""
+    return (
+        alt_bt.properties.polymer.is_polymer == orig_bt.properties.polymer.is_polymer
+        and alt_bt.properties.polymer.polymer_type
+        == orig_bt.properties.polymer.polymer_type
+        and alt_bt.properties.polymer.backbone_type
+        == orig_bt.properties.polymer.backbone_type
+        and alt_bt.connections == orig_bt.connections
+        and alt_bt.conjugation_context == orig_bt.conjugation_context
+        and orig_backbone == alt_backbone
+        and set_compare(
+            alt_bt.properties.chemical_modifications,
+            orig_bt.properties.chemical_modifications,
+        )
+        and set_compare(alt_bt.properties.connectivity, orig_bt.properties.connectivity)
+    )
+
+
 def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockTypes):
     # Annotate the PackedBlockTypes object with the block-type to block-type comparisons
     if hasattr(pbt, "default_packer_palette_annotations"):
         return
-    element_for_atom_type = {at.name: at.element for at in pbt.chem_db.atom_types}
-    mc_elements = [
-        _mainchain_elements(bt, element_for_atom_type) for bt in pbt.active_block_types
-    ]
+    backbones = _backbone_signatures(pbt)
     allowed_block_types_for_block_type = [list() for _ in range(pbt.n_types)]
     allowed_block_is_orig = [list() for _ in range(pbt.n_types)]
     restrict_to_repacking_masks = [list() for _ in range(pbt.n_types)]
@@ -199,32 +242,28 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
         or bt.properties.protonation.protonation_state == DEPROTONATED_STATE
         for bt in pbt.active_block_types
     ]
+    # types can exchange only within a group that agrees on these fields; each
+    #    type's candidates keep the order of the full n^2 scan
+    groups = {}
+    for j, bt in enumerate(pbt.active_block_types):
+        polymer = bt.properties.polymer
+        key = (
+            polymer.is_polymer,
+            polymer.polymer_type,
+            polymer.backbone_type,
+            bt.properties.protonation.protonation_state,
+            len(bt.connections),
+            backbones[j],
+        )
+        groups.setdefault(key, []).append(j)
+    group_of = {j: members for members in groups.values() for j in members}
     for i, orig_bt in enumerate(pbt.active_block_types):
-        for j, alt_bt in enumerate(pbt.active_block_types):
+        for j in group_of[i]:
+            alt_bt = pbt.active_block_types[j]
             if i != j and (selected_by_detection[i] or selected_by_detection[j]):
                 continue
             j_allowed_for_restrict_to_repack = alt_bt.name3 == orig_bt.name3
-            if (
-                alt_bt.properties.polymer.is_polymer
-                == orig_bt.properties.polymer.is_polymer
-                and alt_bt.properties.polymer.polymer_type
-                == orig_bt.properties.polymer.polymer_type
-                and alt_bt.properties.polymer.backbone_type
-                == orig_bt.properties.polymer.backbone_type
-                and alt_bt.connections
-                == orig_bt.connections  # fd  use this instead of terminal variant check
-                and alt_bt.conjugation_context == orig_bt.conjugation_context
-                and mc_elements[i] == mc_elements[j]
-                and set_compare(
-                    alt_bt.properties.chemical_modifications,
-                    orig_bt.properties.chemical_modifications,
-                )
-                and set_compare(
-                    alt_bt.properties.connectivity, orig_bt.properties.connectivity
-                )
-                and alt_bt.properties.protonation.protonation_state
-                == orig_bt.properties.protonation.protonation_state
-            ):
+            if _exchangeable(orig_bt, alt_bt, backbones[i], backbones[j]):
                 if (
                     alt_bt.properties.polymer.sidechain_chirality
                     == orig_bt.properties.polymer.sidechain_chirality
@@ -338,6 +377,15 @@ class PackerTask:
         self.restrict_to_repacking_masks = palette.create_restrict_to_repacking_mask(
             systems.packed_block_types, systems.block_type_ind64
         )
+        # kcal/mol added to each considered block type's rotamers; None for none
+        self.per_block_considered_block_type_offset = None
+        if getattr(palette, "protonation_alternatives", False):
+            # imports tmol.io and AtomWorks, which packing otherwise never loads
+            from tmol.pack.protonation_alternatives import (
+                add_protonation_alternatives,
+            )
+
+            add_protonation_alternatives(self, systems)
         self.per_block_is_block_type_allowed = torch.ones_like(
             self.per_block_considered_block_types, dtype=torch.bool
         )
@@ -604,6 +652,9 @@ class SetPackerTask:
             task.per_block_conformer_sampler_allowed
         )
         set_task.per_block_chi_expansion = task.per_block_chi_expansion
+        set_task.per_block_considered_block_type_offset = getattr(
+            task, "per_block_considered_block_type_offset", None
+        )
 
         max_n_blocks = task.per_block_considered_block_types.shape[1]
         is_real_cbt = set_task.per_block_considered_block_types != -1

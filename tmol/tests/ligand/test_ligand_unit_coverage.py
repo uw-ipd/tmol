@@ -475,7 +475,12 @@ class TestDetectHelpers:
         monkeypatch.setattr(
             detect, "nonstandard_residue_info_from_mol2", lambda *_a, **_k: info
         )
-        monkeypatch.setattr(preparation, "prepare_single_ligand", lambda _info: "kept")
+
+        def keep(_info, *, name_source):
+            assert name_source is _info
+            return "kept"
+
+        monkeypatch.setattr(preparation, "prepare_single_ligand", keep)
         monkeypatch.setattr(
             preparation,
             "_prepare_ligand_via_smiles",
@@ -657,8 +662,8 @@ class TestPreparationHelpers:
         with pytest.raises(ValueError, match="requires a ligand that already"):
             prepare_single_ligand(info)
 
-    def test_residue_covers_cif_heavy_atoms_empty_is_true(self) -> None:
-        from tmol.ligand import _residue_covers_cif_heavy_atoms
+    def test_missing_cif_heavy_atom_names_empty_is_empty(self) -> None:
+        from tmol.ligand._preparation import _missing_cif_heavy_atom_names
 
-        # Empty CIF heavy-atom set short-circuits to True without inspecting prep.
-        assert _residue_covers_cif_heavy_atoms(object(), set()) is True
+        # Empty CIF heavy-atom set short-circuits without inspecting prep.
+        assert _missing_cif_heavy_atom_names(object(), set()) == set()

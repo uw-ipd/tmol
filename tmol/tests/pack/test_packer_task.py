@@ -11,6 +11,24 @@ def test_packer_palette_smoke():
     assert pp
 
 
+def test_terminal_palette_keeps_glycine_and_proline_design_choices(
+    fresh_default_packed_block_types, torch_device
+):
+    """Terminal chemistry agrees despite Gly/Pro's different backbone H counts."""
+    pbt = fresh_default_packed_block_types
+    names = [bt.name for bt in pbt.active_block_types]
+    palette = PackerPalette()
+    for suffix in ("", ":nterm", ":cterm"):
+        expected = {f"{base}{suffix}" for base in ("ALA", "GLY", "PRO")}
+        for original in expected:
+            counts, choices, _ = palette.block_types_from_original(
+                pbt,
+                torch.tensor([[names.index(original)]], device=torch_device),
+            )
+            offered = {names[i] for i in choices[0, 0, : counts[0, 0]].tolist()}
+            assert expected <= offered
+
+
 def test_packer_palette_design_to_canonical_aas(
     fresh_default_restype_set, fresh_default_packed_block_types, torch_device
 ):
