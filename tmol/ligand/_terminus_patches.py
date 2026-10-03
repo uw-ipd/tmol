@@ -521,6 +521,8 @@ def _mmff94_charges(mol, n_atoms):
     from rdkit import Chem
     from rdkit.Chem import AllChem
 
+    from tmol.ligand._openbabel_compat import _OPENBABEL_FORCEFIELD_LOCK
+
     try:
         block = Chem.Mol(mol)
         if block.GetNumConformers() == 0:
@@ -528,9 +530,10 @@ def _mmff94_charges(mol, n_atoms):
         # kekulization is not needed for bond-charge increments, and a
         #    residue that cannot be kekulized must not lose its charges
         obmol = pybel.readstring("mol", Chem.MolToMolBlock(block, kekulize=False))
-        model = openbabel.OBChargeModel.FindType("mmff94")
-        if model is None or not model.ComputeCharges(obmol.OBMol):
-            return None
+        with _OPENBABEL_FORCEFIELD_LOCK:
+            model = openbabel.OBChargeModel.FindType("mmff94")
+            if model is None or not model.ComputeCharges(obmol.OBMol):
+                return None
     except Exception as err:  # noqa: BLE001 - report and fall back to a copy
         logger.warning("MMFF94 charges unavailable: %s", err)
         return None

@@ -3,6 +3,16 @@
 TMol supports Python 3.11 and newer. It depends on PyTorch and ships custom
 C++/CUDA extensions for scoring, packing, kinematics, and minimization kernels.
 
+The current protonation and ligand changes are available from GitHub:
+
+```bash
+pip install "tmol @ git+https://github.com/uw-ipd/tmol.git@master"
+```
+
+This uses the source-build toolchain described below and installs the pinned
+public AtomWorks release-branch commit. These changes are not yet in the PyPI
+release; `pip install tmol` selects the older published package.
+
 > - **Choose a path:** Use a release wheel for the shortest supported install,
 >   or build from source when developing TMol or targeting an unavailable
 >   platform combination.

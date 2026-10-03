@@ -17,7 +17,6 @@ import contextlib
 import logging
 import math
 from functools import lru_cache
-from threading import Lock
 from typing import Optional
 
 import numpy as np
@@ -29,11 +28,11 @@ from rdkit import (
 from rdkit.Chem import AllChem
 
 from tmol.ligand._atom_typing import assign_tmol_atom_types
+from tmol.ligand._openbabel_compat import _OPENBABEL_FORCEFIELD_LOCK
 
 RDLogger.DisableLog("rdApp.*")
 
 logger = logging.getLogger(__name__)
-_OPENBABEL_FORCEFIELD_LOCK = Lock()
 
 
 @contextlib.contextmanager

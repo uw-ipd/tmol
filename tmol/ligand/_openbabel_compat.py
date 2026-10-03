@@ -17,11 +17,15 @@ from __future__ import annotations
 
 import logging
 import math
+from threading import Lock
 from typing import Optional
 
 from rdkit import Chem
 
 logger = logging.getLogger(__name__)
+
+# Charge assignment and minimization share OpenBabel's mutable force fields.
+_OPENBABEL_FORCEFIELD_LOCK = Lock()
 
 
 class OpenBabelUnavailableError(RuntimeError):
@@ -178,11 +182,14 @@ _NET_CHARGE_TOLERANCE = 1e-3
 
 def _model_partial_charges(openbabel, pymol, name: str, smiles: str):
     """Return this model's complete, finite charges, or None if unusable."""
-    model = openbabel.OBChargeModel.FindType(name)
-    pymol.OBMol.DeleteData("PartialCharges")
-    if model is None or not model.ComputeCharges(pymol.OBMol):
-        return None
-    charges = [atom.GetPartialCharge() for atom in openbabel.OBMolAtomIter(pymol.OBMol)]
+    with _OPENBABEL_FORCEFIELD_LOCK:
+        model = openbabel.OBChargeModel.FindType(name)
+        pymol.OBMol.DeleteData("PartialCharges")
+        if model is None or not model.ComputeCharges(pymol.OBMol):
+            return None
+        charges = [
+            atom.GetPartialCharge() for atom in openbabel.OBMolAtomIter(pymol.OBMol)
+        ]
     if len(charges) != pymol.OBMol.NumAtoms() or not all(
         math.isfinite(q) for q in charges
     ):
