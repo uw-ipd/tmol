@@ -33,7 +33,7 @@ Scope notes / latitude:
   is not ported.
 - ``border > 1`` biaryl-pivot CHIs (ring <-> conjugated functional group) ARE
   emitted via a port of ``search_special_biaryl_ring`` (the hard-coded
-  :data:`_SPECIAL_BIARYL_PAIRS` class-pair list). The remaining pivots through
+  :data:`tmol.ligand._atom_typing.SPECIAL_BIARYL_PAIRS` class-pair list). The remaining pivots through
   ring-like conjugated groups (guanidinium ``Ngu1``, tertiary amide ``Nad3``,
   ``NG2``, furan ``Ofu``) are recovered not by the ``is_planar`` geometry port
   but by honoring the source mol2's literal single-bond order
@@ -62,6 +62,7 @@ from __future__ import annotations
 from rdkit import Chem
 
 from tmol.database.chemical import ChiSamples, Torsion, UnresolvedAtom
+from tmol.ligand._atom_typing import find_special_biaryl_pivots
 
 # RosettaVS hard-coded constant (Molecule.py): controls EXTRA expansion.
 MAX_CONFS = 5000
@@ -95,44 +96,6 @@ _CONJUGATING_ACLASSES = frozenset(
         "OG2",
         "Ssl",
         "SG2",
-    }
-)
-
-# RosettaVS ``search_special_biaryl_ring`` hard-coded ``special_biaryl_to_ring``
-# list (SetupTopology.py). An ordered ``(a2_aclass, a3_aclass)`` pair, where a2
-# is a non-ring atom bonded to an aromatic ring atom a1 and a3 is a2's further
-# neighbour. When matched (and a3 is further-connected), the a1-a2 bond is a
-# biaryl pivot: a rotatable CHI that survives the ``border > 1`` skip.
-_SPECIAL_BIARYL_PAIRS = frozenset(
-    {
-        ("CDp", "OG2"),
-        ("CDp", "Oal"),
-        ("CDp", "Oad"),
-        ("NG21", "CR"),
-        ("NG21", "CRp"),
-        ("NG21", "CD"),
-        ("NG21", "CDp"),
-        ("NG21", "CSp"),
-        ("NG21", "CS"),
-        ("NG21", "CS1"),
-        ("NG21", "CS2"),
-        ("NG21", "SG5"),
-        ("Nad", "CDp"),
-        ("CDp", "Nad"),
-        ("CDp", "Nam2"),
-        ("CDp", "NG2"),
-        ("CDp", "Nin"),
-        ("CD1", "CD1"),
-        ("CD1", "CD"),
-        ("CD", "CD"),
-        ("CD", "CD1"),
-        ("CD", "CR"),
-        ("CD1", "CR"),
-        ("CDp", "CR"),
-        ("CD", "F"),
-        ("CD", "Cl"),
-        ("CD", "Br"),
-        ("CD", "I"),
     }
 )
 
@@ -257,39 +220,9 @@ def build_chi_topology(  # noqa: C901
         n_h = sum(1 for nb in atom.GetNeighbors() if nb.GetAtomicNum() == 1)
         return n_h == atom.GetDegree() - 1
 
-    def _detect_biaryl_pivots() -> set[frozenset]:
-        """Port RosettaVS ``search_special_biaryl_ring``: ring<->functional-group
-        rotatable bonds detected via the hard-coded ``_SPECIAL_BIARYL_PAIRS``.
-
-        For each aromatic ring atom ``a1`` and non-ring neighbour ``a2``, if some
-        ``(a2_aclass, a3_aclass)`` matches the list (``a3`` a further neighbour of
-        ``a2`` that is itself connected on), the ``a1-a2`` bond is a biaryl pivot.
-        These survive the ``border > 1`` skip. (The ``is_planar`` geometry
-        refinement is not yet ported, so a few planar pivots may be over-kept.)
-        """
-        pivots: set[frozenset] = set()
-        for a1 in atms_aro:
-            atom1 = mol.GetAtomWithIdx(a1)
-            for nb2 in atom1.GetNeighbors():
-                a2 = nb2.GetIdx()
-                if a2 not in valid or _share_ring(ring_membership, a1, a2):
-                    continue
-                a2c = atype_by_idx.get(a2)
-                special = False
-                further_connected = False
-                for nb3 in nb2.GetNeighbors():
-                    a3 = nb3.GetIdx()
-                    if a3 == a1:
-                        continue
-                    if (a2c, atype_by_idx.get(a3)) in _SPECIAL_BIARYL_PAIRS:
-                        special = True
-                    if nb3.GetDegree() > 1:
-                        further_connected = True
-                if special and further_connected:
-                    pivots.add(frozenset((a1, a2)))
-        return pivots
-
-    biaryl_pivots = _detect_biaryl_pivots()
+    biaryl_pivots = find_special_biaryl_pivots(
+        mol, atype_by_idx, atms_aro, ring_membership, valid
+    )
 
     # Map each atom to its tree children (atoms whose parent is this atom).
     children: dict[int, list[int]] = {i: [] for i in order}

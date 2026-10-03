@@ -210,7 +210,7 @@ struct common {
       dof[DOF_theta] = 0.0;
     } else {
       dof[DOF_phip] = std::atan2(M(0, 2), M(0, 1));
-      dof[DOF_phic] = std::atan2(-M(2, 0), -M(1, 0));
+      dof[DOF_phic] = std::atan2(M(2, 0), -M(1, 0));
       dof[DOF_theta] =
           std::atan2(std::sqrt(M(1, 0) * M(1, 0) + M(2, 0) * M(2, 0)), M(0, 0));
     }

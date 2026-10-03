@@ -679,9 +679,12 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
         }
       }
       if (first_nonjump_child == -1) {
-        // No non-jump children. "Recurse" to parent.
+        // No non-jump children. "Recurse" to parent, but not past the root
+        // (its own parent): a lone atom, e.g. a metal ion, has no frame atoms.
         int jump_parent = parents[jump_atom];
-        assert(jump_parent != jump_atom);
+        if (jump_parent == jump_atom) {
+          return std::make_tuple(-1, -1);
+        }
         jump_atom = jump_parent;
         continue;
       }
@@ -696,7 +699,9 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
       if (second_nonjump_child == -1) {
         // Insufficient non-jump descendants. "Recurse" to parent
         int jump_parent = parents[jump_atom];
-        assert(jump_parent != jump_atom);
+        if (jump_parent == jump_atom) {
+          return std::make_tuple(-1, -1);
+        }
         jump_atom = jump_parent;
         continue;
       }
@@ -713,6 +718,10 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
         auto result = get_c1_and_c2_atoms(i);
         c1 = std::get<0>(result);
         c2 = std::get<1>(result);
+        if (c1 < 0) {
+          // With too few atoms for a stub, retain the first-pass frames.
+          return;
+        }
 
         frame_x[i] = c1;
         frame_y[i] = i;
@@ -767,6 +776,10 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
           auto result = get_c1_and_c2_atoms(parent);
           c1 = std::get<0>(result);
           c2 = std::get<1>(result);
+          if (c1 < 0) {
+            // With too few atoms for a stub, retain the first-pass frames.
+            return;
+          }
 
           frame_x[i] = c1;
           frame_y[i] = i;

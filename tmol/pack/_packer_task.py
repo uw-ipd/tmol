@@ -476,10 +476,16 @@ class PackerTask:
         If ``block_mask`` is omitted, restrict every block for backward compatibility.
         This operation only disables choices and may therefore be composed safely with
         other task restrictions.
+
+        Raises:
+            ValueError: A block selected by ``block_mask`` had allowed block types
+                and none of them has one of ``name3s`` (for example, a residue
+                bonded to a metal, which only its own variant can replace).
         """
         if block_mask is not None:
             assert block_mask.device == self.per_block_is_block_type_allowed.device
             assert block_mask.shape == self.per_block_is_block_type_allowed.shape[:2]
+            had_choice = self.per_block_is_block_type_allowed.any(dim=-1)
 
         bt_name3_matches = torch.tensor(
             [bt.name3 in name3s for bt in self.pbt.active_block_types],
@@ -492,9 +498,19 @@ class PackerTask:
         )
         if block_mask is not None:
             restriction = torch.logical_or(restriction, ~block_mask.unsqueeze(-1))
-        self.per_block_is_block_type_allowed = torch.logical_and(
-            self.per_block_is_block_type_allowed, restriction
-        )
+        allowed = torch.logical_and(self.per_block_is_block_type_allowed, restriction)
+        if block_mask is not None:
+            emptied = block_mask & had_choice & ~allowed.any(-1)
+            if bool(emptied.any()):
+                pose, block = (int(i) for i in torch.nonzero(emptied)[0])
+                orig = self.pbt.active_block_types[
+                    int(self.per_block_orig_block_type[pose, block])
+                ]
+                raise ValueError(
+                    f"pose {pose} block {block} ({orig.name}): no allowed block type "
+                    f"has a name3 in {sorted(name3s)}"
+                )
+        self.per_block_is_block_type_allowed = allowed
 
     def add_conformer_sampler(self, sampler) -> None:
         """Enable this sampler everywhere, registering its identity once.
