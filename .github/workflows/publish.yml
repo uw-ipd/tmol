@@ -1,11 +1,9 @@
-# Build wheels + sdist, upload sdist to PyPI, upload wheels to GitHub Release.
+# Build wheels + sdist and upload them to a GitHub Release.
 #
 # Runs on version tag push or manual trigger.
 #
-# PyPI rejects wheel filenames with "+" local version segments
-# (e.g. +cu128torch2.10), so wheels are distributed via GitHub Releases
-# and installed via explicit wheel URL (or pinned local version with
-# --find-links).
+# The public AtomWorks Git dependency is not accepted by PyPI. Distribute
+# source and wheels through GitHub until that dependency has a PyPI release.
 #
 # Separate build and upload jobs let you re-run only the upload if it fails,
 # without rebuilding wheels or the sdist.
@@ -162,14 +160,15 @@ jobs:
 
   # ── Upload ─────────────────────────────────────────────────────────
   #
-  # sdist -> PyPI  (no local version segment, PyPI accepts it)
-  # wheels -> GitHub Release  (local version +cu... is fine here)
+  # Source and wheels -> GitHub Release.
   #
   # If this job fails you can RE-RUN just this job from the Actions UI.
   upload:
-    name: Upload sdist to PyPI + wheels to GitHub Release
+    name: Upload source and wheels to GitHub Release
     needs: [build_wheels, build_cpu_wheel, build_macos_cpu_wheel, build_sdist]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v5
 
@@ -177,8 +176,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install twine
-        run: pip install twine
+      - name: Install packaging
+        run: pip install packaging
 
       - name: Download sdist artifact
         uses: actions/download-artifact@v4
@@ -203,12 +202,6 @@ jobs:
       - name: Validate release wheel manifest
         run: python scripts/validate_release_manifest.py wheels
 
-      - name: Upload sdist to PyPI
-        env:
-          TWINE_USERNAME: "__token__"
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: python -m twine upload --skip-existing --repository-url https://upload.pypi.org/legacy/ dist/*
-
       - name: Determine version from sdist filename
         id: version
         run: |
@@ -230,6 +223,8 @@ jobs:
           draft: false
           prerelease: ${{ steps.version.outputs.prerelease }}
           generate_release_notes: false
-          files: wheels/*.whl
+          files: |
+            dist/*.tar.gz
+            wheels/*.whl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
