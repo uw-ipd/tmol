@@ -68,14 +68,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { torch-version: "2.13", runs-on: ubuntu-22.04, arch: x86_64 }
-          - { torch-version: "2.14", runs-on: ubuntu-24.04-arm, arch: aarch64 }
+          - { torch-version: "2.13", torch-package-version: "2.13.0", runs-on: ubuntu-22.04, arch: x86_64 }
+          - { torch-version: "2.14", torch-package-version: "2.14.1", runs-on: ubuntu-24.04-arm, arch: aarch64 }
     uses: ./.github/workflows/_build_wheel.yml
     with:
       runs-on: ${{ matrix.runs-on }}
       container-image: unused-for-manylinux-cpu
       torch-version: ${{ matrix.torch-version }}
-      torch-package-version: ${{ format('{0}.0', matrix.torch-version) }}
+      torch-package-version: ${{ matrix.torch-package-version }}
       python-version: "3.12"
       label: "smoke py3.12 pt${{ matrix.torch-version }} CPU ${{ matrix.arch }}"
       pip-torch-cuda-url: "https://download.pytorch.org/whl/cpu"
@@ -121,8 +121,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { torch-version: "2.13", runs-on: ubuntu-22.04, arch: x86_64 }
-          - { torch-version: "2.14", runs-on: ubuntu-24.04-arm, arch: aarch64 }
+          - { torch-version: "2.13", torch-package-version: "2.13.0", runs-on: ubuntu-22.04, arch: x86_64 }
+          - { torch-version: "2.14", torch-package-version: "2.14.1", runs-on: ubuntu-24.04-arm, arch: aarch64 }
     steps:
       - uses: actions/checkout@v5
 
@@ -149,7 +149,7 @@ jobs:
               ;;
           esac
           python -m pip install --upgrade pip
-          python -m pip install 'torch==${{ matrix.torch-version }}.0' \
+          python -m pip install 'torch==${{ matrix.torch-package-version }}' \
             --index-url https://download.pytorch.org/whl/cpu
           python -m pip install "$1"
 
@@ -251,7 +251,7 @@ jobs:
     uses: ./.github/workflows/_build_macos_wheel.yml
     with:
       python-version: ${{ matrix.python-version }}
-      torch-package-version: ${{ format('{0}.0', matrix.torch-version) }}
+      torch-package-version: ${{ matrix.torch-package-version }}
       label: "smoke py${{ matrix.python-version }} pt${{ matrix.torch-version }} CPU macOS arm64"
 
   test-macos-cpu:
@@ -288,7 +288,7 @@ jobs:
               ;;
           esac
           python -m pip install --upgrade pip
-          python -m pip install 'torch==${{ matrix.torch-version }}.0'
+          python -m pip install 'torch==${{ matrix.torch-package-version }}'
           python -m pip install "$1"
 
       - name: Load native extensions
