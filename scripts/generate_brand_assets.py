@@ -29,9 +29,9 @@ ORANGE = "#F46B35"
 LOGO_WIDTHS = (512, 1024, 2048)
 MARK_SIZES = (64, 128, 256, 512)
 FAVICON_SIZES = (16, 32, 48)
-# The symbol occupies x=48..532, y=48..614 in the master. A square crop
-# adds optical centering and clear space without stretching its geometry.
-MARK_VIEWBOX = "-41 0 662 662"
+# The helix, beta sheet, and force vector fit within the master's first
+# 662-unit square, including clear space. Preserve that square for icons.
+MARK_VIEWBOX = "0 0 662 662"
 
 
 def variant(master: ET.Element, ink: str, accent: str, mark=False) -> ET.Element:
@@ -41,7 +41,10 @@ def variant(master: ET.Element, ink: str, accent: str, mark=False) -> ET.Element
         svg.set("viewBox", MARK_VIEWBOX)
         svg.set("width", "662")
         svg.set("height", "662")
-        svg.find(f"{{{NS}}}desc").text = "TMol protein ribbon and acceleration arrow."
+        svg.find(f"{{{NS}}}desc").text = (
+            "TMol protein helix and two-strand beta sheet with a force "
+            "and acceleration vector."
+        )
     for path in svg.iter(f"{{{NS}}}path"):
         path.set("fill", ink if path.get("class") == "ink" else accent)
     return svg
