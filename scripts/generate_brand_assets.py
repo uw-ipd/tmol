@@ -29,9 +29,8 @@ ORANGE = "#F46B35"
 LOGO_WIDTHS = (512, 1024, 2048)
 MARK_SIZES = (64, 128, 256, 512)
 FAVICON_SIZES = (16, 32, 48)
-# The helix, beta sheet, and force vector fit within the master's first
-# 662-unit square, including clear space. Preserve that square for icons.
-MARK_VIEWBOX = "0 0 662 662"
+# Center the compact helix and short arrow in a square with clear space.
+MARK_VIEWBOX = "-43 65 590 590"
 
 
 def variant(master: ET.Element, ink: str, accent: str, mark=False) -> ET.Element:
@@ -39,11 +38,10 @@ def variant(master: ET.Element, ink: str, accent: str, mark=False) -> ET.Element
     if mark:
         svg.remove(svg.find(f"{{{NS}}}g[@id='wordmark']"))
         svg.set("viewBox", MARK_VIEWBOX)
-        svg.set("width", "662")
-        svg.set("height", "662")
+        svg.set("width", "590")
+        svg.set("height", "590")
         svg.find(f"{{{NS}}}desc").text = (
-            "TMol protein helix and two-strand beta sheet with a force "
-            "and acceleration vector."
+            "TMol protein helix with a short force and acceleration arrow."
         )
     for path in svg.iter(f"{{{NS}}}path"):
         path.set("fill", ink if path.get("class") == "ink" else accent)
