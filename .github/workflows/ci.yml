@@ -46,7 +46,7 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install --upgrade pip pytest packaging build scikit-build-core pyyaml 'cmake>=3.24,<4' ninja
       - name: Test index installs, ABI constraints, hashes and source metadata
-        run: python -m pytest -o addopts= scripts/test_release_artifacts.py scripts/test_release_matrix.py scripts/test_release_wheel_version.py scripts/test_pypi_sdist.py .github/scripts/test_colab_release_config.py -v
+        run: python -m pytest -o addopts= scripts/test_release_artifacts.py scripts/test_release_matrix.py scripts/test_release_wheel_version.py scripts/test_pypi_sdist.py scripts/test_cuda13_arm64_metadata.py scripts/test_release_source.py .github/scripts/test_colab_release_config.py -v
 
   cpu:
     name: pytest (cpu, ${{ matrix.platform }})

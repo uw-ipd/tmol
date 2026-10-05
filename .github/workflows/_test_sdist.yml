@@ -2,6 +2,10 @@ name: ~Install source distribution through package index
 
 on:
   workflow_call:
+    inputs:
+      candidate-run-id:
+        type: string
+        default: ""
 
 jobs:
   install:
@@ -18,16 +22,27 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        if: inputs.candidate-run-id != ''
+        with:
+          name: sdist
+          path: dist
+          run-id: ${{ inputs.candidate-run-id }}
+          github-token: ${{ github.token }}
+      - name: Install source build tools
+        run: python -m pip install build packaging 'scikit-build-core>=0.10'
       - name: Build source distribution without compiling extensions
+        if: inputs.candidate-run-id == ''
         run: |
-          python -m pip install build packaging 'scikit-build-core>=0.10'
           python -m build --sdist --no-isolation --skip-dependency-check --outdir dist
-          python scripts/validate_pypi_sdist.py dist/*.tar.gz
+      - name: Validate source metadata
+        run: python scripts/validate_pypi_sdist.py dist/*.tar.gz
       - name: Resolve, build, install and score from the source index
         run: |
           python scripts/test_package_install.py --sdist dist/*.tar.gz \
             --torch-version '2.14.1'
       - uses: actions/upload-artifact@v4
+        if: inputs.candidate-run-id == ''
         with:
           name: sdist
           path: dist/*.tar.gz

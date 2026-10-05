@@ -30,6 +30,32 @@ Use the corresponding `cuNNNtorchX.Y` page and version qualifier, or install a
 wheel's download URL directly. A GitHub release's ordinary web page is not a
 pip wheel index.
 
+### CUDA 13 on Linux ARM64
+
+PyTorch currently pins cuSPARSELt 0.8.0 or 0.8.1. NVIDIA's ARM64 wheels for
+these versions contain the correct ARM64 library but label it internally as
+`manylinux2014_sbsa`. Pip accepts the `aarch64` wheel filename at installation,
+then `python -m pip check` reports that cuSPARSELt is unsupported.
+
+After installing PyTorch and TMol, run the supplied metadata repair in the
+same virtual environment:
+
+```bash
+curl -fLO https://github.com/uw-ipd/tmol/releases/download/v0.1.60/repair_cuda13_arm64_metadata.py
+python repair_cuda13_arm64_metadata.py
+python -m pip check
+```
+
+The script checks the original NVIDIA library's SHA-256 and ARM64 ELF header,
+then corrects only the platform tag and its checksum in `RECORD`. It preserves
+the native code, package version and dependency requirements, and refuses
+unrecognized files. Other platforms and already-corrected metadata are left
+alone. Upgrading cuSPARSELt independently conflicts with PyTorch's exact pins.
+
+The release installation tests use this same repair before checking all
+dependencies, loading TMol's native extensions, scoring a protein and checking
+its gradients. Repeat the repair if reinstalling the affected NVIDIA package.
+
 ## CPU
 
 From 0.1.60, PyPI carries CPU wheels for PyTorch 2.14 and Python 3.11–3.14 on

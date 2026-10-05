@@ -3,6 +3,9 @@ name: ~Install wheel through package index
 on:
   workflow_call:
     inputs:
+      candidate-run-id:
+        type: string
+        default: ""
       runs-on:
         required: true
         type: string
@@ -47,6 +50,8 @@ jobs:
         with:
           name: wheel-cp${{ inputs.python-tag }}-${{ inputs.local-tag }}-${{ inputs.arch }}
           path: wheels
+          run-id: ${{ inputs.candidate-run-id || github.run_id }}
+          github-token: ${{ github.token }}
       - run: python -m pip install packaging
       - name: Inspect Linux native dependencies
         if: runner.os == 'Linux'
@@ -71,6 +76,7 @@ jobs:
         shell: bash
         run: |
           docker run --rm -v "$PWD/wheels:/wheels:ro" \
+            -v "$PWD/scripts/repair_cuda13_arm64_metadata.py:/repair_metadata.py:ro" \
             'quay.io/pypa/manylinux_2_28_${{ inputs.arch }}' \
             bash -euo pipefail -c '
               /opt/python/cp${{ inputs.python-tag }}-cp${{ inputs.python-tag }}/bin/python -m venv /tmp/smoke
@@ -78,6 +84,8 @@ jobs:
               /tmp/smoke/bin/pip install "torch==${{ inputs.torch-package-version }}" \
                 --index-url "${{ inputs.torch-index-url }}"
               /tmp/smoke/bin/pip install /wheels/*.whl
+              /tmp/smoke/bin/python -I /repair_metadata.py
+              /tmp/smoke/bin/pip check
               cd /tmp
               /tmp/smoke/bin/python -c "from tmol._cpp_lib import _ensure_loaded; _ensure_loaded()"
             '
