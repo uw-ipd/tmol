@@ -1,29 +1,10 @@
 # Minimization and FastRelax
 
-This guide collects concise recipes for preparation, constraints, minimization,
-and relax. The tutorials explain coordinate choices, masks, and schedules in
-depth.
+Minimize a prepared `pose_stack` with a matching score function `sfxn`.
+Cartesian minimization moves atoms; kinematic minimization changes torsions and
+rigid-body degrees of freedom. FastRelax alternates packing and minimization.
 
-> - **Prerequisites:** {doc}`Scoring </user_guide/scoring>` and, for relax,
->   {doc}`Packing </workflows/packing>`.
-> - **Deep tutorials:** {doc}`05 — Minimization, Constraints, and Kinematics
->   </tutorial/05_minimization_constraints_kinematics>` and
->   {doc}`06 — FastRelax </tutorial/06_fast_relax>`.
-> - **Advanced extension tutorial:** {doc}`12 — Explicit FoldForests and
->   Coordinate Control </tutorial/12_explicit_foldforests_and_torsions>`.
-> - **Related workflows:** {doc}`Ligand preparation </user_guide/ligands>` and
->   {doc}`Nucleic acids </workflows/nucleic_acids>`; for CPU execution, see
->   {doc}`CPU threading </user_guide/cpu_threading>`.
-> - **API reference:** {doc}`Optimization </api/optimization>`,
->   {doc}`Kinematics </api/kinematics>`, and {doc}`Relax </api/relax>`.
-> - **Rosetta mapping:** {doc}`Minimization, constraints, kinematics, and
->   FastRelax </tutorial/rosetta_crosswalk>`.
-
-TMol exposes hydrogen placement, missing-side-chain rebuild, Cartesian and
-kinematic minimization, constraints, and relax. Fixed-sequence repacking is
-covered separately in the {doc}`Packing workflow </workflows/packing>`.
-
-## Cartesian Minimization
+## Cartesian minimization
 
 Use `run_cart_min()` to optimize coordinates directly:
 
@@ -61,10 +42,9 @@ The helper uses a 0.5 Å harmonic standard deviation. For the standard amino-aci
 types, the declared main-chain atoms are N, CA, and C, not O. The lower-level
 `ConstraintSet` and `ConstraintEnergyTerm` interfaces support harmonic and
 bounded atom-pair distances, harmonic coordinates, and circular-harmonic
-four-atom torsions. TMol does not currently provide Rosetta's constraint-file
-parser, ambiguous-constraint layer, or a dedicated three-atom angle constraint.
+four-atom torsions.
 
-## Missing Side Chains and Hydrogens
+## Missing side chains and hydrogens
 
 `pose_stack_from_biotite()` automatically routes blocks with missing heavy atoms
 through `build_missing_sidechains()`. By default it also places and optimizes
@@ -88,7 +68,7 @@ pose_stack = pose_stack_from_biotite(
 Ligand heavy atoms must be present in the input. TMol can prepare and protonate
 ligands, but the side-chain-rebuild sampler only handles polymer residues.
 
-## Kinematic Minimization
+## Kinematic minimization
 
 Kinematic minimization optimizes internal degrees of freedom over a fold forest:
 
@@ -111,9 +91,7 @@ rigid-body jump DOFs for kinematic minimization. Constructing a `MoveMap` does
 not enable those DOFs: set the relevant flags or per-residue masks explicitly,
 as above.
 
-Use Cartesian minimization when an atom coordinate mask is the natural control
-surface. Use kinematic minimization when torsion and rigid-body DOFs should be
-the optimization variables.
+Use Cartesian masks to select atoms; use a `MoveMap` to select torsions and jumps.
 
 ## Relax
 
@@ -159,9 +137,10 @@ not consistently recover its setup cost in a single relaxation. For repeated
 protein workloads, pass `cuda_graph=True` to favor steady-state throughput;
 pass `cuda_graph=False` to force eager execution.
 
-Graph replay lowers latency by replacing the repeated Python, autograd, and
-CUDA-driver launch sequence; it does not make an individual scoring kernel
-execute faster. Capture also retains its working tensors, so benchmark memory
-as well as runtime for unusually large workloads. Custom minimizers manage
-their own execution mode and cannot be combined with `cuda_graph=True`. CPU
+Graph replay reduces launch overhead and retains working tensors; measure both
+runtime and memory. Custom minimizers cannot use `cuda_graph=True`. CPU
 execution remains eager.
+
+## Examples and reference
+
+{doc}`Minimization tutorial </tutorial/05_minimization_constraints_kinematics>` · {doc}`FastRelax tutorial </tutorial/06_fast_relax>` · {doc}`Optimization API </api/optimization>` · {doc}`Kinematics API </api/kinematics>`

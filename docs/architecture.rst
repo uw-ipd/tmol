@@ -4,13 +4,9 @@
 Architecture
 ============
 
-TMol is centered on two core representations: batched molecular state in
-``tmol.pose`` and term-specific scoring machinery in ``tmol.score``. Structure
-I/O in ``tmol.io`` builds :class:`~tmol.pose.PoseStack` objects from
-PDB/mmCIF files and model outputs.
-
-These components operate over a shared chemical vocabulary defined in
-``tmol.database.chemical``, with additional term-specific data given in
+``tmol.io`` builds batched :class:`~tmol.pose.PoseStack` objects from structures
+or model tensors. ``tmol.score`` evaluates their coordinates using chemical
+definitions from ``tmol.database.chemical`` and parameters from
 ``tmol.database.scoring``.
 
 .. code-block:: text
@@ -36,7 +32,7 @@ These components operate over a shared chemical vocabulary defined in
 Modeling lifecycle
 ==================
 
-A typical TMol application moves through four explicit stages:
+Structure preparation, scoring, and output follow this sequence:
 
 .. code-block:: text
 
@@ -76,7 +72,7 @@ scoring module can be reused.
 Score terms annotate :class:`~tmol.pose.PackedBlockTypes`
 and then render ``torch.nn.Module`` objects for repeated evaluation.
 
-Scoring Overview
+Scoring overview
 ================
 
 Scoring is managed by rendered PyTorch modules that evaluate configured energy
@@ -102,11 +98,5 @@ module. Calls may return either the weighted total or a leading score-term axis
 when ``sum_terms=False``. The complete score-type-to-term map is documented in
 :doc:`api/score_terms`.
 
-Where to continue
-=================
-
-* :doc:`examples_index` provides complete, executable walkthroughs.
-* :doc:`workflows/index` organizes concise recipes by modeling task.
-* :doc:`terminology` explains blocks, score units, deposited versus built
-  atoms, and movement choices.
-* :doc:`api_reference` documents public classes and functions.
+See :doc:`datatypes` for tensor conventions and :doc:`api/score_terms` for
+individual score terms.

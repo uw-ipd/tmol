@@ -3,7 +3,7 @@
 The documentation is built with Sphinx, MyST Markdown, nbsphinx, and autodoc.
 
 ```bash
-pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.5"
+pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.8"
 pip install scikit-build-core pybind11 ninja packaging "cmake>=3.24,<4"
 TMOL_DISABLE_WHEEL_FETCH=1 \
   pip install --no-build-isolation -e ".[docs]" \
@@ -30,12 +30,10 @@ desktop and mobile widths when changing styles, including long code lines,
 tables, keyboard focus, and the navigation menu. `_templates/layout.html` adds
 the adaptive SVG favicon and Apple touch icon alongside Sphinx's ICO fallback.
 
-Task-oriented recipes are grouped by `docs/workflows/index.md`, even when an
-existing source file remains under `docs/user_guide/`. The ten numbered
-notebooks live under `docs/tutorial/`; the smoke command executes them before
-nbsphinx renders their saved outputs and interactive viewers.
-
-API pages are authored under `docs/api/`.
+Guides are indexed in `workflows/index.md`; notebook tutorials live in
+`tutorial/` and API pages in `api/`. The smoke command executes the notebooks
+before nbsphinx renders their outputs and viewers. Follow the
+[writing guidelines](contributor_guide.md#writing-documentation) when editing prose.
 
 GitHub Actions builds documentation once per pull request. Same-repository pull
 requests publish under `previews/pr-<number>/`; pushes to `master` deploy the
