@@ -31,7 +31,7 @@
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
-    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=a76a4f61" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=b5f2a73e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
@@ -54,7 +54,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Model and structure integrations" href="../user_guide/integrations.html" />
-    <link rel="prev" title="Workflows" href="index.html" />
+    <link rel="prev" title="Terminology and modeling choices" href="../terminology.html" />
   
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
@@ -151,6 +151,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../quickstart.html">
     Quickstart
   </a>
@@ -159,55 +166,31 @@
 
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="index.html">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
-    Examples
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../model_inputs.html">
-    Model input interfaces
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API reference
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../agent_skills.html">
-    Agent skills
-  </a>
-</li>
-
-            <li class="nav-item dropdown">
-                <button class="btn dropdown-toggle nav-item" type="button"
-                data-bs-toggle="dropdown" aria-expanded="false"
-                aria-controls="pst-nav-more-links">
-                    More
-                </button>
-                <ul id="pst-nav-more-links" class="dropdown-menu">
-                    
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../api_reference.html">
-    API
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../contributor_guide.html">
+  <a class="nav-link nav-internal" href="../contributor_guide.html">
     Contributing
   </a>
 </li>
 
-                </ul>
-            </li>
-            
   </ul>
 </nav></div>
       
@@ -304,6 +287,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../quickstart.html">
     Quickstart
   </a>
@@ -312,35 +302,21 @@
 
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="index.html">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
-    Examples
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../model_inputs.html">
-    Model input interfaces
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../agent_skills.html">
-    Agent skills
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../api_reference.html">
-    API
+    API reference
   </a>
 </li>
 
@@ -408,30 +384,33 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Prepare structures</span></p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Structures and tensors</span></p>
 <ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../concepts.html">Concepts</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datatypes.html">Tensors and data objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../terminology.html">Terminology</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">Structure I/O and visualization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/integrations.html">Model and structure integrations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../model_inputs.html">Model coordinate inputs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gpu_batching.html">GPU batching</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/cpu_threading.html">CPU threading</a></li>
 </ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Score, design, and refine</span></p>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Scoring and modeling</span></p>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/scoring.html">Scoring and analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="packing.html">Packing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="protein_interfaces.html">Protein-interface analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/optimization.html">Minimization and FastRelax</a></li>
-</ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Specialized chemistry</span></p>
-<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="protein_interfaces.html">Protein-interface analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/ligands.html">Ligand Preparation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="nucleic_acids.html">Nucleic acids</a></li>
 </ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Develop and benchmark</span></p>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extension and performance</span></p>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="extending_tmol.html">Extending TMol</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/benchmarking.html">Benchmarking</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide/development.html">Development</a></li>
 </ul>
 </div>
 </nav></div>
@@ -473,7 +452,7 @@
       </a>
     </li>
     
-    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Workflows</a></li>
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Guides</a></li>
     
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Structure I/O and visualization</span></li>
   </ul>
@@ -494,13 +473,7 @@
                   
   <section id="structure-i-o-and-visualization">
 <h1>Structure I/O and visualization<a class="headerlink" href="#structure-i-o-and-visualization" title="Link to this heading">#</a></h1>
-<p><strong>Prerequisites:</strong> <a class="reference internal" href="../installation.html"><span class="doc">Installation</span></a> and a basic understanding
-of <a class="reference internal" href="../terminology.html"><span class="doc">PoseStack terminology</span></a>.</p>
-<p><strong>Deep tutorial:</strong> <a class="reference internal" href="../tutorial/01_working_with_tmol.html"><span class="doc">Tutorial 01 — Working with TMol</span></a>.</p>
-<p><strong>API:</strong> <a class="reference internal" href="../api/io.html"><span class="doc">I/O</span></a>, <a class="reference internal" href="../api/pose.html"><span class="doc">pose objects</span></a>, and
-<a class="reference internal" href="../api/ligand.html"><span class="doc">ligand preparation</span></a>.</p>
-<p><strong>Related workflows:</strong> <a class="reference internal" href="../user_guide/integrations.html"><span class="doc">integrations</span></a>,
-<a class="reference internal" href="gpu_batching.html"><span class="doc">GPU batching</span></a>, and <a class="reference internal" href="../user_guide/ligands.html"><span class="doc">ligands</span></a>.</p>
+<p>Read a structure, build a <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code>, and export its coordinates.</p>
 <section id="choose-an-input-path">
 <h2>Choose an input path<a class="headerlink" href="#choose-an-input-path" title="Link to this heading">#</a></h2>
 <ul class="simple">
@@ -532,13 +505,11 @@ another named layout such as Atom14 to canonical tensors as shown in the
 <span class="p">)</span>
 </pre></div>
 </div>
-<p>The returned context records the parameter database, canonical ordering, and
-packed block types selected during preparation. Reuse it for compatible
-structures to keep chemical interpretation stable and avoid rebuilding setup
-data.</p>
+<p>The context contains the parameter database, canonical ordering, and packed
+block types. Reuse it for structures with compatible chemistry.</p>
 <p>Set <code class="docutils literal notranslate"><span class="pre">prepare_ligands=False</span></code> when all required nonstandard chemistry has already
 been registered. See <a class="reference internal" href="../terminology.html"><span class="doc">Terminology and modeling choices</span></a> for
-the deposited-versus-built atom distinction and the <code class="docutils literal notranslate"><span class="pre">no_optH</span></code> decision.</p>
+how preparation changes atoms and how <code class="docutils literal notranslate"><span class="pre">no_optH</span></code> controls hydrogen optimization.</p>
 </section>
 <section id="inspect-deposited-and-built-structures">
 <h2>Inspect deposited and built structures<a class="headerlink" href="#inspect-deposited-and-built-structures" title="Link to this heading">#</a></h2>
@@ -558,9 +529,8 @@ output:</p>
 <span class="p">)</span>
 </pre></div>
 </div>
-<p>The interactive gallery is intended for notebook output and rendered TMol
-Tutorials. For automated checks, inspect the <code class="docutils literal notranslate"><span class="pre">AtomArray</span></code>, build context, block
-types, and connectivity directly.</p>
+<p><code class="docutils literal notranslate"><span class="pre">selection_gallery()</span></code> displays the built structure in a notebook. For automated
+checks, inspect its <code class="docutils literal notranslate"><span class="pre">AtomArray</span></code>, context, block types, and connectivity.</p>
 </section>
 <section id="export">
 <h2>Export<a class="headerlink" href="#export" title="Link to this heading">#</a></h2>
@@ -569,8 +539,8 @@ provides <code class="docutils literal notranslate"><span class="pre">write_pose
 compatibility. A PDB round trip is not lossless for every ligand bond,
 noncanonical residue, or preparation decision.</p>
 </section>
-<section id="common-checks">
-<h2>Common checks<a class="headerlink" href="#common-checks" title="Link to this heading">#</a></h2>
+<section id="before-scoring">
+<h2>Before scoring<a class="headerlink" href="#before-scoring" title="Link to this heading">#</a></h2>
 <p>Before scoring or refinement, verify:</p>
 <ol class="arabic simple">
 <li><p>the intended model and chains were selected;</p></li>
@@ -580,6 +550,10 @@ noncanonical residue, or preparation decision.</p>
 <li><p>the pose, score function, and packed types use the same device; and</p></li>
 <li><p>a scorer is rerendered after any change to atom or block layout.</p></li>
 </ol>
+</section>
+<section id="examples-and-reference">
+<h2>Examples and reference<a class="headerlink" href="#examples-and-reference" title="Link to this heading">#</a></h2>
+<p><a class="reference internal" href="../tutorial/01_working_with_tmol.html"><span class="doc">Structure I/O tutorial</span></a> · <a class="reference internal" href="../api/io.html"><span class="doc">I/O API</span></a> · <a class="reference internal" href="../user_guide/ligands.html"><span class="doc">Ligand preparation</span></a></p>
 </section>
 </section>
 
@@ -594,12 +568,12 @@ noncanonical residue, or preparation decision.</p>
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="index.html"
+       href="../terminology.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Workflows</p>
+        <p class="prev-next-title">Terminology and modeling choices</p>
       </div>
     </a>
     <a class="right-next"
@@ -634,7 +608,8 @@ noncanonical residue, or preparation decision.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#build-a-posestack-from-mmcif">Build a PoseStack from mmCIF</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#inspect-deposited-and-built-structures">Inspect deposited and built structures</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#export">Export</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#common-checks">Common checks</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#before-scoring">Before scoring</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#examples-and-reference">Examples and reference</a></li>
 </ul>
   </nav></div>
 

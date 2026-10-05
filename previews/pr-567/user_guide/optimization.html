@@ -31,7 +31,7 @@
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
-    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=a76a4f61" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=b5f2a73e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
@@ -53,8 +53,8 @@
     <link rel="icon" href="../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Ligand Preparation" href="ligands.html" />
-    <link rel="prev" title="Protein-interface analysis" href="../workflows/protein_interfaces.html" />
+    <link rel="next" title="Protein-interface analysis" href="../workflows/protein_interfaces.html" />
+    <link rel="prev" title="Packing" href="../workflows/packing.html" />
   
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
@@ -151,6 +151,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../quickstart.html">
     Quickstart
   </a>
@@ -159,55 +166,31 @@
 
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="../workflows/index.html">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
-    Examples
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../model_inputs.html">
-    Model input interfaces
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API reference
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../agent_skills.html">
-    Agent skills
-  </a>
-</li>
-
-            <li class="nav-item dropdown">
-                <button class="btn dropdown-toggle nav-item" type="button"
-                data-bs-toggle="dropdown" aria-expanded="false"
-                aria-controls="pst-nav-more-links">
-                    More
-                </button>
-                <ul id="pst-nav-more-links" class="dropdown-menu">
-                    
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../api_reference.html">
-    API
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../contributor_guide.html">
+  <a class="nav-link nav-internal" href="../contributor_guide.html">
     Contributing
   </a>
 </li>
 
-                </ul>
-            </li>
-            
   </ul>
 </nav></div>
       
@@ -304,6 +287,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../quickstart.html">
     Quickstart
   </a>
@@ -312,35 +302,21 @@
 
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="../workflows/index.html">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
-    Examples
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../model_inputs.html">
-    Model input interfaces
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../agent_skills.html">
-    Agent skills
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../api_reference.html">
-    API
+    API reference
   </a>
 </li>
 
@@ -408,30 +384,33 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Prepare structures</span></p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Structures and tensors</span></p>
 <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../concepts.html">Concepts</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datatypes.html">Tensors and data objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../terminology.html">Terminology</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1"><a class="reference internal" href="../workflows/structure_io.html">Structure I/O and visualization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="integrations.html">Model and structure integrations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../model_inputs.html">Model coordinate inputs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../workflows/gpu_batching.html">GPU batching</a></li>
 <li class="toctree-l1"><a class="reference internal" href="cpu_threading.html">CPU threading</a></li>
 </ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Score, design, and refine</span></p>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Scoring and modeling</span></p>
 <ul class="current nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="scoring.html">Scoring and analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../workflows/packing.html">Packing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../workflows/protein_interfaces.html">Protein-interface analysis</a></li>
 <li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">Minimization and FastRelax</a></li>
-</ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Specialized chemistry</span></p>
-<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../workflows/protein_interfaces.html">Protein-interface analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ligands.html">Ligand Preparation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../workflows/nucleic_acids.html">Nucleic acids</a></li>
 </ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Develop and benchmark</span></p>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extension and performance</span></p>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="../workflows/extending_tmol.html">Extending TMol</a></li>
 <li class="toctree-l1"><a class="reference internal" href="benchmarking.html">Benchmarking</a></li>
-<li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
 </ul>
 </div>
 </nav></div>
@@ -473,7 +452,7 @@
       </a>
     </li>
     
-    <li class="breadcrumb-item"><a href="../workflows/index.html" class="nav-link">Workflows</a></li>
+    <li class="breadcrumb-item"><a href="../workflows/index.html" class="nav-link">Guides</a></li>
     
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Minimization and FastRelax</span></li>
   </ul>
@@ -494,29 +473,11 @@
                   
   <section id="minimization-and-fastrelax">
 <h1>Minimization and FastRelax<a class="headerlink" href="#minimization-and-fastrelax" title="Link to this heading">#</a></h1>
-<p>This guide collects concise recipes for preparation, constraints, minimization,
-and relax. The tutorials explain coordinate choices, masks, and schedules in
-depth.</p>
-<blockquote>
-<div><ul class="simple">
-<li><p><strong>Prerequisites:</strong> <a class="reference internal" href="scoring.html"><span class="doc">Scoring</span></a> and, for relax,
-<a class="reference internal" href="../workflows/packing.html"><span class="doc">Packing</span></a>.</p></li>
-<li><p><strong>Deep tutorials:</strong> <a class="reference internal" href="../tutorial/05_minimization_constraints_kinematics.html"><span class="doc">05 — Minimization, Constraints, and Kinematics</span></a> and
-<a class="reference internal" href="../tutorial/06_fast_relax.html"><span class="doc">06 — FastRelax</span></a>.</p></li>
-<li><p><strong>Advanced extension tutorial:</strong> <a class="reference internal" href="../tutorial/12_explicit_foldforests_and_torsions.html"><span class="doc">12 — Explicit FoldForests and Coordinate Control</span></a>.</p></li>
-<li><p><strong>Related workflows:</strong> <a class="reference internal" href="ligands.html"><span class="doc">Ligand preparation</span></a> and
-<a class="reference internal" href="../workflows/nucleic_acids.html"><span class="doc">Nucleic acids</span></a>; for CPU execution, see
-<a class="reference internal" href="cpu_threading.html"><span class="doc">CPU threading</span></a>.</p></li>
-<li><p><strong>API reference:</strong> <a class="reference internal" href="../api/optimization.html"><span class="doc">Optimization</span></a>,
-<a class="reference internal" href="../api/kinematics.html"><span class="doc">Kinematics</span></a>, and <a class="reference internal" href="../api/relax.html"><span class="doc">Relax</span></a>.</p></li>
-<li><p><strong>Rosetta mapping:</strong> <a class="reference internal" href="../tutorial/rosetta_crosswalk.html"><span class="doc">Minimization, constraints, kinematics, and FastRelax</span></a>.</p></li>
-</ul>
-</div></blockquote>
-<p>TMol exposes hydrogen placement, missing-side-chain rebuild, Cartesian and
-kinematic minimization, constraints, and relax. Fixed-sequence repacking is
-covered separately in the <a class="reference internal" href="../workflows/packing.html"><span class="doc">Packing workflow</span></a>.</p>
+<p>Minimize a prepared <code class="docutils literal notranslate"><span class="pre">pose_stack</span></code> with a matching score function <code class="docutils literal notranslate"><span class="pre">sfxn</span></code>.
+Cartesian minimization moves atoms; kinematic minimization changes torsions and
+rigid-body degrees of freedom. FastRelax alternates packing and minimization.</p>
 <section id="cartesian-minimization">
-<h2>Cartesian Minimization<a class="headerlink" href="#cartesian-minimization" title="Link to this heading">#</a></h2>
+<h2>Cartesian minimization<a class="headerlink" href="#cartesian-minimization" title="Link to this heading">#</a></h2>
 <p>Use <code class="docutils literal notranslate"><span class="pre">run_cart_min()</span></code> to optimize coordinates directly:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cart_min</span>
 
@@ -548,11 +509,10 @@ type’s declared main-chain atom coordinates:</p>
 types, the declared main-chain atoms are N, CA, and C, not O. The lower-level
 <code class="docutils literal notranslate"><span class="pre">ConstraintSet</span></code> and <code class="docutils literal notranslate"><span class="pre">ConstraintEnergyTerm</span></code> interfaces support harmonic and
 bounded atom-pair distances, harmonic coordinates, and circular-harmonic
-four-atom torsions. TMol does not currently provide Rosetta’s constraint-file
-parser, ambiguous-constraint layer, or a dedicated three-atom angle constraint.</p>
+four-atom torsions.</p>
 </section>
 <section id="missing-side-chains-and-hydrogens">
-<h2>Missing Side Chains and Hydrogens<a class="headerlink" href="#missing-side-chains-and-hydrogens" title="Link to this heading">#</a></h2>
+<h2>Missing side chains and hydrogens<a class="headerlink" href="#missing-side-chains-and-hydrogens" title="Link to this heading">#</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">pose_stack_from_biotite()</span></code> automatically routes blocks with missing heavy atoms
 through <code class="docutils literal notranslate"><span class="pre">build_missing_sidechains()</span></code>. By default it also places and optimizes
 hydrogens for complete residues. Pass <code class="docutils literal notranslate"><span class="pre">no_optH=True</span></code> to skip that hydrogen
@@ -573,7 +533,7 @@ structures share prepared ligand definitions, explicitly reuse a
 ligands, but the side-chain-rebuild sampler only handles polymer residues.</p>
 </section>
 <section id="kinematic-minimization">
-<h2>Kinematic Minimization<a class="headerlink" href="#kinematic-minimization" title="Link to this heading">#</a></h2>
+<h2>Kinematic minimization<a class="headerlink" href="#kinematic-minimization" title="Link to this heading">#</a></h2>
 <p>Kinematic minimization optimizes internal degrees of freedom over a fold forest:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics</span><span class="w"> </span><span class="kn">import</span> <span class="n">FoldForest</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics</span><span class="w"> </span><span class="kn">import</span> <span class="n">MoveMap</span>
@@ -592,9 +552,7 @@ jumps. A <code class="docutils literal notranslate"><span class="pre">MoveMap</s
 rigid-body jump DOFs for kinematic minimization. Constructing a <code class="docutils literal notranslate"><span class="pre">MoveMap</span></code> does
 not enable those DOFs: set the relevant flags or per-residue masks explicitly,
 as above.</p>
-<p>Use Cartesian minimization when an atom coordinate mask is the natural control
-surface. Use kinematic minimization when torsion and rigid-body DOFs should be
-the optimization variables.</p>
+<p>Use Cartesian masks to select atoms; use a <code class="docutils literal notranslate"><span class="pre">MoveMap</span></code> to select torsions and jumps.</p>
 </section>
 <section id="relax">
 <h2>Relax<a class="headerlink" href="#relax" title="Link to this heading">#</a></h2>
@@ -635,12 +593,13 @@ and protein–ligand poses remain eager by default because graph capture does
 not consistently recover its setup cost in a single relaxation. For repeated
 protein workloads, pass <code class="docutils literal notranslate"><span class="pre">cuda_graph=True</span></code> to favor steady-state throughput;
 pass <code class="docutils literal notranslate"><span class="pre">cuda_graph=False</span></code> to force eager execution.</p>
-<p>Graph replay lowers latency by replacing the repeated Python, autograd, and
-CUDA-driver launch sequence; it does not make an individual scoring kernel
-execute faster. Capture also retains its working tensors, so benchmark memory
-as well as runtime for unusually large workloads. Custom minimizers manage
-their own execution mode and cannot be combined with <code class="docutils literal notranslate"><span class="pre">cuda_graph=True</span></code>. CPU
+<p>Graph replay reduces launch overhead and retains working tensors; measure both
+runtime and memory. Custom minimizers cannot use <code class="docutils literal notranslate"><span class="pre">cuda_graph=True</span></code>. CPU
 execution remains eager.</p>
+</section>
+<section id="examples-and-reference">
+<h2>Examples and reference<a class="headerlink" href="#examples-and-reference" title="Link to this heading">#</a></h2>
+<p><a class="reference internal" href="../tutorial/05_minimization_constraints_kinematics.html"><span class="doc">Minimization tutorial</span></a> · <a class="reference internal" href="../tutorial/06_fast_relax.html"><span class="doc">FastRelax tutorial</span></a> · <a class="reference internal" href="../api/optimization.html"><span class="doc">Optimization API</span></a> · <a class="reference internal" href="../api/kinematics.html"><span class="doc">Kinematics API</span></a></p>
 </section>
 </section>
 
@@ -655,20 +614,20 @@ execution remains eager.</p>
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="../workflows/protein_interfaces.html"
+       href="../workflows/packing.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Protein-interface analysis</p>
+        <p class="prev-next-title">Packing</p>
       </div>
     </a>
     <a class="right-next"
-       href="ligands.html"
+       href="../workflows/protein_interfaces.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Ligand Preparation</p>
+        <p class="prev-next-title">Protein-interface analysis</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -691,11 +650,12 @@ execution remains eager.</p>
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cartesian-minimization">Cartesian Minimization</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cartesian-minimization">Cartesian minimization</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#constraints">Constraints</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#missing-side-chains-and-hydrogens">Missing Side Chains and Hydrogens</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#kinematic-minimization">Kinematic Minimization</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#missing-side-chains-and-hydrogens">Missing side chains and hydrogens</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#kinematic-minimization">Kinematic minimization</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#relax">Relax</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#examples-and-reference">Examples and reference</a></li>
 </ul>
   </nav></div>
 

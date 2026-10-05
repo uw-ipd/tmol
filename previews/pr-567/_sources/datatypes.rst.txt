@@ -4,16 +4,12 @@
 Data model and conventions
 ==========================
 
-TMol combines PyTorch tensors with immutable or functionally updated Python
-data objects. These conventions make batched molecular state explicit and keep
-device placement visible to callers.
+TMol stores molecular state in PyTorch tensors and metadata in Python objects.
 
 Tensor shapes
 =============
 
-Numeric data is generally stored in :class:`torch.Tensor` objects. Leading
-dimensions describe molecular axes such as poses, blocks, atoms, score terms,
-or rotamers. Common examples include:
+Tensor axes represent poses, blocks, atoms, score terms, or rotamers:
 
 .. list-table::
    :header-rows: 1
@@ -54,15 +50,12 @@ an API documents a stronger requirement; silently mixing ``float32`` and
 Python data objects
 ===================
 
-TMol uses ``attrs``-based classes and typed containers for structured metadata,
-database records, I/O contexts, and protocol configuration. Many of these
-objects are treated as immutable: extension operations return a new object
-instead of mutating process-global state.
+Metadata, database records, I/O contexts, and protocol settings use ``attrs``
+classes and typed containers. Many are immutable; extension operations return
+a new object.
 
-NumPy arrays are primarily used where third-party libraries require them or
-where multidimensional string/object data does not fit a Torch tensor. Convert
-deliberately at library boundaries and remember that moving through NumPy
-breaks PyTorch autograd.
+NumPy arrays handle third-party interfaces and string/object data. Converting
+through NumPy breaks PyTorch autograd.
 
 Public typing helpers
 =====================

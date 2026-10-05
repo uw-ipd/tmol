@@ -1,9 +1,7 @@
 # Agent skills
 
-TMol includes portable agent skills for recurring user and contributor
-workflows. Each skill is a directory under `skills/` with a `SKILL.md` that an
-agent reads only when the request matches that workflow. The skills point to
-the maintained documentation and public APIs rather than duplicating them.
+The `skills/` directory contains instructions for coding agents. Each
+`SKILL.md` covers one task and links to the corresponding docs and APIs.
 
 | Skill | Use it for |
 | --- | --- |
@@ -14,12 +12,10 @@ the maintained documentation and public APIs rather than duplicating them.
 
 ## Install or vendor a skill
 
-The repository directories are self-contained. An agent environment that
-supports repository skills can install one from the GitHub repository or vendor
-the corresponding `skills/<name>/` directory into its skill search path. Read
+Install a skill from GitHub or copy `skills/<name>/` into your agent's skill
+search path. See
 [`skills/README.md`](https://github.com/uw-ipd/tmol/tree/master/skills) for the
 catalog and artifact conventions.
 
-Skills do not grant permission to submit jobs, spend external compute, push
-branches, or merge pull requests. Those actions still require the authority
-provided by the user's request and the active environment.
+Skills do not authorize external jobs, compute spending, pushes, or merges;
+those require user authorization.

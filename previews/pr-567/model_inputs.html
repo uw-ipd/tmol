@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Build an interface for your model &#8212; TMol</title>
+    <title>Model coordinate inputs &#8212; TMol</title>
   
   
   
@@ -31,7 +31,7 @@
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=9c3e77be" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=a76a4f61" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=b5f2a73e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
@@ -53,8 +53,8 @@
     <link rel="icon" href="_static/favicon.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Agent skills" href="agent_skills.html" />
-    <link rel="prev" title="Rosetta-to-TMol crosswalk" href="tutorial/rosetta_crosswalk.html" />
+    <link rel="next" title="GPU batching" href="workflows/gpu_batching.html" />
+    <link rel="prev" title="Model and structure integrations" href="user_guide/integrations.html" />
   
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
@@ -151,63 +151,46 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="quickstart.html">
     Quickstart
   </a>
 </li>
 
 
-<li class="nav-item ">
+<li class="nav-item current active">
   <a class="nav-link nav-internal" href="workflows/index.html">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
-    Examples
-  </a>
-</li>
-
-
-<li class="nav-item current active">
-  <a class="nav-link nav-internal" href="#" aria-current="page">
-    Model input interfaces
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="agent_skills.html">
-    Agent skills
-  </a>
-</li>
-
-            <li class="nav-item dropdown">
-                <button class="btn dropdown-toggle nav-item" type="button"
-                data-bs-toggle="dropdown" aria-expanded="false"
-                aria-controls="pst-nav-more-links">
-                    More
-                </button>
-                <ul id="pst-nav-more-links" class="dropdown-menu">
-                    
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="api_reference.html">
-    API
+  <a class="nav-link nav-internal" href="api_reference.html">
+    API reference
   </a>
 </li>
 
 
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="contributor_guide.html">
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="contributor_guide.html">
     Contributing
   </a>
 </li>
 
-                </ul>
-            </li>
-            
   </ul>
 </nav></div>
       
@@ -304,43 +287,36 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="quickstart.html">
     Quickstart
   </a>
 </li>
 
 
-<li class="nav-item ">
+<li class="nav-item current active">
   <a class="nav-link nav-internal" href="workflows/index.html">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
-    Examples
-  </a>
-</li>
-
-
-<li class="nav-item current active">
-  <a class="nav-link nav-internal" href="#" aria-current="page">
-    Model input interfaces
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="agent_skills.html">
-    Agent skills
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="api_reference.html">
-    API
+    API reference
   </a>
 </li>
 
@@ -408,7 +384,35 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"></div>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Structures and tensors</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="concepts.html">Concepts</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datatypes.html">Tensors and data objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="terminology.html">Terminology</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows/structure_io.html">Structure I/O and visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/integrations.html">Model and structure integrations</a></li>
+<li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">Model coordinate inputs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows/gpu_batching.html">GPU batching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/cpu_threading.html">CPU threading</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Scoring and modeling</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="user_guide/scoring.html">Scoring and analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows/packing.html">Packing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/optimization.html">Minimization and FastRelax</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows/protein_interfaces.html">Protein-interface analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/ligands.html">Ligand Preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows/nucleic_acids.html">Nucleic acids</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extension and performance</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="workflows/extending_tmol.html">Extending TMol</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/benchmarking.html">Benchmarking</a></li>
+</ul>
+</div>
 </nav></div>
     </div>
   
@@ -447,7 +451,10 @@
         <i class="fa-solid fa-home"></i>
       </a>
     </li>
-    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Build an interface for your model</span></li>
+    
+    <li class="breadcrumb-item"><a href="workflows/index.html" class="nav-link">Guides</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Model coordinate inputs</span></li>
   </ul>
 </nav>
 </div>
@@ -464,16 +471,15 @@
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="build-an-interface-for-your-model">
-<h1>Build an interface for your model<a class="headerlink" href="#build-an-interface-for-your-model" title="Link to this heading">#</a></h1>
-<p>Run <a class="reference external" href="https://colab.research.google.com/github/uw-ipd/tmol/blob/ae1d35c6ecd243bdeba84d83ee3ce49e7254de81/notebooks/example_02_model_inputs.ipynb">Example 02: model inputs</a>
-in Colab, or open <code class="docutils literal notranslate"><span class="pre">notebooks/example_02_model_inputs.ipynb</span></code> locally. It includes
-installation, both editable adapters, saved predictions, score/gradient checks
-and a repeated-guidance loop. The notebook is the executable source for this tutorial.</p>
-<p>Model output is a coordinate tensor plus a description of what each slot means.
-Keep the model’s dictionary keys and version-specific layouts in your application.
-Tmol provides the generic <code class="docutils literal notranslate"><span class="pre">CanonicalOrdering</span></code> / <code class="docutils literal notranslate"><span class="pre">CanonicalForm</span></code> construction
-boundary; it no longer provides OpenFold or RoseTTAFold2 input interfaces.</p>
+  <section id="model-coordinate-inputs">
+<h1>Model coordinate inputs<a class="headerlink" href="#model-coordinate-inputs" title="Link to this heading">#</a></h1>
+<p>Run <a class="reference external" href="https://colab.research.google.com/github/uw-ipd/tmol/blob/ae1d35c6ecd243bdeba84d83ee3ce49e7254de81/notebooks/example_02_model_inputs.ipynb">Model inputs</a>
+in Colab or open <code class="docutils literal notranslate"><span class="pre">notebooks/example_02_model_inputs.ipynb</span></code> locally for editable
+adapters, saved predictions, and gradient checks.</p>
+<p>Map model coordinates to named residues and atoms, then build TMol canonical
+tensors. Keep model-specific keys and layouts in your application: TMol provides
+<code class="docutils literal notranslate"><span class="pre">CanonicalOrdering</span></code> / <code class="docutils literal notranslate"><span class="pre">CanonicalForm</span></code>, but no longer provides OpenFold or
+RoseTTAFold2 input adapters.</p>
 <section id="declare-a-layout-once">
 <h2>Declare a layout once<a class="headerlink" href="#declare-a-layout-once" title="Link to this heading">#</a></h2>
 <p>Supply the ordered residue names corresponding to your integer token IDs and,
@@ -482,27 +488,25 @@ AtomWorks supplies reusable definitions such as <code class="docutils literal no
 <code class="docutils literal notranslate"><span class="pre">AF2_ATOM37_ENCODING</span></code>. An encoding’s atom names do not by themselves establish
 your model’s token numbering. Check both against the version that produced the
 prediction. In particular, do not infer an encoding solely from 14 or 37 slots.</p>
-<p>The runnable example below prepares these mappings once and binds coordinates
-using Torch indexed assignment. It accepts batched tensors, uses <code class="docutils literal notranslate"><span class="pre">chain_id=-1</span></code>
+<p>The notebook’s <code class="docutils literal notranslate"><span class="pre">prepare_named_layout</span></code> function prepares these mappings once
+and binds coordinates using Torch indexed assignment. It accepts batched
+tensors, uses <code class="docutils literal notranslate"><span class="pre">chain_id=-1</span></code>
 for explicit residue padding, and distinguishes unobserved atoms from padded
 residues. Finite supplied coordinates remain connected to autograd. Missing
 coordinates are NaN triplets; infinity and partially finite triplets are rejected.</p>
-<p>The notebook defines <code class="docutils literal notranslate"><span class="pre">prepare_named_layout</span></code> in an editable code cell.</p>
-<p>This small example uses the default chemical database and calls canonical pose
-construction on every iteration. It caches the source mapping, not the final
-pose topology. Supply all required heavy atoms; missing sidechain packing is
-not implemented by this example. Missing terminal atoms and hydrogens use the
+<p>The adapter uses the default chemical database and rebuilds the pose on each
+iteration; it caches only the source mapping. Supply all required heavy atoms.
+The adapter does not pack missing side chains. Missing terminal atoms and
+hydrogens use the
 shared tmol construction code. For arbitrary ligands, PTMs or nucleic acids,
 prepare a <code class="docutils literal notranslate"><span class="pre">PoseBuildContext</span></code> from annotated AtomArray topology first and use
 its matching canonical ordering, packed types and connectivity.</p>
 </section>
 <section id="openfold-style-output">
 <h2>OpenFold-style output<a class="headerlink" href="#openfold-style-output" title="Link to this heading">#</a></h2>
-<p>This example extracts the final structure-module atom14 coordinates, residue
-tokens, atom-existence mask and chain IDs from a saved prediction. These dictionary
-keys describe the example prediction, not a universal OpenFold output schema.
-If your model returns a different schema, adapt this extraction locally.</p>
-<p>The notebook defines <code class="docutils literal notranslate"><span class="pre">openfold_example</span></code> in an editable code cell.</p>
+<p>The notebook’s <code class="docutils literal notranslate"><span class="pre">openfold_example</span></code> extracts final atom14 coordinates, residue
+tokens, an atom-existence mask, and chain IDs from a saved prediction. Adapt
+its dictionary keys to your model’s output schema.</p>
 <p>A model producing atom37 can use the same named-layout function with its atom37
 encoding and observation mask; no temporary atom14-to-atom37 expansion is needed.</p>
 </section>
@@ -510,21 +514,20 @@ encoding and observation mask; no temporary atom14-to-atom37 expansion is needed
 <h2>RoseTTAFold2-style output, including supplied hydrogens<a class="headerlink" href="#rosettafold2-style-output-including-supplied-hydrogens" title="Link to this heading">#</a></h2>
 <p>Take <code class="docutils literal notranslate"><span class="pre">num2aa</span></code> and <code class="docutils literal notranslate"><span class="pre">aa2long</span></code> from the exact model checkout that produced
 <code class="docutils literal notranslate"><span class="pre">seq</span></code> and <code class="docutils literal notranslate"><span class="pre">xyz</span></code>. Pass those tables as <code class="docutils literal notranslate"><span class="pre">residue_names</span></code> and <code class="docutils literal notranslate"><span class="pre">atom_names</span></code>
-below. Different RF2-family models place hydrogen slots at different offsets;
+to <code class="docutils literal notranslate"><span class="pre">rf2_example</span></code>. RF2-family models place hydrogen slots at different offsets;
 do not substitute the RF2AA/atom36 table for a legacy atom27 prediction.</p>
 <p>Choose <code class="docutils literal notranslate"><span class="pre">hydrogens=&quot;preserve&quot;</span></code> to retain supplied nonterminal hydrogen
 coordinates, or <code class="docutils literal notranslate"><span class="pre">hydrogens=&quot;rebuild&quot;</span></code> to mark them missing and rebuild them.
 The generic amide <code class="docutils literal notranslate"><span class="pre">H</span></code> at each chain’s N terminus is replaced by the appropriate
 terminal hydrogen model in either case. The rebuilt input slots have no gradient;
 other supplied coordinates retain their gradient connection.</p>
-<p>The notebook defines <code class="docutils literal notranslate"><span class="pre">rf2_example</span></code> in an editable code cell.</p>
 </section>
 <section id="scoring-and-repeated-guidance">
 <h2>Scoring and repeated guidance<a class="headerlink" href="#scoring-and-repeated-guidance" title="Link to this heading">#</a></h2>
 <p>Keep the sequence, chain layout, atom mapping and chemical context fixed while
 reusing a prepared mapping. Bind each new coordinate tensor without calling
 <code class="docutils literal notranslate"><span class="pre">.numpy()</span></code>, detaching it, or writing a temporary structure file. Use separate
-builders for different topology/sequence groups. Tmol’s score module can then
+builders for different topology/sequence groups. TMol’s score module can then
 backpropagate into the supplied coordinates:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pose</span> <span class="o">=</span> <span class="n">builder</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">observed</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
 <span class="n">module</span> <span class="o">=</span> <span class="n">score_function</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">pose</span><span class="p">)</span>
@@ -560,20 +563,20 @@ by this tutorial remain independent of tmol’s internal residue numbering.</p>
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="tutorial/rosetta_crosswalk.html"
+       href="user_guide/integrations.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Rosetta-to-TMol crosswalk</p>
+        <p class="prev-next-title">Model and structure integrations</p>
       </div>
     </a>
     <a class="right-next"
-       href="agent_skills.html"
+       href="workflows/gpu_batching.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Agent skills</p>
+        <p class="prev-next-title">GPU batching</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>

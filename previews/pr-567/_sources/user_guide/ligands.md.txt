@@ -1,33 +1,18 @@
 # Ligand Preparation
 
-This guide is a focused reference for preparing, reusing, and scoring ligand
-chemistry. The linked tutorial provides a complete protein–ligand walkthrough.
+Prepare ligand parameters, reuse them across structures, and calculate interaction scores.
 
-> - **Prerequisites:** {doc}`Integrations </user_guide/integrations>` for
->   Biotite input and {doc}`Scoring </user_guide/scoring>`.
-> - **Deep tutorial:** {doc}`07 — Ligands and Parameter Files
->   </tutorial/07_ligand_and_params>`.
-> - **Related workflows:** {doc}`Packing </workflows/packing>` and
->   {doc}`Nucleic acids </workflows/nucleic_acids>`.
-> - **API reference:** {doc}`Ligands </api/ligand>`,
->   {doc}`Input and Output </api/io>`, and {doc}`Scoring </api/score>`.
-> - **Rosetta mapping:** {doc}`Ligands and residue-parameter files
->   </tutorial/rosetta_crosswalk>`.
+Preparation produces protonated coordinates, MMFF94 charges, TMol atom types,
+and Cartesian bonded parameters in a new `ParameterDatabase`. The resulting
+types support scoring and minimization.
 
-TMol can turn a non-standard, non-polymer residue into a parameterized residue
-type with protonated 3D coordinates, MMFF94 partial charges,
-generic-potential-style atom types used by TMol, and cartbonded parameters. The
-prepared ligand is injected into a new `ParameterDatabase` and can then be
-scored and minimized like a normal residue. These atom-type names do not by
-themselves make a ligand parameterization usable by Rosetta.
+<span id="chemistry-classes"></span>
 
-## Chemistry Classes
+## Supported chemistry
 
-`prepare_ligands`, and `prepare_ligands=True` on the IO entry points, is not
-limited to free small molecules. The backbone is inferred from a residue's own
-connectivity, so every class below enters by the same path and needs no
-hand-written parameter file. Each row names a shipped fixture you can run
-directly.
+`prepare_ligands=True` also handles nonstandard polymers and covalent groups.
+Backbone type is inferred from connectivity. The following fixtures use this
+same preparation path:
 
 | Class | Example fixture |
 | --- | --- |
@@ -43,7 +28,7 @@ directly.
 | Covalent conjugate | `covalent_fixtures/lys_biotin_1bdo.cif` (biotinylated lysine) |
 | Covalent inhibitor | `covalent_fixtures/peptide_inhibitor_7zv5.cif` |
 
-The call is the same whichever row you pick:
+For example:
 
 ```python
 import torch
@@ -59,7 +44,7 @@ pose, context = pose_stack_from_biotite(
 `context.parameter_database` carries the generated chemistry, and
 {func}`tmol.ligand.write_params_file` persists it as `.tmol` so a later run reads
 it back instead of regenerating. Reuse the context across structures that share
-the same components; see [Reuse Prepared Context](#reuse-prepared-context).
+the same components; see [Reuse a prepared context](#reuse-a-prepared-context).
 
 A prepared polymer residue records which backbone it was recognized as in
 `properties.polymer.backbone_type`: `alpha_aa`, `nonstandard_aa`, `dna`, `rna`,
@@ -67,11 +52,9 @@ or `nonstandard_na`. That value selects the terminus patches and the torsion
 terms the residue is scored with, so it is the first thing to check when a
 residue is not treated the way you expect.
 
-For how this maps onto Rosetta's `molfile_to_params_polymer.py` / `MakeRotLib`
-workflow, and which of its steps have no counterpart here, see the
-{doc}`Rosetta crosswalk <../tutorial/rosetta_crosswalk>`.
+<span id="entry-points"></span>
 
-## Entry Points
+## Preparation functions
 
 There are three single-ligand entry points:
 
@@ -104,7 +87,9 @@ MOL2 preparation and `write_params_from_mol2()` share three modes:
 
 A MOL2 charge-model label alone does not establish the intended protonation pH.
 
-## Loading Complexes
+<span id="loading-complexes"></span>
+
+## Load a complex
 
 For full protein-ligand structures, load with Biotite and let
 `pose_stack_from_biotite()` prepare every non-standard residue:
@@ -160,7 +145,9 @@ Name a custom ligand with a code containing `_` (TMol generates `L_1`, `L_2`, ..
 no CCD entry has one. A PDB or CIF residue whose atoms or bonds contradict the CCD
 entry of its name (PDBbind names ligands `MOL` or `ACT`) is read as its own component.
 
-## Reuse Prepared Context
+<span id="reuse-prepared-context"></span>
+
+## Reuse a prepared context
 
 When scoring many structures that contain the same ligand definitions, build
 the structure-independent context once:
@@ -179,7 +166,9 @@ for structure in structures:
 This skips rebuilding the parameter database, canonical ordering, residue type
 set, and packed block types for every structure.
 
-## Persist Prepared Ligands
+<span id="persist-prepared-ligands"></span>
+
+## Save prepared ligands
 
 For manual edits or cold reuse, write `.tmol` params and load them later:
 
@@ -212,7 +201,9 @@ pose_stack, context = pose_stack_from_biotite(
 )
 ```
 
-## SMILES to Params CLI
+<span id="smiles-to-params-cli"></span>
+
+## Prepare from SMILES
 
 The ligand-prep script writes a TMol `.tmol` parameter bundle:
 
@@ -224,11 +215,9 @@ python scripts/ligand_prep/smiles_to_params.py "<SMILES>" <out_prefix> \
 Useful flags include `--no-protonate`, `--heavy-chi-samples`, and
 `--seed` for a reproducible conformer.
 
-`.tmol` is TMol's only parameter format. TMol does not read or write Rosetta
-`.params`; use a Rosetta-native preparation workflow to parameterize a ligand
-for Rosetta.
+`.tmol` is TMol's parameter format.
 
-## Interaction Scores
+## Interaction scores
 
 Use the ligand-aware score function with an explicit ligand block mask:
 
@@ -246,9 +235,8 @@ interaction = calculate_block_pair_ddg(
 ```
 
 With both flags disabled, the helper returns a fixed-coordinate, weighted
-cross-mask block-pair interaction score from one complex. It performs no
-separated-state subtraction and is not a binding free energy despite its
-historical name. `minimize` defaults to `True`; `pack=True` additionally invokes
+cross-mask block-pair interaction score. `minimize` defaults to `True`;
+`pack=True` additionally invokes
 local repacking. Set those options only when the resulting refined structure is
 part of the intended scoring convention.
 
@@ -275,3 +263,7 @@ Import supported ligand-preparation functions from `tmol.ligand`. Files whose
 names begin with an underscore are implementation details and may change
 without a compatibility alias. The {doc}`ligand API reference </api/ligand>`
 lists the currently supported exports.
+
+## Examples and reference
+
+{doc}`Ligand tutorial </tutorial/07_ligand_and_params>` · {doc}`Ligand API </api/ligand>` · {doc}`Scoring </user_guide/scoring>`

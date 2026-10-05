@@ -31,7 +31,7 @@
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
-    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=a76a4f61" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=b5f2a73e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
@@ -151,6 +151,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../quickstart.html">
     Quickstart
   </a>
@@ -159,55 +166,31 @@
 
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="../workflows/index.html">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
-    Examples
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../model_inputs.html">
-    Model input interfaces
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API reference
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../agent_skills.html">
-    Agent skills
-  </a>
-</li>
-
-            <li class="nav-item dropdown">
-                <button class="btn dropdown-toggle nav-item" type="button"
-                data-bs-toggle="dropdown" aria-expanded="false"
-                aria-controls="pst-nav-more-links">
-                    More
-                </button>
-                <ul id="pst-nav-more-links" class="dropdown-menu">
-                    
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../api_reference.html">
-    API
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../contributor_guide.html">
+  <a class="nav-link nav-internal" href="../contributor_guide.html">
     Contributing
   </a>
 </li>
 
-                </ul>
-            </li>
-            
   </ul>
 </nav></div>
       
@@ -304,6 +287,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../quickstart.html">
     Quickstart
   </a>
@@ -312,35 +302,21 @@
 
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="../workflows/index.html">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
-    Examples
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../model_inputs.html">
-    Model input interfaces
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../agent_skills.html">
-    Agent skills
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../api_reference.html">
-    API
+    API reference
   </a>
 </li>
 
@@ -408,30 +384,33 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Prepare structures</span></p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Structures and tensors</span></p>
 <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../concepts.html">Concepts</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datatypes.html">Tensors and data objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../terminology.html">Terminology</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1"><a class="reference internal" href="../workflows/structure_io.html">Structure I/O and visualization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="integrations.html">Model and structure integrations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../model_inputs.html">Model coordinate inputs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../workflows/gpu_batching.html">GPU batching</a></li>
 <li class="toctree-l1"><a class="reference internal" href="cpu_threading.html">CPU threading</a></li>
 </ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Score, design, and refine</span></p>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Scoring and modeling</span></p>
 <ul class="current nav bd-sidenav">
 <li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">Scoring and analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../workflows/packing.html">Packing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../workflows/protein_interfaces.html">Protein-interface analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="optimization.html">Minimization and FastRelax</a></li>
-</ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Specialized chemistry</span></p>
-<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../workflows/protein_interfaces.html">Protein-interface analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ligands.html">Ligand Preparation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../workflows/nucleic_acids.html">Nucleic acids</a></li>
 </ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Develop and benchmark</span></p>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extension and performance</span></p>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="../workflows/extending_tmol.html">Extending TMol</a></li>
 <li class="toctree-l1"><a class="reference internal" href="benchmarking.html">Benchmarking</a></li>
-<li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
 </ul>
 </div>
 </nav></div>
@@ -473,7 +452,7 @@
       </a>
     </li>
     
-    <li class="breadcrumb-item"><a href="../workflows/index.html" class="nav-link">Workflows</a></li>
+    <li class="breadcrumb-item"><a href="../workflows/index.html" class="nav-link">Guides</a></li>
     
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Scoring and analysis</span></li>
   </ul>
@@ -494,24 +473,8 @@
                   
   <section id="scoring-and-analysis">
 <h1>Scoring and analysis<a class="headerlink" href="#scoring-and-analysis" title="Link to this heading">#</a></h1>
-<p>This guide is a concise reference for whole-pose, autograd, and block-pair
-scoring. Use the tutorial for a step-by-step analysis workflow.</p>
-<blockquote>
-<div><ul class="simple">
-<li><p><strong>Prerequisites:</strong> A prepared <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code>; see <a class="reference internal" href="../quickstart.html"><span class="doc">Quickstart</span></a>.</p></li>
-<li><p><strong>Deep tutorial:</strong> <a class="reference internal" href="../tutorial/03_scoring_and_analysis.html"><span class="doc">03 — Scoring and Analysis</span></a>.</p></li>
-<li><p><strong>Advanced extension tutorial:</strong> <a class="reference internal" href="../tutorial/11_extending_chemistry_and_scoring.html"><span class="doc">11 — Extending Chemistry and Scoring Contexts</span></a>.</p></li>
-<li><p><strong>Related workflows:</strong> <a class="reference internal" href="optimization.html"><span class="doc">Optimization</span></a> and
-<a class="reference internal" href="ligands.html"><span class="doc">Ligand preparation</span></a>.</p></li>
-<li><p><strong>API reference:</strong> <a class="reference internal" href="../api/score.html"><span class="doc">Scoring</span></a> and
-<a class="reference internal" href="../api/analysis.html"><span class="doc">Analysis</span></a>.</p></li>
-<li><p><strong>Rosetta mapping:</strong> <a class="reference internal" href="../tutorial/rosetta_crosswalk.html"><span class="doc">Scoring and analysis</span></a>.</p></li>
-</ul>
-</div></blockquote>
-<p>The default high-level preset, <code class="docutils literal notranslate"><span class="pre">beta2016_score_function()</span></code>, is inspired by
-Rosetta’s beta-November-2016 weights and term set. It does not provide
-centroid/full-atom switching, <code class="docutils literal notranslate"><span class="pre">ref2015</span></code>, or numerical parity with Rosetta.
-Report weighted totals as TMol score units.</p>
+<p>Calculate whole-pose scores, coordinate gradients, and block-pair contributions.</p>
+<p><code class="docutils literal notranslate"><span class="pre">beta2016_score_function()</span></code> provides the default all-atom weights and terms.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">struc</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure.io</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
@@ -528,8 +491,8 @@ Report weighted totals as TMol score units.</p>
 <span class="n">score</span> <span class="o">=</span> <span class="n">scorer</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The rendered scoring module is a PyTorch module. It can be called repeatedly
-while coordinates change, and its outputs can participate in autograd:</p>
+<p>Reuse the scorer while coordinates change. Render a new one after changing
+block types, connectivity, or batch layout. To calculate coordinate gradients:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">coords</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">score</span> <span class="o">=</span> <span class="n">scorer</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
 <span class="n">score</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
@@ -552,8 +515,8 @@ avoid oversubscription. See <a class="reference internal" href="cpu_threading.ht
 for affinity-aware discovery, scheduler examples, launch-time overrides, and
 benchmarking guidance.</p>
 </section>
-<section id="ligand-aware-scoring">
-<h2>Ligand-aware Scoring<a class="headerlink" href="#ligand-aware-scoring" title="Link to this heading">#</a></h2>
+<section id="scoring-prepared-ligands">
+<h2>Scoring prepared ligands<a class="headerlink" href="#scoring-prepared-ligands" title="Link to this heading">#</a></h2>
 <p>When a structure introduces ligand residue types at load time, the score
 function must be created from the ligand-extended parameter database:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
@@ -568,7 +531,7 @@ function must be created from the ligand-extended parameter database:</p>
 the ligand block type has no scoring parameters in that score function.</p>
 </section>
 <section id="block-pair-scores">
-<h2>Block-pair Scores<a class="headerlink" href="#block-pair-scores" title="Link to this heading">#</a></h2>
+<h2>Block-pair scores<a class="headerlink" href="#block-pair-scores" title="Link to this heading">#</a></h2>
 <p>Block-pair scoring reports score contributions between blocks:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">block_pair_scorer</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_block_pair_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
 <span class="n">block_pair_scores</span> <span class="o">=</span> <span class="n">block_pair_scorer</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span> <span class="n">sum_terms</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -592,11 +555,8 @@ masked atoms before scoring. For a fixed-coordinate interaction score, pass
 <span class="p">)</span>
 </pre></div>
 </div>
-<p>With both refinement flags disabled as above, this is a fixed-coordinate
-interaction-score convention: it sums weighted cross-mask block-pair terms in
-one complex and performs no bound/unbound or mutant/reference state
-subtraction. Despite the historical <code class="docutils literal notranslate"><span class="pre">ddg</span></code> name, it is not a thermodynamic
-binding free energy or delta-delta G.</p>
+<p>With both flags disabled, the result sums weighted cross-mask interactions in
+one fixed complex.</p>
 <p><code class="docutils literal notranslate"><span class="pre">pack=True</span></code> additionally repacks the masked region and adjacent blocks before
 any requested minimization. Use <code class="docutils literal notranslate"><span class="pre">return_pose_stack=True</span></code> when the refined
 coordinates are part of the result, and <code class="docutils literal notranslate"><span class="pre">sum_terms=False</span></code> to inspect score
@@ -621,12 +581,13 @@ interaction with an explicit partner mask in one connected-pose score:</p>
 <code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_fragments]</span></code>. The fragment columns follow
 <code class="docutils literal notranslate"><span class="pre">fragment_scores.mapping</span></code>. Every pose in the stack must use the same fragment
 block layout, and the partner mask must exclude those fragment blocks.</p>
-<p>Keep the fragments in one <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code> and call this function once. It renders
-one block-pair scorer and reduces all fragment columns together, preserving
-autograd through the connected complex. Calling a complete scoring workflow
-once per fragment repeats scorer and kernel-launch overhead. Rebuilding
-separated fragment poses additionally changes the physical system by removing
-the connected multi-block context.</p>
+<p>Keep fragments connected in one <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code>. This call scores once, reduces
+all fragment columns, and preserves autograd. Scoring separate fragment poses
+adds overhead and changes the system by removing inter-fragment connections.</p>
+</section>
+<section id="examples-and-reference">
+<h2>Examples and reference<a class="headerlink" href="#examples-and-reference" title="Link to this heading">#</a></h2>
+<p><a class="reference internal" href="../tutorial/03_scoring_and_analysis.html"><span class="doc">Scoring tutorial</span></a> · <a class="reference internal" href="../api/score.html"><span class="doc">Scoring API</span></a> · <a class="reference internal" href="../api/score_terms.html"><span class="doc">Score terms</span></a></p>
 </section>
 </section>
 
@@ -678,9 +639,10 @@ the connected multi-block context.</p>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cpu-batch-throughput">CPU batch throughput</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ligand-aware-scoring">Ligand-aware Scoring</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#block-pair-scores">Block-pair Scores</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#scoring-prepared-ligands">Scoring prepared ligands</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#block-pair-scores">Block-pair scores</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fragmented-ligand-attribution">Fragmented-ligand attribution</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#examples-and-reference">Examples and reference</a></li>
 </ul>
   </nav></div>
 

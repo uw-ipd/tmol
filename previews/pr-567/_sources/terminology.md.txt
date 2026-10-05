@@ -1,82 +1,58 @@
 # Terminology and modeling choices
 
-This page collects distinctions that recur across TMol workflows. It is a
-concept guide, not a replacement for the {doc}`API reference <api_reference>`.
+<span id="posestack-pose-block-and-atom"></span>
 
-## PoseStack, pose, block, and atom
+## Poses, blocks, and atoms
 
-A {class}`tmol.pose.PoseStack` stores one or more molecular systems as padded
-tensors on one PyTorch device. `n_poses` is the batch dimension. Padding lets
-systems with different numbers of atoms and blocks share a tensor layout;
-`real_atoms` and block-index tensors distinguish molecular entries from
-padding.
+A {class}`tmol.pose.PoseStack` stores molecular systems as padded tensors on one
+PyTorch device. `n_poses` is the batch dimension. Use `real_atoms` and block-index
+tensors to distinguish molecular entries from padding.
 
-TMol uses **block** where Rosetta users often expect **residue**. A block can be
-an amino acid, nucleotide, ligand fragment, ion, or another chemical unit
-described by one `RefinedResidueType`. A one-pose `PoseStack` is still a
-`PoseStack`; there is no separate Rosetta-compatible `Pose` class.
+A **block** is a chemical unit described by one `RefinedResidueType`: an amino
+acid, nucleotide, ligand fragment, ion, or other residue type. A single system
+still uses a `PoseStack`.
 
-## ParameterDatabase and PackedBlockTypes
+<span id="parameterdatabase-and-packedblocktypes"></span>
 
-{class}`tmol.database.ParameterDatabase` is the immutable source of chemical
-definitions and scoring parameters. Extending it for a ligand or custom
-residue returns a new database.
+## Chemical definitions
 
-{class}`tmol.pose.PackedBlockTypes` contains the block types and device-resident
-setup data used by a `PoseStack`. Reuse it when constructing compatible
-structures on the same device. It is not a cache of conformation energies.
+{class}`tmol.database.ParameterDatabase` holds chemical definitions and scoring
+parameters. Extending it returns a new database.
 
-## Deposited atoms and built atoms
+{class}`tmol.pose.PackedBlockTypes` holds block types and device-resident setup
+data. Reuse it for compatible structures on the same device. It does not cache
+conformation energies.
 
-PDB or mmCIF atom records describe deposited coordinates. TMol selects chemical
-types and may build supported missing atoms from its database. Histidine state,
-termini, disulfides, missing atoms, and noncanonical chemistry therefore need
-to be checked in the I/O build context rather than assumed to round-trip
-unchanged.
+<span id="deposited-atoms-and-built-atoms"></span>
 
-Prefer mmCIF through Biotite when metadata, explicit ligand bonds, or
-noncanonical chemistry matter. PDB remains useful as a compatibility format,
-but it cannot represent every input decision losslessly.
+## Deposited and built atoms
 
-## The `no_optH` choice
+TMol assigns chemical types to input atoms and may build missing atoms. Check
+histidine state, termini, disulfides, and noncanonical chemistry in the I/O build
+context. Prefer mmCIF through Biotite when metadata or explicit ligand bonds
+matter; PDB cannot preserve every preparation decision.
 
-Hydroxyl and other movable polar hydrogens can be optimized during preparation.
-Use `no_optH=False` when you want the standard optimization step and the score
-function needed to choose those conformations. Use `no_optH=True` when the
-incoming proton geometry is authoritative, when you are intentionally
-deferring that choice, or when a lightweight preprocessing path is more
-important than optimizing those hydrogens.
+<span id="the-no-opth-choice"></span>
 
-The choice changes coordinates and can change scores. Record it as part of a
-reproducible workflow rather than treating it as an implementation detail.
+## Polar hydrogens: `no_optH`
 
-## Score units and score differences
+`no_optH=False` optimizes movable polar hydrogens during preparation and requires
+a score function. Use `no_optH=True` to skip this step when retaining supplied
+proton geometry or deferring optimization. This choice affects coordinates and
+scores; record it with your results.
 
-TMol reports weighted **score units**. They are not calibrated kcal/mol and are
-not guaranteed to equal scores from Rosetta, even when names or weight sets are
-similar.
+<span id="rendered-scorers-and-changing-coordinates"></span>
 
-A block-pair score, interface sum, mutation-score difference, or
-`calculate_block_pair_ddg()` result describes the exact computational
-experiment used to produce it. Such values are not automatically physical
-binding free energies or experimentally calibrated ΔΔG values.
+## Reusing a scorer
 
-## Rendered scorers and changing coordinates
-
-A {class}`tmol.score.ScoreFunction` renders a PyTorch module for a particular
-`PoseStack` layout. You can generally reuse that module while changing only the
-coordinate tensor. If block types, atom counts, connectivity, or batch layout
-change, render a new scorer for the new stack.
+A {class}`tmol.score.ScoreFunction` renders a PyTorch module for a specific
+`PoseStack` layout. Reuse it when only coordinates change. Render a new scorer
+after changing block types, atom counts, connectivity, or batch layout.
 
 ## Cartesian and kinematic movement
 
-Cartesian minimization directly changes selected atom coordinates. Kinematic
-minimization changes internal and rigid-body degrees of freedom selected by a
-{class}`tmol.kinematics.MoveMap` over a
-{class}`tmol.kinematics.FoldForest`. These are different coordinate models, so
-their trajectories and convergence behavior should not be compared without
-matching masks, weights, stopping rules, and iteration budgets.
-
-See the {doc}`optimization workflow <user_guide/optimization>` and
-{doc}`Tutorial 05 <tutorial/05_minimization_constraints_kinematics>` for
-executable examples.
+Cartesian minimization changes selected atom coordinates. Kinematic minimization
+changes internal and rigid-body degrees of freedom selected by a
+{class}`tmol.kinematics.MoveMap` over a {class}`tmol.kinematics.FoldForest`.
+Compare the two only with matched masks, weights, stopping rules, and iteration
+budgets. See {doc}`optimization <user_guide/optimization>` for examples.

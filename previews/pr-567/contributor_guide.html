@@ -31,7 +31,7 @@
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=9c3e77be" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=a76a4f61" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=b5f2a73e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
@@ -53,7 +53,8 @@
     <link rel="icon" href="_static/favicon.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="Terminology and modeling choices" href="terminology.html" />
+    <link rel="next" title="Development" href="user_guide/development.html" />
+    <link rel="prev" title="Utilities" href="api/utility.html" />
   
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
@@ -150,6 +151,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="quickstart.html">
     Quickstart
   </a>
@@ -158,55 +166,31 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="workflows/index.html">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
-    Examples
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="model_inputs.html">
-    Model input interfaces
+  <a class="nav-link nav-internal" href="api_reference.html">
+    API reference
   </a>
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="agent_skills.html">
-    Agent skills
-  </a>
-</li>
-
-            <li class="nav-item dropdown">
-                <button class="btn dropdown-toggle nav-item" type="button"
-                data-bs-toggle="dropdown" aria-expanded="false"
-                aria-controls="pst-nav-more-links">
-                    More
-                </button>
-                <ul id="pst-nav-more-links" class="dropdown-menu">
-                    
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="api_reference.html">
-    API
-  </a>
-</li>
-
-
-<li class=" current active">
-  <a class="nav-link dropdown-item nav-internal" href="#" aria-current="page">
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#" aria-current="page">
     Contributing
   </a>
 </li>
 
-                </ul>
-            </li>
-            
   </ul>
 </nav></div>
       
@@ -303,6 +287,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="quickstart.html">
     Quickstart
   </a>
@@ -311,35 +302,21 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="workflows/index.html">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
-    Examples
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="model_inputs.html">
-    Model input interfaces
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="agent_skills.html">
-    Agent skills
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="api_reference.html">
-    API
+    API reference
   </a>
 </li>
 
@@ -407,7 +384,11 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"></div>
+  <div class="bd-toc-item navbar-nav"><ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="user_guide/development.html">Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="agent_skills.html">Agent skills</a></li>
+</ul>
+</div>
 </nav></div>
     </div>
   
@@ -465,28 +446,12 @@
                   
   <section id="contributor-guide">
 <h1>Contributor guide<a class="headerlink" href="#contributor-guide" title="Link to this heading">#</a></h1>
-<p>Keep changes focused and testable. Prefer existing TMol patterns over new
-abstractions unless the new abstraction removes real complexity.</p>
-<blockquote>
-<div><ul class="simple">
-<li><p><strong>Prerequisites:</strong> <a class="reference internal" href="user_guide/development.html"><span class="doc">Development setup</span></a>.</p></li>
-<li><p><strong>Documentation entry points:</strong> <a class="reference internal" href="examples_index.html"><span class="doc">Tutorials</span></a>,
-<a class="reference internal" href="workflows/index.html"><span class="doc">workflow recipes</span></a>, and
-<a class="reference internal" href="api_reference.html"><span class="doc">API reference</span></a>.</p></li>
-</ul>
-</div></blockquote>
+<p>Set up an editable installation using <a class="reference internal" href="user_guide/development.html"><span class="doc">Development</span></a>.</p>
 <section id="documentation">
 <h2>Documentation<a class="headerlink" href="#documentation" title="Link to this heading">#</a></h2>
-<p>The external docs are built with Sphinx, MyST Markdown, nbsphinx, and autodoc.
-Two documentation forms serve different purposes:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">docs/workflows/</span></code> and selected <code class="docutils literal notranslate"><span class="pre">docs/user_guide/</span></code> pages are concise,
-reusable recipes that link to deeper material rather than reproducing it.</p></li>
-<li><p>The top-level <strong>Examples</strong> section contains the thirteen interactive notebooks
-in <code class="docutils literal notranslate"><span class="pre">docs/tutorial/</span></code>. They are deeper, executable walkthroughs rendered by
-nbsphinx.</p></li>
-</ul>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/cpu<span class="w"> </span><span class="s2">"torch&gt;=2.5"</span>
+<p>Sphinx builds the Markdown/RST guides and the notebooks in <code class="docutils literal notranslate"><span class="pre">docs/tutorial/</span></code>.
+Execute the notebooks before building HTML:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/cpu<span class="w"> </span><span class="s2">"torch&gt;=2.8"</span>
 pip<span class="w"> </span>install<span class="w"> </span>scikit-build-core<span class="w"> </span>pybind11<span class="w"> </span>ninja<span class="w"> </span>packaging<span class="w"> </span><span class="s2">"cmake&gt;=3.24,&lt;4"</span>
 <span class="nv">TMOL_DISABLE_WHEEL_FETCH</span><span class="o">=</span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[docs]"</span><span class="w"> </span><span class="se">\</span>
@@ -501,8 +466,20 @@ nbsphinx does not execute notebooks during the Sphinx phase; the smoke command
 above executes them first and writes the plots, tables, and viewer HTML that
 Sphinx consumes. CI performs the same two-step notebook-and-Sphinx build.</p>
 </section>
+<section id="writing-documentation">
+<h2>Writing documentation<a class="headerlink" href="#writing-documentation" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p>Lead with the operation or result. Put prerequisites next to the example.</p></li>
+<li><p>Use descriptive headings, short paragraphs, and runnable code.</p></li>
+<li><p>Keep caveats where they affect a decision. Link to shared conventions instead
+of repeating them on every page.</p></li>
+<li><p>Link to a tutorial or API page when it adds detail; avoid introductory link
+checklists and descriptions of what the page is about to explain.</p></li>
+<li><p>Keep notebook code, fixtures, outputs, and Colab setup consistent.</p></li>
+</ul>
+</section>
 <section id="pull-requests">
-<h2>Pull Requests<a class="headerlink" href="#pull-requests" title="Link to this heading">#</a></h2>
+<h2>Pull requests<a class="headerlink" href="#pull-requests" title="Link to this heading">#</a></h2>
 <p>Before opening a PR:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
 pytest<span class="w"> </span>tmol/tests/<span class="w"> </span>-v<span class="w"> </span>-k<span class="w"> </span><span class="s2">"not cuda"</span>
@@ -514,7 +491,7 @@ make<span class="w"> </span>-C<span class="w"> </span>docs<span class="w"> </spa
 include the relevant GPU tests or explain why they were not run locally.</p>
 </section>
 <section id="api-documentation">
-<h2>API Documentation<a class="headerlink" href="#api-documentation" title="Link to this heading">#</a></h2>
+<h2>API documentation<a class="headerlink" href="#api-documentation" title="Link to this heading">#</a></h2>
 <p>API pages under <code class="docutils literal notranslate"><span class="pre">docs/api/</span></code> use <code class="docutils literal notranslate"><span class="pre">sphinx.ext.autodoc</span></code>. Public modules should have
 useful module, class, and function docstrings because those docstrings become
 the reference documentation.</p>
@@ -522,12 +499,12 @@ the reference documentation.</p>
 </section>
 <section id="agent-skills">
 <h2>Agent skills<a class="headerlink" href="#agent-skills" title="Link to this heading">#</a></h2>
-<p>Repository skills under <code class="docutils literal notranslate"><span class="pre">skills/</span></code> encode recurring workflows for coding agents.
-Keep each <code class="docutils literal notranslate"><span class="pre">SKILL.md</span></code> narrow and grounded in current public commands and APIs.
-Link substantial explanations to the maintained docs instead of copying them
-into several skills. When behavior changes, update the relevant skill, its
-human-readable skill card, and its bounded eval case together. See
+<p>Keep <code class="docutils literal notranslate"><span class="pre">skills/</span></code> instructions consistent with public commands and APIs. Link to
+the docs for explanations. When behavior changes, update the skill, its card,
+and its eval case together. See
 <a class="reference internal" href="agent_skills.html"><span class="doc">Agent skills</span></a> for the catalog.</p>
+<div class="toctree-wrapper compound">
+</div>
 </section>
 </section>
 
@@ -542,13 +519,22 @@ human-readable skill card, and its bounded eval case together. See
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="terminology.html"
+       href="api/utility.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Terminology and modeling choices</p>
+        <p class="prev-next-title">Utilities</p>
       </div>
+    </a>
+    <a class="right-next"
+       href="user_guide/development.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Development</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
     </a>
 </div>
                 </footer>
@@ -570,8 +556,9 @@ human-readable skill card, and its bounded eval case together. See
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#documentation">Documentation</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pull-requests">Pull Requests</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#api-documentation">API Documentation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#writing-documentation">Writing documentation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pull-requests">Pull requests</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#api-documentation">API documentation</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#agent-skills">Agent skills</a></li>
 </ul>
   </nav></div>
