@@ -9,6 +9,7 @@ The current protonation and ligand changes are available from GitHub:
 pip install "tmol @ git+https://github.com/uw-ipd/tmol.git@master"
 ```
 
+Ligand preparation is included in the standard install, with RDKit and OpenBabel.
 This uses the source-build toolchain described below and installs the pinned
 public AtomWorks release-branch commit. These changes are not yet in the PyPI
 release; `pip install tmol` selects the older published package.
