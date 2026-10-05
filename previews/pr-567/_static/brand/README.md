@@ -1,17 +1,13 @@
 # TMol brand assets
 
-The logo connects a protein helix to a compact two-strand beta sheet. The
-graphite sheet uses two opposing ribbon arrows; the larger orange vector
-points out of the helix to suggest force and acceleration. An orange `t`
-continues that accent in the wordmark. Keep the ribbon orientation; do not
-mirror the symbol. This is a stylized identity mark, not a molecular structure
-diagram.
+The logo combines a graphite protein helix with a short orange arrow whose
+straight shaft has a constant width and a square tail. It suggests force and
+acceleration. An orange `t` continues that accent in the
+wordmark. Keep the ribbon orientation; do not mirror the symbol. This is a
+stylized identity mark, not a molecular structure diagram.
 
-The sheet follows the familiar ribbon-arrow convention described in
-[RCSB PDB-101's protein structure guide](https://pdb101.rcsb.org/learn/guide-to-understanding-pdb-data/protein-hierarchical-structure).
-Color and scale distinguish the orange force vector from the smaller arrows
-that indicate strand direction. The square symbol omits text, labels, motion
-streaks, and atomic detail so the same geometry can serve as a favicon.
+The square symbol omits text, labels, motion streaks, and atomic detail so the
+same compact geometry can serve as a favicon.
 
 ## Choose an asset
 
@@ -58,8 +54,8 @@ generated from that single geometry; they are not separate AI redraws.
 
 The initial concept was created with OpenAI image generation, selected by the
 maintainer, then traced and cleaned into this two-color vector master. The
-connected beta sheet and force vector were subsequently drawn as native SVG
-paths. Assets are distributed under the repository's Apache-2.0 license.
+short force arrow was subsequently drawn as a native SVG path. Assets are
+distributed under the repository's Apache-2.0 license.
 
 From the repository root, with Python and the Cairo shared library installed:
 
