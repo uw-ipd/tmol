@@ -1,16 +1,7 @@
 # CPU threading
 
-TMol uses PyTorch's process-wide CPU thread budget. In a normal environment,
-PyTorch initializes that budget from the CPUs visible to the process and its
-OpenMP settings. TMol does not require a separate thread-count API: inspect and
-change the same setting used by the rest of a PyTorch application.
-
-> - **Related workflows:** {doc}`Scoring </user_guide/scoring>`,
->   {doc}`Packing </workflows/packing>`, and
->   {doc}`Minimization and FastRelax </user_guide/optimization>`.
-> - **Performance measurement:** {doc}`Benchmarking
->   </user_guide/benchmarking>`.
-> - **PyTorch API:** [`torch.set_num_threads()`](https://docs.pytorch.org/docs/stable/generated/torch.set_num_threads.html).
+TMol uses PyTorch's process-wide CPU thread budget. Set it before rendering
+scorers or starting autograd work.
 
 ## Inspect the allocation and active budget
 
@@ -30,11 +21,8 @@ print(f"CPUs available to this process: {available_cpus}")
 print(f"PyTorch intra-op threads: {torch.get_num_threads()}")
 ```
 
-When no thread environment variable or application setting overrides it,
-PyTorch normally uses the CPUs available to the process. Always print both
-values in performance logs: a scheduler can grant many host CPUs while exposing
-only the allocated affinity mask, and an inherited `OMP_NUM_THREADS` can choose
-a smaller active budget.
+Log both values: scheduler affinity can limit visible CPUs, and an inherited
+`OMP_NUM_THREADS` can set a smaller thread budget.
 
 ## Override the budget
 
@@ -66,12 +54,9 @@ srun --cpus-per-task=8 \
 
 ## How TMol uses the budget
 
-When a CPU scoring module is rendered, TMol derives bounded worker and pair-
-traversal shard counts from `torch.get_num_threads()`. It can parallelize
-independent score terms, poses, and the dominant pair traversal, but deliberately
-uses fewer workers for small workloads where coordination would cost more than
-it saves. The requested PyTorch budget is therefore a ceiling, not a promise
-that every score call will keep every logical CPU busy.
+When rendering a CPU scorer, TMol uses `torch.get_num_threads()` to plan workers
+and pair-traversal shards. It parallelizes score terms, poses, and pair traversal,
+but uses fewer workers for small workloads. The thread budget is an upper bound.
 
 Changes to the thread budget should happen before rendering a scorer because
 the scorer's internal execution plan is selected at construction time. Render

@@ -1,11 +1,8 @@
 API reference
 =============
 
-The reference groups TMol's public classes and functions by modeling task.
-Start with :doc:`api/pose`, :doc:`api/io`, and :doc:`api/score`; the
-:doc:`api/score_terms` page maps every score type to its implementation.
-For an architectural overview and tensor conventions, see
-:doc:`architecture` and :doc:`datatypes`.
+Public classes and functions, grouped by module. See :doc:`concepts` for the
+data model and :doc:`api/score_terms` for score-type definitions.
 
 .. toctree::
    :maxdepth: 2
@@ -26,8 +23,3 @@ For an architectural overview and tensor conventions, see
    api/score_terms
    api/types
    api/utility
-
-.. toctree::
-   :hidden:
-
-   Concepts <concepts>

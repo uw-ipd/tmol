@@ -31,7 +31,7 @@
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
-    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=0a30a683" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=b5f2a73e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
@@ -39,9 +39,9 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=d127aa6e"></script>
-    <script src="../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/documentation_options.js?v=755f2e77"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
     <script>let toggleHintHide = 'hide code';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
@@ -50,19 +50,25 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/cpu_threading';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/user_guide/cpu_threading.html" />
+    <link rel="icon" href="../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Scoring and analysis" href="scoring.html" />
     <link rel="prev" title="GPU batching" href="../workflows/gpu_batching.html" />
+  
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.58" />
+  <meta name="docsearch:version" content="0.1.59" />
   
     
     <script src="../_static/searchtools.js"></script>
     <script src="../_static/language_data.js"></script>
     <script src="../searchindex.js"></script>
   
+  
+  <link rel="icon" type="image/svg+xml" sizes="any" href="../_static/brand/favicon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="../_static/brand/apple-touch-icon.png">
+
   </head>
   <body data-default-mode="">
   
@@ -123,8 +129,14 @@
   
   
   
+    
+    
+      
+    
+    
+    <img src="../_static/tmol-logo-light.svg" class="logo__image only-light" alt="TMol documentation — Home"/>
+    <img src="../_static/tmol-logo-dark.svg" class="logo__image only-dark pst-js-only" alt="TMol documentation — Home"/>
   
-    <p class="title logo__title">TMol</p>
   
 </a></div>
     
@@ -139,6 +151,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../quickstart.html">
     Quickstart
   </a>
@@ -147,55 +166,31 @@
 
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="../workflows/index.html">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
-    Examples
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../model_inputs.html">
-    Model input interfaces
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API reference
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../agent_skills.html">
-    Agent skills
-  </a>
-</li>
-
-            <li class="nav-item dropdown">
-                <button class="btn dropdown-toggle nav-item" type="button"
-                data-bs-toggle="dropdown" aria-expanded="false"
-                aria-controls="pst-nav-more-links">
-                    More
-                </button>
-                <ul id="pst-nav-more-links" class="dropdown-menu">
-                    
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../api_reference.html">
-    API
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../contributor_guide.html">
+  <a class="nav-link nav-internal" href="../contributor_guide.html">
     Contributing
   </a>
 </li>
 
-                </ul>
-            </li>
-            
   </ul>
 </nav></div>
       
@@ -292,6 +287,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../quickstart.html">
     Quickstart
   </a>
@@ -300,35 +302,21 @@
 
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="../workflows/index.html">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
-    Examples
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../model_inputs.html">
-    Model input interfaces
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../agent_skills.html">
-    Agent skills
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../api_reference.html">
-    API
+    API reference
   </a>
 </li>
 
@@ -396,30 +384,33 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Prepare structures</span></p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Structures and tensors</span></p>
 <ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../concepts.html">Concepts</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datatypes.html">Tensors and data objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../terminology.html">Terminology</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1"><a class="reference internal" href="../workflows/structure_io.html">Structure I/O and visualization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="integrations.html">Model and structure integrations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../model_inputs.html">Model coordinate inputs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../workflows/gpu_batching.html">GPU batching</a></li>
 <li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">CPU threading</a></li>
 </ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Score, design, and refine</span></p>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Scoring and modeling</span></p>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="scoring.html">Scoring and analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../workflows/packing.html">Packing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../workflows/protein_interfaces.html">Protein-interface analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="optimization.html">Minimization and FastRelax</a></li>
-</ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Specialized chemistry</span></p>
-<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../workflows/protein_interfaces.html">Protein-interface analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ligands.html">Ligand Preparation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../workflows/nucleic_acids.html">Nucleic acids</a></li>
 </ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Develop and benchmark</span></p>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extension and performance</span></p>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="../workflows/extending_tmol.html">Extending TMol</a></li>
 <li class="toctree-l1"><a class="reference internal" href="benchmarking.html">Benchmarking</a></li>
-<li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
 </ul>
 </div>
 </nav></div>
@@ -461,7 +452,7 @@
       </a>
     </li>
     
-    <li class="breadcrumb-item"><a href="../workflows/index.html" class="nav-link">Workflows</a></li>
+    <li class="breadcrumb-item"><a href="../workflows/index.html" class="nav-link">Guides</a></li>
     
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">CPU threading</span></li>
   </ul>
@@ -482,19 +473,8 @@
                   
   <section id="cpu-threading">
 <h1>CPU threading<a class="headerlink" href="#cpu-threading" title="Link to this heading">#</a></h1>
-<p>TMol uses PyTorch’s process-wide CPU thread budget. In a normal environment,
-PyTorch initializes that budget from the CPUs visible to the process and its
-OpenMP settings. TMol does not require a separate thread-count API: inspect and
-change the same setting used by the rest of a PyTorch application.</p>
-<blockquote>
-<div><ul class="simple">
-<li><p><strong>Related workflows:</strong> <a class="reference internal" href="scoring.html"><span class="doc">Scoring</span></a>,
-<a class="reference internal" href="../workflows/packing.html"><span class="doc">Packing</span></a>, and
-<a class="reference internal" href="optimization.html"><span class="doc">Minimization and FastRelax</span></a>.</p></li>
-<li><p><strong>Performance measurement:</strong> <a class="reference internal" href="benchmarking.html"><span class="doc">Benchmarking</span></a>.</p></li>
-<li><p><strong>PyTorch API:</strong> <a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.set_num_threads.html"><code class="docutils literal notranslate"><span class="pre">torch.set_num_threads()</span></code></a>.</p></li>
-</ul>
-</div></blockquote>
+<p>TMol uses PyTorch’s process-wide CPU thread budget. Set it before rendering
+scorers or starting autograd work.</p>
 <section id="inspect-the-allocation-and-active-budget">
 <h2>Inspect the allocation and active budget<a class="headerlink" href="#inspect-the-allocation-and-active-budget" title="Link to this heading">#</a></h2>
 <p>On Linux, process affinity is the most useful answer to “how many CPUs may this
@@ -511,11 +491,8 @@ process use?” It respects scheduler and container restrictions:</p>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"PyTorch intra-op threads: </span><span class="si">{</span><span class="n">torch</span><span class="o">.</span><span class="n">get_num_threads</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>When no thread environment variable or application setting overrides it,
-PyTorch normally uses the CPUs available to the process. Always print both
-values in performance logs: a scheduler can grant many host CPUs while exposing
-only the allocated affinity mask, and an inherited <code class="docutils literal notranslate"><span class="pre">OMP_NUM_THREADS</span></code> can choose
-a smaller active budget.</p>
+<p>Log both values: scheduler affinity can limit visible CPUs, and an inherited
+<code class="docutils literal notranslate"><span class="pre">OMP_NUM_THREADS</span></code> can set a smaller thread budget.</p>
 </section>
 <section id="override-the-budget">
 <h2>Override the budget<a class="headerlink" href="#override-the-budget" title="Link to this heading">#</a></h2>
@@ -541,12 +518,9 @@ same number explicitly:</p>
 </section>
 <section id="how-tmol-uses-the-budget">
 <h2>How TMol uses the budget<a class="headerlink" href="#how-tmol-uses-the-budget" title="Link to this heading">#</a></h2>
-<p>When a CPU scoring module is rendered, TMol derives bounded worker and pair-
-traversal shard counts from <code class="docutils literal notranslate"><span class="pre">torch.get_num_threads()</span></code>. It can parallelize
-independent score terms, poses, and the dominant pair traversal, but deliberately
-uses fewer workers for small workloads where coordination would cost more than
-it saves. The requested PyTorch budget is therefore a ceiling, not a promise
-that every score call will keep every logical CPU busy.</p>
+<p>When rendering a CPU scorer, TMol uses <code class="docutils literal notranslate"><span class="pre">torch.get_num_threads()</span></code> to plan workers
+and pair-traversal shards. It parallelizes score terms, poses, and pair traversal,
+but uses fewer workers for small workloads. The thread budget is an upper bound.</p>
 <p>Changes to the thread budget should happen before rendering a scorer because
 the scorer’s internal execution plan is selected at construction time. Render
 a new scorer after changing the budget.</p>
@@ -667,7 +641,7 @@ reproducible.</p>
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
   </p>
 </div>
       

@@ -31,7 +31,7 @@
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=9c3e77be" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=0a30a683" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=b5f2a73e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
@@ -39,9 +39,9 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=d127aa6e"></script>
-    <script src="_static/doctools.js?v=9bcbadda"></script>
-    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/documentation_options.js?v=755f2e77"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
     <script>let toggleHintHide = 'hide code';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
@@ -50,19 +50,25 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'installation';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/installation.html" />
+    <link rel="icon" href="_static/favicon.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Workflows" href="workflows/index.html" />
-    <link rel="prev" title="Quickstart" href="quickstart.html" />
+    <link rel="next" title="Quickstart" href="quickstart.html" />
+    <link rel="prev" title="TMol documentation" href="index.html" />
+  
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.58" />
+  <meta name="docsearch:version" content="0.1.59" />
   
     
     <script src="_static/searchtools.js"></script>
     <script src="_static/language_data.js"></script>
     <script src="searchindex.js"></script>
   
+  
+  <link rel="icon" type="image/svg+xml" sizes="any" href="_static/brand/favicon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="_static/brand/apple-touch-icon.png">
+
   </head>
   <body data-default-mode="">
   
@@ -123,8 +129,14 @@
   
   
   
+    
+    
+      
+    
+    
+    <img src="_static/tmol-logo-light.svg" class="logo__image only-light" alt="TMol documentation — Home"/>
+    <img src="_static/tmol-logo-dark.svg" class="logo__image only-dark pst-js-only" alt="TMol documentation — Home"/>
   
-    <p class="title logo__title">TMol</p>
   
 </a></div>
     
@@ -139,6 +151,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#" aria-current="page">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="quickstart.html">
     Quickstart
   </a>
@@ -147,55 +166,31 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="workflows/index.html">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
-    Examples
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="model_inputs.html">
-    Model input interfaces
+  <a class="nav-link nav-internal" href="api_reference.html">
+    API reference
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="agent_skills.html">
-    Agent skills
-  </a>
-</li>
-
-            <li class="nav-item dropdown">
-                <button class="btn dropdown-toggle nav-item" type="button"
-                data-bs-toggle="dropdown" aria-expanded="false"
-                aria-controls="pst-nav-more-links">
-                    More
-                </button>
-                <ul id="pst-nav-more-links" class="dropdown-menu">
-                    
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="api_reference.html">
-    API
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="contributor_guide.html">
+  <a class="nav-link nav-internal" href="contributor_guide.html">
     Contributing
   </a>
 </li>
 
-                </ul>
-            </li>
-            
   </ul>
 </nav></div>
       
@@ -292,6 +287,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#" aria-current="page">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="quickstart.html">
     Quickstart
   </a>
@@ -300,35 +302,21 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="workflows/index.html">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
-    Examples
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="model_inputs.html">
-    Model input interfaces
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="agent_skills.html">
-    Agent skills
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="api_reference.html">
-    API
+    API reference
   </a>
 </li>
 
@@ -396,10 +384,7 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
-<li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">Installation</a></li>
-</ul>
-</div>
+  <div class="bd-toc-item navbar-nav"></div>
 </nav></div>
     </div>
   
@@ -438,9 +423,6 @@
         <i class="fa-solid fa-home"></i>
       </a>
     </li>
-    
-    <li class="breadcrumb-item"><a href="quickstart.html" class="nav-link">Quickstart</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Installation</span></li>
   </ul>
 </nav>
@@ -460,29 +442,15 @@
                   
   <section id="installation">
 <h1>Installation<a class="headerlink" href="#installation" title="Link to this heading">#</a></h1>
-<p>TMol supports Python 3.11 and newer. It depends on PyTorch and ships custom
-C++/CUDA extensions for scoring, packing, kinematics, and minimization kernels.</p>
-<p>The current protonation and ligand changes are available from GitHub:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"tmol @ git+https://github.com/uw-ipd/tmol.git@master"</span>
+<p>TMol requires Python 3.11+ and PyTorch. Pre-built wheels contain C++/CUDA
+extensions; source builds require a compiler.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>tmol
 </pre></div>
 </div>
-<p>Ligand preparation is included in the standard install, with RDKit and OpenBabel.
-This uses the source-build toolchain described below and installs the pinned
-public AtomWorks release-branch commit. These changes are not yet in the PyPI
-release; <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">tmol</span></code> selects the older published package.</p>
-<blockquote>
-<div><ul class="simple">
-<li><p><strong>Choose a path:</strong> Use a release wheel for the shortest supported install,
-or build from source when developing TMol or targeting an unavailable
-platform combination.</p></li>
-<li><p><strong>Next step:</strong> Run the <a class="reference internal" href="quickstart.html"><span class="doc">Quickstart</span></a>, then choose an
-<a class="reference internal" href="examples_index.html"><span class="doc">interactive example</span></a> or a concise
-<a class="reference internal" href="workflows/index.html"><span class="doc">workflow</span></a>.</p></li>
-<li><p><strong>Development setup:</strong> See <a class="reference internal" href="user_guide/development.html"><span class="doc">Development</span></a>.</p></li>
-</ul>
-</div></blockquote>
+<p>TMol 0.1.59 uses AtomWorks 3 from PyPI. Ligand preparation, including RDKit and
+OpenBabel, is part of the standard install. AtomWorks 3 requires Biotite 1.6.0.</p>
 <section id="pre-built-wheels">
-<h2>Pre-built Wheels<a class="headerlink" href="#pre-built-wheels" title="Link to this heading">#</a></h2>
+<h2>Pre-built wheels<a class="headerlink" href="#pre-built-wheels" title="Link to this heading">#</a></h2>
 <p>Pre-built wheels include ahead-of-time compiled extensions, so installing a
 wheel does not require <code class="docutils literal notranslate"><span class="pre">nvcc</span></code>.</p>
 <p>TMol uses two distribution channels:</p>
@@ -490,8 +458,9 @@ wheel does not require <code class="docutils literal notranslate"><span class="p
 <li><p>PyPI provides source distributions for <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">tmol</span></code>.</p></li>
 <li><p>GitHub Releases provide pre-built CPU and GPU wheels.</p></li>
 </ul>
-<p>The most deterministic install path is an explicit wheel URL from the
-<a class="reference external" href="https://github.com/uw-ipd/tmol/releases">GitHub Releases page</a>:</p>
+<p>Select a wheel from <a class="reference external" href="https://github.com/uw-ipd/tmol/releases">GitHub Releases</a>
+that matches your Python, PyTorch, and CUDA versions. Replace <code class="docutils literal notranslate"><span class="pre">vX.Y.Z</span></code> and
+<code class="docutils literal notranslate"><span class="pre">X.Y.Z</span></code> in these URL templates with an available release:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu132torch2.14-cp313-cp313-manylinux_2_28_x86_64.whl"</span>
 </pre></div>
 </div>
@@ -512,8 +481,8 @@ Silicon. For example, after installing PyTorch 2.14, an Apple Silicon wheel is:<
 </div>
 </section>
 <section id="pypi-source-distribution">
-<h2>PyPI Source Distribution<a class="headerlink" href="#pypi-source-distribution" title="Link to this heading">#</a></h2>
-<p>The simple install is:</p>
+<h2>PyPI source distribution<a class="headerlink" href="#pypi-source-distribution" title="Link to this heading">#</a></h2>
+<p>Install from PyPI:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>tmol
 </pre></div>
 </div>
@@ -536,9 +505,10 @@ the runtime environment, pin the wheel lane when PyTorch is already installed:</
 <li><p><code class="docutils literal notranslate"><span class="pre">TMOL_WHEEL_FETCH_TIMEOUT_S=20</span></code>: set per-request timeout.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">TMOL_WHEEL_FETCH_BACKOFF_S=1.5</span></code>: set retry backoff.</p></li>
 </ul>
+<p><span id="from-source"></span></p>
 </section>
-<section id="from-source">
-<h2>From Source<a class="headerlink" href="#from-source" title="Link to this heading">#</a></h2>
+<section id="build-from-source">
+<h2>Build from source<a class="headerlink" href="#build-from-source" title="Link to this heading">#</a></h2>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/uw-ipd/tmol.git
 <span class="nb">cd</span><span class="w"> </span>tmol
 pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span>
@@ -560,9 +530,10 @@ CUDA kernels.</p>
 <p>CPU source builds and release wheels are tested on Linux x86-64, Linux
 aarch64, and Apple Silicon. Native Windows is not currently supported; use a
 Linux environment such as WSL2.</p>
+<p><span id="linux-runtime-notes"></span></p>
 </section>
-<section id="linux-runtime-notes">
-<h2>Linux Runtime Notes<a class="headerlink" href="#linux-runtime-notes" title="Link to this heading">#</a></h2>
+<section id="runtime-compatibility">
+<h2>Runtime compatibility<a class="headerlink" href="#runtime-compatibility" title="Link to this heading">#</a></h2>
 <p>Linux release wheels use <code class="docutils literal notranslate"><span class="pre">manylinux_2_28</span></code> platform tags on <code class="docutils literal notranslate"><span class="pre">x86_64</span></code> and
 <code class="docutils literal notranslate"><span class="pre">aarch64</span></code>. They require glibc 2.28 or newer. Apple Silicon wheels use
 <code class="docutils literal notranslate"><span class="pre">macosx_14_0_arm64</span></code>, matching the PyTorch 2.13 and 2.14 deployment target. PyTorch
@@ -587,10 +558,10 @@ recent container image.</p>
 </section>
 <section id="google-colab">
 <h2>Google Colab<a class="headerlink" href="#google-colab" title="Link to this heading">#</a></h2>
-<p>Colab GPU runtimes currently use PyTorch 2.11.0 with CUDA 12.8 and may provide
-Python 3.12 or 3.13. TMol v0.1.56 provides separate Python-ABI wheels compiled
+<p>The tutorial bootstrap supports PyTorch 2.11.0, CUDA 12.8, and Python 3.12 or
+3.13. TMol v0.1.59 provides separate Python-ABI wheels compiled
 for T4 (<code class="docutils literal notranslate"><span class="pre">sm_75</span></code>), A100 (<code class="docutils literal notranslate"><span class="pre">sm_80</span></code>), and L4 (<code class="docutils literal notranslate"><span class="pre">sm_89</span></code>) GPUs. For Python 3.13:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"tmol @ https://github.com/uw-ipd/tmol/releases/download/v0.1.56/tmol-0.1.56+cu128torch2.11-cp313-cp313-manylinux_2_28_x86_64.whl"</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"tmol @ https://github.com/uw-ipd/tmol/releases/download/v0.1.59/tmol-0.1.59+cu128torch2.11-cp313-cp313-manylinux_2_28_x86_64.whl"</span>
 </pre></div>
 </div>
 <p>The tutorial bootstrap selects the wheel matching the runtime’s Python ABI and
@@ -598,6 +569,8 @@ constrains pip to keep Colab’s active PyTorch. It stops with a clear
 compatibility error instead of attempting a long source build when Python,
 PyTorch, or CUDA do not match. Always confirm the active versions before
 installing an ABI-specific wheel URL.</p>
+<p>After installation, run the <a class="reference internal" href="quickstart.html"><span class="doc">Quickstart</span></a>. For an editable
+development environment, see <a class="reference internal" href="user_guide/development.html"><span class="doc">Development</span></a>.</p>
 </section>
 </section>
 
@@ -612,20 +585,20 @@ installing an ABI-specific wheel URL.</p>
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="quickstart.html"
+       href="index.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Quickstart</p>
+        <p class="prev-next-title">TMol documentation</p>
       </div>
     </a>
     <a class="right-next"
-       href="workflows/index.html"
+       href="quickstart.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Workflows</p>
+        <p class="prev-next-title">Quickstart</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -648,10 +621,10 @@ installing an ABI-specific wheel URL.</p>
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pre-built-wheels">Pre-built Wheels</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pypi-source-distribution">PyPI Source Distribution</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#from-source">From Source</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#linux-runtime-notes">Linux Runtime Notes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pre-built-wheels">Pre-built wheels</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pypi-source-distribution">PyPI source distribution</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#build-from-source">Build from source</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#runtime-compatibility">Runtime compatibility</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#google-colab">Google Colab</a></li>
 </ul>
   </nav></div>
@@ -699,7 +672,7 @@ installing an ABI-specific wheel URL.</p>
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
   </p>
 </div>
       

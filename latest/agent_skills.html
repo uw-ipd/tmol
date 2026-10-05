@@ -31,7 +31,7 @@
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=9c3e77be" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=0a30a683" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=b5f2a73e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
@@ -39,9 +39,9 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=d127aa6e"></script>
-    <script src="_static/doctools.js?v=9bcbadda"></script>
-    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/documentation_options.js?v=755f2e77"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
     <script>let toggleHintHide = 'hide code';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
@@ -50,19 +50,24 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'agent_skills';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/agent_skills.html" />
+    <link rel="icon" href="_static/favicon.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="API reference" href="api_reference.html" />
-    <link rel="prev" title="Build an interface for your model" href="model_inputs.html" />
+    <link rel="prev" title="Development" href="user_guide/development.html" />
+  
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.58" />
+  <meta name="docsearch:version" content="0.1.59" />
   
     
     <script src="_static/searchtools.js"></script>
     <script src="_static/language_data.js"></script>
     <script src="searchindex.js"></script>
   
+  
+  <link rel="icon" type="image/svg+xml" sizes="any" href="_static/brand/favicon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="_static/brand/apple-touch-icon.png">
+
   </head>
   <body data-default-mode="">
   
@@ -123,8 +128,14 @@
   
   
   
+    
+    
+      
+    
+    
+    <img src="_static/tmol-logo-light.svg" class="logo__image only-light" alt="TMol documentation — Home"/>
+    <img src="_static/tmol-logo-dark.svg" class="logo__image only-dark pst-js-only" alt="TMol documentation — Home"/>
   
-    <p class="title logo__title">TMol</p>
   
 </a></div>
     
@@ -139,6 +150,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="quickstart.html">
     Quickstart
   </a>
@@ -147,55 +165,31 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="workflows/index.html">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
-    Examples
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="model_inputs.html">
-    Model input interfaces
+  <a class="nav-link nav-internal" href="api_reference.html">
+    API reference
   </a>
 </li>
 
 
 <li class="nav-item current active">
-  <a class="nav-link nav-internal" href="#" aria-current="page">
-    Agent skills
-  </a>
-</li>
-
-            <li class="nav-item dropdown">
-                <button class="btn dropdown-toggle nav-item" type="button"
-                data-bs-toggle="dropdown" aria-expanded="false"
-                aria-controls="pst-nav-more-links">
-                    More
-                </button>
-                <ul id="pst-nav-more-links" class="dropdown-menu">
-                    
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="api_reference.html">
-    API
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="contributor_guide.html">
+  <a class="nav-link nav-internal" href="contributor_guide.html">
     Contributing
   </a>
 </li>
 
-                </ul>
-            </li>
-            
   </ul>
 </nav></div>
       
@@ -292,6 +286,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="quickstart.html">
     Quickstart
   </a>
@@ -300,40 +301,26 @@
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="workflows/index.html">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
-    Examples
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="model_inputs.html">
-    Model input interfaces
-  </a>
-</li>
-
-
-<li class="nav-item current active">
-  <a class="nav-link nav-internal" href="#" aria-current="page">
-    Agent skills
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="api_reference.html">
-    API
+    API reference
   </a>
 </li>
 
 
-<li class="nav-item ">
+<li class="nav-item current active">
   <a class="nav-link nav-internal" href="contributor_guide.html">
     Contributing
   </a>
@@ -396,7 +383,11 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"></div>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="user_guide/development.html">Development</a></li>
+<li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">Agent skills</a></li>
+</ul>
+</div>
 </nav></div>
     </div>
   
@@ -435,6 +426,9 @@
         <i class="fa-solid fa-home"></i>
       </a>
     </li>
+    
+    <li class="breadcrumb-item"><a href="contributor_guide.html" class="nav-link">Contributor guide</a></li>
+    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Agent skills</span></li>
   </ul>
 </nav>
@@ -454,10 +448,8 @@
                   
   <section id="agent-skills">
 <h1>Agent skills<a class="headerlink" href="#agent-skills" title="Link to this heading">#</a></h1>
-<p>TMol includes portable agent skills for recurring user and contributor
-workflows. Each skill is a directory under <code class="docutils literal notranslate"><span class="pre">skills/</span></code> with a <code class="docutils literal notranslate"><span class="pre">SKILL.md</span></code> that an
-agent reads only when the request matches that workflow. The skills point to
-the maintained documentation and public APIs rather than duplicating them.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">skills/</span></code> directory contains instructions for coding agents. Each
+<code class="docutils literal notranslate"><span class="pre">SKILL.md</span></code> covers one task and links to the corresponding docs and APIs.</p>
 <div class="pst-scrollable-table-container"><table class="table">
 <thead>
 <tr class="row-odd"><th class="head"><p>Skill</p></th>
@@ -482,14 +474,12 @@ the maintained documentation and public APIs rather than duplicating them.</p>
 </div>
 <section id="install-or-vendor-a-skill">
 <h2>Install or vendor a skill<a class="headerlink" href="#install-or-vendor-a-skill" title="Link to this heading">#</a></h2>
-<p>The repository directories are self-contained. An agent environment that
-supports repository skills can install one from the GitHub repository or vendor
-the corresponding <code class="docutils literal notranslate"><span class="pre">skills/&lt;name&gt;/</span></code> directory into its skill search path. Read
+<p>Install a skill from GitHub or copy <code class="docutils literal notranslate"><span class="pre">skills/&lt;name&gt;/</span></code> into your agent’s skill
+search path. See
 <a class="reference external" href="https://github.com/uw-ipd/tmol/tree/master/skills"><code class="docutils literal notranslate"><span class="pre">skills/README.md</span></code></a> for the
 catalog and artifact conventions.</p>
-<p>Skills do not grant permission to submit jobs, spend external compute, push
-branches, or merge pull requests. Those actions still require the authority
-provided by the user’s request and the active environment.</p>
+<p>Skills do not authorize external jobs, compute spending, pushes, or merges;
+those require user authorization.</p>
 </section>
 </section>
 
@@ -504,22 +494,13 @@ provided by the user’s request and the active environment.</p>
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="model_inputs.html"
+       href="user_guide/development.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Build an interface for your model</p>
+        <p class="prev-next-title">Development</p>
       </div>
-    </a>
-    <a class="right-next"
-       href="api_reference.html"
-       title="next page">
-      <div class="prev-next-info">
-        <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">API reference</p>
-      </div>
-      <i class="fa-solid fa-angle-right"></i>
     </a>
 </div>
                 </footer>
@@ -587,7 +568,7 @@ provided by the user’s request and the active environment.</p>
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
   </p>
 </div>
       

@@ -31,7 +31,7 @@
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=9c3e77be" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=0a30a683" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=b5f2a73e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
@@ -39,9 +39,9 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=d127aa6e"></script>
-    <script src="_static/doctools.js?v=9bcbadda"></script>
-    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/documentation_options.js?v=755f2e77"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
     <script>let toggleHintHide = 'hide code';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
@@ -50,19 +50,25 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'architecture';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/architecture.html" />
+    <link rel="icon" href="_static/favicon.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Data model and conventions" href="datatypes.html" />
     <link rel="prev" title="Concepts" href="concepts.html" />
+  
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.58" />
+  <meta name="docsearch:version" content="0.1.59" />
   
     
     <script src="_static/searchtools.js"></script>
     <script src="_static/language_data.js"></script>
     <script src="searchindex.js"></script>
   
+  
+  <link rel="icon" type="image/svg+xml" sizes="any" href="_static/brand/favicon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="_static/brand/apple-touch-icon.png">
+
   </head>
   <body data-default-mode="">
   
@@ -123,8 +129,14 @@
   
   
   
+    
+    
+      
+    
+    
+    <img src="_static/tmol-logo-light.svg" class="logo__image only-light" alt="TMol documentation — Home"/>
+    <img src="_static/tmol-logo-dark.svg" class="logo__image only-dark pst-js-only" alt="TMol documentation — Home"/>
   
-    <p class="title logo__title">TMol</p>
   
 </a></div>
     
@@ -139,63 +151,46 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="quickstart.html">
     Quickstart
   </a>
 </li>
 
 
-<li class="nav-item ">
+<li class="nav-item current active">
   <a class="nav-link nav-internal" href="workflows/index.html">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
-    Examples
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="model_inputs.html">
-    Model input interfaces
+  <a class="nav-link nav-internal" href="api_reference.html">
+    API reference
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="agent_skills.html">
-    Agent skills
-  </a>
-</li>
-
-            <li class="nav-item dropdown">
-                <button class="btn dropdown-toggle nav-item" type="button"
-                data-bs-toggle="dropdown" aria-expanded="false"
-                aria-controls="pst-nav-more-links">
-                    More
-                </button>
-                <ul id="pst-nav-more-links" class="dropdown-menu">
-                    
-<li class=" current active">
-  <a class="nav-link dropdown-item nav-internal" href="api_reference.html">
-    API
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="contributor_guide.html">
+  <a class="nav-link nav-internal" href="contributor_guide.html">
     Contributing
   </a>
 </li>
 
-                </ul>
-            </li>
-            
   </ul>
 </nav></div>
       
@@ -292,43 +287,36 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="quickstart.html">
     Quickstart
   </a>
 </li>
 
 
-<li class="nav-item ">
+<li class="nav-item current active">
   <a class="nav-link nav-internal" href="workflows/index.html">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
-    Examples
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="model_inputs.html">
-    Model input interfaces
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="agent_skills.html">
-    Agent skills
-  </a>
-</li>
-
-
-<li class="nav-item current active">
   <a class="nav-link nav-internal" href="api_reference.html">
-    API
+    API reference
   </a>
 </li>
 
@@ -396,32 +384,33 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"><ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="api/top_level.html">Top-level API</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/chemical.html">Chemical Types</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/database.html">Parameter Database</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/io.html">Input and Output</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/kinematics.html">Kinematics</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/ligand.html">Ligands</a></li>
-
-<li class="toctree-l1"><a class="reference internal" href="api/numeric.html">Numerical Utilities</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/optimization.html">Optimization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/pack.html">Packing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/pose.html">Pose</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/relax.html">Relax</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/score.html">Scoring</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/analysis.html">Analysis Operations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/score_terms.html">Score Terms</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/types.html">Types</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/utility.html">Utilities</a></li>
-</ul>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Structures and tensors</span></p>
 <ul class="current nav bd-sidenav">
 <li class="toctree-l1 current active has-children"><a class="reference internal" href="concepts.html">Concepts</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
-<li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">Core architecture</a></li>
-<li class="toctree-l2"><a class="reference internal" href="datatypes.html">Data model and conventions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="terminology.html">Terminology and modeling choices</a></li>
+<li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datatypes.html">Tensors and data objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="terminology.html">Terminology</a></li>
 </ul>
 </details></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows/structure_io.html">Structure I/O and visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/integrations.html">Model and structure integrations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model_inputs.html">Model coordinate inputs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows/gpu_batching.html">GPU batching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/cpu_threading.html">CPU threading</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Scoring and modeling</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="user_guide/scoring.html">Scoring and analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows/packing.html">Packing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/optimization.html">Minimization and FastRelax</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows/protein_interfaces.html">Protein-interface analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/ligands.html">Ligand Preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows/nucleic_acids.html">Nucleic acids</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extension and performance</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="workflows/extending_tmol.html">Extending TMol</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/benchmarking.html">Benchmarking</a></li>
 </ul>
 </div>
 </nav></div>
@@ -463,7 +452,7 @@
       </a>
     </li>
     
-    <li class="breadcrumb-item"><a href="api_reference.html" class="nav-link">API reference</a></li>
+    <li class="breadcrumb-item"><a href="workflows/index.html" class="nav-link">Guides</a></li>
     
     
     <li class="breadcrumb-item"><a href="concepts.html" class="nav-link">Concepts</a></li>
@@ -487,12 +476,9 @@
                   
   <section id="architecture">
 <span id="id1"></span><h1>Architecture<a class="headerlink" href="#architecture" title="Link to this heading">#</a></h1>
-<p>TMol is centered on two core representations: batched molecular state in
-<code class="docutils literal notranslate"><span class="pre">tmol.pose</span></code> and term-specific scoring machinery in <code class="docutils literal notranslate"><span class="pre">tmol.score</span></code>. Structure
-I/O in <code class="docutils literal notranslate"><span class="pre">tmol.io</span></code> builds <a class="reference internal" href="api/pose.html#tmol.pose.PoseStack" title="tmol.pose.PoseStack"><code class="xref py py-class docutils literal notranslate"><span class="pre">PoseStack</span></code></a> objects from
-PDB/mmCIF files and model outputs.</p>
-<p>These components operate over a shared chemical vocabulary defined in
-<code class="docutils literal notranslate"><span class="pre">tmol.database.chemical</span></code>, with additional term-specific data given in
+<p><code class="docutils literal notranslate"><span class="pre">tmol.io</span></code> builds batched <a class="reference internal" href="api/pose.html#tmol.pose.PoseStack" title="tmol.pose.PoseStack"><code class="xref py py-class docutils literal notranslate"><span class="pre">PoseStack</span></code></a> objects from structures
+or model tensors. <code class="docutils literal notranslate"><span class="pre">tmol.score</span></code> evaluates their coordinates using chemical
+definitions from <code class="docutils literal notranslate"><span class="pre">tmol.database.chemical</span></code> and parameters from
 <code class="docutils literal notranslate"><span class="pre">tmol.database.scoring</span></code>.</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>+------+       +------+          +---------+
 |      |       |      |          |         |
@@ -515,7 +501,7 @@ PDB/mmCIF files and model outputs.</p>
 </div>
 <section id="modeling-lifecycle">
 <h2>Modeling lifecycle<a class="headerlink" href="#modeling-lifecycle" title="Link to this heading">#</a></h2>
-<p>A typical TMol application moves through four explicit stages:</p>
+<p>Structure preparation, scoring, and output follow this sequence:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>structure records or model tensors
                |
                v
@@ -552,7 +538,7 @@ Score terms annotate <a class="reference internal" href="api/pose.html#tmol.pose
 and then render <code class="docutils literal notranslate"><span class="pre">torch.nn.Module</span></code> objects for repeated evaluation.</p>
 </section>
 <section id="scoring-overview">
-<h2>Scoring Overview<a class="headerlink" href="#scoring-overview" title="Link to this heading">#</a></h2>
+<h2>Scoring overview<a class="headerlink" href="#scoring-overview" title="Link to this heading">#</a></h2>
 <p>Scoring is managed by rendered PyTorch modules that evaluate configured energy
 terms over a <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code>. Coordinates have shape
 <code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">max_n_atoms,</span> <span class="pre">3]</span></code>; <code class="docutils literal notranslate"><span class="pre">real_atoms</span></code> distinguishes molecular atoms
@@ -573,16 +559,8 @@ annotates residue and block data before rendering its coordinate-dependent
 module. Calls may return either the weighted total or a leading score-term axis
 when <code class="docutils literal notranslate"><span class="pre">sum_terms=False</span></code>. The complete score-type-to-term map is documented in
 <a class="reference internal" href="api/score_terms.html"><span class="doc">Score Terms</span></a>.</p>
-</section>
-<section id="where-to-continue">
-<h2>Where to continue<a class="headerlink" href="#where-to-continue" title="Link to this heading">#</a></h2>
-<ul class="simple">
-<li><p><a class="reference internal" href="examples_index.html"><span class="doc">Examples</span></a> provides complete, executable walkthroughs.</p></li>
-<li><p><a class="reference internal" href="workflows/index.html"><span class="doc">Workflows</span></a> organizes concise recipes by modeling task.</p></li>
-<li><p><a class="reference internal" href="terminology.html"><span class="doc">Terminology and modeling choices</span></a> explains blocks, score units, deposited versus built
-atoms, and movement choices.</p></li>
-<li><p><a class="reference internal" href="api_reference.html"><span class="doc">API reference</span></a> documents public classes and functions.</p></li>
-</ul>
+<p>See <a class="reference internal" href="datatypes.html"><span class="doc">Data model and conventions</span></a> for tensor conventions and <a class="reference internal" href="api/score_terms.html"><span class="doc">Score Terms</span></a> for
+individual score terms.</p>
 </section>
 </section>
 
@@ -634,8 +612,7 @@ atoms, and movement choices.</p></li>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#modeling-lifecycle">Modeling lifecycle</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#scoring-overview">Scoring Overview</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#where-to-continue">Where to continue</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#scoring-overview">Scoring overview</a></li>
 </ul>
   </nav></div>
 
@@ -682,7 +659,7 @@ atoms, and movement choices.</p></li>
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
   </p>
 </div>
       

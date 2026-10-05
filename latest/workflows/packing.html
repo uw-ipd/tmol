@@ -31,7 +31,7 @@
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
-    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=0a30a683" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=b5f2a73e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
@@ -39,9 +39,9 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=d127aa6e"></script>
-    <script src="../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/documentation_options.js?v=755f2e77"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
     <script>let toggleHintHide = 'hide code';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
@@ -50,19 +50,25 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'workflows/packing';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/workflows/packing.html" />
+    <link rel="icon" href="../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Protein-interface analysis" href="protein_interfaces.html" />
+    <link rel="next" title="Minimization and FastRelax" href="../user_guide/optimization.html" />
     <link rel="prev" title="Scoring and analysis" href="../user_guide/scoring.html" />
+  
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.58" />
+  <meta name="docsearch:version" content="0.1.59" />
   
     
     <script src="../_static/searchtools.js"></script>
     <script src="../_static/language_data.js"></script>
     <script src="../searchindex.js"></script>
   
+  
+  <link rel="icon" type="image/svg+xml" sizes="any" href="../_static/brand/favicon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="../_static/brand/apple-touch-icon.png">
+
   </head>
   <body data-default-mode="">
   
@@ -123,8 +129,14 @@
   
   
   
+    
+    
+      
+    
+    
+    <img src="../_static/tmol-logo-light.svg" class="logo__image only-light" alt="TMol documentation — Home"/>
+    <img src="../_static/tmol-logo-dark.svg" class="logo__image only-dark pst-js-only" alt="TMol documentation — Home"/>
   
-    <p class="title logo__title">TMol</p>
   
 </a></div>
     
@@ -139,6 +151,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../quickstart.html">
     Quickstart
   </a>
@@ -147,55 +166,31 @@
 
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="index.html">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
-    Examples
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../model_inputs.html">
-    Model input interfaces
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API reference
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../agent_skills.html">
-    Agent skills
-  </a>
-</li>
-
-            <li class="nav-item dropdown">
-                <button class="btn dropdown-toggle nav-item" type="button"
-                data-bs-toggle="dropdown" aria-expanded="false"
-                aria-controls="pst-nav-more-links">
-                    More
-                </button>
-                <ul id="pst-nav-more-links" class="dropdown-menu">
-                    
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../api_reference.html">
-    API
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../contributor_guide.html">
+  <a class="nav-link nav-internal" href="../contributor_guide.html">
     Contributing
   </a>
 </li>
 
-                </ul>
-            </li>
-            
   </ul>
 </nav></div>
       
@@ -292,6 +287,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../quickstart.html">
     Quickstart
   </a>
@@ -300,35 +302,21 @@
 
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="index.html">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
-    Examples
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../model_inputs.html">
-    Model input interfaces
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../agent_skills.html">
-    Agent skills
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../api_reference.html">
-    API
+    API reference
   </a>
 </li>
 
@@ -396,30 +384,33 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Prepare structures</span></p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Structures and tensors</span></p>
 <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../concepts.html">Concepts</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datatypes.html">Tensors and data objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../terminology.html">Terminology</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1"><a class="reference internal" href="structure_io.html">Structure I/O and visualization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/integrations.html">Model and structure integrations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../model_inputs.html">Model coordinate inputs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gpu_batching.html">GPU batching</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/cpu_threading.html">CPU threading</a></li>
 </ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Score, design, and refine</span></p>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Scoring and modeling</span></p>
 <ul class="current nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/scoring.html">Scoring and analysis</a></li>
 <li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">Packing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="protein_interfaces.html">Protein-interface analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/optimization.html">Minimization and FastRelax</a></li>
-</ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Specialized chemistry</span></p>
-<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="protein_interfaces.html">Protein-interface analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/ligands.html">Ligand Preparation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="nucleic_acids.html">Nucleic acids</a></li>
 </ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Develop and benchmark</span></p>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extension and performance</span></p>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="extending_tmol.html">Extending TMol</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/benchmarking.html">Benchmarking</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide/development.html">Development</a></li>
 </ul>
 </div>
 </nav></div>
@@ -461,7 +452,7 @@
       </a>
     </li>
     
-    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Workflows</a></li>
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Guides</a></li>
     
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Packing</span></li>
   </ul>
@@ -482,28 +473,9 @@
                   
   <section id="packing">
 <h1>Packing<a class="headerlink" href="#packing" title="Link to this heading">#</a></h1>
-<p>Use this compact recipe for fixed-sequence repacking. The linked tutorial
-develops local repacking and explicitly scoped mutation or design experiments.</p>
-<blockquote>
-<div><ul class="simple">
-<li><p><strong>Prerequisites:</strong> A prepared <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code> and a score function built from the
-same parameter database.</p></li>
-<li><p><strong>Deep tutorial:</strong> <a class="reference internal" href="../tutorial/04_packing_and_mutation_scan.html"><span class="doc">04 — Packing and Mutation Scan</span></a>.</p></li>
-<li><p><strong>Advanced extension tutorial:</strong> <a class="reference internal" href="../tutorial/13_extending_the_packer.html"><span class="doc">13 — Extending the Packer and Inspecting Rotamers</span></a>.</p></li>
-<li><p><strong>Related workflows:</strong> <a class="reference internal" href="../user_guide/optimization.html"><span class="doc">Optimization</span></a> and
-<a class="reference internal" href="nucleic_acids.html"><span class="doc">Nucleic acids</span></a>; for CPU execution, see
-<a class="reference internal" href="../user_guide/cpu_threading.html"><span class="doc">CPU threading</span></a>.</p></li>
-<li><p><strong>API reference:</strong> <a class="reference internal" href="../api/pack.html"><span class="doc">Packing</span></a> and
-<a class="reference internal" href="../api/relax.html"><span class="doc">Relax</span></a>.</p></li>
-<li><p><strong>Rosetta mapping:</strong> <a class="reference internal" href="../tutorial/rosetta_crosswalk.html"><span class="doc">Packing, design, and mutation scans</span></a>.</p></li>
-</ul>
-</div></blockquote>
-<p>Fixed-sequence repacking searches side-chain or nucleic-acid chi conformers
-without changing block identity. The usual workflow creates a <code class="docutils literal notranslate"><span class="pre">PackerTask</span></code>,
-restricts it to repacking, attaches rotamer samplers, and calls
-<code class="docutils literal notranslate"><span class="pre">pack_rotamers()</span></code>. Mutation or sequence design requires explicit identity
-masks; TMol does not provide Rosetta resfiles or a built-in mutation-scan
-protocol.</p>
+<p>Start with a prepared <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code> and a score function from the same parameter database.</p>
+<p>Fixed-sequence repacking changes conformations while preserving block identities.
+Create a <code class="docutils literal notranslate"><span class="pre">PackerTask</span></code>, restrict it to repacking, and attach samplers:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">pack_rotamers</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">PackerPalette</span><span class="p">,</span> <span class="n">PackerTask</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer.dunbrack</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -528,13 +500,11 @@ packing for those blocks:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">task</span><span class="o">.</span><span class="n">disable_packing_by_block_mask</span><span class="p">(</span><span class="n">fixed_block_mask</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The protein-ligand refinement example uses this pattern to repack protein side
-chains while holding the ligand block fixed.</p>
-<p><code class="docutils literal notranslate"><span class="pre">restrict_to_repacking()</span></code> intersects the task with each block’s original
-identity. Mutation or design therefore needs an explicitly constructed identity
-task instead of this fixed-sequence recipe. <a class="reference internal" href="../tutorial/06_fast_relax.html"><span class="doc">FastRelax</span></a> composes packing with minimization, while
-<a class="reference internal" href="../tutorial/08_nucleic_acids.html"><span class="doc">08 — Working with DNA and RNA</span></a> uses an
-NA-specific chi sampler and explicit masks.</p>
+<p>For mutation or design, construct a task with the allowed identities instead
+of calling <code class="docutils literal notranslate"><span class="pre">restrict_to_repacking()</span></code>. Construct the masks explicitly.
+See <a class="reference internal" href="../tutorial/06_fast_relax.html"><span class="doc">FastRelax</span></a>
+to combine packing with minimization, or <a class="reference internal" href="nucleic_acids.html"><span class="doc">DNA/RNA</span></a> for
+nucleic-acid samplers.</p>
 <section id="protonation-alternatives">
 <h2>Protonation alternatives<a class="headerlink" href="#protonation-alternatives" title="Link to this heading">#</a></h2>
 <p>Packing keeps each residue’s protonation state by default. To let free titratable side chains take other states supported by AtomWorks
@@ -564,9 +534,12 @@ assigned state. Packing adds these offsets to one-body energies. FastRelax
 uses the same offsets when accepting poses if the palette enables alternatives;
 within a fixed state they are constant and do not affect coordinate gradients.
 <code class="docutils literal notranslate"><span class="pre">protonation_state_energy(pose_stack)</span></code> exposes the offsets separately from raw
-score-function totals. The score function is not calibrated for proton transfer,
-so chosen states remain hypotheses. Terminal states are held fixed during this
-side-chain search, including neutral amino termini supported by the database.</p>
+score-function totals. Terminal states stay fixed during this side-chain search,
+including neutral amino termini supported by the database.</p>
+</section>
+<section id="examples-and-reference">
+<h2>Examples and reference<a class="headerlink" href="#examples-and-reference" title="Link to this heading">#</a></h2>
+<p><a class="reference internal" href="../tutorial/04_packing_and_mutation_scan.html"><span class="doc">Packing tutorial</span></a> · <a class="reference internal" href="../tutorial/13_extending_the_packer.html"><span class="doc">Packer extensions</span></a> · <a class="reference internal" href="../api/pack.html"><span class="doc">Packing API</span></a></p>
 </section>
 </section>
 
@@ -590,11 +563,11 @@ side-chain search, including neutral amino termini supported by the database.</p
       </div>
     </a>
     <a class="right-next"
-       href="protein_interfaces.html"
+       href="../user_guide/optimization.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Protein-interface analysis</p>
+        <p class="prev-next-title">Minimization and FastRelax</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -618,6 +591,7 @@ side-chain search, including neutral amino termini supported by the database.</p
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#protonation-alternatives">Protonation alternatives</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#examples-and-reference">Examples and reference</a></li>
 </ul>
   </nav></div>
 
@@ -664,7 +638,7 @@ side-chain search, including neutral amino termini supported by the database.</p
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
   </p>
 </div>
       

@@ -1,28 +1,16 @@
 # Installation
 
-TMol supports Python 3.11 and newer. It depends on PyTorch and ships custom
-C++/CUDA extensions for scoring, packing, kinematics, and minimization kernels.
-
-The current protonation and ligand changes are available from GitHub:
+TMol requires Python 3.11+ and PyTorch. Pre-built wheels contain C++/CUDA
+extensions; source builds require a compiler.
 
 ```bash
-pip install "tmol @ git+https://github.com/uw-ipd/tmol.git@master"
+pip install tmol
 ```
 
-Ligand preparation is included in the standard install, with RDKit and OpenBabel.
-This uses the source-build toolchain described below and installs the pinned
-public AtomWorks release-branch commit. These changes are not yet in the PyPI
-release; `pip install tmol` selects the older published package.
+TMol 0.1.59 uses AtomWorks 3 from PyPI. Ligand preparation, including RDKit and
+OpenBabel, is part of the standard install. AtomWorks 3 requires Biotite 1.6.0.
 
-> - **Choose a path:** Use a release wheel for the shortest supported install,
->   or build from source when developing TMol or targeting an unavailable
->   platform combination.
-> - **Next step:** Run the {doc}`Quickstart </quickstart>`, then choose an
->   {doc}`interactive example </examples_index>` or a concise
->   {doc}`workflow </workflows/index>`.
-> - **Development setup:** See {doc}`Development </user_guide/development>`.
-
-## Pre-built Wheels
+## Pre-built wheels
 
 Pre-built wheels include ahead-of-time compiled extensions, so installing a
 wheel does not require `nvcc`.
@@ -32,8 +20,9 @@ TMol uses two distribution channels:
 - PyPI provides source distributions for `pip install tmol`.
 - GitHub Releases provide pre-built CPU and GPU wheels.
 
-The most deterministic install path is an explicit wheel URL from the
-[GitHub Releases page](https://github.com/uw-ipd/tmol/releases):
+Select a wheel from [GitHub Releases](https://github.com/uw-ipd/tmol/releases)
+that matches your Python, PyTorch, and CUDA versions. Replace `vX.Y.Z` and
+`X.Y.Z` in these URL templates with an available release:
 
 ```bash
 pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu132torch2.14-cp313-cp313-manylinux_2_28_x86_64.whl"
@@ -59,9 +48,9 @@ Silicon. For example, after installing PyTorch 2.14, an Apple Silicon wheel is:
 pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cputorch2.14-cp313-cp313-macosx_14_0_arm64.whl"
 ```
 
-## PyPI Source Distribution
+## PyPI source distribution
 
-The simple install is:
+Install from PyPI:
 
 ```bash
 pip install tmol
@@ -88,7 +77,9 @@ Useful environment variables:
 - `TMOL_WHEEL_FETCH_TIMEOUT_S=20`: set per-request timeout.
 - `TMOL_WHEEL_FETCH_BACKOFF_S=1.5`: set retry backoff.
 
-## From Source
+<span id="from-source"></span>
+
+## Build from source
 
 ```bash
 git clone https://github.com/uw-ipd/tmol.git
@@ -118,7 +109,9 @@ CPU source builds and release wheels are tested on Linux x86-64, Linux
 aarch64, and Apple Silicon. Native Windows is not currently supported; use a
 Linux environment such as WSL2.
 
-## Linux Runtime Notes
+<span id="linux-runtime-notes"></span>
+
+## Runtime compatibility
 
 Linux release wheels use `manylinux_2_28` platform tags on `x86_64` and
 `aarch64`. They require glibc 2.28 or newer. Apple Silicon wheels use
@@ -149,12 +142,12 @@ python -c "import sys, torch; print(f'Python {sys.version_info.major}.{sys.versi
 
 ## Google Colab
 
-Colab GPU runtimes currently use PyTorch 2.11.0 with CUDA 12.8 and may provide
-Python 3.12 or 3.13. TMol v0.1.56 provides separate Python-ABI wheels compiled
+The tutorial bootstrap supports PyTorch 2.11.0, CUDA 12.8, and Python 3.12 or
+3.13. TMol v0.1.59 provides separate Python-ABI wheels compiled
 for T4 (`sm_75`), A100 (`sm_80`), and L4 (`sm_89`) GPUs. For Python 3.13:
 
 ```bash
-pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/v0.1.56/tmol-0.1.56+cu128torch2.11-cp313-cp313-manylinux_2_28_x86_64.whl"
+pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/v0.1.59/tmol-0.1.59+cu128torch2.11-cp313-cp313-manylinux_2_28_x86_64.whl"
 ```
 
 The tutorial bootstrap selects the wheel matching the runtime's Python ABI and
@@ -162,3 +155,6 @@ constrains pip to keep Colab's active PyTorch. It stops with a clear
 compatibility error instead of attempting a long source build when Python,
 PyTorch, or CUDA do not match. Always confirm the active versions before
 installing an ABI-specific wheel URL.
+
+After installation, run the {doc}`Quickstart <quickstart>`. For an editable
+development environment, see {doc}`Development <user_guide/development>`.

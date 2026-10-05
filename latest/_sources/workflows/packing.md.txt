@@ -1,28 +1,9 @@
 # Packing
 
-Use this compact recipe for fixed-sequence repacking. The linked tutorial
-develops local repacking and explicitly scoped mutation or design experiments.
+Start with a prepared `PoseStack` and a score function from the same parameter database.
 
-> - **Prerequisites:** A prepared `PoseStack` and a score function built from the
->   same parameter database.
-> - **Deep tutorial:** {doc}`04 — Packing and Mutation Scan
->   </tutorial/04_packing_and_mutation_scan>`.
-> - **Advanced extension tutorial:** {doc}`13 — Extending the Packer and
->   Inspecting Rotamers </tutorial/13_extending_the_packer>`.
-> - **Related workflows:** {doc}`Optimization </user_guide/optimization>` and
->   {doc}`Nucleic acids </workflows/nucleic_acids>`; for CPU execution, see
->   {doc}`CPU threading </user_guide/cpu_threading>`.
-> - **API reference:** {doc}`Packing </api/pack>` and
->   {doc}`Relax </api/relax>`.
-> - **Rosetta mapping:** {doc}`Packing, design, and mutation scans
->   </tutorial/rosetta_crosswalk>`.
-
-Fixed-sequence repacking searches side-chain or nucleic-acid chi conformers
-without changing block identity. The usual workflow creates a `PackerTask`,
-restricts it to repacking, attaches rotamer samplers, and calls
-`pack_rotamers()`. Mutation or sequence design requires explicit identity
-masks; TMol does not provide Rosetta resfiles or a built-in mutation-scan
-protocol.
+Fixed-sequence repacking changes conformations while preserving block identities.
+Create a `PackerTask`, restrict it to repacking, and attach samplers:
 
 ```python
 from tmol.pack import pack_rotamers
@@ -51,15 +32,11 @@ packing for those blocks:
 task.disable_packing_by_block_mask(fixed_block_mask)
 ```
 
-The protein-ligand refinement example uses this pattern to repack protein side
-chains while holding the ligand block fixed.
-
-`restrict_to_repacking()` intersects the task with each block's original
-identity. Mutation or design therefore needs an explicitly constructed identity
-task instead of this fixed-sequence recipe. {doc}`FastRelax
-</tutorial/06_fast_relax>` composes packing with minimization, while
-{doc}`08 — Working with DNA and RNA </tutorial/08_nucleic_acids>` uses an
-NA-specific chi sampler and explicit masks.
+For mutation or design, construct a task with the allowed identities instead
+of calling `restrict_to_repacking()`. Construct the masks explicitly.
+See {doc}`FastRelax </tutorial/06_fast_relax>`
+to combine packing with minimization, or {doc}`DNA/RNA <nucleic_acids>` for
+nucleic-acid samplers.
 
 ## Protonation alternatives
 
@@ -93,6 +70,9 @@ assigned state. Packing adds these offsets to one-body energies. FastRelax
 uses the same offsets when accepting poses if the palette enables alternatives;
 within a fixed state they are constant and do not affect coordinate gradients.
 `protonation_state_energy(pose_stack)` exposes the offsets separately from raw
-score-function totals. The score function is not calibrated for proton transfer,
-so chosen states remain hypotheses. Terminal states are held fixed during this
-side-chain search, including neutral amino termini supported by the database.
+score-function totals. Terminal states stay fixed during this side-chain search,
+including neutral amino termini supported by the database.
+
+## Examples and reference
+
+{doc}`Packing tutorial </tutorial/04_packing_and_mutation_scan>` · {doc}`Packer extensions </tutorial/13_extending_the_packer>` · {doc}`Packing API </api/pack>`

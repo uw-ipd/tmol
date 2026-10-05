@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Workflows &#8212; TMol</title>
+    <title>Guides &#8212; TMol</title>
   
   
   
@@ -31,7 +31,7 @@
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
-    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=0a30a683" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=b5f2a73e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
@@ -39,9 +39,9 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=d127aa6e"></script>
-    <script src="../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/documentation_options.js?v=755f2e77"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
     <script>let toggleHintHide = 'hide code';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
@@ -50,19 +50,25 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'workflows/index';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/workflows/index.html" />
+    <link rel="icon" href="../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Structure I/O and visualization" href="structure_io.html" />
-    <link rel="prev" title="Installation" href="../installation.html" />
+    <link rel="next" title="Concepts" href="../concepts.html" />
+    <link rel="prev" title="Quickstart" href="../quickstart.html" />
+  
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.58" />
+  <meta name="docsearch:version" content="0.1.59" />
   
     
     <script src="../_static/searchtools.js"></script>
     <script src="../_static/language_data.js"></script>
     <script src="../searchindex.js"></script>
   
+  
+  <link rel="icon" type="image/svg+xml" sizes="any" href="../_static/brand/favicon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="../_static/brand/apple-touch-icon.png">
+
   </head>
   <body data-default-mode="">
   
@@ -123,8 +129,14 @@
   
   
   
+    
+    
+      
+    
+    
+    <img src="../_static/tmol-logo-light.svg" class="logo__image only-light" alt="TMol documentation — Home"/>
+    <img src="../_static/tmol-logo-dark.svg" class="logo__image only-dark pst-js-only" alt="TMol documentation — Home"/>
   
-    <p class="title logo__title">TMol</p>
   
 </a></div>
     
@@ -139,6 +151,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../quickstart.html">
     Quickstart
   </a>
@@ -147,55 +166,31 @@
 
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="#" aria-current="page">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
-    Examples
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../model_inputs.html">
-    Model input interfaces
+  <a class="nav-link nav-internal" href="../api_reference.html">
+    API reference
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../agent_skills.html">
-    Agent skills
-  </a>
-</li>
-
-            <li class="nav-item dropdown">
-                <button class="btn dropdown-toggle nav-item" type="button"
-                data-bs-toggle="dropdown" aria-expanded="false"
-                aria-controls="pst-nav-more-links">
-                    More
-                </button>
-                <ul id="pst-nav-more-links" class="dropdown-menu">
-                    
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../api_reference.html">
-    API
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="../contributor_guide.html">
+  <a class="nav-link nav-internal" href="../contributor_guide.html">
     Contributing
   </a>
 </li>
 
-                </ul>
-            </li>
-            
   </ul>
 </nav></div>
       
@@ -292,6 +287,13 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="../installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="../quickstart.html">
     Quickstart
   </a>
@@ -300,35 +302,21 @@
 
 <li class="nav-item current active">
   <a class="nav-link nav-internal" href="#" aria-current="page">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../examples_index.html">
-    Examples
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../model_inputs.html">
-    Model input interfaces
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="../agent_skills.html">
-    Agent skills
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="../api_reference.html">
-    API
+    API reference
   </a>
 </li>
 
@@ -396,30 +384,33 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Prepare structures</span></p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Structures and tensors</span></p>
 <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../concepts.html">Concepts</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datatypes.html">Tensors and data objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../terminology.html">Terminology</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1"><a class="reference internal" href="structure_io.html">Structure I/O and visualization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/integrations.html">Model and structure integrations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../model_inputs.html">Model coordinate inputs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gpu_batching.html">GPU batching</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/cpu_threading.html">CPU threading</a></li>
 </ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Score, design, and refine</span></p>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Scoring and modeling</span></p>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/scoring.html">Scoring and analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="packing.html">Packing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="protein_interfaces.html">Protein-interface analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/optimization.html">Minimization and FastRelax</a></li>
-</ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Specialized chemistry</span></p>
-<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="protein_interfaces.html">Protein-interface analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/ligands.html">Ligand Preparation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="nucleic_acids.html">Nucleic acids</a></li>
 </ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Develop and benchmark</span></p>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extension and performance</span></p>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="extending_tmol.html">Extending TMol</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../user_guide/benchmarking.html">Benchmarking</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide/development.html">Development</a></li>
 </ul>
 </div>
 </nav></div>
@@ -460,7 +451,7 @@
         <i class="fa-solid fa-home"></i>
       </a>
     </li>
-    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Workflows</span></li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Guides</span></li>
   </ul>
 </nav>
 </div>
@@ -477,194 +468,42 @@
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="workflows">
-<h1>Workflows<a class="headerlink" href="#workflows" title="Link to this heading">#</a></h1>
-<p>Use these concise recipes for recurring TMol tasks. The
-<a class="reference internal" href="../examples_index.html"><span class="doc">Tutorials</span></a> are executable, notebook-length
-demonstrations; these pages focus on reusable steps and link to the
-corresponding Tutorials for deeper analysis.</p>
-<nav class="docs-card-grid" aria-label="TMol workflow groups">
-  <a class="docs-card" href="structure_io.html">
-    <span class="docs-card-kicker">Prepare</span>
-    <span class="docs-card-title">Structure I/O and visualization</span>
-    <span class="docs-card-description">Choose CIF, Biotite, PDB, or model-tensor input; preserve chemistry; inspect and export structures.</span>
-  </a>
-  <a class="docs-card" href="../user_guide/integrations.html">
-    <span class="docs-card-kicker">Connect</span>
-    <span class="docs-card-title">Model and structure integrations</span>
-    <span class="docs-card-description">Read structures through AtomWorks or map named model tensors into differentiable PoseStacks.</span>
-  </a>
-  <a class="docs-card" href="gpu_batching.html">
-    <span class="docs-card-kicker">Scale</span>
-    <span class="docs-card-title">GPU batching</span>
-    <span class="docs-card-description">Batch compatible structures, measure CUDA work correctly, and chunk larger application workloads.</span>
-  </a>
-  <a class="docs-card" href="../user_guide/cpu_threading.html">
-    <span class="docs-card-kicker">Parallelize</span>
-    <span class="docs-card-title">CPU threading</span>
-    <span class="docs-card-description">Inspect affinity and PyTorch's active budget, select a thread count, and avoid multi-process oversubscription.</span>
-  </a>
-  <a class="docs-card" href="../user_guide/scoring.html">
-    <span class="docs-card-kicker">Evaluate</span>
-    <span class="docs-card-title">Scoring and analysis</span>
-    <span class="docs-card-description">Render score modules, decompose block interactions, and differentiate with respect to coordinates.</span>
-  </a>
-  <a class="docs-card" href="packing.html">
-    <span class="docs-card-kicker">Design</span>
-    <span class="docs-card-title">Packing and local design</span>
-    <span class="docs-card-description">Configure conformer samplers, repack selected blocks, and run explicit mutation-score experiments.</span>
-  </a>
-  <a class="docs-card" href="protein_interfaces.html">
-    <span class="docs-card-kicker">Interrogate</span>
-    <span class="docs-card-title">Protein interfaces</span>
-    <span class="docs-card-description">Define partners by author labels, map block-pair contributions, and batch explicit local mutation experiments.</span>
-  </a>
-  <a class="docs-card" href="../user_guide/optimization.html">
-    <span class="docs-card-kicker">Refine</span>
-    <span class="docs-card-title">Minimization and FastRelax</span>
-    <span class="docs-card-description">Choose Cartesian or kinematic movement, add constraints, and combine packing with minimization.</span>
-  </a>
-  <a class="docs-card" href="../user_guide/ligands.html">
-    <span class="docs-card-kicker">Extend</span>
-    <span class="docs-card-title">Ligand preparation</span>
-    <span class="docs-card-description">Prepare authoritative ligand chemistry, inject parameters, and analyze a local pocket.</span>
-  </a>
-  <a class="docs-card" href="nucleic_acids.html">
-    <span class="docs-card-kicker">Specialize</span>
-    <span class="docs-card-title">DNA and RNA</span>
-    <span class="docs-card-description">Score nucleic acids, sample glycosidic chi, and construct local base-substitution tasks.</span>
-  </a>
-  <a class="docs-card" href="extending_tmol.html">
-    <span class="docs-card-kicker">Customize</span>
-    <span class="docs-card-title">Extend chemistry, kinematics, and packing</span>
-    <span class="docs-card-description">Choose a stable extension surface, preserve immutable contexts, inspect candidates, and validate local effects.</span>
-  </a>
-</nav><div class="toctree-wrapper compound">
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Prepare structures</span></p>
+  <section id="guides">
+<h1>Guides<a class="headerlink" href="#guides" title="Link to this heading">#</a></h1>
+<p>Examples and API details for common modeling tasks. Start with the
+<a class="reference internal" href="../quickstart.html"><span class="doc">Quickstart</span></a> if you have not used TMol before.</p>
+<div class="toctree-wrapper compound">
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Structures and tensors</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="structure_io.html">Structure I/O and visualization</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="structure_io.html#choose-an-input-path">Choose an input path</a></li>
-<li class="toctree-l2"><a class="reference internal" href="structure_io.html#build-a-posestack-from-mmcif">Build a PoseStack from mmCIF</a></li>
-<li class="toctree-l2"><a class="reference internal" href="structure_io.html#inspect-deposited-and-built-structures">Inspect deposited and built structures</a></li>
-<li class="toctree-l2"><a class="reference internal" href="structure_io.html#export">Export</a></li>
-<li class="toctree-l2"><a class="reference internal" href="structure_io.html#common-checks">Common checks</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide/integrations.html">Model and structure integrations</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/integrations.html#structure-files-and-annotated-arrays">Structure files and annotated arrays</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/integrations.html#direct-prediction-tensors">Direct prediction tensors</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/integrations.html#one-tensor-path-for-any-chemistry">One tensor path for any chemistry</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/integrations.html#differentiable-atomworks-atom37-coordinates">Differentiable AtomWorks Atom37 coordinates</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="gpu_batching.html">GPU batching</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="gpu_batching.html#time-cuda-work-correctly">Time CUDA work correctly</a></li>
-<li class="toctree-l2"><a class="reference internal" href="gpu_batching.html#chunk-larger-workloads">Chunk larger workloads</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide/cpu_threading.html">CPU threading</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/cpu_threading.html#inspect-the-allocation-and-active-budget">Inspect the allocation and active budget</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/cpu_threading.html#override-the-budget">Override the budget</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/cpu_threading.html#how-tmol-uses-the-budget">How TMol uses the budget</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/cpu_threading.html#choose-a-practical-value">Choose a practical value</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="../concepts.html">Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="structure_io.html">Structure I/O and visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/integrations.html">Model and structure integrations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../model_inputs.html">Model coordinate inputs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpu_batching.html">GPU batching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/cpu_threading.html">CPU threading</a></li>
 </ul>
 </div>
 <div class="toctree-wrapper compound">
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Score, design, and refine</span></p>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Scoring and modeling</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide/scoring.html">Scoring and analysis</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/scoring.html#cpu-batch-throughput">CPU batch throughput</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/scoring.html#ligand-aware-scoring">Ligand-aware Scoring</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/scoring.html#block-pair-scores">Block-pair Scores</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/scoring.html#fragmented-ligand-attribution">Fragmented-ligand attribution</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="packing.html">Packing</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="packing.html#protonation-alternatives">Protonation alternatives</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="protein_interfaces.html">Protein-interface analysis</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="protein_interfaces.html#define-partners-from-metadata">Define partners from metadata</a></li>
-<li class="toctree-l2"><a class="reference internal" href="protein_interfaces.html#score-the-interface">Score the interface</a></li>
-<li class="toctree-l2"><a class="reference internal" href="protein_interfaces.html#batch-explicit-mutations">Batch explicit mutations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="protein_interfaces.html#interpret-the-result">Interpret the result</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide/optimization.html">Minimization and FastRelax</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/optimization.html#cartesian-minimization">Cartesian Minimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/optimization.html#constraints">Constraints</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/optimization.html#missing-side-chains-and-hydrogens">Missing Side Chains and Hydrogens</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/optimization.html#kinematic-minimization">Kinematic Minimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/optimization.html#relax">Relax</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/scoring.html">Scoring and analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="packing.html">Packing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/optimization.html">Minimization and FastRelax</a></li>
+<li class="toctree-l1"><a class="reference internal" href="protein_interfaces.html">Protein-interface analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/ligands.html">Ligand Preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nucleic_acids.html">Nucleic acids</a></li>
 </ul>
 </div>
 <div class="toctree-wrapper compound">
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Specialized chemistry</span></p>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extension and performance</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide/ligands.html">Ligand Preparation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/ligands.html#chemistry-classes">Chemistry Classes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/ligands.html#entry-points">Entry Points</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/ligands.html#loading-complexes">Loading Complexes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/ligands.html#reuse-prepared-context">Reuse Prepared Context</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/ligands.html#persist-prepared-ligands">Persist Prepared Ligands</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/ligands.html#smiles-to-params-cli">SMILES to Params CLI</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/ligands.html#interaction-scores">Interaction Scores</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/ligands.html#troubleshooting">Troubleshooting</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/ligands.html#public-api">Public API</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="nucleic_acids.html">Nucleic acids</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="nucleic_acids.html#repack-selected-bases">Repack selected bases</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="extending_tmol.html">Extending TMol</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/benchmarking.html">Benchmarking</a></li>
 </ul>
 </div>
-<div class="toctree-wrapper compound">
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Develop and benchmark</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="extending_tmol.html">Extending TMol</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="extending_tmol.html#choose-the-extension-surface">Choose the extension surface</a></li>
-<li class="toctree-l2"><a class="reference internal" href="extending_tmol.html#validate-an-extension">Validate an extension</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide/benchmarking.html">Benchmarking</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/benchmarking.html#running-developer-benchmarks">Running Developer Benchmarks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/benchmarking.html#comparing-revisions">Comparing Revisions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/benchmarking.html#profiling">Profiling</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="../user_guide/development.html">Development</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/development.html#local-setup">Local Setup</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/development.html#building-extensions">Building Extensions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/development.html#aot-vs-jit-extension-loading">AOT vs JIT Extension Loading</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/development.html#tests">Tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/development.html#containers">Containers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/development.html#ci">CI</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/development.html#releasing">Releasing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../user_guide/development.html#code-style">Code Style</a></li>
-</ul>
-</li>
-</ul>
-</div>
-<section id="how-the-workflows-interact">
-<h2>How the workflows interact<a class="headerlink" href="#how-the-workflows-interact" title="Link to this heading">#</a></h2>
-<p>Structure preparation determines chemical types, atom layout, and topology.
-Those choices define the <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code> consumed by scoring, packing, and
-minimization. Packing can change block identities and atom counts, so render a
-new scorer for its returned stack. Coordinate-only minimization can reuse a
-scorer built for the same layout. FastRelax alternates packing and minimization
-and handles that transition for its supported schedule.</p>
-<p>Ligand and nucleic-acid workflows reuse the same I/O, scoring, packing, and
-movement primitives with additional chemistry and samplers. GPU batching is an
-execution strategy that can wrap many of these workflows; it does not make
-unrelated scores directly comparable.</p>
-<p>Use the <a class="reference internal" href="../tutorial/recipe_index.html"><span class="doc">task index</span></a> for a direct operation lookup
-or the <a class="reference internal" href="../examples_index.html"><span class="doc">interactive examples</span></a> for complete walkthroughs.</p>
-</section>
+<p>Packing can change block types and atom counts: render a new scorer for its
+output. Coordinate-only minimization can reuse a scorer for the same layout.
+See <a class="reference internal" href="../terminology.html"><span class="doc">Scorer reuse</span></a> for details.</p>
 </section>
 
 
@@ -678,20 +517,20 @@ or the <a class="reference internal" href="../examples_index.html"><span class="
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="../installation.html"
+       href="../quickstart.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Installation</p>
+        <p class="prev-next-title">Quickstart</p>
       </div>
     </a>
     <a class="right-next"
-       href="structure_io.html"
+       href="../concepts.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Structure I/O and visualization</p>
+        <p class="prev-next-title">Concepts</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -705,18 +544,6 @@ or the <a class="reference internal" href="../examples_index.html"><span class="
                 <dialog id="pst-secondary-sidebar-modal"></dialog>
                 <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
 
-
-  <div class="sidebar-secondary-item">
-<div
-    id="pst-page-navigation-heading-2"
-    class="page-toc tocsection onthispage">
-    <i class="fa-solid fa-list"></i> On this page
-  </div>
-  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
-    <ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#how-the-workflows-interact">How the workflows interact</a></li>
-</ul>
-  </nav></div>
 
   <div class="sidebar-secondary-item">
 
@@ -761,7 +588,7 @@ or the <a class="reference internal" href="../examples_index.html"><span class="
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
   </p>
 </div>
       

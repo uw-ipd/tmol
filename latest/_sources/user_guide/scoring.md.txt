@@ -1,25 +1,8 @@
 # Scoring and analysis
 
-This guide is a concise reference for whole-pose, autograd, and block-pair
-scoring. Use the tutorial for a step-by-step analysis workflow.
+Calculate whole-pose scores, coordinate gradients, and block-pair contributions.
 
-> - **Prerequisites:** A prepared `PoseStack`; see {doc}`Quickstart
->   </quickstart>`.
-> - **Deep tutorial:** {doc}`03 — Scoring and Analysis
->   </tutorial/03_scoring_and_analysis>`.
-> - **Advanced extension tutorial:** {doc}`11 — Extending Chemistry and
->   Scoring Contexts </tutorial/11_extending_chemistry_and_scoring>`.
-> - **Related workflows:** {doc}`Optimization </user_guide/optimization>` and
->   {doc}`Ligand preparation </user_guide/ligands>`.
-> - **API reference:** {doc}`Scoring </api/score>` and
->   {doc}`Analysis </api/analysis>`.
-> - **Rosetta mapping:** {doc}`Scoring and analysis
->   </tutorial/rosetta_crosswalk>`.
-
-The default high-level preset, `beta2016_score_function()`, is inspired by
-Rosetta's beta-November-2016 weights and term set. It does not provide
-centroid/full-atom switching, `ref2015`, or numerical parity with Rosetta.
-Report weighted totals as TMol score units.
+`beta2016_score_function()` provides the default all-atom weights and terms.
 
 ```python
 import biotite.structure as struc
@@ -38,8 +21,8 @@ scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
 score = scorer(pose_stack.coords)
 ```
 
-The rendered scoring module is a PyTorch module. It can be called repeatedly
-while coordinates change, and its outputs can participate in autograd:
+Reuse the scorer while coordinates change. Render a new one after changing
+block types, connectivity, or batch layout. To calculate coordinate gradients:
 
 ```python
 coords = pose_stack.coords.detach().clone().requires_grad_(True)
@@ -66,7 +49,7 @@ avoid oversubscription. See {doc}`CPU threading </user_guide/cpu_threading>`
 for affinity-aware discovery, scheduler examples, launch-time overrides, and
 benchmarking guidance.
 
-## Ligand-aware Scoring
+## Scoring prepared ligands
 
 When a structure introduces ligand residue types at load time, the score
 function must be created from the ligand-extended parameter database:
@@ -83,7 +66,7 @@ sfxn = beta2016_score_function(
 Using the default database for a pose containing newly prepared ligands means
 the ligand block type has no scoring parameters in that score function.
 
-## Block-pair Scores
+## Block-pair scores
 
 Block-pair scoring reports score contributions between blocks:
 
@@ -113,11 +96,8 @@ ddg = calculate_block_pair_ddg(
 )
 ```
 
-With both refinement flags disabled as above, this is a fixed-coordinate
-interaction-score convention: it sums weighted cross-mask block-pair terms in
-one complex and performs no bound/unbound or mutant/reference state
-subtraction. Despite the historical `ddg` name, it is not a thermodynamic
-binding free energy or delta-delta G.
+With both flags disabled, the result sums weighted cross-mask interactions in
+one fixed complex.
 
 `pack=True` additionally repacks the masked region and adjacent blocks before
 any requested minimization. Use `return_pose_stack=True` when the refined
@@ -146,9 +126,10 @@ fragment_scores = calculate_fragment_interactions(
 `fragment_scores.mapping`. Every pose in the stack must use the same fragment
 block layout, and the partner mask must exclude those fragment blocks.
 
-Keep the fragments in one `PoseStack` and call this function once. It renders
-one block-pair scorer and reduces all fragment columns together, preserving
-autograd through the connected complex. Calling a complete scoring workflow
-once per fragment repeats scorer and kernel-launch overhead. Rebuilding
-separated fragment poses additionally changes the physical system by removing
-the connected multi-block context.
+Keep fragments connected in one `PoseStack`. This call scores once, reduces
+all fragment columns, and preserves autograd. Scoring separate fragment poses
+adds overhead and changes the system by removing inter-fragment connections.
+
+## Examples and reference
+
+{doc}`Scoring tutorial </tutorial/03_scoring_and_analysis>` · {doc}`Scoring API </api/score>` · {doc}`Score terms </api/score_terms>`

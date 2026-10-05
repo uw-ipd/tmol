@@ -31,7 +31,7 @@
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=9c3e77be" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=0a30a683" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=b5f2a73e" />
   
   <!-- So that users can add custom icons -->
   <script defer src="_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
@@ -39,9 +39,9 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=d127aa6e"></script>
-    <script src="_static/doctools.js?v=9bcbadda"></script>
-    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/documentation_options.js?v=755f2e77"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
     <script>let toggleHintHide = 'hide code';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
@@ -50,19 +50,25 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'terminology';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
     <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/terminology.html" />
+    <link rel="icon" href="_static/favicon.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Contributor guide" href="contributor_guide.html" />
+    <link rel="next" title="Structure I/O and visualization" href="workflows/structure_io.html" />
     <link rel="prev" title="Data model and conventions" href="datatypes.html" />
+  
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.58" />
+  <meta name="docsearch:version" content="0.1.59" />
   
     
     <script src="_static/searchtools.js"></script>
     <script src="_static/language_data.js"></script>
     <script src="searchindex.js"></script>
   
+  
+  <link rel="icon" type="image/svg+xml" sizes="any" href="_static/brand/favicon.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="_static/brand/apple-touch-icon.png">
+
   </head>
   <body data-default-mode="">
   
@@ -123,8 +129,14 @@
   
   
   
+    
+    
+      
+    
+    
+    <img src="_static/tmol-logo-light.svg" class="logo__image only-light" alt="TMol documentation — Home"/>
+    <img src="_static/tmol-logo-dark.svg" class="logo__image only-dark pst-js-only" alt="TMol documentation — Home"/>
   
-    <p class="title logo__title">TMol</p>
   
 </a></div>
     
@@ -139,63 +151,46 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="quickstart.html">
     Quickstart
   </a>
 </li>
 
 
-<li class="nav-item ">
+<li class="nav-item current active">
   <a class="nav-link nav-internal" href="workflows/index.html">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
-    Examples
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="model_inputs.html">
-    Model input interfaces
+  <a class="nav-link nav-internal" href="api_reference.html">
+    API reference
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="agent_skills.html">
-    Agent skills
-  </a>
-</li>
-
-            <li class="nav-item dropdown">
-                <button class="btn dropdown-toggle nav-item" type="button"
-                data-bs-toggle="dropdown" aria-expanded="false"
-                aria-controls="pst-nav-more-links">
-                    More
-                </button>
-                <ul id="pst-nav-more-links" class="dropdown-menu">
-                    
-<li class=" current active">
-  <a class="nav-link dropdown-item nav-internal" href="api_reference.html">
-    API
-  </a>
-</li>
-
-
-<li class=" ">
-  <a class="nav-link dropdown-item nav-internal" href="contributor_guide.html">
+  <a class="nav-link nav-internal" href="contributor_guide.html">
     Contributing
   </a>
 </li>
 
-                </ul>
-            </li>
-            
   </ul>
 </nav></div>
       
@@ -292,43 +287,36 @@
   <ul class="bd-navbar-elements navbar-nav">
     
 <li class="nav-item ">
+  <a class="nav-link nav-internal" href="installation.html">
+    Installation
+  </a>
+</li>
+
+
+<li class="nav-item ">
   <a class="nav-link nav-internal" href="quickstart.html">
     Quickstart
   </a>
 </li>
 
 
-<li class="nav-item ">
+<li class="nav-item current active">
   <a class="nav-link nav-internal" href="workflows/index.html">
-    Workflows
+    Guides
   </a>
 </li>
 
 
 <li class="nav-item ">
   <a class="nav-link nav-internal" href="examples_index.html">
-    Examples
+    Tutorials
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="model_inputs.html">
-    Model input interfaces
-  </a>
-</li>
-
-
-<li class="nav-item ">
-  <a class="nav-link nav-internal" href="agent_skills.html">
-    Agent skills
-  </a>
-</li>
-
-
-<li class="nav-item current active">
   <a class="nav-link nav-internal" href="api_reference.html">
-    API
+    API reference
   </a>
 </li>
 
@@ -396,32 +384,33 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"><ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="api/top_level.html">Top-level API</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/chemical.html">Chemical Types</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/database.html">Parameter Database</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/io.html">Input and Output</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/kinematics.html">Kinematics</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/ligand.html">Ligands</a></li>
-
-<li class="toctree-l1"><a class="reference internal" href="api/numeric.html">Numerical Utilities</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/optimization.html">Optimization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/pack.html">Packing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/pose.html">Pose</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/relax.html">Relax</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/score.html">Scoring</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/analysis.html">Analysis Operations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/score_terms.html">Score Terms</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/types.html">Types</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api/utility.html">Utilities</a></li>
-</ul>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Structures and tensors</span></p>
 <ul class="current nav bd-sidenav">
 <li class="toctree-l1 current active has-children"><a class="reference internal" href="concepts.html">Concepts</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="architecture.html">Core architecture</a></li>
-<li class="toctree-l2"><a class="reference internal" href="datatypes.html">Data model and conventions</a></li>
-<li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">Terminology and modeling choices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datatypes.html">Tensors and data objects</a></li>
+<li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">Terminology</a></li>
 </ul>
 </details></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows/structure_io.html">Structure I/O and visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/integrations.html">Model and structure integrations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model_inputs.html">Model coordinate inputs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows/gpu_batching.html">GPU batching</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/cpu_threading.html">CPU threading</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Scoring and modeling</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="user_guide/scoring.html">Scoring and analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows/packing.html">Packing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/optimization.html">Minimization and FastRelax</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows/protein_interfaces.html">Protein-interface analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/ligands.html">Ligand Preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows/nucleic_acids.html">Nucleic acids</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extension and performance</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="workflows/extending_tmol.html">Extending TMol</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/benchmarking.html">Benchmarking</a></li>
 </ul>
 </div>
 </nav></div>
@@ -463,7 +452,7 @@
       </a>
     </li>
     
-    <li class="breadcrumb-item"><a href="api_reference.html" class="nav-link">API reference</a></li>
+    <li class="breadcrumb-item"><a href="workflows/index.html" class="nav-link">Guides</a></li>
     
     
     <li class="breadcrumb-item"><a href="concepts.html" class="nav-link">Concepts</a></li>
@@ -487,79 +476,55 @@
                   
   <section id="terminology-and-modeling-choices">
 <h1>Terminology and modeling choices<a class="headerlink" href="#terminology-and-modeling-choices" title="Link to this heading">#</a></h1>
-<p>This page collects distinctions that recur across TMol workflows. It is a
-concept guide, not a replacement for the <a class="reference internal" href="api_reference.html"><span class="doc">API reference</span></a>.</p>
-<section id="posestack-pose-block-and-atom">
-<h2>PoseStack, pose, block, and atom<a class="headerlink" href="#posestack-pose-block-and-atom" title="Link to this heading">#</a></h2>
-<p>A <a class="reference internal" href="api/pose.html#tmol.pose.PoseStack" title="tmol.pose.PoseStack"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.pose.PoseStack</span></code></a> stores one or more molecular systems as padded
-tensors on one PyTorch device. <code class="docutils literal notranslate"><span class="pre">n_poses</span></code> is the batch dimension. Padding lets
-systems with different numbers of atoms and blocks share a tensor layout;
-<code class="docutils literal notranslate"><span class="pre">real_atoms</span></code> and block-index tensors distinguish molecular entries from
-padding.</p>
-<p>TMol uses <strong>block</strong> where Rosetta users often expect <strong>residue</strong>. A block can be
-an amino acid, nucleotide, ligand fragment, ion, or another chemical unit
-described by one <code class="docutils literal notranslate"><span class="pre">RefinedResidueType</span></code>. A one-pose <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code> is still a
-<code class="docutils literal notranslate"><span class="pre">PoseStack</span></code>; there is no separate Rosetta-compatible <code class="docutils literal notranslate"><span class="pre">Pose</span></code> class.</p>
+<p><span id="posestack-pose-block-and-atom"></span></p>
+<section id="poses-blocks-and-atoms">
+<h2>Poses, blocks, and atoms<a class="headerlink" href="#poses-blocks-and-atoms" title="Link to this heading">#</a></h2>
+<p>A <a class="reference internal" href="api/pose.html#tmol.pose.PoseStack" title="tmol.pose.PoseStack"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.pose.PoseStack</span></code></a> stores molecular systems as padded tensors on one
+PyTorch device. <code class="docutils literal notranslate"><span class="pre">n_poses</span></code> is the batch dimension. Use <code class="docutils literal notranslate"><span class="pre">real_atoms</span></code> and block-index
+tensors to distinguish molecular entries from padding.</p>
+<p>A <strong>block</strong> is a chemical unit described by one <code class="docutils literal notranslate"><span class="pre">RefinedResidueType</span></code>: an amino
+acid, nucleotide, ligand fragment, ion, or other residue type. A single system
+still uses a <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code>.</p>
+<p><span id="parameterdatabase-and-packedblocktypes"></span></p>
 </section>
-<section id="parameterdatabase-and-packedblocktypes">
-<h2>ParameterDatabase and PackedBlockTypes<a class="headerlink" href="#parameterdatabase-and-packedblocktypes" title="Link to this heading">#</a></h2>
-<p><a class="reference internal" href="api/database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.database.ParameterDatabase</span></code></a> is the immutable source of chemical
-definitions and scoring parameters. Extending it for a ligand or custom
-residue returns a new database.</p>
-<p><a class="reference internal" href="api/pose.html#tmol.pose.PackedBlockTypes" title="tmol.pose.PackedBlockTypes"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.pose.PackedBlockTypes</span></code></a> contains the block types and device-resident
-setup data used by a <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code>. Reuse it when constructing compatible
-structures on the same device. It is not a cache of conformation energies.</p>
+<section id="chemical-definitions">
+<h2>Chemical definitions<a class="headerlink" href="#chemical-definitions" title="Link to this heading">#</a></h2>
+<p><a class="reference internal" href="api/database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.database.ParameterDatabase</span></code></a> holds chemical definitions and scoring
+parameters. Extending it returns a new database.</p>
+<p><a class="reference internal" href="api/pose.html#tmol.pose.PackedBlockTypes" title="tmol.pose.PackedBlockTypes"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.pose.PackedBlockTypes</span></code></a> holds block types and device-resident setup
+data. Reuse it for compatible structures on the same device. It does not cache
+conformation energies.</p>
+<p><span id="deposited-atoms-and-built-atoms"></span></p>
 </section>
-<section id="deposited-atoms-and-built-atoms">
-<h2>Deposited atoms and built atoms<a class="headerlink" href="#deposited-atoms-and-built-atoms" title="Link to this heading">#</a></h2>
-<p>PDB or mmCIF atom records describe deposited coordinates. TMol selects chemical
-types and may build supported missing atoms from its database. Histidine state,
-termini, disulfides, missing atoms, and noncanonical chemistry therefore need
-to be checked in the I/O build context rather than assumed to round-trip
-unchanged.</p>
-<p>Prefer mmCIF through Biotite when metadata, explicit ligand bonds, or
-noncanonical chemistry matter. PDB remains useful as a compatibility format,
-but it cannot represent every input decision losslessly.</p>
+<section id="deposited-and-built-atoms">
+<h2>Deposited and built atoms<a class="headerlink" href="#deposited-and-built-atoms" title="Link to this heading">#</a></h2>
+<p>TMol assigns chemical types to input atoms and may build missing atoms. Check
+histidine state, termini, disulfides, and noncanonical chemistry in the I/O build
+context. Prefer mmCIF through Biotite when metadata or explicit ligand bonds
+matter; PDB cannot preserve every preparation decision.</p>
+<p><span id="the-no-opth-choice"></span></p>
 </section>
-<section id="the-no-opth-choice">
-<h2>The <code class="docutils literal notranslate"><span class="pre">no_optH</span></code> choice<a class="headerlink" href="#the-no-opth-choice" title="Link to this heading">#</a></h2>
-<p>Hydroxyl and other movable polar hydrogens can be optimized during preparation.
-Use <code class="docutils literal notranslate"><span class="pre">no_optH=False</span></code> when you want the standard optimization step and the score
-function needed to choose those conformations. Use <code class="docutils literal notranslate"><span class="pre">no_optH=True</span></code> when the
-incoming proton geometry is authoritative, when you are intentionally
-deferring that choice, or when a lightweight preprocessing path is more
-important than optimizing those hydrogens.</p>
-<p>The choice changes coordinates and can change scores. Record it as part of a
-reproducible workflow rather than treating it as an implementation detail.</p>
+<section id="polar-hydrogens-no-opth">
+<h2>Polar hydrogens: <code class="docutils literal notranslate"><span class="pre">no_optH</span></code><a class="headerlink" href="#polar-hydrogens-no-opth" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">no_optH=False</span></code> optimizes movable polar hydrogens during preparation and requires
+a score function. Use <code class="docutils literal notranslate"><span class="pre">no_optH=True</span></code> to skip this step when retaining supplied
+proton geometry or deferring optimization. This choice affects coordinates and
+scores; record it with your results.</p>
+<p><span id="rendered-scorers-and-changing-coordinates"></span></p>
 </section>
-<section id="score-units-and-score-differences">
-<h2>Score units and score differences<a class="headerlink" href="#score-units-and-score-differences" title="Link to this heading">#</a></h2>
-<p>TMol reports weighted <strong>score units</strong>. They are not calibrated kcal/mol and are
-not guaranteed to equal scores from Rosetta, even when names or weight sets are
-similar.</p>
-<p>A block-pair score, interface sum, mutation-score difference, or
-<code class="docutils literal notranslate"><span class="pre">calculate_block_pair_ddg()</span></code> result describes the exact computational
-experiment used to produce it. Such values are not automatically physical
-binding free energies or experimentally calibrated ΔΔG values.</p>
-</section>
-<section id="rendered-scorers-and-changing-coordinates">
-<h2>Rendered scorers and changing coordinates<a class="headerlink" href="#rendered-scorers-and-changing-coordinates" title="Link to this heading">#</a></h2>
-<p>A <a class="reference internal" href="api/score.html#tmol.score.ScoreFunction" title="tmol.score.ScoreFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.ScoreFunction</span></code></a> renders a PyTorch module for a particular
-<code class="docutils literal notranslate"><span class="pre">PoseStack</span></code> layout. You can generally reuse that module while changing only the
-coordinate tensor. If block types, atom counts, connectivity, or batch layout
-change, render a new scorer for the new stack.</p>
+<section id="reusing-a-scorer">
+<h2>Reusing a scorer<a class="headerlink" href="#reusing-a-scorer" title="Link to this heading">#</a></h2>
+<p>A <a class="reference internal" href="api/score.html#tmol.score.ScoreFunction" title="tmol.score.ScoreFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.ScoreFunction</span></code></a> renders a PyTorch module for a specific
+<code class="docutils literal notranslate"><span class="pre">PoseStack</span></code> layout. Reuse it when only coordinates change. Render a new scorer
+after changing block types, atom counts, connectivity, or batch layout.</p>
 </section>
 <section id="cartesian-and-kinematic-movement">
 <h2>Cartesian and kinematic movement<a class="headerlink" href="#cartesian-and-kinematic-movement" title="Link to this heading">#</a></h2>
-<p>Cartesian minimization directly changes selected atom coordinates. Kinematic
-minimization changes internal and rigid-body degrees of freedom selected by a
-<a class="reference internal" href="api/kinematics.html#tmol.kinematics.MoveMap" title="tmol.kinematics.MoveMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.kinematics.MoveMap</span></code></a> over a
-<a class="reference internal" href="api/kinematics.html#tmol.kinematics.FoldForest" title="tmol.kinematics.FoldForest"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.kinematics.FoldForest</span></code></a>. These are different coordinate models, so
-their trajectories and convergence behavior should not be compared without
-matching masks, weights, stopping rules, and iteration budgets.</p>
-<p>See the <a class="reference internal" href="user_guide/optimization.html"><span class="doc">optimization workflow</span></a> and
-<a class="reference internal" href="tutorial/05_minimization_constraints_kinematics.html"><span class="doc">Tutorial 05</span></a> for
-executable examples.</p>
+<p>Cartesian minimization changes selected atom coordinates. Kinematic minimization
+changes internal and rigid-body degrees of freedom selected by a
+<a class="reference internal" href="api/kinematics.html#tmol.kinematics.MoveMap" title="tmol.kinematics.MoveMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.kinematics.MoveMap</span></code></a> over a <a class="reference internal" href="api/kinematics.html#tmol.kinematics.FoldForest" title="tmol.kinematics.FoldForest"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.kinematics.FoldForest</span></code></a>.
+Compare the two only with matched masks, weights, stopping rules, and iteration
+budgets. See <a class="reference internal" href="user_guide/optimization.html"><span class="doc">optimization</span></a> for examples.</p>
 </section>
 </section>
 
@@ -583,11 +548,11 @@ executable examples.</p>
       </div>
     </a>
     <a class="right-next"
-       href="contributor_guide.html"
+       href="workflows/structure_io.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Contributor guide</p>
+        <p class="prev-next-title">Structure I/O and visualization</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -610,12 +575,11 @@ executable examples.</p>
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#posestack-pose-block-and-atom">PoseStack, pose, block, and atom</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#parameterdatabase-and-packedblocktypes">ParameterDatabase and PackedBlockTypes</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#deposited-atoms-and-built-atoms">Deposited atoms and built atoms</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#the-no-opth-choice">The <code class="docutils literal notranslate"><span class="pre">no_optH</span></code> choice</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#score-units-and-score-differences">Score units and score differences</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#rendered-scorers-and-changing-coordinates">Rendered scorers and changing coordinates</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#poses-blocks-and-atoms">Poses, blocks, and atoms</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#chemical-definitions">Chemical definitions</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#deposited-and-built-atoms">Deposited and built atoms</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#polar-hydrogens-no-opth">Polar hydrogens: <code class="docutils literal notranslate"><span class="pre">no_optH</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reusing-a-scorer">Reusing a scorer</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cartesian-and-kinematic-movement">Cartesian and kinematic movement</a></li>
 </ul>
   </nav></div>
@@ -663,7 +627,7 @@ executable examples.</p>
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
   </p>
 </div>
       
