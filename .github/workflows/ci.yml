@@ -136,6 +136,8 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ github.workspace }}/coverage.cpu.xml
           flags: cpu
+          # Avoid the failing TLS handshake at cli.codecov.io.
+          use_pypi: true
           fail_ci_if_error: true
 
   gpu:
@@ -194,6 +196,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ github.workspace }}/coverage.cuda.xml
           flags: cuda
+          use_pypi: true
           fail_ci_if_error: true
 
   # Preserve the historical required-check name while the work executes in
