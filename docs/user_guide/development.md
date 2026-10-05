@@ -136,10 +136,13 @@ publish previews under the Pages site.
 
 ## Releasing
 
-Versioned wheel and sdist publication happens from `v*` tags. Linux x86-64,
-Linux aarch64, and Apple Silicon CPU wheels are built for each supported
-CPython version and qualified by their PyTorch minor. The tag version
+Versioned wheel and sdist publication happens from `v*` tags. The tag version
 must match `[project].version` in `pyproject.toml`.
+
+`scripts/release_matrix.py` defines the release wheels. For releases after
+0.1.59, the matrix contains 34 CUDA wheels and 12 CPU wheels. CPU wheels use
+PyTorch 2.14 with Python 3.11–3.14 on Linux x86-64, Linux aarch64, and Apple
+Silicon. CPU support is listed separately from the broader CUDA matrix.
 
 The workflow publishes all wheels to GitHub before uploading the source
 distribution to PyPI. Source metadata must use package-index dependencies;

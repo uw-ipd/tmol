@@ -138,10 +138,11 @@ def test_release_matrix_drives_publish_smoke_and_manifest():
     smoke_rows = matrix.linux_wheel_rows()
     expected_keys = matrix.expected_wheel_keys()
 
-    # The CPU lanes follow the GPU families, so only the GPU count stands alone.
     assert len(publish_rows) == 34
+    assert len(matrix.cpu_wheel_rows()) == 8
+    assert len(matrix.macos_wheel_rows()) == 4
     assert len(smoke_rows) == len(publish_rows) + len(matrix.cpu_wheel_rows())
-    assert len(expected_keys) == len(smoke_rows) + len(matrix.macos_wheel_rows())
+    assert len(expected_keys) == 46
     assert len(
         {(row["python-tag"], row["local-tag"], row["arch"]) for row in smoke_rows}
     ) == len(smoke_rows)
@@ -223,7 +224,7 @@ def test_release_matrix_drives_publish_smoke_and_manifest():
     assert smoke["jobs"]["test"]["strategy"]["matrix"] == (
         "${{ fromJSON(needs.release_matrix.outputs.linux) }}"
     )
-    expected_cpu_smoke = {("2.13", "x86_64"), ("2.14", "aarch64")}
+    expected_cpu_smoke = {("2.14", "x86_64"), ("2.14", "aarch64")}
     for job in ("build-linux-cpu", "test-linux-cpu"):
         assert {
             (row["torch-version"], row["arch"])
@@ -264,6 +265,10 @@ def test_smoke_jobs_supply_the_release_torch_patch_for_every_lane():
         for phase in ("build", "test"):
             matrix = jobs[f"{phase}-{platform}"]["strategy"]["matrix"]
             rows = matrix["include"]
+            if platform.endswith("-cpu"):
+                assert {row["torch-version"] for row in rows} == set(
+                    release.CPU_TORCH_VERSIONS
+                )
             if "torch-version" in matrix:
                 assert {row["torch-version"] for row in rows} == set(
                     matrix["torch-version"]
