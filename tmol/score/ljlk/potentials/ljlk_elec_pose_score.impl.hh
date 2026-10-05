@@ -636,7 +636,7 @@ auto ljlk_elec_forward_impl(
         });
 
     auto eval_pairs = ([=] TMOL_DEVICE_FUNC(
-                           ScoringData<Real> & data,
+                           ScoringData<Real>& data,
                            int start1,
                            int start2,
                            bool intra) {
@@ -742,10 +742,10 @@ auto ljlk_elec_forward_impl(
       });
       DeviceOperations<D>::template for_each_in_workgroup<score_nt>(evaluate);
     });
-    auto eval_inter = ([=] TMOL_DEVICE_FUNC(
-                           ScoringData<Real> & data, int start1, int start2) {
-      eval_pairs(data, start1, start2, false);
-    });
+    auto eval_inter =
+        ([=] TMOL_DEVICE_FUNC(ScoringData<Real>& data, int start1, int start2) {
+          eval_pairs(data, start1, start2, false);
+        });
 
     auto load_tile_invariant_intra = ([=] TMOL_DEVICE_FUNC(
                                           int p,
@@ -812,10 +812,10 @@ auto ljlk_elec_forward_impl(
       data.r2.ljlk_params = same_tile ? sm.m.ljlk_params1 : sm.m.ljlk_params2;
       data.r2.charges = same_tile ? sm.m.charges1 : sm.m.charges2;
     });
-    auto eval_intra = ([=] TMOL_DEVICE_FUNC(
-                           ScoringData<Real> & data, int start1, int start2) {
-      eval_pairs(data, start1, start2, true);
-    });
+    auto eval_intra =
+        ([=] TMOL_DEVICE_FUNC(ScoringData<Real>& data, int start1, int start2) {
+          eval_pairs(data, start1, start2, true);
+        });
 
     // Both are named in the capture list rather than left to [=]: an extended
     // __device__ lambda may not first-capture a variable inside a constexpr-if,
@@ -823,7 +823,7 @@ auto ljlk_elec_forward_impl(
     // captures cpu_pose_accum the same way for the same reason.
     auto store_energies =
         ([=, cpu_pose_accum = cpu_pose_accum, n_outputs = n_outputs] TMOL_DEVICE_FUNC(
-             ScoringData<Real> & data, shared_mem_union & sm) {
+             ScoringData<Real>& data, shared_mem_union& sm) {
           if constexpr (!require_gradient || !rotamer_pairs) {
             auto reduce = ([&](int tid) {
               store_score_totals<

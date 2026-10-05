@@ -1066,8 +1066,8 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
 
     auto store_calculated_energies =
         ([=] TMOL_DEVICE_FUNC(
-             HBondScoringData<Dev, Real, Int> & score_dat,
-             shared_mem_union & shared) { ; });
+             HBondScoringData<Dev, Real, Int>& score_dat,
+             shared_mem_union& shared) { ; });
 
     auto load_tile_invariant_intrares_data =
         ([=] LOAD_TILE_INVARIANT_INTRARES_DATA);
@@ -1725,8 +1725,8 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
 
     auto store_calculated_energies =
         ([=] TMOL_DEVICE_FUNC(
-             HBondScoringData<Dev, Real, Int> & score_dat,
-             shared_mem_union & shared) { ; });
+             HBondScoringData<Dev, Real, Int>& score_dat,
+             shared_mem_union& shared) { ; });
 
     auto load_tile_invariant_intrares_data =
         ([=] LOAD_TILE_INVARIANT_INTRARES_DATA);

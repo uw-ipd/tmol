@@ -68,14 +68,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { torch-version: "2.13", runs-on: ubuntu-22.04, arch: x86_64 }
-          - { torch-version: "2.14", runs-on: ubuntu-24.04-arm, arch: aarch64 }
+          - { torch-version: "2.13", torch-package-version: "2.13.0", runs-on: ubuntu-22.04, arch: x86_64 }
+          - { torch-version: "2.14", torch-package-version: "2.14.1", runs-on: ubuntu-24.04-arm, arch: aarch64 }
     uses: ./.github/workflows/_build_wheel.yml
     with:
       runs-on: ${{ matrix.runs-on }}
       container-image: unused-for-manylinux-cpu
       torch-version: ${{ matrix.torch-version }}
-      torch-package-version: ${{ format('{0}.0', matrix.torch-version) }}
+      torch-package-version: ${{ matrix.torch-package-version }}
       python-version: "3.12"
       label: "smoke py3.12 pt${{ matrix.torch-version }} CPU ${{ matrix.arch }}"
       pip-torch-cuda-url: "https://download.pytorch.org/whl/cpu"
@@ -94,7 +94,7 @@ jobs:
       matrix:
         include:
           - torch-version: "2.14"
-            torch-package-version: "2.14.0"
+            torch-package-version: "2.14.1"
             cuda-version: "13.2"
             torch-index-url: "https://download.pytorch.org/whl/cu132"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
@@ -121,8 +121,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { torch-version: "2.13", runs-on: ubuntu-22.04, arch: x86_64 }
-          - { torch-version: "2.14", runs-on: ubuntu-24.04-arm, arch: aarch64 }
+          - { torch-version: "2.13", torch-package-version: "2.13.0", runs-on: ubuntu-22.04, arch: x86_64 }
+          - { torch-version: "2.14", torch-package-version: "2.14.1", runs-on: ubuntu-24.04-arm, arch: aarch64 }
     steps:
       - uses: actions/checkout@v5
 
@@ -149,7 +149,7 @@ jobs:
               ;;
           esac
           python -m pip install --upgrade pip
-          python -m pip install 'torch==${{ matrix.torch-version }}.0' \
+          python -m pip install 'torch==${{ matrix.torch-package-version }}' \
             --index-url https://download.pytorch.org/whl/cpu
           python -m pip install "$1"
 
@@ -185,7 +185,7 @@ jobs:
       matrix:
         include:
           - torch-version: "2.14"
-            torch-package-version: "2.14.0"
+            torch-package-version: "2.14.1"
             cuda-version: "13.2"
             torch-index-url: "https://download.pytorch.org/whl/cu132"
             local-tag: cu132torch2.14
@@ -248,10 +248,13 @@ jobs:
       matrix:
         python-version: ${{ fromJSON(github.event_name == 'pull_request' && '["3.12"]' || '["3.11", "3.12", "3.13", "3.14"]') }}
         torch-version: ["2.13", "2.14"]
+        include:
+          - { torch-version: "2.13", torch-package-version: "2.13.0" }
+          - { torch-version: "2.14", torch-package-version: "2.14.1" }
     uses: ./.github/workflows/_build_macos_wheel.yml
     with:
       python-version: ${{ matrix.python-version }}
-      torch-package-version: ${{ format('{0}.0', matrix.torch-version) }}
+      torch-package-version: ${{ matrix.torch-package-version }}
       label: "smoke py${{ matrix.python-version }} pt${{ matrix.torch-version }} CPU macOS arm64"
 
   test-macos-cpu:
@@ -263,6 +266,9 @@ jobs:
       matrix:
         python: ${{ fromJSON(github.event_name == 'pull_request' && '[{"version":"3.12","tag":"312"}]' || '[{"version":"3.11","tag":"311"},{"version":"3.12","tag":"312"},{"version":"3.13","tag":"313"},{"version":"3.14","tag":"314"}]') }}
         torch-version: ["2.13", "2.14"]
+        include:
+          - { torch-version: "2.13", torch-package-version: "2.13.0" }
+          - { torch-version: "2.14", torch-package-version: "2.14.1" }
     steps:
       - uses: actions/checkout@v5
 
@@ -288,7 +294,7 @@ jobs:
               ;;
           esac
           python -m pip install --upgrade pip
-          python -m pip install 'torch==${{ matrix.torch-version }}.0'
+          python -m pip install 'torch==${{ matrix.torch-package-version }}'
           python -m pip install "$1"
 
       - name: Load native extensions
