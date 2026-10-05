@@ -1,0 +1,51 @@
+<section class="tmol-lab" id="score-playground" aria-label="Interactive protein scoring challenge">
+  <picture class="lab-poster"><img src="_static/playground/poster-light.png" alt="Ubiquitin with Phe45 highlighted beside rotation controls and TMol score contributions. Enable JavaScript to explore the scored conformations." width="750" height="1255"></picture>
+  <p class="lab-loading" role="status" hidden>Loading scored conformations…</p>
+  <noscript>This playground needs JavaScript. The scored dataset and explanations below remain available.</noscript>
+  <div class="lab-content" hidden>
+    <div class="lab-metrics">
+      <div><span>Total score</span><strong id="lab-total">—</strong></div>
+      <div><span>Change from start</span><strong id="lab-change">—</strong></div>
+      <div><span>Your best</span><strong id="lab-best">—</strong></div>
+    </div>
+    <div class="lab-grid">
+      <div class="lab-scene">
+        <img class="lab-scene-poster" src="_static/playground/protein-light.png" alt="Static input geometry: Phe45 in orange, surrounded by its protein neighbors." hidden>
+        <div id="protein-viewer" role="img" aria-label="Ubiquitin with movable Phe45 in orange and neighboring residues in gray"></div>
+        <p id="viewer-status">Drag to rotate the view. Scroll or pinch to zoom.</p>
+        <button type="button" id="lab-focus">Focus on Phe45</button>
+        <button type="button" id="lab-whole">Whole protein</button>
+      </div>
+      <div class="lab-controls">
+        <p class="lab-eyebrow">Move the side chain</p>
+        <label for="lab-chi1">χ1 rotation <output id="lab-chi1-value" for="lab-chi1">0°</output></label>
+        <input id="lab-chi1" type="range" min="0" max="23" step="1" value="12">
+        <label for="lab-chi2">χ2 rotation <output id="lab-chi2-value" for="lab-chi2">0°</output></label>
+        <input id="lab-chi2" type="range" min="0" max="23" step="1" value="12">
+        <p class="lab-hint">Lower is better. Rotate one bond at a time and compare the terms below.</p>
+        <div class="lab-actions">
+          <button type="button" id="lab-reset">Reset challenge</button>
+          <button type="button" id="lab-reference">Input geometry</button>
+          <button type="button" id="lab-optimum">Best sampled</button>
+        </div>
+        <p id="lab-feedback" role="status" aria-live="polite"></p>
+        <details class="lab-landscape">
+          <summary>Explore the score landscape</summary>
+          <p>Drag across the grid to change both rotations. Darker cells have lower total scores.</p>
+          <canvas id="lab-map" width="288" height="288" role="img" aria-label="Score landscape: chi1 increases left to right; chi2 increases bottom to top. Use the labeled sliders for keyboard control."></canvas>
+          <p class="lab-map-key">χ1: −180° → +165° · χ2: −180° ↑ +165°</p>
+        </details>
+      </div>
+    </div>
+    <div class="lab-partners">
+      <h2>Where the score changes</h2>
+      <p>Pick a partner to highlight it in blue. These are weighted Phe45–partner interactions; self terms are excluded.</p>
+      <div id="lab-partners" role="group" aria-label="Residue interaction partners"></div>
+      <p id="lab-partner-detail" aria-live="polite"></p>
+    </div>
+    <div class="lab-score-table">
+      <table><caption>Weighted score contributions</caption><thead><tr><th scope="col">Contribution</th><th scope="col">Current</th><th scope="col">Change</th></tr></thead><tbody id="lab-terms"></tbody></table>
+    </div>
+    <p class="lab-footnote">Real TMol evaluations · 15° samples · all other atoms fixed · <a href="#what-you-are-exploring">Method and data</a></p>
+  </div>
+</section>

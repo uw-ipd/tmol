@@ -1,0 +1,15 @@
+<section class="concept-explorer" id="score-circuit" aria-label="Explore the scoring calculation">
+  <div class="score-flow" role="group" aria-label="Parts of the scoring calculation">
+    <button type="button" data-part="coordinates" aria-pressed="false">Coordinates<br><small>atom positions</small></button>
+    <span class="flow-arrow" aria-hidden="true">→</span>
+    <div class="score-branches">
+      <button type="button" data-part="contacts" aria-pressed="true">Atomic contacts</button>
+      <button type="button" data-part="hydrogen" aria-pressed="false">H bonds &amp; solvation</button>
+      <button type="button" data-part="geometry" aria-pressed="false">Geometry &amp; torsions</button>
+    </div>
+    <span class="flow-arrow" aria-hidden="true">→</span>
+    <button type="button" data-part="total" aria-pressed="false">Weighted sum<br><small>one total per pose</small></button>
+  </div>
+  <div class="gradient-flow"><span aria-hidden="true">↳</span><button type="button" data-part="gradient" aria-pressed="false">Differentiate → coordinate gradients → minimize</button></div>
+  <p class="explorer-explanation" aria-live="polite">Atomic contacts include attraction, short-range repulsion, and electrostatics. Moving a side chain can relieve a clash while losing a favorable contact.</p>
+</section>
