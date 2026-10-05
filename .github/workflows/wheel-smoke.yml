@@ -94,7 +94,7 @@ jobs:
       matrix:
         include:
           - torch-version: "2.14"
-            torch-package-version: "2.14.0"
+            torch-package-version: "2.14.1"
             cuda-version: "13.2"
             torch-index-url: "https://download.pytorch.org/whl/cu132"
             container-image: nvcr.io/nvidia/pytorch:26.04-py3
@@ -185,7 +185,7 @@ jobs:
       matrix:
         include:
           - torch-version: "2.14"
-            torch-package-version: "2.14.0"
+            torch-package-version: "2.14.1"
             cuda-version: "13.2"
             torch-index-url: "https://download.pytorch.org/whl/cu132"
             local-tag: cu132torch2.14

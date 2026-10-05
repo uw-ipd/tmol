@@ -12,7 +12,7 @@ TUTORIAL_REF = "master"
 RAW_BASE = f"https://raw.githubusercontent.com/uw-ipd/tmol/{TUTORIAL_REF}"
 # Advance only after the release wheels have been published and exercised.
 # The source project's next version may not have downloadable wheels yet.
-TMOL_RELEASE = "0.1.55"
+TMOL_RELEASE = "0.1.59"
 RELEASE_WHEEL_TORCH_MINOR = "2.11"
 RELEASE_WHEEL_CUDA = "12.8"
 RELEASE_WHEEL_PYTHONS = frozenset({(3, 12), (3, 13)})

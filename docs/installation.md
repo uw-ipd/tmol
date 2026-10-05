@@ -3,16 +3,12 @@
 TMol supports Python 3.11 and newer. It depends on PyTorch and ships custom
 C++/CUDA extensions for scoring, packing, kinematics, and minimization kernels.
 
-The current protonation and ligand changes are available from GitHub:
-
 ```bash
-pip install "tmol @ git+https://github.com/uw-ipd/tmol.git@master"
+pip install tmol
 ```
 
-Ligand preparation is included in the standard install, with RDKit and OpenBabel.
-This uses the source-build toolchain described below and installs the pinned
-public AtomWorks release-branch commit. These changes are not yet in the PyPI
-release; `pip install tmol` selects the older published package.
+TMol 0.1.59 uses AtomWorks 3 from PyPI. Ligand preparation, including RDKit and
+OpenBabel, is part of the standard install. AtomWorks 3 requires Biotite 1.6.0.
 
 > - **Choose a path:** Use a release wheel for the shortest supported install,
 >   or build from source when developing TMol or targeting an unavailable
@@ -150,11 +146,11 @@ python -c "import sys, torch; print(f'Python {sys.version_info.major}.{sys.versi
 ## Google Colab
 
 Colab GPU runtimes currently use PyTorch 2.11.0 with CUDA 12.8 and may provide
-Python 3.12 or 3.13. TMol v0.1.56 provides separate Python-ABI wheels compiled
+Python 3.12 or 3.13. TMol v0.1.59 provides separate Python-ABI wheels compiled
 for T4 (`sm_75`), A100 (`sm_80`), and L4 (`sm_89`) GPUs. For Python 3.13:
 
 ```bash
-pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/v0.1.56/tmol-0.1.56+cu128torch2.11-cp313-cp313-manylinux_2_28_x86_64.whl"
+pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/v0.1.59/tmol-0.1.59+cu128torch2.11-cp313-cp313-manylinux_2_28_x86_64.whl"
 ```
 
 The tutorial bootstrap selects the wheel matching the runtime's Python ABI and

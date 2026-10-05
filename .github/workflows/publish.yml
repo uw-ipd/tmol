@@ -1,9 +1,6 @@
-# Build wheels + sdist and upload them to a GitHub Release.
+# Publish wheels to GitHub and the source distribution to PyPI.
 #
 # Runs on version tag push or manual trigger.
-#
-# The public AtomWorks Git dependency is not accepted by PyPI. Distribute
-# source and wheels through GitHub until that dependency has a PyPI release.
 #
 # Separate build and upload jobs let you re-run only the upload if it fails,
 # without rebuilding wheels or the sdist.
@@ -149,6 +146,9 @@ jobs:
       - name: Build sdist
         run: python -m build --sdist --no-isolation --outdir dist
 
+      - name: Validate PyPI source metadata
+        run: python scripts/validate_pypi_sdist.py dist/*.tar.gz
+
       - name: Log sdist
         run: ls -lh dist/
 
@@ -176,8 +176,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install packaging
-        run: pip install packaging
+      - name: Install publication tools
+        run: pip install packaging twine
 
       - name: Download sdist artifact
         uses: actions/download-artifact@v4
@@ -201,6 +201,11 @@ jobs:
 
       - name: Validate release wheel manifest
         run: python scripts/validate_release_manifest.py wheels
+
+      - name: Check PyPI source distribution
+        run: |
+          python scripts/validate_pypi_sdist.py dist/*.tar.gz
+          python -m twine check --strict dist/*.tar.gz
 
       - name: Determine version from sdist filename
         id: version
@@ -228,3 +233,11 @@ jobs:
             wheels/*.whl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # The source backend fetches wheels from this release during pip install.
+      # Publish to PyPI only after every wheel is available on GitHub.
+      - name: Publish source distribution to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: python -m twine upload --skip-existing dist/*.tar.gz

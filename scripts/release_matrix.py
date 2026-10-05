@@ -110,7 +110,8 @@ GPU_FAMILIES = (
 
 
 def _torch_package_version(torch_version: str) -> str:
-    return "2.9.1" if torch_version == "2.9" else f"{torch_version}.0"
+    patch_versions = {"2.9": "2.9.1", "2.12": "2.12.1", "2.14": "2.14.1"}
+    return patch_versions.get(torch_version, f"{torch_version}.0")
 
 
 def gpu_wheel_rows(*, release: bool = True) -> list[dict[str, object]]:
