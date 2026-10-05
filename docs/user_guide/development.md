@@ -8,17 +8,12 @@ For build requirements and platform support, see {doc}`installation
 ```bash
 git clone https://github.com/uw-ipd/tmol.git
 cd tmol
-pip install -e ".[dev]"
-```
-
-The command above uses pip's isolated build environment. To reuse an existing
-PyTorch installation (especially in a CUDA container), install the small build
-tools once and disable build isolation:
-
-```bash
-python -m pip install "scikit-build-core>=0.10" "pybind11>=2.12" ninja packaging
+python -m pip install "scikit-build-core>=0.10" "cmake>=3.24,<4" "pybind11>=2.12" ninja packaging
 python -m pip install --no-build-isolation -e ".[dev]"
 ```
+
+Install the intended PyTorch build first. Disabling build isolation keeps the
+compiler and runtime on the same PyTorch installation.
 
 TMol locates the Torch and pybind11 CMake packages from this Python
 interpreter; `CMAKE_PREFIX_PATH` and `pybind11_DIR` do not need to be set.
@@ -34,7 +29,7 @@ Requirements:
 Without CUDA, use a CPU-only build:
 
 ```bash
-pip install -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF
+pip install --no-build-isolation -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF
 ```
 
 ## Build extensions
@@ -43,17 +38,17 @@ TMol builds extensions with CMake through `scikit-build-core`.
 
 ```bash
 # Production extensions
-pip install -e .
+pip install --no-build-isolation -e .
 
 # Include test-only C++/CUDA extensions
 pip install --no-build-isolation -e ".[dev]" \
   -Ccmake.define.TMOL_BUILD_TESTS=ON
 
 # Select GPU architectures
-pip install -e . -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="80;90"
+pip install --no-build-isolation -e . -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="80;90"
 
 # Control parallelism
-MAX_JOBS=4 pip install -e . -Ccmake.define.TMOL_NVCC_THREADS=2
+MAX_JOBS=4 pip install --no-build-isolation -e . -Ccmake.define.TMOL_NVCC_THREADS=2
 ```
 
 Build settings:
@@ -116,7 +111,7 @@ Docker:
 ```bash
 docker build -t tmol-dev -f containers/docker/tmol-dev.Dockerfile .
 docker run --gpus all -it -v "$(pwd):/tmol_host" -w /tmol_host tmol-dev bash
-pip install -e .
+pip install --no-build-isolation -e .
 ```
 
 Apptainer:
@@ -144,9 +139,18 @@ must match `[project].version` in `pyproject.toml`.
 PyTorch 2.14 with Python 3.11–3.14 on Linux x86-64, Linux aarch64, and Apple
 Silicon. CPU support is listed separately from the broader CUDA matrix.
 
-The workflow publishes all wheels to GitHub before uploading the source
-distribution to PyPI. Source metadata must use package-index dependencies;
-PyPI rejects direct Git and URL dependencies.
+Before publication, CI installs every wheel through a staging index in a fresh
+environment, loads the native extension, and checks scoring and gradients.
+CPU wheels are also tested under their public PyPI versions. A separate lane
+builds and installs the indexed source distribution. Fast PR tests cover pip's
+resolver, source metadata, PyTorch constraints, missing variants, and hashes.
+
+After these checks pass, the workflow publishes the ABI-qualified wheels to
+GitHub, adds versioned wheel pages to GitHub Pages, and uploads standard CPU
+wheels plus the source distribution to PyPI. CPU repackaging preserves native
+code, retains the exact PyTorch minor constraint, and rebuilds wheel RECORD
+hashes. PyPI metadata must use package-index dependencies; direct Git and URL
+dependencies are rejected.
 
 Before using a versioned wheel URL, check the GitHub Releases page. The version
 in a checkout is not proof that a release has been published.

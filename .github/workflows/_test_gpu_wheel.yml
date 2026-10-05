@@ -1,0 +1,33 @@
+name: ~Score with a release wheel on a GPU
+
+on:
+  workflow_call:
+
+jobs:
+  install:
+    runs-on: [self-hosted, gpu]
+    timeout-minutes: 180
+    env:
+      SIF: /home/bench/git_ci_apptainer/tmol.sif
+      SLURM_PARTITION: gpu-train
+      SLURM_GRES: gpu:1
+      SLURM_CPUS_PER_TASK: 4
+      SLURM_MEM: 32G
+      SLURM_TIME: 01:00:00
+      SLURM_EXCLUDE: g2543,g2547,g2548
+      SRUN_GPU_MAX_ATTEMPTS: 5
+      SRUN_GPU_RETRY_SLEEP: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheel-cp312-cu129torch2.8-x86_64
+          path: wheels
+      - name: Install from variant index and score on CUDA
+        env:
+          GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.release_gpu_started
+        run: |
+          rm -f "$GPU_ALLOC_SENTINEL"
+          .github/ci/srun_gpu_retry.sh <<'SCRIPT'
+          .github/ci/exec_gpu_apptainer.sh .github/ci/test_release_gpu.sh
+          SCRIPT

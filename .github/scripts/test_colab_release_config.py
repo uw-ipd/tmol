@@ -225,7 +225,7 @@ def test_release_matrix_drives_publish_smoke_and_manifest():
         "${{ fromJSON(needs.release_matrix.outputs.linux) }}"
     )
     expected_cpu_smoke = {("2.14", "x86_64"), ("2.14", "aarch64")}
-    for job in ("build-linux-cpu", "test-linux-cpu"):
+    for job in ("build-linux-cpu",):
         assert {
             (row["torch-version"], row["arch"])
             for row in smoke["jobs"][job]["strategy"]["matrix"]["include"]
@@ -234,7 +234,7 @@ def test_release_matrix_drives_publish_smoke_and_manifest():
     assert cuda_smoke["with"]["cuda-archs"] == "all"
     assert {
         row["torch-version"] for row in cuda_smoke["strategy"]["matrix"]["include"]
-    } == {"2.14"}
+    } == {"2.8", "2.14"}
 
 
 def test_docs_workflow_uses_hosted_cpu_and_gpu_ci_executes_gpu_cells():
@@ -262,16 +262,9 @@ def test_smoke_jobs_supply_the_release_torch_patch_for_every_lane():
     }
     jobs = _workflow(".github/workflows/wheel-smoke.yml")["jobs"]
     for platform in ("linux-cpu", "linux-cuda", "macos-cpu"):
-        for phase in ("build", "test"):
-            matrix = jobs[f"{phase}-{platform}"]["strategy"]["matrix"]
-            rows = matrix["include"]
-            if platform.endswith("-cpu"):
-                assert {row["torch-version"] for row in rows} == set(
-                    release.CPU_TORCH_VERSIONS
-                )
-            if "torch-version" in matrix:
-                assert {row["torch-version"] for row in rows} == set(
-                    matrix["torch-version"]
-                )
-            for row in rows:
-                assert row["torch-package-version"] == versions[row["torch-version"]]
+        matrix = jobs[f"build-{platform}"]["strategy"]["matrix"]
+        for row in matrix["include"]:
+            assert row["torch-package-version"] == versions[row["torch-version"]]
+        install = jobs[f"test-{platform}"]
+        assert install["uses"] == "./.github/workflows/_test_wheel.yml"
+        assert install["with"]["torch-package-version"] == versions["2.14"]

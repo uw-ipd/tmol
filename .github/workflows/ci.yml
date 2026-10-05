@@ -34,6 +34,20 @@ jobs:
           python -m pip install pre-commit
           pre-commit run --all-files --show-diff-on-failure
 
+  packaging:
+    name: pip resolver and release metadata
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip pytest packaging build scikit-build-core pyyaml 'cmake>=3.24,<4' ninja
+      - name: Test index installs, ABI constraints, hashes and source metadata
+        run: python -m pytest -o addopts= scripts/test_release_artifacts.py scripts/test_release_matrix.py scripts/test_release_wheel_version.py scripts/test_pypi_sdist.py .github/scripts/test_colab_release_config.py -v
+
   cpu:
     name: pytest (cpu, ${{ matrix.platform }})
     if: github.event.action != 'closed'
@@ -130,16 +144,6 @@ jobs:
         with:
           paths: testing.cpu.junit.xml
 
-      - uses: codecov/codecov-action@v5
-        if: always() && matrix.platform == 'linux-x86_64' && hashFiles('coverage.cpu.xml') != ''
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ github.workspace }}/coverage.cpu.xml
-          flags: cpu
-          # Avoid the failing TLS handshake at cli.codecov.io.
-          use_pypi: true
-          fail_ci_if_error: true
-
   gpu:
     name: pytest (cuda)
     if: github.event.action != 'closed'
@@ -190,25 +194,53 @@ jobs:
         with:
           paths: testing.cuda.junit.xml
 
+  coverage:
+    name: Upload coverage reports
+    needs: [cpu, gpu]
+    if: always() && !cancelled() && github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          name: test-results-cpu-linux-x86_64
+          path: reports/cpu
+      - uses: actions/download-artifact@v4
+        with:
+          name: test-results-cuda
+          path: reports/cuda
       - uses: codecov/codecov-action@v5
-        if: always() && hashFiles('coverage.cuda.xml') != ''
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ github.workspace }}/coverage.cuda.xml
+          files: reports/cpu/coverage.cpu.xml
+          flags: cpu
+          use_pypi: true
+          fail_ci_if_error: true
+      - uses: codecov/codecov-action@v5
+        if: always() && hashFiles('reports/cuda/coverage.cuda.xml') != ''
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: reports/cuda/coverage.cuda.xml
           flags: cuda
           use_pypi: true
           fail_ci_if_error: true
 
-  # Preserve the historical required-check name while the work executes in
-  # parallel jobs.
+  # Coverage uploads have their own visible status. Service/network failures
+  # can be retried without rerunning successful CPU and GPU test suites.
+  # The historical ci check still requires every runtime and packaging lane.
   ci:
     name: ci
     runs-on: ubuntu-latest
     if: always() && !cancelled() && github.event.action != 'closed'
-    needs: [lint, cpu, gpu]
+    needs: [lint, packaging, cpu, gpu]
     steps:
       - name: require every CI lane
         run: |
           test "${{ needs.lint.result }}" = success
+          test "${{ needs.packaging.result }}" = success
           test "${{ needs.cpu.result }}" = success
           test "${{ needs.gpu.result }}" = success

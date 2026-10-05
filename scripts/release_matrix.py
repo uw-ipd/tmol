@@ -193,6 +193,8 @@ def macos_wheel_rows() -> list[dict[str, object]]:
             "torch-version": torch_version,
             "torch-package-version": _torch_package_version(torch_version),
             "local-tag": f"cputorch{torch_version}",
+            "runs-on": "macos-15",
+            "torch-index-url": "https://pypi.org/simple",
             "arch": "arm64",
             "label": f"py{python_version} pt{torch_version} CPU macOS arm64",
         }
@@ -221,13 +223,16 @@ def expected_wheel_keys() -> set[str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("matrix", choices=("gpu", "linux-cpu", "macos", "linux"))
+    parser.add_argument(
+        "matrix", choices=("gpu", "linux-cpu", "macos", "linux", "test")
+    )
     args = parser.parse_args()
     rows = {
         "gpu": gpu_wheel_rows,
         "linux-cpu": cpu_wheel_rows,
         "macos": macos_wheel_rows,
         "linux": linux_wheel_rows,
+        "test": lambda: linux_wheel_rows() + macos_wheel_rows(),
     }[args.matrix]()
     print(json.dumps({"include": rows}, separators=(",", ":")))
 

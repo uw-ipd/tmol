@@ -48,6 +48,7 @@ def test_matrix_cli_emits_workflow_json():
         "linux-cpu": len(cpu_wheel_rows()),
         "macos": len(macos_wheel_rows()),
         "linux": len(linux_wheel_rows()),
+        "test": len(linux_wheel_rows()) + len(macos_wheel_rows()),
     }.items():
         result = subprocess.run(
             [sys.executable, str(script), name],
