@@ -41,7 +41,7 @@ def variant(master: ET.Element, ink: str, accent: str, mark=False) -> ET.Element
         svg.set("width", "590")
         svg.set("height", "590")
         svg.find(f"{{{NS}}}desc").text = (
-            "TMol protein helix with a short force and acceleration arrow."
+            "TMol protein helix with a straight, constant-width orange arrow."
         )
     for path in svg.iter(f"{{{NS}}}path"):
         path.set("fill", ink if path.get("class") == "ink" else accent)

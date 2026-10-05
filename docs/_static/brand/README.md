@@ -1,7 +1,8 @@
 # TMol brand assets
 
-The logo combines a graphite protein helix with a short orange arrow to
-suggest force and acceleration. An orange `t` continues that accent in the
+The logo combines a graphite protein helix with a short orange arrow whose
+straight shaft has a constant width and a square tail. It suggests force and
+acceleration. An orange `t` continues that accent in the
 wordmark. Keep the ribbon orientation; do not mirror the symbol. This is a
 stylized identity mark, not a molecular structure diagram.
 
