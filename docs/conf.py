@@ -76,6 +76,7 @@ master_doc = "index"
 
 exclude_patterns = [
     "_build",
+    "_static/brand/README.md",
     "Thumbs.db",
     ".DS_Store",
     "README.md",
@@ -152,9 +153,17 @@ html_baseurl = os.environ.get(
     "TMOL_DOCS_BASE_URL", "https://uw-ipd.github.io/tmol/latest/"
 )
 html_static_path = ["_static"]
+templates_path = ["_templates"]
 html_css_files = ["custom.css"]
 html_title = "TMol"
+html_logo = "_static/brand/tmol-logo-light.svg"
+html_favicon = "_static/brand/favicon.ico"
 html_theme_options = {
+    "logo": {
+        "image_light": "_static/brand/tmol-logo-light.svg",
+        "image_dark": "_static/brand/tmol-logo-dark.svg",
+        "alt_text": "TMol documentation — Home",
+    },
     "show_nav_level": 2,
     "collapse_navigation": False,
     "navigation_depth": -1,

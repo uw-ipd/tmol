@@ -1,27 +1,17 @@
 # Quickstart
 
-TMol provides batched molecular representations and Rosetta-inspired all-atom
-modeling primitives in PyTorch.
-
-This page is a short first-score recipe. For explanations, visualization, and
-exercises, continue with the numbered Tutorials.
-
-> - **Prerequisite:** {doc}`Install TMol </installation>`.
-> - **Deep tutorial:** {doc}`01 — Working with TMol
->   </tutorial/01_working_with_tmol>`.
-> - **Related workflows:** {doc}`Workflow recipes </workflows/index>`.
-> - **API reference:** {doc}`Input and Output </api/io>` and
->   {doc}`Scoring </api/score>`.
-> - **Rosetta mapping:** {doc}`Rosetta-to-TMol crosswalk
->   </tutorial/rosetta_crosswalk>`.
+Load, score, minimize, and write a protein structure on CPU or CUDA.
+The example expects a local file named `1ubq.pdb`.
 
 ## Install TMol
 
 ```bash
-pip install tmol
+pip install "tmol @ git+https://github.com/uw-ipd/tmol.git@master"
 ```
 
-## Load and score one structure
+See {doc}`Installation <installation>` for compiler requirements and pre-built wheels.
+
+## Load and score
 
 ```python
 import torch
@@ -39,11 +29,9 @@ score = scorer(pose_stack.coords)
 print(score)
 ```
 
-`score` contains one value for each pose in the `PoseStack`. These are
-beta2016-weighted TMol score units, not kcal/mol, binding free energies, or
-values guaranteed to match Rosetta score units numerically.
+`score` contains one weighted total per pose.
 
-## Refine and write the structure
+## Minimize and write
 
 ```python
 from tmol.optimization import run_cart_min
@@ -63,8 +51,7 @@ write_pose_stack_pdb(minimized, "minimized.pdb")
 
 ## Protein-ligand input
 
-For a protein-ligand complex, load mmCIF through Biotite so TMol can use its
-bond table during ligand preparation:
+Load mmCIF with bond information for ligand preparation:
 
 ```python
 import biotite.structure as struc
@@ -89,23 +76,5 @@ sfxn = beta2016_score_function(device, param_db=context.parameter_database)
 Use the ligand-extended `context.parameter_database` when scoring a pose that
 contains freshly prepared ligands.
 
-Helpers whose historical names include `ddg` report a chosen one-complex
-interaction-score convention; they do not calculate thermodynamic binding free
-energies. See the {doc}`scoring and analysis guide </user_guide/scoring>`.
-
-## Choose the next path
-
-- Work through the ten {doc}`interactive examples </examples_index>` for
-  complete, executable tutorials with molecular viewers and exercises.
-- Use the {doc}`workflow hub </workflows/index>` for short, reusable recipes.
-- Search the {doc}`task index </tutorial/recipe_index>` when you already know
-  the operation you need.
-
-If you want to continue directly, start with
-{doc}`Tutorial 01 — Working with TMol </tutorial/01_working_with_tmol>`.
-
-```{toctree}
-:hidden:
-
-Installation <installation>
-```
+Continue with the {doc}`structure tutorial </tutorial/01_working_with_tmol>`
+or the {doc}`scoring guide </user_guide/scoring>`.

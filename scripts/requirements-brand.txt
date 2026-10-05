@@ -1,0 +1,4 @@
+# Standalone export tools; these are not TMol runtime dependencies.
+# CairoSVG also needs the platform's Cairo shared library.
+CairoSVG==2.9.1
+Pillow==12.3.0

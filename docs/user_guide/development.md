@@ -1,15 +1,9 @@
 # Development
 
-This page summarizes local development, extension loading, testing, CI, and
-release workflows.
+For build requirements and platform support, see {doc}`installation
+</installation>`.
 
-> - **Prerequisites:** Complete the {doc}`source installation </installation>`
->   before running the full test suite.
-> - **Related guides:** {doc}`Benchmarking </user_guide/benchmarking>` and
->   {doc}`Contributor Guide </contributor_guide>`.
-> - **API reference:** {doc}`TMol API reference </api_reference>`.
-
-## Local Setup
+## Local setup
 
 ```bash
 git clone https://github.com/uw-ipd/tmol.git
@@ -32,8 +26,8 @@ interpreter; `CMAKE_PREFIX_PATH` and `pybind11_DIR` do not need to be set.
 Requirements:
 
 - Python 3.11 or newer.
-- PyTorch 2.5 or newer.
-- A C++20-capable compiler (TMol uses C++17 with PyTorch 2.5–2.12).
+- PyTorch 2.8 or newer.
+- A C++20-capable compiler (TMol uses C++17 with PyTorch 2.8–2.12).
 - CMake 3.24 or newer.
 - CUDA toolkit with `nvcc` for CUDA builds.
 
@@ -43,7 +37,7 @@ Without CUDA, use a CPU-only build:
 pip install -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF
 ```
 
-## Building Extensions
+## Build extensions
 
 TMol builds extensions with CMake through `scikit-build-core`.
 
@@ -62,7 +56,7 @@ pip install -e . -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="80;90"
 MAX_JOBS=4 pip install -e . -Ccmake.define.TMOL_NVCC_THREADS=2
 ```
 
-Important CMake variables:
+Build settings:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
@@ -72,7 +66,7 @@ Important CMake variables:
 | `TMOL_ENABLE_CUDA` | `ON` | Turn off for CPU-only builds. |
 | `MAX_JOBS` | auto | Maximum parallel build jobs. |
 
-## AOT vs JIT Extension Loading
+## Extension loading
 
 TMol can load kernels two ways:
 
@@ -154,7 +148,7 @@ PyPI rejects direct Git and URL dependencies.
 Before using a versioned wheel URL, check the GitHub Releases page. The version
 in a checkout is not proof that a release has been published.
 
-## Code Style
+## Code style
 
 TMol uses Black for Python formatting, Flake8 for linting, and clang-format for
 C++/CUDA formatting.

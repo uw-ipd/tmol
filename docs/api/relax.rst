@@ -1,8 +1,8 @@
 Relax
 =====
 
-TMol provides a Rosetta-inspired pack/minimize schedule. Its scoring, search,
-and acceptance behavior are TMol-specific.
+FastRelax alternates packing and minimization under a configurable weight
+schedule.
 
 .. automodule:: tmol.relax
    :members:

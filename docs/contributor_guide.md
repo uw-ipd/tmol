@@ -1,23 +1,11 @@
 # Contributor guide
 
-Keep changes focused and testable. Prefer existing TMol patterns over new
-abstractions unless the new abstraction removes real complexity.
-
-> - **Prerequisites:** {doc}`Development setup </user_guide/development>`.
-> - **Documentation entry points:** {doc}`Tutorials </examples_index>`,
->   {doc}`workflow recipes </workflows/index>`, and
->   {doc}`API reference </api_reference>`.
+Set up an editable installation using {doc}`Development </user_guide/development>`.
 
 ## Documentation
 
-The external docs are built with Sphinx, MyST Markdown, nbsphinx, and autodoc.
-Two documentation forms serve different purposes:
-
-- `docs/workflows/` and selected `docs/user_guide/` pages are concise,
-  reusable recipes that link to deeper material rather than reproducing it.
-- The top-level **Examples** section contains the thirteen interactive notebooks
-  in `docs/tutorial/`. They are deeper, executable walkthroughs rendered by
-  nbsphinx.
+Sphinx builds the Markdown/RST guides and the notebooks in `docs/tutorial/`.
+Execute the notebooks before building HTML:
 
 ```bash
 pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.8"
@@ -36,7 +24,17 @@ nbsphinx does not execute notebooks during the Sphinx phase; the smoke command
 above executes them first and writes the plots, tables, and viewer HTML that
 Sphinx consumes. CI performs the same two-step notebook-and-Sphinx build.
 
-## Pull Requests
+## Writing documentation
+
+- Lead with the operation or result. Put prerequisites next to the example.
+- Use descriptive headings, short paragraphs, and runnable code.
+- Keep caveats where they affect a decision. Link to shared conventions instead
+  of repeating them on every page.
+- Link to a tutorial or API page when it adds detail; avoid introductory link
+  checklists and descriptions of what the page is about to explain.
+- Keep notebook code, fixtures, outputs, and Colab setup consistent.
+
+## Pull requests
 
 Before opening a PR:
 
@@ -50,7 +48,7 @@ make -C docs html
 If your change touches CUDA kernels, packing, scoring terms, or minimization,
 include the relevant GPU tests or explain why they were not run locally.
 
-## API Documentation
+## API documentation
 
 API pages under `docs/api/` use `sphinx.ext.autodoc`. Public modules should have
 useful module, class, and function docstrings because those docstrings become
@@ -60,9 +58,14 @@ Use Google or NumPy-style docstrings.
 
 ## Agent skills
 
-Repository skills under `skills/` encode recurring workflows for coding agents.
-Keep each `SKILL.md` narrow and grounded in current public commands and APIs.
-Link substantial explanations to the maintained docs instead of copying them
-into several skills. When behavior changes, update the relevant skill, its
-human-readable skill card, and its bounded eval case together. See
+Keep `skills/` instructions consistent with public commands and APIs. Link to
+the docs for explanations. When behavior changes, update the skill, its card,
+and its eval case together. See
 {doc}`Agent skills </agent_skills>` for the catalog.
+
+```{toctree}
+:hidden:
+
+Development <user_guide/development>
+Agent skills <agent_skills>
+```

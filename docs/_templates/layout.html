@@ -1,0 +1,8 @@
+{% extends "!layout.html" %}
+
+{% block extrahead %}
+  {{ super() }}
+  {# Sphinx supplies the ICO fallback; modern browsers use the adaptive SVG. #}
+  <link rel="icon" type="image/svg+xml" sizes="any" href="{{ pathto('_static/brand/favicon.svg', 1) }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ pathto('_static/brand/apple-touch-icon.png', 1) }}">
+{% endblock %}

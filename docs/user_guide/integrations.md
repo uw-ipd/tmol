@@ -1,19 +1,7 @@
 # Model and structure integrations
 
-TMol is designed to sit inside PyTorch-based structural-biology workflows. It can
-score structures loaded from standard files and convert outputs from structure
-prediction systems into `PoseStack` objects.
-
-> - **Prerequisites:** {doc}`Quickstart </quickstart>` and the output schema for
->   the source model or structure library.
-> - **Deep tutorial:** {doc}`01 — Working with TMol
->   </tutorial/01_working_with_tmol>`.
-> - **Related workflows:** {doc}`GPU batching </workflows/gpu_batching>` and
->   {doc}`Ligand preparation </user_guide/ligands>`.
-> - **API reference:** {doc}`Input and Output </api/io>` and
->   {doc}`Pose </api/pose>`.
-> - **Rosetta mapping:** {doc}`I/O, selections, and options
->   </tutorial/rosetta_crosswalk>`.
+Construct a `PoseStack` from structure files, Biotite arrays, or model
+coordinate tensors. Use the tensor interfaces when gradients must reach model outputs.
 
 ## Structure files and annotated arrays
 
@@ -170,3 +158,7 @@ all use this interface. Metal parameterization remains separate. The adapter
 has no residue or element allowlist; strict preparation reports chemistry that
 the context cannot represent. A prepared builder owns mutable caches: use one
 per calling thread, and rebuild it when chemical identity or connectivity changes.
+
+## Examples and reference
+
+{doc}`Model inputs </model_inputs>` · {doc}`I/O API </api/io>` · {doc}`Ligand preparation </user_guide/ligands>`
