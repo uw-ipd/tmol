@@ -96,6 +96,10 @@ def beta2016_score_function(
     return _memoized_beta2016(device)
 
 
+# Weight of Rosetta's cryo-EM refinement script (cryoem_glycan_refinement.xml).
+_ELEC_DENS_FAST_WEIGHT = 35.0
+
+
 def beta_nov16_dens_score_function(
     device: torch.device,
     density_map: "ElectronDensityMap",  # noqa: F821
@@ -120,7 +124,8 @@ def beta_nov16_dens_score_function(
     Returns:
         A new ScoreFunction. It is not memoized, because it is bound to ``density_map``.
     """
-    sfxn = _load_score_function("beta_nov16_dens.sfxn", device, param_db)
+    sfxn = _non_memoized_beta2016(device, param_db)
+    sfxn.set_weight(ScoreType.elec_dens_fast, _ELEC_DENS_FAST_WEIGHT)
     sfxn.set_options(
         {
             **sfxn.term_options,
