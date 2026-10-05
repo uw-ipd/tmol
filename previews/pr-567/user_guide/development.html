@@ -39,9 +39,9 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=d127aa6e"></script>
-    <script src="../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/documentation_options.js?v=755f2e77"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
     <script>let toggleHintHide = 'hide code';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
@@ -58,7 +58,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.58" />
+  <meta name="docsearch:version" content="0.1.59" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -609,6 +609,9 @@ publish previews under the Pages site.</p>
 Linux aarch64, and Apple Silicon CPU wheels are built for each supported
 CPython version and qualified by their PyTorch minor. The tag version
 must match <code class="docutils literal notranslate"><span class="pre">[project].version</span></code> in <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>.</p>
+<p>The workflow publishes all wheels to GitHub before uploading the source
+distribution to PyPI. Source metadata must use package-index dependencies;
+PyPI rejects direct Git and URL dependencies.</p>
 <p>Before using a versioned wheel URL, check the GitHub Releases page. The version
 in a checkout is not proof that a release has been published.</p>
 </section>
@@ -729,7 +732,7 @@ flake8
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
   </p>
 </div>
       

@@ -39,9 +39,9 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=d127aa6e"></script>
-    <script src="_static/doctools.js?v=9bcbadda"></script>
-    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/documentation_options.js?v=755f2e77"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
     <script>let toggleHintHide = 'hide code';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
@@ -58,7 +58,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.58" />
+  <meta name="docsearch:version" content="0.1.59" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -444,13 +444,11 @@
 <h1>Installation<a class="headerlink" href="#installation" title="Link to this heading">#</a></h1>
 <p>TMol requires Python 3.11+ and PyTorch. Pre-built wheels contain C++/CUDA
 extensions; source builds require a compiler.</p>
-<p>Install the current version from GitHub:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"tmol @ git+https://github.com/uw-ipd/tmol.git@master"</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>tmol
 </pre></div>
 </div>
-<p>Ligand preparation is included in the standard install, with RDKit and OpenBabel.
-This builds from source and installs the pinned AtomWorks revision. The PyPI
-package is older and does not include these protonation and ligand changes.</p>
+<p>TMol 0.1.59 uses AtomWorks 3 from PyPI. Ligand preparation, including RDKit and
+OpenBabel, is part of the standard install. AtomWorks 3 requires Biotite 1.6.0.</p>
 <section id="pre-built-wheels">
 <h2>Pre-built wheels<a class="headerlink" href="#pre-built-wheels" title="Link to this heading">#</a></h2>
 <p>Pre-built wheels include ahead-of-time compiled extensions, so installing a
@@ -484,7 +482,7 @@ Silicon. For example, after installing PyTorch 2.14, an Apple Silicon wheel is:<
 </section>
 <section id="pypi-source-distribution">
 <h2>PyPI source distribution<a class="headerlink" href="#pypi-source-distribution" title="Link to this heading">#</a></h2>
-<p>To install the older PyPI package:</p>
+<p>Install from PyPI:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>tmol
 </pre></div>
 </div>
@@ -561,9 +559,9 @@ recent container image.</p>
 <section id="google-colab">
 <h2>Google Colab<a class="headerlink" href="#google-colab" title="Link to this heading">#</a></h2>
 <p>The tutorial bootstrap supports PyTorch 2.11.0, CUDA 12.8, and Python 3.12 or
-3.13. TMol v0.1.56 provides separate Python-ABI wheels compiled
+3.13. TMol v0.1.59 provides separate Python-ABI wheels compiled
 for T4 (<code class="docutils literal notranslate"><span class="pre">sm_75</span></code>), A100 (<code class="docutils literal notranslate"><span class="pre">sm_80</span></code>), and L4 (<code class="docutils literal notranslate"><span class="pre">sm_89</span></code>) GPUs. For Python 3.13:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"tmol @ https://github.com/uw-ipd/tmol/releases/download/v0.1.56/tmol-0.1.56+cu128torch2.11-cp313-cp313-manylinux_2_28_x86_64.whl"</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"tmol @ https://github.com/uw-ipd/tmol/releases/download/v0.1.59/tmol-0.1.59+cu128torch2.11-cp313-cp313-manylinux_2_28_x86_64.whl"</span>
 </pre></div>
 </div>
 <p>The tutorial bootstrap selects the wheel matching the runtime’s Python ABI and
@@ -674,7 +672,7 @@ development environment, see <a class="reference internal" href="user_guide/deve
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
   </p>
 </div>
       

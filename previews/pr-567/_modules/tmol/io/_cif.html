@@ -38,9 +38,9 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../../../_static/documentation_options.js?v=d127aa6e"></script>
-    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/documentation_options.js?v=755f2e77"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
     <script>let toggleHintHide = 'hide code';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
@@ -55,7 +55,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.58" />
+  <meta name="docsearch:version" content="0.1.59" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -665,7 +665,14 @@
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="s2">"pdbx_formal_charge"</span><span class="p">):</span>
             <span class="n">array</span><span class="o">.</span><span class="n">del_annotation</span><span class="p">(</span><span class="s2">"pdbx_formal_charge"</span><span class="p">)</span>
         <span class="n">array</span> <span class="o">=</span> <span class="n">with_unresolved_atoms</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">templates</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">_without_misstated_charges</span><span class="p">(</span><span class="n">resolve_leaving_atoms</span><span class="p">(</span><span class="n">array</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">templates</span><span class="p">)</span></div>
+        <span class="c1"># Completion uses the unlinked component. At an established link, its</span>
+        <span class="c1"># CCD-declared leaving groups must be displaced even if deposited with</span>
+        <span class="c1"># coordinates (e.g. the PLM ester in 8TRB). AtomWorks 3 otherwise protects</span>
+        <span class="c1"># every finite-coordinate atom by default.</span>
+        <span class="n">product</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">resolve_leaving_atoms</span><span class="p">(</span>
+            <span class="n">array</span><span class="p">,</span> <span class="n">preserve_atom_mask</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">array</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">_without_misstated_charges</span><span class="p">(</span><span class="n">product</span><span class="p">,</span> <span class="n">templates</span><span class="p">)</span></div>
 
 
 
@@ -1089,7 +1096,7 @@
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
   </p>
 </div>
       
