@@ -1,0 +1,83 @@
+name: ~Install wheel through package index
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        required: true
+        type: string
+      python-version:
+        required: true
+        type: string
+      python-tag:
+        required: true
+        type: string
+      local-tag:
+        required: true
+        type: string
+      arch:
+        required: true
+        type: string
+      torch-package-version:
+        required: true
+        type: string
+      torch-index-url:
+        type: string
+        default: https://pypi.org/simple
+      portability:
+        type: boolean
+        default: false
+      default-torch:
+        type: boolean
+        default: false
+
+jobs:
+  install:
+    runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: 40
+    env:
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheel-cp${{ inputs.python-tag }}-${{ inputs.local-tag }}-${{ inputs.arch }}
+          path: wheels
+      - run: python -m pip install packaging
+      - name: Inspect Linux native dependencies
+        if: runner.os == 'Linux'
+        run: |
+          python -m pip install auditwheel
+          auditwheel show wheels/*.whl
+      - name: Install via pip and score with native extensions
+        env:
+          DEFAULT_TORCH: ${{ inputs.default-torch }}
+        shell: bash
+        run: |
+          args=()
+          if [ "$DEFAULT_TORCH" = true ]; then
+            args+=(--default-torch)
+          fi
+          python scripts/test_package_install.py --wheel wheels/*.whl \
+            --torch-version '${{ inputs.torch-package-version }}' \
+            --torch-index '${{ inputs.torch-index-url }}' "${args[@]}"
+
+      - name: Check glibc 2.28 container install
+        if: inputs.portability
+        shell: bash
+        run: |
+          docker run --rm -v "$PWD/wheels:/wheels:ro" \
+            'quay.io/pypa/manylinux_2_28_${{ inputs.arch }}' \
+            bash -euo pipefail -c '
+              /opt/python/cp${{ inputs.python-tag }}-cp${{ inputs.python-tag }}/bin/python -m venv /tmp/smoke
+              /tmp/smoke/bin/pip install --upgrade pip
+              /tmp/smoke/bin/pip install "torch==${{ inputs.torch-package-version }}" \
+                --index-url "${{ inputs.torch-index-url }}"
+              /tmp/smoke/bin/pip install /wheels/*.whl
+              cd /tmp
+              /tmp/smoke/bin/python -c "from tmol._cpp_lib import _ensure_loaded; _ensure_loaded()"
+            '

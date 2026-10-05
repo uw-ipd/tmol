@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 PYTHON_VERSIONS = ("3.11", "3.12", "3.13", "3.14")
 LINUX_ARCHES = ("x86_64", "aarch64")
-CPU_TORCH_VERSIONS = ("2.13", "2.14")
+CPU_TORCH_VERSIONS = ("2.14",)
 RELEASE_PLATFORMS = {
     "manylinux_2_28_x86_64",
     "manylinux_2_28_aarch64",
@@ -152,35 +152,9 @@ def gpu_wheel_rows(*, release: bool = True) -> list[dict[str, object]]:
     return rows
 
 
-def _version_key(version: str) -> tuple[int, ...]:
-    return tuple(int(part) for part in version.split("."))
-
-
 def cpu_torch_pythons() -> dict[str, tuple[str, ...]]:
-    """Torch versions the CPU lanes build, and the interpreters for each.
-
-    CPU covers every torch the GPU families cover, so a build is not offered
-    with a device and withheld without one. The Python set is per torch: an
-    older torch publishes no wheels for a newer interpreter, and the GPU
-    families already record which pairings exist. Versions tmol has always
-    shipped CPU wheels for keep their wider interpreter set.
-
-    The cover is one-way. Every GPU pairing has a CPU wheel, but not every CPU
-    pairing has a GPU one: torch 2.13 publishes no cp311 CUDA build, so neither
-    does tmol, while the CPU wheel for that pairing predates the GPU family and
-    is still wanted. ``test_release_matrix`` asserts the direction that holds.
-    """
-    pythons: dict[str, set[str]] = {}
-    for family in GPU_FAMILIES:
-        pythons.setdefault(family.torch, set()).update(family.pythons)
-    for torch_version in CPU_TORCH_VERSIONS:
-        pythons.setdefault(torch_version, set()).update(PYTHON_VERSIONS)
-    return {
-        torch_version: tuple(sorted(found, key=_version_key))
-        for torch_version, found in sorted(
-            pythons.items(), key=lambda kv: _version_key(kv[0])
-        )
-    }
+    """CPU wheel support is independent of the broader CUDA compatibility set."""
+    return {torch_version: PYTHON_VERSIONS for torch_version in CPU_TORCH_VERSIONS}
 
 
 def cpu_wheel_rows() -> list[dict[str, object]]:
@@ -219,6 +193,8 @@ def macos_wheel_rows() -> list[dict[str, object]]:
             "torch-version": torch_version,
             "torch-package-version": _torch_package_version(torch_version),
             "local-tag": f"cputorch{torch_version}",
+            "runs-on": "macos-15",
+            "torch-index-url": "https://pypi.org/simple",
             "arch": "arm64",
             "label": f"py{python_version} pt{torch_version} CPU macOS arm64",
         }
@@ -247,13 +223,16 @@ def expected_wheel_keys() -> set[str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("matrix", choices=("gpu", "linux-cpu", "macos", "linux"))
+    parser.add_argument(
+        "matrix", choices=("gpu", "linux-cpu", "macos", "linux", "test")
+    )
     args = parser.parse_args()
     rows = {
         "gpu": gpu_wheel_rows,
         "linux-cpu": cpu_wheel_rows,
         "macos": macos_wheel_rows,
         "linux": linux_wheel_rows,
+        "test": lambda: linux_wheel_rows() + macos_wheel_rows(),
     }[args.matrix]()
     print(json.dumps({"include": rows}, separators=(",", ":")))
 

@@ -1,4 +1,4 @@
-# Publish wheels to GitHub and the source distribution to PyPI.
+# Publish CUDA/CPU variants to GitHub and standard CPU wheels plus source to PyPI.
 #
 # Runs on version tag push or manual trigger.
 #
@@ -20,6 +20,7 @@ jobs:
       gpu_matrix: ${{ steps.matrix.outputs.gpu }}
       linux_cpu_matrix: ${{ steps.matrix.outputs.linux_cpu }}
       macos_matrix: ${{ steps.matrix.outputs.macos }}
+      test_matrix: ${{ steps.matrix.outputs.test }}
     steps:
       - uses: actions/checkout@v5
 
@@ -65,9 +66,12 @@ jobs:
       - name: Generate wheel matrices
         id: matrix
         run: |
-          echo "gpu=$(python scripts/release_matrix.py gpu)" >> "$GITHUB_OUTPUT"
-          echo "linux_cpu=$(python scripts/release_matrix.py linux-cpu)" >> "$GITHUB_OUTPUT"
-          echo "macos=$(python scripts/release_matrix.py macos)" >> "$GITHUB_OUTPUT"
+          {
+            echo "gpu=$(python scripts/release_matrix.py gpu)"
+            echo "linux_cpu=$(python scripts/release_matrix.py linux-cpu)"
+            echo "macos=$(python scripts/release_matrix.py macos)"
+            echo "test=$(python scripts/release_matrix.py test)"
+          } >> "$GITHUB_OUTPUT"
 
   # ── GPU wheels ───────────────────────────────────────────────────────
   build_wheels:
@@ -126,46 +130,50 @@ jobs:
       torch-package-version: ${{ matrix.torch-package-version }}
       label: ${{ matrix.label }}
 
-  # ── sdist ──────────────────────────────────────────────────────────
   build_sdist:
-    name: Build sdist
+    name: Build and test source distribution
     needs: verify_release_version
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
+    uses: ./.github/workflows/_test_sdist.yml
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+  test_wheels:
+    name: "pip cp${{ matrix.python-tag }} ${{ matrix.local-tag }} ${{ matrix.arch }}"
+    needs: [verify_release_version, build_wheels, build_cpu_wheel, build_macos_cpu_wheel]
+    strategy:
+      fail-fast: false
+      max-parallel: 7
+      matrix: ${{ fromJSON(needs.verify_release_version.outputs.test_matrix) }}
+    uses: ./.github/workflows/_test_wheel.yml
+    with:
+      runs-on: ${{ matrix.runs-on }}
+      python-version: ${{ matrix.python-version }}
+      python-tag: ${{ matrix.python-tag }}
+      local-tag: ${{ matrix.local-tag }}
+      arch: ${{ matrix.arch }}
+      torch-package-version: ${{ matrix.torch-package-version }}
+      torch-index-url: ${{ matrix.torch-index-url }}
+      portability: ${{ matrix.portability || false }}
 
-      - name: Install dependencies
-        run: |
-          pip install "cmake>=3.24,<4" "scikit-build-core>=0.10" ninja "packaging>=24.2" "pybind11>=2.12" build
-          pip install torch --index-url https://download.pytorch.org/whl/cpu
+  test_default_pypi:
+    name: Plain pip with default PyPI dependencies
+    needs: build_cpu_wheel
+    uses: ./.github/workflows/_test_wheel.yml
+    with:
+      runs-on: ubuntu-22.04
+      python-version: "3.12"
+      python-tag: "312"
+      local-tag: cputorch2.14
+      arch: x86_64
+      torch-package-version: "2.14.1"
+      default-torch: true
 
-      - name: Build sdist
-        run: python -m build --sdist --no-isolation --outdir dist
+  test_gpu_runtime:
+    name: Release wheel scoring on CUDA
+    needs: build_wheels
+    uses: ./.github/workflows/_test_gpu_wheel.yml
 
-      - name: Validate PyPI source metadata
-        run: python scripts/validate_pypi_sdist.py dist/*.tar.gz
-
-      - name: Log sdist
-        run: ls -lh dist/
-
-      - name: Upload sdist artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: sdist
-          path: dist/*.tar.gz
-
-  # ── Upload ─────────────────────────────────────────────────────────
-  #
-  # Source and wheels -> GitHub Release.
-  #
-  # If this job fails you can RE-RUN just this job from the Actions UI.
   upload:
-    name: Upload source and wheels to GitHub Release
-    needs: [build_wheels, build_cpu_wheel, build_macos_cpu_wheel, build_sdist]
+    name: Publish validated GitHub artifacts
+    needs: [test_wheels, test_default_pypi, test_gpu_runtime, build_sdist]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -207,11 +215,24 @@ jobs:
           python scripts/validate_pypi_sdist.py dist/*.tar.gz
           python -m twine check --strict dist/*.tar.gz
 
+      - name: Prepare PyPI CPU wheels and versioned wheel indexes
+        run: |
+          python scripts/release_artifacts.py --wheels wheels --sdist dist/*.tar.gz --output prepared
+          python -m twine check --strict prepared/pypi/*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: publication
+          path: prepared/
+
       - name: Determine version from sdist filename
         id: version
         run: |
-          SDIST=$(ls dist/*.tar.gz | head -1 | xargs basename)
-          VERSION=$(echo "$SDIST" | sed 's/^tmol-//;s/\.tar\.gz$//')
+          set -- dist/*.tar.gz
+          test "$#" -eq 1
+          SDIST=$(basename "$1")
+          VERSION=${SDIST#tmol-}
+          VERSION=${VERSION%.tar.gz}
           PRERELEASE=$(python -c \
             'from packaging.version import Version; import sys; print(str(Version(sys.argv[1]).is_prerelease).lower())' \
             "$VERSION")
@@ -234,10 +255,100 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # The source backend fetches wheels from this release during pip install.
-      # Publish to PyPI only after every wheel is available on GitHub.
-      - name: Publish source distribution to PyPI
+  publish_indexes:
+    name: Publish versioned wheel indexes
+    needs: upload
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+    # Share the docs deployment lock so neither writer can erase the other.
+    concurrency:
+      group: docs-pages-publish
+      cancel-in-progress: false
+      queue: max
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: gh-pages
+          path: gh-pages
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: publication
+          path: prepared
+      - name: Add indexes while preserving docs and previous releases
+        run: |
+          mkdir -p gh-pages/wheels
+          cp -R prepared/wheels/. gh-pages/wheels/
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: gh-pages
+          keep_files: false
+          force_orphan: false
+          user_name: github-actions[bot]
+          user_email: github-actions[bot]@users.noreply.github.com
+
+      - name: Request Pages build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds"
+
+  publish_pypi:
+    name: Publish CPU wheels and source to PyPI
+    needs: publish_indexes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          name: publication
+          path: prepared
+      - name: Verify wheel pages are publicly available
+        run: |
+          for page in prepared/wheels/*/*/index.html; do
+            relative=${page#prepared/}
+            curl --fail --silent --show-error --retry 120 --retry-all-errors --retry-delay 10 \
+              "https://uw-ipd.github.io/tmol/${relative}" --output /tmp/index.html
+            cmp "$page" /tmp/index.html
+          done
+      - run: python -m pip install twine
+      - name: Upload validated distributions
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: python -m twine upload --skip-existing dist/*.tar.gz
+        run: python -m twine upload --skip-existing prepared/pypi/*
+
+  verify_public:
+    name: Verify public PyPI installation
+    needs: publish_pypi
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [ubuntu-22.04, macos-15]
+    runs-on: ${{ matrix.runs-on }}
+    env:
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install from public PyPI
+        shell: bash
+        run: |
+          python -m venv /tmp/tmol-public
+          /tmp/tmol-public/bin/pip install --upgrade pip
+          if [ "$RUNNER_OS" = Linux ]; then
+            /tmp/tmol-public/bin/pip install 'torch==2.14.*' --index-url https://download.pytorch.org/whl/cpu
+          fi
+          version=${GITHUB_REF_NAME#v}
+          /tmp/tmol-public/bin/pip install --no-cache-dir --only-binary=tmol "tmol==$version" --index-url https://pypi.org/simple
+          /tmp/tmol-public/bin/pip check
+          /tmp/tmol-public/bin/python -I scripts/smoke_installed_package.py \
+            --version "$version" --pdb "$GITHUB_WORKSPACE/tmol/tests/data/pdb/1ubq.pdb"

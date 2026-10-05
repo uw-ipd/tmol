@@ -1,0 +1,33 @@
+name: ~Install source distribution through package index
+
+on:
+  workflow_call:
+
+jobs:
+  install:
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MAX_JOBS: "2"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build source distribution without compiling extensions
+        run: |
+          python -m pip install build packaging 'scikit-build-core>=0.10'
+          python -m build --sdist --no-isolation --skip-dependency-check --outdir dist
+          python scripts/validate_pypi_sdist.py dist/*.tar.gz
+      - name: Resolve, build, install and score from the source index
+        run: |
+          python scripts/test_package_install.py --sdist dist/*.tar.gz \
+            --torch-version '2.14.1'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
