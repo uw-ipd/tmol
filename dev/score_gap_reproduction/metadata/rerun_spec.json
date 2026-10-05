@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-04",
+  "location": "CoreWeave east",
+  "remote_run": "/mnt/home/kdidi/tmol-paper-benchmark/runs/20261004-figure1-f92d",
+  "master_commit": "f92d40d12a8670dd2654db32f37ca885714d2f4a",
+  "release_commit": "ef1dc2ad4c03cbec508838a1f9e70ddb7726d690",
+  "source_comparison": "The release tag and master differ only in .github/workflows/publish.yml and pyproject.toml; modeling source is identical.",
+  "source_comparison_url": "https://github.com/uw-ipd/tmol/compare/f92d40d12a8670dd2654db32f37ca885714d2f4a...v0.1.58",
+  "wheel": "tmol-0.1.58+cu130torch2.13-cp312-cp312-manylinux_2_28_x86_64.whl",
+  "wheel_sha256": "1253849cc14bea25ee84ce2f20f127052a2806f0e388b54afc71d457da35f044",
+  "software": "PyTorch 2.13.0+cu132; CUDA runtime 13.2; wheel built for CUDA 13.0. AtomWorks 2.1.1.",
+  "primary_score_systems": [
+    "5uoi",
+    "2mtq",
+    "5umr",
+    "5yzf",
+    "5n5g",
+    "6azu",
+    "5m4a",
+    "5opj",
+    "1s78",
+    "1o7j"
+  ],
+  "primary_repack_systems": [
+    "5uoi",
+    "5yzf",
+    "5m4a",
+    "1o7j"
+  ],
+  "series": [
+    "PyRosetta CPU B1",
+    "tmol CPU B1",
+    "tmol GPU B1",
+    "tmol GPU B10",
+    "tmol GPU B100",
+    "tmol GPU B1000"
+  ],
+  "expected_primary_measurements": 84,
+  "expected_total_measurements": 118,
+  "timing_scope": {
+    "score_gradient": "Steady-state score and Cartesian gradient; GPU uses the public forward_backward CUDA graph path. Setup/capture excluded. Five warmups, seven adaptive intervals.",
+    "repack": "Full native fixed-sequence repack; current conformer included. Rotamer generation, scoring, annealing and output assembly timed. Three seeds; setup and warmup excluded.",
+    "largest_warmup": "The 1O7J GPU B1000 run warms a single native chunk instead of repeating an entire 1000-pose batch. Every timed call processes all 1000 poses.",
+    "largest_repetitions": "Three seeds in separate processes on the same H200 model; full batch timed after one native-chunk warmup. Individual process records and per-sample machine metadata retained."
+  },
+  "atom_axis": "Physical atoms per structure, including hydrogen, excluding padding and PyRosetta virtual proline sites; raw stored counts retained.",
+  "native_preparation": "Each native input loader and preset is retained; not an atom-identical numerical parity experiment.",
+  "historical_spec": "metadata/benchmark_spec.json is the exact reused timing configuration from the older harness. Its historical version labels do not identify this rerun; use rerun_spec.json and each raw engine_commit.",
+  "status": "complete: 84 primary measurements; all successful",
+  "total_native_observations": 118,
+  "successful_native_observations": 117,
+  "auxiliary_failures": [
+    "tmol-score_gradient-cpu-b1-hivrt.json"
+  ],
+  "separate_connectivity_diagnostics": 9,
+  "analysis_finalized_utc": "2026-10-05T00:24:25.850046+00:00"
+}

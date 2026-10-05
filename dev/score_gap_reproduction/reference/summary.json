@@ -1,0 +1,50 @@
+{
+  "controls_are_diagnostic_only": true,
+  "datasets": 8,
+  "primary_figure_scores_changed": false,
+  "missing_well_defect": {
+    "native_lys_missing_alias_count": 8,
+    "native_arg_missing_alias_count": 6,
+    "affected_residues_in_audit": 3
+  },
+  "na_solvation_controls": [
+    {
+      "dataset_id": "1kx5",
+      "pyrosetta": 10645.670441393897,
+      "native_tmol": 5408.15966796875,
+      "parameter_control_tmol": 9831.3466796875,
+      "absolute_error_reduction_fraction": 0.8445208426418457
+    },
+    {
+      "dataset_id": "1ysa",
+      "pyrosetta": 1427.2961879521258,
+      "native_tmol": 808.4979858398438,
+      "parameter_control_tmol": 1321.88720703125,
+      "absolute_error_reduction_fraction": 0.8296553212968949
+    },
+    {
+      "dataset_id": "4lup",
+      "pyrosetta": 1118.9452808721528,
+      "native_tmol": 891.583251953125,
+      "parameter_control_tmol": 1067.53857421875,
+      "absolute_error_reduction_fraction": 0.7738993318373726
+    },
+    {
+      "dataset_id": "6q1h",
+      "pyrosetta": 6876.342152439244,
+      "native_tmol": 6561.189453125,
+      "parameter_control_tmol": 6690.556640625,
+      "absolute_error_reduction_fraction": 0.41049049486644473
+    }
+  ],
+  "remaining_unresolved": [
+    "Residual LJ repulsion differences",
+    "Residual RNA-complex bonded terms, concentrated in PyRosetta improper torsions",
+    "Proline and terminal-residue Dunbrack residuals"
+  ],
+  "component_accounting": "PyRosetta cart_bonded_torsion includes cart_bonded_improper; do not add both. Per-residue allocation of interresidue terms differs across engines.",
+  "source_links": {
+    "rosetta_fallback": "https://github.com/RosettaCommons/rosetta/blob/main/source/src/core/pack/dunbrack/RotamericSingleResidueDunbrackLibrary.tmpl.hh",
+    "tmol_revision": "f92d40d12a8670dd2654db32f37ca885714d2f4a"
+  }
+}

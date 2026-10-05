@@ -1,0 +1,18 @@
+{
+  "source": "/mnt/home/kdidi/tmol-paper-benchmark/runs/20261005-fastrelax-f92d",
+  "upstream_master_verified": "f92d40d12a8670dd2654db32f37ca885714d2f4a",
+  "tmol_version": "0.1.58+cu130torch2.13",
+  "modeling_source_release_commit": "ef1dc2ad4c03cbec508838a1f9e70ddb7726d690",
+  "gpu_array": "428059",
+  "tmol_cpu_array": "428060",
+  "pyrosetta_cpu_array": "428018",
+  "successful_pilots": [
+    "427945",
+    "427946",
+    "427866"
+  ],
+  "setup_retries": "Initial version guard rejected the wheel ABI suffix before measurement; corrected to check base version. Both stopped attempts are preserved in results/setup_attempts.",
+  "pyrosetta_expansion_array": "429773",
+  "expanded_matrix_configurations": 87,
+  "pyrosetta_planned_inputs": 27
+}

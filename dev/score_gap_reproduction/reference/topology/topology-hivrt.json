@@ -1,0 +1,48 @@
+{
+  "dataset_id": "hivrt",
+  "input_sha256": "46f9c593147ed37de2fba9de54632c7ba18faf277ea4469dff01ff5c4318bf6e",
+  "mode": "retain_declared_polymer_connectivity",
+  "changed_loader_option": {
+    "missing_density_distance_threshold": 0.0
+  },
+  "prepared_atoms": 15782,
+  "score": 466923.65625,
+  "score_terms": {
+    "fa_ljatr": -6065.728515625,
+    "fa_ljrep": 2348.033302845375,
+    "fa_lk": 4319.181640625,
+    "fa_elec": -1480.3524169921875,
+    "hbond": -592.569091796875,
+    "cart_lengths": 463511.65625,
+    "cart_angles": 762.5000610351562,
+    "cart_torsions": 202.86354064941406,
+    "cart_impropers": 33.90232467651367,
+    "cart_hxltorsions": 241.00857543945312,
+    "disulfide": 0.0,
+    "rama": 496.2339782714844,
+    "omega": 46.899355641170814,
+    "dunbrack_rot": 734.6401860939804,
+    "dunbrack_rotdev": 1735.5322645109554,
+    "dunbrack_semirot": 1196.1669946990733,
+    "lk_ball_iso": -2310.7257913167123,
+    "lk_ball": 2241.3888980818883,
+    "lk_bridge": -6.569450486876576,
+    "lk_bridge_uncpl": -42.41361725543402,
+    "ref": -453.61236572265625,
+    "gen_torsions": 5.664172649383545,
+    "na_torsion": 0.0,
+    "na_torsion_well": 0.0,
+    "metal_coordination": 0.0
+  },
+  "machine": {
+    "hostname": "slurm-h200-238-043",
+    "platform": "Linux-6.8.12-680-6063-coreweave-amd64-f81899c8-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "cpu_model": "INTEL(R) XEON(R) PLATINUM 8562Y+",
+    "gpu": null,
+    "slurm_job_id": "421841",
+    "slurm_cpus_per_task": "1",
+    "cuda_visible_devices": null
+  },
+  "warning": "Declared long backbone connections are retained for an engine-comparison diagnostic, not repaired into a physically valid structure."
+}

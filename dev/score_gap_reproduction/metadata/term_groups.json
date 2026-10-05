@@ -1,0 +1,165 @@
+{
+  "fa_atr": [
+    [
+      "fa_ljatr"
+    ],
+    [
+      "fa_atr",
+      "fa_intra_atr_xover4"
+    ]
+  ],
+  "fa_rep": [
+    [
+      "fa_ljrep"
+    ],
+    [
+      "fa_rep",
+      "fa_intra_rep_xover4"
+    ]
+  ],
+  "fa_sol": [
+    [
+      "fa_lk"
+    ],
+    [
+      "fa_sol",
+      "fa_intra_sol_xover4"
+    ]
+  ],
+  "fa_elec": [
+    [
+      "fa_elec"
+    ],
+    [
+      "fa_elec",
+      "fa_intra_elec"
+    ]
+  ],
+  "hbond": [
+    [
+      "hbond"
+    ],
+    [
+      "hbond_sr_bb",
+      "hbond_lr_bb",
+      "hbond_bb_sc",
+      "hbond_sc"
+    ]
+  ],
+  "lk_ball": [
+    [
+      "lk_ball"
+    ],
+    [
+      "lk_ball"
+    ]
+  ],
+  "lk_ball_iso": [
+    [
+      "lk_ball_iso"
+    ],
+    [
+      "lk_ball_iso"
+    ]
+  ],
+  "lk_bridge": [
+    [
+      "lk_bridge"
+    ],
+    [
+      "lk_ball_bridge"
+    ]
+  ],
+  "lk_bridge_uncpl": [
+    [
+      "lk_bridge_uncpl"
+    ],
+    [
+      "lk_ball_bridge_uncpl"
+    ]
+  ],
+  "dunbrack_rot": [
+    [
+      "dunbrack_rot"
+    ],
+    [
+      "fa_dun_rot"
+    ]
+  ],
+  "dunbrack_rotdev": [
+    [
+      "dunbrack_rotdev"
+    ],
+    [
+      "fa_dun_dev"
+    ]
+  ],
+  "dunbrack_semirot": [
+    [
+      "dunbrack_semirot"
+    ],
+    [
+      "fa_dun_semi"
+    ]
+  ],
+  "cart_bonded": [
+    [
+      "cart_lengths",
+      "cart_angles",
+      "cart_torsions",
+      "cart_impropers"
+    ],
+    [
+      "cart_bonded"
+    ]
+  ],
+  "hxl_tors": [
+    [
+      "cart_hxltorsions"
+    ],
+    [
+      "hxl_tors"
+    ]
+  ],
+  "omega": [
+    [
+      "omega"
+    ],
+    [
+      "omega"
+    ]
+  ],
+  "rama": [
+    [
+      "rama"
+    ],
+    [
+      "rama_prepro",
+      "p_aa_pp"
+    ]
+  ],
+  "ref": [
+    [
+      "ref"
+    ],
+    [
+      "ref"
+    ]
+  ],
+  "disulfide": [
+    [
+      "disulfide"
+    ],
+    [
+      "dslf_fa13"
+    ]
+  ],
+  "gen_bonded": [
+    [
+      "gen_torsions"
+    ],
+    [
+      "gen_bonded"
+    ]
+  ]
+}

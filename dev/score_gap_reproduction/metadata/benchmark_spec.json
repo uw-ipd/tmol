@@ -1,0 +1,50 @@
+{
+  "schema_version": 3,
+  "latest_tmol": {
+    "version": "0.1.58",
+    "commit": "f92d40d12a8670dd2654db32f37ca885714d2f4a"
+  },
+  "pyrosetta": {
+    "version": "2024.39",
+    "commit": "59628fbc5bc09f1221e1642f1f8d157ce49b1410",
+    "score_functions": {
+      "protein": "beta_nov16_cart",
+      "protein_ligand": "beta_genpot_cart",
+      "protein_nucleic": "beta_nov16_cart"
+    }
+  },
+  "tmol_score_function": "beta2016",
+  "modalities": [
+    "protein",
+    "protein_ligand",
+    "protein_nucleic",
+    "glycan",
+    "modified_nucleic",
+    "noncanonical_ptm",
+    "covalent_macrocycle"
+  ],
+  "protocols": [
+    "score",
+    "score_gradient",
+    "fastrelax"
+  ],
+  "tmol_gpu_batch_sizes": [
+    1,
+    10,
+    100,
+    1000
+  ],
+  "cpu_batch_sizes": [
+    1
+  ],
+  "warmup_iterations": 5,
+  "timed_samples": 7,
+  "target_seconds_per_sample": 1.0,
+  "minimum_iterations": 3,
+  "maximum_iterations": 1000,
+  "pyrosetta_score_cache_policy": "clear_energies_each_call",
+  "fastrelax_repeats": 1,
+  "fastrelax_timed_samples": 1,
+  "threads": 1,
+  "seed": 20260906
+}

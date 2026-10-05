@@ -1,0 +1,35 @@
+{
+  "expected": 87,
+  "successful": 68,
+  "failed": [],
+  "pending": [
+    "tmol-fastrelax-cuda-b1000-5m4a.json",
+    "tmol-fastrelax-cuda-b1000-1o7j.json",
+    "tmol-fastrelax-cuda-b1000-hsp90.json",
+    "tmol-fastrelax-cuda-b1000-p38.json",
+    "tmol-fastrelax-cuda-b1000-src.json",
+    "tmol-fastrelax-cuda-b1000-ace.json",
+    "tmol-fastrelax-cuda-b1000-5exh.json",
+    "tmol-fastrelax-cuda-b1000-1ysa.json",
+    "tmol-fastrelax-cuda-b1000-3ndh.json",
+    "tmol-fastrelax-cuda-b1000-6q1h.json",
+    "pyrosetta-fastrelax-cpu-b1-6q1h.json",
+    "pyrosetta-fastrelax-cpu-b1-1s78.json",
+    "pyrosetta-fastrelax-cpu-b1-ache.json",
+    "pyrosetta-fastrelax-cpu-b1-cox1.json",
+    "pyrosetta-fastrelax-cpu-b1-hivrt.json",
+    "pyrosetta-fastrelax-cpu-b1-7kii.json",
+    "pyrosetta-fastrelax-cpu-b1-4lup.json",
+    "pyrosetta-fastrelax-cpu-b1-3bbb.json",
+    "pyrosetta-fastrelax-cpu-b1-1kx5.json"
+  ],
+  "complete": false,
+  "tmol_version": "0.1.58",
+  "modeling_master": "f92d40d12a8670dd2654db32f37ca885714d2f4a",
+  "timing": "one seeded native FastRelax repeat per point; no timing uncertainty estimated",
+  "cpu_threads": {
+    "tmol": 32,
+    "pyrosetta": 1
+  },
+  "gpu": "one H200 per job"
+}

@@ -1,0 +1,4 @@
+# Preserve benchmark bytes and input hashes; fixed-column PDB spaces are meaningful.
+inputs/* -text -diff whitespace=-blank-at-eol
+*.csv -text whitespace=cr-at-eol
+*.svg -diff

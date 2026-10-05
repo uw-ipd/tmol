@@ -1,0 +1,164 @@
+{
+  "schema_version": 2,
+  "name": "Northern Nights",
+  "reference": {
+    "style": "minimal_style",
+    "note": "Northern Nights molecular style; Helvetica and Nature layouts retained."
+  },
+  "dimensions_mm": {
+    "single_column": 89.0,
+    "one_and_half_column": 136.0,
+    "double_column": 183.0,
+    "full_page_depth": 247.0
+  },
+  "typography": {
+    "family": "Helvetica",
+    "fallbacks": [
+      "Helvetica",
+      "sans-serif"
+    ],
+    "sequence_family": "Courier",
+    "roles": {
+      "small": {
+        "size_pt": 5.5,
+        "weight": "normal"
+      },
+      "body": {
+        "size_pt": 7.0,
+        "weight": "normal"
+      },
+      "heading": {
+        "size_pt": 7.0,
+        "weight": "bold"
+      },
+      "panel_label": {
+        "size_pt": 8.0,
+        "weight": "bold"
+      },
+      "sequence": {
+        "size_pt": 6.0,
+        "weight": "normal"
+      }
+    }
+  },
+  "strokes_pt": {
+    "hairline": 0.25,
+    "standard": 0.5,
+    "emphasis": 0.8
+  },
+  "colors": {
+    "ink": "#333333",
+    "black": "#000000",
+    "white": "#FFFFFF",
+    "teal": "#186C70",
+    "teal_dark": "#186C70",
+    "teal_deep": "#124F52",
+    "pink": "#8D52AD",
+    "pink_muted": "#B798CD",
+    "blue": "#3B5A8D",
+    "blue_mid": "#3B5A8D",
+    "amber": "#C4963B",
+    "amber_light": "#FFDFAB",
+    "target_gray": "#667078",
+    "interface_gray": "#8B969D",
+    "background_gray": "#F3F5F5",
+    "light_gray": "#DADADA",
+    "oxygen": "#B94B47",
+    "nitrogen": "#416FA9",
+    "sulfur": "#B99637",
+    "phosphorus": "#C7782D",
+    "halogen": "#4A9463",
+    "hbond": "#F1F8F4",
+    "pi_stacking": "#8D52AD",
+    "coordination": "#C4963B",
+    "violet": "#463D73",
+    "purple": "#8D52AD",
+    "mint": "#32B39B",
+    "mint_light": "#CFF6EF",
+    "lavender": "#D1CEDC",
+    "blender_teal": "#25ABA5",
+    "blender_mint": "#40D9BE",
+    "diagram_hbond": "#463D73"
+  },
+  "palettes": {
+    "categorical": [
+      "teal",
+      "purple",
+      "mint",
+      "blue",
+      "amber",
+      "violet",
+      "pink_muted",
+      "interface_gray"
+    ],
+    "comparison": [
+      "teal",
+      "mint",
+      "blue",
+      "purple"
+    ],
+    "sequential": [
+      "mint_light",
+      "mint",
+      "teal",
+      "teal_deep"
+    ],
+    "molecular_spectrum": [
+      "teal",
+      "blue",
+      "violet",
+      "purple"
+    ]
+  },
+  "molecular_roles": {
+    "binder": "molecular_spectrum",
+    "peptide": "mint",
+    "dna": "blue",
+    "protein_target_surface": "light_gray",
+    "ligand_carbon": "target_gray"
+  },
+  "pymol": {
+    "specular": 0.15,
+    "shininess": 0.1,
+    "ray_shadow": 0,
+    "antialias": 2,
+    "ray_trace_mode": 1,
+    "ray_trace_disco_factor": 1,
+    "ray_trace_gain": 0.2,
+    "ambient": 0.4,
+    "direct": 0.45,
+    "cartoon_sampling": 10,
+    "ray_trace_color": "black",
+    "reflect": 1,
+    "reflect_power": 0,
+    "ribbon_width": 8,
+    "line_width": 2.5,
+    "cartoon_transparency": 0,
+    "cartoon_flat_sheets": 0,
+    "cartoon_fancy_helices": 0,
+    "cartoon_oval_length": 1.35,
+    "cartoon_oval_width": 0.25,
+    "cartoon_gap_cutoff": 0,
+    "valence": 0,
+    "orthoscopic": 1,
+    "depth_cue": 0,
+    "ray_opaque_background": 1,
+    "stick_radius": 0.18,
+    "dash_color": "paper_hbond",
+    "dash_radius": 0.2,
+    "dash_length": 0.06,
+    "dash_gap": 0.45,
+    "dash_round_ends": 1
+  },
+  "blender": {
+    "binder_spectrum": [
+      "blender_teal",
+      "blue",
+      "violet",
+      "purple"
+    ],
+    "peptide": "blender_mint",
+    "background_top": "mint_light",
+    "background_bottom": "lavender"
+  }
+}

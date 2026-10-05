@@ -1,0 +1,9 @@
+dataset_id,matched_atoms,unmatched_atoms,coordinate_rmsd_angstrom,max_coordinate_delta_angstrom,empty_native_lys_arg_aliases
+1kx5,23402,0,0.0,0.0,True
+1s78,14935,0,7.793013538152805e-06,3.4332275390625e-05,True
+1ysa,3227,0,0.0,0.0,True
+4lup,3416,2,0.0,0.0,True
+5uoi,730,0,0.0,0.0,True
+6q1h,22489,0,0.0,0.0,True
+cox1,8923,0,0.0,0.0,True
+p38,5334,0,0.0,0.0,True

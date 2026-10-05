@@ -1,0 +1,65 @@
+{
+  "validated_utc": "2026-10-05T02:15:42.309100+00:00",
+  "datasets": [
+    "1kx5",
+    "1s78",
+    "1ysa",
+    "4lup",
+    "5uoi",
+    "6q1h",
+    "ace",
+    "ache",
+    "ada",
+    "cdk2",
+    "cox1",
+    "hsp90",
+    "p38",
+    "src"
+  ],
+  "successful_end_to_end_runs": 14,
+  "frozen_reference_comparisons_passed": 8,
+  "tolerance": {
+    "relative": 1e-06,
+    "absolute_reu": 0.01
+  },
+  "cartesian_bonded_topology": [
+    {
+      "term": "cart_bonded",
+      "mode": "native",
+      "n": 8,
+      "pearson_r": -0.5327783486211501,
+      "mean_absolute_error": 6422.277146395861
+    },
+    {
+      "term": "cart_bonded",
+      "mode": "declared_connectivity",
+      "n": 8,
+      "pearson_r": 0.9999938226994435,
+      "mean_absolute_error": 47.59552555960259
+    }
+  ],
+  "validation_job_array": "434252",
+  "script_sha256": {
+    "audit_ligand_topology.py": "6c594e86b918d72ab0fbd1c146dc96524fa3ba1d2cf9929a05eb7173597dedf7",
+    "benchmark_pyrosetta.py": "47267f6d78de4918c6eab9b091543a0083aab37bc1103dbaf62a926e32ac97a2",
+    "benchmark_tmol.py": "fa0aafa7cec6d66f978493444f1c9554139a239951ac6e7cb883cbef76c795a5",
+    "common.py": "76a8cfbcc0088e7cc31a335c8505ffc2ada0162eda0130e05ad9370ec89bb492",
+    "control_dunbrack.py": "2ad89aa53a7b665e86dcd19675222d0190746e69935ee76737620f4c7153a4a3",
+    "control_score_inputs.py": "65ed75447b933d02a609a12444c967663899525c0bdafeb657a79b003858cb9c",
+    "export_pyro_components.py": "b13e74cc3fff4e9132bf9aeeee4762119b783625696722c23eadaf438234b6b7",
+    "export_score_inputs.py": "42e6b6bf0194634de6b9affa283f2a4fe4b7dbd1b6989e862ad51dbd625c8327",
+    "repro_paths.py": "94427c667890bfad8e10353e8b7a94983aa8f74f10c6fe0a242e9aaa2c9d5fb0",
+    "run_fastrelax.py": "7b56f7557a1a81a13e1eda04838ec3dde3c09d4203f62621947fed42aad3f9ba",
+    "summarize_score_diagnostics.py": "497997688c4f4b4a6cc9aba28dcd4cfb50a92d9aee25584fda706b21c366cf39",
+    "summarize_topology.py": "924d62b00a1a67c19711b3db08a6985e930466fdb76358ef40b78fb4bc33885e"
+  },
+  "tmol_runtime": {
+    "tmol_version": "0.1.58+cu130torch2.13",
+    "tmol_import_path": "/mnt/home/kdidi/tmol-paper-benchmark/runs/20261004-figure1-f92d/env/lib/python3.12/site-packages/tmol/__init__.py",
+    "torch_version": "2.13.0+cu132"
+  },
+  "pyrosetta_runtime": {
+    "pyrosetta_version": "\u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n\u2502                                 PyRosetta-4                                  \u2502\n\u2502              Created in JHU by Sergey Lyskov and PyRosetta Team              \u2502\n\u2502              (C) Copyright Rosetta Commons Member Institutions               \u2502\n\u2502                                                                              \u2502\n\u2502 NOTE: USE OF PyRosetta FOR COMMERCIAL PURPOSES REQUIRE PURCHASE OF A LICENSE \u2502\n\u2502         See LICENSE.PyRosetta.md or email license@uw.edu for details         \u2502\n\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518\nPyRosetta-4 2024 [Rosetta PyRosetta4.Release.python312.linux 2024.39+release.59628fbc5bc09f1221e1642f1f8d157ce49b1410 2024-09-23T07:49:48] retrieved from: http://www.pyrosetta.org"
+  },
+  "figure_snapshot_is_partial": true
+}

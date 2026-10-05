@@ -1,0 +1,9 @@
+Measured environment (not a portable pip lock):
+Python 3.12; Linux x86_64; tmol 0.1.58+cu130torch2.13; PyTorch 2.13.0+cu132
+PyRosetta 2024.39 (59628fbc5bc09f1221e1642f1f8d157ce49b1410), installed separately
+atomworks @ git+https://github.com/RosettaCommons/atomworks.git@e0f2e4da0aef2cf6c81a2c506eece3bc4204b75d
+attrs==26.1.0
+biotite==1.6.0
+cattrs==26.1.0
+numpy==2.1.0
+rdkit==2026.3.5

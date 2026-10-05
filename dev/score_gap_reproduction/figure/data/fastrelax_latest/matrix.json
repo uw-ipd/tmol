@@ -1,0 +1,617 @@
+{
+  "gpu": [
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1,
+      "dataset": "5uoi",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1,
+      "dataset": "5yzf",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1,
+      "dataset": "5m4a",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1,
+      "dataset": "1o7j",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1,
+      "dataset": "hsp90",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1,
+      "dataset": "p38",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1,
+      "dataset": "src",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1,
+      "dataset": "ace",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1,
+      "dataset": "5exh",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1,
+      "dataset": "1ysa",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1,
+      "dataset": "3ndh",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1,
+      "dataset": "6q1h",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 10,
+      "dataset": "5uoi",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 10,
+      "dataset": "5yzf",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 10,
+      "dataset": "5m4a",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 10,
+      "dataset": "1o7j",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 10,
+      "dataset": "hsp90",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 10,
+      "dataset": "p38",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 10,
+      "dataset": "src",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 10,
+      "dataset": "ace",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 10,
+      "dataset": "5exh",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 10,
+      "dataset": "1ysa",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 10,
+      "dataset": "3ndh",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 10,
+      "dataset": "6q1h",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 100,
+      "dataset": "5uoi",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 100,
+      "dataset": "5yzf",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 100,
+      "dataset": "5m4a",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 100,
+      "dataset": "1o7j",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 100,
+      "dataset": "hsp90",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 100,
+      "dataset": "p38",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 100,
+      "dataset": "src",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 100,
+      "dataset": "ace",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 100,
+      "dataset": "5exh",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 100,
+      "dataset": "1ysa",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 100,
+      "dataset": "3ndh",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 100,
+      "dataset": "6q1h",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1000,
+      "dataset": "5uoi",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1000,
+      "dataset": "5yzf",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1000,
+      "dataset": "5m4a",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1000,
+      "dataset": "1o7j",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1000,
+      "dataset": "hsp90",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1000,
+      "dataset": "p38",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1000,
+      "dataset": "src",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1000,
+      "dataset": "ace",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1000,
+      "dataset": "5exh",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1000,
+      "dataset": "1ysa",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1000,
+      "dataset": "3ndh",
+      "threads": 1
+    },
+    {
+      "engine": "tmol",
+      "device": "cuda",
+      "batch": 1000,
+      "dataset": "6q1h",
+      "threads": 1
+    }
+  ],
+  "cpu": [
+    {
+      "engine": "tmol",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "5uoi",
+      "threads": 32
+    },
+    {
+      "engine": "tmol",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "5yzf",
+      "threads": 32
+    },
+    {
+      "engine": "tmol",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "5m4a",
+      "threads": 32
+    },
+    {
+      "engine": "tmol",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "1o7j",
+      "threads": 32
+    },
+    {
+      "engine": "tmol",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "hsp90",
+      "threads": 32
+    },
+    {
+      "engine": "tmol",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "p38",
+      "threads": 32
+    },
+    {
+      "engine": "tmol",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "src",
+      "threads": 32
+    },
+    {
+      "engine": "tmol",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "ace",
+      "threads": 32
+    },
+    {
+      "engine": "tmol",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "5exh",
+      "threads": 32
+    },
+    {
+      "engine": "tmol",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "1ysa",
+      "threads": 32
+    },
+    {
+      "engine": "tmol",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "3ndh",
+      "threads": 32
+    },
+    {
+      "engine": "tmol",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "6q1h",
+      "threads": 32
+    }
+  ],
+  "pyro": [
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "5uoi",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "5yzf",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "5m4a",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "1o7j",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "hsp90",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "p38",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "src",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "ace",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "5exh",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "1ysa",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "3ndh",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "6q1h",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "2mtq",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "5umr",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "5n5g",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "6azu",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "5opj",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "1s78",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "cdk2",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "ada",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "ache",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "cox1",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "hivrt",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "7kii",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "4lup",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "3bbb",
+      "threads": 1
+    },
+    {
+      "engine": "pyrosetta",
+      "device": "cpu",
+      "batch": 1,
+      "dataset": "1kx5",
+      "threads": 1
+    }
+  ]
+}
