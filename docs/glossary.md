@@ -1,14 +1,14 @@
 # Glossary
 
-The objects, moves, and scores used in TMol. Select parts of the diagrams to
-see how they connect, or try the {doc}`protein score playground <playground>`.
+Terms used in the {doc}`quickstart` and API. The diagrams show how scores
+and coordinate changes relate; the {doc}`playground` gives a working example.
 
 (glossary-score-function)=
 ## Score function and score terms
 
 A score function combines weighted contributions from atomic interactions and
 molecular geometry. Lower totals are favored during minimization and packing.
-Inspect terms separately to understand *why* a conformation scores differently.
+Individual terms show which interactions contribute to a change.
 
 ```{raw} html
 :file: _includes/score-circuit.html
@@ -45,10 +45,9 @@ A **rotamer** is a candidate side-chain conformation.
 neighboring choices interact. **Design** also permits residue identities to
 change, according to the packer task.
 
-Try rotating two χ angles in the {doc}`playground`. Its finite angle grid makes
-the tradeoffs visible; TMol's packer uses residue-specific conformer samplers.
-The {doc}`packing notebook <tutorial/04_packing_and_mutation_scan>` runs a full
-repacking calculation.
+The {doc}`playground` isolates two side-chain angles. The
+{doc}`packing notebook <tutorial/04_packing_and_mutation_scan>` runs a full
+repacking calculation with residue-specific conformer samplers.
 
 ## Gradients and minimization
 
@@ -68,8 +67,8 @@ for one pose. A **fold forest** stores these trees across a batch. A **jump**
 defines a rigid-body connection in that coordinate model; it is not a chemical
 bond. Polymer and chemical edges describe other kinematic connections.
 
-Select a move below. Orange nodes are downstream of that move; another pose
-in the batch stays independent. This is a schematic, not a molecular geometry.
+In this schematic, orange nodes move downstream of the selected edge.
+The two poses remain independent.
 
 ```{raw} html
 :file: _includes/fold-forest.html

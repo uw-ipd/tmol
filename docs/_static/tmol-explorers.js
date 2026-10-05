@@ -15,11 +15,11 @@
     const circuit = $("#score-circuit");
     const explanations = {
       coordinates: "Atom positions enter every scoring term. A rendered scorer can be reused when only coordinates change; a new chemical or batch layout needs a new scorer.",
-      contacts: "Atomic contacts include attraction, short-range repulsion, and electrostatics. Moving a side chain can relieve a clash while losing a favorable contact.",
+      contacts: "Attraction, short-range repulsion, and electrostatics depend on the relative positions of atoms.",
       hydrogen: "Hydrogen-bond geometry and solvation contribute separate terms. A favorable contact depends on its surroundings as well as distance.",
       geometry: "Bond geometry and torsion preferences constrain the search. Backbone and side-chain preferences help distinguish otherwise similar contacts.",
       total: "Each contribution is multiplied by its score-function weight, then summed. The total has one value per pose. Inspect weighted terms with sum_terms=False.",
-      gradient: "Autograd differentiates the total with respect to coordinates. An optimizer uses these derivatives to propose a move, evaluates it, and repeats. Packing instead searches discrete conformations."
+      gradient: "Autograd gives the derivative of the score with respect to each coordinate. A minimizer uses these gradients to update the structure."
     };
     if (circuit) $$("button", circuit).forEach(button => {
       button.addEventListener("click", () => {
@@ -51,7 +51,7 @@
         selectButton(relax, button);
         $("#relax-pack").textContent = `${pack.toFixed(1)}%`;
         $("#relax-min").textContent = `${min.toFixed(1)}%`;
-        $(".explorer-explanation", relax).textContent = `Stage ${stage + 1} uses ${pack.toFixed(1)}% of the original repulsion weight for packing and ${min.toFixed(1)}% for minimization. The percentages describe weights, not measured energies.`;
+        $(".explorer-explanation", relax).textContent = `Stage ${stage + 1}: repack, then minimize at the indicated fractions of the full repulsion weight.`;
       });
     });
   }
@@ -88,7 +88,6 @@
     const sliders = [$("#lab-chi1"), $("#lab-chi2")];
     sliders.forEach(input => { input.max = n - 1; });
     let current = data.start;
-    let best = data.frames[current].total;
     let viewer;
     let protein;
     let movingModel;
@@ -179,7 +178,6 @@
     function update(index, message = "") {
       current = index;
       const frame = data.frames[index];
-      best = Math.min(best, frame.total);
       sliders[0].value = Math.floor(index / n);
       sliders[1].value = index % n;
       sliders.forEach((slider, i) => {
@@ -192,7 +190,6 @@
       const delta = frame.total - baseline.total;
       $("#lab-change").textContent = signed(delta);
       $("#lab-change").className = changeClass(delta);
-      $("#lab-best").textContent = fmt(best);
       groups.forEach(group => {
         const value = group.indices.reduce((sum, i) => sum + frame.terms[i], 0);
         const difference = group.indices.reduce((sum, i) => sum + frame.terms[i] - baseline.terms[i], 0);
@@ -209,7 +206,7 @@
         button.children[2].className = changeClass(difference);
       });
       $("#lab-partner-detail").textContent = `PHE45 ↔ ${data.residue_labels[selectedPartner]}: ${fmt(frame.partners[selectedPartner])}, change ${signed(frame.partners[selectedPartner] - baseline.partners[selectedPartner])} from the start.`;
-      $("#lab-feedback").textContent = message || (index === data.best ? "You found the lowest score on this grid." : delta < -0.005 ? "Improved. Which contributions account for the change?" : delta > 0.005 ? "The total increased. Compare the competing contributions." : "Try moving χ1 or χ2 to lower the score.");
+      $("#lab-feedback").textContent = message || `Total ${fmt(frame.total)}; change ${signed(delta)} from the start.`;
       root.dataset.frame = index;
       const url = new URL(window.location.href);
       url.searchParams.set("chi1", frame.angles[0]);
@@ -221,8 +218,7 @@
     }
 
     sliders.forEach(input => input.addEventListener("input", () => update(Number(sliders[0].value) * n + Number(sliders[1].value))));
-    $("#lab-reset").addEventListener("click", () => { best = baseline.total; update(data.start); });
-    $("#lab-reference").addEventListener("click", () => update(data.reference, "Input geometry restored. Both rotations are zero relative to the prepared input."));
+    $("#lab-reset").addEventListener("click", () => update(data.start));
     $("#lab-optimum").addEventListener("click", () => update(data.best, "Lowest score among the 576 sampled conformations. Other atoms were held fixed."));
     $(".lab-landscape").addEventListener("toggle", event => { chartVisible = event.target.open; drawChart(); });
     const moveOnChart = event => {
@@ -256,10 +252,10 @@
       const sidechain = protein.selectedAtoms({resi: data.residue});
       pocketResidues = [...new Set(protein.selectedAtoms({}).filter(atom => atom.resi !== data.residue && sidechain.some(other => (atom.x - other.x) ** 2 + (atom.y - other.y) ** 2 + (atom.z - other.z) ** 2 < 25)).map(atom => atom.resi))];
       const focus = () => { viewer.zoomTo({resi: data.residue}); viewer.zoom(0.62); viewer.render(); };
-      $("#lab-focus").addEventListener("click", focus);
-      $("#lab-whole").addEventListener("click", () => { viewer.zoomTo(); viewer.render(); });
+      $("#lab-focus").addEventListener("click", () => { focus(); selectButton($(".lab-view-controls"), $("#lab-focus")); });
+      $("#lab-whole").addEventListener("click", () => { viewer.zoomTo(); viewer.render(); selectButton($(".lab-view-controls"), $("#lab-whole")); });
       const theme = () => {
-        viewer.setBackgroundColor(getComputedStyle(document.documentElement).getPropertyValue("--pst-color-surface").trim() || "#f5f7f8");
+        viewer.setBackgroundColor(getComputedStyle(document.documentElement).getPropertyValue("--pst-color-background").trim() || "#f5f7f8");
         viewer.render();
       };
       drawProtein(); theme(); focus();

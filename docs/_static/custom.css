@@ -90,7 +90,7 @@ html[data-theme="dark"] {
 
 .bd-article div.highlight {
   border: 1px solid var(--pst-color-border);
-  border-radius: 8px;
+  border-radius: 3px;
 }
 
 .bd-article div.highlight pre {
@@ -100,7 +100,7 @@ html[data-theme="dark"] {
 }
 
 .bd-article .admonition {
-  border-radius: 6px;
+  border-radius: 3px;
   box-shadow: none;
 }
 
@@ -193,114 +193,103 @@ table.docutils {
 
 }
 
-/* Concept diagrams and the protein score playground share the site palette. */
+/* Interactive figures use the same paper surface and type as the article. */
 .concept-explorer, .tmol-lab {
-  margin: 1.4rem 0 2rem;
-  padding: 1.2rem;
-  border: 1px solid var(--pst-color-border);
-  border-radius: 12px;
-  background: var(--pst-color-surface);
+  margin: 1.5rem 0 2rem;
+  padding: 1.2rem 0;
+  border-top: 1px solid var(--pst-color-border);
+  border-bottom: 1px solid var(--pst-color-border);
 }
 .concept-explorer button, .tmol-lab button {
-  color: var(--pst-color-text-base);
-  background: var(--pst-color-background);
-  border: 1px solid var(--pst-color-border);
-  border-radius: 6px;
-  padding: .55rem .75rem;
+  color: var(--pst-color-text-muted);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  padding: .5rem .2rem;
+  min-height: 44px;
   font: inherit;
   font-size: .85rem;
   cursor: pointer;
 }
-.concept-explorer button:hover, .tmol-lab button:hover {
-  border-color: var(--pst-color-primary);
-}
-.concept-explorer button[aria-pressed="true"] {
-  color: var(--pst-color-primary);
-  background: var(--tmol-accent-surface);
-  border-color: var(--pst-color-primary);
-}
-.concept-explorer .explorer-explanation {
-  font-size: .94rem;
-  margin: 1rem 0 0;
-  min-height: 4.5em;
-}
-.explorer-buttons, .lab-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
-.score-flow { display: grid; grid-template-columns: 1fr auto 1.35fr auto 1fr; align-items: center; gap: .55rem; }
-.score-flow small { color: var(--pst-color-text-muted); }
-.score-branches { display: grid; gap: .6rem; }
-.flow-arrow, .gradient-flow > span { color: var(--pst-color-primary); font-size: 1.4rem; }
+.concept-explorer button:hover, .tmol-lab button:hover { color: var(--pst-color-text-base); border-bottom-color: var(--pst-color-border); }
+.concept-explorer button[aria-pressed="true"], .lab-view-controls button[aria-pressed="true"] { color: var(--pst-color-primary); border-bottom-color: currentColor; }
+.concept-explorer .explorer-explanation { font-size: .9rem; color: var(--pst-color-text-muted); margin: 1rem 0 0; min-height: 3.3em; }
+.explorer-buttons, .lab-actions, .lab-view-controls { display: flex; flex-wrap: wrap; gap: 1.2rem; }
+.score-flow { display: grid; grid-template-columns: 1fr 1.2rem 1.35fr 1.2rem 1fr; align-items: center; gap: .7rem; }
+.score-flow small { display: inline-block; margin-top: .2rem; font-size: .75rem; }
+.score-branches { display: grid; gap: .35rem; }
+.flow-arrow { display: block; width: 1.2rem; height: 1.2rem; line-height: 1.2rem; text-align: center; pointer-events: none; }
+.flow-arrow::before { content: "→"; }
+.flow-arrow, .gradient-flow > span { color: var(--pst-color-text-muted); }
 .gradient-flow { display: flex; align-items: center; gap: .7rem; margin-top: .8rem; }
-.forest-panel { fill: var(--pst-color-background); stroke: var(--pst-color-border); }
-.forest-edge { fill: none; stroke: var(--pst-color-text-muted); stroke-width: 2; color: var(--pst-color-text-muted); }
+.forest-panel { fill: none; stroke: none; }
+.forest-divider { stroke: var(--pst-color-border); }
+.forest-edge { fill: none; stroke: var(--pst-color-text-muted); stroke-width: 1.5; color: var(--pst-color-text-muted); }
 .forest-edge.jump { stroke-dasharray: 6 5; }
-.forest-edge.active { stroke: var(--pst-color-primary); stroke-width: 4; color: var(--pst-color-primary); }
-.forest-node circle { fill: var(--pst-color-surface); stroke: var(--pst-color-border); stroke-width: 2; }
-.forest-node.active circle { fill: var(--tmol-accent-surface); stroke: var(--pst-color-primary); stroke-width: 3; }
+.forest-edge.active { stroke: var(--pst-color-primary); stroke-width: 2.5; color: var(--pst-color-primary); }
+.forest-node circle { fill: var(--pst-color-background); stroke: var(--pst-color-border); stroke-width: 1.5; }
+.forest-node.active circle { fill: var(--tmol-accent-surface); stroke: var(--pst-color-primary); stroke-width: 2; }
 .forest-node text { text-anchor: middle; fill: var(--pst-color-text-base); font-size: 16px; }
-.forest-heading { fill: var(--pst-color-text-base); font-size: 17px; font-weight: 600; }
+.forest-heading { fill: var(--pst-color-text-base); font-size: 17px; font-weight: 500; }
 .forest-label { fill: var(--pst-color-text-muted); font-size: 13px; }
 #fold-forest svg { width: 100%; height: auto; margin-top: 1rem; }
-.relax-stages { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; }
-.relax-stages button { display: flex; flex-direction: column; justify-content: end; align-items: center; height: 120px; gap: .5rem; }
-.stage-bar { width: 50%; min-height: 4px; height: calc(var(--stage-height) * .7); background: var(--pst-color-primary); border-radius: 3px 3px 0 0; }
-.relax-operations { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; margin-top: 1rem; font-size: .9rem; }
-.relax-operations strong { display: block; color: var(--pst-color-primary); font-size: 1.4rem; }
-.tmol-lab { padding: 0; overflow: hidden; }
+.relax-stages { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; border-bottom: 1px solid var(--pst-color-border); }
+.relax-stages button { display: flex; flex-direction: column; justify-content: end; align-items: center; height: 125px; gap: .5rem; padding-bottom: .6rem; }
+.stage-bar { width: 24px; min-height: 4px; height: calc(var(--stage-height) * .7); background: var(--pst-color-text-muted); opacity: .4; }
+.relax-stages [aria-pressed="true"] .stage-bar { background: var(--pst-color-primary); opacity: 1; }
+.relax-operations { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin-top: 1rem; font-size: .9rem; }
+.relax-operations strong { margin-left: .3rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .tmol-lab [hidden] { display: none !important; }
-.lab-loading, .tmol-lab noscript { display: block; padding: 1.3rem; }
-.lab-metrics { display: grid; grid-template-columns: repeat(3, 1fr); padding: 1.1rem 1.3rem; gap: .8rem; border-bottom: 1px solid var(--pst-color-border); background: var(--pst-color-background); }
-.lab-metrics span { display: block; color: var(--pst-color-text-muted); font-size: .78rem; }
-.lab-metrics strong { display: block; font-size: clamp(1.2rem, 2vw, 1.75rem); font-variant-numeric: tabular-nums; line-height: 1.4; }
-.lab-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
-.lab-scene { min-width: 0; padding: 0 .8rem 1rem; }
-#protein-viewer { width: 100%; height: 360px; position: relative; }
+.lab-loading, .tmol-lab noscript { display: block; padding: 1rem 0; }
+.lab-metrics { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem 2rem; padding: 0 0 1.4rem; font-size: .85rem; color: var(--pst-color-text-muted); }
+.lab-metrics strong { margin-left: .4rem; font-variant-numeric: tabular-nums; font-weight: 500; }
+#lab-total { font-size: 1.5rem; color: var(--pst-color-text-base); }
+.lab-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 1.8rem; align-items: start; }
+.lab-scene { min-width: 0; }
+#protein-viewer { width: 100%; height: 420px; position: relative; }
 #viewer-status { color: var(--pst-color-text-muted); font-size: .75rem; margin: .5rem 0; }
-.lab-controls { padding: 1.1rem; border-left: 1px solid var(--pst-color-border); background: var(--pst-color-background); }
-.lab-controls label { display: flex; justify-content: space-between; font-weight: 600; font-size: .9rem; margin: .8rem 0 .2rem; }
-.lab-controls output { font-variant-numeric: tabular-nums; color: var(--pst-color-primary); }
-.lab-controls input[type="range"] { display: block; width: 100%; accent-color: var(--pst-color-primary); height: 30px; cursor: pointer; }
-.lab-eyebrow { text-transform: uppercase; letter-spacing: .09em; font-size: .72rem; font-weight: 650; color: var(--pst-color-text-muted); margin: 0; }
-.lab-hint, #lab-feedback { font-size: .8rem; line-height: 1.5; margin-top: .8rem; }
-.lab-hint { color: var(--pst-color-text-muted); }
-#lab-feedback { min-height: 3em; }
-.lab-landscape { font-size: .78rem; border-top: 1px solid var(--pst-color-border); padding-top: .7rem; }
-.lab-landscape summary { cursor: pointer; font-size: .85rem; font-weight: 600; }
+.lab-controls { min-width: 0; }
+.lab-controls label { display: flex; justify-content: space-between; font-weight: 500; font-size: .9rem; margin: .6rem 0 .2rem; }
+.lab-controls label:first-child { margin-top: 0; }
+.lab-controls output { font-variant-numeric: tabular-nums; color: var(--pst-color-text-muted); }
+.lab-controls input[type="range"] { display: block; width: 100%; accent-color: var(--pst-color-primary); height: 28px; cursor: pointer; }
+.lab-actions { margin: .3rem 0 .8rem; }
+.lab-actions button { color: var(--pst-color-text-base); text-decoration: underline; text-decoration-color: var(--pst-color-border); text-underline-offset: .3em; }
+.lab-landscape { font-size: .8rem; margin-bottom: 1.2rem; }
+.lab-landscape summary { cursor: pointer; font-size: .85rem; font-weight: 500; }
 .lab-landscape p { margin: .6rem 0; }
 #lab-map { display: block; width: 100%; max-width: 288px; height: auto; cursor: crosshair; touch-action: none; }
 .lab-map-key { color: var(--pst-color-text-muted); font-size: .68rem; }
-.lab-score-table { padding: .6rem 1.3rem; background: var(--pst-color-background); border-top: 1px solid var(--pst-color-border); }
-.lab-score-table table { margin: 0; width: 100%; font-size: .82rem; }
-.lab-score-table caption { caption-side: top; color: var(--pst-color-text-base); font-weight: 650; }
-.lab-score-table th, .lab-score-table td { padding: .3rem .4rem; border-bottom: 1px solid var(--pst-color-border); }
-.lab-score-table th { font-weight: 500; text-align: left; }
-.lab-score-table td, .lab-score-table thead th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+.lab-score-table table { margin: 0; width: 100%; font-size: .75rem; line-height: 1.4; }
+.lab-score-table caption { caption-side: top; color: var(--pst-color-text-base); text-align: left; font-size: .9rem; font-weight: 500; padding: .3rem 0 .6rem; }
+.lab-score-table th, .lab-score-table td { padding: .45rem 0; border-bottom: 1px solid var(--pst-color-border); }
+.lab-score-table th { font-weight: 400; text-align: left; }
+.lab-score-table thead th { color: var(--pst-color-text-muted); font-size: .7rem; }
+.lab-score-table td, .lab-score-table thead th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; padding-left: .7rem; }
 html[data-theme="light"] .score-better { color: #187447; }
 html[data-theme="dark"] .score-better { color: #88d8ac; }
 .score-worse { color: var(--pst-color-primary); }
-.lab-footnote { font-size: .74rem; color: var(--pst-color-text-muted); padding: .7rem 1.3rem; margin: 0; }
 .tmol-lab button:disabled { opacity: .5; cursor: default; }
-@media (max-width: 650px) {
-  .lab-grid { grid-template-columns: 1fr; }
-  .lab-controls { border-left: 0; border-top: 1px solid var(--pst-color-border); }
-  #protein-viewer { height: 285px; }
-  .lab-metrics { gap: .35rem; padding: .9rem; }
-  .lab-metrics span { font-size: .68rem; }
-  .lab-score-table { padding: .5rem .6rem; }
-  .concept-explorer { padding: .8rem; }
-  .score-flow { grid-template-columns: 1fr; }
-  .score-flow .flow-arrow { transform: rotate(90deg); text-align: center; line-height: 1; }
-  .score-branches { grid-template-columns: repeat(3, 1fr); gap: .3rem; }
-  .score-flow button { font-size: .75rem; padding: .5rem .35rem; }
-  .gradient-flow button { font-size: .75rem; }
-}
 .lab-poster { display: block; }
 .lab-poster img, .lab-scene-poster { width: 100%; height: auto; }
-.lab-partners { background: var(--pst-color-background); border-top: 1px solid var(--pst-color-border); padding: 1rem 1.3rem; }
-.lab-partners h2 { font-size: 1rem; margin: 0 0 .5rem; }
+.lab-partners { margin-top: 1.8rem; }
+.lab-partners h2 { font-size: 1rem; font-weight: 500; letter-spacing: 0; margin: 0 0 .5rem; }
 .lab-partners p { font-size: .8rem; margin: .5rem 0; color: var(--pst-color-text-muted); }
-#lab-partners { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; }
-#lab-partners button { display: flex; flex-direction: column; align-items: start; gap: .1rem; padding: .5rem; }
-#lab-partners button[aria-pressed="true"] { border-color: #617fc2; box-shadow: inset 0 0 0 1px #617fc2; }
-#lab-partners strong { font-variant-numeric: tabular-nums; font-size: .95rem; }
-#lab-partners small { font-variant-numeric: tabular-nums; font-size: .7rem; }
-@media (max-width: 450px) { #lab-partners { grid-template-columns: repeat(2, 1fr); } }
+#lab-partners { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 2rem; }
+#lab-partners button { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: baseline; text-align: left; gap: .5rem; padding: .5rem .3rem; border-bottom: 1px solid var(--pst-color-border); }
+#lab-partners button[aria-pressed="true"] { color: var(--pst-color-text-base); border-bottom-color: #617fc2; }
+#lab-partners button[aria-pressed="true"] > span { color: #617fc2; }
+#lab-partners strong, #lab-partners small { text-align: right; font-variant-numeric: tabular-nums; font-size: .8rem; font-weight: 400; }
+@media (max-width: 650px) {
+  .lab-grid { grid-template-columns: 1fr; gap: 1.4rem; }
+  #protein-viewer { height: 300px; }
+  .lab-metrics { gap: .5rem 1.2rem; }
+  .lab-score-table table { font-size: .85rem; }
+  .score-flow { grid-template-columns: 1fr; justify-items: center; }
+  .score-flow .flow-arrow::before { content: "↓"; }
+  .score-branches { grid-template-columns: repeat(3, 1fr); gap: .8rem; width: 100%; }
+  .score-flow button { font-size: .8rem; }
+  .gradient-flow button { font-size: .8rem; }
+}
+@media (max-width: 450px) { #lab-partners { grid-template-columns: 1fr; } }

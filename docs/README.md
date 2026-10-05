@@ -41,7 +41,11 @@ before nbsphinx renders their outputs and viewers. Follow the
 `_includes/` contains accessible HTML controls and schematic diagrams;
 `_static/tmol-explorers.js` adds their interactions. The protein playground
 bundles the same pinned 3Dmol.js version as the notebook viewers, with its
-license. Its score table and keyboard controls remain available if WebGL is
+license. Use the article's background, compact captions, and thin figure rules;
+avoid dashboard tiles, decorative badges, and repeated instructions. Keep the
+molecular view and score table together so a change is visible in both.
+
+The score table and keyboard controls remain available if WebGL is
 unavailable. No external requests are needed by the playground.
 
 The playground contains actual TMol scores, not a browser approximation.

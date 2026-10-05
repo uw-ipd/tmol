@@ -32,7 +32,7 @@ const server = http.createServer((request, response) => {
   const ready = page => page.waitForSelector('#score-playground[data-viewer="ready"]');
   const total = async page => Number(await page.locator("#lab-total").getAttribute("data-value"));
   try {
-    for (const theme of ["light", "dark"]) for (const width of [1440, 390]) {
+    for (const theme of ["light", "dark"]) for (const width of [1440, 960, 390]) {
       const context = await browser.newContext({ viewport: { width, height: 1000 }, colorScheme: theme, reducedMotion: "reduce" });
       await context.addInitScript(theme => { localStorage.setItem("mode", theme); localStorage.setItem("theme", theme); }, theme);
       const page = await context.newPage();
@@ -65,8 +65,10 @@ const server = http.createServer((request, response) => {
       const partnerIndex = Number(await partner.getAttribute("data-partner"));
       const value = Number((await partner.locator("strong").innerText()).replaceAll(",", ""));
       assert(Math.abs(value - data.frames[data.best].partners[partnerIndex]) < 0.005);
-      await page.locator("#lab-reference").click();
-      assert.equal(await page.locator("#lab-chi1").inputValue(), "12");
+      await page.locator("#lab-whole").click();
+      assert.equal(await page.locator("#lab-whole").getAttribute("aria-pressed"), "true");
+      await page.locator("#lab-focus").click();
+      assert.equal(await page.locator("#lab-focus").getAttribute("aria-pressed"), "true");
       await page.locator(".lab-landscape summary").click();
       await page.locator("#lab-map").scrollIntoViewIfNeeded();
       const box = await page.locator("#lab-map").boundingBox();
@@ -84,6 +86,11 @@ const server = http.createServer((request, response) => {
       assert.deepEqual(await page.locator("#fold-forest .forest-node.active").evaluateAll(nodes => nodes.map(node => node.dataset.node)), ["B1", "B2"]);
       await page.getByRole("button", { name: "Stage 4", exact: true }).click();
       assert.equal(await page.locator("#relax-pack").innerText(), "100.0%");
+      const arrows = await page.locator(".flow-arrow").evaluateAll(nodes => nodes.map(node => {
+        const box = node.getBoundingClientRect();
+        return {width: box.width, height: box.height};
+      }));
+      assert(arrows.every(box => box.width <= 24 && box.height <= 24), "decorative arrows must stay within their grid cells");
       await page.locator('[data-part="gradient"]').click();
       assert((await page.locator("#score-circuit .explorer-explanation").innerText()).includes("Autograd"));
       assert(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), `glossary overflow: ${theme} ${width}`);
