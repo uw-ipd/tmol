@@ -146,6 +146,10 @@ def main():
                 f"{url}/files/"
             ), installed
             assert installed["metadata"]["version"] == str(version)
+        # Use the same documented repair available to ARM64 CUDA 13 users.
+        # It verifies the original NVIDIA library and changes only its bad tag;
+        # pip check and the native scoring checks below remain mandatory.
+        check(python, "-I", ROOT / "scripts/repair_cuda13_arm64_metadata.py", cwd=work)
         check(*pip, "check", cwd=work)
         if local and not args.default_torch:
             cuda = None if local.startswith("cpu") else local.split("torch")[0][2:]

@@ -1,22 +1,43 @@
 # Publish CUDA/CPU variants to GitHub and standard CPU wheels plus source to PyPI.
 #
-# Runs on version tag push or manual trigger.
+# Tag pushes build and publish. Manual recovery validates existing candidates
+# with the current CI tools, preserving the original release tag and binaries.
 #
 # Separate build and upload jobs let you re-run only the upload if it fails,
 # without rebuilding wheels or the sdist.
 
 name: Publish Release Artifacts
 
+permissions:
+  contents: read
+  actions: read
+
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      release-tag:
+        description: Existing immutable tag to recover (for example v0.1.60)
+        required: true
+        type: string
+      candidate-run-id:
+        description: Original tag publishing run containing the complete candidates
+        required: true
+        type: string
+      validate-only:
+        description: Run every installation/scoring gate without publishing
+        type: boolean
+        default: true
 
 jobs:
   verify_release_version:
     name: Verify release tag matches project version
     runs-on: ubuntu-latest
     outputs:
+      release_tag: ${{ steps.source.outputs.release_tag }}
+      version: ${{ steps.source.outputs.version }}
+      candidate_run_id: ${{ steps.source.outputs.candidate_run_id }}
       gpu_matrix: ${{ steps.matrix.outputs.gpu }}
       linux_cpu_matrix: ${{ steps.matrix.outputs.linux_cpu }}
       macos_matrix: ${{ steps.matrix.outputs.macos }}
@@ -24,44 +45,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Ensure tag and pyproject version are aligned
-        run: |
-          python - <<'PY'
-          import os
-          import sys
-          import tomllib
-          from pathlib import Path
-
-          ref_type = os.environ.get("GITHUB_REF_TYPE", "")
-          ref_name = os.environ.get("GITHUB_REF_NAME", "")
-          if ref_type != "tag":
-              print(
-                  "This workflow must run on a tag ref (e.g. v0.1.15). "
-                  f"Got ref_type={ref_type!r}, ref_name={ref_name!r}."
-              )
-              sys.exit(1)
-
-          if not ref_name.startswith("v"):
-              print(f"Release tag must start with 'v'. Got: {ref_name!r}.")
-              sys.exit(1)
-
-          tag_version = ref_name[1:]
-          pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
-          project_version = pyproject.get("project", {}).get("version")
-          if not project_version:
-              print("Could not parse [project].version from pyproject.toml.")
-              sys.exit(1)
-          if tag_version != project_version:
-              print(
-                  "Tag/version mismatch detected:\\n"
-                  f"  tag: v{tag_version}\\n"
-                  f"  pyproject.toml version: {project_version}\\n"
-                  "Update pyproject version or retag before publishing."
-              )
-              sys.exit(1)
-
-          print(f"Release version check passed: v{tag_version}")
-          PY
+      - name: Verify tag and candidate provenance
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release-tag }}
+          CANDIDATE_RUN_ID: ${{ inputs.candidate-run-id }}
+          VALIDATE_ONLY: ${{ inputs.validate-only }}
+        run: python scripts/verify_release_source.py
 
       - name: Generate wheel matrices
         id: matrix
@@ -77,6 +68,7 @@ jobs:
   build_wheels:
     name: "${{ matrix.label }}"
     needs: verify_release_version
+    if: needs.verify_release_version.outputs.candidate_run_id == ''
     strategy:
       fail-fast: false
       # Large bursts of full-architecture CUDA builds repeatedly lost hosted
@@ -101,6 +93,7 @@ jobs:
   build_cpu_wheel:
     name: ${{ matrix.label }}
     needs: verify_release_version
+    if: needs.verify_release_version.outputs.candidate_run_id == ''
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.verify_release_version.outputs.linux_cpu_matrix) }}
@@ -121,6 +114,7 @@ jobs:
   build_macos_cpu_wheel:
     name: ${{ matrix.label }}
     needs: verify_release_version
+    if: needs.verify_release_version.outputs.candidate_run_id == ''
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.verify_release_version.outputs.macos_matrix) }}
@@ -134,16 +128,24 @@ jobs:
     name: Build and test source distribution
     needs: verify_release_version
     uses: ./.github/workflows/_test_sdist.yml
+    with:
+      candidate-run-id: ${{ needs.verify_release_version.outputs.candidate_run_id }}
 
   test_wheels:
     name: "pip cp${{ matrix.python-tag }} ${{ matrix.local-tag }} ${{ matrix.arch }}"
     needs: [verify_release_version, build_wheels, build_cpu_wheel, build_macos_cpu_wheel]
+    if: >-
+      ${{ !cancelled() && needs.verify_release_version.result == 'success' &&
+          (needs.verify_release_version.outputs.candidate_run_id != '' ||
+           (needs.build_wheels.result == 'success' && needs.build_cpu_wheel.result == 'success' &&
+            needs.build_macos_cpu_wheel.result == 'success')) }}
     strategy:
       fail-fast: false
       max-parallel: 7
       matrix: ${{ fromJSON(needs.verify_release_version.outputs.test_matrix) }}
     uses: ./.github/workflows/_test_wheel.yml
     with:
+      candidate-run-id: ${{ needs.verify_release_version.outputs.candidate_run_id }}
       runs-on: ${{ matrix.runs-on }}
       python-version: ${{ matrix.python-version }}
       python-tag: ${{ matrix.python-tag }}
@@ -155,9 +157,13 @@ jobs:
 
   test_default_pypi:
     name: Plain pip with default PyPI dependencies
-    needs: build_cpu_wheel
+    needs: [verify_release_version, build_cpu_wheel]
+    if: >-
+      ${{ !cancelled() && needs.verify_release_version.result == 'success' &&
+          (needs.verify_release_version.outputs.candidate_run_id != '' || needs.build_cpu_wheel.result == 'success') }}
     uses: ./.github/workflows/_test_wheel.yml
     with:
+      candidate-run-id: ${{ needs.verify_release_version.outputs.candidate_run_id }}
       runs-on: ubuntu-22.04
       python-version: "3.12"
       python-tag: "312"
@@ -168,15 +174,22 @@ jobs:
 
   test_gpu_runtime:
     name: Release wheel scoring on CUDA
-    needs: build_wheels
+    needs: [verify_release_version, build_wheels]
+    if: >-
+      ${{ !cancelled() && needs.verify_release_version.result == 'success' &&
+          (needs.verify_release_version.outputs.candidate_run_id != '' || needs.build_wheels.result == 'success') }}
     uses: ./.github/workflows/_test_gpu_wheel.yml
+    with:
+      candidate-run-id: ${{ needs.verify_release_version.outputs.candidate_run_id }}
 
   upload:
     name: Publish validated GitHub artifacts
-    needs: [test_wheels, test_default_pypi, test_gpu_runtime, build_sdist]
+    needs: [verify_release_version, test_wheels, test_default_pypi, test_gpu_runtime, build_sdist]
+    if: github.event_name != 'workflow_dispatch' || !inputs.validate-only
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: read
     steps:
       - uses: actions/checkout@v5
 
@@ -191,6 +204,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: sdist
+          run-id: ${{ needs.verify_release_version.outputs.candidate_run_id || github.run_id }}
+          github-token: ${{ github.token }}
           path: dist/
 
       - name: Download wheel artifacts
@@ -198,6 +213,8 @@ jobs:
         with:
           path: wheels/
           pattern: wheel-*
+          run-id: ${{ needs.verify_release_version.outputs.candidate_run_id || github.run_id }}
+          github-token: ${{ github.token }}
           merge-multiple: true
 
       - name: List all packages
@@ -209,6 +226,22 @@ jobs:
 
       - name: Validate release wheel manifest
         run: python scripts/validate_release_manifest.py wheels
+
+      - name: Match artifact versions to the verified immutable tag
+        env:
+          RELEASE_VERSION: ${{ needs.verify_release_version.outputs.version }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from packaging.utils import parse_sdist_filename, parse_wheel_filename
+          version = os.environ["RELEASE_VERSION"]
+          for path in Path("wheels").glob("*.whl"):
+              assert parse_wheel_filename(path.name)[1].public == version, path
+          sdists = list(Path("dist").glob("*.tar.gz"))
+          assert len(sdists) == 1, sdists
+          assert str(parse_sdist_filename(sdists[0].name)[1]) == version, sdists
+          PY
 
       - name: Check PyPI source distribution
         run: |
@@ -252,6 +285,7 @@ jobs:
           files: |
             dist/*.tar.gz
             wheels/*.whl
+            scripts/repair_cuda13_arm64_metadata.py
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -325,7 +359,7 @@ jobs:
 
   verify_public:
     name: Verify public PyPI installation
-    needs: publish_pypi
+    needs: [verify_release_version, publish_pypi]
     strategy:
       fail-fast: false
       matrix:
@@ -340,6 +374,8 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install from public PyPI
+        env:
+          RELEASE_VERSION: ${{ needs.verify_release_version.outputs.version }}
         shell: bash
         run: |
           python -m venv /tmp/tmol-public
@@ -347,7 +383,7 @@ jobs:
           if [ "$RUNNER_OS" = Linux ]; then
             /tmp/tmol-public/bin/pip install 'torch==2.14.*' --index-url https://download.pytorch.org/whl/cpu
           fi
-          version=${GITHUB_REF_NAME#v}
+          version=$RELEASE_VERSION
           /tmp/tmol-public/bin/pip install --no-cache-dir --only-binary=tmol "tmol==$version" --index-url https://pypi.org/simple
           /tmp/tmol-public/bin/pip check
           /tmp/tmol-public/bin/python -I scripts/smoke_installed_package.py \
