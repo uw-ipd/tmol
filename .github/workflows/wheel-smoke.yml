@@ -68,7 +68,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { torch-version: "2.13", torch-package-version: "2.13.0", runs-on: ubuntu-22.04, arch: x86_64 }
+          - { torch-version: "2.14", torch-package-version: "2.14.1", runs-on: ubuntu-22.04, arch: x86_64 }
           - { torch-version: "2.14", torch-package-version: "2.14.1", runs-on: ubuntu-24.04-arm, arch: aarch64 }
     uses: ./.github/workflows/_build_wheel.yml
     with:
@@ -121,7 +121,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { torch-version: "2.13", torch-package-version: "2.13.0", runs-on: ubuntu-22.04, arch: x86_64 }
+          - { torch-version: "2.14", torch-package-version: "2.14.1", runs-on: ubuntu-22.04, arch: x86_64 }
           - { torch-version: "2.14", torch-package-version: "2.14.1", runs-on: ubuntu-24.04-arm, arch: aarch64 }
     steps:
       - uses: actions/checkout@v5
@@ -247,9 +247,8 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ${{ fromJSON(github.event_name == 'pull_request' && '["3.12"]' || '["3.11", "3.12", "3.13", "3.14"]') }}
-        torch-version: ["2.13", "2.14"]
+        torch-version: ["2.14"]
         include:
-          - { torch-version: "2.13", torch-package-version: "2.13.0" }
           - { torch-version: "2.14", torch-package-version: "2.14.1" }
     uses: ./.github/workflows/_build_macos_wheel.yml
     with:
@@ -265,9 +264,8 @@ jobs:
       fail-fast: false
       matrix:
         python: ${{ fromJSON(github.event_name == 'pull_request' && '[{"version":"3.12","tag":"312"}]' || '[{"version":"3.11","tag":"311"},{"version":"3.12","tag":"312"},{"version":"3.13","tag":"313"},{"version":"3.14","tag":"314"}]') }}
-        torch-version: ["2.13", "2.14"]
+        torch-version: ["2.14"]
         include:
-          - { torch-version: "2.13", torch-package-version: "2.13.0" }
           - { torch-version: "2.14", torch-package-version: "2.14.1" }
     steps:
       - uses: actions/checkout@v5
