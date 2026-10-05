@@ -79,6 +79,7 @@ dev = [
     "pre-commit>=4.0",
     "clang-format==23.1.2",
     # Testing
+    "build>=1.2",  # Build real sdists in the packaging regression tests.
     "pytest>=8.0",
     "pytest-cov>=4.1",
     "pytest-benchmark>=5.1",

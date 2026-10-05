@@ -205,7 +205,7 @@ def test_pip_rejects_torch_abi_conflict(tmp_path):
 def test_indexed_sdist_metadata_retains_public_candidate_version(tmp_path):
     # This is the real source tree and real backend, not a mock hook. Pip must
     # accept an sdist discovered via a package index before starting compilation.
-    subprocess.run(
+    built = subprocess.run(
         [
             sys.executable,
             "-m",
@@ -217,10 +217,10 @@ def test_indexed_sdist_metadata_retains_public_candidate_version(tmp_path):
             str(tmp_path / "files"),
         ],
         cwd=ROOT,
-        check=True,
         capture_output=True,
         text=True,
     )
+    assert built.returncode == 0, built.stdout + built.stderr
     archive = next((tmp_path / "files").glob("*.tar.gz"))
     expected = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"][
         "version"
