@@ -21,7 +21,7 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
-version = "0.1.58"
+version = "0.1.59"
 
 dependencies = [
     # Core ML framework.
@@ -32,15 +32,15 @@ dependencies = [
     # (+cu130torch2.13) and is what tmol_build_backend matches on when
     # it fetches a prebuilt wheel.
     "torch>=2.8",
-    "numpy>=1.24",
-    "scipy>=1.11",
+    "numpy>=1.25",
+    "scipy>=1.13.1",
     # Data structures & serialization
     "attrs>=21.0",
     "attrs_strict>=1.0,<2",
     "cattrs>=22.0",
     "frozendict>=2.4",
-    "pandas>=2.0,<3",
-    "pyarrow>=12",
+    "pandas>=2.2,<4",
+    "pyarrow>=23.0.1",
     "pyyaml>=6.0",
     # Graphs & algorithms
     "networkx>=3.0",
@@ -52,7 +52,7 @@ dependencies = [
     "typing_inspect>=0.9",
     "pint>=0.23,<1",
     "psutil>=5.9",
-    "requests>=2.28,<3",
+    "requests>=2.33,<3",
     # Sparse arrays (requires SPARSE_AUTO_DENSIFY=1 for sparse>0.3.1)
     "sparse>=0.13",
     # numba/llvmlite
@@ -63,22 +63,22 @@ dependencies = [
     # AST manipulation for runtime call-argument validation
     "astor>=0.8",
     # Structure I/O
-    "biotite>=1.4.0",
-    # Public release/atomworks-3-0 revision.
-    "atomworks @ git+https://github.com/RosettaCommons/atomworks.git@e0f2e4da0aef2cf6c81a2c506eece3bc4204b75d",
+    "biotite==1.6.0",
+    # AtomWorks 3 uses Biotite 1.6.0.
+    "atomworks>=3.0.0,<4",
     # Ligand preparation
-    "rdkit>=2024.3",
-    "openbabel-wheel>=3.1.1.22,<4",
+    "rdkit>=2024.3.5",
+    "openbabel-wheel>=3.1.1.23,<4",
 ]
 
 [project.optional-dependencies]
 dev = [
     # Linters & formatters
-    # Keep in sync with the black pin in .pre-commit-config.yaml (CI lint)
-    "black==26.3.1",
-    "flake8==7.3.0",
+    # Keep formatter and linter pins in sync with .pre-commit-config.yaml.
+    "black==26.10.0",
+    "flake8==7.4.1",
     "pre-commit>=4.0",
-    "clang-format==21.1.8",
+    "clang-format==23.1.2",
     # Testing
     "pytest>=8.0",
     "pytest-cov>=4.1",
@@ -103,9 +103,9 @@ cuda = [
     "nvidia-cuda-cccl>=13",
 ]
 docs = [
-    "sphinx>=8.0,<9",
+    "sphinx>=8.0,<10",
     "pydata-sphinx-theme>=0.16,<1",
-    "myst-parser>=4.0,<5",
+    "myst-parser>=4.0,<6",
     "nbsphinx>=0.9,<1",
     "sphinx-togglebutton>=0.3,<1",
     "matplotlib>=3.8,<4",
@@ -116,7 +116,7 @@ docs = [
     "itables>=2.0",
     "nbclient>=0.10,<1",
     "nbformat>=5.10,<6",
-    "ipykernel>=6.29,<7",
+    "ipykernel>=6.29,<8",
 ]
 
 [project.urls]

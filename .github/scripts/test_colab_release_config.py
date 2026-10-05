@@ -251,3 +251,22 @@ def test_docs_workflow_uses_hosted_cpu_and_gpu_ci_executes_gpu_cells():
     assert "02_gpu_batching.ipynb" in gpu_script
     assert "06_fast_relax.ipynb" in gpu_script
     assert "--execution-device cuda" in gpu_script
+
+
+def test_smoke_jobs_supply_the_release_torch_patch_for_every_lane():
+    release = _load_release_matrix()
+    versions = {
+        row["torch-version"]: row["torch-package-version"]
+        for row in release.linux_wheel_rows()
+    }
+    jobs = _workflow(".github/workflows/wheel-smoke.yml")["jobs"]
+    for platform in ("linux-cpu", "linux-cuda", "macos-cpu"):
+        for phase in ("build", "test"):
+            matrix = jobs[f"{phase}-{platform}"]["strategy"]["matrix"]
+            rows = matrix["include"]
+            if "torch-version" in matrix:
+                assert {row["torch-version"] for row in rows} == set(
+                    matrix["torch-version"]
+                )
+            for row in rows:
+                assert row["torch-package-version"] == versions[row["torch-version"]]

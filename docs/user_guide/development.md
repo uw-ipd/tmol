@@ -141,6 +141,10 @@ Linux aarch64, and Apple Silicon CPU wheels are built for each supported
 CPython version and qualified by their PyTorch minor. The tag version
 must match `[project].version` in `pyproject.toml`.
 
+The workflow publishes all wheels to GitHub before uploading the source
+distribution to PyPI. Source metadata must use package-index dependencies;
+PyPI rejects direct Git and URL dependencies.
+
 Before using a versioned wheel URL, check the GitHub Releases page. The version
 in a checkout is not proof that a release has been published.
 

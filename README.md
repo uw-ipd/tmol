@@ -25,19 +25,12 @@ on CPU or CUDA, with gradients through coordinate scoring.
 
 ## Install
 
-Install the current version from GitHub:
-
-```bash
-pip install "tmol @ git+https://github.com/uw-ipd/tmol.git@master"
-```
-
-This builds from source and installs the tested public AtomWorks release-branch
-commit, RDKit, and OpenBabel automatically; ligand preparation needs no extra.
-The older published release remains available with:
-
 ```bash
 pip install tmol
 ```
+
+TMol 0.1.59 uses AtomWorks 3 and includes ligand preparation with RDKit and
+OpenBabel in the standard install.
 
 TMol first looks for a matching prebuilt wheel and otherwise builds locally.
 For binary installs, supported platforms, and troubleshooting, see the

@@ -230,7 +230,14 @@ def atom_array_from_cif(
         if hasattr(array, "pdbx_formal_charge"):
             array.del_annotation("pdbx_formal_charge")
         array = with_unresolved_atoms(array, templates)
-        return _without_misstated_charges(resolve_leaving_atoms(array)[0], templates)
+        # Completion uses the unlinked component. At an established link, its
+        # CCD-declared leaving groups must be displaced even if deposited with
+        # coordinates (e.g. the PLM ester in 8TRB). AtomWorks 3 otherwise protects
+        # every finite-coordinate atom by default.
+        product, _ = resolve_leaving_atoms(
+            array, preserve_atom_mask=np.zeros(len(array), dtype=bool)
+        )
+        return _without_misstated_charges(product, templates)
 
 
 def _without_misstated_charges(array, templates):
