@@ -106,10 +106,27 @@ def _pdb_declared_pairs(array, path, model):
 
 
 def _with_declared_pdb_bonds(array, declared):
-    """Restore declared polymer links even across nonconsecutive residue IDs."""
+    """Type declared links and restore polymer links across residue-number gaps."""
     if not declared:
         return array.bonds
     bonds = array.bonds if array.bonds is not None else struc.BondList(len(array))
+    # AtomWorks 3 preserves unknown orders in its minimal parsing path. Infer
+    # only authored links; intra-residue CONECT orders still need a template.
+    residue = struc.get_all_residue_positions(array)
+    with custom_ccd_residues(getattr(array, "_custom_ccd_registry", {})):
+        for i, j, kind in bonds.as_array():
+            if (
+                kind == struc.BondType.ANY
+                and residue[i] != residue[j]
+                and frozenset((int(i), int(j))) in declared
+            ):
+                bonds.add_bond(
+                    int(i),
+                    int(j),
+                    infer_link_order(
+                        array, int(i), int(j), allow_missing_templates=True
+                    ),
+                )
     existing = {frozenset(pair) for pair in bonds.as_array()[:, :2]}
     for i, j in (sorted(pair) for pair in declared - existing):
         first = get_polymerization_atoms(str(array.res_name[i]))
