@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=755f2e77"></script>
+    <script src="_static/documentation_options.js?v=5fe4e9ad"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -58,7 +58,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.59" />
+  <meta name="docsearch:version" content="0.1.60" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -453,8 +453,7 @@
 Execute the notebooks before building HTML:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/cpu<span class="w"> </span><span class="s2">"torch&gt;=2.8"</span>
 pip<span class="w"> </span>install<span class="w"> </span>scikit-build-core<span class="w"> </span>pybind11<span class="w"> </span>ninja<span class="w"> </span>packaging<span class="w"> </span><span class="s2">"cmake&gt;=3.24,&lt;4"</span>
-<span class="nv">TMOL_DISABLE_WHEEL_FETCH</span><span class="o">=</span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[docs]"</span><span class="w"> </span><span class="se">\</span>
+pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[docs]"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-Ccmake.define.TMOL_ENABLE_CUDA<span class="o">=</span>OFF
 python<span class="w"> </span>.github/scripts/smoke_tutorial_notebooks.py<span class="w"> </span>--write
 make<span class="w"> </span>-C<span class="w"> </span>docs<span class="w"> </span>html

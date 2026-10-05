@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="../_static/documentation_options.js?v=755f2e77"></script>
+    <script src="../_static/documentation_options.js?v=5fe4e9ad"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -58,7 +58,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.59" />
+  <meta name="docsearch:version" content="0.1.60" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -454,16 +454,12 @@
 <h2>Local setup<a class="headerlink" href="#local-setup" title="Link to this heading">#</a></h2>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/uw-ipd/tmol.git
 <span class="nb">cd</span><span class="w"> </span>tmol
-pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span>
-</pre></div>
-</div>
-<p>The command above uses pip’s isolated build environment. To reuse an existing
-PyTorch installation (especially in a CUDA container), install the small build
-tools once and disable build isolation:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"scikit-build-core&gt;=0.10"</span><span class="w"> </span><span class="s2">"pybind11&gt;=2.12"</span><span class="w"> </span>ninja<span class="w"> </span>packaging
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"scikit-build-core&gt;=0.10"</span><span class="w"> </span><span class="s2">"cmake&gt;=3.24,&lt;4"</span><span class="w"> </span><span class="s2">"pybind11&gt;=2.12"</span><span class="w"> </span>ninja<span class="w"> </span>packaging
 python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span>
 </pre></div>
 </div>
+<p>Install the intended PyTorch build first. Disabling build isolation keeps the
+compiler and runtime on the same PyTorch installation.</p>
 <p>TMol locates the Torch and pybind11 CMake packages from this Python
 interpreter; <code class="docutils literal notranslate"><span class="pre">CMAKE_PREFIX_PATH</span></code> and <code class="docutils literal notranslate"><span class="pre">pybind11_DIR</span></code> do not need to be set.</p>
 <p>Requirements:</p>
@@ -475,7 +471,7 @@ interpreter; <code class="docutils literal notranslate"><span class="pre">CMAKE_
 <li><p>CUDA toolkit with <code class="docutils literal notranslate"><span class="pre">nvcc</span></code> for CUDA builds.</p></li>
 </ul>
 <p>Without CUDA, use a CPU-only build:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="w"> </span>-Ccmake.define.TMOL_ENABLE_CUDA<span class="o">=</span>OFF
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span>.<span class="w"> </span>-Ccmake.define.TMOL_ENABLE_CUDA<span class="o">=</span>OFF
 </pre></div>
 </div>
 </section>
@@ -483,17 +479,17 @@ interpreter; <code class="docutils literal notranslate"><span class="pre">CMAKE_
 <h2>Build extensions<a class="headerlink" href="#build-extensions" title="Link to this heading">#</a></h2>
 <p>TMol builds extensions with CMake through <code class="docutils literal notranslate"><span class="pre">scikit-build-core</span></code>.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Production extensions</span>
-pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span>.
 
 <span class="c1"># Include test-only C++/CUDA extensions</span>
 pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-Ccmake.define.TMOL_BUILD_TESTS<span class="o">=</span>ON
 
 <span class="c1"># Select GPU architectures</span>
-pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="w"> </span>-Ccmake.define.CMAKE_CUDA_ARCHITECTURES<span class="o">=</span><span class="s2">"80;90"</span>
+pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span>.<span class="w"> </span>-Ccmake.define.CMAKE_CUDA_ARCHITECTURES<span class="o">=</span><span class="s2">"80;90"</span>
 
 <span class="c1"># Control parallelism</span>
-<span class="nv">MAX_JOBS</span><span class="o">=</span><span class="m">4</span><span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="w"> </span>-Ccmake.define.TMOL_NVCC_THREADS<span class="o">=</span><span class="m">2</span>
+<span class="nv">MAX_JOBS</span><span class="o">=</span><span class="m">4</span><span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span>.<span class="w"> </span>-Ccmake.define.TMOL_NVCC_THREADS<span class="o">=</span><span class="m">2</span>
 </pre></div>
 </div>
 <p>Build settings:</p>
@@ -586,7 +582,7 @@ RDKit/Gasteiger fallback and no charge-mode switch.</p>
 <p>Docker:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>tmol-dev<span class="w"> </span>-f<span class="w"> </span>containers/docker/tmol-dev.Dockerfile<span class="w"> </span>.
 docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-it<span class="w"> </span>-v<span class="w"> </span><span class="s2">"</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">:/tmol_host"</span><span class="w"> </span>-w<span class="w"> </span>/tmol_host<span class="w"> </span>tmol-dev<span class="w"> </span>bash
-pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span>.
 </pre></div>
 </div>
 <p>Apptainer:</p>
@@ -605,13 +601,23 @@ publish previews under the Pages site.</p>
 </section>
 <section id="releasing">
 <h2>Releasing<a class="headerlink" href="#releasing" title="Link to this heading">#</a></h2>
-<p>Versioned wheel and sdist publication happens from <code class="docutils literal notranslate"><span class="pre">v*</span></code> tags. Linux x86-64,
-Linux aarch64, and Apple Silicon CPU wheels are built for each supported
-CPython version and qualified by their PyTorch minor. The tag version
+<p>Versioned wheel and sdist publication happens from <code class="docutils literal notranslate"><span class="pre">v*</span></code> tags. The tag version
 must match <code class="docutils literal notranslate"><span class="pre">[project].version</span></code> in <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>.</p>
-<p>The workflow publishes all wheels to GitHub before uploading the source
-distribution to PyPI. Source metadata must use package-index dependencies;
-PyPI rejects direct Git and URL dependencies.</p>
+<p><code class="docutils literal notranslate"><span class="pre">scripts/release_matrix.py</span></code> defines the release wheels. For releases after
+0.1.59, the matrix contains 34 CUDA wheels and 12 CPU wheels. CPU wheels use
+PyTorch 2.14 with Python 3.11–3.14 on Linux x86-64, Linux aarch64, and Apple
+Silicon. CPU support is listed separately from the broader CUDA matrix.</p>
+<p>Before publication, CI installs every wheel through a staging index in a fresh
+environment, loads the native extension, and checks scoring and gradients.
+CPU wheels are also tested under their public PyPI versions. A separate lane
+builds and installs the indexed source distribution. Fast PR tests cover pip’s
+resolver, source metadata, PyTorch constraints, missing variants, and hashes.</p>
+<p>After these checks pass, the workflow publishes the ABI-qualified wheels to
+GitHub, adds versioned wheel pages to GitHub Pages, and uploads standard CPU
+wheels plus the source distribution to PyPI. CPU repackaging preserves native
+code, retains the exact PyTorch minor constraint, and rebuilds wheel RECORD
+hashes. PyPI metadata must use package-index dependencies; direct Git and URL
+dependencies are rejected.</p>
 <p>Before using a versioned wheel URL, check the GitHub Releases page. The version
 in a checkout is not proof that a release has been published.</p>
 </section>

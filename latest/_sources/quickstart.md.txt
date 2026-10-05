@@ -6,10 +6,11 @@ The example expects a local file named `1ubq.pdb`.
 ## Install TMol
 
 ```bash
-pip install "tmol @ git+https://github.com/uw-ipd/tmol.git@master"
+python -m pip install tmol --only-binary=tmol
 ```
 
-See {doc}`Installation <installation>` for compiler requirements and pre-built wheels.
+This installs the CPU build. For CUDA, follow {doc}`Installation <installation>`
+and change the device below to `"cuda"`.
 
 ## Load and score
 
@@ -19,7 +20,7 @@ import torch
 from tmol.io import pose_stack_from_pdb
 from tmol.score import beta2016_score_function
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
 pose_stack = pose_stack_from_pdb("1ubq.pdb", device)
 
 sfxn = beta2016_score_function(device)

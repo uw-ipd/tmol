@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=755f2e77"></script>
+    <script src="_static/documentation_options.js?v=5fe4e9ad"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -58,7 +58,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.59" />
+  <meta name="docsearch:version" content="0.1.60" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -446,10 +446,11 @@
 The example expects a local file named <code class="docutils literal notranslate"><span class="pre">1ubq.pdb</span></code>.</p>
 <section id="install-tmol">
 <h2>Install TMol<a class="headerlink" href="#install-tmol" title="Link to this heading">#</a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"tmol @ git+https://github.com/uw-ipd/tmol.git@master"</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>tmol<span class="w"> </span>--only-binary<span class="o">=</span>tmol
 </pre></div>
 </div>
-<p>See <a class="reference internal" href="installation.html"><span class="doc">Installation</span></a> for compiler requirements and pre-built wheels.</p>
+<p>This installs the CPU build. For CUDA, follow <a class="reference internal" href="installation.html"><span class="doc">Installation</span></a>
+and change the device below to <code class="docutils literal notranslate"><span class="pre">&quot;cuda&quot;</span></code>.</p>
 </section>
 <section id="load-and-score">
 <h2>Load and score<a class="headerlink" href="#load-and-score" title="Link to this heading">#</a></h2>
@@ -458,7 +459,7 @@ The example expects a local file named <code class="docutils literal notranslate
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_pdb</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
 
-<span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"cpu"</span><span class="p">)</span>
+<span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">)</span>
 <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack_from_pdb</span><span class="p">(</span><span class="s2">"1ubq.pdb"</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
 
 <span class="n">sfxn</span> <span class="o">=</span> <span class="n">beta2016_score_function</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>

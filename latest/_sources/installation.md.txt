@@ -1,113 +1,100 @@
 # Installation
 
-TMol requires Python 3.11+ and PyTorch. Pre-built wheels contain C++/CUDA
-extensions; source builds require a compiler.
+TMol requires Python 3.11+ and PyTorch. AtomWorks 3, RDKit, and OpenBabel are
+included in the standard dependencies.
+
+## GPU
+
+Install the PyTorch build for your CUDA version, then select the matching TMol
+wheel index. For PyTorch 2.14 and CUDA 13.2 on Linux:
 
 ```bash
-pip install tmol
+python -m pip install "torch==2.14.*" --index-url https://download.pytorch.org/whl/cu132
+python -m pip install "tmol==0.1.60+cu132torch2.14" --only-binary=tmol \
+  --find-links https://uw-ipd.github.io/tmol/wheels/v0.1.60/cu132torch2.14/
 ```
 
-TMol 0.1.59 uses AtomWorks 3 from PyPI. Ligand preparation, including RDKit and
-OpenBabel, is part of the standard install. AtomWorks 3 requires Biotite 1.6.0.
+Pre-built wheels include C++/CUDA extensions; installing them does not require
+`nvcc`. A compatible NVIDIA driver is still required.
 
-## Pre-built wheels
+Start with a fresh virtual environment. When replacing an existing CPU or CUDA
+PyTorch variant, add `--force-reinstall` to the PyTorch install command.
 
-Pre-built wheels include ahead-of-time compiled extensions, so installing a
-wheel does not require `nvcc`.
+Each wheel page contains one CUDA/PyTorch combination. Pip selects the Python
+and platform tags; it does **not** detect your GPU or choose a CUDA version.
+The exact version qualifier and `--only-binary=tmol` prevent a CPU or source
+fallback when the requested GPU wheel is unavailable.
 
-TMol uses two distribution channels:
+Other combinations are listed in [GitHub Releases](https://github.com/uw-ipd/tmol/releases).
+Use the corresponding `cuNNNtorchX.Y` page and version qualifier, or install a
+wheel's download URL directly. A GitHub release's ordinary web page is not a
+pip wheel index.
 
-- PyPI provides source distributions for `pip install tmol`.
-- GitHub Releases provide pre-built CPU and GPU wheels.
+## CPU
 
-Select a wheel from [GitHub Releases](https://github.com/uw-ipd/tmol/releases)
-that matches your Python, PyTorch, and CUDA versions. Replace `vX.Y.Z` and
-`X.Y.Z` in these URL templates with an available release:
+From 0.1.60, PyPI carries CPU wheels for PyTorch 2.14 and Python 3.11–3.14 on
+Linux x86-64, Linux aarch64, and Apple Silicon:
 
 ```bash
-pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu132torch2.14-cp313-cp313-manylinux_2_28_x86_64.whl"
+python -m pip install tmol
 ```
 
-Install the matching PyTorch build first:
+On Linux, install CPU-only PyTorch first to avoid downloading PyTorch's CUDA
+libraries:
 
 ```bash
-pip install "torch==2.14.*" --index-url https://download.pytorch.org/whl/cu132
+python -m pip install "torch==2.14.*" --index-url https://download.pytorch.org/whl/cpu
+python -m pip install tmol --only-binary=tmol
 ```
 
-Wheel tags select Python, PyTorch, and CUDA compatibility. For example,
-`cp313` selects Python 3.13 and `+cu132torch2.14` selects the CUDA/PyTorch lane.
-CPU wheels are also PyTorch-minor-specific: `+cputorch2.14` selects the CPU
-extension built against PyTorch 2.14. PyTorch 2.13 wheels remain available as
-the corresponding `torch2.13` lanes. TMol wheels do not replace the host C++
-runtime.
+CPU wheels constrain the PyTorch minor version they were compiled against.
+Plain pip installs a **CPU-only TMol build**, even if CUDA-enabled PyTorch is
+already present. Use the GPU instructions above for CUDA scoring.
 
-Release builds provide CPU wheels for Linux x86-64, Linux aarch64, and Apple
-Silicon. For example, after installing PyTorch 2.14, an Apple Silicon wheel is:
+## Distribution channels
 
-```bash
-pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cputorch2.14-cp313-cp313-macosx_14_0_arm64.whl"
-```
+| Channel | Contents |
+| --- | --- |
+| PyPI | Standard CPU wheels and the source distribution. |
+| GitHub Releases | CPU and CUDA wheels with explicit PyTorch/CUDA version qualifiers, plus source. |
+| Versioned wheel pages | Links to GitHub wheels for one variant, with SHA-256 hashes. |
 
-## PyPI source distribution
-
-Install from PyPI:
-
-```bash
-pip install tmol
-```
-
-During a PyPI source-distribution build, TMol tries to fetch a matching
-pre-built wheel from GitHub Releases. If no compatible wheel exists, it builds
-locally. Because an isolated build may see a different PyTorch variant than
-the runtime environment, pin the wheel lane when PyTorch is already installed:
-
-```bash
-TMOL_WHEEL_LOCAL_TAG=cputorch2.14 pip install tmol
-```
-
-Useful environment variables:
-
-- `TMOL_DISABLE_WHEEL_FETCH=1`: skip the pre-built lookup and build locally.
-- `TMOL_FORCE_BUILD=1`: force the local build path.
-- `TMOL_ENABLE_LOCAL_FETCH=1`: allow wheel fetch from a git checkout install.
-- `TMOL_WHEEL_LOCAL_TAG=cu132torch2.14`: pin the wheel lane.
-- `TMOL_WHEEL_RELEASE_TAG=vX.Y.Z`: override the GitHub release tag.
-- `TMOL_WHEEL_RELEASE_BASE_URL=...`: use a release mirror.
-- `TMOL_WHEEL_FETCH_RETRIES=2`: set HTTP retry attempts.
-- `TMOL_WHEEL_FETCH_TIMEOUT_S=20`: set per-request timeout.
-- `TMOL_WHEEL_FETCH_BACKOFF_S=1.5`: set retry backoff.
+Use a virtual environment for each PyTorch/CUDA combination. Reinstall the
+matching TMol wheel when changing PyTorch's minor version or CUDA variant.
+TMol 0.1.59's PyPI source installer has a version mismatch; use 0.1.60 or a
+0.1.59 wheel download URL.
 
 <span id="from-source"></span>
 
 ## Build from source
 
+Install the desired PyTorch build first. Source builds need a C++ compiler;
+CUDA builds also need a matching CUDA toolkit with `nvcc`. Disable build
+isolation so compilation uses the PyTorch that will load the extension:
+
+```bash
+python -m pip install "scikit-build-core>=0.10" "cmake>=3.24,<4" "pybind11>=2.12" ninja packaging
+python -m pip install tmol --no-binary=tmol --no-build-isolation
+```
+
+Source installs compile locally. They do not download a substitute wheel.
+Rebuild after changing PyTorch. For a CPU-only build:
+
+```bash
+python -m pip install tmol --no-binary=tmol --no-build-isolation \
+  -Ccmake.define.TMOL_ENABLE_CUDA=OFF
+```
+
+For editable development:
+
 ```bash
 git clone https://github.com/uw-ipd/tmol.git
 cd tmol
-pip install -e ".[dev]"
+python -m pip install --no-build-isolation -e ".[dev]"
 ```
 
-This builds C++/CUDA extensions through CMake. To request a CPU-only build
-(the normal source build on Apple Silicon), use:
-
-```bash
-pip install -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF
-```
-
-CMake also falls back to CPU-only when it cannot find a CUDA compiler. This
-path needs CMake and a compatible C++ compiler, but no `nvcc`. Alternatively,
-CPU kernels can be compiled on first use:
-
-```bash
-TMOL_USE_JIT=1 python -c "import tmol; print(tmol.__version__)"
-```
-
-CPU-only JIT needs a C++ compiler and `ninja`; `nvcc` is required only for
-CUDA kernels.
-
-CPU source builds and release wheels are tested on Linux x86-64, Linux
-aarch64, and Apple Silicon. Native Windows is not currently supported; use a
-Linux environment such as WSL2.
+See {doc}`Development <user_guide/development>` for compiler flags and JIT
+compilation. Native Windows is not supported; use Linux or WSL2.
 
 <span id="linux-runtime-notes"></span>
 
@@ -115,7 +102,7 @@ Linux environment such as WSL2.
 
 Linux release wheels use `manylinux_2_28` platform tags on `x86_64` and
 `aarch64`. They require glibc 2.28 or newer. Apple Silicon wheels use
-`macosx_14_0_arm64`, matching the PyTorch 2.13 and 2.14 deployment target. PyTorch
+`macosx_14_0_arm64`, matching the PyTorch 2.14 deployment target. PyTorch
 supplies the matching shared libraries; TMol wheels do not bundle the PyTorch
 or NVIDIA runtime libraries.
 
@@ -124,7 +111,7 @@ If `import tmol` fails with a `GLIBCXX_* not found` error, the host
 
 ```bash
 # Build against system libraries
-TMOL_DISABLE_WHEEL_FETCH=1 pip install -e .
+python -m pip install --no-build-isolation -e .
 
 # Or allow just-in-time extension compilation (CPU-only needs no nvcc)
 export TMOL_JIT_FALLBACK=1
