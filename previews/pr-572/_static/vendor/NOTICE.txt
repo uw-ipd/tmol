@@ -1,0 +1,7 @@
+3Dmol.js 2.4.2
+Source: https://cdn.jsdelivr.net/npm/3dmol@2.4.2/build/3Dmol-min.js
+Upstream: https://github.com/3dmol/3Dmol.js
+License: BSD-3-Clause; see 3Dmol-LICENSE.txt for upstream and bundled notices.
+SHA-256 (3Dmol-2.4.2.min.js): 06b6d2fc7d418e8bef62a32cca44373ff21b2b787bd377613dd4039394a4e9ff
+
+Bundled locally so the protein playground works without a CDN request.
