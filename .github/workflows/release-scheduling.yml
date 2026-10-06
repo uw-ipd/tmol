@@ -1,0 +1,53 @@
+name: Release scheduling
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/publish.yml
+      - .github/workflows/*publish_scheduling.yml
+      - .github/workflows/release-scheduling.yml
+      - scripts/test_publish_scheduling.py
+  push:
+    branches: [master]
+    paths:
+      - .github/workflows/publish.yml
+      - .github/workflows/*publish_scheduling.yml
+      - .github/workflows/release-scheduling.yml
+      - scripts/test_publish_scheduling.py
+
+permissions:
+  contents: read
+
+jobs:
+  scheduling:
+    name: ${{ matrix.case }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - case: tag publication
+            trigger: push
+            recovery: false
+            validate-only: false
+            skip-gate: false
+          - case: recovered publication
+            trigger: workflow_dispatch
+            recovery: true
+            validate-only: false
+            skip-gate: false
+          - case: validation only
+            trigger: workflow_dispatch
+            recovery: true
+            validate-only: true
+            skip-gate: false
+          - case: missing GPU validation
+            trigger: workflow_dispatch
+            recovery: true
+            validate-only: false
+            skip-gate: true
+    uses: ./.github/workflows/_test_publish_scheduling.yml
+    with:
+      trigger: ${{ matrix.trigger }}
+      recovery: ${{ matrix.recovery }}
+      validate-only: ${{ matrix.validate-only }}
+      skip-gate: ${{ matrix.skip-gate }}
