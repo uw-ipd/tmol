@@ -709,7 +709,8 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
         TView<RamaTableParams<Real>, 1, Dev> rama_table_params,
         TView<Real, 4, Dev> omega_tables,
         TView<RamaTableParams<Real>, 1, Dev> omega_table_params,
-        bool output_block_pair_energies)
+        bool output_block_pair_energies,
+        bool topology_only)
         -> std::tuple<
             TPack<Real, 2, Dev>,
             TPack<Vec<Real, 3>, 2, Dev>,
@@ -837,12 +838,18 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
 
   TPack<Real, 2, Dev> V_t;
   auto dispatch_indices_t = TPack<Int, 2, Dev>::zeros({3, n_dispatch_total});
-  if (output_block_pair_energies) {
+  if (topology_only) {
+    V_t = TPack<Real, 2, Dev>::empty({2, 0});
+  } else if (output_block_pair_energies) {
     V_t = TPack<Real, 2, Dev>::zeros({2, n_dispatch_total});
   } else {
     V_t = TPack<Real, 2, Dev>::zeros({2, n_poses});
   }
-  auto dV_dxyz_t = TPack<Vec<Real, 3>, 2, Dev>::zeros({2, n_atoms});
+  // Per-pair backward recomputes weighted derivatives from the saved inputs.
+  bool const accumulate_derivs = !topology_only && !output_block_pair_energies;
+  auto dV_dxyz_t = accumulate_derivs
+                       ? TPack<Vec<Real, 3>, 2, Dev>::zeros({2, n_atoms})
+                       : TPack<Vec<Real, 3>, 2, Dev>::empty({2, 0});
 
   // Which block each dispatch index belongs to. Walking the sparse list is
   // what keeps this bounded: a dense (block x rot1 x rot2) grid would be
@@ -895,6 +902,10 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
   });
   DeviceDispatch<Dev>::template forall<launch_t>(
       mgr, n_dispatch_total, mark_dispatch_indices);
+
+  if (topology_only) {
+    return {V_t, dV_dxyz_t, dispatch_indices_t};
+  }
 
   auto rama_omega_func = ([=] TMOL_DEVICE_FUNC(int ind) {
     int const pose_ind = dispatch_indices[0][ind];
@@ -999,11 +1010,13 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
           Eigen::Map<Vec<Real, 2>>(rama_table_params[rama_table_ind].bbstarts),
           Eigen::Map<Vec<Real, 2>>(rama_table_params[rama_table_ind].bbsteps));
       accumulate<Dev, Real>::add(V[0][V_ind], common::get<0>(rama));
-      for (int j = 0; j < 4; ++j) {
-        accumulate<Dev, Vec<Real, 3>>::add(
-            dV_dxyz[0][phi_ats[j]], common::get<1>(rama).row(j));
-        accumulate<Dev, Vec<Real, 3>>::add(
-            dV_dxyz[0][psi_ats[j]], common::get<2>(rama).row(j));
+      if (accumulate_derivs) {
+        for (int j = 0; j < 4; ++j) {
+          accumulate<Dev, Vec<Real, 3>>::add(
+              dV_dxyz[0][phi_ats[j]], common::get<1>(rama).row(j));
+          accumulate<Dev, Vec<Real, 3>>::add(
+              dV_dxyz[0][psi_ats[j]], common::get<2>(rama).row(j));
+        }
       }
     }
 
@@ -1058,23 +1071,27 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
           Eigen::Map<Vec<Real, 2>>(omega_table_params[omega_table_ind].bbsteps),
           32.8);
       accumulate<Dev, Real>::add(V[1][V_ind], common::get<0>(omega));
-      for (int j = 0; j < 4; ++j) {
-        // omega : [V, dVdphi, dVdpsi, dVdomega]
-        accumulate<Dev, Vec<Real, 3>>::add(
-            dV_dxyz[1][phi_ats[j]], common::get<1>(omega).row(j));
-        accumulate<Dev, Vec<Real, 3>>::add(
-            dV_dxyz[1][psi_ats[j]], common::get<2>(omega).row(j));
-        accumulate<Dev, Vec<Real, 3>>::add(
-            dV_dxyz[1][omega_ats[j]], common::get<3>(omega).row(j));
+      if (accumulate_derivs) {
+        for (int j = 0; j < 4; ++j) {
+          // omega : [V, dVdphi, dVdpsi, dVdomega]
+          accumulate<Dev, Vec<Real, 3>>::add(
+              dV_dxyz[1][phi_ats[j]], common::get<1>(omega).row(j));
+          accumulate<Dev, Vec<Real, 3>>::add(
+              dV_dxyz[1][psi_ats[j]], common::get<2>(omega).row(j));
+          accumulate<Dev, Vec<Real, 3>>::add(
+              dV_dxyz[1][omega_ats[j]], common::get<3>(omega).row(j));
+        }
       }
     } else {
       // if rama is undefined, fall back to old version
       auto omega = omega_V_dV<Dev, Real, Int>(omega_coords, 32.8);
       accumulate<Dev, Real>::add(V[1][V_ind], common::get<0>(omega));
-      for (int j = 0; j < 4; ++j) {
-        // omega : [V, dVdomega]
-        accumulate<Dev, Vec<Real, 3>>::add(
-            dV_dxyz[1][omega_ats[j]], common::get<1>(omega).row(j));
+      if (accumulate_derivs) {
+        for (int j = 0; j < 4; ++j) {
+          // omega : [V, dVdomega]
+          accumulate<Dev, Vec<Real, 3>>::add(
+              dV_dxyz[1][omega_ats[j]], common::get<1>(omega).row(j));
+        }
       }
     }
   });

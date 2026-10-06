@@ -2027,3 +2027,101 @@ def test_score_function_all_terms_getter():
                 found = True
                 break
         assert found
+
+
+@pytest.mark.parametrize("topology_only", [False, True])
+def test_packing_releases_previous_page_before_allocating_next(
+    monkeypatch, topology_only
+):
+    import weakref
+    from tmol.score.ljlk import potentials
+
+    class Term(torch.nn.Module):
+        def __init__(self, name, width, cutoff):
+            super().__init__()
+            self.classname = name
+            self.n_score_types = width
+            self.block_neighbor_cutoff = cutoff
+            self.rotamer_dispatch_key = "sphere_overlap"
+            self.n_poses = 1
+            self.n_rots = 4
+
+    ljlk = Term("LJLK", 3, 6.0)
+    elec = Term("Elec", 1, 5.5)
+    fused = score_function_module._FusedLJLKAndElecRotamerModule(ljlk, elec)
+    scorer = RotamerScoringModule(torch.ones(4), [ljlk, elec])
+    scorer._fused_ljlk_elec = fused
+    scorer._fused_ljlk_elec_index = 0
+    scorer._fused_ljlk_elec_weight_offset = 0
+    monkeypatch.setattr(fused, "_native_arguments", lambda _: ())
+    monkeypatch.setattr(score_function_module, "_PACK_FUSED_ROTAMER_SCORE_WINDOW", 2)
+    live_layouts = []
+    live_scores = []
+
+    def dispatches(_):
+        for _ in range(3):
+            assert all(ref() is None for ref in live_layouts)
+            assert all(ref() is None for ref in live_scores)
+            indices = torch.zeros((3, 4), dtype=torch.int32)
+            live_layouts.append(weakref.ref(indices))
+            yield indices
+            del indices
+
+    def score(*args):
+        assert not topology_only
+        assert all(ref() is None for ref in live_scores)
+        indices = args[-1]
+        scores = torch.ones((1, indices.shape[1]))
+        live_scores.append(weakref.ref(scores))
+        return scores, indices, torch.empty(0)
+
+    monkeypatch.setattr(fused, "iter_packing_dispatches", dispatches)
+    monkeypatch.setattr(potentials, "ljlk_elec_weighted_rotamer_scores", score)
+    n_pages = 0
+    with torch.no_grad():
+        for _, indices, values in scorer._iter_weighted_sparse_entries(
+            torch.zeros((1, 3)),
+            retain_shared_dispatch=False,
+            topology_only=topology_only,
+        ):
+            assert indices.shape == (3, 2)
+            assert values.numel() == (0 if topology_only else 2)
+            n_pages += 1
+            del indices, values
+    assert n_pages == 6
+    assert all(ref() is None for ref in live_layouts + live_scores)
+
+
+@pytest.mark.parametrize("topology_only", [False, True])
+def test_packing_releases_term_iterator_pages(topology_only):
+    import weakref
+
+    live_pages = []
+
+    class Term(torch.nn.Module):
+        n_score_types = 1
+        packing_score_iterator = True
+
+        def iter_packing_entries(self, coords, *, topology_only):
+            for _ in range(3):
+                assert all(ref() is None for ref in live_pages)
+                indices = torch.zeros((3, 2), dtype=torch.int32)
+                scores = None if topology_only else torch.ones((1, 2))
+                live_pages.append(weakref.ref(indices))
+                if scores is not None:
+                    live_pages.append(weakref.ref(scores))
+                yield scores, indices
+                del scores, indices
+
+    scorer = RotamerScoringModule(torch.ones(1), [Term()])
+    n_pages = 0
+    for _, indices, values in scorer._iter_weighted_sparse_entries(
+        torch.zeros((1, 3)),
+        retain_shared_dispatch=False,
+        topology_only=topology_only,
+    ):
+        assert values.numel() == (0 if topology_only else 2)
+        n_pages += 1
+        del indices, values
+    assert n_pages == 3
+    assert all(ref() is None for ref in live_pages)
