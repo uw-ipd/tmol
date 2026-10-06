@@ -64,7 +64,16 @@ class PackerPalleteAnnotation:
 
 
 class PackerPalette:
-    """Define which residue types may replace each original residue type."""
+    """Define which residue types may replace each original residue type.
+
+    Args:
+        noncanonical_design: Also offer noncanonical residue types (such as AIB)
+            as replacements for other residues. Off by default, so a
+            noncanonical type is considered only where the input already has it.
+    """
+
+    def __init__(self, noncanonical_design: bool = False):
+        self.noncanonical_design = noncanonical_design
 
     def block_types_from_original(
         self, pbt: PackedBlockTypes, orig: Tensor[torch.int64][:, :]
@@ -88,10 +97,11 @@ class PackerPalette:
         # the original block type is pre-computed and cached in the PackedBlockTypes
         # object, so all we will do is take the subset of real block types (ind >= 0)
         # and read from the cached logic
-        _annotate_packed_block_types_for_default_packer_palette(pbt)
+        dppann = _annotate_packed_block_types_for_default_packer_palette(
+            pbt, self.noncanonical_design
+        )
         assert orig.device == pbt.device
 
-        dppann = pbt.default_packer_palette_annotations
         allowed_block_types_for_block_type = torch.full(
             (orig.shape[0], orig.shape[1], dppann.max_n_allowed),
             -1,
@@ -133,8 +143,9 @@ class PackerPalette:
         # object and then looked up here. For the default PackerPalette, the logic is
         # simply to allow only those residue types with the same name3 as the original
         # residue type
-        _annotate_packed_block_types_for_default_packer_palette(pbt)
-        dppann = pbt.default_packer_palette_annotations
+        dppann = _annotate_packed_block_types_for_default_packer_palette(
+            pbt, self.noncanonical_design
+        )
         rtr_mask_for_orig = torch.zeros(
             (orig.shape[0], orig.shape[1], dppann.max_n_allowed),
             dtype=torch.bool,
@@ -215,10 +226,19 @@ def _exchangeable(orig_bt, alt_bt, orig_backbone, alt_backbone) -> bool:
     )
 
 
-def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockTypes):
+_PALETTE_ANNOTATION_ATTRS = {
+    False: "default_packer_palette_annotations",
+    True: "noncanonical_packer_palette_annotations",
+}
+
+
+def _annotate_packed_block_types_for_default_packer_palette(
+    pbt: PackedBlockTypes, noncanonical_design: bool = False
+) -> PackerPalleteAnnotation:
     # Annotate the PackedBlockTypes object with the block-type to block-type comparisons
-    if hasattr(pbt, "default_packer_palette_annotations"):
-        return
+    attr_name = _PALETTE_ANNOTATION_ATTRS[noncanonical_design]
+    if hasattr(pbt, attr_name):
+        return getattr(pbt, attr_name)
     backbones = _backbone_signatures(pbt)
     allowed_block_types_for_block_type = [list() for _ in range(pbt.n_types)]
     allowed_block_is_orig = [list() for _ in range(pbt.n_types)]
@@ -248,6 +268,13 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
         for j in group_of[i]:
             alt_bt = pbt.active_block_types[j]
             if i != j and (selected_by_detection[i] or selected_by_detection[j]):
+                continue
+            # a noncanonical type replaces only its own kind unless asked for
+            if (
+                not noncanonical_design
+                and not alt_bt.properties.is_canonical
+                and alt_bt.name3 != orig_bt.name3
+            ):
                 continue
             j_allowed_for_restrict_to_repack = alt_bt.name3 == orig_bt.name3
             if _exchangeable(orig_bt, alt_bt, backbones[i], backbones[j]):
@@ -330,7 +357,8 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
         allowed_block_type_is_orig=allowed_block_type_is_orig,
         restrict_to_repacking_masks=restrict_to_repacking_masks,
     )
-    setattr(pbt, "default_packer_palette_annotations", annotation)
+    setattr(pbt, attr_name, annotation)
+    return annotation
 
 
 # Defaults carried over from ligand preparation, where this budget used to be

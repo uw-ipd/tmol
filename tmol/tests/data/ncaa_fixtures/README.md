@@ -6,6 +6,7 @@ single chain of model 1 with solvent and non-polymer heteroatoms removed.
 | file | source | residues | noncanonical |
 |------|--------|----------|--------------|
 | `phosphopeptide_5ema.cif` | PDB 5EMA chain B | 7 | `SEP` (phosphoserine) |
+| `uic1_aib_9bzt.cif` | PDB 9BZT chain A | 9 | `AIB` (aminoisobutyric acid, in the default database) |
 | `collagen_hyp_1bkv.cif` | PDB 1BKV chain A | 29 | `HYP` (4-hydroxyproline) |
 | `capped_peptide_ace_nme.cif` | built | 3 | `ACE`, `NME` (terminal caps) |
 | `capped_peptide_ace_nh2.cif` | built | 3 | `ACE`, `NH2` (terminal caps) |
@@ -28,6 +29,19 @@ from the bond table, not from geometry perception. Read them with
 belongs to a polymer entity; the trimming dropped the `_chem_comp` block from
 every file but `beta_peptide_3c3g.cif`, so that is the only one whose declared
 component types and chemistry survive.
+
+## Aminoisobutyric acid
+
+`uic1_aib_9bzt.cif` is the UIC-1 helical peptide, `L-AIB-A-AIB-L-AIB-Q-AIB-L`,
+0.82 A with riding hydrogens. AIB is part of the default database rather than
+prepared from the file, so this fixture exercises a database noncanonical in a
+helix: four achiral residues on the symmetric rama table, between canonical
+neighbours.
+
+The deposited entry caps both ends with I6W and I77, separate components linked
+by `struct_conn`; they were dropped with the benzene and solvent, leaving free
+termini. Leu 1 has two conformers and only altloc A is kept. AIB's methyls follow
+the CCD naming: `CB2` on the side an L residue's `CB` occupies, `CB1` opposite.
 
 ## Capped peptide
 
