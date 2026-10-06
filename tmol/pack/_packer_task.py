@@ -66,9 +66,6 @@ class PackerPalleteAnnotation:
 class PackerPalette:
     """Define which residue types may replace each original residue type."""
 
-    def __init__(self):
-        pass
-
     def block_types_from_original(
         self, pbt: PackedBlockTypes, orig: Tensor[torch.int64][:, :]
     ) -> tuple[
