@@ -213,7 +213,8 @@ class BackboneTorsionRotamerScoreDispatch {
       // Omega (backbone-dependent) potential parameters
       TView<Real, 4, Dev> omega_tables,
       TView<RamaTableParams<Real>, 1, Dev> omega_table_params,
-      bool output_block_pair_energies)
+      bool output_block_pair_energies,
+      bool topology_only = false)
       -> std::tuple<
           TPack<Real, 2, Dev>,
           TPack<Vec<Real, 3>, 2, Dev>,

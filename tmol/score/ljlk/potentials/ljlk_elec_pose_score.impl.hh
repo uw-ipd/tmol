@@ -122,6 +122,8 @@ TMOL_DEVICE_FUNC std::array<Real, compute_scores ? 4 : 0> score_atom_pair(
     int start1,
     int start2,
     ScoringData<Real> const& data,
+    Eigen::Matrix<Real, 3, 1> const& delta,
+    Real dist2,
     int ljlk_separation,
     int elec_separation,
     TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords,
@@ -131,14 +133,6 @@ TMOL_DEVICE_FUNC std::array<Real, compute_scores ? 4 : 0> score_atom_pair(
     return {};
   }
   using Real3 = Eigen::Matrix<Real, 3, 1>;
-  Real3 const coord1 = coord_from_shared(data.r1.coords, atom1);
-  Real3 const coord2 = coord_from_shared(data.r2.coords, atom2);
-  Real3 const delta = coord1 - coord2;
-  Real const dist2 = delta.squaredNorm();
-  Real const max_dis =
-      max(data.ljlk_global_params.max_dis, data.elec_global_params.max_dis);
-  if (dist2 >= max_dis * max_dis) return {};
-
   Real const dist = std::sqrt(dist2);
   auto const& p1 = data.r1.ljlk_params[atom1];
   auto const& p2 = data.r2.ljlk_params[atom2];
@@ -649,6 +643,15 @@ auto ljlk_elec_forward_impl(
                              int atom1,
                              int atom2,
                              ScoringData<Real> const& pair_data) {
+        // Atom pairs in overlapping rotamer spheres can still be beyond the
+        // cutoff. Reject them before traversing either bond-path graph.
+        Real3 const delta = coord_from_shared(pair_data.r1.coords, atom1)
+                            - coord_from_shared(pair_data.r2.coords, atom2);
+        Real const dist2 = delta.squaredNorm();
+        Real const max_dis =
+            max(pair_data.ljlk_global_params.max_dis,
+                pair_data.elec_global_params.max_dis);
+        if (dist2 >= max_dis * max_dis) return PairScores{};
         int lj_sep;
         int elec_sep;
         if (intra) {
@@ -677,6 +680,8 @@ auto ljlk_elec_forward_impl(
             pair_start1,
             pair_start2,
             pair_data,
+            delta,
+            dist2,
             lj_sep,
             elec_sep,
             dV_dcoords,

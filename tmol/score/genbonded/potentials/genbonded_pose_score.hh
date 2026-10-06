@@ -195,7 +195,8 @@ struct GenBondedRotamerScoreDispatch {
       TView<Vec<Real, 5>, 1, D> gen_inter_improper_hash_values,
 
       bool output_block_pair_energies,
-      bool compute_derivs)
+      bool compute_derivs,
+      bool topology_only = false)
       -> std::tuple<
           TPack<Real, 2, D>,          // V_t
           TPack<Vec<Real, 3>, 2, D>,  // dV_dx_t

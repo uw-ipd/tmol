@@ -12,7 +12,7 @@ from tmol.pose import (
     PoseStack,
 )
 
-_PACK_HBOND_ROTAMER_CANDIDATE_WINDOW = 16 * 1024 * 1024
+_PACK_HBOND_ROTAMER_CANDIDATE_WINDOW = 32 * 1024
 
 
 class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
@@ -73,77 +73,19 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         )
 
     def pose_score_hbond(self, *args):
-        from tmol.score.hbond.potentials import (
-            hbond_pose_scores,
-            gen_hbond_bases,
-        )
+        from tmol.score.hbond.potentials import hbond_pose_scores
 
         common_args = args[:-4]
         pose_stack, hbond_params, block_pair_scoring, shared_block_neighbors = args[-4:]
-        allow_split_pairs = getattr(pose_stack, "_hbond_allow_split_pairs", False)
-        coords_dtype = common_args[0].dtype
-        pair_param_table, pair_poly_table, global_param_table = self._param_tables(
-            coords_dtype
-        )
-
-        # Derived atom coords do not need gradients - gradients for hbond
-        # energies flow through derived_atom_inds back to the source atoms
-        # inside the pairwise kernel directly.
-        with torch.no_grad():
-            derived_coords, derived_atom_inds = gen_hbond_bases(
-                common_args[0],
-                common_args[1],
-                common_args[3],
-                common_args[4],
-                common_args[5],
-                common_args[6],
-                common_args[7],
-                pose_stack.inter_residue_connections,
-                pose_stack.packed_block_types.n_atoms,
-                pose_stack.packed_block_types.n_conn,
-                pose_stack.packed_block_types.conn_atom,
-                pose_stack.packed_block_types.n_all_bonds,
-                pose_stack.packed_block_types.all_bonds,
-                pose_stack.packed_block_types.atom_all_bond_ranges,
-                hbond_params.tile_n_donH,
-                hbond_params.tile_n_acc,
-                hbond_params.tile_donH_inds,
-                hbond_params.tile_acc_inds,
-                hbond_params.tile_acceptor_hybridization,
-                hbond_params.is_hydrogen,
-            )
-
         return hbond_pose_scores(
-            *common_args,
-            pose_stack.inter_residue_connections,
-            pose_stack.inter_block_bondsep.near_blocks,
-            pose_stack.inter_block_bondsep.bondsep,
-            pose_stack.packed_block_types.n_atoms,
-            pose_stack.packed_block_types.n_conn,
-            pose_stack.packed_block_types.conn_atom,
-            pose_stack.packed_block_types.n_all_bonds,
-            pose_stack.packed_block_types.all_bonds,
-            pose_stack.packed_block_types.atom_all_bond_ranges,
-            pose_stack.packed_block_types.bond_separation,
-            hbond_params.tile_n_donH,
-            hbond_params.tile_n_acc,
-            hbond_params.tile_donH_inds,
-            hbond_params.tile_acc_inds,
-            hbond_params.tile_donorH_type,
-            hbond_params.tile_acceptor_type,
-            hbond_params.tile_acceptor_hybridization,
-            hbond_params.is_hydrogen,
-            pair_param_table,
-            pair_poly_table,
-            global_param_table,
-            derived_coords,
-            derived_atom_inds,
-            block_pair_scoring,
+            *self._hbond_score_args(
+                common_args, pose_stack, hbond_params, block_pair_scoring
+            ),
             shared_block_neighbors,
-            allow_split_pairs,
+            getattr(pose_stack, "_hbond_allow_split_pairs", False),
         )
 
-    def _rotamer_hbond_score_args(
+    def _hbond_score_args(
         self, common_args, pose_stack, hbond_params, block_pair_scoring
     ):
         from tmol.score.hbond.potentials import (
@@ -155,6 +97,7 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             coords_dtype
         )
 
+        # Pairwise kernels route gradients through derived_atom_inds directly.
         with torch.no_grad():
             derived_coords, derived_atom_inds = gen_hbond_bases(
                 common_args[0],
@@ -218,7 +161,7 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         pose_stack, hbond_params, block_pair_scoring, shared_dispatch_indices = args[
             -4:
         ]
-        score_args = self._rotamer_hbond_score_args(
+        score_args = self._hbond_score_args(
             common_args, pose_stack, hbond_params, block_pair_scoring
         )
         score_op = (
@@ -259,7 +202,7 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         n_candidates = n_poses * candidates_per_pose
         prepared_score_args = None
         if not topology_only:
-            prepared_score_args = self._rotamer_hbond_score_args(
+            prepared_score_args = self._hbond_score_args(
                 common_args, pose_stack, hbond_params, block_pair_scoring
             )
         for candidate_begin in range(
@@ -282,9 +225,11 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             )
             if topology_only:
                 yield None, indices
+                del indices
                 continue
             scores, indices = hbond_rotamer_scores_shared(*prepared_score_args, indices)
             yield scores, indices
+            del scores, indices
 
     @property
     def score_only_in_no_grad(self):
