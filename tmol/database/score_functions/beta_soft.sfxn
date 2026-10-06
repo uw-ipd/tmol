@@ -19,7 +19,7 @@ weights:
   cart_angles: 0.5
   cart_torsions: 0.5
   cart_impropers: 0.5
-  cart_hxltorsions: 0.5
+  cart_hxltorsions: 1.0
   dunbrack_rot: 0.76
   dunbrack_rotdev: 0.69
   dunbrack_semirot: 0.78
