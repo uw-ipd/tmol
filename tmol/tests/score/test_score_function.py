@@ -1731,6 +1731,33 @@ def _assert_matches_gold(score_map, gold_map, score_types, rtol, atol):
         )
 
 
+@pytest.mark.parametrize("weights", ["beta2016", "beta_soft"])
+def test_hydroxyl_torsion_weight(ubq_pdb, default_database, torch_device, weights):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device)
+    weights_path = os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "..",
+        "database",
+        "score_functions",
+        f"{weights}.sfxn",
+    )
+    sfxn = ScoreFunction.from_sfxn_file(weights_path, default_database, torch_device)
+    scorer = sfxn.render_whole_pose_scoring_module(pose)
+    lane = sfxn.all_score_types().index(ScoreType.cart_hxltorsions)
+    coords = pose.coords.clone().requires_grad_(True)
+    unweighted = scorer(coords, sum_terms=False, apply_weights=False)[lane]
+    weighted = scorer(coords, sum_terms=False, apply_weights=True)[lane]
+    assert torch.isfinite(unweighted).all()
+    assert (unweighted > 0).all()
+    torch.testing.assert_close(weighted, unweighted)
+    unweighted_grad = torch.autograd.grad(unweighted.sum(), coords)[0]
+    weighted_grad = torch.autograd.grad(weighted.sum(), coords)[0]
+    assert torch.isfinite(unweighted_grad).all()
+    assert unweighted_grad.abs().max() > 0
+    torch.testing.assert_close(weighted_grad, unweighted_grad)
+
+
 def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_device):
     ps = pose_stack_from_pdb(ubq_pdb, torch_device)
 
