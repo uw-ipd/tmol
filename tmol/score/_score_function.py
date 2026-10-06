@@ -50,7 +50,8 @@ _CUDA_PARALLEL_GRAD_SCORE_MIN_COORD_ELEMENTS = 100 * 1024
 _CUDA_WEIGHTED_FUSED_MIN_SINGLE_POSE_ATOMS = 15_000
 _CUDA_WEIGHTED_FUSED_MIN_BATCH_ATOMS_PER_POSE = 2_000
 _CUDA_WEIGHTED_FUSED_MIN_GRAD_COORD_ELEMENTS = 64 * 1024
-_PACK_ROTAMER_BLOCK_PAIR_WINDOW = 4 * 1024 * 1024
+# Bound dispatch scratch while amortizing CUDA launches across block pairs.
+_PACK_ROTAMER_BLOCK_PAIR_WINDOW = 32 * 1024
 _PACK_FUSED_ROTAMER_SCORE_WINDOW = 4 * 1024 * 1024
 _CPU_SCORE_TERM_EXECUTORS: dict[int, ThreadPoolExecutor] = {}
 _CPU_SCORE_TERM_EXECUTOR_LOCK = threading.Lock()
@@ -1816,6 +1817,7 @@ class _FusedLJLKAndElecRotamerModule(torch.nn.Module):
                 ]
                 if topology_only:
                     yield indices, empty_values
+                    del indices
                     continue
                 scores, indices, _ = ljlk_elec_weighted_rotamer_scores(
                     *native_args,
@@ -1824,6 +1826,8 @@ class _FusedLJLKAndElecRotamerModule(torch.nn.Module):
                     indices,
                 )
                 yield indices, scores[0]
+                del scores, indices
+            del dispatch_indices
 
 
 def _fused_ljlk_elec_rotamer_module(term_modules):
@@ -2047,6 +2051,7 @@ class RotamerScoringModule:
                         topology_only=topology_only,
                     ):
                         yield term, indices, weighted_values
+                        del indices, weighted_values
                     weights_offset += term.n_score_types
                     continue
 
@@ -2062,11 +2067,14 @@ class RotamerScoringModule:
                     ):
                         indices = self._native_sparse_indices(indices)
                         if topology_only:
+                            del scores
                             yield term, indices, empty_values
+                            del indices
                             continue
                         weighted_values = _weighted_score_sum(weights, scores)
+                        del scores
                         yield term, indices, weighted_values
-                        del scores, indices, weighted_values
+                        del indices, weighted_values
                     continue
 
                 weights = self.weights[
@@ -2086,6 +2094,11 @@ class RotamerScoringModule:
                         getattr(term, "block_neighbor_cutoff", None),
                     )
                 )
+                if topology_only and can_share_packing_dispatch:
+                    # The fused producer already contributes this entire layout.
+                    # Rebuilding it or scoring its consumer adds no graph edges.
+                    weights_offset += term.n_score_types
+                    continue
                 dispatches = (
                     self._fused_ljlk_elec.iter_packing_dispatches(coords)
                     if can_share_packing_dispatch
@@ -2118,11 +2131,13 @@ class RotamerScoringModule:
                             # retain a score table for the whole rotamer set.
                             del scores
                             yield term, indices, empty_values
-                            del indices
+                            del indices, dispatch_window
                             continue
                         weighted_values = _weighted_score_sum(weights, scores)
+                        del scores
                         yield term, indices, weighted_values
-                        del scores, indices, weighted_values
+                        del indices, weighted_values, dispatch_window
+                    del dispatch_windows, dispatch
                 weights_offset += term.n_score_types
             return
 

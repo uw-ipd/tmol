@@ -61,6 +61,7 @@ struct InteractionGraph {
   TView<int64_t, 1, D> neighbor_row_offsets_;
   TView<int32_t, 1, D> neighbor_blocks_;
   TView<int64_t, 1, D> neighbor_chunk_offset_offsets_;
+  TView<int64_t, 1, D> reverse_neighbor_chunk_offset_offsets_;
   TView<int64_t, 1, D> chunk_offsets_;
   TView<Real, 1, D> energy1b_;
   TView<Real, 1, D> energy2b_;
@@ -404,9 +405,8 @@ MGPU_DEVICE float warp_wide_sim_annealing(
         int const k_chunk = local_k_rot / chunk_size;
         int const k_in_chunk = local_k_rot - k_chunk * chunk_size;
 
-        int64_t const reverse_edge = ig.find_neighbor_edge(pose, k, ran_res);
         int64_t const k_offset_offset =
-            ig.neighbor_chunk_offset_offsets_[reverse_edge];
+            ig.reverse_neighbor_chunk_offset_offsets_[edge];
 
         int64_t const k_new_chunk_offset =
             ig.chunk_offsets_
@@ -1033,6 +1033,7 @@ auto AnnealerDispatch<D>::forward(
   int const n_poses_cpu = pose_n_res.size(0);
   int const max_n_res_cpu = n_rotamers_for_res.size(1);
 
+  auto reverse_offsets = TPack<int64_t, 1, D>::empty({neighbor_blocks.size(0)});
   InteractionGraph<D, int, float> ig(
       {max_n_rotamers_per_pose,
        pose_n_res,
@@ -1045,9 +1046,30 @@ auto AnnealerDispatch<D>::forward(
        neighbor_row_offsets,
        neighbor_blocks,
        neighbor_chunk_offset_offsets,
+       reverse_offsets.view,
        chunk_offsets,
        energy1b,
        energy2b});
+
+  // The graph is fixed throughout annealing. Resolve transposed chunk-table
+  // offsets once per edge instead of binary-searching each neighbor row for
+  // every proposal in every trajectory. Scratch scales with edges, not pairs.
+  auto cache_reverse_offsets = [=] MGPU_DEVICE(int row) {
+    int const pose = row / max_n_res_cpu;
+    int const block = row % max_n_res_cpu;
+    for (int64_t edge = neighbor_row_offsets[row];
+         edge < neighbor_row_offsets[row + 1];
+         ++edge) {
+      int64_t const reverse =
+          ig.find_neighbor_edge(pose, neighbor_blocks[edge], block);
+      ig.reverse_neighbor_chunk_offset_offsets_[edge] =
+          neighbor_chunk_offset_offsets[reverse];
+    }
+  };
+  mgpu::transform<128, 1>(
+      cache_reverse_offsets,
+      n_poses_cpu * max_n_res_cpu,
+      *current_context(mgr));
 
   auto gen = at::get_generator_or_default<at::CUDAGeneratorImpl>(
       std::nullopt, at::cuda::detail::getDefaultCUDAGenerator());

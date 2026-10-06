@@ -12,7 +12,7 @@ from tmol.pose import (
     PoseStack,
 )
 
-_PACK_HBOND_ROTAMER_CANDIDATE_WINDOW = 16 * 1024 * 1024
+_PACK_HBOND_ROTAMER_CANDIDATE_WINDOW = 32 * 1024
 
 
 class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
@@ -282,9 +282,11 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             )
             if topology_only:
                 yield None, indices
+                del indices
                 continue
             scores, indices = hbond_rotamer_scores_shared(*prepared_score_args, indices)
             yield scores, indices
+            del scores, indices
 
     @property
     def score_only_in_no_grad(self):

@@ -733,14 +733,18 @@ def test_packing_pages_shared_lk_ball_dispatch(
             )
             if term is lk_ball
         ]
+        monkeypatch.setattr(
+            lk_ball,
+            "forward",
+            lambda *_: pytest.fail("topology pass computed LK-ball energies"),
+        )
         topology_pages = [
-            (indices, values)
+            (term, indices, values)
             for term, indices, values in scorer._iter_weighted_sparse_entries(
                 rotamer_set.coords,
                 retain_shared_dispatch=False,
                 topology_only=True,
             )
-            if term is lk_ball
         ]
 
     assert len(pages) > 1
@@ -750,10 +754,14 @@ def test_packing_pages_shared_lk_ball_dispatch(
     torch.testing.assert_close(
         torch.cat([values for _, values in pages]), expected_values
     )
-    assert torch.equal(
-        torch.cat([indices for indices, _ in topology_pages], dim=1), full_indices
-    )
-    assert all(values.numel() == 0 for _, values in topology_pages)
+    assert all(term is not lk_ball for term, _, _ in topology_pages)
+    fused_indices = [
+        indices
+        for term, indices, _ in topology_pages
+        if term is scorer._fused_ljlk_elec
+    ]
+    assert torch.equal(torch.cat(fused_indices, dim=1), full_indices)
+    assert all(values.numel() == 0 for _, _, values in topology_pages)
 
 
 def test_fused_ljlk_elec_empty_table_gradient(monkeypatch):
