@@ -64,20 +64,10 @@ class PackerPalleteAnnotation:
 
 
 class PackerPalette:
-    """Define which residue types may replace each original residue type.
+    """Define which residue types may replace each original residue type."""
 
-    Args:
-        protonation_alternatives: Also let each residue whose pose records
-            AtomWorks' protonation alternatives (see ``pose_stack_from_biotite``)
-            take the block types of those alternatives, across protonation
-            states, each with its free-energy offset as a one-body packer
-            energy. The packer's energies are not calibrated for proton
-            transfer, so this is off by default. See
-            ``tmol.pack.protonation_alternatives`` for the chosen variants.
-    """
-
-    def __init__(self, protonation_alternatives: bool = False):
-        self.protonation_alternatives = protonation_alternatives
+    def __init__(self):
+        pass
 
     def block_types_from_original(
         self, pbt: PackedBlockTypes, orig: Tensor[torch.int64][:, :]
@@ -377,15 +367,6 @@ class PackerTask:
         self.restrict_to_repacking_masks = palette.create_restrict_to_repacking_mask(
             systems.packed_block_types, systems.block_type_ind64
         )
-        # kcal/mol added to each considered block type's rotamers; None for none
-        self.per_block_considered_block_type_offset = None
-        if getattr(palette, "protonation_alternatives", False):
-            # imports tmol.io and AtomWorks, which packing otherwise never loads
-            from tmol.pack.protonation_alternatives import (
-                add_protonation_alternatives,
-            )
-
-            add_protonation_alternatives(self, systems)
         self.per_block_is_block_type_allowed = torch.ones_like(
             self.per_block_considered_block_types, dtype=torch.bool
         )
@@ -652,9 +633,6 @@ class SetPackerTask:
             task.per_block_conformer_sampler_allowed
         )
         set_task.per_block_chi_expansion = task.per_block_chi_expansion
-        set_task.per_block_considered_block_type_offset = getattr(
-            task, "per_block_considered_block_type_offset", None
-        )
 
         max_n_blocks = task.per_block_considered_block_types.shape[1]
         is_real_cbt = set_task.per_block_considered_block_types != -1

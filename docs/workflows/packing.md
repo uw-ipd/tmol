@@ -38,41 +38,6 @@ See {doc}`FastRelax </tutorial/06_fast_relax>`
 to combine packing with minimization, or {doc}`DNA/RNA <nucleic_acids>` for
 nucleic-acid samplers.
 
-## Protonation alternatives
-
-Packing keeps each residue's protonation state by default. To let free titratable side chains take other states supported by AtomWorks
-and the chemical database, record the alternatives when
-building the pose and turn them on in the palette:
-
-```python
-from tmol.pack.protonation_alternatives import chosen_protonation_variants
-
-pose_stack = pose_stack_from_biotite(
-    structure, device, protonation_alternatives=True
-)
-task = PackerTask(pose_stack, PackerPalette(protonation_alternatives=True))
-# ... restrict_to_repacking and samplers as above ...
-packed_pose_stack = pack_rotamers(pose_stack, sfxn, task)
-for choice in chosen_protonation_variants(packed_pose_stack):
-    print(choice.chain, choice.res_label, choice.label, choice.charge)
-```
-
-Only sites without input hydrogens or external bonds record alternatives; metal
-coordination and disulfides remain fixed. Candidate states come from calling
-AtomWorks on either side of its Dimorphite-DL titration boundaries within one pH
-unit of `ligand_ph`. Candidates must match a database hydrogen-count pattern;
-free histidine tautomers are also offered with equal offsets. This uses the
-current AtomWorks model, including its aromatic-nitrogen pKa of about 4.35,
-thiol pKa of 9.12 and amine pKa of 8.16, rather than separate protein estimates.
-
-Each proton gained contributes `1.364 * (pH - pKa)` kcal/mol relative to the
-assigned state. Packing adds these offsets to one-body energies. FastRelax
-uses the same offsets when accepting poses if the palette enables alternatives;
-within a fixed state they are constant and do not affect coordinate gradients.
-`protonation_state_energy(pose_stack)` exposes the offsets separately from raw
-score-function totals. Terminal states stay fixed during this side-chain search,
-including neutral amino termini supported by the database.
-
 ## Examples and reference
 
 {doc}`Packing tutorial </tutorial/04_packing_and_mutation_scan>` · {doc}`Packer extensions </tutorial/13_extending_the_packer>` · {doc}`Packing API </api/pack>`

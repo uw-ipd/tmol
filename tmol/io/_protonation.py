@@ -31,7 +31,6 @@ from tmol.utility.weak_identity_cache import WeakIdentityLRU
 
 # per atom, the res_type_variant its residue's protonation state selects; -1 for none
 PROTONATION_VARIANT = "tmol_protonation_variant"
-PROTONATION_ALTERNATIVES = "tmol_protonation_alternatives"
 _HYDROGEN = ("H", "D")
 _WATER = ("HOH", "DOD", "WAT")
 _CARRIES_HYDROGEN = ("C", "N", "O", "S", "P", "B", "SE")
@@ -230,7 +229,6 @@ def with_atomworks_hydrogens(
     backbone: Mapping[str, tuple[str | None, str | None]] | None = None,
     forms: Mapping[str, Forms] | None = None,
     hydrogens: numpy.ndarray | None = None,
-    alternative_types: Collection = (),
 ) -> struc.AtomArray | struc.AtomArrayStack:
     """``structure`` with AtomWorks' protonation of every residue lacking hydrogens.
 
@@ -267,7 +265,6 @@ def with_atomworks_hydrogens(
             backbone=backbone,
             forms=forms,
             hydrogens=hydrogens,
-            alternative_types=alternative_types,
         )
 
     starts, lacking = residues_lacking_hydrogens(structure, residue_names, forms)
@@ -364,24 +361,6 @@ def with_atomworks_hydrogens(
     for r, key in zip(asked, keys):
         variant[starts[r] : starts[r + 1]] = _variant(
             forms[res_name[r]], states[key], terminal[r]
-        )
-    if alternative_types:
-        from tmol.io._protonation_alternatives import encode_protonation_alternatives
-
-        structure = structure.copy()
-        structure.set_annotation(
-            PROTONATION_ALTERNATIVES,
-            encode_protonation_alternatives(
-                template,
-                starts,
-                residue_of,
-                extra,
-                declared,
-                asked,
-                forms,
-                alternative_types,
-                ph,
-            ),
         )
     if not placing.any():
         marked = structure.copy()
