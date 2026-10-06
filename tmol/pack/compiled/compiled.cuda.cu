@@ -942,10 +942,8 @@ struct Annealer {
             cache_tag);
       }
     };
-    // Keep the measured shared-cache policy limited to Hopper and GB300 PTX.
-    int const ptx = context->ptx_version();
     bool const cache_assignments =
-        max_n_res <= 128 && (ptx == 90 || ptx == 103);
+        max_n_res <= 128 && context->ptx_version() == 90;
     if (cache_assignments) {
       launch_hitemp(std::true_type{});
     } else {
