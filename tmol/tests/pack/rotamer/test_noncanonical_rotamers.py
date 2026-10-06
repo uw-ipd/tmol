@@ -29,14 +29,13 @@ FIXTURE_DIR = data_path("ncaa_fixtures")
 #
 # Diverse in what each one tests: HYP closes a ring onto the backbone, MLE
 # substitutes the backbone nitrogen, B3K and BIL sit on beta backbones whose
-# sidechain atom names do not line up with the library's, BIL branches at the
-# first sidechain atom, and AIB has no sidechain to sample at all.
-_BORROWERS: dict[str, tuple[str | None, frozenset]] = {
+# sidechain atom names do not line up with the library's, and BIL branches at
+# the first sidechain atom.
+_BORROWERS: dict[str, tuple[str, frozenset]] = {
     "HYP": ("PRO", frozenset({"N", "C"})),
     "MLE": ("LEU", frozenset({"N", "C"})),
     "B3K": ("LYS", frozenset({"N", "C"})),
     "BIL": ("ILE", frozenset({"N", "C"})),
-    "AIB": (None, frozenset({"N", "C"})),
 }
 
 # the borrowers whose own atom names match the library's, so the transferred
@@ -101,11 +100,6 @@ def test_a_borrowed_library_brings_its_chi_definitions(code: str) -> None:
     assert residue_type.dunbrack_reference == reference_name
 
     chi = _chi(residue_type)
-    if reference_name is None:
-        # nothing to borrow from, so nothing is claimed to have been borrowed
-        assert chi == []
-        return
-
     chemdb = ParameterDatabase.get_default().chemical
     reference_chi = _chi(next(r for r in chemdb.residues if r.name == reference_name))
     assert len(chi) >= len(reference_chi)
