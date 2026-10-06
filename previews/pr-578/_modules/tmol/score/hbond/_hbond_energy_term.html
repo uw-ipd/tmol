@@ -442,7 +442,7 @@
     <span class="n">PoseStack</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="n">_PACK_HBOND_ROTAMER_CANDIDATE_WINDOW</span> <span class="o">=</span> <span class="mi">16</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
+<span class="n">_PACK_HBOND_ROTAMER_CANDIDATE_WINDOW</span> <span class="o">=</span> <span class="mi">32</span> <span class="o">*</span> <span class="mi">1024</span>
 
 
 <div class="viewcode-block" id="HBondEnergyTerm">
@@ -714,9 +714,11 @@
             <span class="p">)</span>
             <span class="k">if</span> <span class="n">topology_only</span><span class="p">:</span>
                 <span class="k">yield</span> <span class="kc">None</span><span class="p">,</span> <span class="n">indices</span>
+                <span class="k">del</span> <span class="n">indices</span>
                 <span class="k">continue</span>
             <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">hbond_rotamer_scores_shared</span><span class="p">(</span><span class="o">*</span><span class="n">prepared_score_args</span><span class="p">,</span> <span class="n">indices</span><span class="p">)</span>
             <span class="k">yield</span> <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span>
+            <span class="k">del</span> <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">score_only_in_no_grad</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
