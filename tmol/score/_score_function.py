@@ -2043,6 +2043,7 @@ class RotamerScoringModule:
         if not retain_shared_dispatch:
             weights_offset = 0
             for term, score_weights, already_weighted in execution_terms:
+                weights_offset += term.n_score_types
                 if already_weighted:
                     assert score_weights is not None
                     for indices, weighted_values in term.iter_packing_entries(
@@ -2052,16 +2053,13 @@ class RotamerScoringModule:
                     ):
                         yield term, indices, weighted_values
                         del indices, weighted_values
-                    weights_offset += term.n_score_types
                     continue
 
+                weights = self.weights[
+                    weights_offset - term.n_score_types : weights_offset, 0, 0, 0
+                ]
+                empty_values = weights.new_empty(0)
                 if term.packing_score_iterator is not None:
-                    n_subterms = term.n_score_types
-                    weights = self.weights[
-                        weights_offset : weights_offset + n_subterms, 0, 0, 0
-                    ]
-                    weights_offset += n_subterms
-                    empty_values = weights.new_empty(0)
                     for scores, indices in term.iter_packing_entries(
                         coords, topology_only=topology_only
                     ):
@@ -2077,10 +2075,6 @@ class RotamerScoringModule:
                         del indices, weighted_values
                     continue
 
-                weights = self.weights[
-                    weights_offset : weights_offset + term.n_score_types, 0, 0, 0
-                ]
-                empty_values = weights.new_empty(0)
                 can_share_packing_dispatch = (
                     use_fused
                     and coords.device.type == "cuda"
@@ -2097,7 +2091,6 @@ class RotamerScoringModule:
                 if topology_only and can_share_packing_dispatch:
                     # The fused producer already contributes this entire layout.
                     # Rebuilding it or scoring its consumer adds no graph edges.
-                    weights_offset += term.n_score_types
                     continue
                 dispatches = (
                     self._fused_ljlk_elec.iter_packing_dispatches(coords)
@@ -2138,7 +2131,6 @@ class RotamerScoringModule:
                         yield term, indices, weighted_values
                         del indices, weighted_values, dispatch_window
                     del dispatch_windows, dispatch
-                weights_offset += term.n_score_types
             return
 
         term_results = self._sequential_term_results(

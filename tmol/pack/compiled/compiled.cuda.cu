@@ -563,8 +563,6 @@ struct Annealer {
         TPack<int, 3, D>::zeros({n_poses, n_hitemp_simA_traj, max_n_res});
     auto best_rotamer_assignments_hitemp_t =
         TPack<int, 3, D>::zeros({n_poses, n_hitemp_simA_traj, max_n_res});
-    auto current_rotamer_assignments_hitemp_quenchlite_t =
-        TPack<int, 3, D>::zeros({n_poses, n_hitemp_simA_traj, max_n_res});
     auto sorted_hitemp_traj_t =
         TPack<int, 2, D>::zeros({n_poses, n_hitemp_simA_traj});
     auto segment_heads_hitemp_t = TPack<int, 1, D>::zeros({n_poses});
@@ -587,8 +585,6 @@ struct Annealer {
     auto sorted_fullquench_traj_t =
         TPack<int, 2, D>::zeros({n_poses, n_fullquench_traj});
 
-    auto scores_final_t =
-        TPack<float, 2, D>::zeros({n_poses, n_fullquench_traj});
     auto rotamer_assignments_final_t =
         TPack<int, 3, D>::zeros({n_poses, n_fullquench_traj, max_n_res});
 
@@ -602,8 +598,6 @@ struct Annealer {
         current_rotamer_assignments_hitemp_t.view;
     auto best_rotamer_assignments_hitemp =
         best_rotamer_assignments_hitemp_t.view;
-    auto current_rotamer_assignments_hitemp_quenchlite =
-        current_rotamer_assignments_hitemp_quenchlite_t.view;
     auto sorted_hitemp_traj = sorted_hitemp_traj_t.view;
     auto segment_heads_hitemp = segment_heads_hitemp_t.view;
     auto segment_heads_lotemp = segment_heads_lotemp_t.view;
@@ -621,7 +615,6 @@ struct Annealer {
         current_rotamer_assignments_fullquench_t.view;
     auto sorted_fullquench_traj = sorted_fullquench_traj_t.view;
 
-    auto scores_final = scores_final_t.view;
     auto rotamer_assignments_final = rotamer_assignments_final_t.view;
 
     auto quench_lite_order = quench_lite_order_t.view;
@@ -740,12 +733,11 @@ struct Annealer {
           false,
           false);
 
-      // Copy best state into current and quench-lite buffer.
+      // Preserve the unquenched best state for the next phase; ranking can
+      // quench the best buffer in place because it is no longer needed.
       for (int i = g.thread_rank(); i < n_res; i += 32) {
         int i_assignment = best_rotamer_assignments_hitemp[pose][traj_id][i];
         current_rotamer_assignments_hitemp[pose][traj_id][i] = i_assignment;
-        current_rotamer_assignments_hitemp_quenchlite[pose][traj_id][i] =
-            i_assignment;
       }
 
       // Quench-lite to produce a score for ranking
@@ -755,7 +747,7 @@ struct Annealer {
               &state,
               g,
               ig,
-              current_rotamer_assignments_hitemp_quenchlite[pose][traj_id],
+              best_rotamer_assignments_hitemp[pose][traj_id],
               best_rotamer_assignments_hitemp[pose][traj_id],
               quench_lite_order[pose][traj_id],
               high_temp_initial,
@@ -919,9 +911,6 @@ struct Annealer {
       int const traj_id = cta_id % n_fullquench_traj;
       int const source_traj = sorted_fullquench_traj[pose][traj_id];
       int const n_res = ig.n_res(pose);
-      if (g.thread_rank() == 0) {
-        scores_final[pose][traj_id] = scores_fullquench[pose][traj_id];
-      }
       for (int i = g.thread_rank(); i < n_res; i += 32) {
         rotamer_assignments_final[pose][traj_id][i] =
             current_rotamer_assignments_fullquench[pose][source_traj][i];
@@ -953,8 +942,10 @@ struct Annealer {
             cache_tag);
       }
     };
+    // Keep the measured shared-cache policy limited to Hopper and GB300 PTX.
+    int const ptx = context->ptx_version();
     bool const cache_assignments =
-        max_n_res <= 128 && context->ptx_version() == 90;
+        max_n_res <= 128 && (ptx == 90 || ptx == 103);
     if (cache_assignments) {
       launch_hitemp(std::true_type{});
     } else {
@@ -1008,7 +999,7 @@ struct Annealer {
     mgpu::transform<annealer_cta_threads, 1>(
         final_reindexing, n_fullquench_threads, *context);
 
-    return {scores_final_t, rotamer_assignments_final_t};
+    return {scores_fullquench_t, rotamer_assignments_final_t};
   }
 };
 

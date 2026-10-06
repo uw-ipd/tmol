@@ -11,6 +11,7 @@ from tmol.pack import PackerPalette, PackerTask, SetPackerTask
 from tmol.pack.rotamer import IncludeCurrentSampler, build_rotamers
 from tmol.score.cartbonded import CartBondedEnergyTerm
 from tmol.score.genbonded import GenBondedEnergyTerm
+from tmol.score.backbone_torsion import BackboneTorsionEnergyTerm
 from tmol.score.dunbrack import DunbrackEnergyTerm
 from tmol.score.elec import ElecEnergyTerm
 from tmol.score.hbond import HBondEnergyTerm
@@ -29,6 +30,7 @@ def torch_device():
     [
         CartBondedEnergyTerm,
         GenBondedEnergyTerm,
+        BackboneTorsionEnergyTerm,
         DunbrackEnergyTerm,
         ElecEnergyTerm,
         HBondEnergyTerm,

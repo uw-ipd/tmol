@@ -27,3 +27,13 @@ else:
 
 genbonded_pose_scores = _ops.genbonded_pose_scores
 genbonded_rotamer_scores = _ops.genbonded_rotamer_scores
+
+
+def iter_packing_rotamer_scores(*args):
+    *score_args, topology_only = args
+    op = (
+        _ops.genbonded_rotamer_scores_topology
+        if topology_only
+        else genbonded_rotamer_scores
+    )
+    yield op(*score_args)
