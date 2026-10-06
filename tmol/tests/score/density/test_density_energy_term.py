@@ -40,9 +40,9 @@ def _map_around(pose_stack, dtype=torch.float64):
     voxel = 1.0
     n = [int(math.ceil(float(h - l) / voxel)) for h, l in zip(high, low)]
     template = ElectronDensityMap(
-        torch.zeros((n[2], n[1], n[0]), dtype=dtype),
+        torch.zeros((n[2], n[1], n[0]), dtype=dtype, device=coords.device),
         low,
-        torch.full((3,), voxel, dtype=dtype),
+        torch.full((3,), voxel, dtype=dtype, device=coords.device),
     )
     synth = DensityCorrelation(template, RESOLUTION).synthesize_density(
         coords[real], z[real]
