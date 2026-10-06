@@ -3,6 +3,10 @@ name: ~Install source distribution through package index
 on:
   workflow_call:
     inputs:
+      source-ref:
+        type: string
+        default: ""
+        description: Verified release commit; empty uses current tools for candidate recovery.
       candidate-run-id:
         type: string
         default: ""
@@ -18,6 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ inputs.source-ref }}
           submodules: recursive
       - uses: actions/setup-python@v5
         with:
