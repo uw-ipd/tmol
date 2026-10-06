@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
 
-    <script src="_static/documentation_options.js?v=5fe4e9ad"></script>
+    <script src="_static/documentation_options.js?v=fb9c6db4"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -58,7 +58,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.60" />
+  <meta name="docsearch:version" content="0.1.61" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -448,9 +448,9 @@ included in the standard dependencies.</p>
 <h2>GPU<a class="headerlink" href="#gpu" title="Link to this heading">#</a></h2>
 <p>Install the PyTorch build for your CUDA version, then select the matching TMol
 wheel index. For PyTorch 2.14 and CUDA 13.2 on Linux:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"torch==2.14.*"</span><span class="w"> </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/cu132
-python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"tmol==0.1.60+cu132torch2.14"</span><span class="w"> </span>--only-binary<span class="o">=</span>tmol<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--find-links<span class="w"> </span>https://uw-ipd.github.io/tmol/wheels/v0.1.60/cu132torch2.14/
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"torch==2.14.*"</span><span class="w"> </span>--only-binary<span class="o">=</span>:all:<span class="w"> </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/cu132
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"tmol==0.1.61+cu132torch2.14"</span><span class="w"> </span>--only-binary<span class="o">=</span>:all:<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--find-links<span class="w"> </span>https://uw-ipd.github.io/tmol/wheels/v0.1.61/cu132torch2.14/
 </pre></div>
 </div>
 <p>Pre-built wheels include C++/CUDA extensions; installing them does not require
@@ -459,8 +459,10 @@ python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </sp
 PyTorch variant, add <code class="docutils literal notranslate"><span class="pre">--force-reinstall</span></code> to the PyTorch install command.</p>
 <p>Each wheel page contains one CUDA/PyTorch combination. Pip selects the Python
 and platform tags; it does <strong>not</strong> detect your GPU or choose a CUDA version.
-The exact version qualifier and <code class="docutils literal notranslate"><span class="pre">--only-binary=tmol</span></code> prevent a CPU or source
-fallback when the requested GPU wheel is unavailable.</p>
+The exact version qualifier and <code class="docutils literal notranslate"><span class="pre">--only-binary=:all:</span></code> prevent a CPU or source
+fallback when the requested GPU wheel is unavailable. <code class="docutils literal notranslate"><span class="pre">--only-binary=:all:</span></code>
+also requires prebuilt wheels for every dependency; it fails instead of
+compiling a missing wheel locally.</p>
 <p>Other combinations are listed in <a class="reference external" href="https://github.com/uw-ipd/tmol/releases">GitHub Releases</a>.
 Use the corresponding <code class="docutils literal notranslate"><span class="pre">cuNNNtorchX.Y</span></code> page and version qualifier, or install a
 wheel’s download URL directly. A GitHub release’s ordinary web page is not a
@@ -473,7 +475,7 @@ these versions contain the correct ARM64 library but label it internally as
 then <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">check</span></code> reports that cuSPARSELt is unsupported.</p>
 <p>After installing PyTorch and TMol, run the supplied metadata repair in the
 same virtual environment:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-fLO<span class="w"> </span>https://github.com/uw-ipd/tmol/releases/download/v0.1.60/repair_cuda13_arm64_metadata.py
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-fLO<span class="w"> </span>https://github.com/uw-ipd/tmol/releases/download/v0.1.61/repair_cuda13_arm64_metadata.py
 python<span class="w"> </span>repair_cuda13_arm64_metadata.py
 python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>check
 </pre></div>
@@ -490,15 +492,15 @@ its gradients. Repeat the repair if reinstalling the affected NVIDIA package.</p
 </section>
 <section id="cpu">
 <h2>CPU<a class="headerlink" href="#cpu" title="Link to this heading">#</a></h2>
-<p>From 0.1.60, PyPI carries CPU wheels for PyTorch 2.14 and Python 3.11–3.14 on
+<p>From 0.1.61, PyPI carries CPU wheels for PyTorch 2.14 and Python 3.11–3.14 on
 Linux x86-64, Linux aarch64, and Apple Silicon:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>tmol
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"tmol==0.1.61"</span><span class="w"> </span>--only-binary<span class="o">=</span>:all:
 </pre></div>
 </div>
 <p>On Linux, install CPU-only PyTorch first to avoid downloading PyTorch’s CUDA
 libraries:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"torch==2.14.*"</span><span class="w"> </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/cpu
-python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>tmol<span class="w"> </span>--only-binary<span class="o">=</span>tmol
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"torch==2.14.*"</span><span class="w"> </span>--only-binary<span class="o">=</span>:all:<span class="w"> </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/cpu
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"tmol==0.1.61"</span><span class="w"> </span>--only-binary<span class="o">=</span>:all:
 </pre></div>
 </div>
 <p>CPU wheels constrain the PyTorch minor version they were compiled against.
@@ -528,7 +530,7 @@ already present. Use the GPU instructions above for CUDA scoring.</p>
 </div>
 <p>Use a virtual environment for each PyTorch/CUDA combination. Reinstall the
 matching TMol wheel when changing PyTorch’s minor version or CUDA variant.
-TMol 0.1.59’s PyPI source installer has a version mismatch; use 0.1.60 or a
+TMol 0.1.59’s PyPI source installer has a version mismatch; use 0.1.61 or a
 0.1.59 wheel download URL.</p>
 <p><span id="from-source"></span></p>
 </section>
