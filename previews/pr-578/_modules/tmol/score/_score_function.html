@@ -2541,6 +2541,7 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">retain_shared_dispatch</span><span class="p">:</span>
             <span class="n">weights_offset</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="k">for</span> <span class="n">term</span><span class="p">,</span> <span class="n">score_weights</span><span class="p">,</span> <span class="n">already_weighted</span> <span class="ow">in</span> <span class="n">execution_terms</span><span class="p">:</span>
+                <span class="n">weights_offset</span> <span class="o">+=</span> <span class="n">term</span><span class="o">.</span><span class="n">n_score_types</span>
                 <span class="k">if</span> <span class="n">already_weighted</span><span class="p">:</span>
                     <span class="k">assert</span> <span class="n">score_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
                     <span class="k">for</span> <span class="n">indices</span><span class="p">,</span> <span class="n">weighted_values</span> <span class="ow">in</span> <span class="n">term</span><span class="o">.</span><span class="n">iter_packing_entries</span><span class="p">(</span>
@@ -2550,16 +2551,13 @@
                     <span class="p">):</span>
                         <span class="k">yield</span> <span class="n">term</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">weighted_values</span>
                         <span class="k">del</span> <span class="n">indices</span><span class="p">,</span> <span class="n">weighted_values</span>
-                    <span class="n">weights_offset</span> <span class="o">+=</span> <span class="n">term</span><span class="o">.</span><span class="n">n_score_types</span>
                     <span class="k">continue</span>
 
+                <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span>
+                    <span class="n">weights_offset</span> <span class="o">-</span> <span class="n">term</span><span class="o">.</span><span class="n">n_score_types</span> <span class="p">:</span> <span class="n">weights_offset</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+                <span class="p">]</span>
+                <span class="n">empty_values</span> <span class="o">=</span> <span class="n">weights</span><span class="o">.</span><span class="n">new_empty</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">term</span><span class="o">.</span><span class="n">packing_score_iterator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">n_subterms</span> <span class="o">=</span> <span class="n">term</span><span class="o">.</span><span class="n">n_score_types</span>
-                    <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span>
-                        <span class="n">weights_offset</span> <span class="p">:</span> <span class="n">weights_offset</span> <span class="o">+</span> <span class="n">n_subterms</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
-                    <span class="p">]</span>
-                    <span class="n">weights_offset</span> <span class="o">+=</span> <span class="n">n_subterms</span>
-                    <span class="n">empty_values</span> <span class="o">=</span> <span class="n">weights</span><span class="o">.</span><span class="n">new_empty</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
                     <span class="k">for</span> <span class="n">scores</span><span class="p">,</span> <span class="n">indices</span> <span class="ow">in</span> <span class="n">term</span><span class="o">.</span><span class="n">iter_packing_entries</span><span class="p">(</span>
                         <span class="n">coords</span><span class="p">,</span> <span class="n">topology_only</span><span class="o">=</span><span class="n">topology_only</span>
                     <span class="p">):</span>
@@ -2575,10 +2573,6 @@
                         <span class="k">del</span> <span class="n">indices</span><span class="p">,</span> <span class="n">weighted_values</span>
                     <span class="k">continue</span>
 
-                <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span>
-                    <span class="n">weights_offset</span> <span class="p">:</span> <span class="n">weights_offset</span> <span class="o">+</span> <span class="n">term</span><span class="o">.</span><span class="n">n_score_types</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
-                <span class="p">]</span>
-                <span class="n">empty_values</span> <span class="o">=</span> <span class="n">weights</span><span class="o">.</span><span class="n">new_empty</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
                 <span class="n">can_share_packing_dispatch</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="n">use_fused</span>
                     <span class="ow">and</span> <span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cuda"</span>
@@ -2595,7 +2589,6 @@
                 <span class="k">if</span> <span class="n">topology_only</span> <span class="ow">and</span> <span class="n">can_share_packing_dispatch</span><span class="p">:</span>
                     <span class="c1"># The fused producer already contributes this entire layout.</span>
                     <span class="c1"># Rebuilding it or scoring its consumer adds no graph edges.</span>
-                    <span class="n">weights_offset</span> <span class="o">+=</span> <span class="n">term</span><span class="o">.</span><span class="n">n_score_types</span>
                     <span class="k">continue</span>
                 <span class="n">dispatches</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_fused_ljlk_elec</span><span class="o">.</span><span class="n">iter_packing_dispatches</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
@@ -2636,7 +2629,6 @@
                         <span class="k">yield</span> <span class="n">term</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">weighted_values</span>
                         <span class="k">del</span> <span class="n">indices</span><span class="p">,</span> <span class="n">weighted_values</span><span class="p">,</span> <span class="n">dispatch_window</span>
                     <span class="k">del</span> <span class="n">dispatch_windows</span><span class="p">,</span> <span class="n">dispatch</span>
-                <span class="n">weights_offset</span> <span class="o">+=</span> <span class="n">term</span><span class="o">.</span><span class="n">n_score_types</span>
             <span class="k">return</span>
 
         <span class="n">term_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sequential_term_results</span><span class="p">(</span>

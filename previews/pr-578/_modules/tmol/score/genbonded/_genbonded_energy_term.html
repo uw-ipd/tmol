@@ -1156,6 +1156,13 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">get_pose_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">genbonded_pose_scores</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_packing_rotamer_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.genbonded.potentials._compiled</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">iter_packing_rotamer_scores</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">iter_packing_rotamer_scores</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">get_rotamer_score_term_function</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">genbonded_rotamer_scores</span>
 
