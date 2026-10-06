@@ -32,13 +32,13 @@ def _random_map(dtype=torch.float64, n=14):
 
 
 def _map_around(pose_stack, dtype=torch.float64):
-    """A synthetic map of the pose's own heavy atoms, on a grid that contains the pose."""
+    """A synthetic map of the pose's heavy atoms, on a grid that contains the pose."""
     coords = pose_stack.coords[0].to(dtype)
     z = atomic_numbers_for_pose_stack(pose_stack)[0]
     real = z > 1
     low, high = coords[real].min(0).values - 8.0, coords[real].max(0).values + 8.0
     voxel = 1.0
-    n = [int(math.ceil(float(h - l) / voxel)) for h, l in zip(high, low)]
+    n = [int(math.ceil(float(h - l) / voxel)) for h, l in zip(high, low, strict=True)]
     template = ElectronDensityMap(
         torch.zeros((n[2], n[1], n[0]), dtype=dtype, device=coords.device),
         low,
@@ -71,7 +71,8 @@ def test_score_grid_interpolates_nodes_and_is_differentiable():
     density_map = _random_map()
     scorer = FastDensityScore(density_map, RESOLUTION)
     nz, ny, nx = density_map.density.shape
-    # the cubic B-spline interpolates the grid: at a voxel centre it returns the normalized score exactly
+    # the cubic B-spline interpolates the grid: at a voxel centre it returns the
+    # normalized score exactly
     nodes = torch.tensor(
         [[3, 4, 5], [0, 0, 0], [nx - 1, ny - 2, nz - 3]], dtype=torch.float64
     )
@@ -118,15 +119,34 @@ def test_whole_pose_energy_matches_direct_sum_and_gradient(
     )
 
 
-# scale_sc_dens_byres of Rosetta's cryoem_glycan_refinement.xml, keyed by one-letter code
-_ROSETTA_SC_SCALE = dict(
-    R=0.66, K=0.66, E=0.66, D=0.66, M=0.66, C=0.71, Q=0.71, H=0.71, N=0.71, T=0.71, S=0.71,
-    Y=0.78, W=0.78, A=0.78, F=0.78, P=0.78, I=0.78, L=0.78, V=0.78,
-)  # fmt: skip
-_THREE_TO_ONE = dict(
-    ARG="R", LYS="K", GLU="E", ASP="D", MET="M", CYS="C", GLN="Q", HIS="H", ASN="N", THR="T", SER="S",
-    TYR="Y", TRP="W", ALA="A", PHE="F", PRO="P", ILE="I", LEU="L", VAL="V", GLY="G",
-)  # fmt: skip
+# scale_sc_dens_byres of Rosetta's cryoem_glycan_refinement.xml, by one-letter code
+_ROSETTA_SC_SCALE = {
+    **dict.fromkeys("RKEDM", 0.66),
+    **dict.fromkeys("CQHNTS", 0.71),
+    **dict.fromkeys("YWAFPILV", 0.78),
+}
+_THREE_TO_ONE = {
+    "ARG": "R",
+    "LYS": "K",
+    "GLU": "E",
+    "ASP": "D",
+    "MET": "M",
+    "CYS": "C",
+    "GLN": "Q",
+    "HIS": "H",
+    "ASN": "N",
+    "THR": "T",
+    "SER": "S",
+    "TYR": "Y",
+    "TRP": "W",
+    "ALA": "A",
+    "PHE": "F",
+    "PRO": "P",
+    "ILE": "I",
+    "LEU": "L",
+    "VAL": "V",
+    "GLY": "G",
+}
 
 
 def test_sidechain_scale_follows_rosetta_cryoem_script(

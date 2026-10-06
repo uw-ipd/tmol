@@ -7,7 +7,8 @@ from .density import ElectronDensityMap, block_type_atomic_numbers
 from tmol.database import ParameterDatabase
 from tmol.pose import PoseStack
 
-# ``scale_sc_dens_byres`` of Rosetta's cryoem_glycan_refinement.xml: side-chain density is down-weighted by residue type.
+# ``scale_sc_dens_byres`` of Rosetta's cryoem_glycan_refinement.xml: side-chain
+# density is down-weighted by residue type.
 CRYOEM_SIDECHAIN_SCALE: dict[str, float] = {
     **dict.fromkeys(("ARG", "LYS", "GLU", "ASP", "MET"), 0.66),
     **dict.fromkeys(("CYS", "GLN", "HIS", "ASN", "THR", "SER"), 0.71),
@@ -19,15 +20,19 @@ _BACKBONE_ATOM_NAMES = frozenset({"N", "CA", "C", "O", "OXT"})
 class DensityEnergyTerm(EnergyTerm):
     """Rosetta-style ``elec_dens_fast`` fit-to-density score of every heavy atom.
 
-    ``E = - sum_atoms (a_elt / 6) * sidechain_scale * S(x_atom)`` over heavy atoms, where ``S`` is the normalized
-    score grid of :class:`FastDensityScore`. The term is unweighted; weight it through ``ScoreType.elec_dens_fast``
+    ``E = - sum_atoms (a_elt / 6) * sidechain_scale * S(x_atom)`` over heavy
+    atoms, where ``S`` is the normalized score grid of :class:`FastDensityScore`.
+    The term is unweighted; weight it through ``ScoreType.elec_dens_fast``
     (Rosetta's cryo-EM script uses 35).
 
     The observed map is a score-function option, not part of the pose::
 
-        sfxn.set_options({"density_map": ElectronDensityMap, "density_resolution": 3.0})
+        sfxn.set_options(
+            {"density_map": ElectronDensityMap, "density_resolution": 3.0}
+        )
 
-    ``density_scale_sidechains`` (default ``True``) applies Rosetta's per-residue side-chain scale.
+    ``density_scale_sidechains`` (default ``True``) applies Rosetta's per-residue
+    side-chain scale.
     """
 
     device: torch.device
@@ -65,8 +70,8 @@ class DensityEnergyTerm(EnergyTerm):
     def _get_scorer(self) -> FastDensityScore:
         if self.density_map is None or self.resolution is None:
             raise ValueError(
-                "elec_dens_fast needs the score-function options 'density_map' (an ElectronDensityMap) "
-                "and 'density_resolution'"
+                "elec_dens_fast needs the score-function options 'density_map' "
+                "(an ElectronDensityMap) and 'density_resolution'"
             )
         if not isinstance(self.density_map, ElectronDensityMap):
             raise TypeError("'density_map' must be an ElectronDensityMap")
@@ -79,7 +84,10 @@ class DensityEnergyTerm(EnergyTerm):
     def _block_type_atom_weights(
         self, packed_block_types, scorer: FastDensityScore
     ) -> torch.Tensor:
-        """Per atom of every block type: ``(a_elt / 6) * sidechain_scale``; zero for hydrogens and padding."""
+        """Per atom of every block type: ``(a_elt / 6) * sidechain_scale``.
+
+        Hydrogens and padding atoms get zero.
+        """
         z = block_type_atomic_numbers(packed_block_types, self.device)
         weight = scorer.amplitude(z) * (z > 1)
         if self.scale_sidechains:
@@ -106,8 +114,9 @@ class DensityEnergyTerm(EnergyTerm):
         block_type_weight = self._block_type_atom_weights(pbt, scorer)
         block_type_n_atoms = pbt.n_atoms.to(torch.int64)
 
-        # Whole-pose scoring has one rotamer per block, so the atom list is static: precompute the flat coordinate
-        # index, the owning pose and block, and the weight of every scoring atom once per render.
+        # Whole-pose scoring has one rotamer per block, so the atom list is static:
+        # precompute the flat coordinate index, the owning pose and block, and the
+        # weight of every scoring atom once per render.
         block_type = pose_stack.block_type_ind64
         pose_of_block, block_of_block = (block_type >= 0).nonzero(as_tuple=True)
         block_bt = block_type[pose_of_block, block_of_block]

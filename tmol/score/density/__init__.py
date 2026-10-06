@@ -1,4 +1,4 @@
-"""Differentiable cryo-EM density synthesis, map correlation and the ``elec_dens_fast`` energy term."""
+"""Differentiable cryo-EM density synthesis, map correlation and fit-to-density term."""
 
 from ._fast_density import FastDensityScore  # noqa: F401
 from ._density_energy_term import DensityEnergyTerm  # noqa: F401

@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 def _load_score_function(
     filename: str, device: torch.device, param_db: Optional[ParameterDatabase] = None
 ) -> "ScoreFunction":
-    """Build a score function from a weights file in ``tmol/database/score_functions``."""
+    """Build a score function from a file in ``tmol/database/score_functions``."""
     if param_db is None:
         param_db = ParameterDatabase.get_default()
 
@@ -108,11 +108,12 @@ def beta_nov16_dens_score_function(
     *,
     scale_sidechains: bool = True,
 ) -> "ScoreFunction":
-    """Return beta_nov2016 plus the ``elec_dens_fast`` fit-to-density term for one observed map.
+    """Return beta_nov2016 plus the ``elec_dens_fast`` term for one observed map.
 
-    The weights are those of :func:`beta2016_score_function` with ``elec_dens_fast`` added at 35, the value Rosetta's
-    cryo-EM refinement script uses. That script also reweights ``fa_rep`` (0.05) and the bonded terms; do the same
-    with ``ScoreFunction.set_weight``.
+    The weights are those of :func:`beta2016_score_function` with
+    ``elec_dens_fast`` added at 35, the value Rosetta's cryo-EM refinement script
+    uses. That script also reweights ``fa_rep`` (0.05) and the bonded terms; do
+    the same with ``ScoreFunction.set_weight``.
 
     Args:
         device: Target torch device.

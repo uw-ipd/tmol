@@ -11,7 +11,6 @@ import torch
 from tmol.io import atom_array_from_cif
 from tmol.score.density import DensityCorrelation
 
-
 _ELEMENT_Z = {
     "H": 1,
     "C": 6,

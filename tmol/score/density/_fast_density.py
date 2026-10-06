@@ -1,17 +1,20 @@
 """Rosetta-style ``elec_dens_fast`` score grid.
 
-The score of an atom at ``x`` is a precomputed, normalized, zero-mean correlation of the observed map with a single
-atom-sized Gaussian, read at ``x`` by a cubic B-spline::
+The score of an atom at ``x`` is a precomputed, normalized, zero-mean correlation
+of the observed map with a single atom-sized Gaussian, read at ``x`` by a cubic
+B-spline::
 
     S      = IFFT( FFT(rho - mean) * FFT(K - mean) )              periodic convolution
     S_norm = S / ( 4 * (S_(5th largest) - S_(5th smallest)) )
     E_atom = - (a_elt / 6) * S_norm(x)
 
-``K = k^1.5 exp(-k d^2)`` is truncated where it falls below ``density_cutoff``, with
-``k = min(pi^2 / sigma_C, 4 pi^2 / B_eff)`` and ``B_eff = 4 max(2 voxel, resolution)^2``. This is a linear
-correlation, not a Pearson CC: there is no normalization by the model density.
+``K = k^1.5 exp(-k d^2)`` is truncated where it falls below ``density_cutoff``,
+with ``k = min(pi^2 / sigma_C, 4 pi^2 / B_eff)`` and
+``B_eff = 4 max(2 voxel, resolution)^2``. This is a linear correlation, not a
+Pearson CC: there is no normalization by the model density.
 
-The equations follow Rosetta's published ``elec_dens_fast`` description. No Rosetta source is included.
+This reimplements the algorithm of Rosetta's ``elec_dens_fast``; no Rosetta source
+code is included.
 """
 
 from __future__ import annotations
@@ -24,14 +27,19 @@ from .density import ElectronDensityMap, _CRYOEM_SCATTERERS
 
 
 class FastDensityScore:
-    """Differentiable ``elec_dens_fast`` score grid, cubic-B-spline interpolated in atom positions.
+    """Differentiable ``elec_dens_fast`` score grid, B-spline interpolated in position.
 
     Args:
-        density_map: Observed map (``[z, y, x]`` values, Cartesian ``origin`` and ``voxel_size`` in ``[x, y, z]``).
-        resolution: Map resolution in Angstrom; it sets the kernel width as Rosetta's ``-edensity::mapreso`` does.
-        fastdens_params: Rosetta ``-edensity::fastdens_params``, a constant scale of the kernel.
-        normalisation_cut: The score range is taken between this-th smallest and this-th largest grid value.
-        scalefactor: Rosetta's normalization scale (the score is divided by ``scalefactor / 2`` times the range).
+        density_map: Observed map (``[z, y, x]`` values; Cartesian ``origin`` and
+            ``voxel_size`` in ``[x, y, z]``).
+        resolution: Map resolution in Angstrom; it sets the kernel width as
+            Rosetta's ``-edensity::mapreso`` does.
+        fastdens_params: Rosetta ``-edensity::fastdens_params``, a constant scale of
+            the kernel.
+        normalisation_cut: The score range is taken between this-th smallest and
+            this-th largest grid value.
+        scalefactor: Rosetta's normalization scale (the score is divided by
+            ``scalefactor / 2`` times the range).
         density_cutoff: The atom kernel is truncated where it falls below this value.
     """
 
@@ -76,7 +84,8 @@ class FastDensityScore:
         )
         kernel = kernel * (self.k ** (-fastdens_params[0]) - fastdens_params[1])
 
-        # zero-mean both maps (the DC term of each spectrum is zero), multiply spectra = periodic convolution
+        # zero-mean both maps (the DC term of each spectrum is zero); multiplying
+        # the spectra is a periodic convolution
         f_rho = torch.fft.rfftn(rho)
         f_rho[0, 0, 0] = 0
         f_ker = torch.fft.rfftn(kernel)
@@ -91,7 +100,8 @@ class FastDensityScore:
             raise ValueError("density score grid is degenerate (map is constant?)")
         self.score = score / sigma
 
-        # interpolating cubic B-spline: coefficients c with (c[i-1] + 4 c[i] + c[i+1]) / 6 = score[i] (periodic)
+        # interpolating cubic B-spline: coefficients c with
+        # (c[i-1] + 4 c[i] + c[i+1]) / 6 = score[i] (periodic)
         response = None
         for axis, n in enumerate(self.shape):
             freq = (
@@ -111,7 +121,7 @@ class FastDensityScore:
 
     @staticmethod
     def amplitude(atomic_numbers: torch.Tensor) -> torch.Tensor:
-        """Rosetta's per-element amplitude ``trunc(a) / 6``; unknown elements score as carbon."""
+        """Rosetta's per-element amplitude ``trunc(a) / 6``; unknown ones are carbon."""
         out = torch.full(
             atomic_numbers.shape,
             float(math.trunc(_CRYOEM_SCATTERERS[6][0])),
@@ -124,7 +134,7 @@ class FastDensityScore:
         return out / 6.0
 
     def __call__(self, xyz: torch.Tensor) -> torch.Tensor:
-        """Normalized score at Cartesian points ``xyz [..., 3]`` (periodic), differentiable in ``xyz``."""
+        """Normalized score at points ``xyz [..., 3]`` (periodic), differentiable."""
         u = (xyz - self.origin.to(xyz.dtype)) / self.voxel.to(xyz.dtype)
         n = self._dims.to(u.device)
         u = torch.remainder(u, n.to(u.dtype))

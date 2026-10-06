@@ -23,7 +23,6 @@ from typing import BinaryIO
 import numpy
 import torch
 
-
 # atomic number -> (single-Gaussian weight, intrinsic sigma)
 # These are Rosetta's cryo-EM/electron-scattering parameters fitted over the
 # 20--2 A resolution range. Unknown heavy elements use carbon, as in Rosetta.
@@ -197,7 +196,9 @@ def _element_atomic_numbers() -> dict[str, int]:
 
 
 def block_type_atomic_numbers(packed_block_types, device=None) -> torch.Tensor:
-    """Return atomic numbers per active block type, shape ``[n_block_types, max_n_atoms]``.
+    """Return atomic numbers per active block type.
+
+    The result has shape ``[n_block_types, max_n_atoms]``.
 
     Padding atoms receive zero. Element identity comes from TMol atom types;
     name parsing is only a fallback for custom types lacking an element entry.
