@@ -531,19 +531,33 @@ class DunbrackParamResolver(ValidateAttrs):
             # first defined well differing in one chi, scanning from the last
             # chi inward, bins in order; else the most common rotamer.
             # A -1 entry would index into the previous library's tables.
-            probs = rotlib.rotameric_data.rotamer_probabilities
-            most_common = int(probs.reshape(probs.shape[0], -1).mean(1).argmax())
-            defined = ri2ti.clone()
-            for well in torch.nonzero(defined < 0).flatten().tolist():
-                ri2ti[well] = most_common
-                for chi in reversed(range(rotamers.shape[1])):
-                    stride = int(prods[chi])
+            # Mirror the tie-break as well as the wells: reflected rows must
+            # choose the same source rotamer as their L counterparts.
+            bins = (
+                range(2, -1, -1)
+                if rotlib.rotameric_data.backbone_is_mirrored
+                else range(3)
+            )
+            defined = ri2ti.tolist()
+            strides = prods.tolist()[::-1]
+            most_common = None
+            for well, table in enumerate(defined):
+                if table >= 0:
+                    continue
+                for stride in strides:
                     bin_ = (well // stride) % 3
-                    alts = [well + (b - bin_) * stride for b in range(3) if b != bin_]
+                    alts = (well + (b - bin_) * stride for b in bins if b != bin_)
                     alt = next((a for a in alts if defined[a] >= 0), None)
                     if alt is not None:
                         ri2ti[well] = defined[alt]
                         break
+                else:
+                    if most_common is None:
+                        probs = rotlib.rotameric_data.rotamer_probabilities
+                        most_common = int(
+                            probs.reshape(probs.shape[0], -1).mean(1).argmax()
+                        )
+                    ri2ti[well] = most_common
 
             rotameric_rotind2tableind.extend(list(ri2ti))
             semirotameric_rotind2tableind.extend([0] * len(ri2ti))
