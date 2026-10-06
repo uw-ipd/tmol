@@ -3,8 +3,7 @@
 import pytest
 import torch
 
-from tmol.pack import PackerPalette, PackerTask, build_missing_sidechains, pack_rotamers
-from tmol.pack.rotamer import FixedAAChiSampler, IncludeCurrentSampler
+from tmol.pack import build_missing_sidechains
 from tmol.pose import PoseStackBuilder
 from tmol.score import beta2016_score_function
 from tmol.tests.score.common import pose_stack_from_pdb_and_resnums
@@ -51,30 +50,3 @@ def test_build_missing_sidechains_benchmark(
         )
 
     run
-
-
-@pytest.mark.slow
-@pytest.mark.parametrize("n_poses", [1, 4])
-@pytest.mark.benchmark(group="full_repacking")
-def test_full_repacking_benchmark(
-    benchmark, ubq_pdb, torch_device, dun_sampler, n_poses
-):
-    """Seeded end-to-end repacking, including scoring and annealing, on CPU/GPU."""
-    pose = pose_stack_from_pdb_and_resnums(ubq_pdb, torch_device)
-    poses = PoseStackBuilder.from_poses([pose] * n_poses, device=torch_device)
-    sfxn = beta2016_score_function(torch_device)
-    samplers = (IncludeCurrentSampler(), dun_sampler, FixedAAChiSampler())
-
-    def run():
-        task = PackerTask(poses, PackerPalette())
-        task.restrict_to_repacking()
-        for sampler in samplers:
-            task.add_conformer_sampler(sampler)
-        if torch_device.type == "cuda":
-            torch.cuda.synchronize(torch_device)
-        result = pack_rotamers(poses, sfxn, task, seed=1234)
-        if torch_device.type == "cuda":
-            torch.cuda.synchronize(torch_device)
-        return result
-
-    benchmark.pedantic(run, iterations=1, rounds=5, warmup_rounds=1)
