@@ -38,6 +38,7 @@ from tmol.ligand._detect import (
     nonstandard_residue_info_from_smiles_via_mol2,
 )
 from tmol.ligand._conjugation_patches import charges_for_database_residue
+from tmol.ligand._input_repair import deprotonate_overprotonated_oxyacids
 from tmol.ligand._registry import (
     LigandPreparation,
     _build_cartbonded_params,
@@ -2502,12 +2503,43 @@ def prepare_ligands_from_smiles(
     return param_db, names
 
 
+def _without_oxyacid_overprotonation(lig: NonStandardResidueInfo):
+    """The ligand with over-protonated oxyacid groups deprotonated."""
+    array, promoted = deprotonate_overprotonated_oxyacids(lig.atom_array)
+    if array is lig.atom_array:
+        return lig
+    kept = set(str(n) for n in array.atom_name)
+    return attr.evolve(
+        lig,
+        atom_array=array,
+        atom_names=tuple(str(n) for n in array.atom_name),
+        elements=tuple(str(e) for e in array.element),
+        coords=array.coord,
+        partial_charges=(
+            {n: q for n, q in lig.partial_charges.items() if n in kept}
+            if lig.partial_charges is not None
+            else None
+        ),
+        original_single_bonds=(
+            frozenset(
+                pair
+                for pair in lig.original_single_bonds
+                if pair not in promoted and pair <= kept
+            )
+            if lig.original_single_bonds is not None
+            else None
+        ),
+    )
+
+
 def _prepare_mol2(mol2_path, res_name=None, *, ph=7.4, mode="auto", seed=None):
     from tmol.ligand._detect import nonstandard_residue_info_from_file
 
     if mode not in ("keep", "auto", "regenerate"):
         raise ValueError("MOL2 mode must be keep, auto, or regenerate")
     lig = nonstandard_residue_info_from_file(mol2_path, res_name=res_name)
+    if mode == "regenerate":
+        lig = _without_oxyacid_overprotonation(lig)
     try:
         return (
             prepare_single_ligand(lig, name_source=lig)
