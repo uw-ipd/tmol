@@ -28,15 +28,15 @@ on CPU or CUDA, with gradients through coordinate scoring.
 For GPU scoring on Linux with PyTorch 2.14 and CUDA 13.2:
 
 ```bash
-python -m pip install "torch==2.14.*" --index-url https://download.pytorch.org/whl/cu132
-python -m pip install "tmol==0.1.60+cu132torch2.14" --only-binary=tmol \
-  --find-links https://uw-ipd.github.io/tmol/wheels/v0.1.60/cu132torch2.14/
+python -m pip install "torch==2.14.*" --only-binary=:all: --index-url https://download.pytorch.org/whl/cu132
+python -m pip install "tmol==0.1.61+cu132torch2.14" --only-binary=:all: \
+  --find-links https://uw-ipd.github.io/tmol/wheels/v0.1.61/cu132torch2.14/
 ```
 
 For CPU scoring:
 
 ```bash
-python -m pip install tmol
+python -m pip install "tmol==0.1.61" --only-binary=:all:
 ```
 
 PyPI provides CPU wheels; GitHub hosts CUDA variants. Both include AtomWorks 3

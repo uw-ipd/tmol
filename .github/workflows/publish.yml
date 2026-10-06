@@ -185,7 +185,16 @@ jobs:
   upload:
     name: Publish validated GitHub artifacts
     needs: [verify_release_version, test_wheels, test_default_pypi, test_gpu_runtime, build_sdist]
-    if: github.event_name != 'workflow_dispatch' || !inputs.validate-only
+    # Recovery skips rebuilds. Override inherited skip propagation, but require
+    # every validation gate to succeed before creating public artifacts.
+    if: >-
+      ${{ !cancelled() &&
+          needs.verify_release_version.result == 'success' &&
+          needs.test_wheels.result == 'success' &&
+          needs.test_default_pypi.result == 'success' &&
+          needs.test_gpu_runtime.result == 'success' &&
+          needs.build_sdist.result == 'success' &&
+          (github.event_name != 'workflow_dispatch' || !inputs.validate-only) }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -292,6 +301,7 @@ jobs:
   publish_indexes:
     name: Publish versioned wheel indexes
     needs: upload
+    if: ${{ !cancelled() && needs.upload.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -333,6 +343,7 @@ jobs:
   publish_pypi:
     name: Publish CPU wheels and source to PyPI
     needs: publish_indexes
+    if: ${{ !cancelled() && needs.publish_indexes.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-python@v5
@@ -360,6 +371,9 @@ jobs:
   verify_public:
     name: Verify public PyPI installation
     needs: [verify_release_version, publish_pypi]
+    if: >-
+      ${{ !cancelled() && needs.verify_release_version.result == 'success' &&
+          needs.publish_pypi.result == 'success' }}
     strategy:
       fail-fast: false
       matrix:
