@@ -263,6 +263,110 @@ def normalize_radical_oxygens(mol: Chem.Mol) -> Chem.Mol:
     return _sanitized(rw, mol, "Radical-oxygen normalization failed to sanitize mol")
 
 
+# Valences a neutral oxyacid center takes, lowest (octet) first.
+_OXYACID_CENTER_VALENCES = {"C": (4,), "P": (3, 5), "S": (2, 4, 6)}
+_INTEGER_BOND_ORDER = {
+    int(struc.BondType.SINGLE): 1,
+    int(struc.BondType.DOUBLE): 2,
+    int(struc.BondType.TRIPLE): 3,
+}
+
+
+def deprotonate_overprotonated_oxyacids(
+    atom_array: struc.AtomArray,
+) -> tuple[struc.AtomArray, frozenset[frozenset[str]]]:
+    """Strip the hydrogens of oxyacid groups drawn with more protons than any acid holds.
+
+    A C, P or S center is over-protonated when a terminal oxygen carries H on a
+    double bond, or when protonated terminal oxygens leave the center short of
+    the smallest neutral valence its coordination allows (P(OH)3 on a phosphate
+    ester). Every terminal oxygen of such a center loses its H, and its shortest
+    single bonds to them become double until that valence is reached, leaving the
+    protonation state to be assigned afresh.
+
+    Returns the repaired copy and the atom-name pairs whose bonds became double.
+    """
+    bonds = atom_array.bonds
+    if bonds is None:
+        return atom_array, frozenset()
+    elements = [str(e) for e in atom_array.element]
+    neighbors = [dict() for _ in range(len(atom_array))]
+    for i, j, kind in bonds.as_array():
+        order = _INTEGER_BOND_ORDER.get(int(kind))
+        neighbors[i][j] = order
+        neighbors[j][i] = order
+
+    def heavy(index):
+        return [n for n in neighbors[index] if elements[n] not in ("H", "D")]
+
+    def hydrogens(index):
+        return [n for n in neighbors[index] if elements[n] in ("H", "D")]
+
+    stripped, promoted = set(), []
+    for center, element in enumerate(elements):
+        valences = _OXYACID_CENTER_VALENCES.get(element)
+        if valences is None or None in neighbors[center].values():
+            continue
+        terminal = [
+            n for n in heavy(center) if elements[n] == "O" and heavy(n) == [center]
+        ]
+        protonated = [n for n in terminal if hydrogens(n)]
+        if not protonated:
+            continue
+        # all-single bonding never exceeds the octet valence (no sulfuranes)
+        coordination = len(neighbors[center])
+        target = next(
+            (
+                v
+                for v in valences
+                if v > coordination or v == coordination <= valences[0]
+            ),
+            None,
+        )
+        if target is None:
+            continue
+        deficit = target - sum(neighbors[center].values())
+        oxonium = any(neighbors[center][n] == 2 for n in protonated)
+        if deficit <= 0 and not oxonium:
+            continue
+        singles = sorted(
+            (n for n in terminal if neighbors[center][n] == 1),
+            key=lambda n: np.linalg.norm(
+                atom_array.coord[n] - atom_array.coord[center]
+            ),
+        )
+        if deficit > len(singles):
+            continue
+        logger.warning(
+            "%s %s: terminal oxygens carry more protons than any oxyacid holds; "
+            "removing them so protonation is assigned afresh",
+            atom_array.res_name[center],
+            atom_array.atom_name[center],
+        )
+        for n in terminal:
+            stripped.update(hydrogens(n))
+        promoted.extend((center, n) for n in singles[: max(deficit, 0)])
+
+    if not stripped:
+        return atom_array, frozenset()
+    repaired = atom_array.copy()
+    for center, oxygen in promoted:
+        repaired.bonds.remove_bond(center, oxygen)
+        repaired.bonds.add_bond(center, oxygen, struc.BondType.DOUBLE)
+    if "charge" in repaired.get_annotation_categories():
+        for center, _ in promoted:
+            repaired.charge[center] = 0
+        for h in stripped:
+            for oxygen in neighbors[h]:
+                repaired.charge[oxygen] = 0
+    keep = np.ones(len(repaired), dtype=bool)
+    keep[sorted(stripped)] = False
+    names = atom_array.atom_name
+    return repaired[keep], frozenset(
+        frozenset((str(names[c]), str(names[o]))) for c, o in promoted
+    )
+
+
 def _sanitized(rw: Chem.RWMol, mol: Chem.Mol, failure: str) -> Chem.Mol:
     """The sanitized edit ``rw``, or the unedited ``mol`` (logging ``failure``)."""
     out = rw.GetMol()
