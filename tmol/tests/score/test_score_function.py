@@ -289,6 +289,50 @@ def test_fused_ljlk_elec_preserves_term_lanes_weights_and_gradients(
     assert torch.count_nonzero(fused.weights.grad[:4]) != 0
 
 
+@pytest.mark.parametrize("weighted", [False, True])
+@pytest.mark.parametrize("batched", [False, True])
+def test_cuda_fused_pose_accumulation_stability(
+    distinct_pose_stacks,
+    stack_of_distinct_poses,
+    default_database,
+    torch_device,
+    weighted,
+    batched,
+):
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA block-pair accumulation regression")
+    pose = stack_of_distinct_poses if batched else distinct_pose_stacks[-1]
+    sfxn = ScoreFunction(default_database, torch_device)
+    for term, weight in (
+        (ScoreType.fa_ljatr, 1.0),
+        (ScoreType.fa_ljrep, 0.55),
+        (ScoreType.fa_lk, 1.0),
+        (ScoreType.fa_elec, 1.0),
+    ):
+        sfxn.set_weight(term, weight)
+    scorer = sfxn.render_whole_pose_scoring_module(pose)
+    assert scorer._execution_modules[0].classname == "LJLK+Elec"
+    # Exercise both independent term lanes and the compact weighted lane.
+    scorer._force_weighted_fusion_for_cuda_graph = weighted
+    with torch.no_grad():
+        reference = scorer(pose.coords.double(), sum_terms=weighted)
+        repeated = torch.stack(
+            [scorer(pose.coords, sum_terms=weighted) for _ in range(32)]
+        )
+    assert repeated.dtype == torch.float32
+    torch.testing.assert_close(
+        repeated.double(), reference.expand_as(repeated), rtol=1e-4, atol=1e-3
+    )
+    # A long FP32 atomic sum drifts by multiple ULPs with workgroup order.
+    # Double accumulation followed by one cast retains FP32 rounding accuracy.
+    torch.testing.assert_close(
+        repeated,
+        repeated[0].expand_as(repeated),
+        rtol=torch.finfo(torch.float32).eps,
+        atol=0,
+    )
+
+
 def test_fused_ljlk_elec_weighted_gradient_finite_difference(
     ubq_pdb, default_database, torch_device
 ):

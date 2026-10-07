@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
     inputs:
       release-tag:
-        description: Existing immutable tag to build or recover (for example v0.1.61)
+        description: Existing immutable tag to build or recover (for example v0.1.62)
         required: true
         type: string
       candidate-run-id:

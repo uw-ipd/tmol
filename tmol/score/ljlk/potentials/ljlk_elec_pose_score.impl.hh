@@ -265,24 +265,20 @@ TMOL_DEVICE_FUNC void store_score_totals(
     ScoringData<Real>& data,
     Shared& shared,
     TView<Real, 4, D> output,
-    double* cpu_pose_accum,
+    double* pose_accum,
     int n_outputs) {
-  // CPU workgroups execute serially, so thousands of small block-pair totals
-  // are rounded away in a large float pose total. Accumulate them in double and
-  // write back once, exactly as the unfused LJ/LK kernel does; without this the
-  // fused path (always taken for a single pose on CPU) is a hundredfold looser
-  // than the bound the term's own accumulation test asserts.
-  constexpr bool host_accumulate = (D == tmol::Device::CPU) && !rotamer_pairs;
+  // Summing thousands of FP32 block-pair energies into a pose-sized FP32
+  // total loses low bits in an order-dependent way, especially when weighted
+  // terms cancel. Both CPU and CUDA accumulate these totals in double and
+  // round once on output. Atom-pair arithmetic and derivatives retain Real.
   if constexpr (weighted) {
     Real const total = DeviceOperations<D>::template reduce_in_workgroup<nt>(
         data.total_weighted, shared, mgpu::plus_t<Real>());
     if (tid == 0) {
       if constexpr (rotamer_pairs) {
         output[0][0][0][data.output_ind] = total;
-      } else if constexpr (host_accumulate) {
-        cpu_pose_accum[data.pose_ind] += double(total);
       } else {
-        accumulate<D, Real>::add(output[0][data.pose_ind][0][0], total);
+        accumulate<D, double>::add(pose_accum[data.pose_ind], double(total));
       }
     }
   } else {
@@ -297,13 +293,9 @@ TMOL_DEVICE_FUNC void store_score_totals(
             data.total_elec, shared, mgpu::plus_t<Real>())};
     if (tid == 0) {
       for (int score_type = 0; score_type < 4; ++score_type) {
-        if constexpr (host_accumulate) {
-          cpu_pose_accum[score_type * n_outputs + data.pose_ind] +=
-              double(totals[score_type]);
-        } else {
-          accumulate<D, Real>::add(
-              output[score_type][data.pose_ind][0][0], totals[score_type]);
-        }
+        accumulate<D, double>::add(
+            pose_accum[score_type * n_outputs + data.pose_ind],
+            double(totals[score_type]));
       }
     }
   }
@@ -387,10 +379,18 @@ auto ljlk_elec_forward_impl(
           : TPack<Real, 4, D>::zeros({n_output_scores, n_outputs, 1, 1});
   auto output = output_t.view;
   std::vector<double> cpu_pose_totals;
-  if constexpr (D == tmol::Device::CPU && !rotamer_pairs) {
-    cpu_pose_totals.resize(n_output_scores * n_outputs, 0.0);
+  TPack<double, 1, D> cuda_pose_totals_t;
+  double* pose_accum = nullptr;
+  if constexpr (!rotamer_pairs) {
+    if constexpr (D == tmol::Device::CPU) {
+      cpu_pose_totals.resize(n_output_scores * n_outputs, 0.0);
+      pose_accum = cpu_pose_totals.data();
+    } else {
+      cuda_pose_totals_t =
+          TPack<double, 1, D>::zeros({n_output_scores * n_outputs});
+      pose_accum = cuda_pose_totals_t.view.data();
+    }
   }
-  double* cpu_pose_accum = cpu_pose_totals.data();
   auto dV_dcoords_t =
       require_gradient ? TPack<Real3, 2, D>::zeros({n_output_scores, n_atoms})
                        : TPack<Real3, 2, D>::empty({n_output_scores, 0});
@@ -400,6 +400,17 @@ auto ljlk_elec_forward_impl(
   CTA_REAL_REDUCE_T_TYPEDEF;
   // CPU workgroup lanes run serially; one lane traverses each tile directly.
   constexpr int score_nt = D == tmol::Device::CPU ? 1 : nt;
+
+  auto finalize_pose_scores = [&]() {
+    if constexpr (!rotamer_pairs) {
+      DeviceOperations<D>::template forall<launch_t>(
+          mgr, n_outputs, [=] TMOL_DEVICE_FUNC(int p) {
+            for (int term = 0; term < n_output_scores; ++term) {
+              output[term][p][0][0] = Real(pose_accum[term * n_outputs + p]);
+            }
+          });
+    }
+  };
 
 #ifdef __NVCC__
   auto eval_pair = ([=] TMOL_DEVICE_FUNC(int candidate, auto pair_mode_tag) {
@@ -822,12 +833,9 @@ auto ljlk_elec_forward_impl(
           eval_pairs(data, start1, start2, true);
         });
 
-    // Both are named in the capture list rather than left to [=]: an extended
-    // __device__ lambda may not first-capture a variable inside a constexpr-if,
-    // and the only use of either below sits in one. ljlk_pose_score.impl.hh
-    // captures cpu_pose_accum the same way for the same reason.
+    // Explicit captures avoid NVCC first-capture inside constexpr-if.
     auto store_energies =
-        ([=, cpu_pose_accum = cpu_pose_accum, n_outputs = n_outputs] TMOL_DEVICE_FUNC(
+        ([=, pose_accum = pose_accum, n_outputs = n_outputs] TMOL_DEVICE_FUNC(
              ScoringData<Real>& data, shared_mem_union& sm) {
           if constexpr (!require_gradient || !rotamer_pairs) {
             auto reduce = ([&](int tid) {
@@ -836,7 +844,7 @@ auto ljlk_elec_forward_impl(
                   rotamer_pairs,
                   DeviceOperations,
                   D,
-                  score_nt>(tid, data, sm, output, cpu_pose_accum, n_outputs);
+                  score_nt>(tid, data, sm, output, pose_accum, n_outputs);
             });
             DeviceOperations<D>::template for_each_in_workgroup<score_nt>(
                 reduce);
@@ -915,13 +923,7 @@ auto ljlk_elec_forward_impl(
           n_poses,
           max_n_blocks,
           eval_intra);
-      if constexpr (D == tmol::Device::CPU && !rotamer_pairs) {
-        for (int term = 0; term < n_output_scores; ++term) {
-          for (int p = 0; p < n_outputs; ++p) {
-            output[term][p][0][0] = Real(cpu_pose_accum[term * n_outputs + p]);
-          }
-        }
-      }
+      finalize_pose_scores();
       return {output_t, dV_dcoords_t};
     }
   }
@@ -946,13 +948,7 @@ auto ljlk_elec_forward_impl(
             max_n_blocks,
             eval_neighbor);
   }
-  if constexpr (D == tmol::Device::CPU && !rotamer_pairs) {
-    for (int term = 0; term < n_output_scores; ++term) {
-      for (int p = 0; p < n_outputs; ++p) {
-        output[term][p][0][0] = Real(cpu_pose_accum[term * n_outputs + p]);
-      }
-    }
-  }
+  finalize_pose_scores();
   return {output_t, dV_dcoords_t};
 }
 
