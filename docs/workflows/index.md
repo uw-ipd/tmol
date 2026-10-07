@@ -1,7 +1,8 @@
-# Guides
+# Workflow reference
 
-Examples and API details for common modeling tasks. Start with the
-{doc}`Quickstart </quickstart>` if you have not used TMol before.
+Details for workflows introduced in the {doc}`Quickstart </quickstart>`.
+For definitions and visual explanations, use the {doc}`Glossary </glossary>`;
+for runnable notebooks, use {doc}`Tutorials </examples_index>`.
 
 ```{toctree}
 :maxdepth: 1

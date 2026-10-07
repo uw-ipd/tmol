@@ -67,9 +67,10 @@ print(score(pose.coords))
 ```
 
 See the [quickstart](https://uw-ipd.github.io/tmol/latest/quickstart.html) for
-minimization and ligand preparation. The
-[guides](https://uw-ipd.github.io/tmol/latest/workflows/index.html) cover batching,
-packing, score analysis, and model inputs; the
+scoring, minimization, repacking, FastRelax, batching, and ligand preparation.
+The [visual glossary](https://uw-ipd.github.io/tmol/latest/glossary.html) explains
+the concepts, and the [score playground](https://uw-ipd.github.io/tmol/latest/playground.html)
+lets you rotate a side chain and inspect TMol scores in the browser. The
 [task index](https://uw-ipd.github.io/tmol/latest/tutorial/recipe_index.html)
 links individual operations to examples and APIs.
 

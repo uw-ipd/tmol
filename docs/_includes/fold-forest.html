@@ -1,0 +1,32 @@
+<section class="concept-explorer" id="fold-forest" aria-label="Explore movement through a fold forest">
+  <div class="explorer-buttons" role="group" aria-label="Choose a kinematic move">
+    <button type="button" data-move="backbone" aria-pressed="true">Backbone torsion</button>
+    <button type="button" data-move="jump" aria-pressed="false">Rigid-body jump</button>
+    <button type="button" data-move="other" aria-pressed="false">Second pose</button>
+  </div>
+  <svg viewBox="0 0 660 250" role="img" aria-labelledby="forest-title forest-desc">
+    <title id="forest-title">Two independent pose trees</title>
+    <desc id="forest-desc">Pose 0 has chain A with nodes A1, A2, A3, and chain B with nodes B1 and B2 connected by a jump from A1. Pose 1 has C1 and C2. Highlighted nodes move downstream of the selected edge.</desc>
+    <defs><marker id="forest-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="currentColor"/></marker></defs>
+    <rect x="10" y="10" width="406" height="230" rx="12" class="forest-panel"/>
+    <rect x="432" y="10" width="218" height="230" rx="12" class="forest-panel"/>
+    <path d="M424 10V240" class="forest-divider"/>
+    <text x="30" y="40" class="forest-heading">Pose 0</text><text x="452" y="40" class="forest-heading">Pose 1</text>
+    <path d="M96 91H203" class="forest-edge active" data-edge="backbone" marker-end="url(#forest-arrow)"/>
+    <path d="M255 91H349" class="forest-edge" marker-end="url(#forest-arrow)"/>
+    <path d="M76 116V185H203" class="forest-edge jump" data-edge="jump" marker-end="url(#forest-arrow)"/>
+    <path d="M255 185H349" class="forest-edge" marker-end="url(#forest-arrow)"/>
+    <path d="M494 116V159" class="forest-edge" data-edge="other" marker-end="url(#forest-arrow)"/>
+    <g class="forest-node" data-node="A1"><circle cx="76" cy="91" r="24"/><text x="76" y="97">A1</text></g>
+    <g class="forest-node active" data-node="A2"><circle cx="230" cy="91" r="24"/><text x="230" y="97">A2</text></g>
+    <g class="forest-node active" data-node="A3"><circle cx="376" cy="91" r="24"/><text x="376" y="97">A3</text></g>
+    <g class="forest-node" data-node="B1"><circle cx="230" cy="185" r="24"/><text x="230" y="191">B1</text></g>
+    <g class="forest-node" data-node="B2"><circle cx="376" cy="185" r="24"/><text x="376" y="191">B2</text></g>
+    <g class="forest-node" data-node="C1"><circle cx="494" cy="91" r="24"/><text x="494" y="97">C1</text></g>
+    <g class="forest-node" data-node="C2"><circle cx="494" cy="185" r="24"/><text x="494" y="191">C2</text></g>
+    <text x="108" y="171" class="forest-label">jump</text>
+    <text x="111" y="75" class="forest-label">polymer</text>
+    <text x="530" y="138" class="forest-label">polymer</text>
+  </svg>
+  <p class="explorer-explanation" aria-live="polite">A backbone torsion along A1 → A2 moves downstream A2 and A3. Chain B is attached through A1, so this move leaves it fixed.</p>
+</section>
