@@ -10,8 +10,8 @@ wheel index. For PyTorch 2.14 and CUDA 13.2 on Linux:
 
 ```bash
 python -m pip install "torch==2.14.*" --only-binary=:all: --index-url https://download.pytorch.org/whl/cu132
-python -m pip install "tmol==0.1.61+cu132torch2.14" --only-binary=:all: \
-  --find-links https://uw-ipd.github.io/tmol/wheels/v0.1.61/cu132torch2.14/
+python -m pip install "tmol==0.1.62+cu132torch2.14" --only-binary=:all: \
+  --find-links https://uw-ipd.github.io/tmol/wheels/v0.1.62/cu132torch2.14/
 ```
 
 Pre-built wheels include C++/CUDA extensions; installing them does not require
@@ -43,7 +43,7 @@ After installing PyTorch and TMol, run the supplied metadata repair in the
 same virtual environment:
 
 ```bash
-curl -fLO https://github.com/uw-ipd/tmol/releases/download/v0.1.61/repair_cuda13_arm64_metadata.py
+curl -fLO https://github.com/uw-ipd/tmol/releases/download/v0.1.62/repair_cuda13_arm64_metadata.py
 python repair_cuda13_arm64_metadata.py
 python -m pip check
 ```
@@ -60,11 +60,11 @@ its gradients. Repeat the repair if reinstalling the affected NVIDIA package.
 
 ## CPU
 
-From 0.1.61, PyPI carries CPU wheels for PyTorch 2.14 and Python 3.11–3.14 on
+From 0.1.62, PyPI carries CPU wheels for PyTorch 2.14 and Python 3.11–3.14 on
 Linux x86-64, Linux aarch64, and Apple Silicon:
 
 ```bash
-python -m pip install "tmol==0.1.61" --only-binary=:all:
+python -m pip install "tmol==0.1.62" --only-binary=:all:
 ```
 
 On Linux, install CPU-only PyTorch first to avoid downloading PyTorch's CUDA
@@ -72,7 +72,7 @@ libraries:
 
 ```bash
 python -m pip install "torch==2.14.*" --only-binary=:all: --index-url https://download.pytorch.org/whl/cpu
-python -m pip install "tmol==0.1.61" --only-binary=:all:
+python -m pip install "tmol==0.1.62" --only-binary=:all:
 ```
 
 CPU wheels constrain the PyTorch minor version they were compiled against.
@@ -89,7 +89,7 @@ already present. Use the GPU instructions above for CUDA scoring.
 
 Use a virtual environment for each PyTorch/CUDA combination. Reinstall the
 matching TMol wheel when changing PyTorch's minor version or CUDA variant.
-TMol 0.1.59's PyPI source installer has a version mismatch; use 0.1.61 or a
+TMol 0.1.59's PyPI source installer has a version mismatch; use 0.1.62 or a
 0.1.59 wheel download URL.
 
 <span id="from-source"></span>
