@@ -499,7 +499,16 @@
 <div class="viewcode-block" id="PackerPalette">
 <a class="viewcode-back" href="../../../api/pack.html#tmol.pack.PackerPalette">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">PackerPalette</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Define which residue types may replace each original residue type."""</span>
+<span class="w">    </span><span class="sd">"""Define which residue types may replace each original residue type.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        noncanonical_design: Also offer noncanonical residue types (such as AIB)</span>
+<span class="sd">            as replacements for other residues. Off by default, so a</span>
+<span class="sd">            noncanonical type is considered only where the input already has it.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">noncanonical_design</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noncanonical_design</span> <span class="o">=</span> <span class="n">noncanonical_design</span>
 
 <div class="viewcode-block" id="PackerPalette.block_types_from_original">
 <a class="viewcode-back" href="../../../api/pack.html#tmol.pack.PackerPalette.block_types_from_original">[docs]</a>
@@ -525,10 +534,11 @@
         <span class="c1"># the original block type is pre-computed and cached in the PackedBlockTypes</span>
         <span class="c1"># object, so all we will do is take the subset of real block types (ind &gt;= 0)</span>
         <span class="c1"># and read from the cached logic</span>
-        <span class="n">_annotate_packed_block_types_for_default_packer_palette</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
+        <span class="n">dppann</span> <span class="o">=</span> <span class="n">_annotate_packed_block_types_for_default_packer_palette</span><span class="p">(</span>
+            <span class="n">pbt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">noncanonical_design</span>
+        <span class="p">)</span>
         <span class="k">assert</span> <span class="n">orig</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="n">pbt</span><span class="o">.</span><span class="n">device</span>
 
-        <span class="n">dppann</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">default_packer_palette_annotations</span>
         <span class="n">allowed_block_types_for_block_type</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
             <span class="p">(</span><span class="n">orig</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">orig</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dppann</span><span class="o">.</span><span class="n">max_n_allowed</span><span class="p">),</span>
             <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
@@ -573,8 +583,9 @@
         <span class="c1"># object and then looked up here. For the default PackerPalette, the logic is</span>
         <span class="c1"># simply to allow only those residue types with the same name3 as the original</span>
         <span class="c1"># residue type</span>
-        <span class="n">_annotate_packed_block_types_for_default_packer_palette</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
-        <span class="n">dppann</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">default_packer_palette_annotations</span>
+        <span class="n">dppann</span> <span class="o">=</span> <span class="n">_annotate_packed_block_types_for_default_packer_palette</span><span class="p">(</span>
+            <span class="n">pbt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">noncanonical_design</span>
+        <span class="p">)</span>
         <span class="n">rtr_mask_for_orig</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
             <span class="p">(</span><span class="n">orig</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">orig</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dppann</span><span class="o">.</span><span class="n">max_n_allowed</span><span class="p">),</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span>
@@ -660,10 +671,19 @@
     <span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_annotate_packed_block_types_for_default_packer_palette</span><span class="p">(</span><span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
+<span class="n">_PALETTE_ANNOTATION_ATTRS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="kc">False</span><span class="p">:</span> <span class="s2">"default_packer_palette_annotations"</span><span class="p">,</span>
+    <span class="kc">True</span><span class="p">:</span> <span class="s2">"noncanonical_packer_palette_annotations"</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_annotate_packed_block_types_for_default_packer_palette</span><span class="p">(</span>
+    <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span> <span class="n">noncanonical_design</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PackerPalleteAnnotation</span><span class="p">:</span>
     <span class="c1"># Annotate the PackedBlockTypes object with the block-type to block-type comparisons</span>
-    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"default_packer_palette_annotations"</span><span class="p">):</span>
-        <span class="k">return</span>
+    <span class="n">attr_name</span> <span class="o">=</span> <span class="n">_PALETTE_ANNOTATION_ATTRS</span><span class="p">[</span><span class="n">noncanonical_design</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">)</span>
     <span class="n">backbones</span> <span class="o">=</span> <span class="n">_backbone_signatures</span><span class="p">(</span><span class="n">pbt</span><span class="p">)</span>
     <span class="n">allowed_block_types_for_block_type</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">)]</span>
     <span class="n">allowed_block_is_orig</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">n_types</span><span class="p">)]</span>
@@ -693,6 +713,13 @@
         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">group_of</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
             <span class="n">alt_bt</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">j</span> <span class="ow">and</span> <span class="p">(</span><span class="n">selected_by_detection</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">or</span> <span class="n">selected_by_detection</span><span class="p">[</span><span class="n">j</span><span class="p">]):</span>
+                <span class="k">continue</span>
+            <span class="c1"># a noncanonical type replaces only its own kind unless asked for</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="ow">not</span> <span class="n">noncanonical_design</span>
+                <span class="ow">and</span> <span class="ow">not</span> <span class="n">alt_bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">is_canonical</span>
+                <span class="ow">and</span> <span class="n">alt_bt</span><span class="o">.</span><span class="n">name3</span> <span class="o">!=</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">name3</span>
+            <span class="p">):</span>
                 <span class="k">continue</span>
             <span class="n">j_allowed_for_restrict_to_repack</span> <span class="o">=</span> <span class="n">alt_bt</span><span class="o">.</span><span class="n">name3</span> <span class="o">==</span> <span class="n">orig_bt</span><span class="o">.</span><span class="n">name3</span>
             <span class="k">if</span> <span class="n">_exchangeable</span><span class="p">(</span><span class="n">orig_bt</span><span class="p">,</span> <span class="n">alt_bt</span><span class="p">,</span> <span class="n">backbones</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">backbones</span><span class="p">[</span><span class="n">j</span><span class="p">]):</span>
@@ -775,7 +802,8 @@
         <span class="n">allowed_block_type_is_orig</span><span class="o">=</span><span class="n">allowed_block_type_is_orig</span><span class="p">,</span>
         <span class="n">restrict_to_repacking_masks</span><span class="o">=</span><span class="n">restrict_to_repacking_masks</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="nb">setattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="s2">"default_packer_palette_annotations"</span><span class="p">,</span> <span class="n">annotation</span><span class="p">)</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">pbt</span><span class="p">,</span> <span class="n">attr_name</span><span class="p">,</span> <span class="n">annotation</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">annotation</span>
 
 
 <span class="c1"># Defaults carried over from ligand preparation, where this budget used to be</span>
