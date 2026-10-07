@@ -63,8 +63,8 @@ _BACKBONE_CLASSES: dict[str, tuple[str, bool, frozenset]] = {
         False,
         frozenset({"N", "C"}),
     ),
-    "AIB": (
-        "alpha, disubstituted at CA (aminoisobutyrate)",
+    "AC5": (
+        "alpha, disubstituted at CA (aminocyclopentanecarboxylate)",
         True,
         frozenset({"N", "C"}),
     ),
@@ -277,7 +277,7 @@ def test_the_amide_nitrogen_rule_separates_proline_from_n_methyl() -> None:
         return out
 
     assert exocyclic_n_substituents("HYP") == []
-    assert exocyclic_n_substituents("AIB") == []
+    assert exocyclic_n_substituents("AC5") == []
     assert exocyclic_n_substituents("MLE") == ["CN"]
     assert exocyclic_n_substituents("SAR") == ["CN"]
 

@@ -1,0 +1,206 @@
+data_9BZT_A
+#
+loop_
+_atom_site.group_PDB 
+_atom_site.id 
+_atom_site.type_symbol 
+_atom_site.label_atom_id 
+_atom_site.label_alt_id 
+_atom_site.label_comp_id 
+_atom_site.label_asym_id 
+_atom_site.label_entity_id 
+_atom_site.label_seq_id 
+_atom_site.pdbx_PDB_ins_code 
+_atom_site.Cartn_x 
+_atom_site.Cartn_y 
+_atom_site.Cartn_z 
+_atom_site.occupancy 
+_atom_site.B_iso_or_equiv 
+_atom_site.pdbx_formal_charge 
+_atom_site.auth_seq_id 
+_atom_site.auth_comp_id 
+_atom_site.auth_asym_id 
+_atom_site.auth_atom_id 
+_atom_site.pdbx_PDB_model_num 
+ATOM   1   N N    A LEU A 1 1 ? -10.15937 7.40184  -6.45410  0.628 4.51628  ? 2   LEU A N    1 
+ATOM   3   C CA   A LEU A 1 1 ? -9.72704  7.31966  -5.07232  0.628 3.84484  ? 2   LEU A CA   1 
+ATOM   5   C C    A LEU A 1 1 ? -9.18528  5.91916  -4.70805  0.628 3.31844  ? 2   LEU A C    1 
+ATOM   7   O O    A LEU A 1 1 ? -8.10031  5.78841  -4.14534  0.628 3.48563  ? 2   LEU A O    1 
+ATOM   9   C CB   A LEU A 1 1 ? -10.89651 7.68922  -4.17680  0.628 3.82405  ? 2   LEU A CB   1 
+ATOM   11  C CG   A LEU A 1 1 ? -10.67696 7.42595  -2.69246  0.628 4.18612  ? 2   LEU A CG   1 
+ATOM   13  C CD1  A LEU A 1 1 ? -9.55279  8.28369  -2.12850  0.628 4.71099  ? 2   LEU A CD1  1 
+ATOM   15  C CD2  A LEU A 1 1 ? -11.97097 7.66417  -1.92834  0.628 4.57783  ? 2   LEU A CD2  1 
+ATOM   17  H H1   A LEU A 1 1 ? -10.84610 7.90430  -6.57580  0.628 5.42646  ? 2   LEU A H1   1 
+ATOM   19  H HA   A LEU A 1 1 ? -8.99523  7.93867  -4.92337  0.628 4.62072  ? 2   LEU A HA   1 
+ATOM   21  H HB2  A LEU A 1 1 ? -11.07552 8.63677  -4.28172  0.628 4.59578  ? 2   LEU A HB2  1 
+ATOM   23  H HB3  A LEU A 1 1 ? -11.66965 7.17290  -4.45349  0.628 4.59578  ? 2   LEU A HB3  1 
+ATOM   25  H HG   A LEU A 1 1 ? -10.41047 6.50045  -2.57699  0.628 5.03026  ? 2   LEU A HG   1 
+ATOM   27  H HD11 A LEU A 1 1 ? -9.79669  9.21879  -2.21208  0.628 5.66011  ? 2   LEU A HD11 1 
+ATOM   29  H HD12 A LEU A 1 1 ? -9.42183  8.05824  -1.19419  0.628 5.66011  ? 2   LEU A HD12 1 
+ATOM   31  H HD13 A LEU A 1 1 ? -8.74025  8.10782  -2.62824  0.628 5.66011  ? 2   LEU A HD13 1 
+ATOM   33  H HD21 A LEU A 1 1 ? -12.21191 8.60106  -1.99962  0.628 5.50031  ? 2   LEU A HD21 1 
+ATOM   35  H HD22 A LEU A 1 1 ? -12.67050 7.11260  -2.31217  0.628 5.50031  ? 2   LEU A HD22 1 
+ATOM   37  H HD23 A LEU A 1 1 ? -11.83622 7.42719  -0.99744  0.628 5.50031  ? 2   LEU A HD23 1 
+HETATM 39  N N    . AIB A 1 2 ? -9.97049  4.88384  -5.02020  1.000 3.30517  ? 3   AIB A N    1 
+HETATM 40  C CA   . AIB A 1 2 ? -9.59188  3.50327  -4.74439  1.000 3.21087  ? 3   AIB A CA   1 
+HETATM 41  C C    . AIB A 1 2 ? -8.19917  3.20313  -5.33867  1.000 3.22840  ? 3   AIB A C    1 
+HETATM 42  O O    . AIB A 1 2 ? -7.30269  2.66716  -4.69387  1.000 3.70643  ? 3   AIB A O    1 
+HETATM 43  C CB1  . AIB A 1 2 ? -9.56210  3.22961  -3.22452  1.000 4.06326  ? 3   AIB A CB1  1 
+HETATM 44  C CB2  . AIB A 1 2 ? -10.59519 2.53979  -5.39145  1.000 3.50884  ? 3   AIB A CB2  1 
+HETATM 45  H H    . AIB A 1 2 ? -10.96350 4.94726  -5.12935  1.000 3.97312  ? 3   AIB A H    1 
+HETATM 46  H HB11 . AIB A 1 2 ? -10.55943 3.46156  -2.78071  1.000 4.88283  ? 3   AIB A HB11 1 
+HETATM 47  H HB12 . AIB A 1 2 ? -9.31830  2.15630  -3.04005  1.000 4.88283  ? 3   AIB A HB12 1 
+HETATM 48  H HB13 . AIB A 1 2 ? -8.78678  3.87091  -2.74174  1.000 4.88283  ? 3   AIB A HB13 1 
+HETATM 49  H HB21 . AIB A 1 2 ? -10.27071 1.48916  -5.19503  1.000 4.21752  ? 3   AIB A HB21 1 
+HETATM 50  H HB22 . AIB A 1 2 ? -11.60585 2.71421  -4.94891  1.000 4.21752  ? 3   AIB A HB22 1 
+HETATM 51  H HB23 . AIB A 1 2 ? -10.62467 2.72876  -6.49196  1.000 4.21752  ? 3   AIB A HB23 1 
+ATOM   52  N N    . ALA A 1 3 ? -8.02419  3.56888  -6.61300  1.000 3.62582  ? 4   ALA A N    1 
+ATOM   53  C CA   . ALA A 1 3 ? -6.76342  3.31142  -7.30714  1.000 4.05652  ? 4   ALA A CA   1 
+ATOM   54  C C    . ALA A 1 3 ? -5.58090  4.02109  -6.63722  1.000 3.93352  ? 4   ALA A C    1 
+ATOM   55  O O    . ALA A 1 3 ? -4.48422  3.45775  -6.53664  1.000 4.25794  ? 4   ALA A O    1 
+ATOM   56  C CB   . ALA A 1 3 ? -6.85861  3.74732  -8.75445  1.000 5.21751  ? 4   ALA A CB   1 
+ATOM   57  H H    . ALA A 1 3 ? -8.61825  3.96502  -7.09234  1.000 4.35790  ? 4   ALA A H    1 
+ATOM   58  H HA   . ALA A 1 3 ? -6.59668  2.35644  -7.27379  1.000 4.87474  ? 4   ALA A HA   1 
+ATOM   59  H HB1  . ALA A 1 3 ? -5.99905  3.61053  -9.18265  1.000 6.26793  ? 4   ALA A HB1  1 
+ATOM   60  H HB2  . ALA A 1 3 ? -7.53810  3.21738  -9.19984  1.000 6.26793  ? 4   ALA A HB2  1 
+ATOM   61  H HB3  . ALA A 1 3 ? -7.09822  4.68672  -8.78623  1.000 6.26793  ? 4   ALA A HB3  1 
+HETATM 62  N N    . AIB A 1 4 ? -5.80871  5.26946  -6.21743  1.000 3.70095  ? 5   AIB A N    1 
+HETATM 63  C CA   . AIB A 1 4 ? -4.78597  6.07806  -5.58512  1.000 4.11916  ? 5   AIB A CA   1 
+HETATM 64  C C    . AIB A 1 4 ? -4.21860  5.35573  -4.34668  1.000 4.24848  ? 5   AIB A C    1 
+HETATM 65  O O    . AIB A 1 4 ? -3.01931  5.38748  -4.04507  1.000 5.42489  ? 5   AIB A O    1 
+HETATM 66  C CB1  . AIB A 1 4 ? -3.63062  6.38753  -6.54839  1.000 5.25930  ? 5   AIB A CB1  1 
+HETATM 67  C CB2  . AIB A 1 4 ? -5.40616  7.40619  -5.11597  1.000 4.41587  ? 5   AIB A CB2  1 
+HETATM 68  H H    . AIB A 1 4 ? -6.71431  5.62292  -5.97877  1.000 4.44806  ? 5   AIB A H    1 
+HETATM 69  H HB11 . AIB A 1 4 ? -4.03817  6.76934  -7.51461  1.000 6.31807  ? 5   AIB A HB11 1 
+HETATM 70  H HB12 . AIB A 1 4 ? -2.96333  7.16128  -6.09952  1.000 6.31807  ? 5   AIB A HB12 1 
+HETATM 71  H HB13 . AIB A 1 4 ? -3.04089  5.45950  -6.73928  1.000 6.31807  ? 5   AIB A HB13 1 
+HETATM 72  H HB21 . AIB A 1 4 ? -4.62134  8.01479  -4.60475  1.000 5.30596  ? 5   AIB A HB21 1 
+HETATM 73  H HB22 . AIB A 1 4 ? -5.79767  7.95966  -6.00371  1.000 5.30596  ? 5   AIB A HB22 1 
+HETATM 74  H HB23 . AIB A 1 4 ? -6.24045  7.18846  -4.40586  1.000 5.30596  ? 5   AIB A HB23 1 
+ATOM   75  N N    . LEU A 1 5 ? -5.10362  4.69974  -3.59388  1.000 3.89517  ? 6   LEU A N    1 
+ATOM   76  C CA   . LEU A 1 5 ? -4.64768  3.91584  -2.44726  1.000 4.50545  ? 6   LEU A CA   1 
+ATOM   77  C C    . LEU A 1 5 ? -4.06217  2.55741  -2.86402  1.000 4.49248  ? 6   LEU A C    1 
+ATOM   78  O O    . LEU A 1 5 ? -3.06125  2.09288  -2.31004  1.000 5.04030  ? 6   LEU A O    1 
+ATOM   79  C CB   . LEU A 1 5 ? -5.79485  3.71400  -1.46357  1.000 5.66820  ? 6   LEU A CB   1 
+ATOM   80  C CG   . LEU A 1 5 ? -6.36478  4.98753  -0.84089  1.000 7.02525  ? 6   LEU A CG   1 
+ATOM   81  C CD1  . LEU A 1 5 ? -7.56815  4.64375  0.02504   1.000 7.90993  ? 6   LEU A CD1  1 
+ATOM   82  C CD2  . LEU A 1 5 ? -5.31278  5.75398  -0.03980  1.000 7.56194  ? 6   LEU A CD2  1 
+ATOM   83  H H    . LEU A 1 5 ? -5.95365  4.69367  -3.72431  1.000 4.68112  ? 6   LEU A H    1 
+ATOM   84  H HA   . LEU A 1 5 ? -3.93718  4.40519  -2.00385  1.000 5.41346  ? 6   LEU A HA   1 
+ATOM   85  H HB2  . LEU A 1 5 ? -6.52074  3.27114  -1.93033  1.000 6.80876  ? 6   LEU A HB2  1 
+ATOM   86  H HB3  . LEU A 1 5 ? -5.47732  3.15480  -0.73737  1.000 6.80876  ? 6   LEU A HB3  1 
+ATOM   87  H HG   . LEU A 1 5 ? -6.65173  5.57982  -1.55345  1.000 8.43722  ? 6   LEU A HG   1 
+ATOM   88  H HD11 . LEU A 1 5 ? -7.96507  5.46519  0.35458   1.000 9.49883  ? 6   LEU A HD11 1 
+ATOM   89  H HD12 . LEU A 1 5 ? -8.21349  4.15611  -0.51036  1.000 9.49883  ? 6   LEU A HD12 1 
+ATOM   90  H HD13 . LEU A 1 5 ? -7.27502  4.09595  0.76994   1.000 9.49883  ? 6   LEU A HD13 1 
+ATOM   91  H HD21 . LEU A 1 5 ? -5.74134  6.49486  0.41664   1.000 9.08125  ? 6   LEU A HD21 1 
+ATOM   92  H HD22 . LEU A 1 5 ? -4.91052  5.15448  0.60803   1.000 9.08125  ? 6   LEU A HD22 1 
+ATOM   93  H HD23 . LEU A 1 5 ? -4.63437  6.08771  -0.64748  1.000 9.08125  ? 6   LEU A HD23 1 
+HETATM 94  N N    . AIB A 1 6 ? -4.72599  1.92568  -3.83323  1.000 4.28354  ? 7   AIB A N    1 
+HETATM 95  C CA   . AIB A 1 6 ? -4.43841  0.57170  -4.26577  1.000 4.41548  ? 7   AIB A CA   1 
+HETATM 96  C C    . AIB A 1 6 ? -3.01307  0.42783  -4.84136  1.000 3.92870  ? 7   AIB A C    1 
+HETATM 97  O O    . AIB A 1 6 ? -2.48914  -0.68838 -4.97559  1.000 4.41901  ? 7   AIB A O    1 
+HETATM 98  C CB1  . AIB A 1 6 ? -4.60787  -0.44107 -3.11338  1.000 5.43729  ? 7   AIB A CB1  1 
+HETATM 99  C CB2  . AIB A 1 6 ? -5.36990  0.17988  -5.42995  1.000 4.61554  ? 7   AIB A CB2  1 
+HETATM 100 H H    . AIB A 1 6 ? -5.66287  2.15607  -4.10001  1.000 5.14717  ? 7   AIB A H    1 
+HETATM 101 H HB11 . AIB A 1 6 ? -3.67236  -0.48028 -2.50614  1.000 6.53166  ? 7   AIB A HB11 1 
+HETATM 102 H HB12 . AIB A 1 6 ? -5.45731  -0.12929 -2.46016  1.000 6.53166  ? 7   AIB A HB12 1 
+HETATM 103 H HB13 . AIB A 1 6 ? -4.81791  -1.45453 -3.53080  1.000 6.53166  ? 7   AIB A HB13 1 
+HETATM 104 H HB21 . AIB A 1 6 ? -5.11965  0.80268  -6.32280  1.000 5.54557  ? 7   AIB A HB21 1 
+HETATM 105 H HB22 . AIB A 1 6 ? -5.22179  -0.90146 -5.66754  1.000 5.54557  ? 7   AIB A HB22 1 
+HETATM 106 H HB23 . AIB A 1 6 ? -6.42947  0.36030  -5.12590  1.000 5.54557  ? 7   AIB A HB23 1 
+ATOM   107 N N    . GLN A 1 7 ? -2.37262  1.54802  -5.18167  1.000 3.71530  ? 8   GLN A N    1 
+ATOM   108 C CA   . GLN A 1 7 ? -1.01445  1.47905  -5.69950  1.000 3.34203  ? 8   GLN A CA   1 
+ATOM   109 C C    . GLN A 1 7 ? -0.06330  0.76069  -4.73437  1.000 3.04529  ? 8   GLN A C    1 
+ATOM   110 O O    . GLN A 1 7 ? 0.92512   0.19981  -5.19738  1.000 3.30785  ? 8   GLN A O    1 
+ATOM   111 C CB   . GLN A 1 7 ? -0.48733  2.87240  -6.02800  1.000 3.42826  ? 8   GLN A CB   1 
+ATOM   112 C CG   . GLN A 1 7 ? -0.23505  3.75720  -4.81741  1.000 3.41961  ? 8   GLN A CG   1 
+ATOM   113 C CD   . GLN A 1 7 ? 0.29464   5.10275  -5.25422  1.000 3.29149  ? 8   GLN A CD   1 
+ATOM   114 O OE1  . GLN A 1 7 ? 1.37914   5.19685  -5.84156  1.000 3.64479  ? 8   GLN A OE1  1 
+ATOM   115 N NE2  . GLN A 1 7 ? -0.48724  6.14715  -5.01938  1.000 4.31684  ? 8   GLN A NE2  1 
+ATOM   116 H H    . GLN A 1 7 ? -2.69987  2.34106  -5.12166  1.000 4.46528  ? 8   GLN A H    1 
+ATOM   117 H HA   . GLN A 1 7 ? -1.03089  0.96348  -6.52097  1.000 4.01736  ? 8   GLN A HA   1 
+ATOM   118 H HB2  . GLN A 1 7 ? 0.35352   2.77988  -6.50267  1.000 4.12083  ? 8   GLN A HB2  1 
+ATOM   119 H HB3  . GLN A 1 7 ? -1.13726  3.32344  -6.58929  1.000 4.12083  ? 8   GLN A HB3  1 
+ATOM   120 H HG2  . GLN A 1 7 ? -1.06518  3.89234  -4.33418  1.000 4.11045  ? 8   GLN A HG2  1 
+ATOM   121 H HG3  . GLN A 1 7 ? 0.42116   3.33817  -4.23888  1.000 4.11045  ? 8   GLN A HG3  1 
+ATOM   122 H HE21 . GLN A 1 7 ? -1.24980  6.03620  -4.63755  1.000 5.18712  ? 8   GLN A HE21 1 
+ATOM   123 H HE22 . GLN A 1 7 ? -0.23193  6.93567  -5.24885  1.000 5.18712  ? 8   GLN A HE22 1 
+HETATM 124 N N    . AIB A 1 8 ? -0.36379  0.76567  -3.42816  1.000 3.30267  ? 9   AIB A N    1 
+HETATM 125 C CA   . AIB A 1 8 ? 0.41991   0.04084  -2.44812  1.000 3.74131  ? 9   AIB A CA   1 
+HETATM 126 C C    . AIB A 1 8 ? 0.55732   -1.45714 -2.81995  1.000 3.83941  ? 9   AIB A C    1 
+HETATM 127 O O    . AIB A 1 8 ? 1.53374   -2.10557 -2.46270  1.000 5.26636  ? 9   AIB A O    1 
+HETATM 128 C CB1  . AIB A 1 8 ? 1.81314   0.68149  -2.27031  1.000 4.22952  ? 9   AIB A CB1  1 
+HETATM 129 C CB2  . AIB A 1 8 ? -0.35688  0.07592  -1.12434  1.000 4.19068  ? 9   AIB A CB2  1 
+HETATM 130 H H    . AIB A 1 8 ? -0.88602  1.49029  -2.97626  1.000 3.97013  ? 9   AIB A H    1 
+HETATM 131 H HB11 . AIB A 1 8 ? 2.36042   0.66818  -3.24281  1.000 5.08234  ? 9   AIB A HB11 1 
+HETATM 132 H HB12 . AIB A 1 8 ? 1.70084   1.73713  -1.92612  1.000 5.08234  ? 9   AIB A HB12 1 
+HETATM 133 H HB13 . AIB A 1 8 ? 2.39722   0.10775  -1.51194  1.000 5.08234  ? 9   AIB A HB13 1 
+HETATM 134 H HB21 . AIB A 1 8 ? -1.39424  -0.29917 -1.30008  1.000 5.03574  ? 9   AIB A HB21 1 
+HETATM 135 H HB22 . AIB A 1 8 ? 0.16157   -0.57567 -0.37981  1.000 5.03574  ? 9   AIB A HB22 1 
+HETATM 136 H HB23 . AIB A 1 8 ? -0.39165  1.12760  -0.74957  1.000 5.03574  ? 9   AIB A HB23 1 
+ATOM   137 N N    A LEU A 1 9 ? -0.48159  -1.95446 -3.51476  0.763 3.20457  ? 10  LEU A N    1 
+ATOM   139 C CA   A LEU A 1 9 ? -0.60169  -3.35655 -3.95416  0.763 3.40643  ? 10  LEU A CA   1 
+ATOM   141 C C    A LEU A 1 9 ? -0.39162  -3.51664 -5.44636  0.763 3.93758  ? 10  LEU A C    1 
+ATOM   143 O O    A LEU A 1 9 ? -0.59872  -4.54581 -6.05276  0.763 4.19848  ? 10  LEU A O    1 
+ATOM   145 C CB   A LEU A 1 9 ? -1.99122  -3.90090 -3.64209  0.763 3.53561  ? 10  LEU A CB   1 
+ATOM   147 C CG   A LEU A 1 9 ? -2.40789  -3.78038 -2.18795  0.763 4.29375  ? 10  LEU A CG   1 
+ATOM   149 C CD1  A LEU A 1 9 ? -3.82707  -4.31876 -1.99963  0.763 4.76379  ? 10  LEU A CD1  1 
+ATOM   151 C CD2  A LEU A 1 9 ? -1.40375  -4.47252 -1.27245  0.763 5.59501  ? 10  LEU A CD2  1 
+ATOM   153 H H    A LEU A 1 9 ? -1.15779  -1.47992 -3.75382  0.763 3.85240  ? 10  LEU A H    1 
+ATOM   155 H HA   A LEU A 1 9 ? 0.07835   -3.85891 -3.47868  0.763 4.09463  ? 10  LEU A HA   1 
+ATOM   157 H HB2  A LEU A 1 9 ? -2.63922  -3.41264 -4.17370  0.763 4.24964  ? 10  LEU A HB2  1 
+ATOM   159 H HB3  A LEU A 1 9 ? -2.01226  -4.84214 -3.87558  0.763 4.24964  ? 10  LEU A HB3  1 
+ATOM   161 H HG   A LEU A 1 9 ? -2.41631  -2.84537 -1.92988  0.763 5.15942  ? 10  LEU A HG   1 
+ATOM   163 H HD11 A LEU A 1 9 ? -4.08454  -4.21225 -1.07051  0.763 5.72346  ? 10  LEU A HD11 1 
+ATOM   165 H HD12 A LEU A 1 9 ? -4.43246  -3.81961 -2.56994  0.763 5.72346  ? 10  LEU A HD12 1 
+ATOM   167 H HD13 A LEU A 1 9 ? -3.84328  -5.25791 -2.24180  0.763 5.72346  ? 10  LEU A HD13 1 
+ATOM   169 H HD21 A LEU A 1 9 ? -1.72478  -4.42496 -0.35835  0.763 6.72093  ? 10  LEU A HD21 1 
+ATOM   171 H HD22 A LEU A 1 9 ? -1.31535  -5.39947 -1.54419  0.763 6.72093  ? 10  LEU A HD22 1 
+ATOM   173 H HD23 A LEU A 1 9 ? -0.54729  -4.02313 -1.34606  0.763 6.72093  ? 10  LEU A HD23 1 
+#
+loop_
+_struct_conn.id 
+_struct_conn.conn_type_id 
+_struct_conn.pdbx_leaving_atom_flag 
+_struct_conn.pdbx_PDB_id 
+_struct_conn.ptnr1_label_asym_id 
+_struct_conn.ptnr1_label_comp_id 
+_struct_conn.ptnr1_label_seq_id 
+_struct_conn.ptnr1_label_atom_id 
+_struct_conn.pdbx_ptnr1_label_alt_id 
+_struct_conn.pdbx_ptnr1_PDB_ins_code 
+_struct_conn.pdbx_ptnr1_standard_comp_id 
+_struct_conn.ptnr1_symmetry 
+_struct_conn.ptnr2_label_asym_id 
+_struct_conn.ptnr2_label_comp_id 
+_struct_conn.ptnr2_label_seq_id 
+_struct_conn.ptnr2_label_atom_id 
+_struct_conn.pdbx_ptnr2_label_alt_id 
+_struct_conn.pdbx_ptnr2_PDB_ins_code 
+_struct_conn.ptnr1_auth_asym_id 
+_struct_conn.ptnr1_auth_comp_id 
+_struct_conn.ptnr1_auth_seq_id 
+_struct_conn.ptnr2_auth_asym_id 
+_struct_conn.ptnr2_auth_comp_id 
+_struct_conn.ptnr2_auth_seq_id 
+_struct_conn.ptnr2_symmetry 
+_struct_conn.pdbx_ptnr3_label_atom_id 
+_struct_conn.pdbx_ptnr3_label_seq_id 
+_struct_conn.pdbx_ptnr3_label_comp_id 
+_struct_conn.pdbx_ptnr3_label_asym_id 
+_struct_conn.pdbx_ptnr3_label_alt_id 
+_struct_conn.pdbx_ptnr3_PDB_ins_code 
+_struct_conn.details 
+_struct_conn.pdbx_dist_value 
+_struct_conn.pdbx_value_order 
+_struct_conn.pdbx_role 
+covale1  covale both ? A LEU 1 C A ? ? 1_555 A AIB 2 N   ? ? A LEU 2  A AIB 3   1_555 ? ? ? ? ? ? ? 1.336 ? ? 
+covale5  covale both ? A AIB 2 C ? ? ? 1_555 A ALA 3 N   ? ? A AIB 3  A ALA 4   1_555 ? ? ? ? ? ? ? 1.337 ? ? 
+covale6  covale both ? A ALA 3 C ? ? ? 1_555 A AIB 4 N   ? ? A ALA 4  A AIB 5   1_555 ? ? ? ? ? ? ? 1.337 ? ? 
+covale7  covale both ? A AIB 4 C ? ? ? 1_555 A LEU 5 N   ? ? A AIB 5  A LEU 6   1_555 ? ? ? ? ? ? ? 1.334 ? ? 
+covale8  covale both ? A LEU 5 C ? ? ? 1_555 A AIB 6 N   ? ? A LEU 6  A AIB 7   1_555 ? ? ? ? ? ? ? 1.334 ? ? 
+covale9  covale both ? A AIB 6 C ? ? ? 1_555 A GLN 7 N   ? ? A AIB 7  A GLN 8   1_555 ? ? ? ? ? ? ? 1.334 ? ? 
+covale10 covale both ? A GLN 7 C ? ? ? 1_555 A AIB 8 N   ? ? A GLN 8  A AIB 9   1_555 ? ? ? ? ? ? ? 1.340 ? ? 
+covale11 covale both ? A AIB 8 C ? ? ? 1_555 A LEU 9 N   A ? A AIB 9  A LEU 10  1_555 ? ? ? ? ? ? ? 1.345 ? ? 
+#

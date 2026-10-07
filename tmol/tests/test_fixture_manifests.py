@@ -21,6 +21,7 @@ NCAA_FIXTURE_CLASS = {
     "na_rna_psu_1bzt.cif": "modified_nucleic_acid",
     "nmethyl_peptide_6mvz.cif": "nonstandard_backbone",
     "phosphopeptide_5ema.cif": "alpha_amino_acid_modification",
+    "uic1_aib_9bzt.cif": "alpha_amino_acid_modification",
 }
 
 DATA = Path(__file__).parent / "data"
@@ -46,11 +47,11 @@ def test_atomworks_regression_manifest_matches_fixture_bytes() -> None:
 
 
 def test_ncaa_fixture_inventory_has_documented_classification() -> None:
-    """Keep all 15 README fixture roles explicit without claiming parity."""
+    """Keep all 16 README fixture roles explicit without claiming parity."""
     fixture_dir = DATA / "ncaa_fixtures"
     assert {path.name for path in fixture_dir.glob("*.cif")} == set(NCAA_FIXTURE_CLASS)
     assert Counter(NCAA_FIXTURE_CLASS.values()) == {
-        "alpha_amino_acid_modification": 2,
+        "alpha_amino_acid_modification": 3,
         "covalent_chromophore": 1,
         "mirror_image_control": 2,
         "modified_nucleic_acid": 5,

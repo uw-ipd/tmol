@@ -44,3 +44,6 @@ rama_lookup:
   - { *n: TRP_prepro ,*r0: TRP, *r1: PRO }
   - { *n: TYR_prepro ,*r0: TYR, *r1: PRO }
   - { *n: VAL_prepro ,*r0: VAL, *r1: PRO }
+  # AIB: ALA's table symmetrized by max energy; no prepro table of its own yet
+  - { *n: AIB ,*r0: AIB }
+  - { *n: AIB ,*r0: AIB, *r1: PRO }
