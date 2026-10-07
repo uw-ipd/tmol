@@ -475,6 +475,9 @@ class TestDetectHelpers:
         monkeypatch.setattr(
             detect, "nonstandard_residue_info_from_mol2", lambda *_a, **_k: info
         )
+        monkeypatch.setattr(
+            preparation, "_without_oxyacid_overprotonation", lambda _info: _info
+        )
 
         def keep(_info, *, name_source):
             assert name_source is _info
