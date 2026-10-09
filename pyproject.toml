@@ -142,6 +142,7 @@ cmake.build-type = "Release"
 cmake.version = ">=3.24,<4"
 wheel.packages = ["tmol"]
 wheel.install-dir = "."
+wheel.exclude = ["tmol/tests/**"]
 sdist.cmake = false
 editable.mode = "inplace"
 
