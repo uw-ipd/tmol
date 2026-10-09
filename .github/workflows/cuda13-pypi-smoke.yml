@@ -1,4 +1,4 @@
-name: CUDA 13 PyPI wheel smoke
+name: CUDA wheel compression smoke
 
 permissions:
   contents: read
@@ -21,15 +21,22 @@ concurrency:
 
 jobs:
   build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { torch: "2.8", package: "2.8.0", cuda: "129", image: "nvcr.io/nvidia/pytorch:25.06-py3" }
+          - { torch: "2.13", package: "2.13.0", cuda: "130", image: "nvidia/cuda:13.0.2-devel-ubuntu24.04" }
+          - { torch: "2.14", package: "2.14.1", cuda: "132", image: "nvcr.io/nvidia/pytorch:26.04-py3" }
     uses: ./.github/workflows/_build_wheel.yml
     with:
       runs-on: ubuntu-22.04
-      container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
-      torch-version: "2.13"
-      torch-package-version: "2.13.0"
+      container-image: ${{ matrix.image }}
+      torch-version: ${{ matrix.torch }}
+      torch-package-version: ${{ matrix.package }}
       python-version: "3.12"
-      label: CUDA 13 / Torch 2.13 PyPI wheel
-      pip-torch-cuda-url: https://download.pytorch.org/whl/cu130
+      label: CUDA ${{ matrix.cuda }} / Torch ${{ matrix.torch }} wheel
+      pip-torch-cuda-url: https://download.pytorch.org/whl/cu${{ matrix.cuda }}
       enable-cuda: true
       cuda-archs: all
       use-manylinux-build: true
@@ -37,12 +44,19 @@ jobs:
 
   install:
     needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { torch: "2.8", package: "2.8.0", cuda: "129" }
+          - { torch: "2.13", package: "2.13.0", cuda: "130" }
+          - { torch: "2.14", package: "2.14.1", cuda: "132" }
     uses: ./.github/workflows/_test_wheel.yml
     with:
       runs-on: ubuntu-22.04
       python-version: "3.12"
       python-tag: "312"
-      local-tag: cu130torch2.13
+      local-tag: cu${{ matrix.cuda }}torch${{ matrix.torch }}
       arch: x86_64
-      torch-package-version: "2.13.0"
-      torch-index-url: https://download.pytorch.org/whl/cu130
+      torch-package-version: ${{ matrix.package }}
+      torch-index-url: https://download.pytorch.org/whl/cu${{ matrix.cuda }}
