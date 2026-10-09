@@ -25,20 +25,20 @@
   </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="../../../_static/styles/theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
-<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
+  <link href="../../../_static/styles/theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=b5f2a73e" />
   
   <!-- So that users can add custom icons -->
-  <script defer src="../../../_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
-<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=5fe4e9ad"></script>
+    <script src="../../../_static/documentation_options.js?v=cc64e7de"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -54,8 +54,9 @@
     <link rel="search" title="Search" href="../../../search.html" />
   
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.60" />
+  <meta name="docsearch:version" content="0.1.62" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -737,13 +738,8 @@
 
     <span class="n">fa_rep_start</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">sfxn</span><span class="o">.</span><span class="n">get_weight</span><span class="p">(</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">fa_ljrep</span><span class="p">))</span>
 
-    <span class="n">vary_protonation</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">packer_pallete</span><span class="p">,</span> <span class="s2">"protonation_alternatives"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
     <span class="n">wpsm</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
     <span class="n">best_score</span> <span class="o">=</span> <span class="n">wpsm</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">vary_protonation</span><span class="p">:</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.protonation_alternatives</span><span class="w"> </span><span class="kn">import</span> <span class="n">protonation_state_energy</span>
-
-        <span class="n">best_score</span> <span class="o">=</span> <span class="n">best_score</span> <span class="o">+</span> <span class="n">protonation_state_energy</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
     <span class="k">del</span> <span class="n">wpsm</span>
     <span class="n">best_ps</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">clone_sharing_topology</span><span class="p">()</span>
 
@@ -770,14 +766,7 @@
                 <span class="n">release_between_stages</span><span class="o">=</span><span class="n">release_between_stages</span><span class="p">,</span>
             <span class="p">)</span>
 
-        <span class="n">best_ps</span><span class="p">,</span> <span class="n">best_score</span> <span class="o">=</span> <span class="n">accept_best</span><span class="p">(</span>
-            <span class="n">sfxn</span><span class="p">,</span>
-            <span class="n">best_ps</span><span class="p">,</span>
-            <span class="n">best_score</span><span class="p">,</span>
-            <span class="n">ps</span><span class="p">,</span>
-            <span class="n">verbose</span><span class="p">,</span>
-            <span class="n">protonation_alternatives</span><span class="o">=</span><span class="n">vary_protonation</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">best_ps</span><span class="p">,</span> <span class="n">best_score</span> <span class="o">=</span> <span class="n">accept_best</span><span class="p">(</span><span class="n">sfxn</span><span class="p">,</span> <span class="n">best_ps</span><span class="p">,</span> <span class="n">best_score</span><span class="p">,</span> <span class="n">ps</span><span class="p">,</span> <span class="n">verbose</span><span class="p">)</span>
         <span class="n">ps</span> <span class="o">=</span> <span class="n">best_ps</span><span class="o">.</span><span class="n">clone_sharing_topology</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">use_constraints</span><span class="p">:</span>
         <span class="c1"># Restore original constraint weight to the score function</span>
@@ -884,8 +873,6 @@
     <span class="n">best_pose_score</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:],</span>
     <span class="n">candidate_pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
     <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="o">*</span><span class="p">,</span>
-    <span class="n">protonation_alternatives</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">][:]]:</span>
 <span class="w">    </span><span class="sd">"""Keep the lower-scoring conformation independently for each pose.</span>
 
@@ -895,27 +882,19 @@
 <span class="sd">        best_pose_score: Best scores shaped ``[n_poses]``.</span>
 <span class="sd">        candidate_pose_stack: Newly minimized poses.</span>
 <span class="sd">        verbose: Print accepted scores.</span>
-<span class="sd">        protonation_alternatives: Include the same pH offsets used by packing;</span>
-<span class="sd">            ``best_pose_score`` must include them too.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Updated best poses and scores shaped ``[n_poses]``.</span>
 <span class="sd">    """</span>
     <span class="n">wpsm</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">candidate_pose_stack</span><span class="p">)</span>
     <span class="n">candidate_score</span> <span class="o">=</span> <span class="n">wpsm</span><span class="p">(</span><span class="n">candidate_pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">protonation_alternatives</span><span class="p">:</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.protonation_alternatives</span><span class="w"> </span><span class="kn">import</span> <span class="n">protonation_state_energy</span>
-
-        <span class="n">candidate_score</span> <span class="o">=</span> <span class="n">candidate_score</span> <span class="o">+</span> <span class="n">protonation_state_energy</span><span class="p">(</span>
-            <span class="n">candidate_pose_stack</span>
-        <span class="p">)</span>
     <span class="n">better_mask</span> <span class="o">=</span> <span class="n">candidate_score</span> <span class="o">&lt;</span> <span class="n">best_pose_score</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">select_better</span><span class="p">(</span><span class="n">tensor_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="n">tensor</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">best_pose_stack</span><span class="p">,</span> <span class="n">tensor_name</span><span class="p">)</span>
         <span class="n">candidate</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">candidate_pose_stack</span><span class="p">,</span> <span class="n">tensor_name</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">tensor_name</span> <span class="o">==</span> <span class="s2">"coords"</span><span class="p">:</span>
-            <span class="c1"># A selected protonation state can add or remove hydrogens.</span>
+            <span class="c1"># A packed block type can change a pose's atom count.</span>
             <span class="n">width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">candidate</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
             <span class="n">tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">width</span> <span class="o">-</span> <span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
             <span class="n">candidate</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
@@ -978,8 +957,8 @@
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="../../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0"></script>
-<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0"></script>
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be"></script>
 
   <footer class="bd-footer">
 <div class="bd-footer__inner bd-page-width">
@@ -1012,7 +991,7 @@
         <div class="footer-item">
 <p class="theme-version">
   <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
-  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.22.0.
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.23.0.
 </p></div>
       
     </div>
