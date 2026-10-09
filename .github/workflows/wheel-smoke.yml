@@ -112,6 +112,11 @@ jobs:
             cuda-version: "12.9"
             torch-index-url: "https://download.pytorch.org/whl/cu129"
             container-image: nvcr.io/nvidia/pytorch:25.06-py3
+          - torch-version: "2.13"
+            torch-package-version: "2.13.0"
+            cuda-version: "13.0"
+            torch-index-url: "https://download.pytorch.org/whl/cu130"
+            container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
           - torch-version: "2.14"
             torch-package-version: "2.14.1"
             cuda-version: "13.2"
