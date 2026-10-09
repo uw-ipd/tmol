@@ -15,25 +15,34 @@ from email.parser import BytesParser
 import pytest
 
 from release_artifacts import public_cpu_wheel, validate_wheel, write_index
+from pypi_cuda_wheels import split_gpu_wheel
 from staging_index import serve
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def wheel(directory, version="9.9.9+cputorch2.14", torch="==2.14.*", name="tmol"):
+def wheel(
+    directory,
+    version="9.9.9+cputorch2.14",
+    torch="==2.14.*",
+    name="tmol",
+    tag="py3-none-any",
+):
     directory.mkdir(parents=True, exist_ok=True)
-    path = directory / f"{name}-{version}-py3-none-any.whl"
+    path = directory / f"{name}-{version}-{tag}.whl"
     info = f"{name}-{version}.dist-info"
     contents = {
         "tmol/__init__.py": b"# fixture package\n",
         # Binary bytes stand in for the extension; repackaging must preserve them.
         "tmol/_C.so": bytes(range(256)),
+        "tmol/database/default/params.bin": b"runtime data",
+        "tmol/tests/test_fixture.py": b"# not needed after installation\n",
         f"{info}/METADATA": (
             f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n"
             + (f"Requires-Dist: torch{torch}\n" if name == "tmol" else "")
             + "\nFixture\n"
         ).encode(),
-        f"{info}/WHEEL": b"Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
+        f"{info}/WHEEL": f"Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: {tag}\n".encode(),
     }
     rows = [
         (
@@ -253,3 +262,49 @@ def test_validates_cuda_identity_and_metadata_before_publication(tmp_path):
             archive.writestr(name, data)
     with pytest.raises(ValueError, match="filename and metadata"):
         validate_wheel(valid)
+
+
+def test_split_cuda_wheel_keeps_native_bytes_and_pins_both_distributions(tmp_path):
+    source = wheel(
+        tmp_path / "source",
+        "9.9.9+cu130torch2.13",
+        "==2.13.*",
+        tag="cp312-cp312-manylinux_2_28_x86_64",
+    )
+    core, native = split_gpu_wheel(source, tmp_path / "out")
+    with (
+        zipfile.ZipFile(source) as original,
+        zipfile.ZipFile(core) as code,
+        zipfile.ZipFile(native) as kernels,
+    ):
+        assert code.read("tmol/__init__.py") == original.read("tmol/__init__.py")
+        assert code.read("tmol/database/default/params.bin") == b"runtime data"
+        assert kernels.read("tmol/_C.so") == original.read("tmol/_C.so")
+        assert not any(path.startswith("tmol/tests/") for path in code.namelist())
+        assert set(code.namelist()).isdisjoint(kernels.namelist())
+        metadata = BytesParser().parsebytes(
+            code.read("tmol_cu130_torch213-9.9.9.dist-info/METADATA")
+        )
+        assert metadata["Version"] == "9.9.9"
+        assert "torch==2.13.*" in metadata.get_all("Requires-Dist")
+        assert "tmol-kernels-cu130-torch213==9.9.9" in metadata.get_all("Requires-Dist")
+        native_metadata = BytesParser().parsebytes(
+            kernels.read("tmol_kernels_cu130_torch213-9.9.9.dist-info/METADATA")
+        )
+        assert native_metadata.get_all("Requires-Dist") == ["torch==2.13.*"]
+        for archive, record in (
+            (code, "tmol_cu130_torch213-9.9.9.dist-info/RECORD"),
+            (kernels, "tmol_kernels_cu130_torch213-9.9.9.dist-info/RECORD"),
+        ):
+            rows = list(csv.reader(io.StringIO(archive.read(record).decode())))
+            assert {row[0] for row in rows} == set(archive.namelist())
+            for name, digest, size in rows[:-1]:
+                data = archive.read(name)
+                assert int(size) == len(data)
+                assert (
+                    digest
+                    == "sha256="
+                    + base64.urlsafe_b64encode(hashlib.sha256(data).digest())
+                    .rstrip(b"=")
+                    .decode()
+                )

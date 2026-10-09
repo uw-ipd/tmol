@@ -29,9 +29,13 @@ from tmol._load_ext import ensure_compiled_or_jit as _ensure_compiled_or_jit
 with contextlib.suppress(Exception):
     _ensure_compiled_or_jit()
 
-try:
-    __version__ = version("tmol")
-except PackageNotFoundError:
+for _distribution in ("tmol", "tmol-cu130-torch213"):
+    try:
+        __version__ = version(_distribution)
+        break
+    except PackageNotFoundError:
+        continue
+else:
     __version__ = "unknown version"
 
 __all__ = [

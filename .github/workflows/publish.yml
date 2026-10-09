@@ -267,6 +267,15 @@ jobs:
           python scripts/release_artifacts.py --wheels wheels --sdist dist/*.tar.gz --output prepared
           python -m twine check --strict prepared/pypi/*
 
+      # Stage the PyPI-sized CUDA variant separately. Publishing these two new
+      # projects needs their own PyPI credentials and a validated release lane.
+      - name: Prepare CUDA 13 / Torch 2.13 PyPI candidates
+        run: |
+          python scripts/pypi_cuda_wheels.py \
+            --wheel wheels/tmol-*+cu130torch2.13-cp312-cp312-manylinux_2_28_x86_64.whl \
+            --output prepared/pypi-cuda
+          python -m twine check --strict prepared/pypi-cuda/*.whl
+
       - uses: actions/upload-artifact@v4
         with:
           name: publication
