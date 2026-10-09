@@ -1,0 +1,48 @@
+name: CUDA 13 PyPI wheel smoke
+
+permissions:
+  contents: read
+  actions: read
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/cuda13-pypi-smoke.yml
+      - .github/workflows/_build_wheel.yml
+      - .github/workflows/_test_wheel.yml
+      - CMakeLists.txt
+      - pyproject.toml
+      - scripts/pypi_cuda_wheels.py
+  workflow_dispatch:
+
+concurrency:
+  group: cuda13-pypi-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    uses: ./.github/workflows/_build_wheel.yml
+    with:
+      runs-on: ubuntu-22.04
+      container-image: nvidia/cuda:13.0.2-devel-ubuntu24.04
+      torch-version: "2.13"
+      torch-package-version: "2.13.0"
+      python-version: "3.12"
+      label: CUDA 13 / Torch 2.13 PyPI wheel
+      pip-torch-cuda-url: https://download.pytorch.org/whl/cu130
+      enable-cuda: true
+      cuda-archs: all
+      use-manylinux-build: true
+      target-arch: x86_64
+
+  install:
+    needs: build
+    uses: ./.github/workflows/_test_wheel.yml
+    with:
+      runs-on: ubuntu-22.04
+      python-version: "3.12"
+      python-tag: "312"
+      local-tag: cu130torch2.13
+      arch: x86_64
+      torch-package-version: "2.13.0"
+      torch-index-url: https://download.pytorch.org/whl/cu130

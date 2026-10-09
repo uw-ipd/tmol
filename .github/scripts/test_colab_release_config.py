@@ -234,7 +234,7 @@ def test_release_matrix_drives_publish_smoke_and_manifest():
     assert cuda_smoke["with"]["cuda-archs"] == "all"
     assert {
         row["torch-version"] for row in cuda_smoke["strategy"]["matrix"]["include"]
-    } == {"2.8", "2.13", "2.14"}
+    } == {"2.8", "2.14"}
 
 
 def test_docs_workflow_uses_hosted_cpu_and_gpu_ci_executes_gpu_cells():
