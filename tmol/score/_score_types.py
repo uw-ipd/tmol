@@ -30,5 +30,6 @@ class ScoreType(AutoNumber):
     na_torsion = ()
     na_torsion_well = ()
     metal_coordination = ()
+    elec_dens_fast = ()
     # keep this one last
     n_score_types = ()

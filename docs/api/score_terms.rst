@@ -36,6 +36,11 @@ Score-type map
      - Harmonic distance, bounded distance, harmonic coordinate, and
        circular-harmonic torsion constraints attached through
        :class:`tmol.pose.ConstraintSet`.
+   * - ``elec_dens_fast``
+     - :class:`~tmol.score.density.DensityEnergyTerm`
+     - Rosetta-style fit of every heavy atom to a cryo-EM map. The map is a
+       score-function option; use
+       :func:`tmol.score.beta_nov16_dens_score_function`.
    * - ``disulfide``
      - :class:`~tmol.score.disulfide.DisulfideEnergyTerm`
      - Geometry of disulfide-linked cysteine pairs.
@@ -131,6 +136,14 @@ for lower-level analysis and extension work.
    * ``SYN_RANGE``
    * ``TORSION_NAMES``
    * ``eval_na_torsion_for_pose``
+
+Fit to density
+--------------
+
+.. autoclass:: tmol.score.density.DensityEnergyTerm
+   :show-inheritance:
+
+.. autoclass:: tmol.score.density.FastDensityScore
 
 Constraints
 -----------
