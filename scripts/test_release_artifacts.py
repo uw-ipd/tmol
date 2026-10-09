@@ -15,7 +15,7 @@ from email.parser import BytesParser
 import pytest
 
 from release_artifacts import public_cpu_wheel, validate_wheel, write_index
-from pypi_cuda_wheels import split_gpu_wheel
+from pypi_cuda_wheels import pypi_gpu_wheel
 from staging_index import serve
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -264,47 +264,38 @@ def test_validates_cuda_identity_and_metadata_before_publication(tmp_path):
         validate_wheel(valid)
 
 
-def test_split_cuda_wheel_keeps_native_bytes_and_pins_both_distributions(tmp_path):
+def test_pypi_cuda_wheel_keeps_native_bytes_and_torch_pin(tmp_path):
     source = wheel(
         tmp_path / "source",
         "9.9.9+cu130torch2.13",
         "==2.13.*",
         tag="cp312-cp312-manylinux_2_28_x86_64",
     )
-    core, native = split_gpu_wheel(source, tmp_path / "out")
+    published = pypi_gpu_wheel(source, tmp_path / "out")
     with (
         zipfile.ZipFile(source) as original,
-        zipfile.ZipFile(core) as code,
-        zipfile.ZipFile(native) as kernels,
+        zipfile.ZipFile(published) as candidate,
     ):
-        assert code.read("tmol/__init__.py") == original.read("tmol/__init__.py")
-        assert code.read("tmol/database/default/params.bin") == b"runtime data"
-        assert kernels.read("tmol/_C.so") == original.read("tmol/_C.so")
-        assert not any(path.startswith("tmol/tests/") for path in code.namelist())
-        assert set(code.namelist()).isdisjoint(kernels.namelist())
+        assert candidate.read("tmol/__init__.py") == original.read("tmol/__init__.py")
+        assert candidate.read("tmol/database/default/params.bin") == b"runtime data"
+        assert candidate.read("tmol/_C.so") == original.read("tmol/_C.so")
+        assert not any(path.startswith("tmol/tests/") for path in candidate.namelist())
         metadata = BytesParser().parsebytes(
-            code.read("tmol_cu130_torch213-9.9.9.dist-info/METADATA")
+            candidate.read("tmol_cu130_torch213-9.9.9.dist-info/METADATA")
         )
+        assert metadata["Name"] == "tmol-cu130-torch213"
         assert metadata["Version"] == "9.9.9"
         assert "torch==2.13.*" in metadata.get_all("Requires-Dist")
-        assert "tmol-kernels-cu130-torch213==9.9.9" in metadata.get_all("Requires-Dist")
-        native_metadata = BytesParser().parsebytes(
-            kernels.read("tmol_kernels_cu130_torch213-9.9.9.dist-info/METADATA")
-        )
-        assert native_metadata.get_all("Requires-Dist") == ["torch==2.13.*"]
-        for archive, record in (
-            (code, "tmol_cu130_torch213-9.9.9.dist-info/RECORD"),
-            (kernels, "tmol_kernels_cu130_torch213-9.9.9.dist-info/RECORD"),
-        ):
-            rows = list(csv.reader(io.StringIO(archive.read(record).decode())))
-            assert {row[0] for row in rows} == set(archive.namelist())
-            for name, digest, size in rows[:-1]:
-                data = archive.read(name)
-                assert int(size) == len(data)
-                assert (
-                    digest
-                    == "sha256="
-                    + base64.urlsafe_b64encode(hashlib.sha256(data).digest())
-                    .rstrip(b"=")
-                    .decode()
-                )
+        record = "tmol_cu130_torch213-9.9.9.dist-info/RECORD"
+        rows = list(csv.reader(io.StringIO(candidate.read(record).decode())))
+        assert {row[0] for row in rows} == set(candidate.namelist())
+        for name, digest, size in rows[:-1]:
+            data = candidate.read(name)
+            assert int(size) == len(data)
+            assert (
+                digest
+                == "sha256="
+                + base64.urlsafe_b64encode(hashlib.sha256(data).digest())
+                .rstrip(b"=")
+                .decode()
+            )

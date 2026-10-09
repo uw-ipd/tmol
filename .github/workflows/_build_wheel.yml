@@ -443,6 +443,10 @@ jobs:
             fi
             if [ "${{ inputs.enable-cuda }}" = "true" ]; then
               CUDA_MAJOR=$('"${TARGET_VENV}"'/bin/python -c "import torch; print(torch.version.cuda.split('"'"'.'"'"')[0])")
+              CUDA_SIZE_FLAGS=()
+              if [ "$CUDA_MAJOR" -ge 13 ] && [ "${{ inputs.torch-version }}" = "2.13" ]; then
+                CUDA_SIZE_FLAGS=(-Ccmake.define.CMAKE_CUDA_FLAGS=--compress-mode=size)
+              fi
               if [ -n "${CUDA_ARCHS_OVERRIDE}" ]; then
                 CUDA_ARCHS="${CUDA_ARCHS_OVERRIDE}"
               elif [ "$CUDA_MAJOR" -ge 13 ]; then
@@ -456,6 +460,7 @@ jobs:
             if [ "${{ inputs.enable-cuda }}" = "true" ]; then
               '"${TARGET_VENV}"'/bin/pip wheel . --no-build-isolation --no-deps -w dist \
                 -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
+                "${CUDA_SIZE_FLAGS[@]}" \
                 "${CUDA_COMPILER_DEFINE[@]}" \
                 -Ccmake.define.pybind11_DIR="${PYBIND11_CMAKE_DIR}" \
                 -Ccmake.define.TMOL_NVCC_THREADS=1
