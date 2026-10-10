@@ -288,6 +288,7 @@ def _slice_pose_stack_for_packing(
         constraint_set=chunk_constraint_set,
         device=pose_stack.device,
         split_block_mapping=None,
+        density_map=pose_stack.density_map,
     )
 
 

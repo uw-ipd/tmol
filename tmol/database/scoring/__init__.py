@@ -73,6 +73,7 @@ import os
 import attr
 
 from ._ref import RefDatabase  # noqa: F401
+from ._elec_dens import ElecDensDatabase, ScatteringParams  # noqa: F401
 
 # residue sets written by a support script, merged into the databases at load
 GENERATED_ELEC_FILES = (
@@ -98,6 +99,7 @@ class ScoringDatabase:
     na_torsion: NaTorsionDatabase
     dun: DunbrackRotamerLibrary
     elec: ElecDatabase
+    elec_dens: ElecDensDatabase
     hbond: HBondDatabase
     ljlk: LJLKDatabase
     omega_bbdep: OmegaBBDepDatabase
@@ -131,6 +133,7 @@ class ScoringDatabase:
                 os.path.join(path, "elec.yaml"),
                 generated=[os.path.join(path, f) for f in GENERATED_ELEC_FILES],
             ),
+            elec_dens=ElecDensDatabase.from_file(os.path.join(path, "elec_dens.yaml")),
             hbond=HBondDatabase.from_file(os.path.join(path, "hbond.yaml")),
             ljlk=LJLKDatabase.from_file(os.path.join(path, "ljlk.yaml")),
             omega_bbdep=OmegaBBDepDatabase.from_file(

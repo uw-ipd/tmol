@@ -96,46 +96,23 @@ def beta2016_score_function(
     return _memoized_beta2016(device)
 
 
-# Weight of Rosetta's cryo-EM refinement script (cryoem_glycan_refinement.xml).
-_ELEC_DENS_FAST_WEIGHT = 35.0
-
-
 def beta_nov16_dens_score_function(
-    device: torch.device,
-    density_map: "ElectronDensityMap",  # noqa: F821
-    resolution: float,
-    param_db: Optional[ParameterDatabase] = None,
-    *,
-    scale_sidechains: bool = True,
+    device: torch.device, param_db: Optional[ParameterDatabase] = None
 ) -> "ScoreFunction":
-    """Return beta_nov2016 plus the ``elec_dens_fast`` term for one observed map.
+    """Return beta_nov2016 plus the elec_dens_fast term.
 
-    The weights are those of :func:`beta2016_score_function` with
-    ``elec_dens_fast`` added at 35, the value Rosetta's cryo-EM refinement script
-    uses. That script also reweights ``fa_rep`` (0.05) and the bonded terms; do
-    the same with ``ScoreFunction.set_weight``.
+    The term scores against pose_stack.density_map with cryo-EM defaults
+    (electron scattering, non-periodic map); set the score-function options
+    density_scatterers and density_periodic to change them.
 
     Args:
         device: Target torch device.
-        density_map: Observed map, e.g. from :func:`tmol.score.density.read_mrc`.
-        resolution: Map resolution in Angstrom; it sets the width of the atom kernel.
         param_db: Optional parameter database; the process default is used when omitted.
-        scale_sidechains: Apply Rosetta's per-residue side-chain density scale.
 
     Returns:
-        A new ScoreFunction. It is not memoized, because it is bound to ``density_map``.
+        A new ScoreFunction.
     """
-    sfxn = _non_memoized_beta2016(device, param_db)
-    sfxn.set_weight(ScoreType.elec_dens_fast, _ELEC_DENS_FAST_WEIGHT)
-    sfxn.set_options(
-        {
-            **sfxn.term_options,
-            "density_map": density_map,
-            "density_resolution": resolution,
-            "density_scale_sidechains": scale_sidechains,
-        }
-    )
-    return sfxn
+    return _load_score_function("beta_nov16_dens.sfxn", device, param_db)
 
 
 __all__ = [
