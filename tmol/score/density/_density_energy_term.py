@@ -1,38 +1,52 @@
+import math
+
+import numpy
 import torch
 
 from .._energy_term import EnergyTerm
 from ._fast_density import FastDensityScore
 from .density import ElectronDensityMap, block_type_atomic_numbers
 
+from tmol.chemical import RefinedResidueType, l_base_name
 from tmol.database import ParameterDatabase
 from tmol.pose import PoseStack
 
-# ``scale_sc_dens_byres`` of Rosetta's cryoem_glycan_refinement.xml: side-chain
-# density is down-weighted by residue type.
-CRYOEM_SIDECHAIN_SCALE: dict[str, float] = {
-    **dict.fromkeys(("ARG", "LYS", "GLU", "ASP", "MET"), 0.66),
-    **dict.fromkeys(("CYS", "GLN", "HIS", "ASN", "THR", "SER"), 0.71),
-    **dict.fromkeys(("TYR", "TRP", "ALA", "PHE", "PRO", "ILE", "LEU", "VAL"), 0.78),
-}
-_BACKBONE_ATOM_NAMES = frozenset({"N", "CA", "C", "O", "OXT"})
+
+def sidechain_atom_mask(block_type: RefinedResidueType) -> numpy.ndarray:
+    """Atoms hanging off an interior main-chain atom (CA for a protein).
+
+    Atoms attached through the first or last main-chain atom (H, O, OXT) are
+    backbone. Non-polymers have no side chain.
+    """
+    mask = numpy.zeros(block_type.n_atoms, dtype=bool)
+    mainchain = block_type.properties.polymer.mainchain_atoms
+    if not mainchain or len(mainchain) < 3:
+        return mask
+    mc = [block_type.atom_to_idx[name] for name in mainchain]
+    neighbors = [[] for _ in range(block_type.n_atoms)]
+    for a, b in block_type.bond_indices:
+        neighbors[a].append(b)
+    stack = [b for a in mc[1:-1] for b in neighbors[a] if b not in mc]
+    while stack:
+        a = stack.pop()
+        if not mask[a]:
+            mask[a] = True
+            stack.extend(b for b in neighbors[a] if b not in mc and not mask[b])
+    return mask
 
 
 class DensityEnergyTerm(EnergyTerm):
-    """Rosetta-style ``elec_dens_fast`` fit-to-density score of every heavy atom.
+    """Rosetta-style elec_dens_fast fit-to-density score of every heavy atom.
 
-    ``E = - sum_atoms (a_elt / 6) * sidechain_scale * S(x_atom)`` over heavy
-    atoms, where ``S`` is the normalized score grid of :class:`FastDensityScore`.
-    The term is unweighted; weight it through ``ScoreType.elec_dens_fast``
-    (Rosetta's cryo-EM script uses 35).
+    E = - sum_atoms (trunc(a_elt) / 6) * sc_scale * S(x_atom), where S is the
+    normalized score grid of FastDensityScore.
 
-    The observed map is a score-function option, not part of the pose::
+    The observed map is pose_stack.density_map, one map per stack.
 
-        sfxn.set_options(
-            {"density_map": ElectronDensityMap, "density_resolution": 3.0}
-        )
-
-    ``density_scale_sidechains`` (default ``True``) applies Rosetta's per-residue
-    side-chain scale.
+    Score-function options:
+        density_periodic: treat the map as periodic (default False).
+        density_scatterers: scattering table, "electron" (default) or "xray".
+        density_sc_scale: residue name -> side-chain scale (default: none).
     """
 
     device: torch.device
@@ -40,10 +54,13 @@ class DensityEnergyTerm(EnergyTerm):
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
         super().__init__(param_db=param_db, device=device)
         self.device = device
-        self.density_map = None
-        self.resolution = None
-        self.scale_sidechains = True
+        self.scatterer_tables = param_db.scoring.elec_dens.scatterers
+        self.periodic = False
+        self.scatterers = "electron"
+        self.sc_scale = {}
         self._scorer = None
+        self._scorer_map = None
+        self._scorer_key = None
 
     @classmethod
     def class_name(cls):
@@ -59,48 +76,56 @@ class DensityEnergyTerm(EnergyTerm):
         return 1
 
     def set_options(self, options: dict):
-        density_map = options.get("density_map")
-        resolution = options.get("density_resolution")
-        if density_map is not self.density_map or resolution != self.resolution:
-            self._scorer = None
-        self.density_map = density_map
-        self.resolution = resolution
-        self.scale_sidechains = bool(options.get("density_scale_sidechains", True))
-
-    def _get_scorer(self) -> FastDensityScore:
-        if self.density_map is None or self.resolution is None:
+        self.periodic = bool(options.get("density_periodic", False))
+        self.scatterers = options.get("density_scatterers", "electron")
+        self.sc_scale = options.get("density_sc_scale") or {}
+        if self.scatterers not in self.scatterer_tables:
             raise ValueError(
-                "elec_dens_fast needs the score-function options 'density_map' "
-                "(an ElectronDensityMap) and 'density_resolution'"
+                f"density_scatterers must be one of {sorted(self.scatterer_tables)}"
             )
-        if not isinstance(self.density_map, ElectronDensityMap):
-            raise TypeError("'density_map' must be an ElectronDensityMap")
-        if self._scorer is None:
+
+    def _get_scorer(self, density_map) -> FastDensityScore:
+        if density_map is None:
+            raise ValueError("elec_dens_fast needs a pose_stack.density_map")
+        if not isinstance(density_map, ElectronDensityMap):
+            raise TypeError("pose_stack.density_map must be an ElectronDensityMap")
+        carbon_sigma = self.scatterer_tables[self.scatterers]["C"].sigma
+        key = (self.periodic, carbon_sigma)
+        if self._scorer_map is not density_map or self._scorer_key != key:
             self._scorer = FastDensityScore(
-                self.density_map.to(self.device), self.resolution
+                density_map.to(self.device),
+                carbon_sigma,
+                periodic=self.periodic,
             )
+            self._scorer_map = density_map
+            self._scorer_key = key
         return self._scorer
 
-    def _block_type_atom_weights(
-        self, packed_block_types, scorer: FastDensityScore
-    ) -> torch.Tensor:
-        """Per atom of every block type: ``(a_elt / 6) * sidechain_scale``.
+    def _block_type_atom_weights(self, packed_block_types) -> torch.Tensor:
+        """Per atom of every block type: (trunc(a_elt) / 6) * sc_scale.
 
-        Hydrogens and padding atoms get zero.
+        The scattering weight is truncated to an integer, as Rosetta stores it.
+        Hydrogens, virtual atoms and padding get zero.
         """
-        z = block_type_atomic_numbers(packed_block_types, self.device)
-        weight = scorer.amplitude(z) * (z > 1)
-        if self.scale_sidechains:
-            scale = torch.ones_like(weight)
-            for i, block_type in enumerate(packed_block_types.active_block_types):
-                factor = CRYOEM_SIDECHAIN_SCALE.get(block_type.base_name)
-                if factor is None:
-                    continue
-                for j, atom in enumerate(block_type.atoms):
-                    if atom.name not in _BACKBONE_ATOM_NAMES:
-                        scale[i, j] = factor
-            weight = weight * scale
-        return weight.to(scorer.coeffs.dtype)
+        table = self.scatterer_tables[self.scatterers]
+        z_for_element = {
+            e.name: e.atomic_number for e in packed_block_types.chem_db.element_types
+        }
+        weight_for_z = {
+            z_for_element[name]: math.trunc(p.weight) / 6.0 for name, p in table.items()
+        }
+        z = block_type_atomic_numbers(packed_block_types).numpy()
+        weight = numpy.where(z > 1, weight_for_z[z_for_element["C"]], 0.0)
+        for atomic_number, w in weight_for_z.items():
+            weight[z == atomic_number] = w
+        for i, block_type in enumerate(packed_block_types.active_block_types):
+            factor = self.sc_scale.get(block_type.base_name)
+            if factor is None:
+                factor = self.sc_scale.get(l_base_name(block_type))
+            if factor is not None:
+                sc = sidechain_atom_mask(block_type)
+                weight[i, : block_type.n_atoms][sc] *= factor
+        return torch.as_tensor(weight, dtype=torch.float32, device=self.device)
 
     def get_pose_score_term_function(self):
         return eval_density_energy_for_pose
@@ -109,42 +134,70 @@ class DensityEnergyTerm(EnergyTerm):
         return eval_density_energy_for_rotamers
 
     def get_score_term_attributes(self, pose_stack: PoseStack):
-        scorer = self._get_scorer()
+        scorer = self._get_scorer(pose_stack.density_map)
         pbt = pose_stack.packed_block_types
-        block_type_weight = self._block_type_atom_weights(pbt, scorer)
-        block_type_n_atoms = pbt.n_atoms.to(torch.int64)
+        block_type_weight = self._block_type_atom_weights(pbt)
 
-        # Whole-pose scoring has one rotamer per block, so the atom list is static:
-        # precompute the flat coordinate index, the owning pose and block, and the
-        # weight of every scoring atom once per render.
+        # whole-pose scoring has one rotamer per block, so the scoring atoms are
+        # fixed per render: flat coordinate index, owning pose and block, weight
         block_type = pose_stack.block_type_ind64
         pose_of_block, block_of_block = (block_type >= 0).nonzero(as_tuple=True)
         block_bt = block_type[pose_of_block, block_of_block]
-        n_atoms = block_type_n_atoms[block_bt]
-        block_of_atom = torch.repeat_interleave(
-            torch.arange(n_atoms.shape[0], device=n_atoms.device), n_atoms
-        )
-        first_atom = torch.cumsum(n_atoms, 0) - n_atoms
-        local = (
-            torch.arange(block_of_atom.shape[0], device=n_atoms.device)
-            - first_atom[block_of_atom]
-        )
-        offset = pose_stack.block_coord_offset64[pose_of_block, block_of_block][
-            block_of_atom
-        ]
+        offset = pose_stack.block_coord_offset64[pose_of_block, block_of_block]
+        block_of_atom, local = _atoms_of(pbt.n_atoms.to(torch.int64)[block_bt])
         pose_of_atom = pose_of_block[block_of_atom]
-        flat_index = pose_of_atom * pose_stack.max_n_pose_atoms + offset + local
+        flat_index = (
+            pose_of_atom * pose_stack.max_n_pose_atoms + offset[block_of_atom] + local
+        )
         weight = block_type_weight[block_bt[block_of_atom], local]
         keep = weight != 0
+        n_blocks = pose_stack.max_n_blocks
+        block = block_of_block[block_of_atom]
+        diagonal = (pose_of_atom * n_blocks + block) * n_blocks + block
         return [
             scorer,
             flat_index[keep],
-            pose_of_atom[keep],
-            block_of_block[block_of_atom][keep],
             weight[keep],
-            block_type_weight,
-            block_type_n_atoms,
+            pose_of_atom[keep],
+            diagonal[keep],
         ]
+
+    def get_rotamer_score_term_attributes(self, pose_stack, rotamer_set):
+        scorer = self._get_scorer(pose_stack.density_map)
+        pbt = pose_stack.packed_block_types
+        block_type_weight = self._block_type_atom_weights(pbt)
+        rot_bt = rotamer_set.block_type_ind_for_rot
+        n_atoms = torch.where(
+            rot_bt >= 0, pbt.n_atoms.to(torch.int64)[rot_bt.clamp_min(0)], 0
+        )
+        rot_of_atom, local = _atoms_of(n_atoms)
+        index = rotamer_set.coord_offset_for_rot.to(torch.int64)[rot_of_atom] + local
+        weight = block_type_weight[rot_bt[rot_of_atom], local]
+        keep = weight != 0
+        rot_of_atom = rot_of_atom[keep]
+        n_rots = rot_bt.shape[0]
+        rotamer = torch.arange(n_rots, dtype=torch.int32, device=rot_bt.device)
+        indices = torch.stack(
+            [rotamer_set.pose_for_rot.to(torch.int32), rotamer, rotamer]
+        )
+        return [
+            scorer,
+            index[keep],
+            weight[keep],
+            rotamer_set.pose_for_rot[rot_of_atom],
+            rot_of_atom,
+            indices,
+        ]
+
+
+def _atoms_of(n_atoms: torch.Tensor):
+    """Owner and local index of every atom of consecutive owners with n_atoms."""
+    owner = torch.repeat_interleave(
+        torch.arange(n_atoms.shape[0], device=n_atoms.device), n_atoms
+    )
+    first = torch.cumsum(n_atoms, 0) - n_atoms
+    local = torch.arange(owner.shape[0], device=n_atoms.device) - first[owner]
+    return owner, local
 
 
 def eval_density_energy_for_pose(
@@ -164,35 +217,31 @@ def eval_density_energy_for_pose(
     _max_n_rots_per_pose,
     # term args
     scorer,
-    flat_index,
-    pose_of_atom,
-    block_of_atom,
+    atom_index,
     atom_weight,
-    _block_type_weight,
-    _block_type_n_atoms,
+    atom_pose,
+    atom_diagonal,
     output_block_pair_energies: bool,
 ):
-    energy = -atom_weight.to(coords.dtype) * scorer(coords[flat_index])
-    n_poses, max_n_blocks = first_rot_block_type.shape
+    n_poses, n_blocks = first_rot_block_type.shape
     if output_block_pair_energies:
-        score = coords.new_zeros((n_poses, max_n_blocks, max_n_blocks))
-        score = score.index_put(
-            (pose_of_atom, block_of_atom, block_of_atom), energy, accumulate=True
-        )
+        score = scorer.score(
+            coords, atom_index, atom_diagonal, atom_weight, n_poses * n_blocks**2
+        ).reshape(n_poses, n_blocks, n_blocks)
     else:
-        score = coords.new_zeros((n_poses,)).index_add(0, pose_of_atom, energy)
+        score = scorer.score(coords, atom_index, atom_pose, atom_weight, n_poses)
     return score.unsqueeze(0), None
 
 
 def eval_density_energy_for_rotamers(
     # common args
     rot_coords,
-    rot_coord_offset,
+    _rot_coord_offset,
     _pose_ind_for_atom,
     _first_rot_for_block,
     _first_rot_block_type,
     _block_ind_for_rot,
-    pose_ind_for_rot,
+    _pose_ind_for_rot,
     block_type_ind_for_rot,
     n_rots_for_pose,
     _rot_offset_for_pose,
@@ -202,38 +251,19 @@ def eval_density_energy_for_rotamers(
     _max_n_rots_per_pose,
     # term args
     scorer,
-    _flat_index,
-    _pose_of_atom,
-    _block_of_atom,
-    _atom_weight,
-    block_type_weight,
-    block_type_n_atoms,
+    atom_index,
+    atom_weight,
+    atom_pose,
+    atom_rotamer,
+    indices,
     output_block_pair_energies: bool,
 ):
-    device = rot_coords.device
-    block_type = block_type_ind_for_rot.to(torch.int64)
-    n_rots = block_type.shape[0]
-    n_atoms = torch.where(
-        block_type >= 0,
-        block_type_n_atoms[block_type.clamp_min(0)],
-        torch.zeros_like(block_type),
-    )
-    rot_of_atom = torch.repeat_interleave(torch.arange(n_rots, device=device), n_atoms)
-    first_atom = torch.cumsum(n_atoms, 0) - n_atoms
-    local = torch.arange(rot_of_atom.shape[0], device=device) - first_atom[rot_of_atom]
-    index = rot_coord_offset.to(torch.int64)[rot_of_atom] + local
-    weight = block_type_weight[block_type[rot_of_atom], local].to(rot_coords.dtype)
-    energy = -weight * scorer(rot_coords[index])
-    rotamer_score = rot_coords.new_zeros((n_rots,)).index_add(0, rot_of_atom, energy)
-
     if output_block_pair_energies:
-        indices = torch.zeros((3, n_rots), dtype=torch.int32, device=device)
-        indices[0, :] = pose_ind_for_rot
-        rotamer_index = torch.arange(n_rots, dtype=torch.int32, device=device)
-        indices[1, :] = rotamer_index
-        indices[2, :] = rotamer_index
-        return rotamer_score.unsqueeze(0), indices
-    pose_score = rot_coords.new_zeros(n_rots_for_pose.shape).index_add(
-        0, pose_ind_for_rot.to(torch.int64), rotamer_score
+        n_rots = block_type_ind_for_rot.shape[0]
+        score = scorer.score(rot_coords, atom_index, atom_rotamer, atom_weight, n_rots)
+        return score.unsqueeze(0), indices
+    n_poses = n_rots_for_pose.shape[0]
+    score = scorer.score(rot_coords, atom_index, atom_pose, atom_weight, n_poses)
+    return score.unsqueeze(0), torch.zeros(
+        (0,), dtype=torch.int32, device=rot_coords.device
     )
-    return pose_score.unsqueeze(0), torch.zeros((0,), dtype=torch.int32, device=device)

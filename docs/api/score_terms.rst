@@ -38,8 +38,8 @@ Score-type map
        :class:`tmol.pose.ConstraintSet`.
    * - ``elec_dens_fast``
      - :class:`~tmol.score.density.DensityEnergyTerm`
-     - Rosetta-style fit of every heavy atom to a cryo-EM map. The map is a
-       score-function option; use
+     - Rosetta-style fit of every heavy atom to a cryo-EM or crystallographic
+       map attached to the pose stack (``PoseStack.density_map``); use
        :func:`tmol.score.beta_nov16_dens_score_function`.
    * - ``disulfide``
      - :class:`~tmol.score.disulfide.DisulfideEnergyTerm`

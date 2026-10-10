@@ -1,0 +1,59 @@
+# beta_nov2016 plus the fit-to-density term; weights must match beta2016.sfxn
+version: "1.0"
+weights:
+  fa_ljatr: 1.0
+  fa_ljrep: 0.55
+  fa_lk: 1.0
+  fa_elec: 1.0
+  hbond: 1.0
+  lk_ball_iso: -0.38
+  lk_ball: 0.92
+  lk_bridge: -0.33
+  lk_bridge_uncpl: -0.33
+  omega: 0.48
+  # rama tables already include the 0.5 rama_prepro and 0.61 p_aa_pp weights
+  rama: 1.0
+  disulfide: 1.25
+  metal_coordination: 1.0
+  cart_lengths: 0.5
+  cart_angles: 0.5
+  cart_torsions: 0.5
+  cart_impropers: 0.5
+  cart_hxltorsions: 1.0
+  dunbrack_rot: 0.76
+  dunbrack_rotdev: 0.69
+  dunbrack_semirot: 0.78
+  ref: 1.0
+  gen_torsions: 1.0
+  na_torsion: 1.0
+  na_torsion_well: 1.0
+  elec_dens_fast: 35.0
+options:
+  # side-chain density scale (scale_sc_dens_byres of Rosetta's cryo-EM refinement)
+  density_sc_scale:
+    ARG: 0.66
+    LYS: 0.66
+    LYS_DEP: 0.66
+    GLU: 0.66
+    ASP: 0.66
+    MET: 0.66
+    CYS: 0.71
+    CYD: 0.71
+    CYS_DEP: 0.71
+    GLN: 0.71
+    HIS: 0.71
+    HIS_D: 0.71
+    HIS_DEP: 0.71
+    HIS_POS: 0.71
+    ASN: 0.71
+    THR: 0.71
+    SER: 0.71
+    TYR: 0.78
+    TYR_DEP: 0.78
+    TRP: 0.78
+    ALA: 0.78
+    PHE: 0.78
+    PRO: 0.78
+    ILE: 0.78
+    LEU: 0.78
+    VAL: 0.78
