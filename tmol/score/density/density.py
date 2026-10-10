@@ -225,8 +225,8 @@ def read_mrc(
 
     f2c = frac_to_cart(cell)
     voxel_basis = f2c / numpy.asarray(cell_grid, dtype=numpy.float64)
-    # as Rosetta: the MRC2014 origin is used only if all three components are set
-    if all(o != 0 and abs(o) < 1e4 for o in cart_origin):
+    # a nonzero MRC2014 origin takes precedence over nstart
+    if any(cart_origin) and all(abs(o) < 1e4 for o in cart_origin):
         origin = numpy.asarray(cart_origin, dtype=numpy.float64)
         origin_index = numpy.linalg.solve(voxel_basis, origin)
     else:

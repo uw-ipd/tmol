@@ -55,8 +55,8 @@ def test_cryoem_rewritten_layouts_read_the_same(
     torch.testing.assert_close(result.voxel_basis, em.voxel_basis)
 
 
-def test_origin_field_needs_all_three_components(tmp_path):
-    """As in Rosetta, an origin with a zero component is ignored for nstart."""
+def test_origin_field_with_a_zero_component_is_used(tmp_path):
+    """A nonzero MRC2014 origin takes precedence over nstart."""
     em = load_map(EM_MAP)
     path = tmp_path / "map.mrc"
     write_mrc(
@@ -67,7 +67,9 @@ def test_origin_field_needs_all_three_components(tmp_path):
         origin=(0.0, 12.5, -3.0),
     )
     result = read_mrc(path, EM_RESOLUTION, dtype=torch.float64)
-    torch.testing.assert_close(result.origin, em.origin)
+    torch.testing.assert_close(
+        result.origin, torch.tensor([0.0, 12.5, -3.0], dtype=torch.float64)
+    )
 
 
 def test_bogus_symmetry_record_size(tmp_path):
