@@ -639,6 +639,9 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   auto molten_block_offset_for_pose_tp = TPack<Int, 1, D>::zeros({n_poses});
   auto molten_block_offset_for_pose = molten_block_offset_for_pose_tp.view;
   auto record_molten_block_offset_per_pose = ([=] TMOL_DEVICE_FUNC(int index) {
+    if (max_n_blocks == 0) {
+      return;
+    }
     int const pose = index;
     int last_block_kept = keep_block[pose][max_n_blocks - 1];
     int last_offset_for_pose =

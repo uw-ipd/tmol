@@ -99,9 +99,17 @@ def score_entries(metadata, edges, *, duplicate=False):
         ([[0, 0, 0], [2, 3, 0]], [0, 5], [0, 0]),
         ([[2, 3, 0], [0, 0, 0], [2, 0, 0]], [5, 0, 2], [0, 5, 5]),
         ([[0, 0, 0], [0, 0, 0]], [0, 0], [0, 0]),
+        ([[], []], [0, 0], [0, 0]),
         ([[2, 1, 0], [0, 0, 0]], [2, 0], [0, 2]),
     ],
-    ids=["trailing", "leading", "interior", "all_empty", "retained_subset"],
+    ids=[
+        "trailing",
+        "leading",
+        "interior",
+        "all_empty",
+        "zero_columns",
+        "retained_subset",
+    ],
 )
 def test_interaction_graph_empty_pose_offsets(
     torch_device, counts, expected_counts, expected_offsets
