@@ -588,10 +588,21 @@ struct Annealer {
     auto rotamer_assignments_final_t =
         TPack<int, 3, D>::zeros({n_poses, n_fullquench_traj, max_n_res});
 
+    // Both quench-lite phases finish before full quenching starts on the same
+    // stream. Their order tables can share storage: each trajectory initializes
+    // its complete permutation before reading it, including after reuse.
+    int64_t const quench_lite_entries =
+        int64_t(n_poses) * max_traj * max_quench_lite_rots;
+    int64_t const fullquench_entries =
+        int64_t(n_poses) * n_fullquench_traj * max_n_rotamers;
+    auto quench_order_t = TPack<int, 1, D>::empty(
+        {std::max(quench_lite_entries, fullquench_entries)});
     auto quench_lite_order_t =
-        TPack<int, 3, D>::zeros({n_poses, max_traj, max_quench_lite_rots});
-    auto fullquench_order_t =
-        TPack<int, 3, D>::zeros({n_poses, n_fullquench_traj, max_n_rotamers});
+        TPack<int, 3, D>(quench_order_t.tensor.narrow(0, 0, quench_lite_entries)
+                             .view({n_poses, max_traj, max_quench_lite_rots}));
+    auto fullquench_order_t = TPack<int, 3, D>(
+        quench_order_t.tensor.narrow(0, 0, fullquench_entries)
+            .view({n_poses, n_fullquench_traj, max_n_rotamers}));
 
     auto scores_hitemp = scores_hitemp_t.view;
     auto current_rotamer_assignments_hitemp =

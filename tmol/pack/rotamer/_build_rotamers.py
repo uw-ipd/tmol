@@ -168,10 +168,7 @@ def correct_phi_c_from_measured_chi(
     trial pass corrects every chi at once.
     """
     # trial forward pass to get coords in RTO
-    n_at_total = (
-        n_atoms_offset_for_conformer_torch[-1].item()
-        + pbt.n_atoms[block_type_ind_for_conformer_torch[-1]].item()
-    )
+    n_at_total = conformer_kinforest.id.numel() - 1
     trial_coords_rto = calculate_rotamer_coords(
         pbt, n_at_total, conformer_kinforest, nodes, scans, gens, conf_dofs_kto
     )
@@ -456,67 +453,33 @@ def construct_kinforest_for_conformers(
 
     n_atoms_for_conf = n_atoms_for_conf.cpu().numpy()
 
-    # append a 1 for the root node and then treat
-    # the resulting (inclusive) scan as if it
-    # represents offsets
-    temp = numpy.concatenate((numpy.ones(1, dtype=numpy.int32), n_atoms_for_conf))
-    n_atoms_offset_for_conf = numpy.cumsum(temp)
+    # Gather only real atoms. A padded conformer-by-atom gather for each field
+    # scales with the largest residue type, even when it is rarely sampled.
+    starts = numpy.cumsum(n_atoms_for_conf, dtype=numpy.int64) - n_atoms_for_conf
+    source = numpy.repeat(
+        conf_block_type_ind.astype(numpy.int64) * pbt.max_n_atoms - starts,
+        n_atoms_for_conf,
+    )
+    source += numpy.arange(n_atoms_total)
+    offsets = numpy.repeat(starts + 1, n_atoms_for_conf)
+    fields = ("id", "doftype", "parent", "frame_x", "frame_y", "frame_z")
+    compact = numpy.zeros((len(fields), n_atoms_total + 1), dtype=numpy.int32)
+    for i, name in enumerate(fields):
+        compact[i, 1:] = getattr(pbt.rotamer_kinforest, name).reshape(-1)[source]
+        if name == "id":
+            compact[i, 1:] += numpy.repeat(
+                block_offset_for_conf[: n_atoms_for_conf.shape[0]], n_atoms_for_conf
+            )
+        elif name != "doftype":
+            compact[i, 1:] += offsets
+    compact[0, 0] = -1
+    # Every nonempty conformer attaches directly to the shared virtual root.
+    compact[2, starts[n_atoms_for_conf > 0] + 1] = 0
 
-    def nab(func, arr):
-        return func(arr[conf_block_type_ind], n_atoms_total, n_atoms_for_conf)
-
-    def nab2(func, arr, conf_offset):
-        return func(
-            arr[conf_block_type_ind], n_atoms_total, n_atoms_for_conf, conf_offset
-        )
-
-    def _t(arr):
-        return torch.as_tensor(arr, dtype=torch.int32, device=device)
-
-    id = _t(
-        nab2(
-            load_from_rotamers_w_offsets,
-            pbt.rotamer_kinforest.id,
-            block_offset_for_conf,
-        )
-    )
-    id[0] = -1
-    doftype = _t(nab(load_from_rotamers, pbt.rotamer_kinforest.doftype))
-    parent = _t(
-        nab2(
-            load_rotamer_parents, pbt.rotamer_kinforest.parent, n_atoms_offset_for_conf
-        )
-    )
-    frame_x = _t(
-        nab2(
-            load_from_rotamers_w_offsets,
-            pbt.rotamer_kinforest.frame_x,
-            n_atoms_offset_for_conf,
-        )
-    )
-    frame_y = _t(
-        nab2(
-            load_from_rotamers_w_offsets,
-            pbt.rotamer_kinforest.frame_y,
-            n_atoms_offset_for_conf,
-        )
-    )
-    frame_z = _t(
-        nab2(
-            load_from_rotamers_w_offsets,
-            pbt.rotamer_kinforest.frame_z,
-            n_atoms_offset_for_conf,
-        )
-    )
-
-    return KinForest(
-        id=id,
-        doftype=doftype,
-        parent=parent,
-        frame_x=frame_x,
-        frame_y=frame_y,
-        frame_z=frame_z,
-    )
+    # Transfer all six contiguous fields together; each resulting row remains
+    # contiguous for the native kinematics operators.
+    packed = torch.as_tensor(compact, device=device)
+    return KinForest(**dict(zip(fields, packed.unbind(0))))
 
 
 def measure_dofs_from_orig_coords(
@@ -921,9 +884,18 @@ def build_rotamers(
     block_type_ind_for_conformer = gbt_block_type_ind[gbt_for_conformer_np]
     block_type_ind_for_conformer_torch = _t(block_type_ind_for_conformer, torch.int64)
 
-    n_atoms_for_conformer = pbt.n_atoms[block_type_ind_for_conformer_torch]
-    n_atoms_offset_for_conformer = torch.cumsum(n_atoms_for_conformer, dim=0)
-    n_atoms_offset_for_conformer = n_atoms_offset_for_conformer.cpu().numpy()
+    # The topology plan is assembled on the host. Residue atom counts are
+    # immutable metadata, so do not send conformer types to the device merely
+    # to gather counts and immediately copy their prefix sum back.
+    n_atoms_by_type = numpy.asarray(
+        [rt.n_atoms for rt in pbt.active_block_types], dtype=numpy.int32
+    )
+    n_atoms_for_conformer_np = n_atoms_by_type[block_type_ind_for_conformer]
+    n_atoms_for_conformer_cpu = torch.from_numpy(n_atoms_for_conformer_np)
+    n_atoms_for_conformer = n_atoms_for_conformer_cpu.to(device=pbt.device)
+    n_atoms_offset_for_conformer = numpy.cumsum(
+        n_atoms_for_conformer_np, dtype=numpy.int64
+    )
     n_atoms_total = n_atoms_offset_for_conformer[-1].item()
     if n_atoms_total >= numpy.iinfo(numpy.int32).max:
         raise ValueError(
@@ -939,7 +911,7 @@ def build_rotamers(
         pbt,
         block_type_ind_for_conformer,
         n_atoms_total,
-        n_atoms_for_conformer.to(dtype=torch.int32),
+        n_atoms_for_conformer_cpu,
         n_atoms_offset_for_conformer,
         pbt.device,
     )

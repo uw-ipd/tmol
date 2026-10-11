@@ -639,6 +639,9 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   auto molten_block_offset_for_pose_tp = TPack<Int, 1, D>::zeros({n_poses});
   auto molten_block_offset_for_pose = molten_block_offset_for_pose_tp.view;
   auto record_molten_block_offset_per_pose = ([=] TMOL_DEVICE_FUNC(int index) {
+    if (max_n_blocks == 0) {
+      return;
+    }
     int const pose = index;
     int last_block_kept = keep_block[pose][max_n_blocks - 1];
     int last_offset_for_pose =
@@ -690,8 +693,12 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   auto fill_bc_rot_offsets_per_pose = ([=] TMOL_DEVICE_FUNC(int index) {
     int const pose = index;
     int orig_first_rotamer_for_pose = rot_offset_for_pose[pose];
+    // Trailing empty poses start one past the original rotamer array.
+    // Their compacted offset is the total number of retained rotamers.
     int new_first_rotamer_for_pose =
-        old_to_new_rotamer_index[orig_first_rotamer_for_pose];
+        orig_first_rotamer_for_pose < n_rotamers
+            ? old_to_new_rotamer_index[orig_first_rotamer_for_pose]
+            : n_kept_rotamers;
     // This will be the right offset whether or not the first rotamer
     // in this pose has been bump-checked away
     bc_rot_offset_for_pose[pose] = new_first_rotamer_for_pose;
