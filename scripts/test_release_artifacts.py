@@ -281,6 +281,9 @@ def test_pypi_cuda_wheel_keeps_native_bytes_and_torch_pin(tmp_path, newline):
         zipfile.ZipFile(source) as original,
         zipfile.ZipFile(published) as candidate,
     ):
+        assert all(
+            info.compress_type == zipfile.ZIP_DEFLATED for info in candidate.infolist()
+        )
         assert candidate.read("tmol/__init__.py") == original.read("tmol/__init__.py")
         assert candidate.read("tmol/database/default/params.bin") == b"runtime data"
         assert candidate.read("tmol/_C.so") == original.read("tmol/_C.so")

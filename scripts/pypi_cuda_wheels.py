@@ -76,7 +76,9 @@ def pypi_gpu_wheel(source: Path, destination: Path) -> Path:
                         data,
                         count=1,
                     )
-                output.writestr(renamed, data)
+                output.writestr(
+                    renamed, data, compress_type=zipfile.ZIP_DEFLATED, compresslevel=9
+                )
                 digest = base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(
                     b"="
                 )
