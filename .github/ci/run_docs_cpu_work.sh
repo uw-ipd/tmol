@@ -4,6 +4,8 @@ set -euo pipefail
 
 source .venv/bin/activate
 
+python scripts/generate_score_playground.py --verify
+
 echo "=== execute CPU tutorial outputs ==="
 python .github/scripts/smoke_tutorial_notebooks.py --write
 
