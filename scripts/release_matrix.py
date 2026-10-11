@@ -46,7 +46,7 @@ def rows(backends, arches):
     ]
 
 
-def gpu_wheel_rows(*, release=True):
+def gpu_wheel_rows():
     return rows(("cu12", "cu13"), LINUX_ARCHES)
 
 

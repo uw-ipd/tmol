@@ -69,15 +69,7 @@ def main() -> None:
     if len(versions) != 1:
         raise SystemExit(f"expected one release version, found: {sorted(versions)}")
 
-    gpu = [wheel for wheel in wheels if not wheel.local.startswith("cpu")]
-    cpu = [wheel for wheel in wheels if wheel.local.startswith("cpu")]
     expected_keys = expected_wheel_keys()
-    expected_gpu_count = sum(not key.startswith("cpu") for key in expected_keys)
-    expected_cpu_count = len(expected_keys) - expected_gpu_count
-    if len(gpu) != expected_gpu_count:
-        raise SystemExit(f"expected {expected_gpu_count} GPU wheels, found {len(gpu)}")
-    if len(cpu) != expected_cpu_count:
-        raise SystemExit(f"expected {expected_cpu_count} CPU wheels, found {len(cpu)}")
 
     found_platforms = {wheel.platform for wheel in wheels}
     unexpected = found_platforms - RELEASE_PLATFORMS
@@ -86,7 +78,7 @@ def main() -> None:
 
     wheel_keys = [wheel.key for wheel in wheels]
     if len(wheel_keys) != len(set(wheel_keys)):
-        raise SystemExit("duplicate Python/local-version/architecture variants found")
+        raise SystemExit("duplicate Python/backend/architecture variants found")
 
     found_keys = set(wheel_keys)
     missing = expected_keys - found_keys
@@ -97,9 +89,10 @@ def main() -> None:
             f"extra={sorted(extra)}"
         )
 
+    cpu_count = sum(wheel.local == "cpu" for wheel in wheels)
     print(
         f"Validated {len(wheels)} wheels for tmol {versions.pop()}: "
-        f"{len(gpu)} GPU, {len(cpu)} CPU"
+        f"{len(wheels) - cpu_count} GPU, {cpu_count} CPU"
     )
 
 
