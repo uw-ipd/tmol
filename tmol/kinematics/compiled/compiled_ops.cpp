@@ -649,21 +649,21 @@ auto inv_kin_dispatch(
 // See https://stackoverflow.com/a/3221914
 
 TMOL_LIBRARY(tmol_kin, m) {
-  m.def("forward_kin_op", &kinematic_op);
-  m.def("forward_only_op", &forward_only_op);
-  m.def("get_kfo_indices_for_atoms", &get_kfo_indices_for_atoms);
-  m.def("get_kfo_atom_parents", &get_kfo_atom_parents);
-  m.def("get_children", &get_children);
-  m.def("get_id_and_frame_xyz", &get_id_and_frame_xyz);
-  m.def("calculate_ff_edge_delays", &calculate_ff_edge_delays);
-  m.def("get_jump_atom_indices", &get_jump_atom_indices);
+  m.def("forward_kin_op", TMOL_FN(&kinematic_op));
+  m.def("forward_only_op", TMOL_FN(&forward_only_op));
+  m.def("get_kfo_indices_for_atoms", TMOL_FN(&get_kfo_indices_for_atoms));
+  m.def("get_kfo_atom_parents", TMOL_FN(&get_kfo_atom_parents));
+  m.def("get_children", TMOL_FN(&get_children));
+  m.def("get_id_and_frame_xyz", TMOL_FN(&get_id_and_frame_xyz));
+  m.def("calculate_ff_edge_delays", TMOL_FN(&calculate_ff_edge_delays));
+  m.def("get_jump_atom_indices", TMOL_FN(&get_jump_atom_indices));
   m.def(
       "get_block_parent_connectivity_from_toposort",
-      &get_block_parent_connectivity_from_toposort);
-  m.def("get_kinforest_scans_from_stencils", &get_scans2);
-  m.def("get_kinforest_scans_from_stencils2", &get_scans2);
-  m.def("minimizer_map_from_movemap", &minimizer_map_from_movemap);
-  m.def("inverse_kin", &inv_kin_dispatch);
+      TMOL_FN(&get_block_parent_connectivity_from_toposort));
+  m.def("get_kinforest_scans_from_stencils", TMOL_FN(&get_scans2));
+  m.def("get_kinforest_scans_from_stencils2", TMOL_FN(&get_scans2));
+  m.def("minimizer_map_from_movemap", TMOL_FN(&minimizer_map_from_movemap));
+  m.def("inverse_kin", TMOL_FN(&inv_kin_dispatch));
 }
 
 }  // namespace kinematics

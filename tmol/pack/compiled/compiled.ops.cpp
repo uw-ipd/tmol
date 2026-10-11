@@ -421,25 +421,27 @@ tmol::native::Tensor validate_energies(
 
 // See https://stackoverflow.com/a/3221914
 TMOL_LIBRARY(tmol_pack, m) {
-  m.def("pack_anneal", &anneal);
-  m.def("validate_energies", &validate_energies);
-  m.def("build_interaction_graph", &build_interaction_graph);
+  m.def("pack_anneal", TMOL_FN(&anneal));
+  m.def("validate_energies", TMOL_FN(&validate_energies));
+  m.def("build_interaction_graph", TMOL_FN(&build_interaction_graph));
   m.def(
       "initialize_interaction_graph_topology",
-      &initialize_interaction_graph_topology);
-  m.def("note_interaction_graph_topology", &note_interaction_graph_topology);
+      TMOL_FN(&initialize_interaction_graph_topology));
+  m.def(
+      "note_interaction_graph_topology",
+      TMOL_FN(&note_interaction_graph_topology));
   m.def(
       "finalize_interaction_graph_topology",
-      &finalize_interaction_graph_topology);
+      TMOL_FN(&finalize_interaction_graph_topology));
   m.def(
       "note_interaction_graph_chunk_topology",
-      &note_interaction_graph_chunk_topology);
+      TMOL_FN(&note_interaction_graph_chunk_topology));
   m.def(
       "finalize_interaction_graph_chunk_topology",
-      &finalize_interaction_graph_chunk_topology);
+      TMOL_FN(&finalize_interaction_graph_chunk_topology));
   m.def(
       "accumulate_interaction_graph_entries",
-      &accumulate_interaction_graph_entries);
+      TMOL_FN(&accumulate_interaction_graph_entries));
 }
 
 }  // namespace compiled

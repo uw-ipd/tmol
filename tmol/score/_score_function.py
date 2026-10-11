@@ -166,7 +166,7 @@ def _score_call_in_thread(
 
 def _score_grad_in_thread(
     scores: torch.Tensor,
-    coords: torch.Tensor,
+    coords: torch.Tensor | torch.autograd.graph.GradientEdge,
     grad_scores: torch.Tensor,
     create_graph: bool,
 ) -> torch.Tensor | None:
@@ -219,7 +219,9 @@ class _ParallelScoreTerms(torch.autograd.Function):
             for term in term_modules
         ]
         term_scores = tuple(future.result() for future in futures)
-        ctx.term_coords = term_coords
+        # A view's current gradient edge can change after its base is mutated.
+        # Keep the edge used by these term graphs without retaining the view.
+        ctx.term_edge = torch.autograd.graph.get_gradient_edge(term_coords)
         ctx.term_scores = term_scores
         ctx.term_sizes = tuple(scores.shape[0] for scores in term_scores)
         ctx.executor = executor
@@ -243,7 +245,7 @@ class _ParallelScoreTerms(torch.autograd.Function):
             term_grad_inputs.append(
                 (
                     term_scores,
-                    ctx.term_coords,
+                    ctx.term_edge,
                     grad_scores[offset : offset + term_size],
                     create_graph,
                 )

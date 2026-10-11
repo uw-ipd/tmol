@@ -374,7 +374,11 @@ jobs:
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: python -m twine upload --skip-existing prepared/pypi/*
+        run: |
+          # Publish optional backends before exposing base-package extras.
+          # Missing access to either new project must not publish a partial base release.
+          python -m twine upload --skip-existing prepared/pypi/tmol_ops_*.whl
+          python -m twine upload --skip-existing prepared/pypi/tmol-*.whl prepared/pypi/tmol-*.tar.gz
 
   verify_public:
     name: Verify public PyPI installation

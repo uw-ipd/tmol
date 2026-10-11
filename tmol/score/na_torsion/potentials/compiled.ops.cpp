@@ -151,7 +151,7 @@ std::tuple<Tensor, Tensor> na_torsion_pose_score(
 
 TMOL_LIBRARY(tmol_na_torsion, m) {
 #ifdef WITH_CUDA
-  m.def("na_torsion_pose_score", &na_torsion_pose_score);
+  m.def("na_torsion_pose_score", TMOL_FN(&na_torsion_pose_score));
 #else
   m.def(
       "na_torsion_pose_score("

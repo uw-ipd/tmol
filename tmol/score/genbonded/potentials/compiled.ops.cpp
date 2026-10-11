@@ -154,17 +154,20 @@ class GenBondedPoseScoreOp : public tmol::native::autograd::Function<
            gen_inter_improper_hash_keys,
            gen_inter_improper_hash_values});
     } else {
-      score = score.squeeze(-1).squeeze(-1);
-      ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
+      score = score.reshape({score.size(0), score.size(1)});
+      ctx->save_for_backward({dscore_dcoords});
     }
+    ctx->mark_non_differentiable({dscore_dcoords});
+    ctx->set_materialize_grads(false);
     return {score, dscore_dcoords};
   }
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    if (!grad_outputs[0].defined()) return tensor_list(29);
     auto saved = ctx->get_saved_variables();
     tmol::native::Tensor dV_d_pose_coords;
 
-    if (saved.size() == 2) {
+    if (saved.size() == 1) {
       // Single-score mode: reuse the pre-computed gradient
       auto saved_grad = saved[0];
       dV_d_pose_coords =
@@ -705,13 +708,15 @@ std::vector<Tensor> genbonded_rotamer_scores_op(
 }
 
 TMOL_LIBRARY(tmol_genbonded, m) {
-  m.def("genbonded_pose_scores", &genbonded_pose_scores_op<DeviceOperations>);
+  m.def(
+      "genbonded_pose_scores",
+      TMOL_FN(&genbonded_pose_scores_op<DeviceOperations>));
   m.def(
       "genbonded_rotamer_scores",
-      &genbonded_rotamer_scores_op<DeviceOperations>);
+      TMOL_FN(&genbonded_rotamer_scores_op<DeviceOperations>));
   m.def(
       "genbonded_rotamer_scores_topology",
-      &genbonded_rotamer_scores_op<DeviceOperations, true>);
+      TMOL_FN(&genbonded_rotamer_scores_op<DeviceOperations, true>));
 }
 
 }  // namespace potentials

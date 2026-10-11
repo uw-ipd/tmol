@@ -153,7 +153,9 @@ std::vector<Tensor> dun_sample_chi(
 // See https://stackoverflow.com/a/3221914
 
 TMOL_LIBRARY(tmol_dun_sampler, m) {
-  m.def("dun_sample_chi", &dun_sample_chi<score::common::DeviceOperations>);
+  m.def(
+      "dun_sample_chi",
+      TMOL_FN(&dun_sample_chi<score::common::DeviceOperations>));
 }
 
 }  // namespace dunbrack

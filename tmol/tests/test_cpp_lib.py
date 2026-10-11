@@ -36,6 +36,9 @@ def test_native_boundary_gradients(torch_device):
     torsion = torch.ops.tmol_constraint.get_torsion_angle
     assert torch.autograd.gradcheck(torsion, (coords,))
     assert torch.autograd.gradcheck(torsion, (torch._neg_view(coords),))
+    expected = torch.autograd.grad(torsion(-coords).sum(), coords)[0]
+    actual = torch.autograd.grad(torsion(torch._neg_view(coords)).sum(), coords)[0]
+    torch.testing.assert_close(actual, expected)
     upstream = torch.ones(
         2, dtype=torch.double, device=torch_device, requires_grad=True
     )
@@ -51,6 +54,33 @@ def test_native_boundary_gradients(torch_device):
         hooked = torch.autograd.grad(torsion(coords).sum(), coords)[0]
     torch.testing.assert_close(hooked, gradient.detach())
     assert not torsion(coords.detach()).requires_grad
+
+
+def test_native_boundary_saved_input_version(ubq_pdb, torch_device):
+    import pytest
+    import torch
+    from tmol.io import pose_stack_from_pdb
+    from tmol.score import beta2016_score_function
+
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    scorer = beta2016_score_function(torch_device).render_whole_pose_scoring_module(
+        pose
+    )
+    coords = pose.coords.clone().requires_grad_(True)
+    scores = scorer(coords.view_as(coords))
+    with torch.no_grad():
+        coords.add_(0)
+    with pytest.raises(RuntimeError, match="modified by an inplace operation"):
+        scores.sum().backward()
+
+    # A resolved negative view owns a copy; mutation of its source must preserve
+    # the stored gradient and its connection to the original leaf.
+    scores = scorer(torch._neg_view(coords)).sum()
+    expected = torch.autograd.grad(scores, coords, retain_graph=True)[0]
+    with torch.no_grad():
+        coords.add_(0.3)
+    actual = torch.autograd.grad(scores, coords)[0]
+    torch.testing.assert_close(actual, expected)
 
 
 def test_backend_selection(monkeypatch):

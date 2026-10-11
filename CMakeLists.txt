@@ -282,7 +282,14 @@ function(tmol_set_abi TARGET)
       target_link_libraries(${TARGET} PRIVATE OpenMP::OpenMP_CXX)
     endif()
   else()
-    target_compile_definitions(${TARGET} PRIVATE TORCH_TARGET_VERSION=0x020b000000000000)
+    target_compile_definitions(${TARGET} PRIVATE
+      TORCH_TARGET_VERSION=0x020b000000000000
+      TMOL_INTEROP_NAMESPACE="tmol_native_${TARGET}")
+    if("${TARGET}" STREQUAL "_C")
+      target_compile_definitions(${TARGET} PRIVATE TMOL_MAIN_MODULE)
+    else()
+      target_sources(${TARGET} PRIVATE tmol/native.cpp)
+    endif()
     target_include_directories(${TARGET} BEFORE PRIVATE "${TMOL_STABLE_HEADERS}")
   endif()
 endfunction()
@@ -442,7 +449,7 @@ endif()
 
 pybind11_add_module(_C MODULE ${_C_SOURCES})
 
-# Python registers the public operators; the module calls only stable C shims.
+# Register native operators through the stable dispatcher ABI.
 set_target_properties(_C PROPERTIES
   PREFIX ""
   OUTPUT_NAME "_C"

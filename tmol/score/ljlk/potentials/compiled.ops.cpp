@@ -155,8 +155,9 @@ class LJLKPoseScoreOp
            global_params,
            block_neighbors});
     } else {
-      score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
-      ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
+      score = score.reshape(
+          {score.size(0), score.size(1)});  // remove final 2 "dummy" dims
+      ctx->save_for_backward({dscore_dcoords});
     }
     // The integer neighbor output has no derivative. Do not allocate an
     // unused zero gradient for it when differentiating the score.
@@ -175,7 +176,7 @@ class LJLKPoseScoreOp
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
-    if (saved.size() == 2) {
+    if (saved.size() == 1) {
       // single-score mode
       auto saved_grad = saved[0];
       dV_d_pose_coords =
@@ -373,11 +374,12 @@ class LJLKAndElecPoseScoreOp
                       n_valid_rots);
             }
           }();
-          score = std::get<0>(result).tensor.squeeze(-1).squeeze(-1);
+          score = std::get<0>(result).tensor;
+          score = score.reshape({score.size(0), score.size(1)});
           dscore_dcoords = std::get<1>(result).tensor;
         }));
 #undef TMOL_FUSED_SCORE_ARGS
-    ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
+    ctx->save_for_backward({dscore_dcoords});
     return {score};
   }
 
@@ -613,9 +615,8 @@ class LJLKRotamerScoreOp : public tmol::native::autograd::Function<
     if (saved.size() == 2) {
       // TO DO: make this a function so it's not duplicated everywhere
       // single-score mode
-      auto saved_grads = ctx->get_saved_variables();
-      auto saved_grad = saved_grads[0];
-      auto pose_ind_for_atom = saved_grads[1];
+      auto saved_grad = saved[0];
+      auto pose_ind_for_atom = saved[1];
       auto atom_ingrads =
           grad_outputs[0].index_select(1, pose_ind_for_atom).unsqueeze(-1);
 
@@ -1226,7 +1227,7 @@ std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
 
 // See https://stackoverflow.com/a/3221914
 TMOL_LIBRARY(tmol_ljlk, m) {
-  m.def("ljlk_pose_scores", &ljlk_pose_scores_op<DeviceOperations>);
+  m.def("ljlk_pose_scores", TMOL_FN(&ljlk_pose_scores_op<DeviceOperations>));
   // Preserve the inferred argument names for existing callers while adding
   // an optional topology hint used only to choose the CUDA launch strategy.
   m.def(
@@ -1241,7 +1242,7 @@ TMOL_LIBRARY(tmol_ljlk, m) {
       "Tensor _21, Tensor _22, Tensor _23, "
       "Tensor _24, Tensor _25, Tensor _26, "
       "Tensor _27, int n_valid_rots=-1) -> Tensor[] _0",
-      &ljlk_elec_pose_scores_op<DeviceOperations>);
+      TMOL_FN(&ljlk_elec_pose_scores_op<DeviceOperations>));
   m.def(
       "ljlk_elec_weighted_pose_scores("
       "Tensor _0, Tensor _1, Tensor _2, "
@@ -1254,18 +1255,22 @@ TMOL_LIBRARY(tmol_ljlk, m) {
       "Tensor _21, Tensor _22, Tensor _23, "
       "Tensor _24, Tensor _25, Tensor _26, "
       "Tensor _27, Tensor _28, int n_valid_rots=-1) -> Tensor[] _0",
-      &ljlk_elec_weighted_pose_scores_op<DeviceOperations>);
+      TMOL_FN(&ljlk_elec_weighted_pose_scores_op<DeviceOperations>));
   m.def(
       "weighted_fused_score_sum",
-      &weighted_fused_score_sum_op<DeviceOperations>);
-  m.def("ljlk_rotamer_scores", &ljlk_rotamer_scores_op<DeviceOperations>);
+      TMOL_FN(&weighted_fused_score_sum_op<DeviceOperations>));
+  m.def(
+      "ljlk_rotamer_scores",
+      TMOL_FN(&ljlk_rotamer_scores_op<DeviceOperations>));
   m.def(
       "ljlk_elec_rotamer_dispatch",
-      &ljlk_elec_rotamer_dispatch_op<DeviceOperations>);
+      TMOL_FN(&ljlk_elec_rotamer_dispatch_op<DeviceOperations>));
   m.def(
       "ljlk_elec_weighted_rotamer_scores",
-      &ljlk_elec_weighted_rotamer_scores_op<DeviceOperations>);
-  m.def("build_compact_block_neighbors", &build_compact_block_neighbors_op);
+      TMOL_FN(&ljlk_elec_weighted_rotamer_scores_op<DeviceOperations>));
+  m.def(
+      "build_compact_block_neighbors",
+      TMOL_FN(&build_compact_block_neighbors_op));
 }
 
 }  // namespace potentials

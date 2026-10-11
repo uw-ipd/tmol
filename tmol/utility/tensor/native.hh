@@ -3,7 +3,6 @@
 #include <torch/csrc/stable/ops.h>
 #include <torch/csrc/stable/tensor.h>
 #include <torch/headeronly/util/Exception.h>
-#include <dlpack/dlpack.h>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -43,13 +42,6 @@ inline ScalarType scalar_type_from_options(const TensorOptions& o) {
   return o.dtype();
 }
 
-struct ExternalTensor {
-  std::unique_ptr<DLManagedTensor, void (*)(DLManagedTensor*)> managed;
-  std::vector<int64_t> contiguous_strides;
-  ScalarType dtype;
-  Device device;
-};
-
 // Opaque Python ownership keeps Python headers out of kernel translation units.
 struct PythonOwner {
   void* object = nullptr;
@@ -61,54 +53,29 @@ struct PythonOwner {
 
 struct Tensor {
   std::optional<stable::Tensor> value;
-  std::shared_ptr<ExternalTensor> external;
   bool needs_grad = false;
   bool defined_ = false;
   void* data_ = nullptr;
   IntList sizes_, strides_;
   ScalarType dtype_ = ScalarType::Float;
   Device device_{kCPU};
-  // Python interop keeps the original Tensor for saved-variable version checks.
+  // Resolved negative views retain the original for saved-variable version
+  // checks.
   std::shared_ptr<PythonOwner> original;
   Tensor() = default;
-  Tensor(stable::Tensor tensor)
-      : value(std::move(tensor)), original(std::make_shared<PythonOwner>()) {
-    cache_metadata();
-  }
+  Tensor(stable::Tensor tensor) : value(std::move(tensor)) { cache_metadata(); }
   // Tensor metadata is immutable during a native call. Read it once rather
   // than crossing the C ABI for every accessor and dimension check.
   void cache_metadata() {
-    defined_ = external || (value && value->defined());
+    defined_ = value && value->defined();
     if (!defined_) return;
-    if (external) {
-      auto& dl = external->managed->dl_tensor;
-      sizes_ = IntList(dl.shape, dl.ndim);
-      strides_ = IntList(
-          dl.strides ? dl.strides : external->contiguous_strides.data(),
-          dl.ndim);
-      data_ = dl.data ? static_cast<char*>(dl.data) + dl.byte_offset : nullptr;
-      dtype_ = external->dtype;
-      device_ = external->device;
-    } else {
-      sizes_ = value->sizes();
-      strides_ = value->strides();
-      data_ = value->mutable_data_ptr();
-      dtype_ = value->scalar_type();
-      device_ = value->device();
-    }
+    sizes_ = value->sizes();
+    strides_ = value->strides();
+    data_ = value->mutable_data_ptr();
+    dtype_ = value->scalar_type();
+    device_ = value->device();
   }
-  // Kernels consume DLPack metadata directly. Constructing a Torch tensor for
-  // every CUDA argument would query the driver for its device pointer again.
-  stable::Tensor handle() const {
-    if (!external) return value.value();
-    return stable::from_blob(
-        data_ptr(),
-        sizes(),
-        strides(),
-        device(),
-        scalar_type(),
-        [owner = external](void*) {});
-  }
+  stable::Tensor handle() const { return value.value(); }
   bool defined() const { return defined_; }
   int64_t dim() const { return sizes_.size(); }
   int64_t size(int64_t d) const { return sizes_.at(d < 0 ? d + dim() : d); }
@@ -154,7 +121,7 @@ struct Tensor {
   }
   bool is_neg() const {
     return false;
-  }  // DLPack imports resolve lazy negative views.
+  }  // The Negative dispatch path resolves lazy negative views.
   Tensor contiguous() const;
   Tensor unsqueeze(int64_t d) const;
   Tensor squeeze(int64_t d) const;

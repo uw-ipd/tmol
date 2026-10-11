@@ -147,23 +147,26 @@ class BackboneTorsionPoseScoreOp
            omega_tables,
            omega_table_params});
     } else {
-      score = score.squeeze(-1).squeeze(-1);
-      ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
+      score = score.reshape({score.size(0), score.size(1)});
+      ctx->save_for_backward({dscore_dcoords});
     }
 
     // Keep the convention that we return two tensors, with the understanding
     // that the second tensor should not be used
+    ctx->mark_non_differentiable({dscore_dcoords});
+    ctx->set_materialize_grads(false);
     return {score, dscore_dcoords};
   }
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    if (!grad_outputs[0].defined()) return tensor_list(27);
     auto saved = ctx->get_saved_variables();
 
     tmol::native::Tensor dV_d_rot_coords;
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
-    if (saved.size() == 2) {
+    if (saved.size() == 1) {
       // single-score mode
       auto saved_grad = saved[0];
 
@@ -445,9 +448,8 @@ class BackboneTorsionRotamerScoreOp
     //   block-pair scoring mode or single-score mode
     if (saved.size() == 2) {
       // single-score mode
-      auto saved_grads = ctx->get_saved_variables();
-      auto saved_grad = saved_grads[0];
-      auto pose_ind_for_atom = saved_grads[1];
+      auto saved_grad = saved[0];
+      auto pose_ind_for_atom = saved[1];
 
       tensor_list result;
 
@@ -726,13 +728,13 @@ std::vector<Tensor> backbone_torsion_rotamer_score_op(
 TMOL_LIBRARY(tmol_bb_torsion, m) {
   m.def(
       "backbone_torsion_pose_score",
-      &backbone_torsion_pose_score_op<DeviceOperations>);
+      TMOL_FN(&backbone_torsion_pose_score_op<DeviceOperations>));
   m.def(
       "backbone_torsion_rotamer_score",
-      &backbone_torsion_rotamer_score_op<DeviceOperations>);
+      TMOL_FN(&backbone_torsion_rotamer_score_op<DeviceOperations>));
   m.def(
       "backbone_torsion_rotamer_score_topology",
-      &backbone_torsion_rotamer_score_op<DeviceOperations, true>);
+      TMOL_FN(&backbone_torsion_rotamer_score_op<DeviceOperations, true>));
 }
 
 }  // namespace potentials

@@ -59,11 +59,10 @@ class GetTorsionAngleOp : public tmol::native::autograd::Function<
     tmol::native::Tensor dV_d_pose_coords;
 
     // single-score mode
-    auto saved_grads = ctx->get_saved_variables();
 
     tensor_list result;
 
-    for (auto& saved_grad : saved_grads) {
+    for (auto& saved_grad : saved) {
       auto ingrad = grad_outputs[0];
       while (ingrad.dim() < saved_grad.dim()) {
         ingrad = ingrad.unsqueeze(-1);
@@ -88,7 +87,7 @@ Tensor get_torsion_angle_op(Tensor coords) {
 
 // See https://stackoverflow.com/a/3221914
 TMOL_LIBRARY(tmol_constraint, m) {
-  m.def("get_torsion_angle", &get_torsion_angle_op<DeviceOperations>);
+  m.def("get_torsion_angle", TMOL_FN(&get_torsion_angle_op<DeviceOperations>));
 }
 
 }  // namespace potentials

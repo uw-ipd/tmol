@@ -210,22 +210,25 @@ class DunbrackPoseScoreOp : public tmol::native::autograd::Function<
            block_semirotameric_tableset_offset,
            block_is_mirrored});
     } else {
-      score = score.squeeze(-1).squeeze(-1);
-      ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
+      score = score.reshape({score.size(0), score.size(1)});
+      ctx->save_for_backward({dscore_dcoords});
     }
     // Satisfy the convention of returning two tensors, but with the
     // expectation that no one will be using the second tensor.
+    ctx->mark_non_differentiable({dscore_dcoords});
+    ctx->set_materialize_grads(false);
     return {score, dscore_dcoords};
   }
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    if (!grad_outputs[0].defined()) return tensor_list(46);
     auto saved = ctx->get_saved_variables();
 
     tmol::native::Tensor dV_d_pose_coords;
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
-    if (saved.size() == 2) {
+    if (saved.size() == 1) {
       // whole-pose-score mode
       auto saved_grad = saved[0];
 
@@ -635,9 +638,8 @@ class DunbrackRotamerScoreOp : public tmol::native::autograd::Function<
     //   block-pair scoring mode or single-score mode
     if (saved.size() == 2) {
       // whole-pose-score mode
-      auto saved_grads = ctx->get_saved_variables();
-      auto saved_grad = saved_grads[0];
-      auto pose_ind_for_atom = saved_grads[1];
+      auto saved_grad = saved[0];
+      auto pose_ind_for_atom = saved[1];
 
       tensor_list result;
 
@@ -1072,9 +1074,12 @@ std::vector<Tensor> dunbrack_rotamer_scores_op(
 
 // See https://stackoverflow.com/a/3221914
 TMOL_LIBRARY(tmol_dunbrack, m) {
-  m.def("dunbrack_pose_scores", &dunbrack_pose_scores_op<DeviceOperations>);
   m.def(
-      "dunbrack_rotamer_scores", &dunbrack_rotamer_scores_op<DeviceOperations>);
+      "dunbrack_pose_scores",
+      TMOL_FN(&dunbrack_pose_scores_op<DeviceOperations>));
+  m.def(
+      "dunbrack_rotamer_scores",
+      TMOL_FN(&dunbrack_rotamer_scores_op<DeviceOperations>));
 }
 
 }  // namespace potentials

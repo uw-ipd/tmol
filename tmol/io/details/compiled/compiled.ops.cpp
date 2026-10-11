@@ -223,8 +223,8 @@ Tensor resolve_his_tautomerization(
 }
 
 TMOL_LIBRARY(tmol_io, m) {
-  m.def("gen_pose_leaf_atoms", &pose_leaf_atom_gen_op);
-  m.def("resolve_his_taut", &resolve_his_tautomerization);
+  m.def("gen_pose_leaf_atoms", TMOL_FN(&pose_leaf_atom_gen_op));
+  m.def("resolve_his_taut", TMOL_FN(&resolve_his_tautomerization));
 }
 
 }  // namespace compiled

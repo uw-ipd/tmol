@@ -5,8 +5,16 @@ namespace tmol::native::autograd {
 using tensor_list = std::vector<Tensor>;
 inline void attach_autograd_result(Tensor& tensor, py::handle result) {
   if (!tensor.defined()) return;
-  tensor.original = std::make_shared<PythonOwner>();
-  own_python(*tensor.original, result);
+  tensor.original.reset();
+  if (tensor_api().import_tensor) {
+    AtenTensorHandle handle = nullptr;
+    STABLE_TORCH_ERROR_CODE_CHECK(
+        tensor_api().import_tensor(result.ptr(), &handle));
+    tensor.value.emplace(handle);
+  } else {
+    tensor.value = import_tensor_python(result);
+  }
+  tensor.cache_metadata();
   tensor.needs_grad = py::cast<bool>(result.attr(tensor_api().requires_grad));
 }
 inline void attach_autograd_result(tensor_list& tensors, py::handle results) {
@@ -48,11 +56,11 @@ struct AutogradContext {
   void save_for_backward(tensor_list tensors) {
     if (!context) return;
     py::gil_scoped_acquire gil;
-    context.attr("save_for_backward")(*py::tuple(py::cast(tensors)));
+    context.attr("save_for_backward")(*to_python_tensors(tensors));
   }
   tensor_list get_saved_variables() {
     py::gil_scoped_acquire gil;
-    return py::cast<tensor_list>(context.attr("saved_tensors"));
+    return from_python_tensors(context.attr("saved_tensors"));
   }
   void set_materialize_grads(bool value) {
     if (!context) return;
@@ -69,7 +77,6 @@ template <class F>
 struct Function {
   template <class... Args>
   static auto apply(const Args&... args) {
-    py::gil_scoped_acquire gil;
     using Result =
         decltype(F::forward(static_cast<AutogradContext*>(nullptr), args...));
     struct Invocation {
@@ -82,37 +89,57 @@ struct Function {
       else
         return false;
     };
-    if (!(differentiable(args) || ...)) {
+    if (!GradMode::is_enabled() || !(differentiable(args) || ...)) {
       AutogradContext ctx;
-      py::gil_scoped_release release;
       return F::forward(&ctx, args...);
     }
+    py::gil_scoped_acquire gil;
     PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object>
         storage;
     auto& apply =
         storage
             .call_once_and_store_result([] {
               auto support = py::module_::import("tmol._native_autograd");
-              auto forward = py::cpp_function(
-                  [](py::object context, py::capsule arguments) {
+              auto forward = py::cpp_function([](py::object context,
+                                                 py::capsule arguments,
+                                                 py::object indices,
+                                                 py::args) {
+                context.attr("_tmol_gradient_indices") = indices;
+                context.attr("_tmol_saved_data") = py::dict();
+                AutogradContext ctx(context);
+                auto& invocation =
+                    *static_cast<Invocation*>(arguments.get_pointer());
+                {
+                  py::gil_scoped_release release;
+                  invocation.result = std::apply(
+                      [&](const auto&... values) {
+                        return F::forward(&ctx, values...);
+                      },
+                      invocation.arguments);
+                }
+                if constexpr (std::is_same_v<Result, tensor_list>)
+                  return py::object(to_python_tensors(invocation.result));
+                else
+                  return py::cast(invocation.result);
+              });
+              auto backward =
+                  py::cpp_function([](py::object context, py::args args) {
                     AutogradContext ctx(context);
-                    auto& invocation =
-                        *static_cast<Invocation*>(arguments.get_pointer());
+                    auto grads = from_python_tensors(args);
+                    tensor_list gradients;
                     {
                       py::gil_scoped_release release;
-                      invocation.result = std::apply(
-                          [&](const auto&... values) {
-                            return F::forward(&ctx, values...);
-                          },
-                          invocation.arguments);
+                      gradients = F::backward(&ctx, grads);
                     }
-                    return py::cast(invocation.result);
-                  });
-              auto backward =
-                  py::cpp_function([](py::object context, tensor_list grads) {
-                    AutogradContext ctx(context);
-                    py::gil_scoped_release release;
-                    return F::backward(&ctx, grads);
+                    auto indices = context.attr("_tmol_gradient_indices");
+                    py::tuple result(2 + py::len(indices));
+                    result[0] = py::none();
+                    result[1] = py::none();
+                    size_t i = 2;
+                    for (auto index : indices)
+                      result[i++] =
+                          to_python(gradients.at(py::cast<size_t>(index)));
+                    return result;
                   });
               return support.attr("_bind")(forward, backward);
             })
@@ -138,8 +165,8 @@ struct Function {
         py::capsule(&invocation, "tmol.native_arguments"),
         py::cast(indices),
         *py::tuple(inputs));
-    // Autograd changes ownership/gradient edges, not tensor storage or shape.
-    // Reuse the native result instead of importing its metadata a second time.
+    // Autograd may wrap aliased outputs. Keep its returned handles so both
+    // dispatcher boxing and subsequent native calls retain the gradient edges.
     attach_autograd_result(invocation.result, result);
     return std::move(invocation.result);
   }

@@ -104,19 +104,15 @@ def extension_load_error_details(exc: OSError) -> str:
     )
 
 
-def _call_native(function, arguments, *args, **kwargs):
-    if len(args) == len(arguments) and not kwargs:
-        return function(*args)
-    values = list(args)
-    for argument in arguments[len(args) :]:
-        values.append(
-            kwargs.pop(argument.name)
-            if argument.name in kwargs
-            else argument.default_value
-        )
-    if kwargs:
-        raise TypeError(f"Unknown native arguments: {tuple(kwargs)}")
-    return function(*values)
+def _resolve_negative(operator, *args, **kwargs):
+    # Resolve views before native boxing so Torch owns the clone's gradient edge.
+    def resolve(value):
+        return value.resolve_neg() if isinstance(value, torch.Tensor) else value
+
+    return operator(
+        *(resolve(value) for value in args),
+        **{name: resolve(value) for name, value in kwargs.items()},
+    )
 
 
 def _native_module_name():
@@ -161,33 +157,23 @@ def _ensure_loaded() -> None:
         module_name = _native_module_name()
         if _find_extension_library() is None:
             raise TmolExtensionNotBuiltError()
-        libraries = []
         try:
             native = importlib.import_module(module_name)
-            for name in dir(native):
-                module = getattr(native, name)
-                if not hasattr(module, "_schemas"):
-                    continue
-                library = torch.library.Library(name, "FRAGMENT")
-                libraries.append(library)
-                for schema in module._schemas:
-                    operator = schema.split("(", 1)[0]
-                    library.define(schema)
-                    if hasattr(module, operator):
-                        arguments = getattr(
-                            getattr(torch.ops, name), operator
-                        ).default._schema.arguments
-                        implementation = partial(
-                            _call_native, getattr(module, operator), arguments
-                        )
-                        library.impl(
-                            operator, implementation, "CompositeImplicitAutograd"
-                        )
+            # Native operators attach their own autograd nodes. A dispatcher
+            # fallthrough (not a Python callback) lets view keys resolve first.
+            for namespace, operators in native._operators.items():
+                library = torch.library.Library(namespace, "IMPL", "Autograd")
+                for operator in operators:
+                    library.impl(operator, torch.library.fallthrough_kernel)
+                negative = torch.library.Library(namespace, "IMPL", "Negative")
+                for operator in operators:
+                    operation = getattr(getattr(torch.ops, namespace), operator)
+                    negative.impl(operator, partial(_resolve_negative, operation))
+                _libraries.extend((library, negative))
         except (ImportError, OSError) as exc:
             raise TmolExtensionIncompatibleError(
                 extension_load_error_details(exc)
             ) from exc
-        _libraries.extend(libraries)
         _native = native
         _loaded = True
         logger.debug("Loaded native backend %s", module_name)

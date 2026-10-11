@@ -463,7 +463,7 @@ class LKBallPoseScoreOp
         }));
 
     if (!output_block_pair_energies) {
-      score = score.squeeze(-1).squeeze(-1);
+      score = score.reshape({score.size(0), score.size(1)});
     }
 
     auto max_n_rots_per_pose_tp =
@@ -1095,10 +1095,10 @@ TMOL_LIBRARY(tmol_lk_ball, m) {
       "Tensor _17, Tensor _18, Tensor _19, Tensor _20, Tensor _21, Tensor _22, "
       "Tensor _23, Tensor _24, float _25, Tensor _26, bool _27, Tensor _28, "
       "bool allow_split_backward=False) -> Tensor[] _0",
-      &lkball_pose_score);
-  m.def("lk_ball_rotamer_score", &lkball_rotamer_score);
-  m.def("lk_ball_rotamer_score_shared", &lkball_rotamer_score_shared);
-  m.def("gen_pose_waters", &pose_watergen_op);
+      TMOL_FN(&lkball_pose_score));
+  m.def("lk_ball_rotamer_score", TMOL_FN(&lkball_rotamer_score));
+  m.def("lk_ball_rotamer_score_shared", TMOL_FN(&lkball_rotamer_score_shared));
+  m.def("gen_pose_waters", TMOL_FN(&pose_watergen_op));
 }
 
 }  // namespace potentials

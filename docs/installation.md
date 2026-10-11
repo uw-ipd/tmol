@@ -59,8 +59,8 @@ capability checks even when an extra is requested.
 
 The native bindings use Python autograd and PyTorch's stable C ABI targeted
 at 2.11. Tensor exchange uses the stable Python interop API when available
-(PyTorch 2.14+), with DLPack as the fallback for older runtimes. A TMol wheel no longer pins a PyTorch
-minor version. Python, platform, and CUDA-major wheel variants remain; these
+(PyTorch 2.14+), and a stable dispatcher fallback on older runtimes. Both preserve tensor storage
+and autograd ownership. A TMol wheel no longer pins a PyTorch minor version. Python, platform, and CUDA-major wheel variants remain; these
 are not Python `abi3` wheels. Changing CUDA major requires the corresponding
 operator package. Changing PyTorch minor does not require rebuilding TMol.
 

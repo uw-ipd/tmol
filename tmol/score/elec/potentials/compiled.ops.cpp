@@ -144,8 +144,9 @@ class ElecPoseScoreOp
            global_params,
            block_neighbors});
     } else {
-      score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
-      ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
+      score = score.reshape(
+          {score.size(0), score.size(1)});  // remove final 2 "dummy" dims
+      ctx->save_for_backward({dscore_dcoords});
     }
 
     // The integer neighbor output has no derivative. Do not allocate an
@@ -165,7 +166,7 @@ class ElecPoseScoreOp
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
-    if (saved.size() == 2) {
+    if (saved.size() == 1) {
       // single-score mode
       auto saved_grad = saved[0];
       dV_d_pose_coords =
@@ -403,9 +404,8 @@ class ElecRotamerScoreOp : public tmol::native::autograd::Function<
     //   block-pair scoring mode or single-score mode
     if (saved.size() == 2) {
       // single-score mode
-      auto saved_grads = ctx->get_saved_variables();
-      auto saved_grad = saved_grads[0];
-      auto pose_ind_for_atom = saved_grads[1];
+      auto saved_grad = saved[0];
+      auto pose_ind_for_atom = saved[1];
 
       tensor_list result;
       auto atom_ingrads = grad_outputs[0].index_select(1, pose_ind_for_atom);
@@ -724,12 +724,15 @@ std::vector<Tensor> elec_rotamer_scores_shared_op(
 
 // See https://stackoverflow.com/a/3221914
 TMOL_LIBRARY(tmol_elec, m) {
-  m.def("elec_pose_scores", &elec_pose_scores_op<common::DeviceOperations>);
   m.def(
-      "elec_rotamer_scores", &elec_rotamer_scores_op<common::DeviceOperations>);
+      "elec_pose_scores",
+      TMOL_FN(&elec_pose_scores_op<common::DeviceOperations>));
+  m.def(
+      "elec_rotamer_scores",
+      TMOL_FN(&elec_rotamer_scores_op<common::DeviceOperations>));
   m.def(
       "elec_rotamer_scores_shared",
-      &elec_rotamer_scores_shared_op<common::DeviceOperations>);
+      TMOL_FN(&elec_rotamer_scores_shared_op<common::DeviceOperations>));
 }
 
 }  // namespace potentials

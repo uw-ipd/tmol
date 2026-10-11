@@ -159,22 +159,25 @@ class CartBondedPoseScoreOp : public tmol::native::autograd::Function<
            cart_subgraph_param_indices});
     } else {
       // Return a 2D tensor with shape [5 x n_poses]
-      score = score.squeeze(-1).squeeze(-1);
-      ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
+      score = score.reshape({score.size(0), score.size(1)});
+      ctx->save_for_backward({dscore_dcoords});
     }
     // To keep the convention, we will return two tensors, with the expectation
     // that no one will be using this second tensor.f
+    ctx->mark_non_differentiable({dscore_dcoords});
+    ctx->set_materialize_grads(false);
     return {score, dscore_dcoords};
   }
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    if (!grad_outputs[0].defined()) return tensor_list(31);
     auto saved = ctx->get_saved_variables();
 
     tmol::native::Tensor dV_d_pose_coords;
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
-    if (saved.size() == 2) {
+    if (saved.size() == 1) {
       // single-score mode
       auto saved_grad = saved[0];
 
@@ -448,9 +451,8 @@ class CartBondedRotamerScoreOp
     if (saved.size() == 2) {
       // TO DO: make this a function so it's not duplicated everywhere
       // single-score mode
-      auto saved_grads = ctx->get_saved_variables();
-      auto saved_grad = saved_grads[0];
-      auto pose_ind_for_atom = saved_grads[1];
+      auto saved_grad = saved[0];
+      auto pose_ind_for_atom = saved[1];
 
       tensor_list result;
 
@@ -722,13 +724,15 @@ std::vector<Tensor> cartbonded_rotamer_scores_op(
 
 // See https://stackoverflow.com/a/3221914
 TMOL_LIBRARY(tmol_cartbonded, m) {
-  m.def("cartbonded_pose_scores", &cartbonded_pose_scores_op<DeviceOperations>);
+  m.def(
+      "cartbonded_pose_scores",
+      TMOL_FN(&cartbonded_pose_scores_op<DeviceOperations>));
   m.def(
       "cartbonded_rotamer_scores",
-      &cartbonded_rotamer_scores_op<DeviceOperations>);
+      TMOL_FN(&cartbonded_rotamer_scores_op<DeviceOperations>));
   m.def(
       "cartbonded_rotamer_scores_topology",
-      &cartbonded_rotamer_scores_op<DeviceOperations, true>);
+      TMOL_FN(&cartbonded_rotamer_scores_op<DeviceOperations, true>));
 }
 
 }  // namespace potentials

@@ -37,7 +37,7 @@ inline tmol::native::Tensor accumulate_whole_pose_gradients(
   // A scalar output uses a different Torch reduction order; lazy negative
   // views also require Torch to resolve their logical values.
   if (saved_grad.is_cuda() && !tmol::native::GradMode::is_enabled()
-      && saved_grad.is_contiguous() && n_score_types >= 2 && n_score_types <= 5
+      && saved_grad.is_contiguous() && n_score_types >= 1 && n_score_types <= 5
       && saved_grad.numel() > n_score_types && !saved_grad.is_neg()
       && !score_grad.is_neg() && saved_grad.device() == score_grad.device()
       && saved_grad.scalar_type() == score_grad.scalar_type()

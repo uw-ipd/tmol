@@ -217,8 +217,9 @@ class HBondPoseScoresOp : public tmol::native::autograd::Function<
 
           });
     } else {
-      score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
-      ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
+      score = score.reshape(
+          {score.size(0), score.size(1)});  // remove final 2 "dummy" dims
+      ctx->save_for_backward({dscore_dcoords});
     }
 
     // The integer neighbor output has no derivative. Do not allocate an
@@ -238,7 +239,7 @@ class HBondPoseScoresOp : public tmol::native::autograd::Function<
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
-    if (saved.size() == 2) {
+    if (saved.size() == 1) {
       // single-score mode
       auto saved_grad = saved[0];
       dV_d_pose_coords =
@@ -578,9 +579,8 @@ class HBondRotamerScoresOp : public tmol::native::autograd::Function<
     //   block-pair scoring mode or single-score mode
     if (saved.size() == 2) {
       // single-score mode
-      auto saved_grads = ctx->get_saved_variables();
-      auto saved_grad = saved_grads[0];
-      auto pose_ind_for_atom = saved_grads[1];
+      auto saved_grad = saved[0];
+      auto pose_ind_for_atom = saved[1];
       auto atom_ingrads =
           grad_outputs[0].index_select(1, pose_ind_for_atom).unsqueeze(-1);
 
@@ -1177,20 +1177,20 @@ TMOL_LIBRARY(tmol_hbond, m) {
       "Tensor _29, Tensor _30, Tensor _31, Tensor _32, Tensor _33, Tensor _34, "
       "Tensor _35, bool _36, Tensor _37, bool allow_split_pairs=False) -> "
       "Tensor[] _0",
-      &hbond_pose_scores_op<common::DeviceOperations>);
+      TMOL_FN(&hbond_pose_scores_op<common::DeviceOperations>));
   m.def(
       "hbond_rotamer_scores",
-      &hbond_rotamer_scores_op<common::DeviceOperations>);
+      TMOL_FN(&hbond_rotamer_scores_op<common::DeviceOperations>));
   m.def(
       "hbond_rotamer_scores_shared",
-      &hbond_rotamer_scores_shared_op<common::DeviceOperations>);
+      TMOL_FN(&hbond_rotamer_scores_shared_op<common::DeviceOperations>));
   m.def(
       "hbond_rotamer_spheres",
-      &hbond_rotamer_spheres_op<common::DeviceOperations>);
+      TMOL_FN(&hbond_rotamer_spheres_op<common::DeviceOperations>));
   m.def(
       "hbond_rotamer_dispatch_page",
-      &hbond_rotamer_dispatch_page_op<common::DeviceOperations>);
-  m.def("gen_hbond_bases", &gen_hbond_bases_op);
+      TMOL_FN(&hbond_rotamer_dispatch_page_op<common::DeviceOperations>));
+  m.def("gen_hbond_bases", TMOL_FN(&gen_hbond_bases_op));
 }
 
 }  // namespace potentials

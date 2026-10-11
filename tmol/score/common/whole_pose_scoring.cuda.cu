@@ -31,6 +31,11 @@ __global__ void weighted_gradient_sum(
   for (int64_t i = int64_t(blockIdx.x) * blockDim.x + threadIdx.x; i < n_values;
        i += int64_t(blockDim.x) * gridDim.x) {
     int64_t const pose = i / values_per_pose;
+    if constexpr (NScoreTypes == 1) {
+      output[i] =
+          rounded_product(derivatives[i], weights[pose * weight_pose_stride]);
+      continue;
+    }
     // Match Torch's four-accumulator reduction for this short, strided axis.
     // Explicit rounding prevents contraction of the separate multiply and sum.
     Real partial[4] = {0, 0, 0, 0};
@@ -74,6 +79,9 @@ tmol::native::Tensor accumulate_whole_pose_gradients_cuda(
                   score_grad.stride(1));
         };
         switch (saved_grad.size(0)) {
+          case 1:
+            launch(std::integral_constant<int, 1>{});
+            break;
           case 2:
             launch(std::integral_constant<int, 2>{});
             break;
