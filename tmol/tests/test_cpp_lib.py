@@ -35,6 +35,7 @@ def test_native_boundary_gradients(torch_device):
     coords = coords[::2].requires_grad_(True)
     torsion = torch.ops.tmol_constraint.get_torsion_angle
     assert torch.autograd.gradcheck(torsion, (coords,))
+    assert torch.autograd.gradcheck(torsion, (torch._neg_view(coords),))
     upstream = torch.ones(
         2, dtype=torch.double, device=torch_device, requires_grad=True
     )

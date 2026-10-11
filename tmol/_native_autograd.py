@@ -2,8 +2,6 @@
 
 import torch
 
-_functions = {}
-
 
 def _bind(forward, backward):
     class NativeFunction(torch.autograd.Function):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reject version-specific PyTorch C++ imports in a built runtime wheel."""
+"""Reject PyTorch C++ imports and unversioned C++ runtime imports on Linux."""
 
 import re
 import subprocess
@@ -22,10 +22,15 @@ def check(wheel: Path) -> None:
                 line
                 for line in symbols.splitlines()
                 if re.search(r"\b(?:at|c10|torch)::", line)
+                or (
+                    sys.platform.startswith("linux")
+                    and "std::" in line
+                    and not re.search(r"@(?:GLIBCXX|CXXABI)_", line)
+                )
             ]
             if forbidden:
                 raise ValueError(
-                    f"{name} imports the unstable PyTorch C++ ABI:\n"
+                    f"{name} imports unstable Torch or C++ runtime symbols:\n"
                     + "\n".join(forbidden)
                 )
     print(f"{wheel.name}: stable native ABI ({len(libraries)} libraries)")

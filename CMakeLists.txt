@@ -173,12 +173,13 @@ endif()
 find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
 
 # Build with current stable headers, target the oldest supported stable C ABI.
-# Production modules avoid TorchConfig.cmake, ATen C++ objects, and libtorch_python.
+# Production modules avoid TorchConfig.cmake and ATen C++ objects, and do not
+# link libtorch_python. C++17 retains the manylinux baseline C++ runtime.
 set(_TMOL_PYTHON_INCLUDE_DIRS "${Python_INCLUDE_DIRS}")
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(TMOL_HAS_CUDA)
-  set(CMAKE_CUDA_STANDARD 20)
+  set(CMAKE_CUDA_STANDARD 17)
   set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 endif()
 execute_process(
@@ -262,6 +263,7 @@ endif()
 
 function(tmol_set_abi TARGET)
   if("${TARGET}" MATCHES "^test_")
+    set_target_properties(${TARGET} PROPERTIES CXX_STANDARD 20 CUDA_STANDARD 20)
     find_library(_TMOL_TORCH_PYTHON torch_python PATHS "${_TMOL_TORCH_DIR}/lib" NO_DEFAULT_PATH REQUIRED)
     find_library(_TMOL_C10 c10 PATHS "${_TMOL_TORCH_DIR}/lib" NO_DEFAULT_PATH REQUIRED)
     target_link_libraries(${TARGET} PRIVATE "${_TMOL_TORCH_PYTHON}" "${_TMOL_C10}")

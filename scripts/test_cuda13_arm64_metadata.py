@@ -48,6 +48,7 @@ def distribution(tmp_path, monkeypatch):
             "fixture",
             hashlib.sha256(metadata).hexdigest(),
             repair.record_digest(library)[7:],
+            repair.WHEEL_SHA256,
         ),
     )
     return importlib.metadata.Distribution.at(info)

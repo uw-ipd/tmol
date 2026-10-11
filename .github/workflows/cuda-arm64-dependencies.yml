@@ -20,8 +20,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { torch: "2.10.0", cuda: cu130, cusparselt: "0.8.0" }
-          - { torch: "2.14.1", cuda: cu132, cusparselt: "0.8.1" }
+          - { torch: "2.10.0", cuda: cu130, major: 13, cusparselt: "0.8.0" }
+          - { torch: "2.11.0", cuda: cu128, major: 12, cusparselt: "0.7.1" }
+          - { torch: "2.14.1", cuda: cu132, major: 13, cusparselt: "0.8.1" }
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
@@ -37,4 +38,4 @@ jobs:
         run: |
           /tmp/torch-check/bin/python -I scripts/repair_cuda13_arm64_metadata.py
           /tmp/torch-check/bin/python -m pip check
-          /tmp/torch-check/bin/python -I -c 'import torch; from importlib.metadata import version; assert version("nvidia-cusparselt-cu13") == "${{ matrix.cusparselt }}"; assert torch.__version__.split("+")[0] == "${{ matrix.torch }}"; print(torch.__version__, torch.version.cuda, torch.ones(2).sum().item())'
+          /tmp/torch-check/bin/python -I -c 'import torch; from importlib.metadata import version; assert version("nvidia-cusparselt-cu${{ matrix.major }}") == "${{ matrix.cusparselt }}"; assert torch.__version__.split("+")[0] == "${{ matrix.torch }}"; print(torch.__version__, torch.version.cuda, torch.ones(2).sum().item())'

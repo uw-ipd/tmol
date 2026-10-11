@@ -3,7 +3,9 @@
 #include <torch/csrc/stable/ops.h>
 #include <torch/csrc/stable/tensor.h>
 #include <torch/headeronly/util/Exception.h>
+#include <dlpack/dlpack.h>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <vector>
 
@@ -41,41 +43,101 @@ inline ScalarType scalar_type_from_options(const TensorOptions& o) {
   return o.dtype();
 }
 
+struct ExternalTensor {
+  std::unique_ptr<DLManagedTensor, void (*)(DLManagedTensor*)> managed;
+  std::vector<int64_t> contiguous_strides;
+  ScalarType dtype;
+  Device device;
+};
+
 struct Tensor {
-  stable::Tensor value;
+  std::optional<stable::Tensor> value;
+  std::shared_ptr<ExternalTensor> external;
   bool needs_grad = false;
   // Python interop keeps the original Tensor for saved-variable version checks.
-  std::shared_ptr<std::shared_ptr<void>> original =
-      std::make_shared<std::shared_ptr<void>>();
+  std::shared_ptr<std::shared_ptr<void>> original;
   Tensor() = default;
-  Tensor(stable::Tensor tensor) : value(std::move(tensor)) {}
-  bool defined() const { return value.defined(); }
-  int64_t dim() const { return value.dim(); }
-  int64_t size(int64_t d) const { return value.size(d); }
-  int64_t stride(int64_t d) const { return value.stride(d); }
-  int64_t numel() const { return value.numel(); }
-  auto sizes() const { return value.sizes(); }
-  auto strides() const { return value.strides(); }
-  auto device() const { return value.device(); }
-  auto scalar_type() const { return value.scalar_type(); }
+  Tensor(stable::Tensor tensor)
+      : value(std::move(tensor)),
+        original(std::make_shared<std::shared_ptr<void>>()) {}
+  // Kernels consume DLPack metadata directly. Constructing a Torch tensor for
+  // every CUDA argument would query the driver for its device pointer again.
+  stable::Tensor handle() const {
+    if (!external) return value.value();
+    return stable::from_blob(
+        data_ptr(),
+        sizes(),
+        strides(),
+        device(),
+        scalar_type(),
+        [owner = external](void*) {});
+  }
+  bool defined() const { return external || (value && value->defined()); }
+  int64_t dim() const {
+    return external ? external->managed->dl_tensor.ndim : value.value().dim();
+  }
+  int64_t size(int64_t d) const { return sizes().at(d < 0 ? d + dim() : d); }
+  int64_t stride(int64_t d) const {
+    return strides().at(d < 0 ? d + dim() : d);
+  }
+  int64_t numel() const {
+    if (!external) return value.value().numel();
+    int64_t count = 1;
+    for (auto size : sizes()) count *= size;
+    return count;
+  }
+  IntList sizes() const {
+    if (!external) return value.value().sizes();
+    auto& dl = external->managed->dl_tensor;
+    return IntList(dl.shape, dl.ndim);
+  }
+  IntList strides() const {
+    if (!external) return value.value().strides();
+    auto& dl = external->managed->dl_tensor;
+    return IntList(
+        dl.strides ? dl.strides : external->contiguous_strides.data(), dl.ndim);
+  }
+  Device device() const {
+    return external ? external->device : value.value().device();
+  }
+  ScalarType scalar_type() const {
+    return external ? external->dtype : value.value().scalar_type();
+  }
   bool requires_grad() const { return needs_grad; }
   TensorOptions options() const {
     return TensorOptions().dtype(scalar_type()).device(device());
   }
-  void* data_ptr() const { return value.mutable_data_ptr(); }
+  void* data_ptr() const {
+    if (!external) return value.value().mutable_data_ptr();
+    auto& dl = external->managed->dl_tensor;
+    return dl.data ? static_cast<char*>(dl.data) + dl.byte_offset : nullptr;
+  }
   template <class T>
   const T* const_data_ptr() const {
-    return value.const_data_ptr<T>();
+    return data_ptr<T>();
   }
   template <class T>
   T* data_ptr() const {
-    return value.mutable_data_ptr<T>();
+    STD_TORCH_CHECK(
+        scalar_type() == torch::headeronly::CppTypeToScalarType<T>::value,
+        "Tensor data pointer requested with a different dtype");
+    return static_cast<T*>(data_ptr());
   }
   Tensor reshape(IntList shape) const;
   Tensor select(int64_t d, int64_t i) const;
   Tensor narrow(int64_t d, int64_t start, int64_t length) const;
   bool is_cuda() const { return device().is_cuda(); }
-  bool is_contiguous() const { return value.is_contiguous(); }
+  bool is_contiguous() const {
+    if (!external) return value.value().is_contiguous();
+    if (numel() == 0) return true;
+    int64_t expected = 1;
+    for (int64_t d = dim() - 1; d >= 0; --d) {
+      if (size(d) == 1) continue;
+      if (stride(d) != expected) return false;
+      expected *= size(d);
+    }
+    return true;
+  }
   bool is_neg() const {
     return false;
   }  // DLPack imports resolve lazy negative views.
@@ -86,17 +148,18 @@ struct Tensor {
   T item() const {
     static_assert(std::is_same_v<T, int64_t>);
     int64_t result;
-    STABLE_TORCH_ERROR_CODE_CHECK(aoti_torch_item_int64(value.get(), &result));
+    STABLE_TORCH_ERROR_CODE_CHECK(
+        aoti_torch_item_int64(handle().get(), &result));
     return result;
   }
   Tensor sum(ScalarType dtype) const {
-    return stable::sum(value, std::nullopt, false, dtype);
+    return stable::sum(handle(), std::nullopt, false, dtype);
   }
   Tensor sum(IntList dims) const;
   Tensor sum(int64_t d) const { return sum(IntList(&d, 1)); }
   Tensor index_select(int64_t d, const Tensor& index) const;
   Tensor to(Device device) const {
-    return stable::to(value, scalar_type(), std::nullopt, device);
+    return stable::to(handle(), scalar_type(), std::nullopt, device);
   }
 };
 inline Tensor empty(IntList shape, TensorOptions options) {
@@ -105,7 +168,7 @@ inline Tensor empty(IntList shape, TensorOptions options) {
 template <class S>
 Tensor full(IntList shape, S fill, TensorOptions options) {
   Tensor result = empty(shape, options);
-  stable::fill_(result.value, fill);
+  stable::fill_(*result.value, fill);
   return result;
 }
 inline Tensor zeros(IntList shape, TensorOptions options) {
@@ -130,7 +193,7 @@ inline Tensor random_seed_tensor(IntList shape, Device device) {
   // Use the dispatcher to acquire/advance Torch's generator under its own lock.
   // This also preserves CUDA Graph replay semantics without GeneratorImpl ABI.
   std::array<StableIValue, 4> stack{
-      stable::detail::from(result.value),
+      stable::detail::from(*result.value),
       stable::detail::from(std::numeric_limits<int64_t>::min()),
       stable::detail::from(std::optional<int64_t>()),
       stable::detail::from(std::optional<stable::Tensor>())};

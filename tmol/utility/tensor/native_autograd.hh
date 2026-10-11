@@ -56,33 +56,38 @@ struct Function {
     py::gil_scoped_acquire gil;
     using Result =
         decltype(F::forward(static_cast<AutogradContext*>(nullptr), args...));
-    auto support = py::module_::import("tmol._native_autograd");
-    auto cache = support.attr("_functions").cast<py::dict>();
-    auto key = py::str(typeid(F).name());
-    if (!cache.contains(key)) {
-      auto forward =
-          py::cpp_function([](py::object context, py::capsule arguments) {
-            AutogradContext ctx(context);
-            auto& values = *static_cast<std::tuple<std::decay_t<Args>...>*>(
-                arguments.get_pointer());
-            py::gil_scoped_release release;
-            return std::apply(
-                [&](auto&... values) { return F::forward(&ctx, values...); },
-                values);
-          });
-      auto backward =
-          py::cpp_function([](py::object context, tensor_list grads) {
-            AutogradContext ctx(context);
-            py::gil_scoped_release release;
-            return F::backward(&ctx, grads);
-          });
-      cache[key] = support.attr("_bind")(forward, backward);
-    }
+    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object>
+        storage;
+    auto& apply =
+        storage
+            .call_once_and_store_result([] {
+              auto support = py::module_::import("tmol._native_autograd");
+              auto forward = py::cpp_function([](py::object context,
+                                                 py::capsule arguments) {
+                AutogradContext ctx(context);
+                auto& values = *static_cast<std::tuple<std::decay_t<Args>...>*>(
+                    arguments.get_pointer());
+                py::gil_scoped_release release;
+                return std::apply(
+                    [&](auto&... values) {
+                      return F::forward(&ctx, values...);
+                    },
+                    values);
+              });
+              auto backward =
+                  py::cpp_function([](py::object context, tensor_list grads) {
+                    AutogradContext ctx(context);
+                    py::gil_scoped_release release;
+                    return F::backward(&ctx, grads);
+                  });
+              return support.attr("_bind")(forward, backward);
+            })
+            .get_stored();
     // Function.apply needs Python tensors to attach autograd edges. Reuse the
     // already imported native arguments during its synchronous forward call.
     auto values = std::make_tuple(args...);
     return py::cast<Result>(
-        cache[key](py::capsule(&values, "tmol.native_arguments"), args...));
+        apply(py::capsule(&values, "tmol.native_arguments"), args...));
   }
 };
 }  // namespace tmol::native::autograd
