@@ -1,5 +1,4 @@
-#include <torch/torch.h>
-#include <torch/script.h>
+#include <tmol/utility/tensor/native_library.hh>
 
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/tensor/context_manager.hh>
@@ -24,14 +23,14 @@ ContextManager mgr;
 
 using namespace tmol::score::common;
 
-using torch::Tensor;
-using torch::autograd::AutogradContext;
-using torch::autograd::Function;
-using torch::autograd::tensor_list;
+using tmol::native::Tensor;
+using tmol::native::autograd::AutogradContext;
+using tmol::native::autograd::Function;
+using tmol::native::autograd::tensor_list;
 
 template <template <tmol::Device> class DispatchMethod>
 class BackboneTorsionPoseScoreOp
-    : public torch::autograd::Function<
+    : public tmol::native::autograd::Function<
           BackboneTorsionPoseScoreOp<DispatchMethod>> {
  public:
   static std::vector<Tensor> forward(
@@ -67,8 +66,8 @@ class BackboneTorsionPoseScoreOp
       Tensor omega_tables,
       Tensor omega_table_params,
       bool output_block_pair_energies) {
-    at::Tensor score;
-    at::Tensor dscore_dcoords;
+    tmol::native::Tensor score;
+    tmol::native::Tensor dscore_dcoords;
 
     using Int = int32_t;
 
@@ -160,7 +159,7 @@ class BackboneTorsionPoseScoreOp
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
     auto saved = ctx->get_saved_variables();
 
-    at::Tensor dV_d_rot_coords;
+    tmol::native::Tensor dV_d_rot_coords;
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
@@ -264,38 +263,38 @@ class BackboneTorsionPoseScoreOp
         // common: rot_coords + 12 more arguments
         dV_d_rot_coords,
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
         // 14 more arguments
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor()};
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor()};
   }
 };
 
@@ -303,7 +302,7 @@ template <
     template <tmol::Device> class DispatchMethod,
     bool TopologyOnly = false>
 class BackboneTorsionRotamerScoreOp
-    : public torch::autograd::Function<
+    : public tmol::native::autograd::Function<
           BackboneTorsionRotamerScoreOp<DispatchMethod, TopologyOnly>> {
  public:
   static std::vector<Tensor> forward(
@@ -339,9 +338,9 @@ class BackboneTorsionRotamerScoreOp
       Tensor omega_tables,
       Tensor omega_table_params,
       bool output_block_pair_energies) {
-    at::Tensor score;
-    at::Tensor dscore_dcoords;
-    at::Tensor dispatch_indices;
+    tmol::native::Tensor score;
+    tmol::native::Tensor dscore_dcoords;
+    tmol::native::Tensor dispatch_indices;
 
     using Int = int32_t;
 
@@ -440,7 +439,7 @@ class BackboneTorsionRotamerScoreOp
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
     auto saved = ctx->get_saved_variables();
 
-    at::Tensor dV_d_rot_coords;
+    tmol::native::Tensor dV_d_rot_coords;
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
@@ -556,38 +555,38 @@ class BackboneTorsionRotamerScoreOp
         // common: rot_coords + 12 more arguments
         dV_d_rot_coords,
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
         // 14 more arguments
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor()};
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor()};
   }
 };
 
@@ -724,7 +723,7 @@ std::vector<Tensor> backbone_torsion_rotamer_score_op(
 }
 
 // See https://stackoverflow.com/a/3221914
-TORCH_LIBRARY(tmol_bb_torsion, m) {
+TMOL_LIBRARY(tmol_bb_torsion, m) {
   m.def(
       "backbone_torsion_pose_score",
       &backbone_torsion_pose_score_op<DeviceOperations>);

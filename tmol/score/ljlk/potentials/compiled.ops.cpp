@@ -1,5 +1,4 @@
-#include <torch/torch.h>
-#include <torch/script.h>
+#include <tmol/utility/tensor/native_library.hh>
 
 #include <limits>
 
@@ -25,14 +24,14 @@ namespace potentials {
 // kernel launch
 ContextManager mgr;
 
-using torch::Tensor;
-using torch::autograd::AutogradContext;
-using torch::autograd::Function;
-using torch::autograd::tensor_list;
+using tmol::native::Tensor;
+using tmol::native::autograd::AutogradContext;
+using tmol::native::autograd::Function;
+using tmol::native::autograd::tensor_list;
 
 template <template <tmol::Device> class DispatchMethod>
 class LJLKPoseScoreOp
-    : public torch::autograd::Function<LJLKPoseScoreOp<DispatchMethod>> {
+    : public tmol::native::autograd::Function<LJLKPoseScoreOp<DispatchMethod>> {
  public:
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
@@ -68,7 +67,7 @@ class LJLKPoseScoreOp
       double max_dis,  // host scalar; needed by detect-neighbors call
       bool output_block_pair_energies,
       Tensor shared_compact_block_neighbors) {
-    at::Tensor score, dscore_dcoords, block_neighbors;
+    tmol::native::Tensor score, dscore_dcoords, block_neighbors;
 
     using Int = int32_t;
 
@@ -172,7 +171,7 @@ class LJLKPoseScoreOp
     }
     auto saved = ctx->get_saved_variables();
 
-    at::Tensor dV_d_pose_coords;
+    tmol::native::Tensor dV_d_pose_coords;
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
@@ -276,7 +275,7 @@ class LJLKPoseScoreOp
 
 template <template <tmol::Device> class DispatchMethod, bool weighted>
 class LJLKAndElecPoseScoreOp
-    : public torch::autograd::Function<
+    : public tmol::native::autograd::Function<
           LJLKAndElecPoseScoreOp<DispatchMethod, weighted>> {
  public:
   static std::vector<Tensor> forward(
@@ -392,7 +391,7 @@ class LJLKAndElecPoseScoreOp
 };
 
 template <template <tmol::Device> class DispatchMethod>
-class WeightedFusedScoreSumOp : public torch::autograd::Function<
+class WeightedFusedScoreSumOp : public tmol::native::autograd::Function<
                                     WeightedFusedScoreSumOp<DispatchMethod>> {
  public:
   static std::vector<Tensor> forward(
@@ -476,8 +475,8 @@ class WeightedFusedScoreSumOp : public torch::autograd::Function<
 };
 
 template <template <tmol::Device> class DispatchMethod>
-class LJLKRotamerScoreOp
-    : public torch::autograd::Function<LJLKRotamerScoreOp<DispatchMethod>> {
+class LJLKRotamerScoreOp : public tmol::native::autograd::Function<
+                               LJLKRotamerScoreOp<DispatchMethod>> {
  public:
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
@@ -513,7 +512,7 @@ class LJLKRotamerScoreOp
       Tensor global_params,
       double max_dis,  // host scalar; needed by detect-neighbors call
       bool output_block_pair_energies) {
-    at::Tensor score, dscore_dcoords, dispatch_indices;
+    tmol::native::Tensor score, dscore_dcoords, dispatch_indices;
 
     using Int = int32_t;
 
@@ -607,7 +606,7 @@ class LJLKRotamerScoreOp
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
     auto saved = ctx->get_saved_variables();
 
-    at::Tensor dV_d_pose_coords;
+    tmol::native::Tensor dV_d_pose_coords;
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
@@ -709,22 +708,23 @@ class LJLKRotamerScoreOp
           }));
     }
 
-    return {dV_d_pose_coords, torch::Tensor(),
+    return {
+        dV_d_pose_coords,       tmol::native::Tensor(),
 
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(),
 
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(),
 
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(),
 
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(),
 
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor()};
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor()};
   }
 };
 
@@ -857,7 +857,7 @@ std::vector<Tensor> ljlk_elec_pose_scores_op(
       block_type_elec_intra_repr_path_distance,
       elec_global_params,
       shared_compact_block_neighbors,
-      torch::empty({0}, rot_coords.options()),
+      tmol::native::empty({0}, rot_coords.options()),
       n_valid_rots);
 }
 
@@ -1136,7 +1136,7 @@ std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
     Tensor output_gradients,
     Tensor shared_dispatch_indices) {
   TORCH_CHECK(
-      !torch::GradMode::is_enabled()
+      !tmol::native::GradMode::is_enabled()
           || (!rot_coords.requires_grad() && !score_weights.requires_grad()),
       "weighted fused rotamer scoring requires the autograd module wrapper");
   TORCH_CHECK(
@@ -1159,7 +1159,7 @@ std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
                   && shared_dispatch_indices.size(1) == 0)),
       "shared rotamer dispatch indices must have shape [3, nnz] or [0, 0]");
   TORCH_CHECK(
-      shared_dispatch_indices.scalar_type() == torch::kInt32,
+      shared_dispatch_indices.scalar_type() == tmol::native::kInt32,
       "shared rotamer dispatch indices must have dtype int32");
   TORCH_CHECK(
       shared_dispatch_indices.device() == rot_coords.device(),
@@ -1225,7 +1225,7 @@ std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
 }
 
 // See https://stackoverflow.com/a/3221914
-TORCH_LIBRARY(tmol_ljlk, m) {
+TMOL_LIBRARY(tmol_ljlk, m) {
   m.def("ljlk_pose_scores", &ljlk_pose_scores_op<DeviceOperations>);
   // Preserve the inferred argument names for existing callers while adding
   // an optional topology hint used only to choose the CUDA launch strategy.

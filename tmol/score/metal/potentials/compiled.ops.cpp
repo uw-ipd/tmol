@@ -1,5 +1,4 @@
-#include <torch/torch.h>
-#include <torch/script.h>
+#include <tmol/utility/tensor/native_library.hh>
 
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/tensor/context_manager.hh>
@@ -21,14 +20,14 @@ ContextManager mgr;
 
 using namespace tmol::score::common;
 
-using torch::Tensor;
-using torch::autograd::AutogradContext;
-using torch::autograd::Function;
-using torch::autograd::tensor_list;
+using tmol::native::Tensor;
+using tmol::native::autograd::AutogradContext;
+using tmol::native::autograd::Function;
+using tmol::native::autograd::tensor_list;
 
 template <template <tmol::Device> class DispatchMethod>
 class MetalCoordinationPoseScoreOp
-    : public torch::autograd::Function<
+    : public tmol::native::autograd::Function<
           MetalCoordinationPoseScoreOp<DispatchMethod>> {
  public:
   static std::vector<Tensor> forward(
@@ -65,8 +64,8 @@ class MetalCoordinationPoseScoreOp
       Tensor bridge_params,
 
       bool output_block_pair_energies) {
-    at::Tensor score;
-    at::Tensor dscore_dcoords;
+    tmol::native::Tensor score;
+    tmol::native::Tensor dscore_dcoords;
 
     using Int = int32_t;
 
@@ -157,7 +156,7 @@ class MetalCoordinationPoseScoreOp
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
     auto saved = ctx->get_saved_variables();
 
-    at::Tensor dV_d_pose_coords;
+    tmol::native::Tensor dV_d_pose_coords;
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
@@ -255,41 +254,41 @@ class MetalCoordinationPoseScoreOp
     return {
         // 13 common params including dV_d_pose_coords
         dV_d_pose_coords,
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
         // 12 custom params
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor()};
+        tmol::native::Tensor()};
   }
 };
 
 template <template <tmol::Device> class DispatchMethod>
 class MetalCoordinationRotamerScoreOp
-    : public torch::autograd::Function<
+    : public tmol::native::autograd::Function<
           MetalCoordinationRotamerScoreOp<DispatchMethod>> {
  public:
   static std::vector<Tensor> forward(
@@ -326,10 +325,10 @@ class MetalCoordinationRotamerScoreOp
       Tensor bridge_params,
 
       bool output_block_pair_energies) {
-    at::Tensor score;
-    at::Tensor dscore_dcoords;
-    at::Tensor dispatch_indices;
-    at::Tensor terms_for_dispatch;
+    tmol::native::Tensor score;
+    tmol::native::Tensor dscore_dcoords;
+    tmol::native::Tensor dispatch_indices;
+    tmol::native::Tensor terms_for_dispatch;
 
     using Int = int32_t;
 
@@ -420,7 +419,7 @@ class MetalCoordinationRotamerScoreOp
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
     auto saved = ctx->get_saved_variables();
 
-    at::Tensor dV_d_pose_coords;
+    tmol::native::Tensor dV_d_pose_coords;
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
@@ -530,35 +529,35 @@ class MetalCoordinationRotamerScoreOp
     return {
         // 13 common params including dV_d_pose_coords
         dV_d_pose_coords,
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
         // 12 custom params
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor()};
+        tmol::native::Tensor()};
   }
 };
 
@@ -698,7 +697,7 @@ std::vector<Tensor> metal_coordination_rotamer_scores_op(
       output_block_pair_energies);
 }
 // See https://stackoverflow.com/a/3221914
-TORCH_LIBRARY(tmol_metal, m) {
+TMOL_LIBRARY(tmol_metal, m) {
   m.def(
       "metal_coordination_pose_scores",
       &metal_coordination_pose_scores_op<DeviceOperations>);

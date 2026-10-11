@@ -24,4 +24,34 @@ def test_glibc_error_mentions_build_from_source():
 def test_generic_error_mentions_wheel_tags():
     exc = OSError("undefined symbol: some_missing_op")
     details = extension_load_error_details(exc)
-    assert "Python, PyTorch, and CUDA tags" in details
+    assert "PyTorch >=2.11, and the CUDA major" in details
+
+
+def test_native_boundary_gradients(torch_device):
+    """Exercise strided tensors and derivative graphs through the native ABI."""
+    import torch
+
+    coords = torch.randn(4, 4, 3, dtype=torch.double, device=torch_device)
+    coords = coords[::2].requires_grad_(True)
+    torsion = torch.ops.tmol_constraint.get_torsion_angle
+    assert torch.autograd.gradcheck(torsion, (coords,))
+    upstream = torch.ones(
+        2, dtype=torch.double, device=torch_device, requires_grad=True
+    )
+    gradient = torch.autograd.grad(
+        torsion(coords), coords, upstream, create_graph=True
+    )[0]
+    assert torch.autograd.grad(gradient.square().sum(), upstream)[0].isfinite().all()
+
+
+def test_backend_selection(monkeypatch):
+    import tmol._cpp_lib as loader
+
+    monkeypatch.setattr(loader.torch.version, "cuda", "13.0")
+    monkeypatch.setattr(loader, "version", lambda name: "0.1.63")
+    monkeypatch.setattr(loader.importlib.util, "find_spec", lambda name: object())
+    assert loader._native_module_name() == "tmol_ops_cu13._C"
+    monkeypatch.setattr(loader.torch.version, "cuda", "12.8")
+    assert loader._native_module_name() == "tmol_ops_cu12._C"
+    monkeypatch.setattr(loader.torch.version, "cuda", None)
+    assert loader._native_module_name() == "tmol._C"

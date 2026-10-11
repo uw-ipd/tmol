@@ -44,13 +44,6 @@ jobs:
             'cmake>=3.24,<4' 'scikit-build-core>=0.10' ninja \
             'packaging>=24.2' 'pybind11>=2.12' delocate
 
-      - name: Set ABI-qualified wheel version
-        run: |
-          torch_minor=$(python -c \
-            'import torch; print(".".join(torch.__version__.split(".")[:2]))')
-          python scripts/set_release_wheel_version.py "cputorch${torch_minor}"
-          echo "WHEEL_LOCAL_TAG=cputorch${torch_minor}" >> "$GITHUB_ENV"
-
       - name: Build CPU-only wheel
         env:
           MAX_JOBS: 2
@@ -78,19 +71,20 @@ jobs:
           rm dist/*.whl
           mv repaired/*.whl dist/
 
-      - name: Validate ABI-qualified CPU local version
+      - name: Validate CPU wheel and stable native ABI
         run: |
           set -- dist/*.whl
           test "$#" -eq 1
           wheel="$1"
           wheel_name=$(basename "$wheel")
           case "$wheel_name" in
-            tmol-*+${WHEEL_LOCAL_TAG}-*-macosx_14_0_arm64.whl) ;;
+            tmol-*-macosx_14_0_arm64.whl) ;;
             *)
               echo "Unexpected Apple Silicon wheel tag: $wheel_name"
               exit 1
               ;;
           esac
+          python scripts/check_native_abi.py dist/*.whl
           python_tag=$(python -c \
             'import sys; print(f"cp{sys.version_info.major}{sys.version_info.minor}")')
           echo "PYTHON_TAG=${python_tag}" >> "$GITHUB_ENV"
@@ -98,5 +92,5 @@ jobs:
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wheel-${{ env.PYTHON_TAG }}-${{ env.WHEEL_LOCAL_TAG }}-arm64
+          name: wheel-${{ env.PYTHON_TAG }}-cpu-arm64
           path: dist/*.whl

@@ -1,9 +1,5 @@
-#include <ATen/ATen.h>
-#include <ATen/Dispatch.h>
-#include <ATen/cuda/CUDAContext.h>
-#include <c10/cuda/CUDAGuard.h>
-#include <c10/cuda/CUDAException.h>
-#include <torch/library.h>
+#include <tmol/utility/tensor/native_cuda.hh>
+#include <tmol/utility/function_dispatch/aten.hh>
 
 #include <cmath>
 
@@ -800,30 +796,31 @@ __global__ void na_torsion_kernel(
       derivatives);
 }
 
-std::tuple<at::Tensor, at::Tensor> na_torsion_pose_score_cuda(
-    at::Tensor coords,
-    at::Tensor base,
-    at::Tensor is_na,
-    at::Tensor torsion_indices,
-    at::Tensor torsion_ok,
-    at::Tensor ring_indices,
-    at::Tensor ring_ok,
-    at::Tensor prev,
-    at::Tensor backbone_means,
-    at::Tensor backbone_sdev,
-    at::Tensor sugar_means,
-    at::Tensor chi_means,
-    at::Tensor sdev_sugar,
-    at::Tensor sdev_chi,
-    at::Tensor well_pucker,
-    at::Tensor well_alpha_gamma,
-    at::Tensor well_bibii_pucker,
-    at::Tensor well_alphanext_bibii,
-    at::Tensor well_chi_syn,
-    at::Tensor is_north,
-    at::Tensor weight_bb,
-    at::Tensor weight_chi,
-    at::Tensor weight_sugar,
+std::tuple<tmol::native::Tensor, tmol::native::Tensor>
+na_torsion_pose_score_cuda(
+    tmol::native::Tensor coords,
+    tmol::native::Tensor base,
+    tmol::native::Tensor is_na,
+    tmol::native::Tensor torsion_indices,
+    tmol::native::Tensor torsion_ok,
+    tmol::native::Tensor ring_indices,
+    tmol::native::Tensor ring_ok,
+    tmol::native::Tensor prev,
+    tmol::native::Tensor backbone_means,
+    tmol::native::Tensor backbone_sdev,
+    tmol::native::Tensor sugar_means,
+    tmol::native::Tensor chi_means,
+    tmol::native::Tensor sdev_sugar,
+    tmol::native::Tensor sdev_chi,
+    tmol::native::Tensor well_pucker,
+    tmol::native::Tensor well_alpha_gamma,
+    tmol::native::Tensor well_bibii_pucker,
+    tmol::native::Tensor well_alphanext_bibii,
+    tmol::native::Tensor well_chi_syn,
+    tmol::native::Tensor is_north,
+    tmol::native::Tensor weight_bb,
+    tmol::native::Tensor weight_chi,
+    tmol::native::Tensor weight_sugar,
     double pucker_temperature,
     double bin_blend_sdev,
     bool compute_derivs) {
@@ -838,12 +835,13 @@ std::tuple<at::Tensor, at::Tensor> na_torsion_pose_score_cuda(
       "inconsistent nucleic-acid base table shapes");
   int n_poses = int(base.size(0));
   int max_n_blocks = int(base.size(1));
-  auto output = at::zeros({2, n_poses}, coords.options());
-  auto derivatives = compute_derivs
-                         ? at::zeros({2, coords.size(0), 3}, coords.options())
-                         : at::empty({0}, coords.options());
-  c10::cuda::CUDAGuard guard(coords.device());
-  cudaStream_t stream = at::cuda::getCurrentCUDAStream();
+  auto output = tmol::native::zeros({2, n_poses}, coords.options());
+  auto derivatives =
+      compute_derivs
+          ? tmol::native::zeros({2, coords.size(0), 3}, coords.options())
+          : tmol::native::empty({0}, coords.options());
+  native::CUDAGuard guard(coords.device());
+  cudaStream_t stream = native::current_cuda_stream();
   int threads = 128;
   int blocks = (n_poses * max_n_blocks + threads - 1) / threads;
   AT_DISPATCH_FLOATING_TYPES(
@@ -880,7 +878,7 @@ std::tuple<at::Tensor, at::Tensor> na_torsion_pose_score_cuda(
               int(coords.size(0)),
               n_bases,
               nullptr,
-              output.mutable_data_ptr<scalar_t>());
+              output.data_ptr<scalar_t>());
         } else {
           na_torsion_kernel<scalar_t, true><<<blocks, threads, 0, stream>>>(
               coords.const_data_ptr<scalar_t>(),
@@ -912,8 +910,8 @@ std::tuple<at::Tensor, at::Tensor> na_torsion_pose_score_cuda(
               max_n_blocks,
               int(coords.size(0)),
               n_bases,
-              derivatives.mutable_data_ptr<scalar_t>(),
-              output.mutable_data_ptr<scalar_t>());
+              derivatives.data_ptr<scalar_t>(),
+              output.data_ptr<scalar_t>());
         }
       });
   C10_CUDA_KERNEL_LAUNCH_CHECK();
@@ -941,8 +939,8 @@ __global__ void na_torsion_backward_kernel(
                        + grad_well * derivatives[n_values + index];
 }
 
-at::Tensor na_torsion_pose_score_backward_cuda(
-    at::Tensor derivatives, at::Tensor grad_output) {
+tmol::native::Tensor na_torsion_pose_score_backward_cuda(
+    tmol::native::Tensor derivatives, tmol::native::Tensor grad_output) {
   TORCH_CHECK(derivatives.is_cuda(), "NA torsion derivatives must be CUDA");
   TORCH_CHECK(
       grad_output.is_cuda(), "NA torsion output gradients must be CUDA");
@@ -955,9 +953,9 @@ at::Tensor na_torsion_pose_score_backward_cuda(
   int n_poses = int(grad_output.size(1));
   int n_atoms = int(derivatives.size(1));
   TORCH_CHECK(n_atoms % n_poses == 0, "atoms must divide evenly among poses");
-  auto grad_coords = at::empty({n_atoms, 3}, derivatives.options());
-  c10::cuda::CUDAGuard guard(derivatives.device());
-  cudaStream_t stream = at::cuda::getCurrentCUDAStream();
+  auto grad_coords = tmol::native::empty({n_atoms, 3}, derivatives.options());
+  native::CUDAGuard guard(derivatives.device());
+  cudaStream_t stream = native::current_cuda_stream();
   int threads = 256;
   int blocks = (n_atoms * 3 + threads - 1) / threads;
   AT_DISPATCH_FLOATING_TYPES(
@@ -969,7 +967,7 @@ at::Tensor na_torsion_pose_score_backward_cuda(
             grad_output.stride(1),
             n_poses,
             n_atoms,
-            grad_coords.mutable_data_ptr<scalar_t>());
+            grad_coords.data_ptr<scalar_t>());
       });
   C10_CUDA_KERNEL_LAUNCH_CHECK();
   return grad_coords;

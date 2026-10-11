@@ -11,8 +11,7 @@ from pathlib import Path
 from release_matrix import RELEASE_PLATFORMS, expected_wheel_keys
 
 WHEEL_RE = re.compile(
-    r"^tmol-(?P<version>[^+]+)\+"
-    r"(?P<local>cputorch\d+\.\d+|cu\d+torch\d+\.\d+)-"
+    r"^(?P<package>tmol|tmol_ops_cu12|tmol_ops_cu13)-(?P<version>[^+]+)-"
     r"cp(?P<python>\d+)-cp(?P=python)-"
     r"(?P<platform>[^.]+)\.whl$"
 )
@@ -22,9 +21,13 @@ WHEEL_RE = re.compile(
 class Wheel:
     path: Path
     version: str
-    local: str
+    package: str
     python: str
     platform: str
+
+    @property
+    def local(self) -> str:
+        return "cpu" if self.package == "tmol" else self.package.rsplit("_", 1)[1]
 
     @property
     def arch(self) -> str:

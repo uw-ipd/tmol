@@ -1,7 +1,6 @@
-#include <torch/library.h>
+#include <tmol/utility/tensor/native_library.hh>
 
 #ifdef WITH_CUDA
-#include <torch/torch.h>
 
 #include "na_torsion_pose_score.hh"
 #endif
@@ -12,13 +11,13 @@ namespace na_torsion {
 namespace potentials {
 
 #ifdef WITH_CUDA
-using torch::Tensor;
-using torch::autograd::AutogradContext;
-using torch::autograd::Function;
-using torch::autograd::tensor_list;
+using tmol::native::Tensor;
+using tmol::native::autograd::AutogradContext;
+using tmol::native::autograd::Function;
+using tmol::native::autograd::tensor_list;
 
 class NaTorsionPoseScoreOp
-    : public torch::autograd::Function<NaTorsionPoseScoreOp> {
+    : public tmol::native::autograd::Function<NaTorsionPoseScoreOp> {
  public:
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
@@ -150,7 +149,7 @@ std::tuple<Tensor, Tensor> na_torsion_pose_score(
 }
 #endif
 
-TORCH_LIBRARY(tmol_na_torsion, m) {
+TMOL_LIBRARY(tmol_na_torsion, m) {
 #ifdef WITH_CUDA
   m.def("na_torsion_pose_score", &na_torsion_pose_score);
 #else

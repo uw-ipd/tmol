@@ -1,10 +1,7 @@
+#include <tmol/utility/tensor/native_cuda.hh>
+#include <tmol/utility/function_dispatch/aten.hh>
 #include <algorithm>
 #include <type_traits>
-
-#include <ATen/ATen.h>
-#include <ATen/cuda/CUDAContext.h>
-#include <c10/cuda/CUDAGuard.h>
-#include <c10/cuda/CUDAException.h>
 
 namespace tmol {
 namespace score {
@@ -52,16 +49,17 @@ __global__ void weighted_gradient_sum(
 
 }  // namespace
 
-at::Tensor accumulate_whole_pose_gradients_cuda(
-    at::Tensor const& saved_grad, at::Tensor const& score_grad) {
-  c10::cuda::CUDAGuard guard(saved_grad.device());
-  auto result =
-      at::empty({saved_grad.size(1), saved_grad.size(2)}, saved_grad.options());
+tmol::native::Tensor accumulate_whole_pose_gradients_cuda(
+    tmol::native::Tensor const& saved_grad,
+    tmol::native::Tensor const& score_grad) {
+  native::CUDAGuard guard(saved_grad.device());
+  auto result = tmol::native::empty(
+      {saved_grad.size(1), saved_grad.size(2)}, saved_grad.options());
   int64_t const n_values = result.numel();
   int64_t const values_per_pose = n_values / score_grad.size(1);
   int const blocks =
       static_cast<int>(std::min<int64_t>((n_values + 255) / 256, 65535));
-  auto stream = at::cuda::getCurrentCUDAStream();
+  auto stream = native::current_cuda_stream();
   AT_DISPATCH_FLOATING_TYPES(
       saved_grad.scalar_type(), "whole_pose_gradients", [&] {
         auto launch = [&](auto channels) {

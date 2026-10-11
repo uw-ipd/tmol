@@ -8,21 +8,22 @@ For build requirements and platform support, see {doc}`installation
 ```bash
 git clone https://github.com/uw-ipd/tmol.git
 cd tmol
-python -m pip install "scikit-build-core>=0.10" "cmake>=3.24,<4" "pybind11>=2.12" ninja packaging
+python -m pip install "torch>=2.14" "scikit-build-core>=0.10" "cmake>=3.24,<4" "pybind11>=2.12" ninja packaging
 python -m pip install --no-build-isolation -e ".[dev]"
 ```
 
-Install the intended PyTorch build first. Disabling build isolation keeps the
-compiler and runtime on the same PyTorch installation.
+Build with PyTorch 2.14+ headers. Production extensions target the stable C ABI
+in PyTorch 2.11+. Test-only and JIT extensions use the local PyTorch C++ API and
+must be rebuilt when changing that runtime.
 
-TMol locates the Torch and pybind11 CMake packages from this Python
-interpreter; `CMAKE_PREFIX_PATH` and `pybind11_DIR` do not need to be set.
+TMol locates Torch libraries/headers and pybind11 from this Python interpreter.
+It does not use TorchConfig.cmake or the unstable Torch C++ ABI for production.
 
 Requirements:
 
 - Python 3.11 or newer.
-- PyTorch 2.8 or newer.
-- A C++20-capable compiler (TMol uses C++17 with PyTorch 2.8–2.12).
+- PyTorch 2.14+ build headers; PyTorch 2.11+ runtime.
+- A C++20 compiler.
 - CMake 3.24 or newer.
 - CUDA toolkit with `nvcc` for CUDA builds.
 
@@ -44,8 +45,12 @@ pip install --no-build-isolation -e .
 pip install --no-build-isolation -e ".[dev]" \
   -Ccmake.define.TMOL_BUILD_TESTS=ON
 
-# Select GPU architectures
-pip install --no-build-isolation -e . -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="80;90"
+# CUDA development build, including GPU test helpers
+pip install --no-build-isolation -e ".[dev]" -Ccmake.define.TMOL_ENABLE_CUDA=ON \
+  -Ccmake.define.TMOL_BUILD_TESTS=ON -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="80;90"
+
+# Separate distribution containing only CUDA operators
+pip wheel --no-build-isolation --no-deps ./packages/cu13
 
 # Control parallelism
 MAX_JOBS=4 pip install --no-build-isolation -e . -Ccmake.define.TMOL_NVCC_THREADS=2
@@ -58,7 +63,8 @@ Build settings:
 | `CMAKE_CUDA_ARCHITECTURES` | `native` | `native` compiles only for GPUs visible at configure time. `all`, used for release wheels, emits SASS for every sm_75+ target reported by `nvcc --list-gpu-code`, plus PTX for the newest target. |
 | `TMOL_BUILD_TESTS` | `OFF` | Build test-only extensions. |
 | `TMOL_NVCC_THREADS` | `4` | Threads per `nvcc` invocation. |
-| `TMOL_ENABLE_CUDA` | `ON` | Turn off for CPU-only builds. |
+| `TMOL_ENABLE_CUDA` | `OFF` | Enable CUDA in a development build; CUDA operator packages enable it automatically. |
+| `TMOL_STABLE_HEADERS` | build-time Torch include directory | Optional PyTorch 2.14+ headers when testing production modules against an older runtime; test helpers retain that runtime's headers. |
 | `MAX_JOBS` | auto | Maximum parallel build jobs. |
 
 ## Extension loading
@@ -134,23 +140,26 @@ publish previews under the Pages site.
 Versioned wheel and sdist publication happens from `v*` tags. The tag version
 must match `[project].version` in `pyproject.toml`.
 
-`scripts/release_matrix.py` defines the release wheels. For releases after
-0.1.59, the matrix contains 34 CUDA wheels and 12 CPU wheels. CPU wheels use
-PyTorch 2.14 with Python 3.11–3.14 on Linux x86-64, Linux aarch64, and Apple
-Silicon. CPU support is listed separately from the broader CUDA matrix.
+`scripts/release_matrix.py` defines 28 wheels: 12 CPU/API wheels and 16 CUDA
+operator wheels across Python 3.11–3.14 and supported platforms. CUDA builds
+use a toolkit floor of 12.8 or 13.0, independent of the build-time Torch minor.
+All three project versions and the extras/dependencies must agree.
 
-Before publication, CI installs every wheel through a staging index in a fresh
-environment, loads the native extension, and checks scoring and gradients.
-CPU wheels are also tested under their public PyPI versions. A separate lane
-builds and installs the indexed source distribution. Fast PR tests cover pip's
-resolver, source metadata, PyTorch constraints, missing variants, and hashes.
+CI audits each wheel for unstable PyTorch C++ imports and tests the **same
+binary** against PyTorch 2.11 and 2.14 where CUDA availability permits. It also
+checks native scoring/gradients, actual pip resolution through staging indexes,
+source metadata, wheel contents, and RECORD hashes before publication. All
+three distributions go to PyPI without renaming wheels or adding local versions.
+Before tagging the first split release, configure PyPI publishing access for
+`tmol-ops-cu12` and `tmol-ops-cu13` as well as `tmol`.
 
-After these checks pass, the workflow publishes the ABI-qualified wheels to
-GitHub, adds versioned wheel pages to GitHub Pages, and uploads standard CPU
-wheels plus the source distribution to PyPI. CPU repackaging preserves native
-code, retains the exact PyTorch minor constraint, and rebuilds wheel RECORD
-hashes. PyPI metadata must use package-index dependencies; direct Git and URL
-dependencies are rejected.
+The Python/native boundary uses DLPack and Python autograd, including saved
+variable version checks. Native allocations, dispatch, streams, and generator
+access use the stable C API. Adding a new native operation must preserve that
+boundary; `scripts/check_native_abi.py` catches accidental C++ ABI imports.
+CUDA packing draws phase seeds through Torch's public dispatcher rather than
+accessing `CUDAGeneratorImpl`; fixed seeds remain reproducible, but trajectories
+can differ from releases before this refactor.
 
 Before using a versioned wheel URL, check the GitHub Releases page. The version
 in a checkout is not proof that a release has been published.

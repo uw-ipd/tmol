@@ -1,5 +1,4 @@
-#include <torch/torch.h>
-#include <torch/script.h>
+#include <tmol/utility/tensor/native_library.hh>
 
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/tensor/context_manager.hh>
@@ -17,14 +16,14 @@ namespace potentials {
 
 ContextManager mgr;
 
-using torch::Tensor;
-using torch::autograd::AutogradContext;
-using torch::autograd::Function;
-using torch::autograd::tensor_list;
+using tmol::native::Tensor;
+using tmol::native::autograd::AutogradContext;
+using tmol::native::autograd::Function;
+using tmol::native::autograd::tensor_list;
 
 template <template <tmol::Device> class DispatchMethod>
 class ElecPoseScoreOp
-    : public torch::autograd::Function<ElecPoseScoreOp<DispatchMethod>> {
+    : public tmol::native::autograd::Function<ElecPoseScoreOp<DispatchMethod>> {
  public:
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
@@ -59,9 +58,9 @@ class ElecPoseScoreOp
       double max_dis,  // host scalar; needed by detect-neighbors call
       bool output_block_pair_energies,
       Tensor shared_compact_block_neighbors) {
-    at::Tensor score;
-    at::Tensor dscore_dcoords;
-    at::Tensor block_neighbors;
+    tmol::native::Tensor score;
+    tmol::native::Tensor dscore_dcoords;
+    tmol::native::Tensor block_neighbors;
 
     using Int = int32_t;
 
@@ -162,7 +161,7 @@ class ElecPoseScoreOp
     }
     auto saved = ctx->get_saved_variables();
 
-    at::Tensor dV_d_pose_coords;
+    tmol::native::Tensor dV_d_pose_coords;
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
@@ -266,8 +265,8 @@ class ElecPoseScoreOp
 };
 
 template <template <tmol::Device> class DispatchMethod>
-class ElecRotamerScoreOp
-    : public torch::autograd::Function<ElecRotamerScoreOp<DispatchMethod>> {
+class ElecRotamerScoreOp : public tmol::native::autograd::Function<
+                               ElecRotamerScoreOp<DispatchMethod>> {
  public:
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
@@ -304,9 +303,9 @@ class ElecRotamerScoreOp
       bool output_block_pair_energies,
       Tensor shared_dispatch_indices) {
     assert(output_block_pair_energies);
-    at::Tensor score;
-    at::Tensor dscore_dcoords;
-    at::Tensor dispatch_inds;
+    tmol::native::Tensor score;
+    tmol::native::Tensor dscore_dcoords;
+    tmol::native::Tensor dispatch_inds;
 
     using Int = int32_t;
 
@@ -398,7 +397,7 @@ class ElecRotamerScoreOp
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
     auto saved = ctx->get_saved_variables();
 
-    at::Tensor dV_d_pose_coords;
+    tmol::native::Tensor dV_d_pose_coords;
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
@@ -504,18 +503,19 @@ class ElecRotamerScoreOp
     }
 
     return {
-        dV_d_pose_coords, torch::Tensor(), torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),
+        dV_d_pose_coords,       tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(),
 
-        torch::Tensor(),  torch::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(),
 
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(),
 
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
     };
   }
 };
@@ -616,8 +616,8 @@ std::vector<Tensor> elec_rotamer_scores_op(
     Tensor global_params,
     double max_dis,
     bool output_block_pair_energies) {
-  auto empty_dispatch_indices =
-      torch::empty({0, 0}, rot_coord_offset.options().dtype(torch::kInt32));
+  auto empty_dispatch_indices = tmol::native::empty(
+      {0, 0}, rot_coord_offset.options().dtype(tmol::native::kInt32));
   return ElecRotamerScoreOp<DispatchMethod>::apply(
       rot_coords,
       rot_coord_offset,
@@ -687,7 +687,7 @@ std::vector<Tensor> elec_rotamer_scores_shared_op(
                   && shared_dispatch_indices.size(1) == 0)),
       "shared rotamer dispatch indices must have shape [3, nnz] or [0, 0]");
   TORCH_CHECK(
-      shared_dispatch_indices.scalar_type() == torch::kInt32,
+      shared_dispatch_indices.scalar_type() == tmol::native::kInt32,
       "shared rotamer dispatch indices must have dtype int32");
   TORCH_CHECK(
       shared_dispatch_indices.device() == rot_coords.device(),
@@ -723,7 +723,7 @@ std::vector<Tensor> elec_rotamer_scores_shared_op(
 }
 
 // See https://stackoverflow.com/a/3221914
-TORCH_LIBRARY(tmol_elec, m) {
+TMOL_LIBRARY(tmol_elec, m) {
   m.def("elec_pose_scores", &elec_pose_scores_op<common::DeviceOperations>);
   m.def(
       "elec_rotamer_scores", &elec_rotamer_scores_op<common::DeviceOperations>);

@@ -11,5 +11,5 @@ trap 'rm -rf "$bootstrap"' EXIT
 python3.12 -m venv "$bootstrap/env"
 "$bootstrap/env/bin/python" -m pip install packaging
 "$bootstrap/env/bin/python" scripts/test_package_install.py \
-  --wheel wheels/*.whl --torch-version 2.8.0 \
-  --torch-index https://download.pytorch.org/whl/cu129 --device cuda
+  --wheel wheels/*.whl --base-wheel base-wheel/*.whl --torch-version 2.11.0 \
+  --torch-index https://download.pytorch.org/whl/cu128 --device cuda

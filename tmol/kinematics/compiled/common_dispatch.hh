@@ -1,9 +1,8 @@
+#include <tmol/utility/tensor/native.hh>
 #pragma once
 
 #include <Eigen/Core>
 #include <tuple>
-
-#include <torch/torch.h>
 
 #include <pybind11/eigen.h>
 
