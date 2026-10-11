@@ -638,7 +638,7 @@ runtimes exchange real tensor handles through a private stable operator. Neither
 path copies tensor storage. Whole-pose scoring groups eligible precomputed
 coordinate derivatives into one autograd context and CUDA reduction. This path
 checks that static tensors are frozen before skipping per-term gradient queries;
-Python wrappers, hooks, trainable parameters, and weighted/parallel execution
+Custom Python wrappers, hooks, trainable parameters, and weighted/parallel execution
 retain their ordinary differentiation paths. The engine schedules remaining
 term graphs directly, without a nested backward call. Saved derivatives stay
 under PyTorch’s saved-variable ownership; CUDA reduction receives the entire

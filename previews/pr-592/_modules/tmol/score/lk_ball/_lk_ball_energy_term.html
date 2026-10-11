@@ -709,6 +709,9 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">setup_poses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">LKBallEnergyTerm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setup_poses</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
+        <span class="c1"># Whole-pose blocks move independently. Reuse this topology tensor</span>
+        <span class="c1"># instead of allocating and filling it on every scoring call.</span>
+        <span class="n">pose_stack</span><span class="o">.</span><span class="n">_lk_ball_no_lockstep</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
         <span class="c1"># Plan once before graph capture; padding can greatly overstate the</span>
         <span class="c1"># useful work in the two specialized derivative kernels.</span>
         <span class="n">blocks</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span>
@@ -762,16 +765,8 @@
             <span class="n">shared_block_neighbors</span><span class="p">,</span>
         <span class="p">)</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">5</span><span class="p">:]</span>
 
-        <span class="c1"># each block appears once, so nothing moves in lockstep with anything</span>
-        <span class="n">no_lockstep</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-            <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
-            <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
-            <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-        <span class="p">)</span>
-
         <span class="n">water_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gen_waters</span><span class="p">(</span>
-            <span class="p">(</span><span class="o">*</span><span class="n">common_args</span><span class="p">[:</span><span class="mi">12</span><span class="p">],</span> <span class="n">no_lockstep</span><span class="p">,</span> <span class="o">*</span><span class="n">common_args</span><span class="p">[</span><span class="mi">12</span><span class="p">:]),</span>
+            <span class="p">(</span><span class="o">*</span><span class="n">common_args</span><span class="p">[:</span><span class="mi">12</span><span class="p">],</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">_lk_ball_no_lockstep</span><span class="p">,</span> <span class="o">*</span><span class="n">common_args</span><span class="p">[</span><span class="mi">12</span><span class="p">:]),</span>
             <span class="n">pose_stack</span><span class="p">,</span>
             <span class="n">hbond_params</span><span class="p">,</span>
         <span class="p">)</span>
