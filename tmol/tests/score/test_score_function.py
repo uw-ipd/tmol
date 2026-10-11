@@ -289,6 +289,50 @@ def test_fused_ljlk_elec_preserves_term_lanes_weights_and_gradients(
     assert torch.count_nonzero(fused.weights.grad[:4]) != 0
 
 
+@pytest.mark.parametrize("weighted", [False, True])
+@pytest.mark.parametrize("batched", [False, True])
+def test_cuda_fused_pose_accumulation_stability(
+    distinct_pose_stacks,
+    stack_of_distinct_poses,
+    default_database,
+    torch_device,
+    weighted,
+    batched,
+):
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA block-pair accumulation regression")
+    pose = stack_of_distinct_poses if batched else distinct_pose_stacks[-1]
+    sfxn = ScoreFunction(default_database, torch_device)
+    for term, weight in (
+        (ScoreType.fa_ljatr, 1.0),
+        (ScoreType.fa_ljrep, 0.55),
+        (ScoreType.fa_lk, 1.0),
+        (ScoreType.fa_elec, 1.0),
+    ):
+        sfxn.set_weight(term, weight)
+    scorer = sfxn.render_whole_pose_scoring_module(pose)
+    assert scorer._execution_modules[0].classname == "LJLK+Elec"
+    # Exercise both independent term lanes and the compact weighted lane.
+    scorer._force_weighted_fusion_for_cuda_graph = weighted
+    with torch.no_grad():
+        reference = scorer(pose.coords.double(), sum_terms=weighted)
+        repeated = torch.stack(
+            [scorer(pose.coords, sum_terms=weighted) for _ in range(32)]
+        )
+    assert repeated.dtype == torch.float32
+    torch.testing.assert_close(
+        repeated.double(), reference.expand_as(repeated), rtol=1e-4, atol=1e-3
+    )
+    # A long FP32 atomic sum drifts by multiple ULPs with workgroup order.
+    # Double accumulation followed by one cast retains FP32 rounding accuracy.
+    torch.testing.assert_close(
+        repeated,
+        repeated[0].expand_as(repeated),
+        rtol=torch.finfo(torch.float32).eps,
+        atol=0,
+    )
+
+
 def test_fused_ljlk_elec_weighted_gradient_finite_difference(
     ubq_pdb, default_database, torch_device
 ):
@@ -1731,6 +1775,33 @@ def _assert_matches_gold(score_map, gold_map, score_types, rtol, atol):
         )
 
 
+@pytest.mark.parametrize("weights", ["beta2016", "beta_soft"])
+def test_hydroxyl_torsion_weight(ubq_pdb, default_database, torch_device, weights):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device)
+    weights_path = os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "..",
+        "database",
+        "score_functions",
+        f"{weights}.sfxn",
+    )
+    sfxn = ScoreFunction.from_sfxn_file(weights_path, default_database, torch_device)
+    scorer = sfxn.render_whole_pose_scoring_module(pose)
+    lane = sfxn.all_score_types().index(ScoreType.cart_hxltorsions)
+    coords = pose.coords.clone().requires_grad_(True)
+    unweighted = scorer(coords, sum_terms=False, apply_weights=False)[lane]
+    weighted = scorer(coords, sum_terms=False, apply_weights=True)[lane]
+    assert torch.isfinite(unweighted).all()
+    assert (unweighted > 0).all()
+    torch.testing.assert_close(weighted, unweighted)
+    unweighted_grad = torch.autograd.grad(unweighted.sum(), coords)[0]
+    weighted_grad = torch.autograd.grad(weighted.sum(), coords)[0]
+    assert torch.isfinite(unweighted_grad).all()
+    assert unweighted_grad.abs().max() > 0
+    torch.testing.assert_close(weighted_grad, unweighted_grad)
+
+
 def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_device):
     ps = pose_stack_from_pdb(ubq_pdb, torch_device)
 
@@ -2000,3 +2071,101 @@ def test_score_function_all_terms_getter():
                 found = True
                 break
         assert found
+
+
+@pytest.mark.parametrize("topology_only", [False, True])
+def test_packing_releases_previous_page_before_allocating_next(
+    monkeypatch, topology_only
+):
+    import weakref
+    from tmol.score.ljlk import potentials
+
+    class Term(torch.nn.Module):
+        def __init__(self, name, width, cutoff):
+            super().__init__()
+            self.classname = name
+            self.n_score_types = width
+            self.block_neighbor_cutoff = cutoff
+            self.rotamer_dispatch_key = "sphere_overlap"
+            self.n_poses = 1
+            self.n_rots = 4
+
+    ljlk = Term("LJLK", 3, 6.0)
+    elec = Term("Elec", 1, 5.5)
+    fused = score_function_module._FusedLJLKAndElecRotamerModule(ljlk, elec)
+    scorer = RotamerScoringModule(torch.ones(4), [ljlk, elec])
+    scorer._fused_ljlk_elec = fused
+    scorer._fused_ljlk_elec_index = 0
+    scorer._fused_ljlk_elec_weight_offset = 0
+    monkeypatch.setattr(fused, "_native_arguments", lambda _: ())
+    monkeypatch.setattr(score_function_module, "_PACK_FUSED_ROTAMER_SCORE_WINDOW", 2)
+    live_layouts = []
+    live_scores = []
+
+    def dispatches(_):
+        for _ in range(3):
+            assert all(ref() is None for ref in live_layouts)
+            assert all(ref() is None for ref in live_scores)
+            indices = torch.zeros((3, 4), dtype=torch.int32)
+            live_layouts.append(weakref.ref(indices))
+            yield indices
+            del indices
+
+    def score(*args):
+        assert not topology_only
+        assert all(ref() is None for ref in live_scores)
+        indices = args[-1]
+        scores = torch.ones((1, indices.shape[1]))
+        live_scores.append(weakref.ref(scores))
+        return scores, indices, torch.empty(0)
+
+    monkeypatch.setattr(fused, "iter_packing_dispatches", dispatches)
+    monkeypatch.setattr(potentials, "ljlk_elec_weighted_rotamer_scores", score)
+    n_pages = 0
+    with torch.no_grad():
+        for _, indices, values in scorer._iter_weighted_sparse_entries(
+            torch.zeros((1, 3)),
+            retain_shared_dispatch=False,
+            topology_only=topology_only,
+        ):
+            assert indices.shape == (3, 2)
+            assert values.numel() == (0 if topology_only else 2)
+            n_pages += 1
+            del indices, values
+    assert n_pages == 6
+    assert all(ref() is None for ref in live_layouts + live_scores)
+
+
+@pytest.mark.parametrize("topology_only", [False, True])
+def test_packing_releases_term_iterator_pages(topology_only):
+    import weakref
+
+    live_pages = []
+
+    class Term(torch.nn.Module):
+        n_score_types = 1
+        packing_score_iterator = True
+
+        def iter_packing_entries(self, coords, *, topology_only):
+            for _ in range(3):
+                assert all(ref() is None for ref in live_pages)
+                indices = torch.zeros((3, 2), dtype=torch.int32)
+                scores = None if topology_only else torch.ones((1, 2))
+                live_pages.append(weakref.ref(indices))
+                if scores is not None:
+                    live_pages.append(weakref.ref(scores))
+                yield scores, indices
+                del scores, indices
+
+    scorer = RotamerScoringModule(torch.ones(1), [Term()])
+    n_pages = 0
+    for _, indices, values in scorer._iter_weighted_sparse_entries(
+        torch.zeros((1, 3)),
+        retain_shared_dispatch=False,
+        topology_only=topology_only,
+    ):
+        assert values.numel() == (0 if topology_only else 2)
+        n_pages += 1
+        del indices, values
+    assert n_pages == 3
+    assert all(ref() is None for ref in live_pages)

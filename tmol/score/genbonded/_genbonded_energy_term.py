@@ -724,6 +724,13 @@ class GenBondedEnergyTerm(AtomTypeDependentTerm):
     def get_pose_score_term_function(self):
         return genbonded_pose_scores
 
+    def get_packing_rotamer_score_term_function(self):
+        from tmol.score.genbonded.potentials._compiled import (
+            iter_packing_rotamer_scores,
+        )
+
+        return iter_packing_rotamer_scores
+
     def get_rotamer_score_term_function(self):
         return genbonded_rotamer_scores
 

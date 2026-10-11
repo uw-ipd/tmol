@@ -2,6 +2,10 @@ name: ~Score with a release wheel on a GPU
 
 on:
   workflow_call:
+    inputs:
+      candidate-run-id:
+        type: string
+        default: ""
 
 jobs:
   install:
@@ -23,6 +27,8 @@ jobs:
         with:
           name: wheel-cp312-cu129torch2.8-x86_64
           path: wheels
+          run-id: ${{ inputs.candidate-run-id || github.run_id }}
+          github-token: ${{ github.token }}
       - name: Install from variant index and score on CUDA
         env:
           GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.release_gpu_started

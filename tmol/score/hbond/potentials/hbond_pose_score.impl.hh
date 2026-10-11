@@ -123,6 +123,14 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
         (donor_first ? inter_dat.r1 : inter_dat.r2).donH_tile_inds[don_ind]; \
     int acc_tile_ind =                                                       \
         (donor_first ? inter_dat.r2 : inter_dat.r1).acc_tile_inds[acc_ind];  \
+    auto const& don_dat = donor_first ? inter_dat.r1 : inter_dat.r2;         \
+    auto const& acc_dat = donor_first ? inter_dat.r2 : inter_dat.r1;         \
+    auto const Hxyz = coord_from_shared(don_dat.coords, don_tile_ind);       \
+    auto const Axyz = coord_from_shared(acc_dat.coords, acc_tile_ind);       \
+    Real const cutoff = inter_dat.pair_data.global_params.max_ha_dis;        \
+    if (!((Hxyz - Axyz).squaredNorm() < cutoff * cutoff)) {                  \
+      return {Real(0)};                                                      \
+    }                                                                        \
     int separation = interres_count_pair_separation<TILE_SIZE>(              \
         inter_dat,                                                           \
         (donor_first ? don_ind : acc_ind),                                   \

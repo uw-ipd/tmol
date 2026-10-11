@@ -646,6 +646,13 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
 
         return cartbonded_pose_scores
 
+    def get_packing_rotamer_score_term_function(self):
+        from tmol.score.cartbonded.potentials._compiled import (
+            iter_packing_rotamer_scores,
+        )
+
+        return iter_packing_rotamer_scores
+
     def get_rotamer_score_term_function(self):
         from tmol.score.cartbonded.potentials import cartbonded_rotamer_scores
 

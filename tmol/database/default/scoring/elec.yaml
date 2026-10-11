@@ -18,6 +18,15 @@ atom_cp_reps_parameters:
   - { *r: ALA:nterm_neutral ,*ai: N, *ao: H2 }
   - { *r: ALA ,*ai: C, *ao: O }
   - { *r: ALA ,*ai: N, *ao: H }
+  - { *r: AIB:cterm ,*ai: C, *ao: O }
+  - { *r: AIB:cterm ,*ai: C, *ao: OXT }
+  - { *r: AIB:nterm ,*ai: N, *ao: H1 }
+  - { *r: AIB:nterm ,*ai: N, *ao: H2 }
+  - { *r: AIB:nterm ,*ai: N, *ao: H3 }
+  - { *r: AIB:nterm_neutral ,*ai: N, *ao: H1 }
+  - { *r: AIB:nterm_neutral ,*ai: N, *ao: H2 }
+  - { *r: AIB ,*ai: C, *ao: O }
+  - { *r: AIB ,*ai: N, *ao: H }
   - { *r: ARG:cterm ,*ai: C, *ao: O }
   - { *r: ARG:cterm ,*ai: C, *ao: OXT }
   - { *r: ARG:nterm ,*ai: N, *ao: H1 }
@@ -298,6 +307,32 @@ atom_charge_parameters:
   - { *r: ALA:nterm_neutral ,*a: HA, *e: 0.12794 }
   - { *r: ALA:nterm_neutral ,*a: H1, *e: 0.26154 }
   - { *r: ALA:nterm_neutral ,*a: H2, *e: 0.26154 }
+  # AIB: ALA's charges on both methyls; CA carries ALA's CA + HA
+  - { *r: AIB ,*a: HB11, *e: 0.12155 }
+  - { *r: AIB ,*a: HB12, *e: 0.12155 }
+  - { *r: AIB ,*a: HB13, *e: 0.12155 }
+  - { *r: AIB ,*a: HB21, *e: 0.12155 }
+  - { *r: AIB ,*a: HB22, *e: 0.12155 }
+  - { *r: AIB ,*a: HB23, *e: 0.12155 }
+  - { *r: AIB ,*a: C, *e: 0.76511 }
+  - { *r: AIB ,*a: CA, *e: 0.26229 }
+  - { *r: AIB ,*a: CB1, *e: -0.36465 }
+  - { *r: AIB ,*a: CB2, *e: -0.36465 }
+  - { *r: AIB ,*a: H, *e: 0.50819 }
+  - { *r: AIB ,*a: N, *e: -0.77049 }
+  - { *r: AIB ,*a: O, *e: -0.76511 }
+  - { *r: AIB:cterm ,*a: OXT, *e: -0.67724 }
+  - { *r: AIB:cterm ,*a: O, *e: -0.67724 }
+  - { *r: AIB:cterm ,*a: C, *e: 0.35448 }
+  - { *r: AIB:nterm ,*a: N, *e: -0.10440 }
+  - { *r: AIB:nterm ,*a: CA, *e: 0.31978 }
+  - { *r: AIB:nterm ,*a: H1, *e: 0.26154 }
+  - { *r: AIB:nterm ,*a: H2, *e: 0.26154 }
+  - { *r: AIB:nterm ,*a: H3, *e: 0.26154 }
+  - { *r: AIB:nterm_neutral ,*a: N, *e: -0.84286 }
+  - { *r: AIB:nterm_neutral ,*a: CA, *e: 0.31978 }
+  - { *r: AIB:nterm_neutral ,*a: H1, *e: 0.26154 }
+  - { *r: AIB:nterm_neutral ,*a: H2, *e: 0.26154 }
   - { *r: ARG ,*a: HB2, *e: 0.07619 }
   - { *r: ARG ,*a: HD2, *e: 0.07619 }
   - { *r: ARG ,*a: HG2, *e: 0.07619 }

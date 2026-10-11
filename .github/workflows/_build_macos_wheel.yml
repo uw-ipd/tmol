@@ -3,6 +3,10 @@ name: ~Build Apple Silicon wheel template
 on:
   workflow_call:
     inputs:
+      source-ref:
+        type: string
+        default: ""
+        description: Verified release commit; empty uses the calling workflow's source.
       python-version:
         required: true
         type: string
@@ -22,6 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ inputs.source-ref }}
           submodules: recursive
 
       - uses: actions/setup-python@v5

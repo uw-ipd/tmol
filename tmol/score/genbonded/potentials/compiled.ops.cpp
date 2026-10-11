@@ -297,9 +297,12 @@ class GenBondedPoseScoreOp
 // ---------------------------------------------------------------------------
 // Rotamer-level scoring autograd op
 // ---------------------------------------------------------------------------
-template <template <tmol::Device> class DispatchMethod>
-class GenBondedRotamerScoreOp : public torch::autograd::Function<
-                                    GenBondedRotamerScoreOp<DispatchMethod>> {
+template <
+    template <tmol::Device> class DispatchMethod,
+    bool TopologyOnly = false>
+class GenBondedRotamerScoreOp
+    : public torch::autograd::Function<
+          GenBondedRotamerScoreOp<DispatchMethod, TopologyOnly>> {
  public:
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
@@ -384,7 +387,8 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
                       TCAST(gen_inter_improper_hash_values),
 
                       output_block_pair_energies,
-                      rot_coords.requires_grad());
+                      rot_coords.requires_grad(),
+                      TopologyOnly);
 
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
@@ -392,6 +396,11 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
           n_output_intxns = std::get<3>(result).tensor;
           rotconn_for_output = std::get<4>(result).tensor;
         }));
+
+    if constexpr (TopologyOnly) {
+      ctx->mark_non_differentiable({score, dispatch_indices});
+      return {score, dispatch_indices};
+    }
 
     auto max_n_rots_per_pose_tp =
         TPack<Int, 1, tmol::Device::CPU>::full(1, max_n_rots_per_pose);
@@ -625,7 +634,9 @@ std::vector<Tensor> genbonded_pose_scores_op(
       output_block_pair_energies);
 }
 
-template <template <tmol::Device> class DispatchMethod>
+template <
+    template <tmol::Device> class DispatchMethod,
+    bool TopologyOnly = false>
 std::vector<Tensor> genbonded_rotamer_scores_op(
     Tensor rot_coords,
     Tensor rot_coord_offset,
@@ -659,7 +670,7 @@ std::vector<Tensor> genbonded_rotamer_scores_op(
     Tensor gen_inter_improper_hash_values,
 
     bool output_block_pair_energies) {
-  return GenBondedRotamerScoreOp<DispatchMethod>::apply(
+  return GenBondedRotamerScoreOp<DispatchMethod, TopologyOnly>::apply(
       rot_coords,
       rot_coord_offset,
       pose_ind_for_atom,
@@ -699,6 +710,9 @@ TORCH_LIBRARY(tmol_genbonded, m) {
   m.def(
       "genbonded_rotamer_scores",
       &genbonded_rotamer_scores_op<DeviceOperations>);
+  m.def(
+      "genbonded_rotamer_scores_topology",
+      &genbonded_rotamer_scores_op<DeviceOperations, true>);
 }
 
 }  // namespace potentials

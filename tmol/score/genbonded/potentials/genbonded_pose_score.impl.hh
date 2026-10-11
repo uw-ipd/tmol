@@ -1002,7 +1002,8 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
     TView<Vec<Real, 5>, 1, D> gen_inter_improper_hash_values,
 
     bool output_block_pair_energies,
-    bool compute_derivs)
+    bool compute_derivs,
+    bool topology_only)
     -> std::tuple<
         TPack<Real, 2, D>,
         TPack<Vec<Real, 3>, 2, D>,
@@ -1078,9 +1079,13 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
           max_n_interactions);
   auto rotconn_for_output_intxn = rotconn_for_output_intxn_t.view;
 
-  int const n_V = output_block_pair_energies ? n_output_intxns_total : n_poses;
+  int const n_V =
+      topology_only
+          ? 0
+          : (output_block_pair_energies ? n_output_intxns_total : n_poses);
   auto V_t = TPack<Real, 2, D>::zeros({1, n_V});
-  bool const accumulate_derivs = compute_derivs && !output_block_pair_energies;
+  bool const accumulate_derivs =
+      !topology_only && compute_derivs && !output_block_pair_energies;
   auto dV_dx_t = accumulate_derivs
                      ? TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms})
                      : TPack<Vec<Real, 3>, 2, D>::empty({1, 0});
@@ -1120,6 +1125,15 @@ auto GenBondedRotamerScoreDispatch<DeviceOps, D, Real, Int>::forward(
   });
   DeviceOps<D>::template forall<launch_t>(
       mgr, n_output_intxns_total, record_dispatch_indices);
+
+  if (topology_only) {
+    return {
+        V_t,
+        dV_dx_t,
+        dispatch_indices_t,
+        n_output_intxns_for_rot_conn_offset_t,
+        rotconn_for_output_intxn_t};
+  }
 
   auto eval_torsions_for_interaction = ([=] TMOL_DEVICE_FUNC(int cta) {
     SHARED_MEMORY union shared_mem_union {

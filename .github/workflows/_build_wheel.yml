@@ -3,6 +3,10 @@ name: ~Build wheel template
 on:
   workflow_call:
     inputs:
+      source-ref:
+        type: string
+        default: ""
+        description: Verified release commit; empty uses the calling workflow's source.
       runs-on:
         required: true
         type: string
@@ -101,6 +105,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
+          ref: ${{ inputs.source-ref }}
           submodules: recursive
 
       - name: Select builder image

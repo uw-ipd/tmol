@@ -282,9 +282,12 @@ class CartBondedPoseScoreOp
   }
 };
 
-template <template <tmol::Device> class DispatchMethod>
-class CartBondedRotamerScoreOp : public torch::autograd::Function<
-                                     CartBondedRotamerScoreOp<DispatchMethod>> {
+template <
+    template <tmol::Device> class DispatchMethod,
+    bool TopologyOnly = false>
+class CartBondedRotamerScoreOp
+    : public torch::autograd::Function<
+          CartBondedRotamerScoreOp<DispatchMethod, TopologyOnly>> {
  public:
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
@@ -376,7 +379,8 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
                       TCAST(cart_subgraph_param_indices),
 
                       output_block_pair_energies,
-                      rot_coords.requires_grad());
+                      rot_coords.requires_grad(),
+                      TopologyOnly);
 
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
@@ -384,6 +388,11 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
           n_output_intxns_for_rot_conn_offset = std::get<3>(result).tensor;
           rotconn_for_output_intxn = std::get<4>(result).tensor;
         }));
+
+    if constexpr (TopologyOnly) {
+      ctx->mark_non_differentiable({score, dispatch_indices});
+      return {score, dispatch_indices};
+    }
 
     if (output_block_pair_energies) {
       auto max_n_rots_per_pose_tp =
@@ -635,7 +644,9 @@ std::vector<Tensor> cartbonded_pose_scores_op(
       output_block_pair_energies);
 }
 
-template <template <tmol::Device> class DispatchMethod>
+template <
+    template <tmol::Device> class DispatchMethod,
+    bool TopologyOnly = false>
 std::vector<Tensor> cartbonded_rotamer_scores_op(
     // common params
     Tensor rot_coords,
@@ -673,7 +684,7 @@ std::vector<Tensor> cartbonded_rotamer_scores_op(
     Tensor cart_subgraph_param_indices,
 
     bool output_block_pair_energies) {
-  return CartBondedRotamerScoreOp<DispatchMethod>::apply(
+  return CartBondedRotamerScoreOp<DispatchMethod, TopologyOnly>::apply(
       // common params
       rot_coords,
       rot_coord_offset,
@@ -716,6 +727,9 @@ TORCH_LIBRARY(tmol_cartbonded, m) {
   m.def(
       "cartbonded_rotamer_scores",
       &cartbonded_rotamer_scores_op<DeviceOperations>);
+  m.def(
+      "cartbonded_rotamer_scores_topology",
+      &cartbonded_rotamer_scores_op<DeviceOperations, true>);
 }
 
 }  // namespace potentials

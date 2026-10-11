@@ -4399,6 +4399,104 @@ residues:
       virtual: []
     chi_samples: []
     default_jump_connection_atom: A1
+  # alpha-aminoisobutyric acid: ALA's backbone and N-CA-CB, with the two methyls
+  #    mirror images at CB-CA-CB 109.2. CB2 is on ALA's CB side (CCD naming).
+  - name:  AIB
+    base_name: AIB
+    name3: AIB
+    io_equiv_class: AIB
+    one_letter_code: null
+    rama_reference: AIB
+    atoms:
+    - { name: N   ,  atom_type: Nbb  }
+    - { name: CA  ,  atom_type: CAbb }
+    - { name: C   ,  atom_type: CObb }
+    - { name: O   ,  atom_type: OCbb }
+    - { name: CB1 ,  atom_type: CH3  }
+    - { name: CB2 ,  atom_type: CH3  }
+    - { name: H   ,  atom_type: HNbb }
+    - { name: HB11,  atom_type: Hapo }
+    - { name: HB12,  atom_type: Hapo }
+    - { name: HB13,  atom_type: Hapo }
+    - { name: HB21,  atom_type: Hapo }
+    - { name: HB22,  atom_type: Hapo }
+    - { name: HB23,  atom_type: Hapo }
+    atom_aliases:
+    - { name: HB11, alt_name: 1HB1 }
+    - { name: HB12, alt_name: 2HB1 }
+    - { name: HB13, alt_name: 3HB1 }
+    - { name: HB21, alt_name: 1HB2 }
+    - { name: HB22, alt_name: 2HB2 }
+    - { name: HB23, alt_name: 3HB2 }
+    bonds:
+    - [   N,   CA, SINGLE, false]
+    - [   N,    H, SINGLE, false]
+    - [  CA,    C, SINGLE, false]
+    - [   C,    O, DOUBLE, false]
+    - [  CA,  CB1, SINGLE, false]
+    - [  CA,  CB2, SINGLE, false]
+    - [ CB1, HB11, SINGLE, false]
+    - [ CB1, HB12, SINGLE, false]
+    - [ CB1, HB13, SINGLE, false]
+    - [ CB2, HB21, SINGLE, false]
+    - [ CB2, HB22, SINGLE, false]
+    - [ CB2, HB23, SINGLE, false]
+    connections:
+    - { name: down, atom: N, type: AROMATIC }
+    - { name: up, atom: C, type: AROMATIC }
+    torsions:
+    - name: phi
+      a: { connection: down, bond_sep_from_conn: 0 }
+      b: { atom: N }
+      c: { atom: CA }
+      d: { atom: C }
+    - name: psi
+      a: { atom: N }
+      b: { atom: CA }
+      c: { atom: C }
+      d: { connection: up, bond_sep_from_conn: 0 }
+    - name: omega
+      a: { atom: CA }
+      b: { atom: C }
+      c: { connection: up, bond_sep_from_conn: 0 }
+      d: { connection: up, bond_sep_from_conn: 1 }
+    icoors:
+    - { name:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:  0.000000, parent:   N, grand_parent: CA, great_grand_parent:    C }
+    - { name:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:  1.458001, parent:   N, grand_parent: CA, great_grand_parent:    C }
+    - { name:     C, phi:    0.000000 deg, theta:   68.800003 deg, d:  1.523258, parent:  CA, grand_parent:  N, great_grand_parent:    C }
+    - { name:    up, phi:  149.999985 deg, theta:   63.800007 deg, d:  1.328685, parent:   C, grand_parent: CA, great_grand_parent:    N }
+    - { name:     O, phi: -180.000000 deg, theta:   59.200005 deg, d:  1.231015, parent:   C, grand_parent: CA, great_grand_parent:   up }
+    - { name:   CB2, phi: -119.596101 deg, theta:   69.625412 deg, d:  1.535000, parent:  CA, grand_parent:  N, great_grand_parent:    C }
+    - { name:  HB21, phi: -180.000000 deg, theta:   70.500000 deg, d:  1.090040, parent: CB2, grand_parent: CA, great_grand_parent:    N }
+    - { name:  HB22, phi:  120.000000 deg, theta:   70.500000 deg, d:  1.090069, parent: CB2, grand_parent: CA, great_grand_parent: HB21 }
+    - { name:  HB23, phi:  120.000000 deg, theta:   70.500000 deg, d:  1.088803, parent: CB2, grand_parent: CA, great_grand_parent: HB22 }
+    - { name:   CB1, phi:  119.596101 deg, theta:   69.625412 deg, d:  1.535000, parent:  CA, grand_parent:  N, great_grand_parent:    C }
+    - { name:  HB11, phi:  180.000000 deg, theta:   70.500000 deg, d:  1.090040, parent: CB1, grand_parent: CA, great_grand_parent:    N }
+    - { name:  HB12, phi: -120.000000 deg, theta:   70.500000 deg, d:  1.090069, parent: CB1, grand_parent: CA, great_grand_parent: HB11 }
+    - { name:  HB13, phi: -120.000000 deg, theta:   70.500000 deg, d:  1.088803, parent: CB1, grand_parent: CA, great_grand_parent: HB12 }
+    - { name:  down, phi: -150.000000 deg, theta:   58.300003 deg, d:  1.328685, parent:   N, grand_parent: CA, great_grand_parent:    C }
+    - { name:     H, phi: -180.000000 deg, theta:   60.849998 deg, d:  1.010000, parent:   N, grand_parent: CA, great_grand_parent: down }
+    properties:
+      is_canonical: false
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha_aa
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: achiral
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
+    default_jump_connection_atom: CA
 
 
 variants:

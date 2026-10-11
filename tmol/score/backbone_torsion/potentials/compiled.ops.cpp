@@ -299,10 +299,12 @@ class BackboneTorsionPoseScoreOp
   }
 };
 
-template <template <tmol::Device> class DispatchMethod>
+template <
+    template <tmol::Device> class DispatchMethod,
+    bool TopologyOnly = false>
 class BackboneTorsionRotamerScoreOp
     : public torch::autograd::Function<
-          BackboneTorsionRotamerScoreOp<DispatchMethod>> {
+          BackboneTorsionRotamerScoreOp<DispatchMethod, TopologyOnly>> {
  public:
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
@@ -383,12 +385,18 @@ class BackboneTorsionRotamerScoreOp
                   TCAST(rama_table_params),
                   TCAST(omega_tables),
                   TCAST(omega_table_params),
-                  output_block_pair_energies);
+                  output_block_pair_energies,
+                  TopologyOnly);
 
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
           dispatch_indices = std::get<2>(result).tensor;
         }));
+
+    if constexpr (TopologyOnly) {
+      ctx->mark_non_differentiable({score, dispatch_indices});
+      return {score, dispatch_indices};
+    }
 
     if (output_block_pair_energies) {
       auto max_n_rots_per_pose_tp =
@@ -647,7 +655,9 @@ std::vector<Tensor> backbone_torsion_pose_score_op(
       output_block_pair_energies);
 }
 
-template <template <tmol::Device> class DispatchMethod>
+template <
+    template <tmol::Device> class DispatchMethod,
+    bool TopologyOnly = false>
 std::vector<Tensor> backbone_torsion_rotamer_score_op(
     // common params
     Tensor rot_coords,
@@ -681,7 +691,7 @@ std::vector<Tensor> backbone_torsion_rotamer_score_op(
     Tensor omega_tables,
     Tensor omega_table_params,
     bool output_block_pair_energies) {
-  return BackboneTorsionRotamerScoreOp<DispatchMethod>::apply(
+  return BackboneTorsionRotamerScoreOp<DispatchMethod, TopologyOnly>::apply(
       // common params
       rot_coords,
       rot_coord_offset,
@@ -721,6 +731,9 @@ TORCH_LIBRARY(tmol_bb_torsion, m) {
   m.def(
       "backbone_torsion_rotamer_score",
       &backbone_torsion_rotamer_score_op<DeviceOperations>);
+  m.def(
+      "backbone_torsion_rotamer_score_topology",
+      &backbone_torsion_rotamer_score_op<DeviceOperations, true>);
 }
 
 }  // namespace potentials

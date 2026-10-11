@@ -32,6 +32,61 @@ from tmol.kinematics import (
 from tmol.io import pose_stack_from_pdb
 
 
+@pytest.mark.parametrize("grow", [False, True])
+def test_accept_best_with_different_atom_counts(
+    default_database, torch_device, monkeypatch, grow
+):
+    """Packing can change atom counts without changing every pose's winner."""
+    from tmol.io import extended_pose_stack_from_sequences
+    from tmol.relax import accept_best
+
+    small = extended_pose_stack_from_sequences(["AGA", "AGA"], device=torch_device)
+    large = extended_pose_stack_from_sequences(["AKA", "AKA"], device=torch_device)
+    small_width = small.coords.shape[1]
+    # Both alternatives must use one catalog, as they do after packing.
+    combined = PoseStackBuilder.from_poses([small, large], torch_device)
+    small, large = (
+        PoseStackBuilder.from_poses(
+            [combined.split(i), combined.split(i + 1)], torch_device
+        )
+        for i in (0, 2)
+    )
+    import attrs
+
+    small = attrs.evolve(small, coords=small.coords[:, :small_width])
+    assert small.coords.shape[1] < large.coords.shape[1]
+    assert small.packed_block_types is large.packed_block_types
+    best, candidate = (small, large) if grow else (large, small)
+    original_best = best.coords.clone()
+    original_candidate = candidate.coords.clone()
+    sfxn = ScoreFunction(param_db=default_database, device=torch_device)
+    monkeypatch.setattr(
+        sfxn,
+        "render_whole_pose_scoring_module",
+        lambda pose: lambda coords: coords.new_tensor([1.0, 3.0]),
+    )
+    result, scores = accept_best(
+        sfxn, best, best.coords.new_tensor([2.0, 2.0]), candidate
+    )
+    torch.testing.assert_close(scores, best.coords.new_tensor([1.0, 2.0]))
+    for row, expected in ((0, candidate), (1, best)):
+        for name in (
+            "block_type_ind",
+            "block_type_ind64",
+            "block_coord_offset",
+            "block_coord_offset64",
+        ):
+            torch.testing.assert_close(
+                getattr(result, name)[row], getattr(expected, name)[row]
+            )
+        torch.testing.assert_close(
+            result.coords[row, : expected.coords.shape[1]], expected.coords[row]
+        )
+        assert not bool(result.coords[row, expected.coords.shape[1] :].any())
+    torch.testing.assert_close(best.coords, original_best)
+    torch.testing.assert_close(candidate.coords, original_candidate)
+
+
 def get_relax_sfxn(default_database, torch_device):
     sfxn = ScoreFunction(param_db=default_database, device=torch_device)
     sfxn.set_weight(ScoreType.fa_ljatr, 1.0)

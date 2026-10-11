@@ -14,3 +14,13 @@ _ops = load_ops(
 
 backbone_torsion_pose_score = _ops.backbone_torsion_pose_score
 backbone_torsion_rotamer_score = _ops.backbone_torsion_rotamer_score
+
+
+def iter_packing_rotamer_scores(*args):
+    *score_args, topology_only = args
+    op = (
+        _ops.backbone_torsion_rotamer_score_topology
+        if topology_only
+        else backbone_torsion_rotamer_score
+    )
+    yield op(*score_args)

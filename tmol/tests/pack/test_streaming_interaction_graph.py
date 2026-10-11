@@ -399,3 +399,34 @@ def test_streaming_graph_on_cuda_bounds_memory_by_one_layout():
 
     assert graph[15].numel() > 0
     assert peak_delta < 4 * layout_bytes
+
+
+@requires_cuda
+@pytest.mark.parametrize("chunk_size", [7, 16, 32])
+def test_cuda_annealer_sparse_transposes_have_exact_minimum(chunk_size):
+    # Unequal rotamer counts, row degrees and pose lengths exercise transposed
+    # chunk offsets, including partial chunks and padded rows.
+    device = torch.device("cuda")
+    counts = [[35, 17, 3, 2], [2, 33, 5, 0]]
+    edges = [(0, 0, 1), (0, 0, 3), (0, 1, 3), (0, 2, 3), (1, 0, 2), (1, 1, 2)]
+    metadata = graph_metadata(counts, device)
+    indices, values = score_entries(metadata, edges)
+    graph = staged_graph(metadata, [(indices, values)], chunk_size)
+    torch.manual_seed(20261006)
+    scores, assignments = pack_anneal(*annealer_inputs(graph, chunk_size))
+
+    # score_entries increases every one- and two-body energy with either local
+    # rotamer index. Full quenching must reach zero at every molten position.
+    assert torch.count_nonzero(assignments).item() == 0
+    expected = []
+    for pose, pose_counts in enumerate(counts):
+        energy = sum(
+            0.5 + pose + block * 0.0625 for block, n in enumerate(pose_counts) if n
+        )
+        energy += sum(
+            1.0 + pose + first * 0.25 + second * 0.125
+            for edge_pose, first, second in edges
+            if edge_pose == pose
+        )
+        expected.append(energy)
+    assert torch.equal(scores, scores.new_tensor(expected)[:, None].expand_as(scores))
