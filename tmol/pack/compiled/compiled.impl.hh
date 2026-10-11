@@ -690,8 +690,12 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   auto fill_bc_rot_offsets_per_pose = ([=] TMOL_DEVICE_FUNC(int index) {
     int const pose = index;
     int orig_first_rotamer_for_pose = rot_offset_for_pose[pose];
+    // Trailing empty poses start one past the original rotamer array.
+    // Their compacted offset is the total number of retained rotamers.
     int new_first_rotamer_for_pose =
-        old_to_new_rotamer_index[orig_first_rotamer_for_pose];
+        orig_first_rotamer_for_pose < n_rotamers
+            ? old_to_new_rotamer_index[orig_first_rotamer_for_pose]
+            : n_kept_rotamers;
     // This will be the right offset whether or not the first rotamer
     // in this pose has been bump-checked away
     bc_rot_offset_for_pose[pose] = new_first_rotamer_for_pose;

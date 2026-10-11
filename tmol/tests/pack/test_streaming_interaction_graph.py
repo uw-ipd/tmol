@@ -92,6 +92,35 @@ def score_entries(metadata, edges, *, duplicate=False):
     )
 
 
+@pytest.mark.parametrize(
+    "counts,expected_counts,expected_offsets",
+    [
+        ([[2, 3, 0], [0, 0, 0]], [5, 0], [0, 5]),
+        ([[0, 0, 0], [2, 3, 0]], [0, 5], [0, 0]),
+        ([[2, 3, 0], [0, 0, 0], [2, 0, 0]], [5, 0, 2], [0, 5, 5]),
+        ([[0, 0, 0], [0, 0, 0]], [0, 0], [0, 0]),
+        ([[2, 1, 0], [0, 0, 0]], [2, 0], [0, 2]),
+    ],
+    ids=["trailing", "leading", "interior", "all_empty", "retained_subset"],
+)
+def test_interaction_graph_empty_pose_offsets(
+    torch_device, counts, expected_counts, expected_offsets
+):
+    metadata = graph_metadata(counts, torch_device)
+    graph = build_interaction_graph(
+        False,
+        32,
+        1,
+        *metadata,
+        torch.empty((3, 0), dtype=torch.int32, device=torch_device),
+        torch.empty(0, dtype=torch.float32, device=torch_device),
+        False,
+    )
+    assert graph[0].item() == max(expected_counts)
+    assert graph[2].tolist() == expected_counts
+    assert graph[3].tolist() == expected_offsets
+
+
 def staged_graph(metadata, term_entries, chunk_size):
     device = metadata[0].device
     empty_indices = torch.empty((3, 0), dtype=torch.int32, device=device)
