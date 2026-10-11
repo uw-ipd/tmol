@@ -150,14 +150,20 @@ binary** against PyTorch 2.11 and 2.14 where CUDA availability permits. It also
 checks native scoring/gradients, actual pip resolution through staging indexes,
 source metadata, wheel contents, and RECORD hashes before publication. All
 three distributions go to PyPI without renaming wheels or adding local versions.
-Before tagging the first split release, configure PyPI publishing access for
-`tmol-ops-cu12` and `tmol-ops-cu13` as well as `tmol`.
+The existing `PYPI_API_TOKEN` repository secret must cover `tmol-ops-cu12` and
+`tmol-ops-cu13` as well as `tmol`. For the first upload, an account-scoped token
+can create both new projects; a token scoped only to `tmol` cannot. The workflow
+uploads both CUDA distributions before the base release, so missing project
+access stops publication before new base extras become visible. No separate
+package index or user-side build is needed. Publication remains gated on the
+complete wheel matrix and CPU/GPU installation checks.
 
-The Python/native boundary uses DLPack and Python autograd, including saved
-variable version checks. Native allocations, dispatch, streams, and generator
-access use the stable C API. Adding a new native operation must preserve that
-boundary. On PyTorch 2.14+, optional stable C interop functions avoid DLPack
-conversion overhead; older runtimes use direct DLPack views.
+Operators register directly with PyTorch's stable dispatcher. Python autograd
+owns differentiation and saved-variable version checks; saved tensors cross the
+boundary in batches. Native allocations, dispatch, streams, and generator access
+use the stable C API. PyTorch 2.14+ provides direct Python tensor interop; older
+runtimes exchange real tensor handles through a private stable operator. Neither
+path copies tensor storage. New native operations must preserve this boundary.
 `scripts/check_native_abi.py` catches accidental C++ ABI imports and unversioned
 Linux C++ runtime imports. Production uses C++17 to retain the manylinux floor.
 CUDA packing draws phase seeds through Torch's public dispatcher rather than

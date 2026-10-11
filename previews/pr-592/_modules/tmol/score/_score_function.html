@@ -598,7 +598,7 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_score_grad_in_thread</span><span class="p">(</span>
     <span class="n">scores</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-    <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">GradientEdge</span><span class="p">,</span>
     <span class="n">grad_scores</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">create_graph</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
@@ -651,7 +651,9 @@
             <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">term_modules</span>
         <span class="p">]</span>
         <span class="n">term_scores</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">futures</span><span class="p">)</span>
-        <span class="n">ctx</span><span class="o">.</span><span class="n">term_coords</span> <span class="o">=</span> <span class="n">term_coords</span>
+        <span class="c1"># A view's current gradient edge can change after its base is mutated.</span>
+        <span class="c1"># Keep the edge used by these term graphs without retaining the view.</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">term_edge</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">get_gradient_edge</span><span class="p">(</span><span class="n">term_coords</span><span class="p">)</span>
         <span class="n">ctx</span><span class="o">.</span><span class="n">term_scores</span> <span class="o">=</span> <span class="n">term_scores</span>
         <span class="n">ctx</span><span class="o">.</span><span class="n">term_sizes</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">scores</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">scores</span> <span class="ow">in</span> <span class="n">term_scores</span><span class="p">)</span>
         <span class="n">ctx</span><span class="o">.</span><span class="n">executor</span> <span class="o">=</span> <span class="n">executor</span>
@@ -675,7 +677,7 @@
             <span class="n">term_grad_inputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="p">(</span>
                     <span class="n">term_scores</span><span class="p">,</span>
-                    <span class="n">ctx</span><span class="o">.</span><span class="n">term_coords</span><span class="p">,</span>
+                    <span class="n">ctx</span><span class="o">.</span><span class="n">term_edge</span><span class="p">,</span>
                     <span class="n">grad_scores</span><span class="p">[</span><span class="n">offset</span> <span class="p">:</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">term_size</span><span class="p">],</span>
                     <span class="n">create_graph</span><span class="p">,</span>
                 <span class="p">)</span>
