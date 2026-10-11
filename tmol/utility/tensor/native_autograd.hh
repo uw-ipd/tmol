@@ -4,6 +4,7 @@
 namespace tmol::native::autograd {
 using tensor_list = std::vector<Tensor>;
 struct ScoreCapture {
+  ScoreCapture* previous = nullptr;
   tensor_list derivatives;
   std::vector<int64_t> offsets;
   int64_t offset = 0;

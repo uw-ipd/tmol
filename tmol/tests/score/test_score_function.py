@@ -2223,9 +2223,15 @@ def test_whole_pose_accumulation_preserves_term_hooks(
         pytest.skip("Requires stable native operators")
     term = next(t for t in scorer._execution_modules if t.classname == "CartBonded")
     coords = pose.coords.detach().clone().requires_grad_()
-    # Modifying either the term input or its output must retain the full graph.
+    nested = beta2016_score_function(torch_device).render_whole_pose_scoring_module(
+        pose
+    )
+    # Hooks may transform inputs/outputs and evaluate another rendered scorer.
     with term.register_forward_pre_hook(lambda module, args: (args[0] * 1.001,)):
-        with term.register_forward_hook(lambda module, args, output: output.square()):
+        with term.register_forward_hook(
+            lambda module, args, output: output.square()
+            + nested._score_with_gradients(args[0])
+        ):
             actual = scorer._score_with_gradients(coords)
             expected = (scorer.unweighted_scores(coords) * scorer.weights).sum(0)
             torch.testing.assert_close(actual, expected, atol=1e-3, rtol=1e-5)

@@ -217,14 +217,13 @@ PYBIND11_MODULE(_C, m) {
       .def(
           "__enter__",
           [](ScoreCapture& self) -> ScoreCapture& {
-            STD_TORCH_CHECK(
-                !tmol::native::autograd::score_capture, "Nested capture");
+            self.previous = tmol::native::autograd::score_capture;
             tmol::native::autograd::score_capture = &self;
             return self;
           },
           py::return_value_policy::reference_internal)
-      .def("__exit__", [](ScoreCapture&, py::args) {
-        tmol::native::autograd::score_capture = nullptr;
+      .def("__exit__", [](ScoreCapture& self, py::args) {
+        tmol::native::autograd::score_capture = self.previous;
       });
 #ifdef WITH_CUDA
   // The dispatcher imports the complete tensor list directly, including on
