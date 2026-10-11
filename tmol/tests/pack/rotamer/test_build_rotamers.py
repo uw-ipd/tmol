@@ -497,8 +497,9 @@ def test_inv_kin_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
 
 
 @pytest.mark.parametrize("indices", [[], [2, 1, 0, 1, 2]])
+@pytest.mark.parametrize("terminal_offset", [False, True])
 def test_conformer_kinforest_ragged_layout(
-    default_database, fresh_default_restype_set, torch_device, indices
+    default_database, fresh_default_restype_set, torch_device, indices, terminal_offset
 ):
     """Compact fields retain residue ordering, atom gaps and independent roots."""
     restypes = [
@@ -513,6 +514,10 @@ def test_conformer_kinforest_ragged_layout(
     annotate_everything(default_database.chemical, (FixedAAChiSampler(),), pbt)
     counts = numpy.array([restypes[i].n_atoms for i in indices], dtype=numpy.int32)
     offsets = numpy.arange(len(indices), dtype=numpy.int64) * (pbt.max_n_atoms + 7)
+    if terminal_offset:
+        # Prefix-sum layouts may include a final end offset after all starts.
+        # The public constructor historically ignores this unused entry.
+        offsets = numpy.append(offsets, len(indices) * (pbt.max_n_atoms + 7))
     forest = construct_kinforest_for_conformers(
         pbt,
         numpy.array(indices, dtype=numpy.int32),

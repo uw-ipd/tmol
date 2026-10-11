@@ -467,7 +467,9 @@ def construct_kinforest_for_conformers(
     for i, name in enumerate(fields):
         compact[i, 1:] = getattr(pbt.rotamer_kinforest, name).reshape(-1)[source]
         if name == "id":
-            compact[i, 1:] += numpy.repeat(block_offset_for_conf, n_atoms_for_conf)
+            compact[i, 1:] += numpy.repeat(
+                block_offset_for_conf[: n_atoms_for_conf.shape[0]], n_atoms_for_conf
+            )
         elif name != "doftype":
             compact[i, 1:] += offsets
     compact[0, 0] = -1
