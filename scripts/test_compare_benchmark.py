@@ -82,10 +82,15 @@ def test_tree_digest_includes_untracked_executable_mode(repository, tmp_path):
 
 
 @pytest.mark.parametrize(
-    "failure", [subprocess.CalledProcessError(7, "build"), KeyboardInterrupt()]
+    "stage,failure",
+    [
+        ("building", subprocess.CalledProcessError(7, "build")),
+        ("building", KeyboardInterrupt()),
+        ("benchmarking", subprocess.CalledProcessError(3, "pytest")),
+    ],
 )
-def test_failed_build_retains_logs_manifest_and_caller_tree(
-    repository, tmp_path, monkeypatch, failure
+def test_failure_retains_logs_manifest_and_caller_tree(
+    repository, tmp_path, monkeypatch, stage, failure
 ):
     out = tmp_path / "results"
     out.mkdir()
@@ -94,15 +99,17 @@ def test_failed_build_retains_logs_manifest_and_caller_tree(
     monkeypatch.setattr(compare, "environment", lambda path: (Path(sys.executable), {}))
 
     def fail(command, *, cwd, env, log):
-        log.write_text("diagnostic output")
-        raise failure
+        if stage == "building" or "--benchmark-only" in command:
+            log.write_text("diagnostic output")
+            raise failure
 
     monkeypatch.setattr(compare, "run", fail)
     with pytest.raises(type(failure)):
         compare.compare(repository, [], ["TREE", "HEAD"], out)
     assert (out / "0.log").read_text() == "diagnostic output"
     manifest = json.loads((out / "manifest.json").read_text())
-    assert manifest["runs"][0]["status"] == "building"
+    assert manifest["runs"][0]["status"] == stage
+    assert not (out / "comparison.txt").exists()
     assert all(not Path(run["source"]).exists() for run in manifest["runs"])
     assert compare.git(repository, "status", "--porcelain=v1", "-z") == before
     assert (repository / "tracked.txt").read_text() == "local edit"
@@ -238,26 +245,6 @@ def test_environment_shares_dependencies_without_parent_editable_hooks(
         env=env,
         check=True,
     )
-
-
-def test_failed_benchmark_stops_before_comparison(repository, tmp_path, monkeypatch):
-    output = tmp_path / "results"
-    output.mkdir()
-    calls = []
-    monkeypatch.setattr(compare, "environment", lambda path: (Path(sys.executable), {}))
-
-    def run(command, *, cwd, env, log):
-        calls.append(command)
-        if "--benchmark-only" in command:
-            raise subprocess.CalledProcessError(3, command)
-
-    monkeypatch.setattr(compare, "run", run)
-    with pytest.raises(subprocess.CalledProcessError):
-        compare.compare(repository, [], ["TREE", "HEAD"], output)
-    assert len([cmd for cmd in calls if "--benchmark-only" in cmd]) == 1
-    manifest = json.loads((output / "manifest.json").read_text())
-    assert manifest["runs"][0]["status"] == "benchmarking"
-    assert not (output / "comparison.txt").exists()
 
 
 @pytest.mark.parametrize("contents", [None, '{"benchmarks": []}'])
