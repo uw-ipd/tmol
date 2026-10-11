@@ -402,13 +402,53 @@ def test_streaming_graph_on_cuda_bounds_memory_by_one_layout():
 
 
 @requires_cuda
+def test_cuda_annealer_reuses_order_workspace():
+    """The two sequential quench order tables must not coexist in memory."""
+    device = torch.device("cuda")
+    counts = [[2, 2], [0, 0]]
+    metadata = graph_metadata(counts, device)
+    indices, values = score_entries(metadata, [])
+    graph = staged_graph(metadata, [(indices, values)], chunk_size=32)
+    inputs = list(annealer_inputs(graph, 32))
+
+    # A loose capacity bound exposes scratch allocation without running tens
+    # of thousands of rotamer proposals: annealing work uses per-pose counts.
+    max_rotamers = 32768
+    inputs[0] = max_rotamers
+    pack_anneal(*inputs)
+    torch.cuda.synchronize()
+    torch.cuda.reset_peak_memory_stats()
+    allocated_before = torch.cuda.memory_allocated()
+    scores, assignments = pack_anneal(*inputs)
+    torch.cuda.synchronize()
+    peak_delta = torch.cuda.max_memory_allocated() - allocated_before
+
+    full_order_bytes = len(counts) * 312 * max_rotamers * 4
+    lite_order_bytes = len(counts) * 1250 * ((max_rotamers - 1) // 31 + 2) * 4
+    # Leave ample space for the small assignment tables and segmented sorts,
+    # but not a second order table (over 10 MiB for this input).
+    assert peak_delta < full_order_bytes + lite_order_bytes // 2
+    assert torch.count_nonzero(assignments).item() == 0
+    assert torch.isfinite(scores).all()
+
+
+@requires_cuda
 @pytest.mark.parametrize("chunk_size", [7, 16, 32])
-def test_cuda_annealer_sparse_transposes_have_exact_minimum(chunk_size):
+@pytest.mark.parametrize(
+    "counts,edges",
+    [
+        (
+            [[35, 17, 3, 2], [2, 33, 5, 0]],
+            [(0, 0, 1), (0, 0, 3), (0, 1, 3), (0, 2, 3), (1, 0, 2), (1, 1, 2)],
+        ),
+        ([[2] * 8, [0] * 8], [(0, 0, 7), (0, 3, 5)]),
+    ],
+    ids=["full_order_larger", "lite_order_larger"],
+)
+def test_cuda_annealer_sparse_transposes_have_exact_minimum(chunk_size, counts, edges):
     # Unequal rotamer counts, row degrees and pose lengths exercise transposed
     # chunk offsets, including partial chunks and padded rows.
     device = torch.device("cuda")
-    counts = [[35, 17, 3, 2], [2, 33, 5, 0]]
-    edges = [(0, 0, 1), (0, 0, 3), (0, 1, 3), (0, 2, 3), (1, 0, 2), (1, 1, 2)]
     metadata = graph_metadata(counts, device)
     indices, values = score_entries(metadata, edges)
     graph = staged_graph(metadata, [(indices, values)], chunk_size)
