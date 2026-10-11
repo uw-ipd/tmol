@@ -635,7 +635,15 @@ owns differentiation and saved-variable version checks; saved tensors cross the
 boundary in batches. Native allocations, dispatch, streams, and generator access
 use the stable C API. PyTorch 2.14+ provides direct Python tensor interop; older
 runtimes exchange real tensor handles through a private stable operator. Neither
-path copies tensor storage. New native operations must preserve this boundary.
+path copies tensor storage. Whole-pose scoring groups eligible precomputed
+coordinate derivatives into one autograd context and CUDA reduction. This path
+checks that static tensors are frozen before skipping per-term gradient queries;
+Python wrappers, hooks, trainable parameters, and weighted/parallel execution
+retain their ordinary differentiation paths. The engine schedules remaining
+term graphs directly, without a nested backward call. Saved derivatives stay
+under PyTorch’s saved-variable ownership; CUDA reduction receives the entire
+tensor list through one native dispatcher call on every supported runtime.
+New native operations must preserve this boundary.
 <code class="docutils literal notranslate"><span class="pre">scripts/check_native_abi.py</span></code> catches accidental C++ ABI imports and unversioned
 Linux C++ runtime imports. Production uses C++17 to retain the manylinux floor.
 CUDA packing draws phase seeds through Torch’s public dispatcher rather than
