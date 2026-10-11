@@ -1,5 +1,6 @@
 """Benchmark failures and revision isolation must preserve developers' work."""
 
+from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
@@ -69,6 +70,17 @@ def test_invalid_revision_does_not_change_checkout(repository, tmp_path):
     assert compare.git(repository, "status", "--porcelain=v1", "-z") == before
 
 
+def test_tree_digest_includes_untracked_executable_mode(repository, tmp_path):
+    script = repository / "untracked.sh"
+    script.write_text("#!/bin/sh\nexit 0\n")
+    script.chmod(0o644)
+    first = compare.snapshot(repository, "TREE", tmp_path / "first")
+    script.chmod(0o755)
+    second = compare.snapshot(repository, "TREE", tmp_path / "second")
+    assert first["tree_sha256"] != second["tree_sha256"]
+    assert (tmp_path / "second/untracked.sh").stat().st_mode & 0o111
+
+
 @pytest.mark.parametrize(
     "failure", [subprocess.CalledProcessError(7, "build"), KeyboardInterrupt()]
 )
@@ -102,6 +114,20 @@ def test_comparison_uses_each_revisions_environment_and_build(
     out = tmp_path / "results"
     out.mkdir()
     calls = []
+    temporary_directory = compare.tempfile.TemporaryDirectory
+    resolved_roots = []
+
+    @contextmanager
+    def aliased_temporary_directory(**kwargs):
+        with temporary_directory(dir=tmp_path, **kwargs) as directory:
+            resolved_roots.append(Path(directory).resolve())
+            alias = tmp_path / "aliased-build-directory"
+            alias.symlink_to(directory, target_is_directory=True)
+            yield str(alias)
+
+    monkeypatch.setattr(
+        compare.tempfile, "TemporaryDirectory", aliased_temporary_directory
+    )
 
     def environment(path):
         return path / "bin/python", {"TORCH_EXTENSIONS_DIR": str(path / "jit")}
@@ -109,6 +135,11 @@ def test_comparison_uses_each_revisions_environment_and_build(
     def run(command, *, cwd, env, log):
         calls.append((command, cwd, env))
         log.write_text("success")
+        for arg in command:
+            if arg.startswith("--benchmark-json="):
+                Path(arg.split("=", 1)[1]).write_text(
+                    '{"benchmarks": [{"name": "example"}]}'
+                )
 
     monkeypatch.setattr(compare, "environment", environment)
     monkeypatch.setattr(compare, "run", run)
@@ -122,6 +153,7 @@ def test_comparison_uses_each_revisions_environment_and_build(
     assert len(builds) == len(benchmarks) == 2
     assert builds[0][0][0] != builds[1][0][0]
     assert builds[0][1] != builds[1][1]
+    assert all(cwd.is_relative_to(resolved_roots[0]) for _, cwd, _ in builds)
     assert builds[0][2]["TORCH_EXTENSIONS_DIR"] != builds[1][2]["TORCH_EXTENSIONS_DIR"]
     for build, benchmark in zip(builds, benchmarks):
         assert build[0][0] == benchmark[0][0]
@@ -225,4 +257,25 @@ def test_failed_benchmark_stops_before_comparison(repository, tmp_path, monkeypa
     assert len([cmd for cmd in calls if "--benchmark-only" in cmd]) == 1
     manifest = json.loads((output / "manifest.json").read_text())
     assert manifest["runs"][0]["status"] == "benchmarking"
+    assert not (output / "comparison.txt").exists()
+
+
+@pytest.mark.parametrize("contents", [None, '{"benchmarks": []}'])
+def test_empty_benchmark_results_are_not_success(
+    repository, tmp_path, monkeypatch, contents
+):
+    output = tmp_path / "results"
+    output.mkdir()
+    monkeypatch.setattr(compare, "environment", lambda path: (Path(sys.executable), {}))
+
+    def run(command, **kwargs):
+        for arg in command:
+            if arg.startswith("--benchmark-json=") and contents is not None:
+                Path(arg.split("=", 1)[1]).write_text(contents)
+
+    monkeypatch.setattr(compare, "run", run)
+    with pytest.raises(ValueError, match="No benchmark samples"):
+        compare.compare(repository, [], ["TREE", "HEAD"], output)
+    manifest = json.loads((output / "manifest.json").read_text())
+    assert "No benchmark samples" in manifest["failure"]
     assert not (output / "comparison.txt").exists()

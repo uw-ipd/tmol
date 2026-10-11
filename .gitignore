@@ -139,6 +139,7 @@ cmake_install.cmake
 build.ninja
 .ninja_deps
 .ninja_log
+.ninja_lock
 .cmake/
 .skbuild-info.json
 detect_cuda_version.cc

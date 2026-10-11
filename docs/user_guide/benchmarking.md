@@ -55,9 +55,9 @@ dev/bin/compare_benchmark --benchmark-outdir /tmp/tmol-comparison \
   tmol/tests/score -k cuda-full-lk_ball -- TREE HEAD
 ```
 
-Build and test failures stop the comparison with a nonzero exit status. The
-manifest records commit IDs and a digest of `TREE` edits; logs include the
-installed dependencies and PyTorch build configuration. Keep input, dtype,
+Build and test failures, including runs with no recorded benchmark samples,
+stop the comparison with a nonzero exit status. The manifest records commit IDs
+and a digest of `TREE` edits; logs include the installed dependencies and PyTorch build configuration. Keep input, dtype,
 thread counts, device, and benchmark settings fixed between revisions. CUDA
 benchmarks must warm up and synchronize timed work. These rebuilds can take
 substantial time; use the ordinary benchmark wrapper for repeated runs of an

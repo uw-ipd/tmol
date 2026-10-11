@@ -82,7 +82,10 @@ def snapshot(root, revision, destination):
             contents = (
                 os.fsencode(os.readlink(src)) if src.is_symlink() else src.read_bytes()
             )
-            digest.update(raw_name + b"\0" + contents)
+            digest.update(len(raw_name).to_bytes(8, "big"))
+            digest.update(raw_name)
+            digest.update(src.lstat().st_mode.to_bytes(4, "big"))
+            digest.update(hashlib.sha256(contents).digest())
         tree_digest = digest.hexdigest()
     return {"revision": revision, "commit": commit, "tree_sha256": tree_digest}
 
@@ -130,7 +133,7 @@ def compare(root, pytest_args, revisions, outdir):
     manifest_path = outdir / "manifest.json"
     try:
         with tempfile.TemporaryDirectory(prefix="tmol-benchmark-build-") as scratch:
-            scratch = Path(scratch)
+            scratch = Path(scratch).resolve()
             # Snapshot every revision before builds/tests can create any files.
             for index, revision in enumerate(revisions):
                 source = scratch / f"source-{index}"
@@ -209,6 +212,10 @@ def compare(root, pytest_args, revisions, outdir):
                     env=env,
                     log=log,
                 )
+                if not result.is_file() or not json.loads(result.read_text()).get(
+                    "benchmarks"
+                ):
+                    raise ValueError(f"No benchmark samples were recorded in {result}")
                 record["status"] = "complete"
                 results.append(str(result))
             run(
@@ -240,11 +247,16 @@ def main(argv=None):
         outdir = options.benchmark_outdir.resolve()
         outdir.mkdir(parents=True, exist_ok=False)
     else:
-        outdir = Path(tempfile.mkdtemp(prefix="tmol-benchmark-results-"))
+        outdir = Path(tempfile.mkdtemp(prefix="tmol-benchmark-results-")).resolve()
     print(f"Benchmark results (retained on failure): {outdir}", flush=True)
     try:
         compare(root, pytest_args, revisions, outdir)
-    except (subprocess.CalledProcessError, KeyboardInterrupt) as exc:
+    except (
+        subprocess.CalledProcessError,
+        OSError,
+        ValueError,
+        KeyboardInterrupt,
+    ) as exc:
         print(f"Benchmark comparison failed: {exc}\nSee {outdir}", file=sys.stderr)
         return 1
     return 0
