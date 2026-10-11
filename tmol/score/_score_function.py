@@ -15,6 +15,7 @@ from tmol.database import ParameterDatabase
 from tmol.database._yaml import safe_load
 from tmol.score import ScoreType
 from tmol.score.common import ZeroTermPoseScoringModule, TermWholePoseScoringModule
+from tmol.score.hbond import HBondEnergyTerm
 from tmol.utility._device import resolve_device
 
 # force registration of the terms with the ScoreTermFactory
@@ -919,9 +920,11 @@ def _whole_pose_execution_modules(term_modules, device):
     return tuple(grouped)
 
 
-def _score_module_has_hooks(module):
+def _score_module_has_custom_call(module):
     return bool(
-        module._forward_pre_hooks
+        module._compiled_call_impl is not None
+        or "forward" in module.__dict__
+        or module._forward_pre_hooks
         or module._forward_hooks
         or module._backward_pre_hooks
         or module._backward_hooks
@@ -940,16 +943,21 @@ def _global_score_hooks():
 
 
 def _can_capture_score_term(term):
-    # Python wrappers and hooks may transform native energies. Preserve their
+    # Custom wrappers and hooks may transform native energies. Preserve their
     # complete autograd graph instead of assuming its derivative is unchanged.
-    return (
-        not _score_module_has_hooks(term)
-        and "forward" not in term.__dict__
-        and (
-            type(term) is _FusedLJLKAndElecWholePoseModule
-            or (
-                type(term) is TermWholePoseScoringModule
-                and isinstance(term.term_score_poses, torch._ops.OpOverloadPacket)
+    return not _score_module_has_custom_call(term) and (
+        type(term) is _FusedLJLKAndElecWholePoseModule
+        or (
+            type(term) is TermWholePoseScoringModule
+            and (
+                isinstance(term.term_score_poses, torch._ops.OpOverloadPacket)
+                # HBond's prepass runs without autograd; the native score
+                # already includes its coordinate derivatives.
+                or (
+                    getattr(term.term_score_poses, "__func__", None)
+                    is HBondEnergyTerm.pose_score_hbond
+                    and type(term.term_score_poses.__self__) is HBondEnergyTerm
+                )
             )
         )
     )
@@ -1012,11 +1020,6 @@ class WholePoseScoringModule:
         )
         self._capture_score_terms = (
             sum(_can_capture_score_term(t) for t in self._execution_modules) >= 2
-        )
-        self._active_term_indices = tuple(
-            index
-            for index, term in enumerate(self._execution_modules)
-            if not isinstance(term, ZeroTermPoseScoringModule)
         )
         self._has_trainable_term_parameters = any(
             parameter.requires_grad
@@ -1093,8 +1096,16 @@ class WholePoseScoringModule:
         offset = 0
         with self._native_score_capture() as capture:
             for term in terms:
-                capture.select_term(offset, _can_capture_score_term(term))
-                score = self._call_term(term, coords, neighbors, flat_coords=flat)
+                if type(
+                    term
+                ) is ZeroTermPoseScoringModule and not _score_module_has_custom_call(
+                    term
+                ):
+                    # The scorer already owns the coordinate edge for constant terms.
+                    score = term.forward(coords.detach())
+                else:
+                    capture.select_term(offset, _can_capture_score_term(term))
+                    score = self._call_term(term, coords, neighbors, flat_coords=flat)
                 scores.append(score)
                 offset += score.shape[0]
         total = torch.cat(scores).mul_(self.weights).sum(0)
@@ -1115,8 +1126,7 @@ class WholePoseScoringModule:
             flat_coords is not None
             and type(term)
             in (TermWholePoseScoringModule, _FusedLJLKAndElecWholePoseModule)
-            and not _score_module_has_hooks(term)
-            and "forward" not in term.__dict__
+            and not _score_module_has_custom_call(term)
         ):
             if fused_score_weights is not None:
                 return term.forward_weighted(
@@ -1125,7 +1135,7 @@ class WholePoseScoringModule:
                     fused_score_weights,
                     flat_coords=flat_coords,
                 )
-            return term(coords, shared_block_neighbors, flat_coords=flat_coords)
+            return term.forward(coords, shared_block_neighbors, flat_coords=flat_coords)
         if fused_score_weights is not None:
             return term.forward_weighted(
                 coords, shared_block_neighbors, fused_score_weights

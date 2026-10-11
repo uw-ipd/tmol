@@ -2211,8 +2211,9 @@ def test_whole_pose_gradient_accumulation(ubq_pdb, torch_device, layout):
         torch.testing.assert_close(ordinary, ge, atol=1e-3, rtol=1e-4)
 
 
+@pytest.mark.parametrize("term_name", ["CartBonded", "HBond", "Disulfide"])
 def test_whole_pose_accumulation_preserves_term_hooks(
-    ubq_pdb, torch_device, monkeypatch
+    ubq_pdb, torch_device, monkeypatch, term_name
 ):
     monkeypatch.setattr(torch, "get_num_threads", lambda: 1)
     pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
@@ -2221,7 +2222,7 @@ def test_whole_pose_accumulation_preserves_term_hooks(
     )
     if scorer._native_score_capture is None:
         pytest.skip("Requires stable native operators")
-    term = next(t for t in scorer._execution_modules if t.classname == "CartBonded")
+    term = next(t for t in scorer._execution_modules if t.classname == term_name)
     coords = pose.coords.detach().clone().requires_grad_()
     nested = beta2016_score_function(torch_device).render_whole_pose_scoring_module(
         pose
