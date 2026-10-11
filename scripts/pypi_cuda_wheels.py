@@ -65,13 +65,13 @@ def pypi_gpu_wheel(source: Path, destination: Path) -> Path:
                         )
                 if info.filename == old_prefix + ".dist-info/METADATA":
                     data = re.sub(
-                        rb"(?m)^Name: tmol$",
+                        rb"(?m)^Name: tmol(?=\r?$)",
                         b"Name: tmol-cu130-torch213",
                         data,
                         count=1,
                     )
                     data = re.sub(
-                        rb"(?m)^Version: [^\r\n]+$",
+                        rb"(?m)^Version: [^\r\n]+(?=\r?$)",
                         f"Version: {version.public}".encode(),
                         data,
                         count=1,

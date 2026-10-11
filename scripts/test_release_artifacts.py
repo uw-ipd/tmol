@@ -27,6 +27,7 @@ def wheel(
     torch="==2.14.*",
     name="tmol",
     tag="py3-none-any",
+    newline="\n",
 ):
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / f"{name}-{version}-{tag}.whl"
@@ -41,7 +42,9 @@ def wheel(
             f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n"
             + (f"Requires-Dist: torch{torch}\n" if name == "tmol" else "")
             + "\nFixture\n"
-        ).encode(),
+        )
+        .replace("\n", newline)
+        .encode(),
         f"{info}/WHEEL": f"Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: {tag}\n".encode(),
     }
     rows = [
@@ -264,12 +267,14 @@ def test_validates_cuda_identity_and_metadata_before_publication(tmp_path):
         validate_wheel(valid)
 
 
-def test_pypi_cuda_wheel_keeps_native_bytes_and_torch_pin(tmp_path):
+@pytest.mark.parametrize("newline", ["\n", "\r\n"])
+def test_pypi_cuda_wheel_keeps_native_bytes_and_torch_pin(tmp_path, newline):
     source = wheel(
         tmp_path / "source",
         "9.9.9+cu130torch2.13",
         "==2.13.*",
         tag="cp312-cp312-manylinux_2_28_x86_64",
+        newline=newline,
     )
     published = pypi_gpu_wheel(source, tmp_path / "out")
     with (
