@@ -23,3 +23,12 @@ def test_flatten():
         assert dict(flat_items(ex)) == flat_ex
         assert unflatten(flat_ex) == ex
         assert unflatten(flat_ex.items()) == ex
+
+
+def test_values_are_a_live_view():
+    from tmol.utility._dicttoolz import vals
+
+    mapping = {"first": 1}
+    view = vals(mapping)
+    mapping["second"] = 2
+    assert list(view) == [1, 2]

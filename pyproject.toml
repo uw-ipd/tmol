@@ -50,15 +50,12 @@ dependencies = [
     "typing_extensions>=4.0,<5",
     "typing_inspect>=0.9",
     "pint>=0.23,<1",
-    "psutil>=5.9",
     "requests>=2.33,<3",
     # Sparse arrays (requires SPARSE_AUTO_DENSIFY=1 for sparse>0.3.1)
     "sparse>=0.13",
     # numba/llvmlite
     "numba>=0.56",
     "llvmlite>=0.39",
-    # Testing (hypothesis is used at runtime for property-based data generation)
-    "hypothesis>=5.35",
     # AST manipulation for runtime call-argument validation
     "astor>=0.8",
     # Structure I/O
@@ -79,6 +76,8 @@ dev = [
     "pre-commit>=4.0",
     "clang-format==23.1.2",
     # Testing
+    "hypothesis>=5.35",
+    "psutil>=5.9",
     "build>=1.2",  # Build real sdists in the packaging regression tests.
     "pytest>=8.0",
     "pytest-cov>=4.1",

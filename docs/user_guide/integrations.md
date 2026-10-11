@@ -48,7 +48,7 @@ Tensor shape alone does not identify an encoding.
 
 For atom14 or another named layout, map the predictor's token IDs and atom
 names into `CanonicalForm`, then call `pose_stack_from_canonical_form()`. The
-{download}`executable model-input tutorial <../../notebooks/example_02_model_inputs.ipynb>`
+{download}`executable model-input tutorial <../model_input_example.ipynb>`
 implements OpenFold and RoseTTAFold2 examples using this shared contract. It
 shows final-recycle selection, explicit masks, batched scoring and gradients,
 and both preservation and rebuilding of RF2's supplied hydrogen slots. Those

@@ -1,9 +1,14 @@
 Model coordinate inputs
 =======================
 
-Run `Model inputs <https://colab.research.google.com/github/uw-ipd/tmol/blob/ae1d35c6ecd243bdeba84d83ee3ce49e7254de81/notebooks/example_02_model_inputs.ipynb>`_
-in Colab or open ``notebooks/example_02_model_inputs.ipynb`` locally for editable
+Run `Model inputs <https://colab.research.google.com/github/uw-ipd/tmol/blob/master/docs/model_input_example.ipynb>`_
+in Colab or open ``docs/model_input_example.ipynb`` locally for editable
 adapters, saved predictions, and gradient checks.
+
+.. toctree::
+   :maxdepth: 1
+
+   model_input_example
 
 Map model coordinates to named residues and atoms, then build TMol canonical
 tensors. Keep model-specific keys and layouts in your application: TMol provides

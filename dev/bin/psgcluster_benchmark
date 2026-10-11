@@ -1,3 +1,0 @@
-#!/bin/bash
-
-srun -p hsw_v100_16g -N 1 dev/bin/benchmark "$@"

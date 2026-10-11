@@ -3,4 +3,4 @@
 
 set -euo pipefail
 IFS=$'\n\t'
-exec "${BASH_SOURCE[0]}".ipy "${@}"
+exec python3 "$(dirname "${BASH_SOURCE[0]}")/../../scripts/compare_benchmark.py" "$@"

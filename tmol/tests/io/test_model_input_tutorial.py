@@ -15,7 +15,7 @@ def test_model_specific_constructors_are_not_public():
 
 def test_model_input_notebook(torch_device, monkeypatch):
     root = Path(__file__).parents[3]
-    path = root / "notebooks/example_02_model_inputs.ipynb"
+    path = root / "docs/model_input_example.ipynb"
     notebook = json.loads(path.read_text())
     monkeypatch.setenv("TMOL_EXAMPLE_SOURCE", str(root))
     monkeypatch.setenv("TMOL_EXAMPLE_DEVICE", str(torch_device))
