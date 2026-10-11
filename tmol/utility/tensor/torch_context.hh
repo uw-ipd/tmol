@@ -1,9 +1,7 @@
+#include <tmol/utility/tensor/native_cuda.hh>
 #pragma once
 
 #include <moderngpu/context.hxx>
-#include <c10/cuda/CUDAStream.h>
-#include <c10/cuda/CUDAGuard.h>
-#include <c10/cuda/CUDACachingAllocator.h>
 #include <tmol/utility/tensor/context_manager.hh>
 
 #include <memory>
@@ -15,7 +13,7 @@ namespace tmol {
 // Host-pinned allocations retain ModernGPU's allocator.
 class TorchCudaContext : public mgpu::standard_context_t {
  public:
-  TorchCudaContext(cudaStream_t stream, c10::DeviceIndex device)
+  TorchCudaContext(cudaStream_t stream, int device)
       : mgpu::standard_context_t(false, stream), device_(device) {}
 
   void* alloc(size_t size, mgpu::memory_space_t space) override {
@@ -23,21 +21,29 @@ class TorchCudaContext : public mgpu::standard_context_t {
       return mgpu::standard_context_t::alloc(size, space);
     }
     if (size == 0) return nullptr;
-    c10::cuda::CUDAGuard guard(device_);
-    return c10::cuda::CUDACachingAllocator::raw_alloc_with_stream(
-        size, stream());
+    native::CUDAGuard guard(device_);
+    CUDAStreamGuardHandle stream_guard;
+    STABLE_TORCH_ERROR_CODE_CHECK(
+        aoti_torch_create_cuda_stream_guard(stream(), device_, &stream_guard));
+    void* pointer;
+    auto status = aoti_torch_cuda_caching_allocator_raw_alloc(size, &pointer);
+    STABLE_TORCH_ERROR_CODE_CHECK(
+        aoti_torch_delete_cuda_stream_guard(stream_guard));
+    STABLE_TORCH_ERROR_CODE_CHECK(status);
+    return pointer;
   }
 
   void free(void* pointer, mgpu::memory_space_t space) override {
     if (space != mgpu::memory_space_device) {
       mgpu::standard_context_t::free(pointer, space);
     } else if (pointer != nullptr) {
-      c10::cuda::CUDACachingAllocator::raw_delete(pointer);
+      STABLE_TORCH_ERROR_CODE_CHECK(
+          aoti_torch_cuda_caching_allocator_raw_delete(pointer));
     }
   }
 
  private:
-  c10::DeviceIndex device_;
+  int device_;
 };
 
 // Get a pointer to an mgpu::standard_context_t that uses the
@@ -45,10 +51,10 @@ class TorchCudaContext : public mgpu::standard_context_t {
 // decide which stream to launch a function within.
 inline std::shared_ptr<mgpu::standard_context_t> current_context(
     ContextManager& mgr) {
-  c10::cuda::CUDAStream c10_stream = c10::cuda::getCurrentCUDAStream();
-  cudaStream_t cuda_stream(c10_stream);
+  auto cuda_stream = native::current_cuda_stream();
   void* cuda_stream_address = static_cast<void*>(cuda_stream);
-  int device_index = c10_stream.device_index();
+  int device_index;
+  native::cuda_check(cudaGetDevice(&device_index));
   std::pair<int, void*> device_index_and_stream_address(
       std::make_pair(device_index, cuda_stream_address));
 

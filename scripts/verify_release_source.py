@@ -106,7 +106,12 @@ def main():
     if tag != f"v{version}":
         raise ValueError("Tag and tagged project version differ")
     if manual:
-        for path in ("pyproject.toml", "scripts/release_matrix.py"):
+        for path in (
+            "pyproject.toml",
+            "packages/cu12/pyproject.toml",
+            "packages/cu13/pyproject.toml",
+            "scripts/release_matrix.py",
+        ):
             if (
                 command("git", "show", f"{sha}:{path}")
                 != Path(path).read_text().strip()

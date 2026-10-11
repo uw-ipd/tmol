@@ -1,3 +1,4 @@
+#include <tmol/utility/tensor/native.hh>
 #pragma once
 
 #include <string>
@@ -23,10 +24,10 @@ auto view_tensor_item(TMap& input_map, TKey key) -> tmol::TView<T, N, D, P> {
 
   try {
     return view_tensor<T, N, D, P>(key_t->second, key);
-  } catch (at::Error err) {
+  } catch (tmol::native::Error err) {
     AT_ERROR(
         "Error viewing tensor map key '" + (std::string)key + "': \n"
-        + err.what_without_backtrace());
+        + err.what());
   }
 }
 

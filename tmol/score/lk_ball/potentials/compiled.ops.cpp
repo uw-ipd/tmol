@@ -1,5 +1,4 @@
-#include <torch/torch.h>
-#include <torch/script.h>
+#include <tmol/utility/tensor/native_library.hh>
 
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/tensor/context_manager.hh>
@@ -17,12 +16,12 @@ namespace potentials {
 
 ContextManager mgr;
 
-using torch::Tensor;
-using torch::autograd::AutogradContext;
-using torch::autograd::Function;
-using torch::autograd::tensor_list;
+using tmol::native::Tensor;
+using tmol::native::autograd::AutogradContext;
+using tmol::native::autograd::Function;
+using tmol::native::autograd::tensor_list;
 
-class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
+class PoseWaterGen : public tmol::native::autograd::Function<PoseWaterGen> {
  public:
   static Tensor forward(
       AutogradContext* ctx,
@@ -67,7 +66,7 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
       Tensor sp2_water_tors,
       Tensor sp3_water_tors,
       Tensor ring_water_tors) {
-    at::Tensor waters;
+    tmol::native::Tensor waters;
 
     using Int = int32_t;
 
@@ -216,7 +215,7 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
     auto sp3_water_tors = saved[i++];
     auto ring_water_tors = saved[i++];
 
-    at::Tensor dT_d_pose_coords;
+    tmol::native::Tensor dT_d_pose_coords;
 
     using Int = int32_t;
 
@@ -269,20 +268,22 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
           dT_d_pose_coords = result.tensor;
         }));
 
-    return {dT_d_pose_coords, torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(),
+    return {
+        dT_d_pose_coords,       tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
 
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
 
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
 
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor()};
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor()};
   };
 };
 
@@ -367,7 +368,8 @@ Tensor pose_watergen_op(
       ring_water_tors);
 };
 
-class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
+class LKBallPoseScoreOp
+    : public tmol::native::autograd::Function<LKBallPoseScoreOp> {
  public:
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
@@ -406,8 +408,8 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
       bool output_block_pair_energies,
       Tensor shared_compact_block_neighbors,
       bool allow_split_backward) {
-    at::Tensor score;
-    at::Tensor block_neighbors;
+    tmol::native::Tensor score;
+    tmol::native::Tensor block_neighbors;
 
     using Int = int32_t;
 
@@ -461,7 +463,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
         }));
 
     if (!output_block_pair_energies) {
-      score = score.squeeze(-1).squeeze(-1);
+      score = score.reshape({score.size(0), score.size(1)});
     }
 
     auto max_n_rots_per_pose_tp =
@@ -555,7 +557,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
     auto block_neighbors = saved[i++];
     auto compact_block_neighbors = saved[i++];
 
-    at::Tensor dV_d_pose_coords, dV_d_water_coords;
+    tmol::native::Tensor dV_d_pose_coords, dV_d_water_coords;
     using Int = int32_t;
 
     auto dTdV = grad_outputs[0];
@@ -623,7 +625,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
 };
 
 class LKBallRotamerScoreOp
-    : public torch::autograd::Function<LKBallRotamerScoreOp> {
+    : public tmol::native::autograd::Function<LKBallRotamerScoreOp> {
  public:
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
@@ -662,8 +664,8 @@ class LKBallRotamerScoreOp
       Tensor water_coords,
       bool output_block_pair_energies,
       Tensor shared_dispatch_indices) {
-    at::Tensor score;
-    at::Tensor dispatch_indices;
+    tmol::native::Tensor score;
+    tmol::native::Tensor dispatch_indices;
 
     using Int = int32_t;
 
@@ -792,7 +794,7 @@ class LKBallRotamerScoreOp
     auto water_coords = saved[i++];
     auto dispatch_indices = saved[i++];
 
-    at::Tensor dV_d_pose_coords, dV_d_water_coords;
+    tmol::native::Tensor dV_d_pose_coords, dV_d_water_coords;
     using Int = int32_t;
 
     auto dTdV = grad_outputs[0];
@@ -848,14 +850,16 @@ class LKBallRotamerScoreOp
     return {
         // one entry per forward() parameter; the new
         // lockstep_group_for_block sits at index 12
-        dV_d_pose_coords, torch::Tensor(), torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-        torch::Tensor(),  torch::Tensor(), torch::Tensor(), dV_d_water_coords,
-        torch::Tensor(),  torch::Tensor()};
+        dV_d_pose_coords,       tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        tmol::native::Tensor(), tmol::native::Tensor(), tmol::native::Tensor(),
+        dV_d_water_coords,      tmol::native::Tensor(), tmol::native::Tensor()};
   }
 };
 
@@ -967,8 +971,8 @@ std::vector<Tensor> lkball_rotamer_score(
     double max_dis,
     Tensor water_coords,
     bool output_block_pair_energies) {
-  auto empty_dispatch_indices =
-      torch::empty({0, 0}, rot_coord_offset.options().dtype(torch::kInt32));
+  auto empty_dispatch_indices = tmol::native::empty(
+      {0, 0}, rot_coord_offset.options().dtype(tmol::native::kInt32));
   return LKBallRotamerScoreOp::apply(
       // common params
       rot_coords,
@@ -1044,7 +1048,7 @@ std::vector<Tensor> lkball_rotamer_score_shared(
                   && shared_dispatch_indices.size(1) == 0)),
       "shared rotamer dispatch indices must have shape [3, nnz] or [0, 0]");
   TORCH_CHECK(
-      shared_dispatch_indices.scalar_type() == torch::kInt32,
+      shared_dispatch_indices.scalar_type() == tmol::native::kInt32,
       "shared rotamer dispatch indices must have dtype int32");
   TORCH_CHECK(
       shared_dispatch_indices.device() == rot_coords.device(),
@@ -1082,7 +1086,7 @@ std::vector<Tensor> lkball_rotamer_score_shared(
       shared_dispatch_indices);
 }
 
-TORCH_LIBRARY(tmol_lk_ball, m) {
+TMOL_LIBRARY(tmol_lk_ball, m) {
   // Keep the existing inferred argument names when adding the optional hint.
   m.def(
       "lk_ball_pose_score(Tensor _0, Tensor _1, Tensor _2, Tensor _3, Tensor "
@@ -1091,10 +1095,10 @@ TORCH_LIBRARY(tmol_lk_ball, m) {
       "Tensor _17, Tensor _18, Tensor _19, Tensor _20, Tensor _21, Tensor _22, "
       "Tensor _23, Tensor _24, float _25, Tensor _26, bool _27, Tensor _28, "
       "bool allow_split_backward=False) -> Tensor[] _0",
-      &lkball_pose_score);
-  m.def("lk_ball_rotamer_score", &lkball_rotamer_score);
-  m.def("lk_ball_rotamer_score_shared", &lkball_rotamer_score_shared);
-  m.def("gen_pose_waters", &pose_watergen_op);
+      TMOL_FN(&lkball_pose_score));
+  m.def("lk_ball_rotamer_score", TMOL_FN(&lkball_rotamer_score));
+  m.def("lk_ball_rotamer_score_shared", TMOL_FN(&lkball_rotamer_score_shared));
+  m.def("gen_pose_waters", TMOL_FN(&pose_watergen_op));
 }
 
 }  // namespace potentials

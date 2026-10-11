@@ -15,6 +15,7 @@ from release_matrix import (
     gpu_wheel_rows,
     linux_wheel_rows,
     macos_wheel_rows,
+    test_wheel_rows as runtime_rows,
 )
 
 
@@ -22,11 +23,11 @@ def test_release_matrix_is_complete_and_unique():
     release_gpu = gpu_wheel_rows()
     smoke_linux = linux_wheel_rows()
 
-    assert len(release_gpu) == 34
+    assert len(release_gpu) == 16
     assert len(cpu_wheel_rows()) == 8
     assert len(macos_wheel_rows()) == 4
     assert len(smoke_linux) == len(release_gpu) + len(cpu_wheel_rows())
-    assert len(expected_wheel_keys()) == 46
+    assert len(expected_wheel_keys()) == 28
     assert len(
         {(row["python-tag"], row["local-tag"], row["arch"]) for row in smoke_linux}
     ) == len(smoke_linux)
@@ -48,7 +49,7 @@ def test_matrix_cli_emits_workflow_json():
         "linux-cpu": len(cpu_wheel_rows()),
         "macos": len(macos_wheel_rows()),
         "linux": len(linux_wheel_rows()),
-        "test": len(linux_wheel_rows()) + len(macos_wheel_rows()),
+        "test": 48,
     }.items():
         result = subprocess.run(
             [sys.executable, str(script), name],
@@ -62,14 +63,14 @@ def test_matrix_cli_emits_workflow_json():
 @pytest.mark.parametrize(
     "missing_wheel, error",
     [
-        ("*cu132torch2.14-cp314-cp314-*.whl", "expected 34 GPU wheels, found 33"),
+        ("tmol_ops_cu13-*-cp314-cp314-*x86_64.whl", "cu13:cp314:x86_64"),
         (
-            "*cputorch2.14-cp311-cp311-manylinux_2_28_x86_64.whl",
-            "expected 12 CPU wheels, found 11",
+            "tmol-*-cp311-cp311-manylinux_2_28_x86_64.whl",
+            "cpu:cp311:x86_64",
         ),
         (
-            "*cputorch2.14-cp314-cp314-macosx_14_0_arm64.whl",
-            "expected 12 CPU wheels, found 11",
+            "tmol-*-cp314-cp314-macosx_14_0_arm64.whl",
+            "cpu:cp314:arm64",
         ),
     ],
 )
@@ -86,7 +87,7 @@ def test_manifest_validator_accepts_only_the_complete_matrix(
         (
             tmp_path
             / (
-                f"tmol-9.9.9+{local}-{python_tag}-{python_tag}-"
+                f"{'tmol' if local == 'cpu' else 'tmol_ops_' + local}-9.9.9-{python_tag}-{python_tag}-"
                 f"{platform_for_arch[arch]}.whl"
             )
         ).touch()
@@ -104,3 +105,14 @@ def test_manifest_validator_accepts_only_the_complete_matrix(
     incomplete = subprocess.run(command, text=True, capture_output=True)
     assert incomplete.returncode != 0
     assert error in incomplete.stderr
+
+
+def test_same_wheels_are_checked_across_torch_minors():
+    for backend in ("cpu", "cu13"):
+        rows = [row for row in runtime_rows() if row["local-tag"] == backend]
+        for key in {(row["python-tag"], row["arch"]) for row in rows}:
+            assert {
+                row["torch-package-version"]
+                for row in rows
+                if (row["python-tag"], row["arch"]) == key
+            } == {"2.11.0", "2.14.1"}

@@ -25,8 +25,14 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v4
         with:
-          name: wheel-cp312-cu129torch2.8-x86_64
+          name: wheel-cp312-cu12-x86_64
           path: wheels
+          run-id: ${{ inputs.candidate-run-id || github.run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheel-cp312-cpu-x86_64
+          path: base-wheel
           run-id: ${{ inputs.candidate-run-id || github.run_id }}
           github-token: ${{ github.token }}
       - name: Install from variant index and score on CUDA

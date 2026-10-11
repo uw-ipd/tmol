@@ -25,29 +25,22 @@ on CPU or CUDA, with gradients through coordinate scoring.
 
 ## Install
 
-For GPU scoring on Linux with PyTorch 2.14 and CUDA 13.2:
+The upcoming 0.1.64 release supports PyTorch 2.11+ without a separate wheel
+for each PyTorch minor. Install the CPU package or add matching CUDA operators:
 
 ```bash
-python -m pip install "torch==2.14.*" --only-binary=:all: --index-url https://download.pytorch.org/whl/cu132
-python -m pip install "tmol==0.1.63+cu132torch2.14" --only-binary=:all: \
-  --find-links https://uw-ipd.github.io/tmol/wheels/v0.1.63/cu132torch2.14/
+python -m pip install "tmol==0.1.64"             # CPU, including Apple Silicon
+python -m pip install "tmol[cu13]==0.1.64"       # CUDA 13-enabled PyTorch
+python -m pip install "tmol[cu12]==0.1.64"       # CUDA 12-enabled PyTorch
 ```
 
-For CPU scoring:
+GPU use needs CUDA-enabled PyTorch and a compatible driver. Pip does not detect
+the GPU. The [installation guide](https://uw-ipd.github.io/tmol/latest/installation.html)
+covers PyTorch installation, binary compatibility, and source builds.
 
-```bash
-python -m pip install "tmol==0.1.63" --only-binary=:all:
-```
-
-PyPI provides CPU wheels; GitHub hosts CUDA variants. Both include AtomWorks 3
-and ligand preparation with RDKit and OpenBabel. See the
-[installation guide](https://uw-ipd.github.io/tmol/latest/installation.html)
-for other CUDA/PyTorch combinations, platform support, and source builds.
-
-Verify the installation:
-
-```bash
-python -c "import tmol; print(tmol.__version__)"
+```python
+import torch, tmol
+print(tmol.__version__, tmol.has_cuda(), torch.cuda.is_available())
 ```
 
 ## Quick start
@@ -79,7 +72,7 @@ links individual operations to examples and APIs.
 ```bash
 git clone https://github.com/uw-ipd/tmol.git
 cd tmol
-python -m pip install "scikit-build-core>=0.10" "cmake>=3.24,<4" "pybind11>=2.12" ninja packaging
+python -m pip install "torch>=2.14" "scikit-build-core>=0.10" "cmake>=3.24,<4" "pybind11>=2.12" ninja packaging
 python -m pip install --no-build-isolation -e ".[dev]"
 ```
 

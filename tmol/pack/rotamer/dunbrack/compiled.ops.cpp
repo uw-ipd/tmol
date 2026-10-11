@@ -1,4 +1,4 @@
-#include <torch/script.h>
+#include <tmol/utility/tensor/native_library.hh>
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/utility/tensor/TensorCast.h>
@@ -17,7 +17,7 @@ namespace dunbrack {
 
 ContextManager mgr;
 
-using torch::Tensor;
+using tmol::native::Tensor;
 
 template <template <tmol::Device> class DispatchMethod>
 std::vector<Tensor> dun_sample_chi(
@@ -68,10 +68,10 @@ std::vector<Tensor> dun_sample_chi(
   nvtx_range_push("dunbrack_sample_chi");
   // std::cout << "Hit compiled.ops.cpp" << std::endl;
 
-  at::Tensor n_rots_for_brt;
-  at::Tensor n_rots_for_brt_offsets;
-  at::Tensor brt_for_rotamer;
-  at::Tensor chi_for_rotamers;
+  tmol::native::Tensor n_rots_for_brt;
+  tmol::native::Tensor n_rots_for_brt_offsets;
+  tmol::native::Tensor brt_for_rotamer;
+  tmol::native::Tensor chi_for_rotamers;
 
   using Int = int32_t;
 
@@ -133,13 +133,11 @@ std::vector<Tensor> dun_sample_chi(
           brt_for_rotamer = std::get<2>(result).tensor;
           chi_for_rotamers = std::get<3>(result).tensor;
         }));
-  } catch (at::Error err) {
-    std::cerr << "caught exception:\n"
-              << err.what_without_backtrace() << std::endl;
+  } catch (tmol::native::Error err) {
+    std::cerr << "caught exception:\n" << err.what() << std::endl;
     throw err;
-  } catch (c10::Error err) {
-    std::cerr << "caught exception:\n"
-              << err.what_without_backtrace() << std::endl;
+  } catch (tmol::native::Error err) {
+    std::cerr << "caught exception:\n" << err.what() << std::endl;
     throw err;
   }
 
@@ -154,8 +152,10 @@ std::vector<Tensor> dun_sample_chi(
 
 // See https://stackoverflow.com/a/3221914
 
-TORCH_LIBRARY(tmol_dun_sampler, m) {
-  m.def("dun_sample_chi", &dun_sample_chi<score::common::DeviceOperations>);
+TMOL_LIBRARY(tmol_dun_sampler, m) {
+  m.def(
+      "dun_sample_chi",
+      TMOL_FN(&dun_sample_chi<score::common::DeviceOperations>));
 }
 
 }  // namespace dunbrack
