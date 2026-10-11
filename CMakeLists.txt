@@ -179,6 +179,11 @@ set(_TMOL_PYTHON_INCLUDE_DIRS "${Python_INCLUDE_DIRS}")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  # LTO can resolve STL calls to Torch's unversioned template exports, even
+  # with libstdc++ first. Keep those calls bound to the system C++ runtime.
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
+endif()
 if(TMOL_HAS_CUDA)
   set(CMAKE_CUDA_STANDARD 17)
   set(CMAKE_CUDA_STANDARD_REQUIRED ON)
