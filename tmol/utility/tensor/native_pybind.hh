@@ -9,12 +9,18 @@
 namespace py = pybind11;
 namespace tmol::native {
 namespace py = pybind11;
-inline std::shared_ptr<void> own_python(py::handle obj) {
+inline py::object call_one(py::handle function, py::handle argument) {
+  auto* result = PyObject_CallOneArg(function.ptr(), argument.ptr());
+  if (!result) throw py::error_already_set();
+  return py::reinterpret_steal<py::object>(result);
+}
+inline void own_python(PythonOwner& owner, py::handle obj) {
   Py_INCREF(obj.ptr());
-  return {obj.ptr(), [](void* p) {
-            py::gil_scoped_acquire gil;
-            Py_DECREF(static_cast<PyObject*>(p));
-          }};
+  owner.object = obj.ptr();
+  owner.release = [](void* p) {
+    py::gil_scoped_acquire gil;
+    Py_DECREF(static_cast<PyObject*>(p));
+  };
 }
 inline ScalarType scalar_type(DLDataType type) {
   if (type.lanes != 1)
@@ -96,14 +102,15 @@ inline Tensor from_python(py::handle obj) {
   if (obj.is_none()) return {};
   const auto& api = tensor_api();
   auto input = py::reinterpret_borrow<py::object>(obj);
-  if (py::cast<bool>(api.is_neg(input))) input = api.resolve_neg(input);
+  if (py::cast<bool>(call_one(api.is_neg, input)))
+    input = call_one(api.resolve_neg, input);
   Tensor result;
   if (api.import_tensor) {
     AtenTensorHandle handle = nullptr;
     STABLE_TORCH_ERROR_CODE_CHECK(api.import_tensor(input.ptr(), &handle));
     result.value.emplace(handle);
   } else {
-    auto capsule = api.to(input);
+    auto capsule = call_one(api.to, input);
     auto* managed = static_cast<DLManagedTensor*>(
         PyCapsule_GetPointer(capsule.ptr(), "dltensor"));
     if (!managed) throw py::error_already_set();
@@ -129,7 +136,9 @@ inline Tensor from_python(py::handle obj) {
             dl.device.device_type == kDLCPU ? kCPU : kCUDA,
             dl.device.device_type == kDLCPU ? -1 : dl.device.device_id)});
   }
-  result.original = std::make_shared<std::shared_ptr<void>>(own_python(obj));
+  result.cache_metadata();
+  result.original = std::make_shared<PythonOwner>();
+  own_python(*result.original, obj);
   result.needs_grad = py::cast<bool>(obj.attr(api.requires_grad));
   return result;
 }
@@ -161,9 +170,9 @@ struct ExportedTensor {
 };
 inline py::object to_python(Tensor tensor) {
   if (!tensor.defined()) return py::none();
-  if (tensor.original && *tensor.original)
+  if (tensor.original && tensor.original->object)
     return py::reinterpret_borrow<py::object>(
-        static_cast<PyObject*>(tensor.original->get()));
+        static_cast<PyObject*>(tensor.original->object));
   auto original = tensor.original;
   const auto& api = tensor_api();
   py::object result;
@@ -181,9 +190,9 @@ inline py::object to_python(Tensor tensor) {
         m->deleter(m);
       }
     });
-    result = api.from(capsule);
+    result = call_one(api.from, capsule);
   }
-  *original = own_python(result);
+  own_python(*original, result);
   return result;
 }
 }  // namespace tmol::native

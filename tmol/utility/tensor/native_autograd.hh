@@ -3,6 +3,17 @@
 #ifdef TORCH_TARGET_VERSION
 namespace tmol::native::autograd {
 using tensor_list = std::vector<Tensor>;
+inline void attach_autograd_result(Tensor& tensor, py::handle result) {
+  if (!tensor.defined()) return;
+  tensor.original = std::make_shared<PythonOwner>();
+  own_python(*tensor.original, result);
+  tensor.needs_grad = py::cast<bool>(result.attr(tensor_api().requires_grad));
+}
+inline void attach_autograd_result(tensor_list& tensors, py::handle results) {
+  auto sequence = py::reinterpret_borrow<py::sequence>(results);
+  for (size_t i = 0; i < tensors.size(); ++i)
+    attach_autograd_result(tensors[i], sequence[i]);
+}
 // Borrowed handles are valid for the synchronous Python forward/backward call.
 // Only context access needs the GIL; kernels and stable C API calls run without
 // it.
@@ -11,6 +22,7 @@ struct SavedValue {
   const char* key;
   template <class T>
   void operator=(T value) {
+    if (!data) return;
     py::gil_scoped_acquire gil;
     data[py::str(key)] = py::cast(value);
   }
@@ -30,9 +42,11 @@ struct SavedData {
 struct AutogradContext {
   py::handle context;
   SavedData saved_data;
+  AutogradContext() : saved_data{} {}
   explicit AutogradContext(py::handle c)
       : context(c), saved_data{c.attr("_tmol_saved_data")} {}
   void save_for_backward(tensor_list tensors) {
+    if (!context) return;
     py::gil_scoped_acquire gil;
     context.attr("save_for_backward")(*py::tuple(py::cast(tensors)));
   }
@@ -41,10 +55,12 @@ struct AutogradContext {
     return py::cast<tensor_list>(context.attr("saved_tensors"));
   }
   void set_materialize_grads(bool value) {
+    if (!context) return;
     py::gil_scoped_acquire gil;
     context.attr("set_materialize_grads")(value);
   }
   void mark_non_differentiable(tensor_list tensors) {
+    if (!context) return;
     py::gil_scoped_acquire gil;
     context.attr("mark_non_differentiable")(*py::tuple(py::cast(tensors)));
   }
@@ -52,28 +68,46 @@ struct AutogradContext {
 template <class F>
 struct Function {
   template <class... Args>
-  static auto apply(Args... args) {
+  static auto apply(const Args&... args) {
     py::gil_scoped_acquire gil;
     using Result =
         decltype(F::forward(static_cast<AutogradContext*>(nullptr), args...));
+    struct Invocation {
+      std::tuple<const Args&...> arguments;
+      Result result;
+    };
+    auto differentiable = [](const auto& arg) {
+      if constexpr (std::is_same_v<std::decay_t<decltype(arg)>, Tensor>)
+        return arg.requires_grad();
+      else
+        return false;
+    };
+    if (!(differentiable(args) || ...)) {
+      AutogradContext ctx;
+      py::gil_scoped_release release;
+      return F::forward(&ctx, args...);
+    }
     PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object>
         storage;
     auto& apply =
         storage
             .call_once_and_store_result([] {
               auto support = py::module_::import("tmol._native_autograd");
-              auto forward = py::cpp_function([](py::object context,
-                                                 py::capsule arguments) {
-                AutogradContext ctx(context);
-                auto& values = *static_cast<std::tuple<std::decay_t<Args>...>*>(
-                    arguments.get_pointer());
-                py::gil_scoped_release release;
-                return std::apply(
-                    [&](auto&... values) {
-                      return F::forward(&ctx, values...);
-                    },
-                    values);
-              });
+              auto forward = py::cpp_function(
+                  [](py::object context, py::capsule arguments) {
+                    AutogradContext ctx(context);
+                    auto& invocation =
+                        *static_cast<Invocation*>(arguments.get_pointer());
+                    {
+                      py::gil_scoped_release release;
+                      invocation.result = std::apply(
+                          [&](const auto&... values) {
+                            return F::forward(&ctx, values...);
+                          },
+                          invocation.arguments);
+                    }
+                    return py::cast(invocation.result);
+                  });
               auto backward =
                   py::cpp_function([](py::object context, tensor_list grads) {
                     AutogradContext ctx(context);
@@ -83,11 +117,31 @@ struct Function {
               return support.attr("_bind")(forward, backward);
             })
             .get_stored();
-    // Function.apply needs Python tensors to attach autograd edges. Reuse the
-    // already imported native arguments during its synchronous forward call.
-    auto values = std::make_tuple(args...);
-    return py::cast<Result>(
-        apply(py::capsule(&values, "tmol.native_arguments"), args...));
+    // Only differentiable tensors need autograd edges. Static topology and
+    // parameter tensors stay in the native argument tuple; save_for_backward
+    // still gives PyTorch ownership and version checks for saved tensors.
+    py::list inputs;
+    std::vector<size_t> indices;
+    size_t position = 0;
+    auto add_input = [&](const auto& arg) {
+      if constexpr (std::is_same_v<std::decay_t<decltype(arg)>, Tensor>) {
+        if (arg.requires_grad()) {
+          inputs.append(to_python(arg));
+          indices.push_back(position);
+        }
+      }
+      ++position;
+    };
+    if (GradMode::is_enabled()) (add_input(args), ...);
+    Invocation invocation{std::tie(args...), {}};
+    auto result = apply(
+        py::capsule(&invocation, "tmol.native_arguments"),
+        py::cast(indices),
+        *py::tuple(inputs));
+    // Autograd changes ownership/gradient edges, not tensor storage or shape.
+    // Reuse the native result instead of importing its metadata a second time.
+    attach_autograd_result(invocation.result, result);
+    return std::move(invocation.result);
   }
 };
 }  // namespace tmol::native::autograd

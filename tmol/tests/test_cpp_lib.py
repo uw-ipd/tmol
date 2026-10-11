@@ -43,6 +43,14 @@ def test_native_boundary_gradients(torch_device):
         torsion(coords), coords, upstream, create_graph=True
     )[0]
     assert torch.autograd.grad(gradient.square().sum(), upstream)[0].isfinite().all()
+    # Hooks may replace saved tensors; the native bridge must use the unpacked
+    # tensor instead of retaining a private copy that bypasses the hooks.
+    with torch.autograd.graph.saved_tensors_hooks(
+        lambda tensor: tensor.detach().clone(), lambda tensor: tensor
+    ):
+        hooked = torch.autograd.grad(torsion(coords).sum(), coords)[0]
+    torch.testing.assert_close(hooked, gradient.detach())
+    assert not torsion(coords.detach()).requires_grad
 
 
 def test_backend_selection(monkeypatch):

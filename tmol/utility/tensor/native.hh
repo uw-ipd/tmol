@@ -50,16 +50,53 @@ struct ExternalTensor {
   Device device;
 };
 
+// Opaque Python ownership keeps Python headers out of kernel translation units.
+struct PythonOwner {
+  void* object = nullptr;
+  void (*release)(void*) = nullptr;
+  ~PythonOwner() {
+    if (object) release(object);
+  }
+};
+
 struct Tensor {
   std::optional<stable::Tensor> value;
   std::shared_ptr<ExternalTensor> external;
   bool needs_grad = false;
+  bool defined_ = false;
+  void* data_ = nullptr;
+  IntList sizes_, strides_;
+  ScalarType dtype_ = ScalarType::Float;
+  Device device_{kCPU};
   // Python interop keeps the original Tensor for saved-variable version checks.
-  std::shared_ptr<std::shared_ptr<void>> original;
+  std::shared_ptr<PythonOwner> original;
   Tensor() = default;
   Tensor(stable::Tensor tensor)
-      : value(std::move(tensor)),
-        original(std::make_shared<std::shared_ptr<void>>()) {}
+      : value(std::move(tensor)), original(std::make_shared<PythonOwner>()) {
+    cache_metadata();
+  }
+  // Tensor metadata is immutable during a native call. Read it once rather
+  // than crossing the C ABI for every accessor and dimension check.
+  void cache_metadata() {
+    defined_ = external || (value && value->defined());
+    if (!defined_) return;
+    if (external) {
+      auto& dl = external->managed->dl_tensor;
+      sizes_ = IntList(dl.shape, dl.ndim);
+      strides_ = IntList(
+          dl.strides ? dl.strides : external->contiguous_strides.data(),
+          dl.ndim);
+      data_ = dl.data ? static_cast<char*>(dl.data) + dl.byte_offset : nullptr;
+      dtype_ = external->dtype;
+      device_ = external->device;
+    } else {
+      sizes_ = value->sizes();
+      strides_ = value->strides();
+      data_ = value->mutable_data_ptr();
+      dtype_ = value->scalar_type();
+      device_ = value->device();
+    }
+  }
   // Kernels consume DLPack metadata directly. Constructing a Torch tensor for
   // every CUDA argument would query the driver for its device pointer again.
   stable::Tensor handle() const {
@@ -72,46 +109,24 @@ struct Tensor {
         scalar_type(),
         [owner = external](void*) {});
   }
-  bool defined() const { return external || (value && value->defined()); }
-  int64_t dim() const {
-    return external ? external->managed->dl_tensor.ndim : value.value().dim();
-  }
-  int64_t size(int64_t d) const { return sizes().at(d < 0 ? d + dim() : d); }
-  int64_t stride(int64_t d) const {
-    return strides().at(d < 0 ? d + dim() : d);
-  }
+  bool defined() const { return defined_; }
+  int64_t dim() const { return sizes_.size(); }
+  int64_t size(int64_t d) const { return sizes_.at(d < 0 ? d + dim() : d); }
+  int64_t stride(int64_t d) const { return strides_.at(d < 0 ? d + dim() : d); }
   int64_t numel() const {
-    if (!external) return value.value().numel();
     int64_t count = 1;
-    for (auto size : sizes()) count *= size;
+    for (auto size : sizes_) count *= size;
     return count;
   }
-  IntList sizes() const {
-    if (!external) return value.value().sizes();
-    auto& dl = external->managed->dl_tensor;
-    return IntList(dl.shape, dl.ndim);
-  }
-  IntList strides() const {
-    if (!external) return value.value().strides();
-    auto& dl = external->managed->dl_tensor;
-    return IntList(
-        dl.strides ? dl.strides : external->contiguous_strides.data(), dl.ndim);
-  }
-  Device device() const {
-    return external ? external->device : value.value().device();
-  }
-  ScalarType scalar_type() const {
-    return external ? external->dtype : value.value().scalar_type();
-  }
+  IntList sizes() const { return sizes_; }
+  IntList strides() const { return strides_; }
+  Device device() const { return device_; }
+  ScalarType scalar_type() const { return dtype_; }
   bool requires_grad() const { return needs_grad; }
   TensorOptions options() const {
     return TensorOptions().dtype(scalar_type()).device(device());
   }
-  void* data_ptr() const {
-    if (!external) return value.value().mutable_data_ptr();
-    auto& dl = external->managed->dl_tensor;
-    return dl.data ? static_cast<char*>(dl.data) + dl.byte_offset : nullptr;
-  }
+  void* data_ptr() const { return data_; }
   template <class T>
   const T* const_data_ptr() const {
     return data_ptr<T>();
@@ -128,7 +143,6 @@ struct Tensor {
   Tensor narrow(int64_t d, int64_t start, int64_t length) const;
   bool is_cuda() const { return device().is_cuda(); }
   bool is_contiguous() const {
-    if (!external) return value.value().is_contiguous();
     if (numel() == 0) return true;
     int64_t expected = 1;
     for (int64_t d = dim() - 1; d >= 0; --d) {
@@ -163,7 +177,19 @@ struct Tensor {
   }
 };
 inline Tensor empty(IntList shape, TensorOptions options) {
-  return stable::empty(shape, options.scalar, std::nullopt, options.target);
+  std::vector<int64_t> strides(shape.size(), 1);
+  for (int64_t d = static_cast<int64_t>(shape.size()) - 1; d > 0; --d)
+    strides[d - 1] = strides[d] * std::max<int64_t>(shape[d], 1);
+  AtenTensorHandle result;
+  STABLE_TORCH_ERROR_CODE_CHECK(aoti_torch_empty_strided(
+      shape.size(),
+      shape.data(),
+      strides.data(),
+      stable::detail::to<int32_t>(stable::detail::from(options.scalar)),
+      stable::detail::to<int32_t>(stable::detail::from(options.target.type())),
+      options.target.index(),
+      &result));
+  return stable::Tensor(result);
 }
 template <class S>
 Tensor full(IntList shape, S fill, TensorOptions options) {
@@ -172,7 +198,9 @@ Tensor full(IntList shape, S fill, TensorOptions options) {
   return result;
 }
 inline Tensor zeros(IntList shape, TensorOptions options) {
-  return full(shape, 0, options);
+  Tensor result = empty(shape, options);
+  STABLE_TORCH_ERROR_CODE_CHECK(aoti_torch_zero_(result.value->get()));
+  return result;
 }
 inline Tensor ones(IntList shape, TensorOptions options) {
   return full(shape, 1, options);
