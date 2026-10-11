@@ -29,7 +29,7 @@ desktop and mobile widths when changing styles, including long code lines,
 tables, keyboard focus, and the navigation menu. `_templates/layout.html` adds
 the adaptive SVG favicon and Apple touch icon alongside Sphinx's ICO fallback.
 
-`quickstart.md` introduces the common workflows; `glossary.md` explains the
+`quickstart.md` introduces the common workflows; `terminology.md` explains the
 concepts with interactive diagrams. Detailed task references remain under the
 Quickstart in `workflows/index.md`. Notebook tutorials live in `tutorial/` and
 API pages in `api/`. The smoke command executes the notebooks
@@ -38,15 +38,11 @@ before nbsphinx renders their outputs and viewers. Follow the
 
 ## Interactive explanations
 
-`_includes/` contains accessible HTML controls and schematic diagrams;
-`_static/tmol-explorers.js` adds their interactions. The protein playground
-bundles the same pinned 3Dmol.js version as the notebook viewers, with its
-license. Use the article's background, compact captions, and thin figure rules;
-avoid dashboard tiles, decorative badges, and repeated instructions. Keep the
-molecular view and score table together so a change is visible in both.
-
-The score table and keyboard controls remain available if WebGL is
-unavailable. No external requests are needed by the playground.
+The glossary and playground keep their accessible markup in their Markdown
+pages; `_static/tmol-explorers.js` supplies the interactions. The pinned local
+3Dmol viewer and its license support offline viewing. One light/dark structure
+image pair covers missing JavaScript, data, or WebGL; score controls still work
+without WebGL. Keep the article background, compact captions, and thin rules.
 
 The playground contains actual TMol scores, not a browser approximation.
 Regenerate its checked-in dataset after changes to the scoring model:

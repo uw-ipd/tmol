@@ -8,7 +8,7 @@ TMol documentation
    with respect to atom coordinates.
 
 Start with :doc:`quickstart` to load, score, repack, and relax a protein.
-Explore the :doc:`glossary` for visual explanations, or try the
+Explore the :doc:`Glossary <terminology>` for visual explanations, or try the
 :doc:`score playground <playground>` without installing anything.
 The tutorials contain runnable notebooks for more detailed workflows.
 
@@ -17,7 +17,7 @@ The tutorials contain runnable notebooks for more detailed workflows.
 
    Installation <installation>
    Quickstart <quickstart>
-   Glossary <glossary>
+   Glossary <terminology>
    Tutorials <examples_index>
    API reference <api_reference>
    Contributing <contributor_guide>

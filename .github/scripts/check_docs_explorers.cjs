@@ -81,7 +81,10 @@ const server = http.createServer((request, response) => {
       await page.locator("#lab-reset").click();
       assert.equal(await total(page), data.frames[data.start].total);
       assert(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), `playground overflow: ${theme} ${width}`);
-      await page.goto(`${base}/glossary.html`);
+      await page.goto(`${base}/terminology.html`);
+      for (const anchor of ["posestack-pose-block-and-atom", "parameterdatabase-and-packedblocktypes", "deposited-atoms-and-built-atoms", "the-no-opth-choice", "rendered-scorers-and-changing-coordinates"]) {
+        assert.equal(await page.locator(`#${anchor}`).count(), 1, `preserve terminology anchor: ${anchor}`);
+      }
       await page.getByRole("button", { name: "Rigid-body jump", exact: true }).click();
       assert.deepEqual(await page.locator("#fold-forest .forest-node.active").evaluateAll(nodes => nodes.map(node => node.dataset.node)), ["B1", "B2"]);
       await page.getByRole("button", { name: "Stage 4", exact: true }).click();
@@ -98,8 +101,9 @@ const server = http.createServer((request, response) => {
       await context.close();
       console.log(`PASS ${theme}, ${width}px: native viewer, exact scores, URL state, keyboard, dragging, partners, glossary, local assets`);
     }
-    for (const failure of ["viewer-download", "webgl"]) {
-      const page = await browser.newPage();
+    for (const theme of ["light", "dark"]) for (const failure of ["viewer-download", "webgl"]) {
+      const page = await browser.newPage({ colorScheme: theme });
+      await page.addInitScript(theme => { localStorage.setItem("mode", theme); localStorage.setItem("theme", theme); }, theme);
       if (failure === "viewer-download") await page.route("**/3Dmol-2.4.2.min.js", route => route.abort());
       else await page.addInitScript(() => {
         const original = HTMLCanvasElement.prototype.getContext;
@@ -109,11 +113,13 @@ const server = http.createServer((request, response) => {
       });
       await page.goto(`${base}/playground.html`);
       await page.waitForSelector('[data-viewer="unavailable"]');
-      assert(await page.locator(".lab-scene-poster").isVisible());
+      assert(await page.locator(".lab-poster").isVisible());
+      assert(await page.locator(".lab-poster figcaption").isVisible());
+      assert((await page.locator(".lab-poster img:visible").getAttribute("src")).endsWith(`protein-${theme}.png`));
       await page.locator("#lab-optimum").click();
       assert.equal(await total(page), data.frames[data.best].total);
       await page.close();
-      console.log(`PASS ${failure}: static structure and working score controls`);
+      console.log(`PASS ${theme}, ${failure}: static structure and working score controls`);
     }
     const failedData = await browser.newPage();
     await failedData.route("**/phenylalanine.json", route => route.abort());
@@ -129,7 +135,8 @@ const server = http.createServer((request, response) => {
     const nojs = await browser.newPage({ javaScriptEnabled: false });
     await nojs.goto(`${base}/playground.html`);
     assert(await nojs.locator("#score-playground noscript").isVisible());
-    assert(await nojs.locator(".lab-poster img").evaluate(image => image.complete && image.naturalWidth > 0));
+    assert(await nojs.locator(".lab-poster figcaption").isVisible());
+    assert(await nojs.locator(".lab-poster img:visible").evaluate(image => image.complete && image.naturalWidth > 0));
     await nojs.close();
     console.log("PASS unavailable data, invalid URL, and no-JavaScript poster");
   } finally {

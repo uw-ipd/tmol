@@ -73,13 +73,6 @@
 
   async function initPlayground(root) {
     $(".lab-loading", root).hidden = false;
-    const updatePosters = () => {
-      const mode = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
-      $(".lab-poster img", root).src = new URL(`playground/poster-${mode}.png`, assetRoot).href;
-      $(".lab-scene-poster", root).src = new URL(`playground/protein-${mode}.png`, assetRoot).href;
-    };
-    updatePosters();
-    new MutationObserver(updatePosters).observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
     const response = await fetch(new URL("playground/phenylalanine.json", assetRoot), {signal: AbortSignal.timeout(15000)});
     if (!response.ok) throw new Error(`Dataset request failed (${response.status})`);
     const data = await response.json();
@@ -237,7 +230,8 @@
       if (a >= 0 && b >= 0) current = a * n + b;
     }
     $(".lab-content", root).hidden = false;
-    $(".lab-poster", root).hidden = true;
+    const poster = $(".lab-poster", root);
+    $(".lab-scene", root).prepend(poster);
     $(".lab-loading", root).hidden = true;
     update(current);
 
@@ -247,6 +241,8 @@
       if (!gl) throw new Error("WebGL unavailable");
       gl.getExtension("WEBGL_lose_context")?.loseContext();
       const mol = await loadViewer();
+      poster.hidden = true;
+      $("#protein-viewer").hidden = false;
       viewer = mol.createViewer($("#protein-viewer"), {antialias: true});
       protein = viewer.addModel(data.pdb, "pdb");
       const sidechain = protein.selectedAtoms({resi: data.residue});
@@ -267,7 +263,7 @@
       root.dataset.viewerError = error.message;
       viewer = null;
       $("#protein-viewer").hidden = true;
-      $(".lab-scene-poster", root).hidden = false;
+      poster.hidden = false;
       $("#viewer-status").textContent = "Static input geometry shown. 3D viewing is unavailable; the rotation controls, score table, and landscape still work. Try a browser with WebGL enabled.";
       $("#lab-focus").disabled = true;
       $("#lab-whole").disabled = true;
