@@ -277,15 +277,8 @@ class PackedBlockTypes:
         # -------------------------------------------------------------- #
         ideal_coords_np = np.zeros((n_types, max_n_atoms, 3), dtype=np.float32)
         for i, rt in enumerate(active_types):
-            ic = getattr(rt, "ideal_coords", None)
-            if ic is None:
-                ic = build_ideal_coords(rt)
-            if ic is not None and ic.shape[0] > 0:
-                # ``rt.ideal_coords`` is defined over all icoors
-                # (atoms + connections); we take only the first
-                # ``n_atoms`` rows, which correspond to real atoms.
-                n = min(len(rt.atoms), ic.shape[0])
-                ideal_coords_np[i, :n] = ic[:n].astype(np.float32)
+            coords = build_ideal_coords(rt)
+            ideal_coords_np[i, : len(rt.atoms)] = coords[rt.at_to_icoor_ind]
 
         # -------------------------------------------------------------- #
         # Intra-residue path distances                                    #

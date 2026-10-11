@@ -76,13 +76,17 @@ a maximum raw Cartesian-torsion gradient difference of 0.026. Both float64
 implementations agree within 1e-10 there, and centered finite differences agree
 with the JAX result.
 
-Dense pair arrays currently make backward memory and time substantially worse
-than native TMol. An initial H200/float32/1UBQ run measured about 0.45 ms for
-repeated compiled inference and 2.86 ms for value-and-gradient, with approximately
-44 MB and 240 MB of XLA temporary buffers respectively. These buffer sizes are
-compiler estimates, not measured device peak memory. Setup took about 25 seconds;
-compilation adds further startup cost. Performance optimization, mixed-batch
-coverage, disulfide validation, relaxation, and repacking remain unfinished.
+Pair scoring still uses dense arrays, although LK-ball selects only polar ×
+heavy atoms from fixed topology. An H200/float32/1UBQ comparison with five warmup
+calls and 30 synchronized samples measured median inference at 0.244 ms for
+JAX versus 0.408 ms for final Torch, and value-and-gradient at 0.901 ms versus
+0.877 ms. This single workload does not establish general speed parity.
+
+XLA estimated 12.1 MB of temporary buffers for inference and 33.7 MB for
+value-and-gradient. These are compiler estimates, not measured device peaks;
+memory remains substantially worse than native TMol. Setup took about 25
+seconds, with compilation adding further startup cost. Larger and mixed batches,
+disulfide validation, relaxation, and repacking remain unfinished.
 
 PDB loading uses the last model and Biotite's first alternate conformation.
 The Biotite frontend also accepts an AtomArrayStack for same-topology batches.

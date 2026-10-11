@@ -199,6 +199,8 @@ class LKBallTermState:
     # filled; inter-block pairs are set to the clamp value (so the
     # ``bpl > 4`` count-pair weight gate returns 1.0 for them).
     bonded_path_length: jax.Array
+    polar_indices: jax.Array
+    occluder_indices: jax.Array
 
 
 class LKBallEnergyTerm(EnergyTerm):
@@ -251,6 +253,16 @@ class LKBallEnergyTerm(EnergyTerm):
             n_att_H_2d,
         ) = self._per_atom_full_palette(pose_stack, pbt, self.max_H_per_donor)
         bpl_3d = self._per_atom_bonded_path_length(pose_stack, pbt)
+
+        def compact(mask):
+            mask = np.asarray(mask)
+            width = max(1, int(mask.sum(axis=1).max()))
+            indices = np.full((mask.shape[0], width), -1, dtype=np.int32)
+            for pose, row in enumerate(mask):
+                active = np.flatnonzero(row)
+                indices[pose, : len(active)] = active
+            return jnp.asarray(indices)
+
         return LKBallTermState(
             lj_radius=lj_radius_2d,
             lk_dgfree=lk_dgfree_2d,
@@ -270,6 +282,8 @@ class LKBallEnergyTerm(EnergyTerm):
             attached_H_mask=att_H_mask_3d,
             n_attached_H=n_att_H_2d,
             bonded_path_length=bpl_3d,
+            polar_indices=compact(is_polar_2d & is_real_2d),
+            occluder_indices=compact(is_occluder_2d & is_real_2d),
         )
 
     # ------------------------------------------------------------------ #
@@ -325,6 +339,8 @@ class LKBallEnergyTerm(EnergyTerm):
             "attached_H_mask": state.attached_H_mask,
             "n_attached_H": state.n_attached_H,
             "bonded_path_length": state.bonded_path_length,
+            "polar_indices": state.polar_indices,
+            "occluder_indices": state.occluder_indices,
         }
 
         totals = jax.vmap(eval_one_pose)(coords, per_pose)
@@ -405,7 +421,6 @@ class LKBallEnergyTerm(EnergyTerm):
         Returns ``[4]`` scalars = (lk_iso, lk_ball, lk_bridge,
         lk_bridge_uncpl) for this pose.
         """
-        n_atoms = coords.shape[0]
 
         def pair(i, j):
             params = {
@@ -436,8 +451,8 @@ class LKBallEnergyTerm(EnergyTerm):
             # Mask: only score when i is polar, j is an occluder, i != j,
             # and both atoms are real.
             gate = (
-                state["is_polar"][i]
-                & state["is_occluder"][j]
+                (i >= 0)
+                & (j >= 0)
                 & (i != j)
                 & state["is_real"][i]
                 & state["is_real"][j]
@@ -452,8 +467,10 @@ class LKBallEnergyTerm(EnergyTerm):
                 ]
             )
 
-        ii, jj = jnp.meshgrid(jnp.arange(n_atoms), jnp.arange(n_atoms), indexing="ij")
-        per_pair = jax.vmap(jax.vmap(pair))(ii, jj)  # [N, N, 4]
+        ii, jj = jnp.meshgrid(
+            state["polar_indices"], state["occluder_indices"], indexing="ij"
+        )
+        per_pair = jax.vmap(jax.vmap(pair))(ii, jj)  # [polar atoms, heavy atoms, 4]
         return jnp.sum(per_pair, axis=(0, 1))  # [4]
 
     # ------------------------------------------------------------------ #

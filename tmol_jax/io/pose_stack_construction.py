@@ -770,17 +770,7 @@ def pose_stack_from_canonical_form(
         if cached is not None:
             return cached
         bt = pbt.active_block_types[bt_ind]
-        ic = getattr(bt, "ideal_coords", None)
-        if ic is None:
-            from tmol_jax.chemical.ideal_coords import build_ideal_coords
-
-            ic = build_ideal_coords(bt)
-        ic_arr = np.asarray(ic, dtype=np.float32)
-        # The residue's ideal_coords is defined over all icoors
-        # (atoms + connections); take only the first n_atoms rows.
-        n_a = len(bt.atoms)
-        if ic_arr.shape[0] > n_a:
-            ic_arr = ic_arr[:n_a]
+        ic_arr = np.asarray(bt.ideal_coords, dtype=np.float32)[bt.at_to_icoor_ind]
         ideal_cache[bt_ind] = ic_arr
         return ic_arr
 
