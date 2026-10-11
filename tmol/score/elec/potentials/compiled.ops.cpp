@@ -25,6 +25,7 @@ template <template <tmol::Device> class DispatchMethod>
 class ElecPoseScoreOp
     : public tmol::native::autograd::Function<ElecPoseScoreOp<DispatchMethod>> {
  public:
+  static constexpr bool capture_pose_gradient = true;
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
 

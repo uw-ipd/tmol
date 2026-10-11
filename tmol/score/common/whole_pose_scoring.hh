@@ -6,6 +6,11 @@ namespace score {
 namespace common {
 
 #ifdef WITH_CUDA
+tmol::native::Tensor accumulate_score_gradients_cuda(
+    std::vector<tmol::native::Tensor> const& derivatives,
+    std::vector<int64_t> const& offsets,
+    tmol::native::Tensor const& weights,
+    tmol::native::Tensor const& upstream);
 // Defined in a separate CUDA translation unit so callers remain ordinary C++.
 tmol::native::Tensor accumulate_whole_pose_gradients_cuda(
     tmol::native::Tensor const& saved_grad,

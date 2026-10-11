@@ -19,6 +19,8 @@ std::string schema_type() {
     return "Tensor";
   else if constexpr (std::is_same_v<T, std::vector<Tensor>>)
     return "Tensor[]";
+  else if constexpr (std::is_same_v<T, std::vector<int64_t>>)
+    return "int[]";
   else if constexpr (std::is_same_v<T, bool>)
     return "bool";
   else if constexpr (std::is_integral_v<T>)
@@ -35,7 +37,13 @@ template <class T>
 T unbox(StableIValue value) {
   if constexpr (std::is_same_v<T, Tensor>)
     return Tensor(stable::detail::to<stable::Tensor>(value));
-  else
+  else if constexpr (std::is_same_v<T, std::vector<Tensor>>) {
+    auto inputs = stable::detail::to<std::vector<stable::Tensor>>(value);
+    std::vector<Tensor> result;
+    result.reserve(inputs.size());
+    for (auto& input : inputs) result.emplace_back(std::move(input));
+    return result;
+  } else
     return stable::detail::to<T>(value);
 }
 inline StableIValue box(const Tensor& value) {
@@ -67,6 +75,19 @@ void invoke_boxed(
         unbox<std::decay_t<Args>>(stack[I])...};
   };
   auto args = [&] {
+    // Whole-pose accumulation checks that every static parameter is frozen.
+    // Its direct term calls always pass coordinates first, so no per-tensor
+    // Python export or GIL acquisition is needed to discover gradient edges.
+    if (GradMode::is_enabled() && autograd::score_capture
+        && autograd::score_capture->enabled) {
+      auto values = unpack();
+      if constexpr (sizeof...(Args) > 0) {
+        auto& first = std::get<0>(values);
+        if constexpr (std::is_same_v<std::decay_t<decltype(first)>, Tensor>)
+          first.needs_grad = true;
+      }
+      return values;
+    }
     if (GradMode::is_enabled()) {
       py::gil_scoped_acquire gil;
       auto values = unpack();

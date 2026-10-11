@@ -56,7 +56,14 @@ def test_direct_inference_preserves_values_and_later_gradients(
     assert not actual.requires_grad
     exact = torch_device.type == "cpu" and term_class is not DunbrackEnergyTerm
     tolerance = {"rtol": 0, "atol": 0} if exact else {}
-    torch.testing.assert_close(actual, expected, **tolerance)
+    # ARM64 may round the HBond energy-only double kernel differently from
+    # its derivative-producing kernel (observed difference: 4.3e-13).
+    inference_tolerance = (
+        {"rtol": 1e-13, "atol": 1e-12}
+        if exact and term_class is HBondEnergyTerm and dtype == torch.float64
+        else tolerance
+    )
+    torch.testing.assert_close(actual, expected, **inference_tolerance)
     after = scorer(coords)
     (after_grad,) = torch.autograd.grad(after.sum(), coords)
     torch.testing.assert_close(after, expected, **tolerance)

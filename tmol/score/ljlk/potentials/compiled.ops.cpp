@@ -33,6 +33,7 @@ template <template <tmol::Device> class DispatchMethod>
 class LJLKPoseScoreOp
     : public tmol::native::autograd::Function<LJLKPoseScoreOp<DispatchMethod>> {
  public:
+  static constexpr bool capture_pose_gradient = true;
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
       // common params
@@ -279,6 +280,7 @@ class LJLKAndElecPoseScoreOp
     : public tmol::native::autograd::Function<
           LJLKAndElecPoseScoreOp<DispatchMethod, weighted>> {
  public:
+  static constexpr bool capture_pose_gradient = true;
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
       Tensor rot_coords,

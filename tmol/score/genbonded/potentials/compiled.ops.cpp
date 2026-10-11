@@ -34,6 +34,7 @@ template <template <tmol::Device> class DispatchMethod>
 class GenBondedPoseScoreOp : public tmol::native::autograd::Function<
                                  GenBondedPoseScoreOp<DispatchMethod>> {
  public:
+  static constexpr bool capture_pose_gradient = true;
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
       // Standard rotamer-layout params (common to all 2-body terms)

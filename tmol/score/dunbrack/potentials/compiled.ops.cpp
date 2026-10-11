@@ -25,6 +25,7 @@ template <template <tmol::Device> class DispatchMethod>
 class DunbrackPoseScoreOp : public tmol::native::autograd::Function<
                                 DunbrackPoseScoreOp<DispatchMethod>> {
  public:
+  static constexpr bool capture_pose_gradient = true;
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
       // common params

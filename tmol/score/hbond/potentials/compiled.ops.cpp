@@ -31,6 +31,7 @@ template <template <tmol::Device> class DispatchMethod>
 class HBondPoseScoresOp : public tmol::native::autograd::Function<
                               HBondPoseScoresOp<DispatchMethod>> {
  public:
+  static constexpr bool capture_pose_gradient = true;
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
       // common params

@@ -1,4 +1,5 @@
 #include <tmol/utility/tensor/native_library.hh>
+#include <tmol/score/common/whole_pose_scoring.hh>
 
 namespace tmol::native {
 namespace {
@@ -198,7 +199,44 @@ Tensor operator*(const Tensor& a, const Tensor& b) {
 #ifdef TMOL_MAIN_MODULE
 PYBIND11_MODULE(_C, m) {
   tmol::native::bind_libraries(m);
+  using tmol::native::autograd::ScoreCapture;
+  py::class_<ScoreCapture>(m, "_ScoreCapture")
+      .def(py::init<>())
+      .def(
+          "select_term",
+          [](ScoreCapture& self, int64_t offset, bool enabled) {
+            self.offset = offset;
+            self.enabled = enabled;
+          })
+      .def_readonly("offsets", &ScoreCapture::offsets)
+      .def_property_readonly(
+          "derivatives",
+          [](ScoreCapture& self) {
+            return tmol::native::to_python_tensors(self.derivatives);
+          })
+      .def(
+          "__enter__",
+          [](ScoreCapture& self) -> ScoreCapture& {
+            STD_TORCH_CHECK(
+                !tmol::native::autograd::score_capture, "Nested capture");
+            tmol::native::autograd::score_capture = &self;
+            return self;
+          },
+          py::return_value_policy::reference_internal)
+      .def("__exit__", [](ScoreCapture&, py::args) {
+        tmol::native::autograd::score_capture = nullptr;
+      });
 #ifdef WITH_CUDA
+  // The dispatcher imports the complete tensor list directly, including on
+  // older runtimes without the Python tensor C API.
+  static tmol::native::Library gradients(TMOL_INTEROP_NAMESPACE);
+  gradients.def(
+      "score_gradient",
+      TMOL_FN(&tmol::score::common::accumulate_score_gradients_cuda));
+  m.attr("_score_gradient") = py::module_::import("torch")
+                                  .attr("ops")
+                                  .attr(TMOL_INTEROP_NAMESPACE)
+                                  .attr("score_gradient");
   m.attr("has_cuda") = true;
 #else
   m.attr("has_cuda") = false;

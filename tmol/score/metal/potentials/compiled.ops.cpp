@@ -30,6 +30,7 @@ class MetalCoordinationPoseScoreOp
     : public tmol::native::autograd::Function<
           MetalCoordinationPoseScoreOp<DispatchMethod>> {
  public:
+  static constexpr bool capture_pose_gradient = true;
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
 

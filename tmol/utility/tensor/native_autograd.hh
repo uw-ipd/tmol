@@ -3,6 +3,19 @@
 #ifdef TORCH_TARGET_VERSION
 namespace tmol::native::autograd {
 using tensor_list = std::vector<Tensor>;
+struct ScoreCapture {
+  tensor_list derivatives;
+  std::vector<int64_t> offsets;
+  int64_t offset = 0;
+  bool enabled = true;
+};
+inline thread_local ScoreCapture* score_capture = nullptr;
+template <class F, class = void>
+struct Capturable : std::false_type {};
+template <class F>
+struct Capturable<F, std::void_t<decltype(F::capture_pose_gradient)>>
+    : std::true_type {};
+
 inline void attach_autograd_result(Tensor& tensor, py::handle result) {
   if (!tensor.defined()) return;
   tensor.original.reset();
@@ -49,11 +62,16 @@ struct SavedData {
 };
 struct AutogradContext {
   py::handle context;
+  tensor_list* captured = nullptr;
   SavedData saved_data;
   AutogradContext() : saved_data{} {}
   explicit AutogradContext(py::handle c)
       : context(c), saved_data{c.attr("_tmol_saved_data")} {}
   void save_for_backward(tensor_list tensors) {
+    if (captured) {
+      *captured = std::move(tensors);
+      return;
+    }
     if (!context) return;
     py::gil_scoped_acquire gil;
     context.attr("save_for_backward")(*to_python_tensors(tensors));
@@ -92,6 +110,22 @@ struct Function {
     if (!GradMode::is_enabled() || !(differentiable(args) || ...)) {
       AutogradContext ctx;
       return F::forward(&ctx, args...);
+    }
+    if constexpr (Capturable<F>::value) {
+      if (score_capture && score_capture->enabled) {
+        tensor_list saved;
+        AutogradContext ctx;
+        ctx.captured = &saved;
+        struct NoGrad {
+          NoGrad() { aoti_torch_grad_mode_set_enabled(false); }
+          ~NoGrad() { aoti_torch_grad_mode_set_enabled(true); }
+        } no_grad;
+        auto result = F::forward(&ctx, args...);
+        STD_TORCH_CHECK(saved.size() == 1, "Expected whole-pose derivatives");
+        score_capture->derivatives.push_back(std::move(saved[0]));
+        score_capture->offsets.push_back(score_capture->offset);
+        return result;
+      }
     }
     py::gil_scoped_acquire gil;
     PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object>

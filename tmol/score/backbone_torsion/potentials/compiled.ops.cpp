@@ -33,6 +33,7 @@ class BackboneTorsionPoseScoreOp
     : public tmol::native::autograd::Function<
           BackboneTorsionPoseScoreOp<DispatchMethod>> {
  public:
+  static constexpr bool capture_pose_gradient = true;
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
 

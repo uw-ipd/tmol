@@ -31,6 +31,7 @@ template <template <tmol::Device> class DispatchMethod>
 class CartBondedPoseScoreOp : public tmol::native::autograd::Function<
                                   CartBondedPoseScoreOp<DispatchMethod>> {
  public:
+  static constexpr bool capture_pose_gradient = true;
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
       // common params
