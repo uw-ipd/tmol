@@ -9,9 +9,9 @@ Install the PyTorch build for your CUDA version, then select the matching TMol
 wheel index. For PyTorch 2.14 and CUDA 13.2 on Linux:
 
 ```bash
-python -m pip install "torch==2.14.*" --index-url https://download.pytorch.org/whl/cu132
-python -m pip install "tmol==0.1.60+cu132torch2.14" --only-binary=tmol \
-  --find-links https://uw-ipd.github.io/tmol/wheels/v0.1.60/cu132torch2.14/
+python -m pip install "torch==2.14.*" --only-binary=:all: --index-url https://download.pytorch.org/whl/cu132
+python -m pip install "tmol==0.1.62+cu132torch2.14" --only-binary=:all: \
+  --find-links https://uw-ipd.github.io/tmol/wheels/v0.1.62/cu132torch2.14/
 ```
 
 Pre-built wheels include C++/CUDA extensions; installing them does not require
@@ -22,29 +22,57 @@ PyTorch variant, add `--force-reinstall` to the PyTorch install command.
 
 Each wheel page contains one CUDA/PyTorch combination. Pip selects the Python
 and platform tags; it does **not** detect your GPU or choose a CUDA version.
-The exact version qualifier and `--only-binary=tmol` prevent a CPU or source
-fallback when the requested GPU wheel is unavailable.
+The exact version qualifier and `--only-binary=:all:` prevent a CPU or source
+fallback when the requested GPU wheel is unavailable. `--only-binary=:all:`
+also requires prebuilt wheels for every dependency; it fails instead of
+compiling a missing wheel locally.
 
 Other combinations are listed in [GitHub Releases](https://github.com/uw-ipd/tmol/releases).
 Use the corresponding `cuNNNtorchX.Y` page and version qualifier, or install a
 wheel's download URL directly. A GitHub release's ordinary web page is not a
 pip wheel index.
 
+### CUDA 13 on Linux ARM64
+
+PyTorch currently pins cuSPARSELt 0.8.0 or 0.8.1. NVIDIA's ARM64 wheels for
+these versions contain the correct ARM64 library but label it internally as
+`manylinux2014_sbsa`. Pip accepts the `aarch64` wheel filename at installation,
+then `python -m pip check` reports that cuSPARSELt is unsupported.
+
+After installing PyTorch and TMol, run the supplied metadata repair in the
+same virtual environment:
+
+```bash
+curl -fLO https://github.com/uw-ipd/tmol/releases/download/v0.1.62/repair_cuda13_arm64_metadata.py
+python repair_cuda13_arm64_metadata.py
+python -m pip check
+```
+
+The script checks the original NVIDIA library's SHA-256 and ARM64 ELF header,
+then corrects only the platform tag and its checksum in `RECORD`. It preserves
+the native code, package version and dependency requirements, and refuses
+unrecognized files. Other platforms and already-corrected metadata are left
+alone. Upgrading cuSPARSELt independently conflicts with PyTorch's exact pins.
+
+The release installation tests use this same repair before checking all
+dependencies, loading TMol's native extensions, scoring a protein and checking
+its gradients. Repeat the repair if reinstalling the affected NVIDIA package.
+
 ## CPU
 
-From 0.1.60, PyPI carries CPU wheels for PyTorch 2.14 and Python 3.11–3.14 on
+From 0.1.62, PyPI carries CPU wheels for PyTorch 2.14 and Python 3.11–3.14 on
 Linux x86-64, Linux aarch64, and Apple Silicon:
 
 ```bash
-python -m pip install tmol
+python -m pip install "tmol==0.1.62" --only-binary=:all:
 ```
 
 On Linux, install CPU-only PyTorch first to avoid downloading PyTorch's CUDA
 libraries:
 
 ```bash
-python -m pip install "torch==2.14.*" --index-url https://download.pytorch.org/whl/cpu
-python -m pip install tmol --only-binary=tmol
+python -m pip install "torch==2.14.*" --only-binary=:all: --index-url https://download.pytorch.org/whl/cpu
+python -m pip install "tmol==0.1.62" --only-binary=:all:
 ```
 
 CPU wheels constrain the PyTorch minor version they were compiled against.
@@ -61,7 +89,7 @@ already present. Use the GPU instructions above for CUDA scoring.
 
 Use a virtual environment for each PyTorch/CUDA combination. Reinstall the
 matching TMol wheel when changing PyTorch's minor version or CUDA variant.
-TMol 0.1.59's PyPI source installer has a version mismatch; use 0.1.60 or a
+TMol 0.1.59's PyPI source installer has a version mismatch; use 0.1.62 or a
 0.1.59 wheel download URL.
 
 <span id="from-source"></span>

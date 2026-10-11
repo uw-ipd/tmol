@@ -1,7 +1,7 @@
 # Workflow reference
 
 Details for workflows introduced in the {doc}`Quickstart </quickstart>`.
-For definitions and visual explanations, use the {doc}`Glossary </glossary>`;
+For definitions and visual explanations, use the {doc}`Glossary </terminology>`;
 for runnable notebooks, use {doc}`Tutorials </examples_index>`.
 
 ```{toctree}

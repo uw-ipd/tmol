@@ -271,8 +271,9 @@ html[data-theme="light"] .score-better { color: #187447; }
 html[data-theme="dark"] .score-better { color: #88d8ac; }
 .score-worse { color: var(--pst-color-primary); }
 .tmol-lab button:disabled { opacity: .5; cursor: default; }
-.lab-poster { display: block; }
-.lab-poster img, .lab-scene-poster { width: 100%; height: auto; }
+.lab-poster { display: block; max-width: 394px; margin: 0 auto; }
+.lab-poster img { width: 100%; height: auto; }
+.lab-poster figcaption { color: var(--pst-color-text-muted); font-size: .75rem; }
 .lab-partners { margin-top: 1.8rem; }
 .lab-partners h2 { font-size: 1rem; font-weight: 500; letter-spacing: 0; margin: 0 0 .5rem; }
 .lab-partners p { font-size: .8rem; margin: .5rem 0; color: var(--pst-color-text-muted); }
