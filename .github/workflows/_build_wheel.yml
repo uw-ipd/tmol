@@ -459,8 +459,9 @@ jobs:
                 -Ccmake.define.pybind11_DIR="${PYBIND11_CMAKE_DIR}" \
                 -Ccmake.define.TMOL_NVCC_THREADS=1
             else
-              '"${TARGET_VENV}"'/bin/pip wheel . --no-build-isolation --no-deps -w dist \
+              '"${TARGET_VENV}"'/bin/pip wheel -v . --no-build-isolation --no-deps -w dist \
                 -Ccmake.define.TMOL_ENABLE_CUDA=OFF \
+                -Cbuild.verbose=true \
                 -Ccmake.define.pybind11_DIR="${PYBIND11_CMAKE_DIR}"
             fi
           '

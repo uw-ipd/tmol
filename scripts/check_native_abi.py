@@ -16,7 +16,10 @@ def check(wheel: Path) -> None:
             raise ValueError(f"No native libraries in {wheel}")
         for name in libraries:
             library = archive.extract(name, temporary)
-            symbols = subprocess.check_output(["nm", "-u", library], text=True)
+            nm = (
+                ["nm", "-D", "-u"] if sys.platform.startswith("linux") else ["nm", "-u"]
+            )
+            symbols = subprocess.check_output([*nm, library], text=True)
             symbols = subprocess.check_output(["c++filt"], input=symbols, text=True)
             forbidden = [
                 line
