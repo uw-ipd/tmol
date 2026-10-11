@@ -57,15 +57,17 @@ capability checks even when an extra is requested.
 
 ## Binary compatibility
 
-The native bindings use DLPack to exchange tensors, Python autograd, and
-PyTorch's stable C ABI targeted at 2.11. A TMol wheel no longer pins a PyTorch
+The native bindings use Python autograd and PyTorch's stable C ABI targeted
+at 2.11. Tensor exchange uses the stable Python interop API when available
+(PyTorch 2.14+), with DLPack as the fallback for older runtimes. A TMol wheel no longer pins a PyTorch
 minor version. Python, platform, and CUDA-major wheel variants remain; these
 are not Python `abi3` wheels. Changing CUDA major requires the corresponding
 operator package. Changing PyTorch minor does not require rebuilding TMol.
 
-### CUDA 13 on Linux ARM64
+### CUDA on Linux ARM64
 
-PyTorch currently pins cuSPARSELt 0.8.0 or 0.8.1. NVIDIA's ARM64 wheels for
+Affected PyTorch builds pin cuSPARSELt 0.7.1 (CUDA 12) or 0.8.0/0.8.1
+(CUDA 13). NVIDIA's ARM64 wheels for
 these versions contain the correct ARM64 library but label it internally as
 `manylinux2014_sbsa`. Pip accepts the `aarch64` wheel filename at installation,
 then `python -m pip check` reports that cuSPARSELt is unsupported.
@@ -74,7 +76,7 @@ After installing PyTorch and TMol, run the supplied metadata repair in the
 same virtual environment:
 
 ```bash
-curl -fLO https://github.com/uw-ipd/tmol/releases/download/v0.1.63/repair_cuda13_arm64_metadata.py
+curl -fLO https://github.com/uw-ipd/tmol/releases/download/v0.1.64/repair_cuda13_arm64_metadata.py
 python repair_cuda13_arm64_metadata.py
 python -m pip check
 ```
@@ -93,7 +95,7 @@ its gradients. Repeat the repair if reinstalling the affected NVIDIA package.
 
 ## Build from source
 
-Build headers require PyTorch 2.14+, a C++20 compiler, CMake, and Ninja. The
+Build headers require PyTorch 2.14+, a C++17 compiler (C++20 for test/JIT extensions with recent PyTorch), CMake, and Ninja. The
 resulting production binary supports PyTorch 2.11+. CPU builds are the default:
 
 ```bash

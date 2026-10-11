@@ -469,7 +469,7 @@ It does not use TorchConfig.cmake or the unstable Torch C++ ABI for production.<
 <ul class="simple">
 <li><p>Python 3.11 or newer.</p></li>
 <li><p>PyTorch 2.14+ build headers; PyTorch 2.11+ runtime.</p></li>
-<li><p>A C++20 compiler.</p></li>
+<li><p>A C++17 compiler (C++20 for test/JIT extensions with recent PyTorch).</p></li>
 <li><p>CMake 3.24 or newer.</p></li>
 <li><p>CUDA toolkit with <code class="docutils literal notranslate"><span class="pre">nvcc</span></code> for CUDA builds.</p></li>
 </ul>
@@ -628,7 +628,10 @@ Before tagging the first split release, configure PyPI publishing access for
 <p>The Python/native boundary uses DLPack and Python autograd, including saved
 variable version checks. Native allocations, dispatch, streams, and generator
 access use the stable C API. Adding a new native operation must preserve that
-boundary; <code class="docutils literal notranslate"><span class="pre">scripts/check_native_abi.py</span></code> catches accidental C++ ABI imports.
+boundary. On PyTorch 2.14+, optional stable C interop functions avoid DLPack
+conversion overhead; older runtimes use direct DLPack views.
+<code class="docutils literal notranslate"><span class="pre">scripts/check_native_abi.py</span></code> catches accidental C++ ABI imports and unversioned
+Linux C++ runtime imports. Production uses C++17 to retain the manylinux floor.
 CUDA packing draws phase seeds through Torch’s public dispatcher rather than
 accessing <code class="docutils literal notranslate"><span class="pre">CUDAGeneratorImpl</span></code>; fixed seeds remain reproducible, but trajectories
 can differ from releases before this refactor.</p>

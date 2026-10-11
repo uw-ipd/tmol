@@ -23,7 +23,7 @@ Requirements:
 
 - Python 3.11 or newer.
 - PyTorch 2.14+ build headers; PyTorch 2.11+ runtime.
-- A C++20 compiler.
+- A C++17 compiler (C++20 for test/JIT extensions with recent PyTorch).
 - CMake 3.24 or newer.
 - CUDA toolkit with `nvcc` for CUDA builds.
 
@@ -156,7 +156,10 @@ Before tagging the first split release, configure PyPI publishing access for
 The Python/native boundary uses DLPack and Python autograd, including saved
 variable version checks. Native allocations, dispatch, streams, and generator
 access use the stable C API. Adding a new native operation must preserve that
-boundary; `scripts/check_native_abi.py` catches accidental C++ ABI imports.
+boundary. On PyTorch 2.14+, optional stable C interop functions avoid DLPack
+conversion overhead; older runtimes use direct DLPack views.
+`scripts/check_native_abi.py` catches accidental C++ ABI imports and unversioned
+Linux C++ runtime imports. Production uses C++17 to retain the manylinux floor.
 CUDA packing draws phase seeds through Torch's public dispatcher rather than
 accessing `CUDAGeneratorImpl`; fixed seeds remain reproducible, but trajectories
 can differ from releases before this refactor.
