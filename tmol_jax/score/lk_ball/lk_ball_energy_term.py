@@ -10,6 +10,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
+from tmol_jax.score.common.acceptor import acceptor_bases
 from tmol_jax.score.common.count_pair import pairwise_bonded_path_length
 
 from tmol_jax.score.energy_term import EnergyTerm
@@ -392,7 +393,7 @@ class LKBallEnergyTerm(EnergyTerm):
             return place_waters_for_polar_atom(
                 coord=coords[i],
                 is_donor=is_donor[i],
-                is_acceptor=is_acceptor[i],
+                is_acceptor=is_acceptor[i] * (B_idx[i] != B0_idx[i]),
                 hybridization=acc_hybridization[i],
                 n_attached_H=n_attached_H[i],
                 H_coords=H_coords[i],
@@ -485,12 +486,9 @@ class LKBallEnergyTerm(EnergyTerm):
         ``lkball_bt_lk_lambda``, ``lkball_bt_lk_volume``) ready for the
         pure-JAX scatter in :func:`_lkball_pose_palette_jit`.
         """
-        if hasattr(pbt, "lkball_bt_lj_radius"):
+        ljlk = self.param_db.scoring.ljlk
+        if getattr(pbt, "_lkball_ljlk_database", None) is ljlk:
             return
-        try:
-            ljlk = self.param_db.scoring.ljlk
-        except AttributeError as e:
-            raise _LKBallSetupUnavailable("param_db.scoring.ljlk not available") from e
 
         type_params = list(ljlk.atom_type_parameters)
         type_names = [p.name for p in type_params]
@@ -529,6 +527,7 @@ class LKBallEnergyTerm(EnergyTerm):
         setattr(pbt, "lkball_bt_lk_dgfree", jnp.asarray(_gather(lk_dgfree_table)))
         setattr(pbt, "lkball_bt_lk_lambda", jnp.asarray(_gather(lk_lambda_table)))
         setattr(pbt, "lkball_bt_lk_volume", jnp.asarray(_gather(lk_volume_table)))
+        pbt._lkball_ljlk_database = ljlk
 
     def _annotate_pbt_polar_flags(self, pbt: Any) -> None:
         """Cache per-BT polar-flag tables on ``pbt`` once.
@@ -571,173 +570,55 @@ class LKBallEnergyTerm(EnergyTerm):
             jnp.asarray(is_hydrogen_per_block),
         )
 
-    def _annotate_pbt_acceptor_bases(self, pbt: Any, max_H_per_donor: int) -> None:
-        """Cache per-BT acceptor-base / donor-H tables on ``pbt``.
-
-        These are a pure function of the palette: each block type's
-        intra-residue bond graph and per-atom-type flags determine (for
-        every atom) its acceptor B/B0 (local indices) and its attached
-        polar hydrogen list. The scatter into per-pose coords is done
-        below with pure-JAX gathers — no Python loops on the hot path.
-
-        Attached attributes on ``pbt`` (all ``int32``):
-
-        * ``lkball_bt_B_local``   ``[n_types, max_atoms_block]``
-        * ``lkball_bt_B0_local``  ``[n_types, max_atoms_block]``
-        * ``lkball_bt_acc_hyb``   ``[n_types, max_atoms_block]``
-        * ``lkball_bt_H_local``   ``[n_types, max_atoms_block, max_H_per_donor]``
-        * ``lkball_bt_n_H``       ``[n_types, max_atoms_block]``
-        """
-        attr = f"lkball_bt_B_local_k{max_H_per_donor}"
-        if hasattr(pbt, attr):
+    def _annotate_pbt_acceptor_bases(self, pbt, max_H_per_donor):
+        """Cache current native acceptor frames and attached polar hydrogens."""
+        suffix = f"_k{max_H_per_donor}"
+        if hasattr(pbt, "lkball_bt_B_local" + suffix):
             return
-
-        chem_db = pbt.chem_db
-        atom_types_list = list(chem_db.atom_types)
-        atype_is_donor = np.asarray([a.is_donor for a in atom_types_list], dtype=bool)
-        atype_is_acceptor = np.asarray(
-            [a.is_acceptor for a in atom_types_list], dtype=bool
+        atom_types = pbt.chem_db.atom_types
+        donor = np.array([a.is_donor for a in atom_types])
+        acceptor = np.array([a.is_acceptor for a in atom_types])
+        polar_h = np.array([a.is_polarh for a in atom_types])
+        hydrogen = np.array([a.element == "H" for a in atom_types])
+        hybridization = np.array(
+            [_HYB_NAME_TO_INT.get(a.acceptor_hybridization, 0) for a in atom_types]
         )
-        atype_is_polarh = np.asarray([a.is_polarh for a in atom_types_list], dtype=bool)
-        atype_is_hydrogen = np.asarray(
-            [a.element == "H" for a in atom_types_list], dtype=bool
-        )
-        atype_hybridization = np.asarray(
-            [
-                _HYB_NAME_TO_INT.get(a.acceptor_hybridization, 0)
-                for a in atom_types_list
-            ],
-            dtype=np.int32,
-        )
-
-        n_types = int(pbt.n_types)
-        max_atoms_block = int(pbt.max_n_atoms)
-        pbt_n_atoms = np.asarray(pbt.n_atoms)
-        atom_types_pbt = np.asarray(pbt.atom_types)
-        bond_indices_pbt = np.asarray(pbt.bond_indices)
-        n_bonds_pbt = np.asarray(pbt.n_bonds)
-
-        B_local = np.full((n_types, max_atoms_block), -1, dtype=np.int32)
-        B0_local = np.full((n_types, max_atoms_block), -1, dtype=np.int32)
-        acc_hyb = np.zeros((n_types, max_atoms_block), dtype=np.int32)
-        H_local = np.full(
-            (n_types, max_atoms_block, max_H_per_donor), -1, dtype=np.int32
-        )
-        n_H = np.zeros((n_types, max_atoms_block), dtype=np.int32)
-
-        for bt in range(n_types):
-            n_ats = int(pbt_n_atoms[bt])
-            if n_ats <= 0:
-                continue
-            ats_here = atom_types_pbt[bt, :n_ats]
-
-            # Per-BT adjacency list (intra-block only; inter-block bonds
-            # are ignored for LK ball, matching the simplified port).
-            n_b = int(n_bonds_pbt[bt])
-            adj: list[list[int]] = [[] for _ in range(n_ats)]
-            for e in range(n_b):
-                a = int(bond_indices_pbt[bt, e, 0])
-                b = int(bond_indices_pbt[bt, e, 1])
-                if 0 <= a < n_ats and 0 <= b < n_ats:
-                    adj[a].append(b)
-
-            for local_i in range(n_ats):
-                at_i = int(ats_here[local_i])
-                if at_i < 0:
+        shape = (pbt.n_types, pbt.max_n_atoms)
+        base = np.full(shape, -1, dtype=np.int32)
+        second_base = np.full(shape, -1, dtype=np.int32)
+        hybrid = np.zeros(shape, dtype=np.int32)
+        attached = np.full(shape + (max_H_per_donor,), -1, dtype=np.int32)
+        types = np.asarray(pbt.atom_types)
+        bonds = np.asarray(pbt.bond_indices)
+        for bt, count in enumerate(np.asarray(pbt.n_atoms)):
+            kinds = types[bt, :count]
+            adjacency = [[] for _ in range(count)]
+            for a, b in bonds[bt, : int(pbt.n_bonds[bt])]:
+                if 0 <= a < count and 0 <= b < count:
+                    adjacency[a].append(int(b))
+            for atom, kind in enumerate(kinds):
+                if kind < 0:
                     continue
-
-                # Donor heavy -> attached polar Hs list.
-                if atype_is_donor[at_i] and not atype_is_hydrogen[at_i]:
-                    k = 0
-                    for nbr in adj[local_i]:
-                        at_nbr = int(ats_here[nbr])
-                        if at_nbr < 0:
-                            continue
-                        if atype_is_polarh[at_nbr]:
-                            if k < max_H_per_donor:
-                                H_local[bt, local_i, k] = nbr
-                                k += 1
-                    n_H[bt, local_i] = k
-
-                # Acceptor -> (B_local, B0_local) by hybridization rules.
-                if atype_is_acceptor[at_i]:
-                    hyb = int(atype_hybridization[at_i])
-                    acc_hyb[bt, local_i] = hyb
-
-                    bL = -1
-                    b0L = -1
-                    if hyb == 1:  # sp2
-                        for nbr in adj[local_i]:
-                            at_nbr = int(ats_here[nbr])
-                            if at_nbr < 0:
-                                continue
-                            if not atype_is_hydrogen[at_nbr]:
-                                bL = nbr
-                                break
-                        if bL >= 0:
-                            for nbr2 in adj[bL]:
-                                if nbr2 == local_i:
-                                    continue
-                                at_nbr2 = int(ats_here[nbr2])
-                                if at_nbr2 < 0:
-                                    continue
-                                b0L = nbr2
-                                break
-                    elif hyb == 2:  # sp3
-                        for nbr in adj[local_i]:
-                            at_nbr = int(ats_here[nbr])
-                            if at_nbr < 0:
-                                continue
-                            if atype_is_hydrogen[at_nbr]:
-                                b0L = nbr
-                                break
-                        for nbr in adj[local_i]:
-                            if nbr == b0L:
-                                continue
-                            at_nbr = int(ats_here[nbr])
-                            if at_nbr < 0:
-                                continue
-                            bL = nbr
-                            break
-                    elif hyb == 3:  # ring
-                        for nbr in adj[local_i]:
-                            at_nbr = int(ats_here[nbr])
-                            if at_nbr < 0:
-                                continue
-                            if atype_is_hydrogen[at_nbr]:
-                                continue
-                            if bL < 0:
-                                bL = nbr
-                            elif b0L < 0:
-                                b0L = nbr
-                                break
-
-                    if bL >= 0 and b0L < 0:
-                        b0L = bL
-                    B_local[bt, local_i] = bL
-                    B0_local[bt, local_i] = b0L
-
-        setattr(pbt, attr, jnp.asarray(B_local, dtype=jnp.int32))
-        setattr(
-            pbt,
-            f"lkball_bt_B0_local_k{max_H_per_donor}",
-            jnp.asarray(B0_local, dtype=jnp.int32),
-        )
-        setattr(
-            pbt,
-            f"lkball_bt_acc_hyb_k{max_H_per_donor}",
-            jnp.asarray(acc_hyb, dtype=jnp.int32),
-        )
-        setattr(
-            pbt,
-            f"lkball_bt_H_local_k{max_H_per_donor}",
-            jnp.asarray(H_local, dtype=jnp.int32),
-        )
-        setattr(
-            pbt,
-            f"lkball_bt_n_H_k{max_H_per_donor}",
-            jnp.asarray(n_H, dtype=jnp.int32),
-        )
+                if donor[kind] and not hydrogen[kind]:
+                    hydrogens = [n for n in adjacency[atom] if polar_h[kinds[n]]]
+                    if len(hydrogens) > max_H_per_donor:
+                        raise ValueError("polar hydrogen count exceeds water capacity")
+                    attached[bt, atom, : len(hydrogens)] = hydrogens
+                if acceptor[kind]:
+                    hybrid[bt, atom] = hybridization[kind]
+                    base[bt, atom], second_base[bt, atom] = acceptor_bases(
+                        atom,
+                        hybridization[kind],
+                        adjacency.__getitem__,
+                        is_hydrogen=lambda i: hydrogen[kinds[i]],
+                    )
+        for name, array in (
+            ("B_local", base),
+            ("B0_local", second_base),
+            ("acc_hyb", hybrid),
+            ("H_local", attached),
+        ):
+            setattr(pbt, "lkball_bt_" + name + suffix, jnp.asarray(array))
 
     def _per_atom_bonded_path_length(self, pose_stack: Any, pbt: Any) -> jax.Array:
         """Pose-level pairwise bonded path distance.
@@ -816,10 +697,6 @@ class LKBallEnergyTerm(EnergyTerm):
 # --------------------------------------------------------------------------- #
 # Internal helpers                                                             #
 # --------------------------------------------------------------------------- #
-
-
-class _LKBallSetupUnavailable(Exception):
-    """Required LK-ball parameter metadata is unavailable."""
 
 
 __all__ = [

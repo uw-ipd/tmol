@@ -88,7 +88,7 @@ memory remains substantially worse than native TMol. Setup took about 25
 seconds, with compilation adding further startup cost. Larger and mixed batches,
 disulfide validation, relaxation, and repacking remain unfinished.
 
-PDB loading uses the last model and Biotite's first alternate conformation.
+PDB loading uses the first model and Biotite's first alternate conformation.
 The Biotite frontend also accepts an AtomArrayStack for same-topology batches.
 Polymer connectivity follows chain labels; coordinate gaps do not automatically
 create chain breaks. Prepare chain boundaries explicitly in the input.

@@ -41,6 +41,7 @@ from typing import Any, Tuple
 import jax.numpy as jnp
 import numpy as np
 
+from tmol_jax.score.common.acceptor import acceptor_bases
 from tmol_jax.types import pytree_dataclass
 
 # --------------------------------------------------------------------- #
@@ -388,49 +389,6 @@ def _neighbors_of(
     return out
 
 
-def _resolve_icoor_ancestor(
-    anc_name: str,
-    bt_obj: Any,
-    bt: int,
-    block_ind: int,
-    bco: np.ndarray,
-    bti: np.ndarray,
-    n_atoms_per_type: np.ndarray,
-    conn_atoms_pbt: np.ndarray,
-    inter_residue_connections_pose: np.ndarray,
-) -> int:
-    """Return the global atom index of an icoor parent/grand_parent name.
-
-    The icoor tree can reference either an atom on this block (by atom
-    name) or a connection point (by connection name, typically ``"up"``
-    or ``"down"``). In the latter case, we follow the inter-residue
-    connection to the neighboring block's connection atom.
-
-    Returns ``-1`` if the name cannot be resolved (e.g. a truncated
-    chain where ``down`` on residue 0 has no partner).
-    """
-    # Atom on this block.
-    atom_idx = bt_obj.atom_to_idx.get(anc_name)
-    if atom_idx is not None:
-        return int(bco[block_ind]) + int(atom_idx)
-    # Connection name -> walk across the connection.
-    conn_to_cidx = bt_obj.connection_to_cidx
-    conn_id = conn_to_cidx.get(anc_name)
-    if conn_id is None or conn_id < 0:
-        return -1
-    nbr_block = int(inter_residue_connections_pose[block_ind, conn_id, 0])
-    nbr_conn_id = int(inter_residue_connections_pose[block_ind, conn_id, 1])
-    if nbr_block < 0 or nbr_conn_id < 0:
-        return -1
-    nbr_bt = int(bti[nbr_block])
-    if nbr_bt < 0:
-        return -1
-    nbr_conn_atom = int(conn_atoms_pbt[nbr_bt, nbr_conn_id])
-    if nbr_conn_atom < 0 or nbr_conn_atom >= int(n_atoms_per_type[nbr_bt]):
-        return -1
-    return int(bco[nbr_block]) + nbr_conn_atom
-
-
 def _pick_acceptor_bases(
     A_global: int,
     A_local: int,
@@ -448,82 +406,20 @@ def _pick_acceptor_bases(
     atom_types_pbt: np.ndarray,
     atype_is_hydrogen: np.ndarray,
 ) -> Tuple[int, int]:
-    """Return (B_global, B0_global) per upstream ``identification.hh``.
+    """Select current native acceptor frames across residue connections."""
+    del A_local, bt, block_ind, bt_obj
 
-    Bond-graph walk (mirrors ``BlockCentricAcceptorBases::for_acceptor``):
+    def locate(atom):
+        return _locate_atom(atom, bco, bti, n_atoms_per_type)
 
-    * sp2:  B = first heavy bonded to A; B0 = first neighbor of B != A
-            (the B-walk skips back-to-start-residue hops so chain-ends
-            see sensible frames).
-    * sp3:  B0 = first H bonded to A; B = first neighbor of A != B0.
-            The H anchors the softmax-faded BAH(B) + BAH(B0) blend used
-            by the sp3 potential.
-    * ring: B = first non-H bonded to A; B0 = next non-H neighbor of A,
-            != B. Both frame atoms are ring-flanking heavy atoms, matching
-            the convention the polynomial tables were fit against.
-
-    Returns ``(-1, -1)`` when the rule can't be satisfied. Falls back to
-    the icoor tree for ring acceptors only if the bond-graph walk fails
-    (e.g. a truncated residue with a single ring neighbor left).
-    """
-
-    def is_h(global_idx: int) -> bool:
-        # Identify hydrogen by looking up the atom-type element flag
-        # through (block, local-atom). Cheap branch: try the current
-        # block + neighbors first; fall back to a linear scan.
-        for b_candidate in (block_ind, block_ind - 1, block_ind + 1):
-            if b_candidate < 0 or b_candidate >= bti.shape[0]:
-                continue
-            bt_c = int(bti[b_candidate])
-            if bt_c < 0:
-                continue
-            start_off = int(bco[b_candidate])
-            n_c = int(n_atoms_per_type[bt_c])
-            if start_off <= global_idx < start_off + n_c:
-                local = global_idx - start_off
-                atype_c = int(atom_types_pbt[bt_c, local])
-                return bool(atype_is_hydrogen[atype_c]) if atype_c >= 0 else False
-        for b_candidate in range(bti.shape[0]):
-            bt_c = int(bti[b_candidate])
-            if bt_c < 0:
-                continue
-            start_off = int(bco[b_candidate])
-            n_c = int(n_atoms_per_type[bt_c])
-            if start_off <= global_idx < start_off + n_c:
-                local = global_idx - start_off
-                atype_c = int(atom_types_pbt[bt_c, local])
-                return bool(atype_is_hydrogen[atype_c]) if atype_c >= 0 else False
-        return False
-
-    nbrs_A = _neighbors_of(
-        bt,
-        A_local,
-        block_ind,
-        bco,
-        bti,
-        all_bonds_pbt,
-        atom_all_bond_ranges_pbt,
-        conn_atoms_pbt,
-        n_atoms_per_type,
-        inter_residue_connections_pose,
-    )
-
-    if hybridization == HYBRIDIZATION_SP2:
-        B = -1
-        for nbr in nbrs_A:
-            if not is_h(nbr):
-                B = nbr
-                break
-        if B < 0:
-            return (-1, -1)
-
-        b_block, b_bt, b_local = _locate_atom(B, bco, bti, n_atoms_per_type)
-        if b_block < 0:
-            return (-1, -1)
-        nbrs_B = _neighbors_of(
-            b_bt,
-            b_local,
-            b_block,
+    def neighbors(atom):
+        owner, kind, local = locate(atom)
+        if owner < 0:
+            return ()
+        return _neighbors_of(
+            kind,
+            local,
+            owner,
             bco,
             bti,
             all_bonds_pbt,
@@ -532,97 +428,21 @@ def _pick_acceptor_bases(
             n_atoms_per_type,
             inter_residue_connections_pose,
         )
-        B0 = -1
-        for nbr in nbrs_B:
-            nbr_block, _, _ = _locate_atom(nbr, bco, bti, n_atoms_per_type)
-            # Matches the upstream "skip back-to-start-residue" guard:
-            # if the walk has already left A's block, we don't want to
-            # step back onto it for B0 (avoids degenerate frames when a
-            # neighboring block is being redesigned).
-            if b_block != block_ind and nbr_block == block_ind:
-                continue
-            if nbr != A_global:
-                B0 = nbr
-                break
-        if B0 < 0:
-            return (-1, -1)
-        return (B, B0)
 
-    if hybridization == HYBRIDIZATION_SP3:
-        # First H neighbor is B0; first non-B0 neighbor is B.
-        # This matches upstream ``BlockCentricAcceptorBases::sp3_acceptor_base``
-        # exactly: the softmax-faded BAH blend evaluates against B (the
-        # heavy-atom frame) and B0 (the proton-frame), and at canonical
-        # hbond geometries one of the two gets a favourable polynomial
-        # value while the other fades out.
-        B0 = -1
-        for nbr in nbrs_A:
-            if is_h(nbr):
-                B0 = nbr
-                break
-        if B0 < 0:
-            return (-1, -1)
-        B = -1
-        for nbr in nbrs_A:
-            if nbr != B0:
-                B = nbr
-                break
-        if B < 0:
-            return (-1, -1)
-        return (B, B0)
+    def is_hydrogen(atom):
+        owner, kind, local = locate(atom)
+        if owner < 0:
+            return False
+        atom_type = int(atom_types_pbt[kind, local])
+        return atom_type >= 0 and bool(atype_is_hydrogen[atom_type])
 
-    if hybridization == HYBRIDIZATION_RING:
-        # First non-H neighbor is B; next non-H neighbor (!= B) is B0.
-        # This keeps both frame atoms in the ring — the icoor grand_parent
-        # for some ring nitrogens (e.g. HIS ND1) walks out of the ring to
-        # the sidechain stem, which rotates the BAH axis off-canonical.
-        B = -1
-        for nbr in nbrs_A:
-            if not is_h(nbr):
-                B = nbr
-                break
-        if B < 0:
-            return (-1, -1)
-        B0 = -1
-        for nbr in nbrs_A:
-            if nbr != B and not is_h(nbr):
-                B0 = nbr
-                break
-        if B0 >= 0:
-            return (B, B0)
-        # Fallback: icoor tree. Covers truncated rings that only have one
-        # heavy neighbor of A in the bond graph (rare, but upstream
-        # behaviour is "fall through to something rather than drop").
-        at_to_icoor_ind = bt_obj.at_to_icoor_ind
-        icoor_idx = int(at_to_icoor_ind[A_local])
-        icoor = bt_obj.icoors[icoor_idx]
-        B_icoor = _resolve_icoor_ancestor(
-            icoor.parent,
-            bt_obj,
-            bt,
-            block_ind,
-            bco,
-            bti,
-            n_atoms_per_type,
-            conn_atoms_pbt,
-            inter_residue_connections_pose,
-        )
-        B0_icoor = _resolve_icoor_ancestor(
-            icoor.grand_parent,
-            bt_obj,
-            bt,
-            block_ind,
-            bco,
-            bti,
-            n_atoms_per_type,
-            conn_atoms_pbt,
-            inter_residue_connections_pose,
-        )
-        if B_icoor < 0 or B0_icoor < 0:
-            return (-1, -1)
-        return (B_icoor, B0_icoor)
-
-    return (-1, -1)
+    return acceptor_bases(
+        A_global,
+        hybridization,
+        neighbors,
+        is_hydrogen,
+        block=lambda atom: locate(atom)[0],
+    )
 
 
 def _locate_atom(
@@ -665,41 +485,26 @@ def _hbond_per_bt_cache(
     np.ndarray,  # acc_hyb, n_accs_per_bt
     np.ndarray,  # acc_mask
 ]:
-    """Palette-level cache of per-BT donor / acceptor lists.
-
-    Returns padded numpy arrays keyed by block type so the per-pose
-    identification loop is a pure index-offset scatter — no per-pose
-    bond-graph walk, no Python per-acceptor hybridization branch.
-
-    Layout:
-
-    ``donor_local`` ``int32[n_types, max_n_donors, 2]``
-        Per-BT list of (polar_H_local, donor_heavy_local) pairs.
-    ``donor_type`` ``int32[n_types, max_n_donors]``
-    ``n_donors_per_bt`` ``int32[n_types]``
-    ``donor_mask`` ``bool[n_types, max_n_donors]``
-    ``acc_local`` ``int32[n_types, max_n_acceptors, 3]``
-        Per-BT list of (A_local, B_local, B0_local). ``-1`` sentinels
-        flag "B lives via an inter-residue connection" — the per-pose
-        path resolves those using
-        :func:`_resolve_icoor_ancestor` semantics.
-    ``acc_type`` ``int32[n_types, max_n_acceptors]``
-    ``acc_hyb`` ``int32[n_types, max_n_acceptors]``
-    ``n_accs_per_bt`` ``int32[n_types]``
-    ``acc_mask`` ``bool[n_types, max_n_acceptors]``
-
-    Acceptors whose B / B0 walk requires an inter-residue connection
-    are stored with the appropriate ``-1`` sentinel in ``acc_local``;
-    the per-pose code then runs the full
-    :func:`_pick_acceptor_bases` path for those few cases only.
-    """
+    """Cache donor and acceptor frames for this chemistry and HBond mapping."""
     cache_attr = "_hbond_per_bt_cache"
+    donor_mapping = tuple(sorted(atype_to_don_type.items()))
+    acceptor_mapping = tuple(sorted(atype_to_acc_type.items()))
     cached = getattr(pbt, cache_attr, None)
-    if cached is not None:
-        return cached
+    if (
+        cached is not None
+        and cached[0] is chemical_db
+        and cached[1:3] == (donor_mapping, acceptor_mapping)
+    ):
+        return cached[3]
 
     atom_types_list = list(chemical_db.atom_types)
-    atype_is_donor = np.asarray([a.is_donor for a in atom_types_list], dtype=bool)
+    donor_type_by_atom = np.asarray(
+        [
+            atype_to_don_type.get(a.name, -1) if a.is_donor else -1
+            for a in atom_types_list
+        ],
+        dtype=np.int32,
+    )
     atype_is_acceptor = np.asarray([a.is_acceptor for a in atom_types_list], dtype=bool)
     atype_is_polarh = np.asarray([a.is_polarh for a in atom_types_list], dtype=bool)
     atype_is_hydrogen = np.asarray(
@@ -730,8 +535,6 @@ def _hbond_per_bt_cache(
 
     for bt in range(n_types):
         n_ats = int(n_atoms_per_type[bt])
-        if n_ats <= 0:
-            continue
         ats_here = atom_types_pbt[bt, :n_ats]
 
         n_b = int(n_bonds_pbt[bt])
@@ -747,17 +550,18 @@ def _hbond_per_bt_cache(
                 continue
 
             if atype_is_polarh[atype_idx]:
-                for nbr in adj[local_i]:
-                    nbr_atype = int(ats_here[nbr])
-                    if nbr_atype < 0:
-                        continue
-                    if atype_is_donor[nbr_atype]:
-                        dtype_name = atype_name_by_idx[nbr_atype]
-                        d_idx = atype_to_don_type.get(dtype_name, -1)
-                        if d_idx == -1:
-                            continue
-                        donors_per_bt[bt].append((local_i, nbr, d_idx))
-                        break
+                donor = next(
+                    (
+                        n
+                        for n in adj[local_i]
+                        if ats_here[n] >= 0 and donor_type_by_atom[ats_here[n]] >= 0
+                    ),
+                    -1,
+                )
+                if donor >= 0:
+                    donors_per_bt[bt].append(
+                        (local_i, donor, donor_type_by_atom[ats_here[donor]])
+                    )
 
             if atype_is_acceptor[atype_idx]:
                 aname = atype_name_by_idx[atype_idx]
@@ -819,10 +623,7 @@ def _hbond_per_bt_cache(
         n_accs_per_bt,
         acc_mask,
     )
-    try:
-        setattr(pbt, cache_attr, result)
-    except (AttributeError, TypeError):
-        pass  # frozen pbt; re-compute on next call is fine
+    setattr(pbt, cache_attr, (chemical_db, donor_mapping, acceptor_mapping, result))
     return result
 
 
@@ -833,84 +634,13 @@ def _pick_intra_block_acceptor_bases(
     ats_here: np.ndarray,
     atype_is_hydrogen: np.ndarray,
 ) -> Tuple[int, int]:
-    """Port of :func:`_pick_acceptor_bases` restricted to intra-block bonds.
-
-    Returns ``(bL, b0L)`` as local-atom indices (or ``-1``) within the
-    block. This skips the inter-residue connection fallback; callers
-    that hit a ``-1`` result must re-run the full walk for that
-    acceptor in the per-pose path.
-    """
-    nbrs = adj[local_i]
-    if hyb == HYBRIDIZATION_SP2:
-        bL = -1
-        for nbr in nbrs:
-            at_nbr = int(ats_here[nbr])
-            if at_nbr < 0:
-                continue
-            if not atype_is_hydrogen[at_nbr]:
-                bL = nbr
-                break
-        if bL < 0:
-            return (-1, -1)
-        b0L = -1
-        for nbr2 in adj[bL]:
-            if nbr2 == local_i:
-                continue
-            at_nbr2 = int(ats_here[nbr2])
-            if at_nbr2 < 0:
-                continue
-            b0L = nbr2
-            break
-        return (bL, b0L)
-
-    if hyb == HYBRIDIZATION_SP3:
-        b0L = -1
-        for nbr in nbrs:
-            at_nbr = int(ats_here[nbr])
-            if at_nbr < 0:
-                continue
-            if atype_is_hydrogen[at_nbr]:
-                b0L = nbr
-                break
-        if b0L < 0:
-            return (-1, -1)
-        bL = -1
-        for nbr in nbrs:
-            if nbr != b0L:
-                at_nbr = int(ats_here[nbr])
-                if at_nbr < 0:
-                    continue
-                bL = nbr
-                break
-        if bL < 0:
-            return (-1, -1)
-        return (bL, b0L)
-
-    if hyb == HYBRIDIZATION_RING:
-        bL = -1
-        for nbr in nbrs:
-            at_nbr = int(ats_here[nbr])
-            if at_nbr < 0:
-                continue
-            if not atype_is_hydrogen[at_nbr]:
-                bL = nbr
-                break
-        if bL < 0:
-            return (-1, -1)
-        b0L = -1
-        for nbr in nbrs:
-            if nbr != bL:
-                at_nbr = int(ats_here[nbr])
-                if at_nbr < 0:
-                    continue
-                if not atype_is_hydrogen[at_nbr]:
-                    b0L = nbr
-                    break
-        # ring fallback (icoor tree) is handled per-pose, mark as -1
-        # so the caller knows to re-run the full walk.
-        return (bL, b0L)
-
-    return (-1, -1)
+    """Select frames from known intra-residue bonds."""
+    return acceptor_bases(
+        local_i,
+        hyb,
+        neighbors=lambda atom: (i for i in adj[atom] if ats_here[i] >= 0),
+        is_hydrogen=lambda atom: atype_is_hydrogen[ats_here[atom]],
+    )
 
 
 def _identify_donors_acceptors_for_pose(

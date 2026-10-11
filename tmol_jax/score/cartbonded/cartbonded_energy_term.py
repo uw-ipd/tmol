@@ -794,21 +794,7 @@ class CartBondedEnergyTerm(EnergyTerm):
     def setup_for_pose_stack(
         self, pose_stack: Any, pbt: Any = None
     ) -> CartBondedTermState:
-        """Build padded per-pose arrays of atom indices + params + masks.
-
-        Global atom indices are computed as
-        ``block_coord_offset[pose, block] + local_atom_idx`` for each
-        subgraph entry of the block type assigned to ``(pose, block)``;
-        padding blocks (``block_type_ind < 0``) and padding subgraph
-        slots (entry indices beyond the real count) are masked out.
-
-        We also mask out any subgraph that references a "phantom" atom
-        -- an atom whose pose coordinate is exactly ``(0, 0, 0)`` or
-        non-finite. These occur when the PDB parser leaves a slot
-        empty (e.g. the backbone ``H`` atom on the N-terminal residue
-        when the palette has no N-term patch). Upstream tmol avoids
-        this via distinct termini block types; we filter at setup time.
-        """
+        """Map valid bonded subgraphs into each pose, excluding padding."""
         if pbt is None:
             pbt = pose_stack.packed_block_types
         tables = self._build_pbt_tables(pbt)
@@ -837,7 +823,7 @@ class CartBondedEnergyTerm(EnergyTerm):
             # Shift local atom indices to global atom indices within the
             # pose's coord slab. Padding slots keep -1.
             offsets = block_coord_offset[:, :, None, None]  # [P, B, 1, 1]
-            valid = atoms_pb >= 0
+            valid = (atoms_pb >= 0) & mask_pb[..., None]
             atoms_global = np.where(valid, atoms_pb + offsets, -1).astype(np.int32)
 
             # Invalidate subgraphs that reference a missing atom. Use
@@ -851,7 +837,7 @@ class CartBondedEnergyTerm(EnergyTerm):
             # For real atom slots, require present; for padding slots
             # (atoms_global == -1) they already won't produce spurious
             # contributions because the mask is ANDed below.
-            all_atoms_present = np.all(atoms_present_per, axis=-1)  # [P, B, K]
+            all_atoms_present = np.all(valid & atoms_present_per, axis=-1)  # [P, B, K]
             mask_pb = mask_pb & all_atoms_present
 
             return atoms_global, params_pb.astype(np.float32), mask_pb.astype(bool)
@@ -926,9 +912,7 @@ class CartBondedEnergyTerm(EnergyTerm):
                             atoms_list[pose].append(g)
                             params_list[pose].append(params)
 
-        # Mask out inter-residue subgraphs that reference a "phantom"
-        # atom (coord exactly zero or non-finite), mirroring the intra-
-        # residue ``_gather`` logic. Same BLI / terminus rationale.
+        # Inter-residue subgraphs also require real topology atoms.
         def _mask_missing(atoms: np.ndarray, mask: np.ndarray) -> np.ndarray:
             if atoms.size == 0:
                 return mask

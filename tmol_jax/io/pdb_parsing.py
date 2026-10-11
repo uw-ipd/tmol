@@ -30,7 +30,7 @@ def _records_from_biotite(atoms):
 def parse_pdb(pdb_input):
     """Read a path, PDB text, or lines into per-atom NumPy arrays.
 
-    For a multi-model file, use the last model, matching TMol's PDB loader.
+    For a multi-model file, use the first model, matching TMol's PDB loader.
     Biotite selects the first alternate conformation for each residue.
     Malformed structures raise the parser's error rather than being repaired.
     """
@@ -48,7 +48,7 @@ def parse_pdb(pdb_input):
         extra_fields=["occupancy", "b_factor"]
     )
     if isinstance(atoms, struc.AtomArrayStack):
-        atoms = atoms[-1]
+        atoms = atoms[0]
     return _records_from_biotite(atoms)
 
 
