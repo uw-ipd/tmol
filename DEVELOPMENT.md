@@ -151,12 +151,18 @@ pip install "torch==2.10.*" --index-url https://download.pytorch.org/whl/cu128
 
 # Install a release wheel from GitHub
 pip install https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.10-cp312-cp312-manylinux_2_28_x86_64.whl
+```
 
-# Or install a specific branch/tag from source
-pip install git+https://github.com/uw-ipd/tmol.git@vX.Y.Z
+Release wheels omit tests and fixtures. Use the [Quickstart](docs/quickstart.md)
+to check an installed wheel. The full test suite remains in source checkouts
+and source distributions; to test a release from source, use its matching tag:
 
-# Run tests against it
-pytest --pyargs tmol.tests -v
+```bash
+git clone --branch vX.Y.Z https://github.com/uw-ipd/tmol.git tmol-release
+cd tmol-release
+python -m pip install "scikit-build-core>=0.10" "cmake>=3.24,<4" pybind11 ninja packaging
+python -m pip install --no-build-isolation -e ".[dev]" -Ccmake.define.TMOL_BUILD_TESTS=ON
+python -m pytest tmol/tests -v
 ```
 
 On Google Colab (Python 3.12 or 3.13, PyTorch 2.11, Turing T4), use the

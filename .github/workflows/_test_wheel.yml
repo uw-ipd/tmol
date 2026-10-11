@@ -27,6 +27,9 @@ on:
       torch-index-url:
         type: string
         default: https://pypi.org/simple
+      pypi-cuda:
+        type: boolean
+        default: false
       portability:
         type: boolean
         default: false
@@ -61,11 +64,15 @@ jobs:
       - name: Install via pip and score with native extensions
         env:
           DEFAULT_TORCH: ${{ inputs.default-torch }}
+          PYPI_CUDA: ${{ inputs.pypi-cuda }}
         shell: bash
         run: |
           args=()
           if [ "$DEFAULT_TORCH" = true ]; then
             args+=(--default-torch)
+          fi
+          if [ "$PYPI_CUDA" = true ]; then
+            args+=(--pypi-cuda)
           fi
           python scripts/test_package_install.py --wheel wheels/*.whl \
             --torch-version '${{ inputs.torch-package-version }}' \

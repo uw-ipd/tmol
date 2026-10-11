@@ -234,7 +234,38 @@ def test_release_matrix_drives_publish_smoke_and_manifest():
     assert cuda_smoke["with"]["cuda-archs"] == "all"
     assert {
         row["torch-version"] for row in cuda_smoke["strategy"]["matrix"]["include"]
-    } == {"2.8", "2.14"}
+    } == {"2.8", "2.13", "2.14"}
+
+
+def test_renamed_cuda_candidate_uses_shared_install_gate_for_pr_and_manual_builds():
+    smoke = _workflow(".github/workflows/wheel-smoke.yml")
+    jobs = smoke["jobs"]
+    built = {
+        row["torch-version"]: row["torch-index-url"]
+        for row in jobs["build-linux-cuda"]["strategy"]["matrix"]["include"]
+    }
+    installed = {
+        row["torch"]: f"https://download.pytorch.org/whl/cu{row['cuda']}"
+        for row in jobs["test-linux-cuda"]["strategy"]["matrix"]["include"]
+    }
+    assert built == installed
+    candidate = jobs["test-pypi-cuda"]
+    assert candidate["uses"] == "./.github/workflows/_test_wheel.yml"
+    assert candidate["needs"] == ["build-linux-cuda", "build"]
+    assert "!cancelled()" in candidate["if"]
+    assert (
+        "needs.build-linux-cuda.result == 'success' || needs.build.result == 'success'"
+        in candidate["if"]
+    )
+    assert candidate["with"]["pypi-cuda"] is True
+    assert candidate["with"]["local-tag"] == "cu130torch2.13"
+    assert candidate["with"]["python-tag"] == "312"
+    assert any(
+        row["local-tag"] == "cu130torch2.13"
+        and row["python-tag"] == "312"
+        and row["arch"] == "x86_64"
+        for row in _load_release_matrix().linux_wheel_rows()
+    )
 
 
 def test_docs_workflow_uses_hosted_cpu_and_gpu_ci_executes_gpu_cells():
@@ -267,4 +298,9 @@ def test_smoke_jobs_supply_the_release_torch_patch_for_every_lane():
             assert row["torch-package-version"] == versions[row["torch-version"]]
         install = jobs[f"test-{platform}"]
         assert install["uses"] == "./.github/workflows/_test_wheel.yml"
-        assert install["with"]["torch-package-version"] == versions["2.14"]
+        if platform == "linux-cuda":
+            assert install["with"]["torch-package-version"] == "${{ matrix.package }}"
+            for row in install["strategy"]["matrix"]["include"]:
+                assert row["package"] == versions[row["torch"]]
+        else:
+            assert install["with"]["torch-package-version"] == versions["2.14"]

@@ -456,6 +456,7 @@ jobs:
             if [ "${{ inputs.enable-cuda }}" = "true" ]; then
               '"${TARGET_VENV}"'/bin/pip wheel . --no-build-isolation --no-deps -w dist \
                 -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
+                -Ccmake.define.CMAKE_CUDA_FLAGS=--compress-mode=size \
                 "${CUDA_COMPILER_DEFINE[@]}" \
                 -Ccmake.define.pybind11_DIR="${PYBIND11_CMAKE_DIR}" \
                 -Ccmake.define.TMOL_NVCC_THREADS=1
@@ -531,6 +532,17 @@ jobs:
             chmod +x scripts/repair_linux_wheel.sh
             scripts/repair_linux_wheel.sh dist
           '
+
+      - name: Check PyPI CUDA wheel size
+        if: inputs.enable-cuda && inputs.torch-version == '2.13'
+        run: |
+          if [ "$WHEEL_LOCAL_TAG" = cu130torch2.13 ]; then
+            set -- dist/*.whl
+            test "$#" -eq 1
+            bytes=$(wc -c < "$1")
+            echo "PyPI CUDA wheel: $bytes bytes"
+            test "$bytes" -le 100000000
+          fi
 
       - name: Record wheel name
         run: |

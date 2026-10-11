@@ -13,11 +13,13 @@ from tmol.io import pose_stack_from_pdb
 from tmol.score import beta2016_score_function
 
 parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--distribution", default="tmol")
 parser.add_argument("--version", required=True)
 parser.add_argument("--pdb", type=Path, required=True)
 parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
 args = parser.parse_args()
-assert version("tmol") == args.version, version("tmol")
+assert version(args.distribution) == args.version, version(args.distribution)
+assert tmol.__version__ == args.version, tmol.__version__
 assert Path(tmol.__file__).resolve().is_relative_to(Path(sys.prefix).resolve())
 _ensure_loaded()
 assert _find_extension_library()
@@ -29,4 +31,6 @@ score = scorer(coords)
 assert score.numel() == 1 and torch.isfinite(score).all(), score
 score.sum().backward()
 assert coords.grad is not None and torch.isfinite(coords.grad).all()
-print(f"tmol {version('tmol')}, torch {torch.__version__}, {device}: {score.tolist()}")
+print(
+    f"{args.distribution} {tmol.__version__}, torch {torch.__version__}, {device}: {score.tolist()}"
+)
