@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tmol-jax"
+dynamic = ["version"]
+description = "JAX molecular scoring frontend for TMol"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.12"
+dependencies = [
+    "jax>=0.11.2", "numpy>=1.25", "scipy>=1.13.1", "attrs>=21",
+    "pyyaml>=6", "networkx>=3", "pandas>=2.2,<4", "biotite>=1.6,<2",
+]
+
+[project.optional-dependencies]
+cu12 = ["jax[cuda12]>=0.11.2"]
+cu13 = ["jax[cuda13]>=0.11.2"]
+
+[project.urls]
+Repository = "https://github.com/uw-ipd/tmol"
+Documentation = "https://uw-ipd.github.io/tmol/"
+
+[tool.setuptools.dynamic]
+version = {file = "VERSION"}
+
+[tool.setuptools.packages.find]
+include = ["tmol_jax*"]
+
+[tool.setuptools.package-data]
+tmol_jax = ["NOTICE", "database/default/**/*.yaml", "database/default/**/*.npz", "database/default/score_functions/*.sfxn"]

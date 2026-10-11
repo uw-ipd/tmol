@@ -7,7 +7,7 @@ repos:
         files: \.(c|cc|cpp|h|hh|cu|cuh)$
         exclude: >
             (?x)^(
-                tmol/extern/.* |
+                tmol(?:_jax)?/extern/.* |
                 dev/.* 
             )$
   - repo: https://github.com/psf/black
@@ -16,7 +16,7 @@ repos:
       - id: black
         exclude: >
             (?x)^(
-                tmol/extern/.* |
+                tmol(?:_jax)?/extern/.* |
                 dev/.* |
                 \.conda/.*
             )$
@@ -26,7 +26,7 @@ repos:
       - id: flake8
         exclude: >
             (?x)^(
-                tmol/extern/.* |
+                tmol(?:_jax)?/extern/.* |
                 dev/.* |
                 \.venv/.*
             )$
