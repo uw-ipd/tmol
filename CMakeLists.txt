@@ -255,6 +255,11 @@ endif()
 function(tmol_set_portable_link_flags TARGET)
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_options(${TARGET} PRIVATE "-Wl,--as-needed")
+    # Resolve the C++ runtime before Torch's incidental template exports.
+    # Otherwise an extension can silently depend on its build Torch's STL.
+    if("stdc++" IN_LIST CMAKE_CXX_IMPLICIT_LINK_LIBRARIES)
+      target_link_libraries(${TARGET} PRIVATE stdc++)
+    endif()
   endif()
 endfunction()
 
