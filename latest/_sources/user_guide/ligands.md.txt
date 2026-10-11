@@ -28,14 +28,15 @@ same preparation path:
 | Covalent conjugate | `covalent_fixtures/lys_biotin_1bdo.cif` (biotinylated lysine) |
 | Covalent inhibitor | `covalent_fixtures/peptide_inhibitor_7zv5.cif` |
 
-For example:
+These fixtures are available under `tmol/tests/data` in a source checkout or
+source distribution; release wheels omit tests and fixtures. For example, load
+your own mmCIF containing a nonstandard polymer:
 
 ```python
 import torch
 from tmol.io import atom_array_from_cif, pose_stack_from_biotite
-from tmol.tests.data import data_path
 
-array = atom_array_from_cif(data_path("ncaa_fixtures", "collagen_hyp_1bkv.cif"))
+array = atom_array_from_cif("modified_polymer.cif")
 pose, context = pose_stack_from_biotite(
     array, torch.device("cuda"), prepare_ligands=True, return_context=True
 )

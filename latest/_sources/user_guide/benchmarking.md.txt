@@ -31,7 +31,39 @@ The meta-revision `TREE` means the current working tree:
 dev/bin/compare_benchmark tmol/tests/score -k cuda-full-lk_ball -- TREE HEAD
 ```
 
-Ancillary benchmark plots live near the tests as `plot_*.py` scripts.
+Run the wrapper from an activated development environment with the required
+build dependencies, PyTorch, and `tmol[dev]` dependencies installed. Each revision
+gets an isolated source checkout, virtual environment, native build, and JIT
+cache. Installed dependencies are shared from the calling environment, but its
+editable-install hooks are not loaded. Dependency changes between revisions
+therefore require a separate matched dependency environment.
+
+`TREE` includes staged and unstaged tracked edits, tracked deletions, and
+non-ignored untracked files. Ignored build products are excluded. The caller's
+branch, index, local changes, and stash are never modified. Revisions run in the
+requested order; reverse the order on a second run to check for machine drift.
+Without revision arguments the comparison is `TREE HEAD`; one revision argument
+compares `TREE` with that revision.
+
+The tool prints a results directory containing per-revision JSON, build/test
+logs, a source manifest, and `comparison.txt`. These files remain available after
+failure; temporary source checkouts and environments are removed. Choose a new
+output directory with `--benchmark-outdir` before the pytest selectors:
+
+```bash
+dev/bin/compare_benchmark --benchmark-outdir /tmp/tmol-comparison \
+  tmol/tests/score -k cuda-full-lk_ball -- TREE HEAD
+```
+
+Build and test failures, including runs with no recorded benchmark samples,
+stop the comparison with a nonzero exit status. The manifest records commit IDs
+and a digest of `TREE` edits; logs include the installed dependencies and PyTorch build configuration. Keep input, dtype,
+thread counts, device, and benchmark settings fixed between revisions. CUDA
+benchmarks must warm up and synchronize timed work. These rebuilds can take
+substantial time; use the ordinary benchmark wrapper for repeated runs of an
+already-built checkout.
+
+Ancillary benchmark plots live near the tests as `_plot_*.py` scripts.
 
 ## Profiling
 
