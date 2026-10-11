@@ -24,6 +24,7 @@ from packaging.utils import (
     parse_wheel_filename,
 )
 
+from pypi_cuda_wheels import pypi_gpu_wheel
 from release_artifacts import public_cpu_wheel, validate_wheel, write_index
 from staging_index import serve
 
@@ -43,8 +44,15 @@ def main():
     parser.add_argument("--torch-version", required=True)
     parser.add_argument("--torch-index", default="https://pypi.org/simple")
     parser.add_argument("--default-torch", action="store_true")
+    parser.add_argument(
+        "--pypi-cuda",
+        action="store_true",
+        help="Repackage and test the renamed CUDA 13 / Torch 2.13 PyPI candidate",
+    )
     parser.add_argument("--device", default="cpu", choices=("cpu", "cuda"))
     args = parser.parse_args()
+    if args.pypi_cuda and not args.wheel:
+        parser.error("--pypi-cuda requires --wheel")
     with tempfile.TemporaryDirectory(prefix="tmol-install-") as temp:
         work = Path(temp)
         files = work / "files"
@@ -69,16 +77,18 @@ def main():
                 if "extra ==" not in r
             }
             assert actual == expected, actual ^ expected
-            if local and local.startswith("cpu"):
+            if args.pypi_cuda:
+                artifact = pypi_gpu_wheel(args.wheel, files)
+            elif local and local.startswith("cpu"):
                 artifact = public_cpu_wheel(args.wheel, files)
             else:
                 artifact = files / args.wheel.name
                 shutil.copy2(args.wheel, artifact)
-            version = parse_wheel_filename(artifact.name)[1]
+            distribution, version, _, _ = parse_wheel_filename(artifact.name)
         else:
             artifact = files / args.sdist.name
             shutil.copy2(args.sdist, artifact)
-            version = parse_sdist_filename(artifact.name)[1]
+            distribution, version = parse_sdist_filename(artifact.name)
             local = None
         venv.EnvBuilder(with_pip=True).create(work / "env")
         python = work / "env/bin/python"
@@ -106,7 +116,9 @@ def main():
             )
         with serve(work) as url:
             page = work / (
-                "variant/index.html" if version.local else "simple/tmol/index.html"
+                "variant/index.html"
+                if version.local
+                else f"simple/{distribution}/index.html"
             )
             write_index([artifact], page, f"{url}/files")
             selection = (
@@ -121,7 +133,7 @@ def main():
                     "-Ccmake.define.TMOL_ENABLE_CUDA=OFF",
                 ]
                 if args.sdist
-                else ["--only-binary=tmol"]
+                else [f"--only-binary={distribution}"]
             )
             environment = dict(os.environ, MAX_JOBS=os.environ.get("MAX_JOBS", "2"))
             check(
@@ -134,13 +146,15 @@ def main():
                 *build,
                 "--report",
                 work / "install.json",
-                f"tmol=={version}",
+                f"{distribution}=={version}",
                 cwd=work,
                 env=environment,
             )
             report = json.loads((work / "install.json").read_text())
             installed = next(
-                item for item in report["install"] if item["metadata"]["name"] == "tmol"
+                item
+                for item in report["install"]
+                if canonicalize_name(item["metadata"]["name"]) == distribution
             )
             assert installed["download_info"]["url"].startswith(
                 f"{url}/files/"
@@ -166,6 +180,8 @@ def main():
             python,
             "-I",
             ROOT / "scripts/smoke_installed_package.py",
+            "--distribution",
+            distribution,
             "--version",
             version,
             "--pdb",
