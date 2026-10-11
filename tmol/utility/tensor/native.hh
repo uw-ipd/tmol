@@ -222,6 +222,9 @@ struct GradMode {
 #include <torch/csrc/stable/c/shim.h>
 #include <torch/csrc/stable/macros.h>
 #include <torch/headeronly/util/shim_utils.h>
+#ifndef STABLE_TORCH_ERROR_CODE_CHECK
+#define STABLE_TORCH_ERROR_CODE_CHECK TORCH_ERROR_CODE_CHECK
+#endif
 namespace tmol::native {
 using at::Device;
 using at::empty;
