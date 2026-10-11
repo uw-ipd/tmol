@@ -435,6 +435,9 @@ def test_cuda_annealer_reuses_order_workspace():
 @requires_cuda
 @pytest.mark.parametrize("chunk_size", [7, 16, 32])
 @pytest.mark.parametrize(
+    "side_stream", [False, True], ids=["current_stream", "side_stream"]
+)
+@pytest.mark.parametrize(
     "counts,edges",
     [
         (
@@ -445,15 +448,25 @@ def test_cuda_annealer_reuses_order_workspace():
     ],
     ids=["full_order_larger", "lite_order_larger"],
 )
-def test_cuda_annealer_sparse_transposes_have_exact_minimum(chunk_size, counts, edges):
+def test_cuda_annealer_sparse_transposes_have_exact_minimum(
+    chunk_size, side_stream, counts, edges
+):
     # Unequal rotamer counts, row degrees and pose lengths exercise transposed
     # chunk offsets, including partial chunks and padded rows.
     device = torch.device("cuda")
     metadata = graph_metadata(counts, device)
     indices, values = score_entries(metadata, edges)
     graph = staged_graph(metadata, [(indices, values)], chunk_size)
+    inputs = annealer_inputs(graph, chunk_size)
     torch.manual_seed(20261006)
-    scores, assignments = pack_anneal(*annealer_inputs(graph, chunk_size))
+    current_stream = torch.cuda.current_stream(device)
+    stream = torch.cuda.Stream(device=device) if side_stream else current_stream
+    # Metadata and converted inputs were produced on the current stream.
+    stream.wait_stream(current_stream)
+    with torch.cuda.stream(stream):
+        scores, assignments = pack_anneal(*inputs)
+    # Assertions consume outputs only after every annealing phase finishes.
+    current_stream.wait_stream(stream)
 
     # score_entries increases every one- and two-body energy with either local
     # rotamer index. Full quenching must reach zero at every molten position.
