@@ -24,8 +24,12 @@ from packaging.utils import (
     parse_wheel_filename,
 )
 
-from pypi_cuda_wheels import pypi_gpu_wheel
-from release_artifacts import public_cpu_wheel, validate_wheel, write_index
+from release_artifacts import (
+    pypi_gpu_wheel,
+    public_cpu_wheel,
+    validate_wheel,
+    write_index,
+)
 from staging_index import serve
 
 ROOT = Path(__file__).resolve().parents[1]

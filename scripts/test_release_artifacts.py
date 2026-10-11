@@ -15,8 +15,12 @@ from email.parser import BytesParser
 
 import pytest
 
-from release_artifacts import public_cpu_wheel, validate_wheel, write_index
-from pypi_cuda_wheels import pypi_gpu_wheel
+from release_artifacts import (
+    pypi_gpu_wheel,
+    public_cpu_wheel,
+    validate_wheel,
+    write_index,
+)
 from staging_index import serve
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -38,6 +42,7 @@ def wheel(
         # Binary bytes stand in for the extension; repackaging must preserve them.
         "tmol/_C.so": bytes(range(256)),
         "tmol/database/default/params.bin": b"runtime data",
+        f"{name}-{version}.data/data/share/tmol/params.bin": b"shared data",
         "tmol/tests/test_fixture.py": b"# not needed after installation\n",
         f"{info}/METADATA": (
             f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n"
@@ -95,12 +100,23 @@ def resolve(work, *args, success=True):
     return json.loads(report.read_text()) if success else result.stdout + result.stderr
 
 
-def test_public_cpu_wheel_preserves_native_bytes_constraints_and_record(tmp_path):
-    original = wheel(tmp_path / "original")
+@pytest.mark.parametrize("newline", ["\n", "\r\n"])
+def test_public_cpu_wheel_preserves_native_bytes_constraints_and_record(
+    tmp_path, newline
+):
+    original = wheel(tmp_path / "original", newline=newline)
     public = public_cpu_wheel(original, tmp_path / "public")
     assert public.name == "tmol-9.9.9-py3-none-any.whl"
     with zipfile.ZipFile(original) as old, zipfile.ZipFile(public) as new:
         assert new.read("tmol/_C.so") == old.read("tmol/_C.so")
+        assert (
+            new.getinfo("tmol/_C.so").compress_type
+            == old.getinfo("tmol/_C.so").compress_type
+        )
+        assert new.read("tmol-9.9.9.data/data/share/tmol/params.bin") == b"shared data"
+        assert new.read("tmol/tests/test_fixture.py") == old.read(
+            "tmol/tests/test_fixture.py"
+        )
         metadata = BytesParser().parsebytes(new.read("tmol-9.9.9.dist-info/METADATA"))
         assert metadata["Version"] == "9.9.9"
         assert metadata.get_all("Requires-Dist") == ["torch==2.14.*"]
@@ -287,6 +303,10 @@ def test_pypi_cuda_wheel_keeps_native_bytes_and_torch_pin(tmp_path, newline):
         )
         assert candidate.read("tmol/__init__.py") == original.read("tmol/__init__.py")
         assert candidate.read("tmol/database/default/params.bin") == b"runtime data"
+        assert (
+            candidate.read("tmol_cu130_torch213-9.9.9.data/data/share/tmol/params.bin")
+            == b"shared data"
+        )
         assert candidate.read("tmol/_C.so") == original.read("tmol/_C.so")
         assert not any(path.startswith("tmol/tests/") for path in candidate.namelist())
         metadata = BytesParser().parsebytes(
@@ -317,7 +337,21 @@ def test_pip_installs_renamed_cuda_candidate(tmp_path):
         "==2.13.*",
         tag="cp312-cp312-manylinux_2_28_x86_64",
     )
-    candidate = pypi_gpu_wheel(source, tmp_path / "files")
+    # Exercise the publication CLI as well as pip's real index installation.
+    prepared = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "scripts/release_artifacts.py"),
+            "--pypi-cuda-wheel",
+            str(source),
+            "--output",
+            str(tmp_path / "files"),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    candidate = Path(prepared.stdout.strip())
     installed = tmp_path / "installed"
     report = tmp_path / "report.json"
     with serve(tmp_path) as url:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare standard CPU wheels for PyPI and explicit ABI indexes for GitHub."""
+"""Prepare public CPU wheels, staged CUDA candidates, and explicit ABI indexes."""
 
 from __future__ import annotations
 
@@ -66,93 +66,107 @@ def validate_wheel(source: Path) -> None:
                 raise ValueError(f"invalid wheel RECORD: {path}")
 
 
-def public_cpu_wheel(source: Path, destination: Path) -> Path:
-    """Copy a CPU wheel under its public version, retaining its Torch constraint.
+def _public_wheel(source: Path, destination: Path, *, compact_cuda=False) -> Path:
+    """Rewrite one validated wheel's identity and RECORD, retaining runtime bytes."""
+    validate_wheel(source)
+    _, version, _, _ = parse_wheel_filename(source.name)
+    distribution = "tmol_cu130_torch213" if compact_cuda else "tmol"
+    old_prefix = f"tmol-{version}"
+    new_prefix = f"{distribution}-{version.public}"
+    destination.mkdir(parents=True, exist_ok=True)
+    target = destination / source.name.replace(old_prefix, new_prefix, 1)
+    if target.exists():
+        raise ValueError(f"refusing to overwrite {target}")
+    rows = []
+    try:
+        with (
+            zipfile.ZipFile(source) as archive,
+            zipfile.ZipFile(
+                target,
+                "w",
+                zipfile.ZIP_DEFLATED,
+                compresslevel=9 if compact_cuda else None,
+            ) as output,
+        ):
+            names = archive.namelist()
+            if any(p.endswith(("/RECORD.jws", "/RECORD.p7s")) for p in names):
+                raise ValueError("cannot rewrite a signed wheel")
+            if (
+                compact_cuda
+                and sum(p.startswith("tmol/_C") and p.endswith(".so") for p in names)
+                != 1
+            ):
+                raise ValueError("expected exactly one TMol native library")
+            for info in archive.infolist():
+                if (
+                    info.is_dir()
+                    or info.filename == old_prefix + ".dist-info/RECORD"
+                    or (compact_cuda and info.filename.startswith("tmol/tests/"))
+                ):
+                    continue
+                data = archive.read(info)
+                if info.filename == old_prefix + ".dist-info/METADATA":
+                    for field, value in (
+                        ("Name", distribution.replace("_", "-")),
+                        ("Version", version.public),
+                    ):
+                        data = re.sub(
+                            rf"(?m)^{field}: [^\r\n]+".encode(),
+                            f"{field}: {value}".encode(),
+                            data,
+                            count=1,
+                        )
+                renamed = copy.copy(info)
+                for suffix in (".dist-info/", ".data/"):
+                    if renamed.filename.startswith(old_prefix + suffix):
+                        renamed.filename = (
+                            new_prefix + renamed.filename[len(old_prefix) :]
+                        )
+                output.writestr(
+                    renamed,
+                    data,
+                    compress_type=(
+                        zipfile.ZIP_DEFLATED if compact_cuda else info.compress_type
+                    ),
+                    compresslevel=9 if compact_cuda else None,
+                )
+                digest = base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(
+                    b"="
+                )
+                rows.append((renamed.filename, "sha256=" + digest.decode(), len(data)))
+            record = new_prefix + ".dist-info/RECORD"
+            rows.append((record, "", ""))
+            buffer = io.StringIO(newline="")
+            csv.writer(buffer, lineterminator="\n").writerows(rows)
+            output.writestr(record, buffer.getvalue())
+        if compact_cuda and target.stat().st_size > 100_000_000:
+            raise ValueError(f"wheel exceeds PyPI's default file limit: {target.name}")
+    except Exception:
+        target.unlink(missing_ok=True)
+        raise
+    return target
 
-    CUDA variants keep their local versions and are distributed separately.
-    Rebuild RECORD after changing the filename, dist-info path, and metadata.
-    Native libraries and all other package files are copied byte for byte.
-    """
+
+def public_cpu_wheel(source: Path, destination: Path) -> Path:
+    """Remove the CPU ABI version suffix, preserving all files and Torch pins."""
     name, version, _, _ = parse_wheel_filename(source.name)
     if name != "tmol" or version.local not in {
         f"cputorch{torch}" for torch in CPU_TORCH_VERSIONS
     }:
         raise ValueError(f"not a supported default CPU wheel: {source.name}")
-    public = version.public
-    old_prefix, new_prefix = f"tmol-{version}", f"tmol-{public}"
-    destination.mkdir(parents=True, exist_ok=True)
-    target = destination / source.name.replace(old_prefix, new_prefix, 1)
-    if target.exists():
-        raise ValueError(f"duplicate public wheel: {target.name}")
-    with zipfile.ZipFile(source) as archive:
-        metadata_path = old_prefix + ".dist-info/METADATA"
-        metadata = archive.read(metadata_path)
-        parsed = BytesParser().parsebytes(metadata)
-        if parsed["Name"] != "tmol" or parsed["Version"] != str(version):
-            raise ValueError("wheel filename and metadata disagree")
-        torch = version.local.removeprefix("cputorch")
-        requirements = [Requirement(r) for r in parsed.get_all("Requires-Dist", [])]
-        if [str(r.specifier) for r in requirements if r.name == "torch"] != [
-            f"=={torch}.*"
-        ]:
-            raise ValueError("CPU wheel must constrain its compiled PyTorch minor")
-        names = archive.namelist()
-        if len(names) != len(set(names)) or any(
-            p.startswith("/") or ".." in Path(p).parts for p in names
-        ):
-            raise ValueError("unsafe or duplicate wheel paths")
-        if any(p.endswith(("/RECORD.jws", "/RECORD.p7s")) for p in names):
-            raise ValueError("cannot rewrite a signed wheel")
-        expected = {
-            path: (digest, size)
-            for path, digest, size in csv.reader(
-                io.StringIO(archive.read(old_prefix + ".dist-info/RECORD").decode())
-            )
-        }
-        rows = []
-        try:
-            with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as output:
-                for info in archive.infolist():
-                    if info.is_dir() or info.filename.endswith(".dist-info/RECORD"):
-                        continue
-                    data = archive.read(info)
-                    digest = base64.urlsafe_b64encode(hashlib.sha256(data).digest())
-                    if expected.get(info.filename) != (
-                        "sha256=" + digest.rstrip(b"=").decode(),
-                        str(len(data)),
-                    ):
-                        raise ValueError(f"invalid wheel RECORD: {info.filename}")
-                    if info.filename == metadata_path:
-                        data = re.sub(
-                            rb"(?m)^Version: [^\r\n]+",
-                            f"Version: {public}".encode(),
-                            data,
-                            count=1,
-                        )
-                    renamed = copy.copy(info)
-                    for suffix in (".dist-info/", ".data/"):
-                        if renamed.filename.startswith(old_prefix + suffix):
-                            renamed.filename = (
-                                new_prefix + renamed.filename[len(old_prefix) :]
-                            )
-                    output.writestr(renamed, data)
-                    digest = base64.urlsafe_b64encode(hashlib.sha256(data).digest())
-                    rows.append(
-                        (
-                            renamed.filename,
-                            "sha256=" + digest.rstrip(b"=").decode(),
-                            len(data),
-                        )
-                    )
-                record = new_prefix + ".dist-info/RECORD"
-                rows.append((record, "", ""))
-                buffer = io.StringIO(newline="")
-                csv.writer(buffer, lineterminator="\n").writerows(rows)
-                output.writestr(record, buffer.getvalue())
-        except Exception:
-            target.unlink(missing_ok=True)
-            raise
-    return target
+    return _public_wheel(source, destination)
+
+
+def pypi_gpu_wheel(source: Path, destination: Path) -> Path:
+    """Stage the compact CUDA 13 / Torch 2.13 candidate under its own PyPI name."""
+    name, version, _, tags = parse_wheel_filename(source.name)
+    if (
+        name != "tmol"
+        or version.local != "cu130torch2.13"
+        or {str(tag) for tag in tags} != {"cp312-cp312-manylinux_2_28_x86_64"}
+    ):
+        raise ValueError("expected a CUDA 13 / Torch 2.13 Linux x86_64 wheel")
+    return _public_wheel(source, destination, compact_cuda=True)
 
 
 def write_index(files: list[Path], target: Path, base_url: str) -> None:
@@ -206,8 +220,17 @@ def prepare(wheels: Path, sdist: Path, destination: Path) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--wheels", type=Path, required=True)
-    parser.add_argument("--sdist", type=Path, required=True)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--wheels", type=Path)
+    source.add_argument("--pypi-cuda-wheel", type=Path)
+    parser.add_argument("--sdist", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    prepare(args.wheels, args.sdist, args.output)
+    if args.pypi_cuda_wheel:
+        if args.sdist:
+            parser.error("--sdist is only used with --wheels")
+        print(pypi_gpu_wheel(args.pypi_cuda_wheel, args.output))
+    else:
+        if not args.sdist:
+            parser.error("--wheels requires --sdist")
+        prepare(args.wheels, args.sdist, args.output)
