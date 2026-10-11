@@ -38,7 +38,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=681c63c7"></script>
+    <script src="../../../_static/documentation_options.js?v=a395f30a"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.63" />
+  <meta name="docsearch:version" content="0.1.64" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -446,7 +446,8 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database._yaml</span><span class="w"> </span><span class="kn">import</span> <span class="n">safe_load</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreType</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.common</span><span class="w"> </span><span class="kn">import</span> <span class="n">ZeroTermPoseScoringModule</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.common</span><span class="w"> </span><span class="kn">import</span> <span class="n">ZeroTermPoseScoringModule</span><span class="p">,</span> <span class="n">TermWholePoseScoringModule</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.hbond</span><span class="w"> </span><span class="kn">import</span> <span class="n">HBondEnergyTerm</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility._device</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
 
 <span class="c1"># force registration of the terms with the ScoreTermFactory</span>
@@ -598,7 +599,7 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_score_grad_in_thread</span><span class="p">(</span>
     <span class="n">scores</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-    <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">GradientEdge</span><span class="p">,</span>
     <span class="n">grad_scores</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">create_graph</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
@@ -651,7 +652,9 @@
             <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">term_modules</span>
         <span class="p">]</span>
         <span class="n">term_scores</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">futures</span><span class="p">)</span>
-        <span class="n">ctx</span><span class="o">.</span><span class="n">term_coords</span> <span class="o">=</span> <span class="n">term_coords</span>
+        <span class="c1"># A view's current gradient edge can change after its base is mutated.</span>
+        <span class="c1"># Keep the edge used by these term graphs without retaining the view.</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">term_edge</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">get_gradient_edge</span><span class="p">(</span><span class="n">term_coords</span><span class="p">)</span>
         <span class="n">ctx</span><span class="o">.</span><span class="n">term_scores</span> <span class="o">=</span> <span class="n">term_scores</span>
         <span class="n">ctx</span><span class="o">.</span><span class="n">term_sizes</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">scores</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">scores</span> <span class="ow">in</span> <span class="n">term_scores</span><span class="p">)</span>
         <span class="n">ctx</span><span class="o">.</span><span class="n">executor</span> <span class="o">=</span> <span class="n">executor</span>
@@ -675,7 +678,7 @@
             <span class="n">term_grad_inputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="p">(</span>
                     <span class="n">term_scores</span><span class="p">,</span>
-                    <span class="n">ctx</span><span class="o">.</span><span class="n">term_coords</span><span class="p">,</span>
+                    <span class="n">ctx</span><span class="o">.</span><span class="n">term_edge</span><span class="p">,</span>
                     <span class="n">grad_scores</span><span class="p">[</span><span class="n">offset</span> <span class="p">:</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">term_size</span><span class="p">],</span>
                     <span class="n">create_graph</span><span class="p">,</span>
                 <span class="p">)</span>
@@ -1267,7 +1270,7 @@
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_ljlk_elec_native_arguments</span><span class="p">(</span><span class="n">ljlk</span><span class="p">,</span> <span class="n">elec</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_ljlk_elec_native_arguments</span><span class="p">(</span><span class="n">ljlk</span><span class="p">,</span> <span class="n">elec</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">flat_coords</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Collect dtype-adjusted arguments shared by LJ/LK--Elec fusion paths."""</span>
     <span class="n">ljlk_tail</span> <span class="o">=</span> <span class="n">ljlk</span><span class="o">.</span><span class="n">_static_tail_for_coords</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
     <span class="n">elec_tail</span> <span class="o">=</span> <span class="n">elec</span><span class="o">.</span><span class="n">_static_tail_for_coords</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
@@ -1277,7 +1280,7 @@
     <span class="n">lp</span> <span class="o">=</span> <span class="n">ljlk_tail</span><span class="p">[</span><span class="n">n_common</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">ep</span> <span class="o">=</span> <span class="n">elec_tail</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">elec</span><span class="o">.</span><span class="n">common_parameters</span><span class="p">)</span> <span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="k">return</span> <span class="p">(</span>
-        <span class="n">coords</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">start_dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">end_dim</span><span class="o">=-</span><span class="mi">2</span><span class="p">),</span>
+        <span class="n">coords</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">start_dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">end_dim</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span> <span class="k">if</span> <span class="n">flat_coords</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">flat_coords</span><span class="p">,</span>
         <span class="o">*</span><span class="n">common</span><span class="p">,</span>
         <span class="n">lp</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
         <span class="n">lp</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
@@ -1320,13 +1323,15 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">build_compact_block_neighbors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">reach</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ljlk_module</span><span class="o">.</span><span class="n">build_compact_block_neighbors</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">reach</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_native_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">shared_block_neighbors</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_native_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">shared_block_neighbors</span><span class="p">,</span> <span class="n">flat_coords</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">(</span>
-            <span class="o">*</span><span class="n">_ljlk_elec_native_arguments</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ljlk_module</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">elec_module</span><span class="p">,</span> <span class="n">coords</span><span class="p">),</span>
+            <span class="o">*</span><span class="n">_ljlk_elec_native_arguments</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ljlk_module</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">elec_module</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">flat_coords</span>
+            <span class="p">),</span>
             <span class="n">shared_block_neighbors</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">shared_block_neighbors</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">shared_block_neighbors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">flat_coords</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">shared_block_neighbors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
                 <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ljlk_module</span><span class="p">(</span><span class="n">coords</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">elec_module</span><span class="p">(</span><span class="n">coords</span><span class="p">)),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span>
@@ -1337,18 +1342,21 @@
         <span class="c1"># composite selects arguments from each child's dtype-adjusted static</span>
         <span class="c1"># tail rather than bypassing it and reading raw float32 parameters.</span>
         <span class="p">(</span><span class="n">scores</span><span class="p">,)</span> <span class="o">=</span> <span class="n">ljlk_elec_pose_scores</span><span class="p">(</span>
-            <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_native_arguments</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">shared_block_neighbors</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_valid_rots</span>
+            <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_native_arguments</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">shared_block_neighbors</span><span class="p">,</span> <span class="n">flat_coords</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_valid_rots</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">scores</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">forward_weighted</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">shared_block_neighbors</span><span class="p">,</span> <span class="n">score_weights</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward_weighted</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">shared_block_neighbors</span><span class="p">,</span> <span class="n">score_weights</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">flat_coords</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Return one weighted lane while retaining the decomposed fallback."""</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.ljlk.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="n">ljlk_elec_weighted_pose_scores</span>
 
         <span class="k">if</span> <span class="n">score_weights</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
             <span class="n">score_weights</span> <span class="o">=</span> <span class="n">score_weights</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="p">(</span><span class="n">scores</span><span class="p">,)</span> <span class="o">=</span> <span class="n">ljlk_elec_weighted_pose_scores</span><span class="p">(</span>
-            <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_native_arguments</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">shared_block_neighbors</span><span class="p">),</span>
+            <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_native_arguments</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">shared_block_neighbors</span><span class="p">,</span> <span class="n">flat_coords</span><span class="p">),</span>
             <span class="n">score_weights</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">n_valid_rots</span><span class="p">,</span>
         <span class="p">)</span>
@@ -1398,6 +1406,79 @@
     <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">grouped</span><span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_score_module_has_custom_call</span><span class="p">(</span><span class="n">module</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span>
+        <span class="n">module</span><span class="o">.</span><span class="n">_compiled_call_impl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="ow">or</span> <span class="s2">"forward"</span> <span class="ow">in</span> <span class="n">module</span><span class="o">.</span><span class="vm">__dict__</span>
+        <span class="ow">or</span> <span class="n">module</span><span class="o">.</span><span class="n">_forward_pre_hooks</span>
+        <span class="ow">or</span> <span class="n">module</span><span class="o">.</span><span class="n">_forward_hooks</span>
+        <span class="ow">or</span> <span class="n">module</span><span class="o">.</span><span class="n">_backward_pre_hooks</span>
+        <span class="ow">or</span> <span class="n">module</span><span class="o">.</span><span class="n">_backward_hooks</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_global_score_hooks</span><span class="p">():</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">torch.nn.modules</span><span class="w"> </span><span class="kn">import</span> <span class="n">module</span>
+
+    <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span>
+        <span class="n">module</span><span class="o">.</span><span class="n">_global_forward_pre_hooks</span>
+        <span class="ow">or</span> <span class="n">module</span><span class="o">.</span><span class="n">_global_forward_hooks</span>
+        <span class="ow">or</span> <span class="n">module</span><span class="o">.</span><span class="n">_global_backward_pre_hooks</span>
+        <span class="ow">or</span> <span class="n">module</span><span class="o">.</span><span class="n">_global_backward_hooks</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_can_capture_score_term</span><span class="p">(</span><span class="n">term</span><span class="p">):</span>
+    <span class="c1"># Custom wrappers and hooks may transform native energies. Preserve their</span>
+    <span class="c1"># complete autograd graph instead of assuming its derivative is unchanged.</span>
+    <span class="k">return</span> <span class="ow">not</span> <span class="n">_score_module_has_custom_call</span><span class="p">(</span><span class="n">term</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+        <span class="nb">type</span><span class="p">(</span><span class="n">term</span><span class="p">)</span> <span class="ow">is</span> <span class="n">_FusedLJLKAndElecWholePoseModule</span>
+        <span class="ow">or</span> <span class="p">(</span>
+            <span class="nb">type</span><span class="p">(</span><span class="n">term</span><span class="p">)</span> <span class="ow">is</span> <span class="n">TermWholePoseScoringModule</span>
+            <span class="ow">and</span> <span class="p">(</span>
+                <span class="nb">isinstance</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">term_score_poses</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">_ops</span><span class="o">.</span><span class="n">OpOverloadPacket</span><span class="p">)</span>
+                <span class="c1"># HBond's prepass runs without autograd; the native score</span>
+                <span class="c1"># already includes its coordinate derivatives.</span>
+                <span class="ow">or</span> <span class="p">(</span>
+                    <span class="nb">getattr</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">term_score_poses</span><span class="p">,</span> <span class="s2">"__func__"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                    <span class="ow">is</span> <span class="n">HBondEnergyTerm</span><span class="o">.</span><span class="n">pose_score_hbond</span>
+                    <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">term</span><span class="o">.</span><span class="n">term_score_poses</span><span class="o">.</span><span class="vm">__self__</span><span class="p">)</span> <span class="ow">is</span> <span class="n">HBondEnergyTerm</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_WholePoseScore</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Share one autograd context and reduction for precomputed term derivatives."""</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">total</span><span class="p">,</span> <span class="n">scorer</span><span class="p">,</span> <span class="n">capture</span><span class="p">):</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">offsets</span> <span class="o">=</span> <span class="n">capture</span><span class="o">.</span><span class="n">offsets</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">native</span> <span class="o">=</span> <span class="n">scorer</span><span class="o">.</span><span class="n">_native_score_gradient</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">save_for_backward</span><span class="p">(</span><span class="n">scorer</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span> <span class="o">*</span><span class="n">capture</span><span class="o">.</span><span class="n">derivatives</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">total</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">upstream</span><span class="p">):</span>
+        <span class="n">weights</span><span class="p">,</span> <span class="o">*</span><span class="n">derivatives</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">saved_tensors</span>
+        <span class="n">gradient</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">derivatives</span> <span class="ow">and</span> <span class="n">upstream</span><span class="o">.</span><span class="n">is_cuda</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">():</span>
+            <span class="n">gradient</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">native</span><span class="p">(</span><span class="n">derivatives</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">offsets</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">upstream</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">gradient</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">upstream</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="c1"># Preserve upstream derivative graphs and the CPU path using Torch ops.</span>
+        <span class="k">for</span> <span class="n">offset</span><span class="p">,</span> <span class="n">derivative</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">offsets</span><span class="p">,</span> <span class="n">derivatives</span><span class="p">))):</span>
+            <span class="n">channels</span> <span class="o">=</span> <span class="n">derivative</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">scale</span> <span class="o">=</span> <span class="n">weights</span><span class="p">[</span><span class="n">offset</span> <span class="p">:</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">channels</span><span class="p">]</span> <span class="o">*</span> <span class="n">upstream</span>
+            <span class="n">weighted</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">derivative</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">channels</span><span class="p">,</span> <span class="o">*</span><span class="n">ctx</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">*</span> <span class="n">scale</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">contribution</span> <span class="o">=</span> <span class="n">weighted</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">channels</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">weighted</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">gradient</span> <span class="o">=</span> <span class="n">contribution</span> <span class="k">if</span> <span class="n">gradient</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">gradient</span> <span class="o">+</span> <span class="n">contribution</span>
+        <span class="k">return</span> <span class="n">gradient</span><span class="p">,</span> <span class="n">upstream</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+
 <div class="viewcode-block" id="WholePoseScoringModule">
 <a class="viewcode-back" href="../../../api/score.html#tmol.score.WholePoseScoringModule">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">WholePoseScoringModule</span><span class="p">:</span>
@@ -1413,10 +1494,20 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_execution_modules</span> <span class="o">=</span> <span class="n">_whole_pose_execution_modules</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span><span class="p">,</span> <span class="n">weights</span><span class="o">.</span><span class="n">device</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_active_term_indices</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
-            <span class="n">index</span>
-            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">term</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_execution_modules</span><span class="p">)</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">ZeroTermPoseScoringModule</span><span class="p">)</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol._cpp_lib</span><span class="w"> </span><span class="kn">import</span> <span class="n">_native</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_native_score_capture</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">_native</span><span class="p">,</span> <span class="s2">"_ScoreCapture"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_native_score_gradient</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">_native</span><span class="p">,</span> <span class="s2">"_score_gradient"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_score_parameters</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="nb">id</span><span class="p">(</span><span class="n">p</span><span class="p">):</span> <span class="n">p</span>
+                <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span>
+                <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">(</span><span class="o">*</span><span class="n">term</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="o">*</span><span class="nb">getattr</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="s2">"_static_tail_f32"</span><span class="p">,</span> <span class="p">()))</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">is_floating_point</span><span class="p">()</span>
+            <span class="p">}</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_capture_score_terms</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">sum</span><span class="p">(</span><span class="n">_can_capture_score_term</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execution_modules</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_has_trainable_term_parameters</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span>
             <span class="n">parameter</span><span class="o">.</span><span class="n">requires_grad</span>
@@ -1485,8 +1576,54 @@
             <span class="n">coords</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shared_neighbor_cutoff</span>
         <span class="p">)</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_score_with_gradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
+        <span class="n">flat</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">neighbors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_shared_block_neighbors</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+        <span class="n">terms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execution_modules</span> <span class="k">if</span> <span class="n">neighbors</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">term_modules</span>
+        <span class="n">scores</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_native_score_capture</span><span class="p">()</span> <span class="k">as</span> <span class="n">capture</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">terms</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span>
+                    <span class="n">term</span>
+                <span class="p">)</span> <span class="ow">is</span> <span class="n">ZeroTermPoseScoringModule</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_score_module_has_custom_call</span><span class="p">(</span>
+                    <span class="n">term</span>
+                <span class="p">):</span>
+                    <span class="c1"># The scorer already owns the coordinate edge for constant terms.</span>
+                    <span class="n">score</span> <span class="o">=</span> <span class="n">term</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">detach</span><span class="p">())</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">capture</span><span class="o">.</span><span class="n">select_term</span><span class="p">(</span><span class="n">offset</span><span class="p">,</span> <span class="n">_can_capture_score_term</span><span class="p">(</span><span class="n">term</span><span class="p">))</span>
+                    <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_call_term</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">neighbors</span><span class="p">,</span> <span class="n">flat_coords</span><span class="o">=</span><span class="n">flat</span><span class="p">)</span>
+                <span class="n">scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
+                <span class="n">offset</span> <span class="o">+=</span> <span class="n">score</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">scores</span><span class="p">)</span><span class="o">.</span><span class="n">mul_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># Fallback terms remain ordinary graph inputs; the autograd engine</span>
+        <span class="c1"># schedules them without a nested backward or retained graph context.</span>
+        <span class="k">return</span> <span class="n">_WholePoseScore</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">total</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">capture</span><span class="p">)</span>
+
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_call_term</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">shared_block_neighbors</span><span class="p">,</span> <span class="n">fused_score_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_call_term</span><span class="p">(</span>
+        <span class="n">term</span><span class="p">,</span>
+        <span class="n">coords</span><span class="p">,</span>
+        <span class="n">shared_block_neighbors</span><span class="p">,</span>
+        <span class="n">fused_score_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">flat_coords</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">flat_coords</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">term</span><span class="p">)</span>
+            <span class="ow">in</span> <span class="p">(</span><span class="n">TermWholePoseScoringModule</span><span class="p">,</span> <span class="n">_FusedLJLKAndElecWholePoseModule</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="n">_score_module_has_custom_call</span><span class="p">(</span><span class="n">term</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="n">fused_score_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">term</span><span class="o">.</span><span class="n">forward_weighted</span><span class="p">(</span>
+                    <span class="n">coords</span><span class="p">,</span>
+                    <span class="n">shared_block_neighbors</span><span class="p">,</span>
+                    <span class="n">fused_score_weights</span><span class="p">,</span>
+                    <span class="n">flat_coords</span><span class="o">=</span><span class="n">flat_coords</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">term</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">shared_block_neighbors</span><span class="p">,</span> <span class="n">flat_coords</span><span class="o">=</span><span class="n">flat_coords</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">fused_score_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">term</span><span class="o">.</span><span class="n">forward_weighted</span><span class="p">(</span>
                 <span class="n">coords</span><span class="p">,</span> <span class="n">shared_block_neighbors</span><span class="p">,</span> <span class="n">fused_score_weights</span>
@@ -1554,6 +1691,28 @@
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cuda_graphed_forward</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">()</span> <span class="ow">and</span> <span class="n">coords</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
             <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">sum_terms</span>
+            <span class="ow">and</span> <span class="n">apply_weights</span>
+            <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">()</span>
+            <span class="ow">and</span> <span class="n">coords</span><span class="o">.</span><span class="n">requires_grad</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_native_score_capture</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_capture_score_terms</span>
+            <span class="ow">and</span> <span class="n">coords</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span>
+            <span class="ow">and</span> <span class="n">coords</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span>
+            <span class="ow">and</span> <span class="n">coords</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="o">.</span><span class="n">dtype</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="o">.</span><span class="n">requires_grad</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">requires_grad</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_score_parameters</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="n">_global_score_hooks</span><span class="p">()</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_can_use_weighted_fused_default</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="p">(</span>
+                <span class="n">coords</span><span class="o">.</span><span class="n">is_cuda</span>
+                <span class="ow">and</span> <span class="n">coords</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">_CUDA_PARALLEL_GRAD_SCORE_MIN_COORD_ELEMENTS</span>
+                <span class="ow">or</span> <span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cpu"</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cpu_term_workers</span> <span class="o">&lt;</span> <span class="mi">2</span>
+            <span class="p">)</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_score_with_gradients</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
         <span class="n">fused_score_weights</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">sum_terms</span> <span class="ow">and</span> <span class="n">apply_weights</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_can_use_weighted_fused_default</span><span class="p">(</span><span class="n">coords</span><span class="p">):</span>
             <span class="n">weight_begin</span><span class="p">,</span> <span class="n">weight_end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fused_ljlk_elec_weight_range</span>
@@ -1630,6 +1789,11 @@
             <span class="k">if</span> <span class="n">fused_scores</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">fused_scores</span>
         <span class="k">if</span> <span class="n">cpu_workers</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">flat_coords</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="kc">None</span>
+                <span class="k">if</span> <span class="n">coords</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">_global_score_hooks</span><span class="p">()</span>
+                <span class="k">else</span> <span class="n">coords</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+            <span class="p">)</span>
             <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
                 <span class="p">[</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_call_term</span><span class="p">(</span>
@@ -1641,6 +1805,7 @@
                             <span class="k">if</span> <span class="n">index</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fused_ljlk_elec_module_index</span>
                             <span class="k">else</span> <span class="kc">None</span>
                         <span class="p">),</span>
+                        <span class="n">flat_coords</span><span class="o">=</span><span class="n">flat_coords</span><span class="p">,</span>
                     <span class="p">)</span>
                     <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">term</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">execution_modules</span><span class="p">)</span>
                 <span class="p">],</span>
