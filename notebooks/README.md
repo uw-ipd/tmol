@@ -1,6 +1,6 @@
 # Executable examples
 
-- [Example 01: score a PDB file](example_01_score_a_pdb_file.ipynb)
+- [Score a structure](../docs/tutorial/03_scoring_and_analysis.ipynb) — the maintained scoring tutorial; Example 01 redirects here.
 - [Example 02: build your own model input interface](example_02_model_inputs.ipynb) — OpenFold-style atom14, RF2 hydrogen policies, scoring and coordinate gradients, and repeated guidance.
 
 [![Open Example 02 in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/uw-ipd/tmol/blob/master/notebooks/example_02_model_inputs.ipynb)

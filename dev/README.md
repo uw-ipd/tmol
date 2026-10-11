@@ -1,54 +1,28 @@
-# Benchmarking Guide
+# Development tools
 
-# Running specific benchmarks:
+The [benchmarking guide](../docs/user_guide/benchmarking.md) describes local
+measurements, isolated revision comparisons, result files, and Nsight profiling.
+Run the tools from the repository root in an activated development environment:
 
-To run select benchmarks, utilize the `dev/bin/benchmark` wrapper with the
-pytest `-k` flag to select target tests. This enables benchmarks, prints
-a textual summary and outputs a benchmark result json under
-`dev/benchmark/...`.
+```bash
+dev/bin/benchmark tmol/tests/score -k cuda-full-lk_ball
+dev/bin/compare_benchmark tmol/tests/score -k cuda-full-lk_ball -- TREE HEAD
+dev/bin/profile_benchmark --output /tmp/lk-ball tmol/tests/score -k cuda-full-lk_ball
+```
 
-Example:
+The comparison command builds each revision separately and preserves the
+caller's checkout. Benchmark JSON and logs are kept after failures. Use the
+current [GitHub Actions workflows](../.github/workflows) for CI; the historical
+Buildkite retrieval scripts and site-specific cluster launcher are retired.
+Profiling uses Nsight Systems or Nsight Compute; the old nvprof trace converter
+is retired as well.
 
-  * `dev/bin/benchmark tmol/tests/score -k cuda-full-lk_ball`
+## Numerical derivations
 
-# Comparing benchmarks:
+These notebooks document formulas used by the implementation. They are
+developer references, rather than executable installation tutorials:
 
-The `dev/bin/compare_benchmark` performs local comparative benchmarking by
-reseting the working tree to each target version, running a benchmark
-pass, and then comparing the results.
+- [Cubic Hermite interpolation](cubic_hermite_interpolation.ipynb)
+- [LK-ball derivatives](lk_ball_derivatives.ipynb)
 
-`compare_benchmark` accepts pytest args and target revisions, separated by
-`--`. The meta-revision `TREE` can be used to indicate the state of the
-working tree, ie to compare uncommitted changes vs `HEAD`.
-
-Example:
-
-  * `dev/bin/compare_benchmark tmol/test/score -k cuda-full-lk_ball -- origin/master`
-     Compare current tree vs `origin/master`.
-  * `dev/bin/compare_benchmark tmol/test/score -k cuda-full-lk_ball -- feature_branch master`
-     Compare `feature_branch` vs `master`.
-  * `dev/bin/compare_benchmark tmol/test/score -k cuda-full-lk_ball`
-     Compare working tree vs HEAD.
-
-Ancillary benchmark plots can be generated via `plot_*.py` scripts checked
-into the `tmol/tests` tree. See `.buildkite/bin/benchmark` for invocation
-details.
-
-# Remote benchmarks:
-
-The CI service runs full benchmark passes and stores benchmark results for
-later analysis. Use the `.buildkite/bin/fetch_buildkite_benchmark` script
-to retrieve benchmark results for the most recent CI run for a target
-branch. This script will fetch the result json and output the filetime to
-stdout. See `.buildkite/bin/benchmark` for invocation details.
-
-
-# Profiling benchmarks:
-
-`dev/bin/profile_benchmark` captures a timeline with Nsight Systems by default,
-or hardware counters with Nsight Compute when passed `--tool ncu`. Use
-`--output <prefix>` to choose the report path. Arguments after `--` are sent to
-the profiler; other arguments are pytest selectors.
-
-Example:
-  `dev/bin/profile_benchmark --output profile/lk-ball tmol/tests/score -k cuda-full-lk_ball`
+For maintained modeling examples, see the [tutorial gallery](../docs/examples_index.rst).

@@ -130,6 +130,8 @@ venv.bak/
 # macos
 ._*
 # CMake / scikit-build build artifacts
+/dev/benchmark/
+/dev/profile/
 CMakeCache.txt
 CMakeFiles/
 CMakeInit.txt
