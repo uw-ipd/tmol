@@ -94,3 +94,12 @@ def test_backend_selection(monkeypatch):
     assert loader._native_module_name() == "tmol_ops_cu12._C"
     monkeypatch.setattr(loader.torch.version, "cuda", None)
     assert loader._native_module_name() == "tmol._C"
+
+    import pytest
+
+    monkeypatch.setattr(loader.torch.version, "cuda", "13.0")
+    monkeypatch.setattr(
+        loader, "version", lambda name: "0.1.64" if name == "tmol" else "0.1.63"
+    )
+    with pytest.raises(loader.TmolExtensionIncompatibleError, match="same version"):
+        loader._native_module_name()
