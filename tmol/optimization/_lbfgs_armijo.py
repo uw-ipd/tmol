@@ -29,6 +29,11 @@ def lbfgs_two_loop(grad, dirs, stps):
     grad is (N) or (k, N) and dirs/stps are (m, N) or (m, k, N); in the latter
     case each of the k batches gets its own inverse-Hessian estimate.
     """
+    return _lbfgs_two_loop(grad, dirs, stps)
+
+
+def _lbfgs_two_loop(grad, dirs, stps, history_start=0):
+    """Compact solve with histories kept in their physical circular slots."""
     unbatched = grad.dim() == 1
     if unbatched:
         grad = grad.unsqueeze(0)
@@ -67,6 +72,13 @@ def lbfgs_two_loop(grad, dirs, stps):
     else:
         a = torch.einsum("ipk,pk->pi", S, q)
         SY = torch.einsum("ipk,jpk->pij", S, Y)
+    # Only the small history-space products need chronological ordering.
+    # Moving entire (history, pose, coordinate) arrays after every wrap would
+    # duplicate both histories. Coefficients return to physical slot order
+    # before multiplying by S or Y below.
+    if history_start:
+        a = torch.roll(a, -history_start, dims=-1)
+        SY = torch.roll(SY, (-history_start, -history_start), dims=(-2, -1))
     R = torch.triu(SY)  # upper-triangular incl. diagonal
     D = SY.diagonal(dim1=-2, dim2=-1)  # D_i = s_i . y_i
 
@@ -77,19 +89,27 @@ def lbfgs_two_loop(grad, dirs, stps):
     # u = R^-1 a
     u = torch.linalg.solve_triangular(R, a.unsqueeze(-1), upper=True).squeeze(-1)
     # q = g - Y u; v = D u - Y^T q avoids forming Y^T Y.
+    Du = D * u
+    if history_start:
+        u = torch.roll(u, history_start, dims=-1)
     if single_segment:
         q = (q[0] - torch.mv(Y_one.T, u[0])).unsqueeze(0)
-        v = (D[0] * u[0] - torch.mv(Y_one, q[0])).unsqueeze(0)
+        v = torch.mv(Y_one, q[0]).unsqueeze(0)
     elif use_bmm:
         q = q - torch.bmm(u.unsqueeze(1), Y_by_pose).squeeze(1)
-        v = D * u - torch.bmm(Y_by_pose, q.unsqueeze(-1)).squeeze(-1)
+        v = torch.bmm(Y_by_pose, q.unsqueeze(-1)).squeeze(-1)
     else:
         q = q - torch.einsum("pi,ipk->pk", u, Y)
-        v = D * u - torch.einsum("ipk,pk->pi", Y, q)
+        v = torch.einsum("ipk,pk->pi", Y, q)
+    if history_start:
+        v = torch.roll(v, -history_start, dims=-1)
+    v = Du - v
     # p = R^-T v
     p = torch.linalg.solve_triangular(
         R.transpose(-2, -1), v.unsqueeze(-1), upper=False
     ).squeeze(-1)
+    if history_start:
+        p = torch.roll(p, history_start, dims=-1)
     # result = q + S p
     if single_segment:
         result = (q[0] + torch.mv(S_one.T, p[0])).unsqueeze(0)
@@ -766,19 +786,8 @@ class LBFGS_Armijo(Optimizer):
                 # No history: use steepest descent direction
                 d.copy_(flat_grad).neg_()
             else:
-                # A partial or unwrapped buffer is already in chronological order.
-                if ctx.history_start == 0:
-                    old_dirs_view = ctx.old_dirs_mat[: ctx.history_count]
-                    old_stps_view = ctx.old_stps_mat[: ctx.history_count]
-                else:
-                    # Buffer full, need to reorder: [start:end] + [0:start]
-                    start = ctx.history_start
-                    old_dirs_view = torch.cat(
-                        (ctx.old_dirs_mat[start:], ctx.old_dirs_mat[:start])
-                    )
-                    old_stps_view = torch.cat(
-                        (ctx.old_stps_mat[start:], ctx.old_stps_mat[:start])
-                    )
+                old_dirs_view = ctx.old_dirs_mat[: ctx.history_count]
+                old_stps_view = ctx.old_stps_mat[: ctx.history_count]
 
                 # Dense gradients already have the layout consumed by the
                 # two-loop calculation; only scattered segments need a copy.
@@ -789,7 +798,12 @@ class LBFGS_Armijo(Optimizer):
                 with torch.inference_mode() if grad_pad.is_cuda else nullcontext():
                     d.copy_(
                         self._unpad(
-                            lbfgs_two_loop(grad_pad, old_dirs_view, old_stps_view)
+                            _lbfgs_two_loop(
+                                grad_pad,
+                                old_dirs_view,
+                                old_stps_view,
+                                ctx.history_start,
+                            )
                         )
                     )
 
