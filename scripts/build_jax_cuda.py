@@ -26,11 +26,16 @@ def main():
         shutil.copyfile(package / "pyproject.toml", stage / "pyproject.toml")
         shutil.copyfile(package / "setup.py", stage / "setup.py")
         shutil.copytree(package / "tmol_jax_cuda", stage / "tmol_jax_cuda")
-        shutil.copyfile(package / "ljlk_cuda.cu", stage / "ljlk_cuda.cu")
+        for source in ("ljlk_cuda.cu", "lkball_cuda.cu"):
+            shutil.copyfile(package / source, stage / source)
         shutil.copytree(root / "tmol/score/common", stage / "include/tmol/score/common")
         shutil.copytree(
             root / "tmol/score/ljlk/potentials",
             stage / "include/tmol/score/ljlk/potentials",
+        )
+        shutil.copytree(
+            root / "tmol/score/lk_ball/potentials",
+            stage / "include/tmol/score/lk_ball/potentials",
         )
         shutil.copytree(root / "tmol/extern/Eigen", stage / "include/tmol/extern/Eigen")
         shutil.copytree(

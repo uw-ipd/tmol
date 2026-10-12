@@ -52,6 +52,7 @@ def _lkball_pose_palette_jit(
     is_acc_table: jax.Array,
     is_hxl_table: jax.Array,
     is_ph_table: jax.Array,
+    is_carbon_lk_table: jax.Array,
     is_hydrogen_table: jax.Array,
     B_local_table: jax.Array,
     B0_local_table: jax.Array,
@@ -97,6 +98,7 @@ def _lkball_pose_palette_jit(
     is_acc = _s_b(is_acc_table)
     is_hxl = _s_b(is_hxl_table)
     is_ph = _s_b(is_ph_table)
+    is_carbon_lk = _s_b(is_carbon_lk_table)
     is_hydrogen = _s_b(is_hydrogen_table)
 
     heavy = jnp.logical_not(is_hydrogen)
@@ -130,6 +132,7 @@ def _lkball_pose_palette_jit(
         is_acc,
         is_hxl,
         is_ph,
+        is_carbon_lk,
         is_polar,
         heavy,
         atom_is_real,
@@ -164,6 +167,7 @@ class LKBallTermState:
     is_acceptor: jax.Array
     is_hydroxyl: jax.Array
     is_polarh: jax.Array
+    is_carbon_lk: jax.Array
 
     # Polar-atom mask, [n_poses, max_n_atoms_per_pose].
     is_polar: jax.Array
@@ -243,6 +247,7 @@ class LKBallEnergyTerm(EnergyTerm):
             is_acc_2d,
             is_hxl_2d,
             is_ph_2d,
+            is_carbon_lk_2d,
             is_polar_2d,
             is_occluder_2d,
             is_real_2d,
@@ -273,6 +278,7 @@ class LKBallEnergyTerm(EnergyTerm):
             is_acceptor=is_acc_2d.astype(jnp.float32),
             is_hydroxyl=is_hxl_2d.astype(jnp.float32),
             is_polarh=is_ph_2d.astype(jnp.float32),
+            is_carbon_lk=is_carbon_lk_2d.astype(jnp.float32),
             is_polar=is_polar_2d,
             is_occluder=is_occluder_2d,
             is_real=is_real_2d,
@@ -305,6 +311,13 @@ class LKBallEnergyTerm(EnergyTerm):
     def _eval_full(self, coords: jax.Array, state: LKBallTermState) -> dict:
         """Full (upstream-faithful) lk-ball over all atom pairs."""
 
+        if coords.dtype == jnp.float32 and jax.default_backend() == "gpu":
+            from tmol_jax.score.lk_ball import cuda
+
+            if cuda.available():
+                values = cuda.score(self, state, coords)
+                return dict(zip(self.score_types_provided(), values.T))
+
         def eval_one_pose(pose_coords, pose_state):
             waters = self._place_all_waters(
                 pose_coords,
@@ -330,6 +343,7 @@ class LKBallEnergyTerm(EnergyTerm):
             "is_acceptor": state.is_acceptor,
             "is_hydroxyl": state.is_hydroxyl,
             "is_polarh": state.is_polarh,
+            "is_carbon_lk": state.is_carbon_lk,
             "is_polar": state.is_polar,
             "is_occluder": state.is_occluder,
             "is_real": state.is_real,
@@ -506,6 +520,10 @@ class LKBallEnergyTerm(EnergyTerm):
         lk_volume_table = np.asarray(
             [p.lk_volume for p in type_params], dtype=np.float32
         )
+        is_carbon_lk_table = np.asarray(
+            [p.name in {"CH1", "CH2", "CH3", "Caro"} for p in type_params],
+            dtype=bool,
+        )
 
         chem_db = pbt.chem_db
         chem_atom_type_names = [at.name for at in chem_db.atom_types]
@@ -527,6 +545,11 @@ class LKBallEnergyTerm(EnergyTerm):
         setattr(pbt, "lkball_bt_lk_dgfree", jnp.asarray(_gather(lk_dgfree_table)))
         setattr(pbt, "lkball_bt_lk_lambda", jnp.asarray(_gather(lk_lambda_table)))
         setattr(pbt, "lkball_bt_lk_volume", jnp.asarray(_gather(lk_volume_table)))
+        setattr(
+            pbt,
+            "lkball_bt_is_carbon_lk",
+            jnp.asarray(_gather(is_carbon_lk_table).astype(bool)),
+        )
         pbt._lkball_ljlk_database = ljlk
 
     def _annotate_pbt_polar_flags(self, pbt: Any) -> None:
@@ -685,6 +708,7 @@ class LKBallEnergyTerm(EnergyTerm):
             pbt.lkball_bt_is_acc,
             pbt.lkball_bt_is_hxl,
             pbt.lkball_bt_is_ph,
+            pbt.lkball_bt_is_carbon_lk,
             pbt.lkball_bt_is_hydrogen,
             getattr(pbt, f"lkball_bt_B_local_k{max_H_per_donor}"),
             getattr(pbt, f"lkball_bt_B0_local_k{max_H_per_donor}"),

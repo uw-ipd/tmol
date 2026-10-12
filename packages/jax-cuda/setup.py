@@ -40,7 +40,7 @@ class CudaBuildExt(build_ext):
             "-Iinclude",
             "-Iinclude/tmol/extern",
             *architecture_flags,
-            extension.sources[0],
+            *extension.sources,
             "-o",
             str(output),
         ]
@@ -48,7 +48,9 @@ class CudaBuildExt(build_ext):
 
 
 setup(
-    ext_modules=[Extension("tmol_jax_cuda._ljlk_cuda", ["ljlk_cuda.cu"])],
+    ext_modules=[
+        Extension("tmol_jax_cuda._ljlk_cuda", ["ljlk_cuda.cu", "lkball_cuda.cu"])
+    ],
     cmdclass={"build_ext": CudaBuildExt},
     install_requires=[
         "jax>=0.11.2",
