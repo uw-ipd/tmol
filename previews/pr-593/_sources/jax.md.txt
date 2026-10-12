@@ -77,16 +77,31 @@ implementations agree within 1e-10 there, and centered finite differences agree
 with the JAX result.
 
 Pair scoring still uses dense arrays, although LK-ball selects only polar ×
-heavy atoms from fixed topology. An H200/float32/1UBQ comparison with five warmup
-calls and 30 synchronized samples measured median inference at 0.244 ms for
-JAX versus 0.408 ms for final Torch, and value-and-gradient at 0.901 ms versus
-0.877 ms. This single workload does not establish general speed parity.
+heavy atoms from fixed topology. A matched H200/float32 ABBA comparison used the
+same coordinates, topology, weights, and one CPU thread, with five warmup calls
+and 30 synchronized samples. Ranges below span two passes; times are JAX / final
+Torch medians and GPU residency is the process value reported by `nvidia-smi`:
 
-XLA estimated 12.1 MB of temporary buffers for inference and 33.7 MB for
-value-and-gradient. These are compiler estimates, not measured device peaks;
-memory remains substantially worse than native TMol. Setup took about 25
-seconds, with compilation adding further startup cost. Larger and mixed batches,
-disulfide validation, relaxation, and repacking remain unfinished.
+| workload | atoms | inference (ms) | value + gradient (ms) | resident MiB (inference / gradient) |
+| --- | ---: | ---: | ---: | ---: |
+| 1UBQ | 1 × 1,231 | 0.248–0.254 / 0.415–0.424 | 0.878–0.881 / 0.854–0.899 | 1,196 / 1,322 vs 702 / 702 |
+| homogeneous 1UBQ | 4 × 1,231 | 0.542–0.546 / 0.406–0.411 | 1.896–1.901 / 0.866–0.872 | 1,256 / 1,952 vs 702 / 704 |
+| mixed proteins | 4 × up to 1,615 | 0.765–0.766 / 0.428–0.440 | 5.999–6.000 / 0.888–0.913 | 1,308 / 2,054 vs 702 / 704 |
+| 488-residue protein | 1 × 7,561 | 3.002–3.004 / 0.641–0.648 | 11.501–11.512 / 0.858–0.861 | 3,246 / 7,908 vs 784 / 786 |
+
+JAX wins only the small single-pose inference case. It is slower and uses more
+memory on the other measured workloads, substantially so for the large protein.
+JAX setup plus rendering took 35–38 seconds per fresh process and compilation
+added 6–26 seconds for inference and 11–30 seconds for value-and-gradient. The
+corresponding Torch setup plus rendering took 11–14 seconds.
+
+JAX allocator lifecycle peaks ranged from 276 MB to 3.46 GB. XLA temporary
+buffer estimates ranged from 12.1 MB to 572 MB for inference and 33.7 MB to
+2.80 GB for value-and-gradient; these compiler estimates are not device peaks.
+Torch per-operation allocator increments are also not comparable to total
+process residency. The large-protein total differed by about 0.035 score unit
+and needs term-level investigation. Broader chemistry validation, relaxation,
+and repacking remain unfinished.
 
 PDB loading uses the first model and Biotite's first alternate conformation.
 The Biotite frontend also accepts an AtomArrayStack for same-topology batches.
