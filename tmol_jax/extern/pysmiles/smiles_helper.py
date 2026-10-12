@@ -107,68 +107,6 @@ def parse_atom(atom):
     return out
 
 
-def format_atom(molecule, node_key, default_element='*'):
-    """
-    Formats a node following SMILES conventions. Uses the attributes `element`,
-    `charge`, `hcount`, `stereo`, `isotope` and `class`.
-
-    Parameters
-    ----------
-    molecule : nx.Graph
-        The molecule containing the atom.
-    node_key : hashable
-        The node key of the atom in `molecule`.
-    default_element : str
-        The element to use if the attribute is not present in the node.
-
-    Returns
-    -------
-    str
-        The atom as SMILES string.
-    """
-    node = molecule.nodes[node_key]
-    name = node.get('element', default_element)
-    charge = node.get('charge', 0)
-    hcount = node.get('hcount', 0)
-    stereo = node.get('stereo', None)
-    isotope = node.get('isotope', '')
-    class_ = node.get('class', '')
-    aromatic = node.get('aromatic', False)
-    default_h = has_default_h_count(molecule, node_key)
-
-    if stereo is not None:
-        raise NotImplementedError
-
-    if aromatic:
-        name = name.lower()
-
-    if (stereo is None and isotope == '' and charge == 0 and default_h and
-            class_ == '' and name.lower() in 'b c n o p s se as *'.split()):
-        return name
-
-    if hcount:
-        hcountstr = 'H'
-        if hcount > 1:
-            hcountstr += str(hcount)
-    else:
-        hcountstr = ''
-
-    if charge > 0:
-        chargestr = '+'
-        if charge > 1:
-            chargestr += str(charge)
-    elif charge < 0:
-        chargestr = '-'
-        if charge < -1:
-            chargestr += str(-charge)
-    else:
-        chargestr = ''
-
-    if class_ != '':
-        class_ = ':{}'.format(class_)
-    fmt = '[{isotope}{name}{stereo}{hcount}{charge}{class_}]'
-    return fmt.format(isotope=isotope, name=name, stereo='', hcount=hcountstr,
-                      charge=chargestr, class_=class_)
 
 
 def parse_hcount(hcount_str):
@@ -405,27 +343,6 @@ def _bonds(mol, node_idx, use_order=True):
     return bonds
 
 
-def has_default_h_count(mol, node_idx, use_order=True):
-    """
-    Returns whether the hydrogen count for this atom is non-standard.
-
-    Parameters
-    ----------
-    mol : nx.Graph
-        The molecule.
-    node_idx : hashable
-        The node to look at. Should be in mol.
-    use_order : bool
-        If False, treat all bonds as single.
-
-    Returns
-    -------
-    bool
-    """
-    bonds = _bonds(mol, node_idx, use_order)
-    valence = _valence(mol, node_idx, bonds)
-    hcount = mol.nodes[node_idx].get('hcount', 0)
-    return valence - bonds == hcount
 
 
 def _hydrogen_neighbours(mol, n_idx):
@@ -524,24 +441,6 @@ def mark_aromatic_edges(mol):
             mol.edges[idx, jdx]['order'] = 1
 
 
-def correct_aromatic_rings(mol):
-    """
-    Sets hcount for all atoms, marks aromaticity for all atoms, and the order of
-    all aromatic bonds to 1.5.
-
-    Parameters
-    ----------
-    mol : nx.Graph
-        The molecule.
-
-    Returns
-    -------
-    None
-        `mol` is modified in-place.
-    """
-    fill_valence(mol)
-    mark_aromatic_atoms(mol)
-    mark_aromatic_edges(mol)
 
 
 def increment_bond_orders(molecule, max_bond_order=3):
