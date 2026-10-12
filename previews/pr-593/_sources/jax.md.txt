@@ -34,8 +34,8 @@ JAX runtime, for example `pip install 'jax[cuda13]>=0.11.2'`. The JAX distributi
 also declares `cu12` and `cu13` extras. Current development validation uses
 Python 3.12 and JAX 0.11.2; broader version support has not yet been tested.
 
-An optional CUDA kernel wheel accelerates float32 LJ/LK, electrostatics, and
-LK-ball scoring while leaving the default wheel and sdist pure JAX:
+An optional CUDA kernel wheel accelerates float32 LJ/LK, electrostatics, LK-ball,
+and hydrogen-bond scoring while leaving the default wheel and sdist pure JAX:
 
 ```sh
 python scripts/build_jax_cuda.py --outdir dist/jax-cuda
@@ -43,8 +43,8 @@ pip install dist/jax-cuda/tmol_jax_cuda-*.whl
 ```
 
 Building this local platform wheel requires `nvcc`; it compiles against the
-canonical TMol scalar LJ/LK, electrostatics, and LK-ball headers and the
-installed JAX FFI headers. Set
+canonical TMol scalar LJ/LK, electrostatics, LK-ball, and hydrogen-bond headers
+and the installed JAX FFI headers. Set
 `--cuda-architectures` to a semicolon-separated SM list when the wheel must run
 on GPUs other than the build host. The wheel is version-pinned to the matching
 `tmol-jax` package. It contains only the compiled adapter, not a second copy of
@@ -52,9 +52,11 @@ the parameter database or TMol native sources.
 
 If the optional wheel is absent or cannot load, scoring uses the pure-JAX path.
 The CUDA path currently supports float32 only. LJ/LK and electrostatics
-reevaluate every exact count-pair-qualified atom pair, and LK-ball reevaluates
-its exact topology-selected polar x heavy-atom pairs, from the current
-coordinates on every call. Coordinate minimization therefore does not use a
+reevaluate every exact count-pair-qualified atom pair, LK-ball reevaluates its
+exact topology-selected polar x heavy-atom pairs, and hydrogen bonding reevaluates
+the rendered donor x acceptor pairs with their exact bond-separation rule and
+current distance cutoff. All use the current coordinates on every call.
+Coordinate minimization therefore does not use a
 frozen neighbor list.
 
 ## Score and differentiate
@@ -160,30 +162,37 @@ JAX setup plus rendering took 35–38 seconds per fresh process and compilation
 added 6–26 seconds for inference and 11–30 seconds for value-and-gradient. The
 corresponding Torch setup plus rendering took 11–14 seconds.
 
-The optional CUDA wheel replaces the LJ/LK, electrostatics, and LK-ball pair
-sums with thin JAX FFI adapters to shared, Torch-independent TMol scalar
-equations. Installed-wheel runs under the same protocol measured:
+The optional CUDA wheel replaces the LJ/LK, electrostatics, LK-ball, and
+hydrogen-bond pair sums with thin JAX FFI adapters to shared, Torch-independent
+TMol scalar equations. Installed-wheel runs under the same protocol measured:
 
 | workload | inference (ms) | value + gradient (ms) | resident MiB (inference / gradient) |
 | --- | ---: | ---: | ---: |
-| 1UBQ | 0.202 / 0.402–0.413 | 0.570–0.571 / 0.855–0.870 | 1,190 / 1,310 vs 702 / 702 |
-| homogeneous 1UBQ | 0.273–0.274 / 0.409–0.420 | 0.852–0.855 / 0.852–0.910 | 1,232 / 1,392 vs 702 / 704 |
-| mixed proteins | 0.366–0.367 / 0.426 | 0.962–0.966 / 0.884–0.921 | 1,268 / 1,462 vs 702 / 704 |
-| 488-residue protein | 1.271–1.300 / 0.648 | 3.155–3.170 / 0.858–0.884 | 2,218 / 2,782 vs 784 / 786 |
+| 1UBQ | 0.208–0.213 / 0.403–0.417 | 0.456–0.459 / 0.857–0.859 | 1,190 / 1,308 vs 702 / 702 |
+| homogeneous 1UBQ | 0.272–0.273 / 0.398–0.400 | 0.605–0.611 / 0.842–0.859 | 1,232 / 1,390 vs 702 / 704 |
+| mixed proteins | 0.352–0.353 / 0.434–0.454 | 0.775–0.811 / 0.894–0.931 | 1,268 / 1,462 vs 702 / 704 |
+| 488-residue protein | 1.271–1.279 / 0.647–0.651 | 2.354–2.371 / 0.847–0.868 | 2,222 / 2,786 vs 784 / 786 |
 
 This preserves the single-pose win and is a material improvement over dense JAX.
-Relative to the preceding LJ/LK + LK-ball wheel, the electrostatics adapter
-reduces the large-protein value-and-gradient time from 3.698–3.737 ms to
-3.155–3.170 ms. It preserves the small-system win; homogeneous gradients now
-overlap Torch while mixed gradients remain slightly slower. The large case
-still trails Torch by about 2.0x for inference and 3.6–3.7x for
-value-and-gradient.
+Relative to the preceding LJ/LK + LK-ball + electrostatics wheel, the
+hydrogen-bond adapter reduces the large-protein value-and-gradient time from
+3.155–3.170 ms to 2.354–2.371 ms. Small, homogeneous, and mixed workloads now
+beat Torch for both measured operations, although their process residency is
+still higher. The large case still trails Torch by about 2.0x for inference and
+2.7–2.8x for value-and-gradient.
 
 An isolated large-protein electrostatics comparison found identical float32
 energies and a 1.46e-5 / 1.18e-6 maximum / RMS gradient delta between the
 portable and CUDA paths. Forward time was neutral at 0.311 ms, while
 value-and-gradient fell from 1.132 ms to 0.583 ms and its XLA temporary estimate
 fell from 743.2 MB to 7.6 KB.
+
+An isolated hydrogen-bond comparison produced identical float32 energies for
+both 1UBQ and the large protein. Maximum/RMS gradient deltas between the
+portable and CUDA paths were 1.91e-5/8.70e-7 and 2.20e-4/3.32e-6,
+respectively. Large hydrogen-bond forward time was neutral at 0.119 ms, while
+value-and-gradient fell from 0.948 ms to 0.123 ms and its XLA temporary estimate
+fell from 198.4 MB to zero.
 
 For 1UBQ, the full-score Cartesian-gradient maximum/RMS error against Torch is
 0.0129 / 0.00104. For the large protein it is 0.0317 / 0.00193. The previous
@@ -192,14 +201,15 @@ large raw LK-ball discrepancies of about 0.23 and 0.13 score units fall to
 topology-selected pairs and potentials, but parallel float32 atomic reduction
 changes accumulation order; it is not bitwise reproducible across processes.
 
-With all three optional pair adapters, XLA temporary-buffer estimates range
-from 0.2 MB to 22.0 MB for inference and 4.7 MB to 187.1 MB for
-value-and-gradient; these compiler estimates are not device peaks. Large-case
-process residency is 2,218 / 2,782 MiB versus 2,110 / 3,590 MiB before the
-electrostatics adapter: inference rises by 108 MiB while gradient residency
-falls by 808 MiB. Both remain well above Torch. Torch per-operation allocator
-increments are also not comparable to total process residency. Broader chemistry
-validation, kinematic workflows, and repacking remain unfinished.
+With all four optional pair adapters, XLA temporary-buffer estimates range from
+0.1 MB to 0.8 MB for inference and 0.7 MB to 5.4 MB for value-and-gradient;
+these compiler estimates are not device peaks. Large-case process residency is
+2,222 / 2,786 MiB, essentially unchanged from 2,218 / 2,782 MiB before the
+hydrogen-bond adapter, and remains well above Torch. Torch per-operation
+allocator increments are also not comparable to total process residency.
+Setup plus rendering remains 36–37 seconds for the measured JAX processes.
+Broader chemistry validation, kinematic workflows, and repacking remain
+unfinished.
 
 PDB loading uses the first model and Biotite's first alternate conformation.
 The Biotite frontend also accepts an AtomArrayStack for same-topology batches.
