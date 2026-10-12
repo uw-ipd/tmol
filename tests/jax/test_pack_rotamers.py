@@ -4,7 +4,12 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-from tmol_jax.pack import RepackingRotamers, impose_repacking_assignments
+from tmol_jax.pack import (
+    PackerEnergyTables,
+    RepackingRotamers,
+    impose_repacking_assignments,
+    repack_from_trace,
+)
 from tmol_jax.pose import PoseStack
 
 
@@ -59,3 +64,42 @@ def test_impose_repacking_assignments_rejects_invalid(assignments, message):
     pose, rotamers = _pose_and_rotamers()
     with pytest.raises(ValueError, match=message):
         impose_repacking_assignments(pose, rotamers, assignments)
+
+
+def test_repack_from_trace_selects_and_imposes_best_trajectory():
+    pose, rotamers = _pose_and_rotamers()
+    tables = PackerEnergyTables(
+        nrotamers_for_res=jnp.asarray([[2, 1], [1, 0]], dtype=jnp.int32),
+        oneb_offsets=jnp.asarray([[0, 2], [3, 0]], dtype=jnp.int32),
+        chunk_size=1,
+        neighbor_row_offsets=jnp.zeros((5,), dtype=jnp.int32),
+        neighbor_blocks=jnp.empty((0,), dtype=jnp.int32),
+        neighbor_chunk_offset_offsets=jnp.empty((0,), dtype=jnp.int32),
+        chunk_offsets=jnp.empty((0,), dtype=jnp.int32),
+        energy1b=jnp.asarray([1, 5, 2, 4], dtype=jnp.float32),
+        energy2b=jnp.empty((0,), dtype=jnp.float32),
+    )
+    initial = jnp.asarray([[[0, 0], [1, 0]], [[0, -1], [0, -1]]], dtype=jnp.int32)
+    proposed_residue = jnp.zeros((1, 2, 2), dtype=jnp.int32)
+    proposed_rotamer = jnp.asarray([[[1, 0], [0, 0]]], dtype=jnp.int32)
+    packed, best, energies, accepted = repack_from_trace(
+        pose,
+        rotamers,
+        tables,
+        initial,
+        proposed_residue,
+        proposed_rotamer,
+        jnp.ones((1, 2, 2), dtype=jnp.float32),
+        jnp.zeros((1, 2, 2), dtype=jnp.float32),
+        jnp.ones((1, 2, 2), dtype=jnp.bool_),
+        base_candidate_assignments=jnp.asarray([[0, 2], [3, -1]], dtype=jnp.int32),
+        candidate_for_table_rotamer=jnp.asarray([1, 0, 2, 3], dtype=jnp.int32),
+        block_for_table_residue=jnp.asarray([[0, 1], [0, -1]], dtype=jnp.int32),
+    )
+
+    np.testing.assert_array_equal(best, [[0, 0], [0, -1]])
+    np.testing.assert_array_equal(energies, [3, 4])
+    np.testing.assert_array_equal(accepted, [[[False, True], [False, False]]])
+    np.testing.assert_array_equal(
+        packed.coords[..., 0], [[20, 21, 30, 0], [40, 0, 0, 0]]
+    )

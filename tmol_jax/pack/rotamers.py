@@ -5,6 +5,7 @@ from __future__ import annotations
 import jax.numpy as jnp
 import numpy as np
 
+from tmol_jax.pack.energy_tables import run_metropolis_trace
 from tmol_jax.types import Array, pytree_dataclass
 
 
@@ -83,3 +84,67 @@ def impose_repacking_assignments(pose_stack, rotamers, assignments):
         jnp.asarray(rotamers.coords)[source], mode="drop"
     )
     return pose_stack.replace(coords=coords)
+
+
+def repack_from_trace(
+    pose_stack,
+    rotamers,
+    energy_tables,
+    initial_assignments,
+    proposal_residues,
+    proposal_rotamers,
+    temperatures,
+    uniform_randoms,
+    quenches,
+    *,
+    base_candidate_assignments,
+    candidate_for_table_rotamer,
+    block_for_table_residue,
+):
+    """Anneal and impose the best supplied same-type rotamer assignments.
+
+    Assignments and proposals use position-local rotamer indices. The proposal
+    trace is explicit so callers can reproduce the same stochastic decisions
+    in another frontend. Candidate generation, energy-table construction, and
+    random schedule generation deliberately remain outside this function.
+    The explicit mappings preserve canonical bump-checked rotamer numbering,
+    molten-block numbering, and fixed-block assignments.
+    """
+    _, best, best_energies, accepted = run_metropolis_trace(
+        energy_tables,
+        initial_assignments,
+        proposal_residues,
+        proposal_rotamers,
+        temperatures,
+        uniform_randoms,
+        quenches,
+    )
+    best_trajectory = jnp.argmin(best_energies, axis=1)
+    best_local = jnp.take_along_axis(best, best_trajectory[:, None, None], axis=1)[:, 0]
+    best_energy = jnp.take_along_axis(best_energies, best_trajectory[:, None], axis=1)[
+        :, 0
+    ]
+    table_rotamer = jnp.where(
+        best_local >= 0,
+        best_local + jnp.asarray(energy_tables.oneb_offsets, dtype=jnp.int32),
+        -1,
+    )
+    candidate_for_table_rotamer = np.asarray(
+        candidate_for_table_rotamer, dtype=np.int32
+    )
+    table_rotamer_np = np.asarray(table_rotamer, dtype=np.int32)
+    active = table_rotamer_np >= 0
+    if np.any(table_rotamer_np[active] >= candidate_for_table_rotamer.shape[0]):
+        raise ValueError("table rotamer mapping is incomplete")
+    chosen_candidate = np.full(table_rotamer_np.shape, -1, dtype=np.int32)
+    chosen_candidate[active] = candidate_for_table_rotamer[table_rotamer_np[active]]
+
+    block = np.asarray(block_for_table_residue, dtype=np.int32)
+    if block.shape != table_rotamer_np.shape:
+        raise ValueError("table residue mapping has the wrong shape")
+    assignments = np.asarray(base_candidate_assignments, dtype=np.int32).copy()
+    pose = np.broadcast_to(np.arange(assignments.shape[0])[:, None], block.shape)
+    molten = block >= 0
+    assignments[pose[molten], block[molten]] = chosen_candidate[molten]
+    packed = impose_repacking_assignments(pose_stack, rotamers, assignments)
+    return packed, best_local, best_energy, accepted
