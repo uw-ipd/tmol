@@ -33,8 +33,8 @@ JAX runtime, for example `pip install 'jax[cuda13]>=0.11.2'`. The JAX distributi
 also declares `cu12` and `cu13` extras. Current development validation uses
 Python 3.12 and JAX 0.11.2; broader version support has not yet been tested.
 
-An optional CUDA kernel wheel accelerates float32 LJ/LK scoring while leaving
-the default wheel and sdist pure JAX:
+An optional CUDA kernel wheel accelerates float32 LJ/LK and LK-ball scoring
+while leaving the default wheel and sdist pure JAX:
 
 ```sh
 python scripts/build_jax_cuda.py --outdir dist/jax-cuda
@@ -42,16 +42,19 @@ pip install dist/jax-cuda/tmol_jax_cuda-*.whl
 ```
 
 Building this local platform wheel requires `nvcc`; it compiles against the
-canonical TMol scalar LJ/LK headers and the installed JAX FFI headers. Set
+canonical TMol scalar LJ/LK and LK-ball headers and the installed JAX FFI
+headers. Set
 `--cuda-architectures` to a semicolon-separated SM list when the wheel must run
 on GPUs other than the build host. The wheel is version-pinned to the matching
 `tmol-jax` package. It contains only the compiled adapter, not a second copy of
 the parameter database or TMol native sources.
 
 If the optional wheel is absent or cannot load, scoring uses the pure-JAX path.
-The CUDA path currently supports float32 only. It reevaluates every exact
-count-pair-qualified atom pair from the current coordinates on every call, so
-coordinate minimization does not use a frozen neighbor list.
+The CUDA path currently supports float32 only. LJ/LK reevaluates every exact
+count-pair-qualified atom pair, and LK-ball reevaluates its exact
+topology-selected polar x heavy-atom pairs, from the current coordinates on
+every call. Coordinate minimization therefore does not use a frozen neighbor
+list.
 
 ## Score and differentiate
 
@@ -156,30 +159,39 @@ JAX setup plus rendering took 35–38 seconds per fresh process and compilation
 added 6–26 seconds for inference and 11–30 seconds for value-and-gradient. The
 corresponding Torch setup plus rendering took 11–14 seconds.
 
-The optional CUDA wheel replaces only the LJ/LK pair sum. Installed-wheel runs
-under the same protocol measured:
+The optional CUDA wheel replaces the LJ/LK and LK-ball pair sums with thin JAX
+FFI adapters to shared, Torch-independent TMol scalar equations. Installed-wheel
+runs under the same protocol measured:
 
 | workload | inference (ms) | value + gradient (ms) | resident MiB (inference / gradient) |
 | --- | ---: | ---: | ---: |
-| 1UBQ | 0.228 | 0.646 | 1,190 / 1,310 |
-| homogeneous 1UBQ | 0.405–0.407 | 1.247–1.311 | 1,232 / 1,392 |
-| mixed proteins | 0.550–0.557 | 5.080–5.090 | 1,268 / 1,974 |
-| 488-residue protein | 1.647 | 9.609 | 2,110 / 3,588 |
+| 1UBQ | 0.207 / 0.415–0.424 | 0.574–0.584 / 0.854–0.899 | 1,190 / 1,310 vs 702 / 702 |
+| homogeneous 1UBQ | 0.298–0.299 / 0.406–0.411 | 0.904–0.936 / 0.866–0.872 | 1,232 / 1,392 vs 702 / 704 |
+| mixed proteins | 0.393–0.398 / 0.428–0.440 | 1.094–1.095 / 0.888–0.913 | 1,268 / 1,462 vs 702 / 704 |
+| 488-residue protein | 1.246–1.265 / 0.641–0.648 | 3.698–3.737 / 0.858–0.861 | 2,110 / 3,590 vs 784 / 786 |
 
-This is a material improvement over dense JAX, especially for large inference
-and memory, but it does not reach final Torch throughput. The installed 1UBQ
-kernel differed from dense JAX by at most 2.29e-4 raw score units and 2.44e-4
-in a Cartesian gradient component. The kernel evaluates the same pairs and
-potentials, but parallel float32 atomic reduction changes accumulation order;
-it is not bitwise reproducible across processes.
+This preserves the single-pose win and is a material improvement over dense JAX.
+It also improves the earlier LJ/LK-only optional wheel: mixed-batch
+value-and-gradient falls from 5.080–5.090 ms to 1.094–1.095 ms and the large
+protein falls from 9.609 ms to 3.698–3.737 ms. It does not reach final Torch
+throughput: homogeneous and mixed gradients remain slower, and the large case
+is about 1.9x slower for inference and 4.3x slower for value-and-gradient.
 
-JAX allocator lifecycle peaks ranged from 276 MB to 3.46 GB. XLA temporary
-buffer estimates ranged from 12.1 MB to 572 MB for inference and 33.7 MB to
-2.80 GB for value-and-gradient; these compiler estimates are not device peaks.
-Torch per-operation allocator increments are also not comparable to total
-process residency. The large-protein total differed by about 0.035 score unit
-and needs term-level investigation. Broader chemistry validation, kinematic workflows, and repacking
-remain unfinished.
+For 1UBQ, the full-score Cartesian-gradient maximum/RMS error against Torch is
+0.0129 / 0.00104. For the large protein it is 0.0317 / 0.00193. The previous
+large raw LK-ball discrepancies of about 0.23 and 0.13 score units fall to
+0.0034 and 0.0011 with the shared scalar kernel. The adapter evaluates the same
+topology-selected pairs and potentials, but parallel float32 atomic reduction
+changes accumulation order; it is not bitwise reproducible across processes.
+
+With both optional kernels, JAX allocator lifecycle peaks range from 276 MB to
+1.41 GB. XLA temporary-buffer estimates range from 0.2 MB to 23.1 MB for
+inference and 14.0 MB to 743.8 MB for value-and-gradient; these compiler
+estimates are not device peaks. Large-case process residency remains about
+2,110 / 3,590 MiB, essentially unchanged from the LJ/LK-only wheel and still
+well above Torch. Torch per-operation allocator increments are also not
+comparable to total process residency. Broader chemistry validation, kinematic
+workflows, and repacking remain unfinished.
 
 PDB loading uses the first model and Biotite's first alternate conformation.
 The Biotite frontend also accepts an AtomArrayStack for same-topology batches.
