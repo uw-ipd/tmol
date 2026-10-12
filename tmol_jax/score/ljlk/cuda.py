@@ -86,7 +86,7 @@ def _pack_parameters(state):
 def score(state, coords):
     """Evaluate three LJ/LK channels with the installed CUDA kernel."""
     parameters, global_parameters = _pack_parameters(state)
-    bonded_path_length = jnp.asarray(state.bonded_path_length, dtype=jnp.int32)
+    bonded_path_length = jnp.asarray(state.bonded_path_length, dtype=jnp.uint8)
     atom_is_real = jnp.asarray(state.atom_is_real, dtype=jnp.bool_)
 
     @jax.custom_vjp

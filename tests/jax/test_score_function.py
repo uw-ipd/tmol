@@ -104,3 +104,29 @@ def test_setup_cache_checks_owners_and_releases_dead_poses():
     del replacement
     gc.collect()
     assert not cache
+
+
+def test_count_pair_storage_is_compact_and_large_clamps_remain_lossless():
+    from tmol_jax.score.common.count_pair import _pairwise_bpl_jit
+
+    arguments = (
+        jnp.asarray([[0]], dtype=jnp.int32),
+        jnp.asarray([[0]], dtype=jnp.int32),
+        jnp.full((1, 1, 1, 1, 1), 6, dtype=jnp.int32),
+        jnp.asarray([2], dtype=jnp.int32),
+        jnp.asarray([[0]], dtype=jnp.int32),
+        jnp.asarray([[[0, 1], [1, 0]]], dtype=jnp.int32),
+        2,
+    )
+
+    canonical = _pairwise_bpl_jit(*arguments, max_sep=6)
+    assert canonical.dtype == jnp.uint8
+    np.testing.assert_array_equal(
+        canonical, jnp.asarray([[[0, 1], [1, 0]]], dtype=jnp.uint8)
+    )
+
+    oversized = _pairwise_bpl_jit(*arguments, max_sep=256)
+    assert oversized.dtype == jnp.int32
+    np.testing.assert_array_equal(
+        oversized, jnp.asarray([[[0, 1], [1, 0]]], dtype=jnp.int32)
+    )

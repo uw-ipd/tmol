@@ -103,7 +103,7 @@ def _pack_global_parameters(state):
 def score(state, coordinates):
     """Evaluate the electrostatics channel with the installed CUDA kernel."""
     charges = jnp.asarray(state.charges, dtype=jnp.float32)
-    bonded_paths = jnp.asarray(state.bonded_path_length, dtype=jnp.int32)
+    bonded_paths = jnp.asarray(state.bonded_path_length, dtype=jnp.uint8)
     atom_is_real = jnp.asarray(state.atom_is_real, dtype=jnp.bool_)
     global_parameters = state.cuda_global_parameters
 

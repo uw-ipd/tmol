@@ -13,7 +13,7 @@ using F32R2 = ffi::BufferR2<ffi::DataType::F32>;
 using F32R3 = ffi::BufferR3<ffi::DataType::F32>;
 using F32R4 = ffi::BufferR4<ffi::DataType::F32>;
 using S32R2 = ffi::BufferR2<ffi::DataType::S32>;
-using S32R3 = ffi::BufferR3<ffi::DataType::S32>;
+using U8R3 = ffi::BufferR3<ffi::DataType::U8>;
 
 constexpr int kTile = 16;
 constexpr int kWaters = 4;
@@ -23,7 +23,7 @@ ffi::Error validate_shapes(
     F32R3 coords,
     F32R4 waters,
     F32R3 params,
-    S32R3 bpl,
+    U8R3 bpl,
     S32R2 polars,
     S32R2 occluders,
     F32R1 global) {
@@ -66,7 +66,7 @@ __global__ void lkball_pairs(
     const float* coords,
     const float* waters,
     const float* params,
-    const int32_t* bonded_path_length,
+    const uint8_t* bonded_path_length,
     const int32_t* polar_indices,
     const int32_t* occluder_indices,
     const float* global_values,
@@ -199,7 +199,7 @@ ffi::Error forward(
     F32R3 coords,
     F32R4 waters,
     F32R3 params,
-    S32R3 bpl,
+    U8R3 bpl,
     S32R2 polars,
     S32R2 occluders,
     F32R1 global,
@@ -245,7 +245,7 @@ ffi::Error backward(
     F32R3 coords,
     F32R4 waters,
     F32R3 params,
-    S32R3 bpl,
+    U8R3 bpl,
     S32R2 polars,
     S32R2 occluders,
     F32R1 global,
@@ -303,7 +303,7 @@ XLA_FFI_DEFINE_HANDLER_SYMBOL(
         .Arg<F32R3>()
         .Arg<F32R4>()
         .Arg<F32R3>()
-        .Arg<S32R3>()
+        .Arg<U8R3>()
         .Arg<S32R2>()
         .Arg<S32R2>()
         .Arg<F32R1>()
@@ -317,7 +317,7 @@ XLA_FFI_DEFINE_HANDLER_SYMBOL(
         .Arg<F32R3>()
         .Arg<F32R4>()
         .Arg<F32R3>()
-        .Arg<S32R3>()
+        .Arg<U8R3>()
         .Arg<S32R2>()
         .Arg<S32R2>()
         .Arg<F32R1>()

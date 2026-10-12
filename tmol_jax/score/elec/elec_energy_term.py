@@ -222,7 +222,7 @@ def _atom_is_real_mask(pose_stack: Any, packed_block_types: Any) -> jax.Array:
 def elec_pose_score(
     coords: jax.Array,  # [P, N, 3] float32
     charges: jax.Array,  # [P, N] float32
-    bonded_path_length: jax.Array,  # [P, N, N] int32
+    bonded_path_length: jax.Array,  # [P, N, N] uint8
     real_atom_mask: jax.Array,  # [P, N] bool
     global_params: ElecGlobalParams,
 ) -> jax.Array:
@@ -268,7 +268,7 @@ class _ElecState:
 
     # [P, N] float32 partial charges, zero at padding slots.
     charges: jax.Array
-    # [P, N, N] int32 bonded path length; defaults to _MAX_COUNTPAIR_SEPARATION
+    # [P, N, N] uint8 bonded path length; defaults to _MAX_COUNTPAIR_SEPARATION
     # for cross-block pairs that can't be reached within the cutoff.
     bonded_path_length: jax.Array
     # [P, N] bool real-atom mask.
@@ -372,7 +372,7 @@ class ElecEnergyTerm(EnergyTerm):
         gp = self.global_params
         from tmol_jax.score.elec import cuda
 
-        bpl_jax = jnp.asarray(bpl, dtype=jnp.int32)
+        bpl_jax = jnp.asarray(bpl)
         mask_jax = jnp.asarray(mask, dtype=bool)
 
         # Optional cell-list construction (mirror the LJLK pattern). State

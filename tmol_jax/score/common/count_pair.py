@@ -474,7 +474,10 @@ def _pairwise_bpl_jit(
 
     real_pair = atom_real[:, :, None] & atom_real[:, None, :]
     bpl = jnp.where(real_pair, bpl, max_sep)
-    return bpl.astype(jnp.int32)
+    # The canonical clamp is 6, so retain the persistent O(N^2) table in
+    # one byte. Keep unusual public callers with a larger clamp lossless.
+    dtype = jnp.uint8 if max_sep <= 255 else jnp.int32
+    return bpl.astype(dtype)
 
 
 # Per-pose-stack cache for the APSP bonded-path-length matrix. Keyed by
@@ -540,11 +543,12 @@ def pairwise_bonded_path_length(
 
     Returns
     -------
-    ``jnp.int32[n_poses, max_n_atoms_per_pose, max_n_atoms_per_pose]``
+    ``jnp.uint8[n_poses, max_n_atoms_per_pose, max_n_atoms_per_pose]``
         Every pair (including ``i == j`` which reads 0 from
         ``intrares_path_distance``) gets a chemical-bond path length.
         Cross-residue pairs for which no connection pair can reach
-        within ``max_sep`` bonds are left at ``max_sep``.
+        within ``max_sep`` bonds are left at ``max_sep``. A noncanonical
+        ``max_sep > 255`` returns ``int32`` instead.
     """
     if packed_block_types is None:
         packed_block_types = pose_stack.packed_block_types
@@ -679,7 +683,8 @@ def _pairwise_bpl_direct_jit(
 
     real_pair = atom_real[:, :, None] & atom_real[:, None, :]
     bpl = jnp.where(real_pair, bpl, max_sep)
-    return bpl.astype(jnp.int32)
+    dtype = jnp.uint8 if max_sep <= 255 else jnp.int32
+    return bpl.astype(dtype)
 
 
 # Cache for elec-style direct bpl, same lifecycle semantics as

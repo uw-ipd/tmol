@@ -160,7 +160,7 @@ def score(term, state, coordinates):
         coordinates,
         place(coordinates),
         parameters,
-        jnp.asarray(state.bonded_path_length, dtype=jnp.int32),
+        jnp.asarray(state.bonded_path_length, dtype=jnp.uint8),
         jnp.asarray(state.polar_indices, dtype=jnp.int32),
         jnp.asarray(state.occluder_indices, dtype=jnp.int32),
         global_values,

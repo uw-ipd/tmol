@@ -14,7 +14,7 @@ namespace pot = tmol::score::ljlk::potentials;
 using F32R1 = ffi::BufferR1<ffi::DataType::F32>;
 using F32R2 = ffi::BufferR2<ffi::DataType::F32>;
 using F32R3 = ffi::BufferR3<ffi::DataType::F32>;
-using S32R3 = ffi::BufferR3<ffi::DataType::S32>;
+using U8R3 = ffi::BufferR3<ffi::DataType::U8>;
 using PredR2 = ffi::BufferR2<ffi::DataType::PRED>;
 
 constexpr int kTile = 16;
@@ -64,7 +64,7 @@ template <bool Gradient>
 __global__ void ljlk_pairs(
     const float* coords,
     const float* params,
-    const int32_t* bonded_path_length,
+    const uint8_t* bonded_path_length,
     const bool* atom_is_real,
     const float* global_values,
     const float* cotangent,
@@ -173,7 +173,7 @@ __global__ void ljlk_pairs(
 }
 
 ffi::Error validate_shapes(
-    F32R3 coords, F32R3 params, S32R3 bpl, PredR2 real, F32R1 global) {
+    F32R3 coords, F32R3 params, U8R3 bpl, PredR2 real, F32R1 global) {
   auto c = coords.dimensions();
   auto p = params.dimensions();
   auto b = bpl.dimensions();
@@ -190,7 +190,7 @@ ffi::Error forward(
     cudaStream_t stream,
     F32R3 coords,
     F32R3 params,
-    S32R3 bpl,
+    U8R3 bpl,
     PredR2 real,
     F32R1 global,
     ffi::Result<F32R2> output) {
@@ -225,7 +225,7 @@ ffi::Error backward(
     cudaStream_t stream,
     F32R3 coords,
     F32R3 params,
-    S32R3 bpl,
+    U8R3 bpl,
     PredR2 real,
     F32R1 global,
     F32R2 cotangent,
@@ -264,7 +264,7 @@ XLA_FFI_DEFINE_HANDLER_SYMBOL(
         .Ctx<ffi::PlatformStream<cudaStream_t>>()
         .Arg<F32R3>()
         .Arg<F32R3>()
-        .Arg<S32R3>()
+        .Arg<U8R3>()
         .Arg<PredR2>()
         .Arg<F32R1>()
         .Ret<F32R2>());
@@ -276,7 +276,7 @@ XLA_FFI_DEFINE_HANDLER_SYMBOL(
         .Ctx<ffi::PlatformStream<cudaStream_t>>()
         .Arg<F32R3>()
         .Arg<F32R3>()
-        .Arg<S32R3>()
+        .Arg<U8R3>()
         .Arg<PredR2>()
         .Arg<F32R1>()
         .Arg<F32R2>()
