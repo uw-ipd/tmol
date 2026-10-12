@@ -1,3 +1,4 @@
+#include <tmol/utility/tensor/native.hh>
 #pragma once
 
 #include <Eigen/Core>
@@ -17,9 +18,6 @@
 #include <tmol/score/common/tuple.hh>
 
 #include <tmol/extern/moderngpu/operators.hxx>
-
-#include <ATen/Tensor.h>
-#include <c10/util/Exception.h>
 
 namespace tmol {
 namespace pack {

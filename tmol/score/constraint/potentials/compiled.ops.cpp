@@ -1,5 +1,4 @@
-#include <torch/torch.h>
-#include <torch/script.h>
+#include <tmol/utility/tensor/native_library.hh>
 
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/tensor/context_manager.hh>
@@ -19,20 +18,20 @@ namespace potentials {
 
 ContextManager mgr;
 
-using torch::Tensor;
-using torch::autograd::AutogradContext;
-using torch::autograd::Function;
-using torch::autograd::tensor_list;
+using tmol::native::Tensor;
+using tmol::native::autograd::AutogradContext;
+using tmol::native::autograd::Function;
+using tmol::native::autograd::tensor_list;
 
 using namespace tmol::score::common;
 
 template <template <tmol::Device> class DispatchMethod>
-class GetTorsionAngleOp
-    : public torch::autograd::Function<GetTorsionAngleOp<DispatchMethod>> {
+class GetTorsionAngleOp : public tmol::native::autograd::Function<
+                              GetTorsionAngleOp<DispatchMethod>> {
  public:
   static Tensor forward(AutogradContext* ctx, Tensor coords) {
-    at::Tensor angle;
-    at::Tensor dangle_dcoords;
+    tmol::native::Tensor angle;
+    tmol::native::Tensor dangle_dcoords;
 
     using Int = int32_t;
 
@@ -57,14 +56,13 @@ class GetTorsionAngleOp
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
     auto saved = ctx->get_saved_variables();
 
-    at::Tensor dV_d_pose_coords;
+    tmol::native::Tensor dV_d_pose_coords;
 
     // single-score mode
-    auto saved_grads = ctx->get_saved_variables();
 
     tensor_list result;
 
-    for (auto& saved_grad : saved_grads) {
+    for (auto& saved_grad : saved) {
       auto ingrad = grad_outputs[0];
       while (ingrad.dim() < saved_grad.dim()) {
         ingrad = ingrad.unsqueeze(-1);
@@ -88,8 +86,8 @@ Tensor get_torsion_angle_op(Tensor coords) {
 }
 
 // See https://stackoverflow.com/a/3221914
-TORCH_LIBRARY(tmol_constraint, m) {
-  m.def("get_torsion_angle", &get_torsion_angle_op<DeviceOperations>);
+TMOL_LIBRARY(tmol_constraint, m) {
+  m.def("get_torsion_angle", TMOL_FN(&get_torsion_angle_op<DeviceOperations>));
 }
 
 }  // namespace potentials

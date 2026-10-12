@@ -1,3 +1,4 @@
+#include <tmol/utility/tensor/native.hh>
 #pragma once
 
 #include <cmath>
@@ -90,7 +91,7 @@ namespace tmol {
 template <typename Real>
 struct enable_tensor_view<score::ljlk::potentials::LJTypeParams<Real>> {
   static const bool enabled = enable_tensor_view<Real>::enabled;
-  static const at::ScalarType scalar_type() {
+  static const tmol::native::ScalarType scalar_type() {
     return enable_tensor_view<Real>::scalar_type();
   }
 
@@ -107,7 +108,7 @@ struct enable_tensor_view<score::ljlk::potentials::LJTypeParams<Real>> {
 template <typename Real>
 struct enable_tensor_view<score::ljlk::potentials::LKTypeParams<Real>> {
   static const bool enabled = enable_tensor_view<Real>::enabled;
-  static const at::ScalarType scalar_type() {
+  static const tmol::native::ScalarType scalar_type() {
     return enable_tensor_view<Real>::scalar_type();
   }
 
@@ -124,7 +125,7 @@ struct enable_tensor_view<score::ljlk::potentials::LKTypeParams<Real>> {
 template <typename Real>
 struct enable_tensor_view<score::ljlk::potentials::LJLKTypeParams<Real>> {
   static const bool enabled = enable_tensor_view<Real>::enabled;
-  static const at::ScalarType scalar_type() {
+  static const tmol::native::ScalarType scalar_type() {
     return enable_tensor_view<Real>::scalar_type();
   }
 
@@ -141,7 +142,7 @@ struct enable_tensor_view<score::ljlk::potentials::LJLKTypeParams<Real>> {
 template <typename Real>
 struct enable_tensor_view<score::ljlk::potentials::LJGlobalParams<Real>> {
   static const bool enabled = enable_tensor_view<Real>::enabled;
-  static const at::ScalarType scalar_type() {
+  static const tmol::native::ScalarType scalar_type() {
     return enable_tensor_view<Real>::scalar_type();
   }
 

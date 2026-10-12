@@ -2,16 +2,8 @@
 
 The documentation is built with Sphinx, MyST Markdown, nbsphinx, and autodoc.
 
-```bash
-pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.8"
-pip install scikit-build-core pybind11 ninja packaging "cmake>=3.24,<4"
-pip install --no-build-isolation -e ".[docs]" \
-  -Ccmake.define.TMOL_ENABLE_CUDA=OFF
-python .github/scripts/smoke_tutorial_notebooks.py --write
-make -C docs html
-```
-
-The rendered site is written to `docs/_build/html`.
+Follow the [contributor guide](contributor_guide.md#documentation) to install
+build dependencies, execute notebooks, and render the site to `docs/_build/html`.
 
 ## Branding and visual style
 

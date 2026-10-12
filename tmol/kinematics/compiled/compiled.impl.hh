@@ -1,4 +1,5 @@
 #pragma once
+#include <list>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>

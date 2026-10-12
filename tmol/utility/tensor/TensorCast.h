@@ -1,3 +1,4 @@
+#include <tmol/utility/tensor/native.hh>
 #pragma once
 
 #include <tmol/utility/tensor/TensorAccessor.h>
@@ -9,7 +10,7 @@ namespace tmol {
 // Helper class for tensor casts.
 //
 // Wraps a tensor with implicit conversion operators to TView, TPack, and
-// Tensor data types. Supports type-inferred casts from torch::Tensor to
+// Tensor data types. Supports type-inferred casts from tmol::native::Tensor to
 // TView/TPack function parameters, with helpful error messages on conversion
 // failures.
 //
@@ -20,10 +21,10 @@ namespace tmol {
 // zero-dependency definition of TView and (b) preserve type-checking for
 // Tensor->TView conversions if casts are explicitly required.
 struct TCast {
-  at::Tensor tensor;
+  tmol::native::Tensor tensor;
   const std::string& name;
 
-  TCast(at::Tensor tensor, const std::string& name)
+  TCast(tmol::native::Tensor tensor, const std::string& name)
       : tensor(tensor), name(name) {}
 
   template <typename T, size_t N, Device D, PtrTag P>
@@ -36,7 +37,7 @@ struct TCast {
     return TPack<T, N, D, P>(tensor, view_tensor<T, N, D, P>(tensor, name));
   };
 
-  operator at::Tensor() { return tensor; };
+  operator tmol::native::Tensor() { return tensor; };
 };
 
 #define TCAST(NAME) TCast(NAME, #NAME)

@@ -1,3 +1,4 @@
+#include <tmol/utility/tensor/native.hh>
 #pragma once
 
 namespace tmol {
@@ -50,7 +51,7 @@ template <typename Int>
 struct enable_tensor_view<
     io::details::compiled::HisAtomIndsInCanonicalOrdering<Int>> {
   static const bool enabled = enable_tensor_view<Int>::enabled;
-  static const at::ScalarType scalar_type() {
+  static const tmol::native::ScalarType scalar_type() {
     return enable_tensor_view<Int>::scalar_type();
   }
   static const int nconsumed_dims = 1;

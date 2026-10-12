@@ -1,4 +1,5 @@
 #include <cmath>
+#include <cmath>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -153,9 +154,11 @@ struct GeneratePoseLeafAtoms {
         Vec<Real, 3> coord2 = orig_coords[pose_ind][geom.anc2];
 
         // an ancestor that is itself missing leaves this atom unbuildable
-        if (isnan(coord0[0]) || isnan(coord0[1]) || isnan(coord0[2])
-            || isnan(coord1[0]) || isnan(coord1[1]) || isnan(coord1[2])
-            || isnan(coord2[0]) || isnan(coord2[1]) || isnan(coord2[2])) {
+        if (std::isnan(coord0[0]) || std::isnan(coord0[1])
+            || std::isnan(coord0[2]) || std::isnan(coord1[0])
+            || std::isnan(coord1[1]) || std::isnan(coord1[2])
+            || std::isnan(coord2[0]) || std::isnan(coord2[1])
+            || std::isnan(coord2[2])) {
           new_coords[pose_ind][block_offset + atom_ind] = unbuildable;
           return;
         }
@@ -296,9 +299,11 @@ struct GeneratePoseLeafAtoms {
         Vec<Real, 3> coord2 = orig_coords[pose_ind][geom.anc2];
 
         // Early exit if any base atoms have NaN coordinates
-        if (isnan(coord0[0]) || isnan(coord0[1]) || isnan(coord0[2])
-            || isnan(coord1[0]) || isnan(coord1[1]) || isnan(coord1[2])
-            || isnan(coord2[0]) || isnan(coord2[1]) || isnan(coord2[2])) {
+        if (std::isnan(coord0[0]) || std::isnan(coord0[1])
+            || std::isnan(coord0[2]) || std::isnan(coord1[0])
+            || std::isnan(coord1[1]) || std::isnan(coord1[2])
+            || std::isnan(coord2[0]) || std::isnan(coord2[1])
+            || std::isnan(coord2[2])) {
           return;
         }
 

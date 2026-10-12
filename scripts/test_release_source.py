@@ -133,6 +133,10 @@ def release_checkout(tmp_path, monkeypatch):
     remote.mkdir()
     git(remote, "init")
     (remote / "pyproject.toml").write_text('[project]\nversion = "9.9.9"\n')
+    for major in (12, 13):
+        package = remote / f"packages/cu{major}"
+        package.mkdir(parents=True)
+        (package / "pyproject.toml").write_text('[project]\nversion = "9.9.9"\n')
     (remote / "scripts").mkdir()
     (remote / "scripts/release_matrix.py").write_text("# immutable matrix\n")
     (remote / "runtime.py").write_text("# tagged runtime\n")
@@ -201,7 +205,15 @@ def test_manual_fresh_build_pins_tag_not_workflow_head(
     assert values["candidate_run_id"] == ""
 
 
-@pytest.mark.parametrize("path", ["pyproject.toml", "scripts/release_matrix.py"])
+@pytest.mark.parametrize(
+    "path",
+    [
+        "pyproject.toml",
+        "packages/cu12/pyproject.toml",
+        "packages/cu13/pyproject.toml",
+        "scripts/release_matrix.py",
+    ],
+)
 def test_manual_build_rejects_changed_release_configuration(
     release_checkout, monkeypatch, path
 ):

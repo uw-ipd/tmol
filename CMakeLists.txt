@@ -1,6 +1,15 @@
 cmake_minimum_required(VERSION 3.24...3.31)
 
-option(TMOL_ENABLE_CUDA "Build CUDA extensions (disable for CPU-only)" ON)
+set(TMOL_OPS_CUDA "" CACHE STRING "Build an optional CUDA ops package: 12 or 13")
+option(TMOL_ENABLE_CUDA "Build CUDA extensions (disable for CPU-only)" OFF)
+set(_TMOL_NATIVE_PACKAGE tmol)
+if(TMOL_OPS_CUDA)
+  if(NOT TMOL_OPS_CUDA MATCHES "^(12|13)$")
+    message(FATAL_ERROR "TMOL_OPS_CUDA must be 12 or 13")
+  endif()
+  set(TMOL_ENABLE_CUDA ON)
+  set(_TMOL_NATIVE_PACKAGE "tmol_ops_cu${TMOL_OPS_CUDA}")
+endif()
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Detect CUDA and choose languages
@@ -151,145 +160,59 @@ else()
   message(STATUS "tmol: CUDA not found or disabled; building CPU-only extensions")
 endif()
 
+if(TMOL_OPS_CUDA)
+  if(NOT TMOL_HAS_CUDA OR NOT CMAKE_CUDA_COMPILER_VERSION MATCHES "^${TMOL_OPS_CUDA}\\.")
+    message(FATAL_ERROR "tmol-ops-cu${TMOL_OPS_CUDA} requires a CUDA ${TMOL_OPS_CUDA} toolkit")
+  endif()
+endif()
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Dependencies
 # ═══════════════════════════════════════════════════════════════════════════════
 
 find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
 
-# Save Python_INCLUDE_DIRS NOW — find_package(Torch) / Caffe2 may overwrite it.
+# Build with current stable headers, target the oldest supported stable C ABI.
+# Production modules avoid TorchConfig.cmake and ATen C++ objects, and do not
+# link libtorch_python. C++17 retains the manylinux baseline C++ runtime.
 set(_TMOL_PYTHON_INCLUDE_DIRS "${Python_INCLUDE_DIRS}")
-if(NOT _TMOL_PYTHON_INCLUDE_DIRS)
-  execute_process(
-    COMMAND ${Python_EXECUTABLE} -c "import sysconfig; print(sysconfig.get_path('include'))"
-    OUTPUT_VARIABLE _TMOL_PYTHON_INCLUDE_DIRS
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-  )
-endif()
-message(STATUS "tmol: Python include dirs = ${_TMOL_PYTHON_INCLUDE_DIRS}")
-
-# PyTorch 2.13 and newer require C++20 for third-party extensions. Keep the
-# older release lanes on C++17 so their established CUDA toolchains remain
-# unchanged.
-execute_process(
-  COMMAND ${Python_EXECUTABLE} -c "import torch; v=torch.__version__.split('.'); print(f'{v[0]};{v[1]}')"
-  OUTPUT_VARIABLE _TORCH_VERSION
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-list(GET _TORCH_VERSION 0 TORCH_VERSION_MAJOR)
-list(GET _TORCH_VERSION 1 TORCH_VERSION_MINOR)
-
-if(TORCH_VERSION_MAJOR GREATER 2
-    OR (TORCH_VERSION_MAJOR EQUAL 2 AND TORCH_VERSION_MINOR GREATER_EQUAL 13))
-  set(_TMOL_CXX_STANDARD 20)
-else()
-  set(_TMOL_CXX_STANDARD 17)
-endif()
-set(CMAKE_CXX_STANDARD ${_TMOL_CXX_STANDARD})
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  # LTO can resolve STL calls to Torch's unversioned template exports, even
+  # with libstdc++ first. Keep those calls bound to the system C++ runtime.
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
+endif()
 if(TMOL_HAS_CUDA)
-  set(CMAKE_CUDA_STANDARD ${_TMOL_CXX_STANDARD})
+  set(CMAKE_CUDA_STANDARD 17)
   set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 endif()
-message(STATUS "tmol: PyTorch ${TORCH_VERSION_MAJOR}.${TORCH_VERSION_MINOR}, using C++${_TMOL_CXX_STANDARD}")
-
-if(TMOL_HAS_CUDA)
-  # Set TORCH_CUDA_ARCH_LIST env var BEFORE find_package(Torch) so that
-  # Caffe2's cuda.cmake uses our architectures instead of defaulting to
-  # all archs nvcc supports (which includes sm_52 that lacks double atomicAdd).
-  # CMake resolves the symbolic `native` value while enabling CUDA; use that
-  # numeric result rather than passing an empty architecture list to Torch.
-  if(CMAKE_CUDA_ARCHITECTURES STREQUAL "native")
-    set(_TMOL_TORCH_CUDA_ARCHITECTURES ${CMAKE_CUDA_ARCHITECTURES_NATIVE})
-  else()
-    set(_TMOL_TORCH_CUDA_ARCHITECTURES ${CMAKE_CUDA_ARCHITECTURES})
-  endif()
-  set(_TORCH_ARCH_STR "")
-  foreach(_A ${_TMOL_TORCH_CUDA_ARCHITECTURES})
-    string(REPLACE "-real" "" _A "${_A}")
-    string(REPLACE "-virtual" "" _A "${_A}")
-    string(LENGTH "${_A}" _ALEN)
-    if(_ALEN EQUAL 3)
-      string(SUBSTRING "${_A}" 0 2 _MAJOR)
-      string(SUBSTRING "${_A}" 2 -1 _MINOR)
-      set(_TORCH_ARCH_STR "${_TORCH_ARCH_STR} ${_MAJOR}.${_MINOR}")
-    elseif(_ALEN EQUAL 2)
-      string(SUBSTRING "${_A}" 0 1 _MAJOR)
-      string(SUBSTRING "${_A}" 1 -1 _MINOR)
-      set(_TORCH_ARCH_STR "${_TORCH_ARCH_STR} ${_MAJOR}.${_MINOR}")
-    endif()
-  endforeach()
-  string(STRIP "${_TORCH_ARCH_STR}" _TORCH_ARCH_STR)
-  set(ENV{TORCH_CUDA_ARCH_LIST} "${_TORCH_ARCH_STR}")
-  message(STATUS "tmol: Setting TORCH_CUDA_ARCH_LIST=${_TORCH_ARCH_STR} for find_package(Torch)")
-endif()
-
-# A Python wheel installs TorchConfig.cmake below the torch package rather than
-# a system CMake prefix. Discover it from the interpreter selected above so a
-# normal source build does not require a hand-written CMAKE_PREFIX_PATH.
 execute_process(
-  COMMAND ${Python_EXECUTABLE} -c "import torch; print(torch.utils.cmake_prefix_path)"
-  OUTPUT_VARIABLE _TMOL_TORCH_CMAKE_PREFIX_PATH
-  RESULT_VARIABLE _TMOL_TORCH_PREFIX_RESULT
-  ERROR_VARIABLE _TMOL_TORCH_PREFIX_ERROR
-  OUTPUT_STRIP_TRAILING_WHITESPACE
+  COMMAND ${Python_EXECUTABLE} -c "import pathlib, torch; print(pathlib.Path(torch.__file__).parent)"
+  OUTPUT_VARIABLE _TMOL_TORCH_DIR OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY
 )
-if(NOT _TMOL_TORCH_PREFIX_RESULT EQUAL 0 OR NOT _TMOL_TORCH_CMAKE_PREFIX_PATH)
-  message(FATAL_ERROR
-    "tmol: could not locate Torch's CMake package with ${Python_EXECUTABLE}: "
-    "${_TMOL_TORCH_PREFIX_ERROR}")
+set(TMOL_STABLE_HEADERS "${_TMOL_TORCH_DIR}/include" CACHE PATH "PyTorch 2.14+ headers for production stable ABI modules")
+set(TORCH_INCLUDE_DIRS "${_TMOL_TORCH_DIR}/include" "${_TMOL_TORCH_DIR}/include/torch/csrc/api/include")
+find_library(TORCH_LIBRARY torch PATHS "${_TMOL_TORCH_DIR}/lib" NO_DEFAULT_PATH REQUIRED)
+find_library(TORCH_CPU_LIBRARY torch_cpu PATHS "${_TMOL_TORCH_DIR}/lib" NO_DEFAULT_PATH REQUIRED)
+set(TORCH_LIBRARIES "${TORCH_LIBRARY}" "${TORCH_CPU_LIBRARY}")
+if(TMOL_HAS_CUDA)
+  find_library(TORCH_CUDA_LIBRARY torch_cuda PATHS "${_TMOL_TORCH_DIR}/lib" NO_DEFAULT_PATH REQUIRED)
+  list(APPEND TORCH_LIBRARIES "${TORCH_CUDA_LIBRARY}")
 endif()
-list(PREPEND CMAKE_PREFIX_PATH "${_TMOL_TORCH_CMAKE_PREFIX_PATH}")
-
 execute_process(
   COMMAND ${Python_EXECUTABLE} -m pybind11 --cmakedir
-  OUTPUT_VARIABLE _TMOL_PYBIND11_CMAKE_PREFIX_PATH
-  RESULT_VARIABLE _TMOL_PYBIND11_PREFIX_RESULT
-  ERROR_VARIABLE _TMOL_PYBIND11_PREFIX_ERROR
-  OUTPUT_STRIP_TRAILING_WHITESPACE
+  OUTPUT_VARIABLE _TMOL_PYBIND11_CMAKE_PREFIX_PATH OUTPUT_STRIP_TRAILING_WHITESPACE
+  COMMAND_ERROR_IS_FATAL ANY
 )
-if(NOT _TMOL_PYBIND11_PREFIX_RESULT EQUAL 0 OR NOT _TMOL_PYBIND11_CMAKE_PREFIX_PATH)
-  message(FATAL_ERROR
-    "tmol: could not locate pybind11's CMake package with ${Python_EXECUTABLE}: "
-    "${_TMOL_PYBIND11_PREFIX_ERROR}")
-endif()
 list(PREPEND CMAKE_PREFIX_PATH "${_TMOL_PYBIND11_CMAKE_PREFIX_PATH}")
-
-find_package(Torch REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
-# Linux Torch wheels require OpenMP compiler flags for at::parallel_for;
-# platforms using Torch's native thread pool do not.
-find_package(OpenMP COMPONENTS CXX QUIET)
-
-find_library(TORCH_PYTHON_LIBRARY torch_python PATHS "${TORCH_INSTALL_PREFIX}/lib" NO_DEFAULT_PATH)
-message(STATUS "tmol: TORCH_PYTHON_LIBRARY = ${TORCH_PYTHON_LIBRARY}")
-
-if(TMOL_HAS_CUDA)
-  # Caffe2's TorchConfig.cmake can set CMAKE_CUDA_ARCHITECTURES=OFF or inherit
-  # PyTorch's full -gencode list (including arches this nvcc cannot compile).
-  set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_CUDA_ARCHITECTURES}" CACHE STRING "CUDA architectures" FORCE)
-  set(CMAKE_CUDA_ARCHITECTURES "${_TMOL_CUDA_ARCHITECTURES}")
-  message(STATUS "tmol: Restored CMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}")
-
-  # Caffe2's TorchConfig.cmake unconditionally appends the -gencode flags that
-  # PyTorch was originally built with. Replace them with our architectures.
-  string(REGEX REPLACE "-gencode[;= ]arch=compute_[0-9]+,code=sm_[0-9]+" "" CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}")
-  string(REGEX REPLACE "-gencode[;= ]arch=compute_[0-9]+,code=compute_[0-9]+" "" CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}")
-  string(REGEX REPLACE " +" " " CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}")
-  string(STRIP "${CMAKE_CUDA_FLAGS}" CMAKE_CUDA_FLAGS)
-
-  # CMake emits the requested architecture flags for each CUDA target. Do not
-  # append another copy here: doing so compiles every device image twice.
-  message(STATUS "tmol: CMAKE_CUDA_FLAGS after removing Torch gencode = ${CMAKE_CUDA_FLAGS}")
-endif()
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# Compiler flags — match PyTorch's ABI and set tmol defaults
+# Compiler flags
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# TORCH_CXX_FLAGS contains -D_GLIBCXX_USE_CXX11_ABI=0 or =1
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
-message(STATUS "tmol: TORCH_CXX_FLAGS = ${TORCH_CXX_FLAGS}")
 
 if(TMOL_HAS_CUDA)
   set(TMOL_NVCC_THREADS "4" CACHE STRING "Threads per nvcc invocation")
@@ -337,21 +260,51 @@ endif()
 function(tmol_set_portable_link_flags TARGET)
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_options(${TARGET} PRIVATE "-Wl,--as-needed")
+    # Resolve the C++ runtime before Torch's incidental template exports.
+    # Otherwise an extension can silently depend on its build Torch's STL.
+    if("stdc++" IN_LIST CMAKE_CXX_IMPLICIT_LINK_LIBRARIES)
+      target_link_libraries(${TARGET} PRIVATE stdc++)
+    endif()
+  endif()
+endfunction()
+
+if(TMOL_BUILD_TESTS)
+  find_package(OpenMP COMPONENTS CXX QUIET)
+endif()
+
+function(tmol_set_abi TARGET)
+  if("${TARGET}" MATCHES "^test_")
+    set_target_properties(${TARGET} PROPERTIES CXX_STANDARD 20 CUDA_STANDARD 20)
+    find_library(_TMOL_TORCH_PYTHON torch_python PATHS "${_TMOL_TORCH_DIR}/lib" NO_DEFAULT_PATH REQUIRED)
+    find_library(_TMOL_C10 c10 PATHS "${_TMOL_TORCH_DIR}/lib" NO_DEFAULT_PATH REQUIRED)
+    target_link_libraries(${TARGET} PRIVATE "${_TMOL_TORCH_PYTHON}" "${_TMOL_C10}")
+    if(OpenMP_CXX_FOUND)
+      target_link_libraries(${TARGET} PRIVATE OpenMP::OpenMP_CXX)
+    endif()
+  else()
+    target_compile_definitions(${TARGET} PRIVATE
+      TORCH_TARGET_VERSION=0x020b000000000000
+      TMOL_INTEROP_NAMESPACE="tmol_native_${TARGET}")
+    if("${TARGET}" STREQUAL "_C")
+      target_compile_definitions(${TARGET} PRIVATE TMOL_MAIN_MODULE)
+    else()
+      target_sources(${TARGET} PRIVATE tmol/native.cpp)
+    endif()
+    target_include_directories(${TARGET} BEFORE PRIVATE "${TMOL_STABLE_HEADERS}")
   endif()
 endfunction()
 
 # Common compile options for CUDA extensions
 function(tmol_set_cuda_flags TARGET)
+  tmol_set_abi(${TARGET})
   target_compile_options(${TARGET} PRIVATE
-    $<$<COMPILE_LANGUAGE:CXX>:-O3 -w -fno-math-errno -DWITH_CUDA -DWITH_NVTX>
+    $<$<COMPILE_LANGUAGE:CXX>:-O3 -w -fno-math-errno -DWITH_CUDA -DWITH_NVTX -DUSE_CUDA>
     $<$<COMPILE_LANGUAGE:CUDA>:
       -O3 -w
       --expt-extended-lambda
       --expt-relaxed-constexpr
-      -DWITH_NVTX -DWITH_CUDA
+      -DWITH_NVTX -DWITH_CUDA -DUSE_CUDA
       --threads=${TMOL_NVCC_THREADS}
-      -DTORCH_VERSION_MAJOR=${TORCH_VERSION_MAJOR}
-      -DTORCH_VERSION_MINOR=${TORCH_VERSION_MINOR}
     >
   )
   target_include_directories(${TARGET} PRIVATE ${TMOL_INCLUDE_DIRS})
@@ -361,6 +314,7 @@ endfunction()
 
 # Common compile options for CPU-only extensions
 function(tmol_set_cpp_flags TARGET)
+  tmol_set_abi(${TARGET})
   target_compile_options(${TARGET} PRIVATE
     $<$<COMPILE_LANGUAGE:CXX>:-O3 -w -fno-math-errno -DWITH_NVTX>
   )
@@ -374,7 +328,6 @@ function(tmol_add_pybind_cuda_ext TARGET_NAME INSTALL_DIR EXT_NAME)
   pybind11_add_module(${TARGET_NAME} MODULE ${ARGN})
   target_compile_definitions(${TARGET_NAME} PRIVATE TORCH_EXTENSION_NAME=${EXT_NAME})
   tmol_set_cuda_flags(${TARGET_NAME})
-  target_link_libraries(${TARGET_NAME} PRIVATE ${TORCH_PYTHON_LIBRARY})
   set_target_properties(${TARGET_NAME} PROPERTIES
     OUTPUT_NAME "${EXT_NAME}"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${INSTALL_DIR}"
@@ -387,7 +340,6 @@ function(tmol_add_pybind_cpp_ext TARGET_NAME INSTALL_DIR EXT_NAME)
   pybind11_add_module(${TARGET_NAME} MODULE ${ARGN})
   target_compile_definitions(${TARGET_NAME} PRIVATE TORCH_EXTENSION_NAME=${EXT_NAME})
   tmol_set_cpp_flags(${TARGET_NAME})
-  target_link_libraries(${TARGET_NAME} PRIVATE ${TORCH_PYTHON_LIBRARY})
   set_target_properties(${TARGET_NAME} PROPERTIES
     OUTPUT_NAME "${EXT_NAME}"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${INSTALL_DIR}"
@@ -396,10 +348,11 @@ function(tmol_add_pybind_cpp_ext TARGET_NAME INSTALL_DIR EXT_NAME)
 endfunction()
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# 1. tmol._C — monolithic TORCH_LIBRARY extension (14 op namespaces)
+# 1. Native CPU or CUDA operator module
 # ═══════════════════════════════════════════════════════════════════════════════
 
 set(_C_SOURCES
+  tmol/native.cpp
   # optimization
   tmol/optimization/armijo_compiled.ops.cpp
   tmol/optimization/armijo_compiled.cpu.cpp
@@ -494,14 +447,13 @@ if(TMOL_HAS_CUDA)
   )
 endif()
 
-add_library(_C MODULE ${_C_SOURCES})
+pybind11_add_module(_C MODULE ${_C_SOURCES})
 
-# _C is a MODULE library loaded by torch, not a regular Python extension.
-# No pybind11 entry point — ops register via TORCH_LIBRARY at dlopen time.
+# Register native operators through the stable dispatcher ABI.
 set_target_properties(_C PROPERTIES
   PREFIX ""
   OUTPUT_NAME "_C"
-  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/tmol"
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${_TMOL_NATIVE_PACKAGE}"
 )
 execute_process(
   COMMAND ${Python_EXECUTABLE} -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))"
@@ -515,16 +467,15 @@ if(TMOL_HAS_CUDA)
 else()
   tmol_set_cpp_flags(_C)
 endif()
-if(OpenMP_CXX_FOUND)
-  target_link_libraries(_C PRIVATE OpenMP::OpenMP_CXX)
-endif()
-install(TARGETS _C DESTINATION tmol)
+install(TARGETS _C DESTINATION "${_TMOL_NATIVE_PACKAGE}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 2. Production pybind11 modules
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# CPU helpers belong to the base package.
+if(NOT TMOL_OPS_CUDA)
 # bspline (CPU-only)
 tmol_add_pybind_cpp_ext(
   bspline_compiled "tmol/numeric/bspline_compiled" "_compiled"
@@ -537,6 +488,8 @@ tmol_add_pybind_cpp_ext(
   tmol/score/common/_cubic_hermite_polynomial.cpp
 )
 
+
+endif()
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 3. Test extensions (optional, behind TMOL_BUILD_TESTS)

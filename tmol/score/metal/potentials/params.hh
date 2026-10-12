@@ -1,3 +1,4 @@
+#include <tmol/utility/tensor/native.hh>
 #pragma once
 
 #include <Eigen/Core>
@@ -44,7 +45,7 @@ namespace tmol {
 template <typename Real>
 struct enable_tensor_view<score::metal::potentials::MetalSiteParams<Real>> {
   static const bool enabled = enable_tensor_view<Real>::enabled;
-  static const at::ScalarType scalar_type() {
+  static const tmol::native::ScalarType scalar_type() {
     return enable_tensor_view<Real>::scalar_type();
   }
 
@@ -61,7 +62,7 @@ struct enable_tensor_view<score::metal::potentials::MetalSiteParams<Real>> {
 template <typename Real>
 struct enable_tensor_view<score::metal::potentials::MetalFanParams<Real>> {
   static const bool enabled = enable_tensor_view<Real>::enabled;
-  static const at::ScalarType scalar_type() {
+  static const tmol::native::ScalarType scalar_type() {
     return enable_tensor_view<Real>::scalar_type();
   }
 
@@ -78,7 +79,7 @@ struct enable_tensor_view<score::metal::potentials::MetalFanParams<Real>> {
 template <typename Real>
 struct enable_tensor_view<score::metal::potentials::MetalBridgeParams<Real>> {
   static const bool enabled = enable_tensor_view<Real>::enabled;
-  static const at::ScalarType scalar_type() {
+  static const tmol::native::ScalarType scalar_type() {
     return enable_tensor_view<Real>::scalar_type();
   }
 

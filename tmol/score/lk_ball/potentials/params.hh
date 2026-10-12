@@ -1,3 +1,4 @@
+#include <tmol/utility/tensor/native.hh>
 #pragma once
 
 #include <tmol/utility/tensor/TensorPack.h>
@@ -10,7 +11,7 @@ namespace tmol {
 template <typename Real>
 struct enable_tensor_view<score::lk_ball::potentials::LKBallTypeParams<Real>> {
   static const bool enabled = enable_tensor_view<Real>::enabled;
-  static const at::ScalarType scalar_type() {
+  static const tmol::native::ScalarType scalar_type() {
     return enable_tensor_view<Real>::scalar_type();
   }
 
@@ -28,7 +29,7 @@ template <typename Real>
 struct enable_tensor_view<
     score::lk_ball::potentials::LKBallGlobalParams<Real>> {
   static const bool enabled = enable_tensor_view<Real>::enabled;
-  static const at::ScalarType scalar_type() {
+  static const tmol::native::ScalarType scalar_type() {
     return enable_tensor_view<Real>::scalar_type();
   }
 
@@ -47,7 +48,7 @@ template <typename Int>
 struct enable_tensor_view<
     score::lk_ball::potentials::LKBallWaterGenTypeParams<Int>> {
   static const bool enabled = enable_tensor_view<Int>::enabled;
-  static const at::ScalarType scalar_type() {
+  static const tmol::native::ScalarType scalar_type() {
     return enable_tensor_view<Int>::scalar_type();
   }
 
@@ -67,7 +68,7 @@ template <typename Real>
 struct enable_tensor_view<
     score::lk_ball::potentials::LKBallWaterGenGlobalParams<Real>> {
   static const bool enabled = enable_tensor_view<Real>::enabled;
-  static const at::ScalarType scalar_type() {
+  static const tmol::native::ScalarType scalar_type() {
     return enable_tensor_view<Real>::scalar_type();
   }
 

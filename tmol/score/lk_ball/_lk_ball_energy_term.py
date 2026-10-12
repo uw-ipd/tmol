@@ -275,6 +275,9 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
 
     def setup_poses(self, pose_stack: PoseStack):
         super(LKBallEnergyTerm, self).setup_poses(pose_stack)
+        # Whole-pose blocks move independently. Reuse this topology tensor
+        # instead of allocating and filling it on every scoring call.
+        pose_stack._lk_ball_no_lockstep = torch.full_like(pose_stack.block_type_ind, -1)
         # Plan once before graph capture; padding can greatly overstate the
         # useful work in the two specialized derivative kernels.
         blocks = pose_stack.max_n_blocks
@@ -328,16 +331,8 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             shared_block_neighbors,
         ) = args[-5:]
 
-        # each block appears once, so nothing moves in lockstep with anything
-        no_lockstep = torch.full(
-            pose_stack.block_type_ind.shape,
-            -1,
-            dtype=torch.int32,
-            device=pose_stack.block_type_ind.device,
-        )
-
         water_coords = self._gen_waters(
-            (*common_args[:12], no_lockstep, *common_args[12:]),
+            (*common_args[:12], pose_stack._lk_ball_no_lockstep, *common_args[12:]),
             pose_stack,
             hbond_params,
         )
