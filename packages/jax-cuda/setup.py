@@ -51,7 +51,7 @@ setup(
     ext_modules=[
         Extension(
             "tmol_jax_cuda._ljlk_cuda",
-            ["ljlk_cuda.cu", "lkball_cuda.cu", "elec_cuda.cu"],
+            ["ljlk_cuda.cu", "lkball_cuda.cu", "elec_cuda.cu", "hbond_cuda.cu"],
         )
     ],
     cmdclass={"build_ext": CudaBuildExt},

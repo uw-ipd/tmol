@@ -147,6 +147,7 @@ class HBondPolynomials:
     AHdist_poly: jnp.ndarray  # float32[n_don, n_acc, 15]
     cosAHD_poly: jnp.ndarray  # float32[n_don, n_acc, 15]
     cosBAH_poly: jnp.ndarray  # float32[n_don, n_acc, 15]
+    native_poly_words: jnp.ndarray  # uint32[n_don, n_acc, 3, 30]
 
 
 # --------------------------------------------------------------------- #
@@ -238,6 +239,25 @@ def _poly_to_array(poly_entry: Any) -> np.ndarray:
     ).astype(np.float32)
 
 
+def _poly_to_native_array(poly_entry: Any) -> np.ndarray:
+    """Pack the canonical monomial form consumed by the native scalar core."""
+    return np.asarray(
+        [getattr(poly_entry, f"c_{i}") for i in range(10, -1, -1)]
+        + [poly_entry.xmin, poly_entry.xmax]
+        + [poly_entry.min_val, poly_entry.max_val],
+        dtype=np.float64,
+    )
+
+
+def _double_words(values: np.ndarray) -> np.ndarray:
+    """Represent float64 parameters losslessly without enabling JAX x64."""
+    bits = np.ascontiguousarray(values, dtype=np.float64).view(np.uint64)
+    words = np.empty(bits.shape + (2,), dtype=np.uint32)
+    words[..., 0] = (bits & np.uint64(0xFFFFFFFF)).astype(np.uint32)
+    words[..., 1] = (bits >> np.uint64(32)).astype(np.uint32)
+    return words.reshape(values.shape[:-1] + (values.shape[-1] * 2,))
+
+
 def _build_pair_tables(
     hbond_db: Any, chemical_db: Any
 ) -> Tuple[HBondPairParams, HBondPolynomials, dict, dict]:
@@ -294,11 +314,16 @@ def _build_pair_tables(
     # coefficients in f64 to match upstream's ``bound_poly<11, double>``
     # precision — see ``_poly_to_array`` docstring for the rationale.
     poly_by_name = {p.name: _poly_to_array(p) for p in hbond_db.polynomial_parameters}
+    native_by_name = {
+        p.name: _poly_to_native_array(p) for p in hbond_db.polynomial_parameters
+    }
     zeros = np.zeros(15, dtype=np.float32)
+    native_zeros = np.zeros(15, dtype=np.float64)
 
     ahdist = np.zeros((n_don, n_acc, 15), dtype=np.float32)
     ahd = np.zeros((n_don, n_acc, 15), dtype=np.float32)
     bah = np.zeros((n_don, n_acc, 15), dtype=np.float32)
+    native = np.zeros((n_don, n_acc, 3, 15), dtype=np.float64)
 
     for pp in hbond_db.pair_parameters:
         di = donor_type_to_idx.get(pp.donor_type)
@@ -308,11 +333,15 @@ def _build_pair_tables(
         ahdist[di, ai] = poly_by_name.get(pp.AHdist, zeros)
         ahd[di, ai] = poly_by_name.get(pp.cosAHD, zeros)
         bah[di, ai] = poly_by_name.get(pp.cosBAH, zeros)
+        native[di, ai, 0] = native_by_name.get(pp.AHdist, native_zeros)
+        native[di, ai, 1] = native_by_name.get(pp.cosBAH, native_zeros)
+        native[di, ai, 2] = native_by_name.get(pp.cosAHD, native_zeros)
 
     polynomials = HBondPolynomials(
         AHdist_poly=jnp.asarray(ahdist),
         cosAHD_poly=jnp.asarray(ahd),
         cosBAH_poly=jnp.asarray(bah),
+        native_poly_words=jnp.asarray(_double_words(native)),
     )
 
     return pair_params, polynomials, donor_type_to_idx, acceptor_type_to_idx
