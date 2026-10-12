@@ -478,7 +478,7 @@
 <p>For build requirements and platform support, see <a class="reference internal" href="../installation.html"><span class="doc">installation</span></a>.</p>
 <section id="local-setup">
 <h2>Local setup<a class="headerlink" href="#local-setup" title="Link to this heading">#</a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/uw-ipd/tmol.git
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/RosettaCommons/tmol.git
 <span class="nb">cd</span><span class="w"> </span>tmol
 python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"torch&gt;=2.14"</span><span class="w"> </span><span class="s2">"scikit-build-core&gt;=0.10"</span><span class="w"> </span><span class="s2">"cmake&gt;=3.24,&lt;4"</span><span class="w"> </span><span class="s2">"pybind11&gt;=2.12"</span><span class="w"> </span>ninja<span class="w"> </span>packaging
 python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span>
@@ -629,11 +629,64 @@ apptainer<span class="w"> </span>run<span class="w"> </span>--nv<span class="w">
 </section>
 <section id="ci">
 <h2>CI<a class="headerlink" href="#ci" title="Link to this heading">#</a></h2>
-<p>GitHub Actions runs linting, the Linux x86-64, Linux aarch64, and Apple Silicon
-CPU suites, and CPU documentation builds on hosted runners. CUDA tests,
-benchmarks, and the CUDA-only tutorial smoke tests use the self-hosted DIGS
-runner. PR docs builds upload rendered HTML artifacts; same-repository PRs also
-publish previews under the Pages site.</p>
+<p>GitHub Actions runs linting and the Linux x86-64, Linux aarch64, and Apple Silicon
+CPU suites automatically on pushes to <code class="docutils literal notranslate"><span class="pre">main</span></code> and pull requests. Documentation
+also builds on hosted CPU runners. Routine CI has six CPU/check jobs plus the
+docs build and same-repository preview deployment. Coverage uploads are a step
+in the Linux x86-64 job; a coverage-service outage does not fail tested code.
+Closing a pull request does not start an empty CI run.</p>
+<p>The <strong>Validate release wheels</strong> workflow is manual. It builds all 28 wheels once
+per Python/platform/backend, then tests the same artifacts against the supported
+Torch runtimes. The release workflow runs the complete matrix again on an
+immutable version tag before publishing. Publication-condition regressions run
+as fast unit tests in the packaging job; there is no simulated release workflow.
+The separate CUDA ARM64 dependency-repair probe is manual; real ARM64 wheel
+installation checks remain in the full candidate/release matrix.</p>
+<p>Maintainers with write, maintain, or admin access can dispatch <strong>GPU CI</strong> from
+<code class="docutils literal notranslate"><span class="pre">main</span></code>, selecting a pull request number or a branch, tag, or commit. It resolves
+an immutable commit, checks the initiating and rerunning users’ current access,
+and reports a separate <code class="docutils literal notranslate"><span class="pre">GPU</span> <span class="pre">CI</span></code> status on that commit. Rerun all jobs when
+retrying so authorization runs again. CUDA tests use the existing Slurm and
+Apptainer configuration; wheel and release validation use the same access gate.</p>
+<section id="enable-the-gpu-runner">
+<h3>Enable the GPU runner<a class="headerlink" href="#enable-the-gpu-runner" title="Link to this heading">#</a></h3>
+<p>An organization owner (or delegated runner administrator) must configure the
+runner group before registering a runner for this public repository:</p>
+<ol class="arabic">
+<li><p>Open <strong>RosettaCommons → Settings → Actions → Runner groups</strong> and create
+<code class="docutils literal notranslate"><span class="pre">tmol-gpu</span></code>. Under <strong>Repository access</strong>, select only <code class="docutils literal notranslate"><span class="pre">RosettaCommons/tmol</span></code>
+and allow public repositories.</p></li>
+<li><p>Under <strong>Workflow access</strong>, select <strong>Selected workflows</strong> and allow exactly:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>RosettaCommons/tmol/.github/workflows/gpu-ci.yml@refs/heads/main
+RosettaCommons/tmol/.github/workflows/_test_gpu_wheel.yml@refs/heads/main
+</pre></div>
+</div>
+<p>If selected-workflow restrictions are unavailable, keep the runner offline;
+repository access alone does not prevent a PR from proposing another job.</p>
+</li>
+<li><p>Under the organization’s <strong>Actions → Runners</strong>, choose <strong>New self-hosted
+runner → Linux x64</strong>. Install its verified archive in a separate directory
+on the existing Slurm/Apptainer CI host. Never reuse another registration’s
+credentials or work directory. Register using the short-lived token shown
+there (the command prompts for it):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./config.sh<span class="w"> </span>--url<span class="w"> </span>https://github.com/RosettaCommons<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--runnergroup<span class="w"> </span>tmol-gpu<span class="w"> </span>--name<span class="w"> </span>tmol-gpu-slurm<span class="w"> </span>--labels<span class="w"> </span>gpu<span class="w"> </span>--work<span class="w"> </span>_work
+</pre></div>
+</div>
+</li>
+<li><p>Start the runner with <code class="docutils literal notranslate"><span class="pre">./run.sh</span></code> in a persistent session, or have the host
+administrator install/start its service with <code class="docutils literal notranslate"><span class="pre">svc.sh</span></code>. The account must
+have Slurm access and read access to the Apptainer image configured in
+<code class="docutils literal notranslate"><span class="pre">gpu-ci.yml</span></code> and <code class="docutils literal notranslate"><span class="pre">_test_gpu_wheel.yml</span></code>. Confirm the runner is <strong>Idle</strong> in
+<code class="docutils literal notranslate"><span class="pre">tmol-gpu</span></code> and that the selected-workflow restriction is saved.</p></li>
+<li><p>In the repository’s <strong>Actions → GPU CI → Run workflow</strong>, select <code class="docutils literal notranslate"><span class="pre">main</span></code> and
+enter a reviewed PR number or ref. Leave both blank to test this <code class="docutils literal notranslate"><span class="pre">main</span></code>
+commit. A hosted job checks maintainer access before any GPU job starts.</p></li>
+</ol>
+<p>The group restriction is the enforcement boundary; workflow checks alone cannot
+stop a pull request from adding another self-hosted job. See GitHub’s
+<a class="reference external" href="https://docs.github.com/en/enterprise-cloud&#64;latest/actions/how-tos/manage-runners/self-hosted-runners/manage-access">runner-group documentation</a>.</p>
+</section>
 </section>
 <section id="native-interface">
 <h2>Native interface<a class="headerlink" href="#native-interface" title="Link to this heading">#</a></h2>
@@ -746,7 +799,10 @@ flake8
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#extension-loading">Extension loading</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tests">Tests</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#containers">Containers</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ci">CI</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ci">CI</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enable-the-gpu-runner">Enable the GPU runner</a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#native-interface">Native interface</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#releasing">Releasing</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#code-style">Code style</a></li>

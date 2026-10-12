@@ -510,7 +510,7 @@
                   
   <section id="Build-your-own-model-input-interface">
 <h1>Build your own model input interface<a class="headerlink" href="#Build-your-own-model-input-interface" title="Link to this heading">#</a></h1>
-<p><a class="reference external" href="https://colab.research.google.com/github/uw-ipd/tmol/blob/master/docs/model_input_example.ipynb">Open in Colab</a></p>
+<p><a class="reference external" href="https://colab.research.google.com/github/RosettaCommons/tmol/blob/main/docs/model_input_example.ipynb">Open in Colab</a></p>
 <p>Map OpenFold-style atom14 and RoseTTAFold2 prediction tensors to TMol, score them, and differentiate back to the original coordinates. The adapter functions below are editable application code using TMol’s canonical construction and scoring APIs.</p>
 <p>Run cells in order. In Colab, select a GPU runtime; the shared setup installs published wheels matching PyTorch’s CUDA major and downloads example predictions. No compilation is needed. Locally, follow the <a class="reference internal" href="installation.html"><span class="doc">installation guide</span></a>, then run from a source checkout for the fixtures. CPU and CUDA are supported. Set <code class="docutils literal notranslate"><span class="pre">TMOL_EXAMPLE_SOURCE</span></code> to another fixture checkout or <code class="docutils literal notranslate"><span class="pre">TMOL_EXAMPLE_DEVICE</span></code> to select a device explicitly.</p>
 <div class="nbinput nblast docutils container">
@@ -532,7 +532,7 @@
 
     <span class="n">exec</span><span class="p">(</span>
         <span class="n">urlopen</span><span class="p">(</span>
-            <span class="s2">"https://raw.githubusercontent.com/uw-ipd/tmol/"</span>
+            <span class="s2">"https://raw.githubusercontent.com/RosettaCommons/tmol/"</span>
             <span class="s2">"master/docs/tutorial/colab_setup.py"</span>
         <span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span>
         <span class="nb">globals</span><span class="p">(),</span>

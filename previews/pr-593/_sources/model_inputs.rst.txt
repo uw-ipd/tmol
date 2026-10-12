@@ -1,7 +1,7 @@
 Model coordinate inputs
 =======================
 
-Run `Model inputs <https://colab.research.google.com/github/uw-ipd/tmol/blob/master/docs/model_input_example.ipynb>`_
+Run `Model inputs <https://colab.research.google.com/github/RosettaCommons/tmol/blob/main/docs/model_input_example.ipynb>`_
 in Colab or open ``docs/model_input_example.ipynb`` locally for editable
 adapters, saved predictions, and gradient checks.
 
