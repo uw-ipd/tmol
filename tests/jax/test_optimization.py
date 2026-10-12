@@ -9,9 +9,10 @@ import numpy as np
 import pytest
 
 from tmol_jax import beta2016_score_function, pose_stack_from_pdb
-from tmol_jax.optimization import lbfgs_minimize, run_cart_min
+from tmol_jax.optimization import lbfgs_minimize, run_cart_min, run_cart_relax
 from tmol_jax.score import score_function as scoring
 from tmol_jax.score import ScoreFunction, ScoreType
+from tmol_jax.score.constraint import ConstraintSet
 
 
 def test_lbfgs_quadratic_and_mask():
@@ -128,3 +129,102 @@ def test_real_score_cart_min_is_finite_and_nonincreasing(tmp_path):
     assert np.isfinite(final)
     assert final <= initial + 1e-4
     assert float(result["fun"]) <= initial + 1e-4
+
+
+class _RepulsiveQuadraticTerm(_QuadraticTerm):
+    def score_types_provided(self):
+        return (ScoreType.fa_ljrep,)
+
+    def __call__(self, pose, state, coords_override=None):
+        return {ScoreType.fa_ljrep: (coords_override**2).sum(axis=(1, 2))}
+
+
+def test_cart_relax_preserves_score_configuration(monkeypatch):
+    original = scoring.importlib.import_module
+    monkeypatch.setattr(
+        scoring.importlib,
+        "import_module",
+        lambda name: (
+            SimpleNamespace(RepulsiveQuadraticTerm=_RepulsiveQuadraticTerm)
+            if name == "tmol_jax.score.fake.fake_energy_term"
+            else original(name)
+        ),
+    )
+    monkeypatch.setitem(
+        scoring._TERM_FOR_TYPE,
+        ScoreType.fa_ljrep,
+        ("fake", "RepulsiveQuadraticTerm"),
+    )
+    score_function = ScoreFunction(None)
+    score_function.set_weight(ScoreType.fa_ljrep, 0.55)
+    original_weights = score_function.weights
+    pose = _Pose(jnp.ones((1, 3, 3)))
+
+    relaxed, result = run_cart_relax(
+        pose,
+        score_function,
+        ramp_schedule=(0.5, 1.0),
+        max_iter=3,
+        return_result=True,
+    )
+
+    assert score_function.weights == original_weights
+    assert len(result["stages"]) == 2
+    assert result["fun"] <= result["initial_fun"] + 1e-6
+    np.testing.assert_array_equal(relaxed.coords[:, 2], pose.coords[:, 2])
+
+
+@pytest.mark.parametrize(
+    "schedule",
+    [(), (0.5,), (0.5, 0.25, 1.0), (0.0, 1.0), (float("nan"), 1.0)],
+)
+def test_cart_relax_rejects_invalid_ramp(schedule):
+    score_function = ScoreFunction(None)
+    pose = _Pose(jnp.ones((1, 3, 3)))
+    with pytest.raises(ValueError, match="ramp"):
+        run_cart_relax(pose, score_function, ramp_schedule=schedule)
+
+
+def test_explicit_constraint_set_is_rendered():
+    pose = _Pose(jnp.ones((1, 3, 3)))
+    constraints = ConstraintSet(
+        target_coords=jnp.zeros((1, 3)),
+        atom_indices=jnp.asarray([[0, 0]], dtype=jnp.int32),
+        k=jnp.ones((1,)),
+        tol=jnp.zeros((1,)),
+    )
+    score_function = ScoreFunction(None)
+    score_function.set_weight(ScoreType.constraint, 1.0)
+    scorer = score_function.render_whole_pose_scoring_module(
+        pose, constraint_set=constraints
+    )
+
+    np.testing.assert_allclose(scorer(pose.coords), [1.5], atol=1e-6)
+
+
+def test_real_score_cart_relax_is_finite_and_nonincreasing(tmp_path):
+    source = Path(__file__).parents[2] / "tmol/tests/data/pdb/1ubq.pdb"
+    lines = [
+        line
+        for line in source.read_text().splitlines()
+        if line.startswith("ATOM") and 1 <= int(line[22:26]) <= 3
+    ]
+    path = tmp_path / "tripeptide-relax.pdb"
+    path.write_text("\n".join(lines) + "\nEND\n")
+    pose = pose_stack_from_pdb(path)
+    score_function = beta2016_score_function()
+    original_weights = score_function.weights
+
+    relaxed, result = run_cart_relax(
+        pose,
+        score_function,
+        constrain_mainchain=True,
+        ramp_schedule=(1.0,),
+        max_iter=1,
+        return_result=True,
+    )
+
+    assert score_function.weights == original_weights
+    assert np.isfinite(relaxed.coords).all()
+    assert np.isfinite(result["fun"])
+    assert result["fun"] <= result["initial_fun"] + 1e-4

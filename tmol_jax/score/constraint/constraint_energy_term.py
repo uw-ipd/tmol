@@ -36,6 +36,7 @@ from typing import Any, Optional
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 
 from tmol_jax.score.energy_term import EnergyTerm
 from tmol_jax.score.score_types import ScoreType
@@ -136,11 +137,41 @@ class ConstraintEnergyTerm(EnergyTerm):
         """
         del pbt
         if constraint_set is not None:
-            return constraint_set
-        cs = getattr(pose_stack, "constraint_set", None)
-        if isinstance(cs, ConstraintSet):
-            return cs
-        return ConstraintSet.empty()
+            cs = constraint_set
+        else:
+            cs = getattr(pose_stack, "constraint_set", None)
+            if not isinstance(cs, ConstraintSet):
+                cs = ConstraintSet.empty()
+
+        target = np.asarray(cs.target_coords)
+        indices = np.asarray(cs.atom_indices)
+        k = np.asarray(cs.k)
+        tol = np.asarray(cs.tol)
+        n_constraints = indices.shape[0] if indices.ndim == 2 else -1
+        if target.shape != (n_constraints, 3):
+            raise ValueError("constraint target_coords must have shape [n, 3]")
+        if indices.shape != (n_constraints, 2):
+            raise ValueError("constraint atom_indices must have shape [n, 2]")
+        if k.shape != (n_constraints,) or tol.shape != (n_constraints,):
+            raise ValueError("constraint k and tol must have shape [n]")
+        if not (
+            np.isfinite(target).all()
+            and np.isfinite(k).all()
+            and np.isfinite(tol).all()
+        ):
+            raise ValueError("constraint parameters must be finite")
+        if np.any(k < 0) or np.any(tol < 0):
+            raise ValueError("constraint k and tol must be nonnegative")
+        if n_constraints:
+            shape = pose_stack.coords.shape
+            if (
+                np.any(indices[:, 0] < 0)
+                or np.any(indices[:, 0] >= shape[0])
+                or np.any(indices[:, 1] < 0)
+                or np.any(indices[:, 1] >= shape[1])
+            ):
+                raise ValueError("constraint atom index is outside the pose")
+        return cs
 
     # ---- evaluation (jit-friendly hot path) ----------------------- #
 

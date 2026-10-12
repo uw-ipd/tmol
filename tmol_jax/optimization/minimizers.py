@@ -41,6 +41,7 @@ def run_cart_min(
     line_search_max_iter: int = 25,
     verbose: bool = False,
     return_result: bool = False,
+    constraint_set: Optional[Any] = None,
 ):
     """Minimize Cartesian coordinates with L-BFGS and strong-Wolfe search.
 
@@ -65,7 +66,9 @@ def run_cart_min(
         raise ValueError("Cartesian minimization requires a dense score function")
 
     try:
-        scorer = score_function.render_whole_pose_scoring_module(pose_stack)
+        scorer = score_function.render_whole_pose_scoring_module(
+            pose_stack, constraint_set=constraint_set
+        )
     except AttributeError as error:
         raise TypeError(
             "score_function must provide the TMol JAX render API"

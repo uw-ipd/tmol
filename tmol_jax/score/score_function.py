@@ -83,6 +83,13 @@ class ScoreFunction:
     def weights(self):
         return dict(self._weights)
 
+    def clone(self):
+        """Return an independent score configuration with identical weights."""
+        cloned = type(self)(self._param_db)
+        for score_type, weight in self._weights.items():
+            cloned.set_weight(score_type, weight)
+        return cloned
+
     def set_weight(self, score_type, weight):
         if not isinstance(score_type, ScoreType):
             raise TypeError("score_type must be a ScoreType")
@@ -111,7 +118,7 @@ class ScoreFunction:
     def active_score_types(self):
         return sorted(st for st, weight in self._weights.items() if weight != 0)
 
-    def _setup(self, pose_stack):
+    def _setup(self, pose_stack, constraint_set=None):
         if pose_stack.packed_block_types is not None:
             from tmol_jax.chemical.constants import canonical_aa_3letter
 
@@ -127,13 +134,28 @@ class ScoreFunction:
                 )
         if not np.isfinite(np.asarray(pose_stack.coords)).all():
             raise ValueError("pose coordinates must be finite before scoring setup")
-        return tuple(
-            term.setup_for_pose_stack(pose_stack, pose_stack.packed_block_types)
-            for term in self._terms
-        )
+        states = []
+        for term in self._terms:
+            if ScoreType.constraint in term.score_types_provided():
+                state = term.setup_for_pose_stack(
+                    pose_stack,
+                    pose_stack.packed_block_types,
+                    constraint_set=constraint_set,
+                )
+            else:
+                state = term.setup_for_pose_stack(
+                    pose_stack, pose_stack.packed_block_types
+                )
+            states.append(state)
+        return tuple(states)
 
     def render_whole_pose_scoring_module(
-        self, pose_stack, *, sum_terms=True, apply_weights=True
+        self,
+        pose_stack,
+        *,
+        sum_terms=True,
+        apply_weights=True,
+        constraint_set=None,
     ):
         """Return an unjitted coords -> scores callable with frozen configuration.
 
@@ -143,7 +165,7 @@ class ScoreFunction:
         """
         channels = tuple(self.active_score_types())
         weights = dict(self._weights)
-        states = self._setup(pose_stack)
+        states = self._setup(pose_stack, constraint_set=constraint_set)
         terms = tuple(copy.copy(term) for term in self._terms)
         entries = tuple(
             (term, term_state)

@@ -9,9 +9,10 @@ The initial score preset implements the protein beta2016 channels. Nucleic-acid
 torsion and metal-coordination terms are not implemented. Noncanonical residues,
 ligands, and their generic bonded terms fail explicitly. Current pair scoring
 uses dense arrays; it recomputes distances from the supplied coordinates on
-every call. Cartesian L-BFGS minimization is available; kinematic
-minimization, relaxation, and repacking are not yet implemented. Do not use this experimental frontend as a replacement
-for a validated production TMol calculation yet.
+every call. Cartesian L-BFGS minimization and conservative no-pack Cartesian
+relaxation are available; kinematic minimization and repacking are not yet
+implemented. Do not use this experimental frontend as a replacement for a
+validated production TMol calculation yet.
 
 ## Build and install
 
@@ -68,6 +69,27 @@ input pose is unchanged. Inspect `result["converged"]` and
 `result["status"]`, and validate the final structure and energy for the intended
 workflow. This is Cartesian coordinate minimization, not FastRelax or repacking.
 
+For a conservative repulsive ramp without packing, use `run_cart_relax`. It
+minimizes at increasing `fa_ljrep` weights and returns the best structure
+observed under the full-weight score:
+
+```python
+from tmol_jax import run_cart_relax
+
+relaxed, diagnostics = run_cart_relax(
+    pose,
+    score_function,
+    move_mask=pose.atom_is_real,
+    constrain_mainchain=True,
+    n_cycles=1,
+    return_result=True,
+)
+```
+
+This Cartesian workflow does not repack sidechains and is not FastRelax. The
+input score configuration is unchanged. Optional mainchain constraints tether
+N, CA, and C atoms to their input coordinates within the local relax objective.
+
 The frontend does not alter global JAX precision settings. Synchronize returned
 arrays with `block_until_ready()` when timing work. Record compilation and setup
 separately from repeated scoring, and include setup in end-to-end comparisons.
@@ -119,8 +141,8 @@ buffer estimates ranged from 12.1 MB to 572 MB for inference and 33.7 MB to
 2.80 GB for value-and-gradient; these compiler estimates are not device peaks.
 Torch per-operation allocator increments are also not comparable to total
 process residency. The large-protein total differed by about 0.035 score unit
-and needs term-level investigation. Broader chemistry validation, relaxation,
-and repacking remain unfinished.
+and needs term-level investigation. Broader chemistry validation, kinematic workflows, and repacking
+remain unfinished.
 
 PDB loading uses the first model and Biotite's first alternate conformation.
 The Biotite frontend also accepts an AtomArrayStack for same-topology batches.
