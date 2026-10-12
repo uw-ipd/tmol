@@ -168,10 +168,10 @@ TMol scalar equations. Installed-wheel runs under the same protocol measured:
 
 | workload | inference (ms) | value + gradient (ms) | resident MiB (inference / gradient) |
 | --- | ---: | ---: | ---: |
-| 1UBQ | 0.208–0.213 / 0.403–0.417 | 0.456–0.459 / 0.857–0.859 | 1,190 / 1,308 vs 702 / 702 |
-| homogeneous 1UBQ | 0.272–0.273 / 0.398–0.400 | 0.605–0.611 / 0.842–0.859 | 1,232 / 1,390 vs 702 / 704 |
-| mixed proteins | 0.352–0.353 / 0.434–0.454 | 0.775–0.811 / 0.894–0.931 | 1,268 / 1,462 vs 702 / 704 |
-| 488-residue protein | 1.271–1.279 / 0.647–0.651 | 2.354–2.371 / 0.847–0.868 | 2,222 / 2,786 vs 784 / 786 |
+| 1UBQ | 0.201–0.218 / 0.407–0.418 | 0.432–0.462 / 0.853–0.869 | 1,182 / 1,290 vs 702 / 702 |
+| homogeneous 1UBQ | 0.267–0.278 / 0.396–0.408 | 0.591–0.600 / 0.849–0.902 | 940 / 1,062 vs 702 / 704 |
+| mixed proteins | 0.347–0.352 / 0.423–0.431 | 0.765–0.767 / 0.870–0.885 | 952 / 1,086 vs 702 / 704 |
+| 488-residue protein | 1.286–1.288 / 0.643–0.647 | 2.342–2.345 / 0.862–0.863 | 1,446 / 1,682 vs 784 / 786 |
 
 This preserves the single-pose win and is a material improvement over dense JAX.
 Relative to the preceding LJ/LK + LK-ball + electrostatics wheel, the
@@ -203,13 +203,15 @@ changes accumulation order; it is not bitwise reproducible across processes.
 
 With all four optional pair adapters, XLA temporary-buffer estimates range from
 0.1 MB to 0.8 MB for inference and 0.7 MB to 5.4 MB for value-and-gradient;
-these compiler estimates are not device peaks. Large-case process residency is
-2,222 / 2,786 MiB, essentially unchanged from 2,218 / 2,782 MiB before the
-hydrogen-bond adapter, and remains well above Torch. Torch per-operation
-allocator increments are also not comparable to total process residency.
-Setup plus rendering remains 36–37 seconds for the measured JAX processes.
-Broader chemistry validation, kinematic workflows, and repacking remain
-unfinished.
+these compiler estimates are not device peaks. Exact canonical count-pair
+separations are clamped to 0–6 and stored as `uint8`, instead of `int32`, in the
+persistent dense matrices and CUDA adapter inputs. On the 7,561-atom workload
+this reduces each matrix from 228.7 MB to 57.2 MB and lowers process residency
+from 2,222 / 2,786 MiB to 1,446 / 1,682 MiB for inference / gradient. This
+remains above Torch's 784 / 786 MiB. Torch per-operation allocator increments
+are also not comparable to total process residency. Setup plus rendering
+remains 36–38 seconds for the measured JAX processes. Broader chemistry
+validation, kinematic workflows, and repacking remain unfinished.
 
 PDB loading uses the first model and Biotite's first alternate conformation.
 The Biotite frontend also accepts an AtomArrayStack for same-topology batches.

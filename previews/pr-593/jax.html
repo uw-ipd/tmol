@@ -652,24 +652,24 @@ TMol scalar equations. Installed-wheel runs under the same protocol measured:</p
 </thead>
 <tbody>
 <tr class="row-even"><td><p>1UBQ</p></td>
-<td class="text-right"><p>0.208–0.213 / 0.403–0.417</p></td>
-<td class="text-right"><p>0.456–0.459 / 0.857–0.859</p></td>
-<td class="text-right"><p>1,190 / 1,308 vs 702 / 702</p></td>
+<td class="text-right"><p>0.201–0.218 / 0.407–0.418</p></td>
+<td class="text-right"><p>0.432–0.462 / 0.853–0.869</p></td>
+<td class="text-right"><p>1,182 / 1,290 vs 702 / 702</p></td>
 </tr>
 <tr class="row-odd"><td><p>homogeneous 1UBQ</p></td>
-<td class="text-right"><p>0.272–0.273 / 0.398–0.400</p></td>
-<td class="text-right"><p>0.605–0.611 / 0.842–0.859</p></td>
-<td class="text-right"><p>1,232 / 1,390 vs 702 / 704</p></td>
+<td class="text-right"><p>0.267–0.278 / 0.396–0.408</p></td>
+<td class="text-right"><p>0.591–0.600 / 0.849–0.902</p></td>
+<td class="text-right"><p>940 / 1,062 vs 702 / 704</p></td>
 </tr>
 <tr class="row-even"><td><p>mixed proteins</p></td>
-<td class="text-right"><p>0.352–0.353 / 0.434–0.454</p></td>
-<td class="text-right"><p>0.775–0.811 / 0.894–0.931</p></td>
-<td class="text-right"><p>1,268 / 1,462 vs 702 / 704</p></td>
+<td class="text-right"><p>0.347–0.352 / 0.423–0.431</p></td>
+<td class="text-right"><p>0.765–0.767 / 0.870–0.885</p></td>
+<td class="text-right"><p>952 / 1,086 vs 702 / 704</p></td>
 </tr>
 <tr class="row-odd"><td><p>488-residue protein</p></td>
-<td class="text-right"><p>1.271–1.279 / 0.647–0.651</p></td>
-<td class="text-right"><p>2.354–2.371 / 0.847–0.868</p></td>
-<td class="text-right"><p>2,222 / 2,786 vs 784 / 786</p></td>
+<td class="text-right"><p>1.286–1.288 / 0.643–0.647</p></td>
+<td class="text-right"><p>2.342–2.345 / 0.862–0.863</p></td>
+<td class="text-right"><p>1,446 / 1,682 vs 784 / 786</p></td>
 </tr>
 </tbody>
 </table>
@@ -700,13 +700,15 @@ topology-selected pairs and potentials, but parallel float32 atomic reduction
 changes accumulation order; it is not bitwise reproducible across processes.</p>
 <p>With all four optional pair adapters, XLA temporary-buffer estimates range from
 0.1 MB to 0.8 MB for inference and 0.7 MB to 5.4 MB for value-and-gradient;
-these compiler estimates are not device peaks. Large-case process residency is
-2,222 / 2,786 MiB, essentially unchanged from 2,218 / 2,782 MiB before the
-hydrogen-bond adapter, and remains well above Torch. Torch per-operation
-allocator increments are also not comparable to total process residency.
-Setup plus rendering remains 36–37 seconds for the measured JAX processes.
-Broader chemistry validation, kinematic workflows, and repacking remain
-unfinished.</p>
+these compiler estimates are not device peaks. Exact canonical count-pair
+separations are clamped to 0–6 and stored as <code class="docutils literal notranslate"><span class="pre">uint8</span></code>, instead of <code class="docutils literal notranslate"><span class="pre">int32</span></code>, in the
+persistent dense matrices and CUDA adapter inputs. On the 7,561-atom workload
+this reduces each matrix from 228.7 MB to 57.2 MB and lowers process residency
+from 2,222 / 2,786 MiB to 1,446 / 1,682 MiB for inference / gradient. This
+remains above Torch’s 784 / 786 MiB. Torch per-operation allocator increments
+are also not comparable to total process residency. Setup plus rendering
+remains 36–38 seconds for the measured JAX processes. Broader chemistry
+validation, kinematic workflows, and repacking remain unfinished.</p>
 <p>PDB loading uses the first model and Biotite’s first alternate conformation.
 The Biotite frontend also accepts an AtomArrayStack for same-topology batches.
 Polymer connectivity follows chain labels; coordinate gaps do not automatically
