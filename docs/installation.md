@@ -1,9 +1,8 @@
 # Installation
 
-TMol requires Python 3.11+ and PyTorch 2.11+. The upcoming 0.1.64 release
-separates the Python API, data, and CPU kernels from optional CUDA kernels.
-These instructions describe that release; see the versioned documentation for
-0.1.63 and earlier packages.
+TMol 0.1.64 is published on PyPI for Python 3.11–3.14 and PyTorch 2.11+.
+`tmol` contains the Python API, data, and CPU kernels; optional `tmol-ops-cu12`
+and `tmol-ops-cu13` packages add CUDA kernels. All three share the same version.
 
 ## CPU
 
@@ -20,15 +19,16 @@ python -m pip install "tmol==0.1.64" --only-binary=:all:
 
 ## GPU
 
-Install CUDA-enabled PyTorch, then choose the matching CUDA **major**:
+In a fresh environment, install CUDA-enabled PyTorch, then choose the matching
+CUDA **major**. Use one of these tested combinations:
 
 ```bash
 # CUDA 13 example
-python -m pip install "torch>=2.11" --index-url https://download.pytorch.org/whl/cu132
+python -m pip install "torch==2.14.1" --index-url https://download.pytorch.org/whl/cu132
 python -m pip install "tmol[cu13]==0.1.64" --only-binary=:all:
 
 # CUDA 12 example
-python -m pip install "torch==2.11.*" --index-url https://download.pytorch.org/whl/cu128
+python -m pip install "torch==2.11.0" --index-url https://download.pytorch.org/whl/cu128
 python -m pip install "tmol[cu12]==0.1.64" --only-binary=:all:
 ```
 
@@ -36,7 +36,17 @@ The extras install `tmol-ops-cu13` or `tmol-ops-cu12` at the same version as
 `tmol`. They contain only native operators and coexist with the CPU package.
 Pip does not detect the GPU or replace an already installed CPU build of
 PyTorch. A CUDA-enabled PyTorch build and a compatible NVIDIA driver are needed;
-`nvcc` is unnecessary for wheel installs.
+`nvcc` is unnecessary for wheel installs. These Torch pins are tested examples,
+not a requirement to match the Torch version used to build TMol. An existing
+Torch 2.11+ installation can be kept if its CUDA major matches the extra.
+
+The 0.1.64 CUDA wheels use compressed device code that requires a driver from
+CUDA 12.4 or later, **and** a driver compatible with the chosen PyTorch CUDA
+runtime. NVIDIA documents this [compression restriction](https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/#cmdoption-compress-mode).
+Public-wheel checks passed on driver 595.71.05; an A100 with driver 535.129.03
+failed with `device kernel image is invalid`. Older-driver compatibility-library
+recovery has not been verified. `tmol.has_cuda()` reports compiled capability,
+not driver compatibility.
 
 TMol selects the operator package matching `torch.version.cuda`. Without an
 operator package it uses its CPU backend. Check both compiled capabilities and
@@ -151,19 +161,11 @@ python -c "import sys, torch; print(f'Python {sys.version_info.major}.{sys.versi
 
 ## Google Colab
 
-The tutorial bootstrap supports PyTorch 2.11.0, CUDA 12.8, and Python 3.12 or
-3.13. TMol v0.1.59 provides separate Python-ABI wheels compiled
-for T4 (`sm_75`), A100 (`sm_80`), and L4 (`sm_89`) GPUs. For Python 3.13:
-
-```bash
-pip install "tmol @ https://github.com/uw-ipd/tmol/releases/download/v0.1.59/tmol-0.1.59+cu128torch2.11-cp313-cp313-manylinux_2_28_x86_64.whl"
-```
-
-The tutorial bootstrap selects the wheel matching the runtime's Python ABI and
-constrains pip to keep Colab's active PyTorch. It stops with a clear
-compatibility error instead of attempting a long source build when Python,
-PyTorch, or CUDA do not match. Always confirm the active versions before
-installing an ABI-specific wheel URL.
+Select a GPU runtime, then run the tutorial's setup cell. The shared bootstrap
+installs `tmol[cu12]==0.1.64` or `tmol[cu13]==0.1.64` from PyPI according to
+`torch.version.cuda`, keeps Colab's installed PyTorch, and requires binary wheels.
+It no longer constructs wheel URLs for individual Python or PyTorch versions.
+The Python, PyTorch, and driver requirements above still apply.
 
 After installation, run the {doc}`Quickstart <quickstart>`. For an editable
 development environment, see {doc}`Development <user_guide/development>`.

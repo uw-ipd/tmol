@@ -25,8 +25,9 @@ on CPU or CUDA, with gradients through coordinate scoring.
 
 ## Install
 
-The upcoming 0.1.64 release supports PyTorch 2.11+ without a separate wheel
-for each PyTorch minor. Install the CPU package or add matching CUDA operators:
+TMol 0.1.64 is available on PyPI and supports PyTorch 2.11+ without a separate
+wheel for each PyTorch minor. Choose one installation; for GPU use, install
+PyTorch with the matching CUDA major first:
 
 ```bash
 python -m pip install "tmol==0.1.64"             # CPU, including Apple Silicon
@@ -34,8 +35,10 @@ python -m pip install "tmol[cu13]==0.1.64"       # CUDA 13-enabled PyTorch
 python -m pip install "tmol[cu12]==0.1.64"       # CUDA 12-enabled PyTorch
 ```
 
-GPU use needs CUDA-enabled PyTorch and a compatible driver. Pip does not detect
-the GPU. The [installation guide](https://uw-ipd.github.io/tmol/latest/installation.html)
+The base package contains the Python API, data, and CPU kernels. GPU extras add
+`tmol-ops-cu12` or `tmol-ops-cu13` at the same version. GPU use also needs a
+compatible NVIDIA driver; pip does not detect GPUs or select a PyTorch CUDA build.
+The [installation guide](https://uw-ipd.github.io/tmol/latest/installation.html)
 covers PyTorch installation, binary compatibility, and source builds.
 
 ```python
@@ -45,7 +48,8 @@ print(tmol.__version__, tmol.has_cuda(), torch.cuda.is_available())
 
 ## Quick start
 
-Score a structure on CPU. With a CUDA TMol wheel, use `torch.device("cuda")`:
+Score a structure on CPU. With matching CUDA-enabled PyTorch and TMol operators,
+use `torch.device("cuda")`:
 
 ```python
 import torch
