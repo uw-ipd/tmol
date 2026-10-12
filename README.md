@@ -25,21 +25,21 @@ on CPU or CUDA, with gradients through coordinate scoring.
 
 ## Install
 
-TMol 0.1.64 is available on PyPI and supports PyTorch 2.11+ without a separate
-wheel for each PyTorch minor. Choose one installation; for GPU use, install
-PyTorch with the matching CUDA major first:
+Install from PyPI. For GPU use, first install [PyTorch](https://pytorch.org/get-started/locally/)
+with the matching CUDA major, then choose one command:
 
 ```bash
-python -m pip install "tmol==0.1.64"             # CPU, including Apple Silicon
-python -m pip install "tmol[cu13]==0.1.64"       # CUDA 13-enabled PyTorch
-python -m pip install "tmol[cu12]==0.1.64"       # CUDA 12-enabled PyTorch
+python -m pip install tmol          # CPU, including Apple Silicon
+python -m pip install "tmol[cu12]"   # CUDA 12-enabled PyTorch
+python -m pip install "tmol[cu13]"   # CUDA 13-enabled PyTorch
 ```
 
 The base package contains the Python API, data, and CPU kernels. GPU extras add
 `tmol-ops-cu12` or `tmol-ops-cu13` at the same version. GPU use also needs a
 compatible NVIDIA driver; pip does not detect GPUs or select a PyTorch CUDA build.
 The [installation guide](https://uw-ipd.github.io/tmol/latest/installation.html)
-covers PyTorch installation, binary compatibility, and source builds.
+covers requirements, verification, upgrades, and source builds. TMol wheels work
+across supported PyTorch minor versions; no per-Torch wheel selection is needed.
 
 ```python
 import torch, tmol
