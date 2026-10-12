@@ -164,22 +164,33 @@ corresponding Torch setup plus rendering took 11–14 seconds.
 
 The optional CUDA wheel replaces the LJ/LK, electrostatics, LK-ball, and
 hydrogen-bond pair sums with thin JAX FFI adapters to shared, Torch-independent
-TMol scalar equations. Installed-wheel runs under the same protocol measured:
+TMol scalar equations. When LJ/LK and electrostatics are both active, one
+adapter shares their exact current-coordinate pair traversal while retaining
+their distinct count-pair matrices and four independent score channels.
+Installed-wheel runs under the same protocol measured:
 
 | workload | inference (ms) | value + gradient (ms) | resident MiB (inference / gradient) |
 | --- | ---: | ---: | ---: |
-| 1UBQ | 0.201–0.218 / 0.407–0.418 | 0.432–0.462 / 0.853–0.869 | 1,182 / 1,290 vs 702 / 702 |
-| homogeneous 1UBQ | 0.267–0.278 / 0.396–0.408 | 0.591–0.600 / 0.849–0.902 | 940 / 1,062 vs 702 / 704 |
-| mixed proteins | 0.347–0.352 / 0.423–0.431 | 0.765–0.767 / 0.870–0.885 | 952 / 1,086 vs 702 / 704 |
-| 488-residue protein | 1.286–1.288 / 0.643–0.647 | 2.342–2.345 / 0.862–0.863 | 1,446 / 1,682 vs 784 / 786 |
+| 1UBQ | 0.197–0.198 / 0.401–0.421 | 0.438–0.440 / 0.837–0.939 | 1,182 / 1,290 vs 702 / 702 |
+| homogeneous 1UBQ | 0.267–0.271 / 0.400–0.410 | 0.551–0.576 / 0.846–0.911 | 940 / 1,062 vs 702 / 704 |
+| mixed proteins | 0.348–0.356 / 0.452–0.454 | 0.714–0.741 / 0.909–0.934 | 952 / 1,086 vs 702 / 704 |
+| 488-residue protein | 1.181–1.190 / 0.651–0.674 | 2.181–2.188 / 0.863–0.894 | 1,446 / 1,682 vs 784 / 786 |
 
 This preserves the single-pose win and is a material improvement over dense JAX.
-Relative to the preceding LJ/LK + LK-ball + electrostatics wheel, the
-hydrogen-bond adapter reduces the large-protein value-and-gradient time from
-3.155–3.170 ms to 2.354–2.371 ms. Small, homogeneous, and mixed workloads now
-beat Torch for both measured operations, although their process residency is
-still higher. The large case still trails Torch by about 2.0x for inference and
-2.7–2.8x for value-and-gradient.
+Relative to otherwise identical separate LJ/LK and electrostatics adapters,
+fusion reduces the large-protein time from 1.286–1.288 to 1.181–1.190 ms for
+inference and from 2.342–2.345 to 2.181–2.188 ms for value-and-gradient. Small,
+homogeneous, and mixed workloads beat Torch for both measured operations,
+although their process residency is still higher. The large case still trails
+Torch by about 1.8x for inference and 2.4–2.5x for value-and-gradient.
+
+An isolated fused-versus-separate pair comparison used arbitrary cotangents for
+all four channels. Maximum/RMS Cartesian-gradient deltas were
+7.63e-6/2.49e-7 on 1UBQ and 1.34e-5/2.09e-7 on the large protein. Maximum raw
+channel energy deltas were 9.16e-5 and 0.00171, respectively, from float32
+parallel reduction order. Fusion reduced isolated large forward time from
+0.961 to 0.880 ms and value-and-gradient from 1.430 to 1.263 ms; its gradient
+compiler temporary estimate fell from 98.4 KB to 7.6 KB.
 
 An isolated large-protein electrostatics comparison found identical float32
 energies and a 1.46e-5 / 1.18e-6 maximum / RMS gradient delta between the
