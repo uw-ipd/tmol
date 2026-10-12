@@ -130,3 +130,75 @@ def test_count_pair_storage_is_compact_and_large_clamps_remain_lossless():
     np.testing.assert_array_equal(
         oversized, jnp.asarray([[[0, 1], [1, 0]]], dtype=jnp.int32)
     )
+
+
+def test_renderer_uses_optional_fused_pair_kernel(monkeypatch):
+    class LJLKTerm:
+        def __init__(self, database):
+            pass
+
+        def score_types_provided(self):
+            return (ScoreType.fa_ljatr, ScoreType.fa_ljrep, ScoreType.fa_lk)
+
+        def setup_for_pose_stack(self, pose, block_types):
+            return "ljlk"
+
+        def __call__(self, *args, **kwargs):
+            raise AssertionError("separate LJ/LK path should be skipped")
+
+    class ElecTerm:
+        def __init__(self, database):
+            pass
+
+        def score_types_provided(self):
+            return (ScoreType.fa_elec,)
+
+        def setup_for_pose_stack(self, pose, block_types):
+            return "elec"
+
+        def __call__(self, *args, **kwargs):
+            raise AssertionError("separate electrostatics path should be skipped")
+
+    modules = {
+        "tmol_jax.score.fake_ljlk.fake_ljlk_energy_term": SimpleNamespace(
+            LJLKTerm=LJLKTerm
+        ),
+        "tmol_jax.score.fake_elec.fake_elec_energy_term": SimpleNamespace(
+            ElecTerm=ElecTerm
+        ),
+    }
+    original_import = scoring.importlib.import_module
+    monkeypatch.setattr(
+        scoring.importlib,
+        "import_module",
+        lambda name: modules[name] if name in modules else original_import(name),
+    )
+    for score_type in (ScoreType.fa_ljatr, ScoreType.fa_ljrep, ScoreType.fa_lk):
+        monkeypatch.setitem(
+            scoring._TERM_FOR_TYPE, score_type, ("fake_ljlk", "LJLKTerm")
+        )
+    monkeypatch.setitem(
+        scoring._TERM_FOR_TYPE, ScoreType.fa_elec, ("fake_elec", "ElecTerm")
+    )
+
+    from tmol_jax.score.ljlk import cuda
+
+    monkeypatch.setattr(jax, "default_backend", lambda: "gpu")
+    monkeypatch.setattr(cuda, "fused_available", lambda: True)
+
+    def score_fused(ljlk_state, elec_state, coordinates):
+        assert (ljlk_state, elec_state) == ("ljlk", "elec")
+        return jnp.asarray([[1.0, 2.0, 3.0, 4.0]], dtype=coordinates.dtype)
+
+    monkeypatch.setattr(cuda, "score_fused", score_fused)
+    score_function = ScoreFunction(None)
+    for score_type in scoring._FUSED_PAIR_TYPES:
+        score_function.set_weight(score_type, 1.0)
+    pose = SimpleNamespace(
+        coords=jnp.zeros((1, 2, 3), dtype=jnp.float32),
+        packed_block_types=None,
+    )
+    score = score_function.render_whole_pose_scoring_module(
+        pose, sum_terms=False, apply_weights=False
+    )
+    np.testing.assert_array_equal(score(pose.coords), [[1], [2], [3], [4]])

@@ -54,6 +54,12 @@ _TERM_FOR_TYPE = {
     for module, (class_name, names) in _TERM_TYPES.items()
     for name in names
 }
+_FUSED_PAIR_TYPES = (
+    ScoreType.fa_ljatr,
+    ScoreType.fa_ljrep,
+    ScoreType.fa_lk,
+    ScoreType.fa_elec,
+)
 
 
 class ScoreFunction:
@@ -172,13 +178,35 @@ class ScoreFunction:
             for term, term_state in zip(terms, states)
             if any(weights.get(st, 0) for st in term.score_types_provided())
         )
+        entry_for_type = {
+            score_type: (index, state)
+            for index, (term, state) in enumerate(entries)
+            for score_type in term.score_types_provided()
+        }
+        fused_entries = tuple(
+            entry_for_type.get(score_type)
+            for score_type in (ScoreType.fa_ljatr, ScoreType.fa_elec)
+        )
+        if None in fused_entries:
+            fused_entries = None
         shape = pose_stack.coords.shape
 
         def score(coords):
             if coords.shape != shape or not jnp.issubdtype(coords.dtype, jnp.floating):
                 raise ValueError(f"expected floating coordinates with shape {shape}")
             energies = {}
-            for term, term_state in entries:
+            skip_entries = ()
+            if coords.dtype == jnp.float32 and jax.default_backend() == "gpu":
+                from tmol_jax.score.ljlk import cuda
+
+                if fused_entries is not None and cuda.fused_available():
+                    (ljlk_index, ljlk_state), (elec_index, elec_state) = fused_entries
+                    fused_values = cuda.score_fused(ljlk_state, elec_state, coords)
+                    energies.update(dict(zip(_FUSED_PAIR_TYPES, fused_values.T)))
+                    skip_entries = (ljlk_index, elec_index)
+            for index, (term, term_state) in enumerate(entries):
+                if index in skip_entries:
+                    continue
                 energies.update(term(pose_stack, term_state, coords_override=coords))
             if not channels:
                 return jnp.zeros(

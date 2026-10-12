@@ -43,6 +43,28 @@ def available() -> bool:
     return _register_library()
 
 
+@lru_cache(maxsize=1)
+def fused_available() -> bool:
+    """Return whether the optional library contains the fused pair kernel."""
+    if not _register_library():
+        return False
+    library = _register_library.library
+    try:
+        symbols = {
+            name: getattr(library, f"tmol_jax_ljlk_elec_{name}")
+            for name in ("forward", "backward")
+        }
+    except AttributeError:
+        return False
+    for name, symbol in symbols.items():
+        jax.ffi.register_ffi_target(
+            f"tmol_jax_ljlk_elec_{name}",
+            jax.ffi.pycapsule(symbol),
+            platform="CUDA",
+        )
+    return True
+
+
 def _pack_parameters(state):
     parameters = state.parameters
     coefficient = -parameters.lk_dgfree / (
@@ -123,4 +145,53 @@ def score(state, coords):
     return call(coords)
 
 
-__all__ = ["available", "score"]
+def score_fused(ljlk_state, elec_state, coords):
+    """Evaluate LJ/LK and electrostatics in one exact pair traversal."""
+    parameters, ljlk_global = _pack_parameters(ljlk_state)
+    ljlk_bonded_paths = jnp.asarray(ljlk_state.bonded_path_length, dtype=jnp.uint8)
+    charges = jnp.asarray(elec_state.charges, dtype=jnp.float32)
+    elec_bonded_paths = jnp.asarray(elec_state.bonded_path_length, dtype=jnp.uint8)
+    atom_is_real = jnp.asarray(ljlk_state.atom_is_real, dtype=jnp.bool_)
+    elec_global = elec_state.cuda_global_parameters
+
+    @jax.custom_vjp
+    def call(coordinates):
+        return jax.ffi.ffi_call(
+            "tmol_jax_ljlk_elec_forward",
+            jax.ShapeDtypeStruct((coordinates.shape[0], 4), jnp.float32),
+        )(
+            coordinates,
+            parameters,
+            ljlk_bonded_paths,
+            charges,
+            elec_bonded_paths,
+            atom_is_real,
+            ljlk_global,
+            elec_global,
+        )
+
+    def forward(coordinates):
+        return call(coordinates), coordinates
+
+    def backward(coordinates, cotangent):
+        gradient = jax.ffi.ffi_call(
+            "tmol_jax_ljlk_elec_backward",
+            jax.ShapeDtypeStruct(coordinates.shape, jnp.float32),
+        )(
+            coordinates,
+            parameters,
+            ljlk_bonded_paths,
+            charges,
+            elec_bonded_paths,
+            atom_is_real,
+            ljlk_global,
+            elec_global,
+            cotangent,
+        )
+        return (gradient,)
+
+    call.defvjp(forward, backward)
+    return call(coords)
+
+
+__all__ = ["available", "fused_available", "score", "score_fused"]
