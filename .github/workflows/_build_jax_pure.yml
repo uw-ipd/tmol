@@ -22,7 +22,9 @@ jobs:
           .jax-export/bin/python -m pip install \
             --index-url https://download.pytorch.org/whl/cpu torch
           .jax-export/bin/python -m pip install \
-            attrs cattrs numpy pyyaml packaging build
+            astor attrs biotite==1.6.0 cattrs decorator numpy packaging \
+            'pandas>=2.2,<4' 'pint>=0.23,<1' pyyaml 'toolz>=0.12,<2' \
+            typing_inspect build
           PYTHONPATH="$PWD" .jax-export/bin/python scripts/build_jax.py \
             --outdir jax-dist
           .jax-export/bin/python scripts/check_jax_artifacts.py \
