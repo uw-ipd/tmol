@@ -5,20 +5,40 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
+from tmol_jax.score import _cuda as cuda_loader
 from tmol_jax.score.elec import cuda as elec_cuda
 from tmol_jax.score.ljlk import cuda
 from tmol_jax.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
 from tmol_jax.score.score_types import ScoreType
 
 
+def _clear_cuda_loader():
+    cuda_loader.load_library.cache_clear()
+
+
 def test_cuda_plugin_is_optional(monkeypatch):
     def missing(_name):
         raise ImportError
 
-    cuda._register_library.cache_clear()
-    monkeypatch.setattr(cuda.importlib, "import_module", missing)
-    assert not cuda.available()
-    cuda._register_library.cache_clear()
+    _clear_cuda_loader()
+    monkeypatch.setattr(cuda_loader.importlib, "import_module", missing)
+    assert cuda_loader.load_library() is None
+    _clear_cuda_loader()
+
+
+def test_cuda_plugin_abi_mismatch_is_explicit(monkeypatch):
+    class Marker:
+        def __call__(self):
+            return cuda_loader.ABI_VERSION + 1
+
+    library = SimpleNamespace(tmol_jax_cuda_abi_version=Marker())
+    plugin = SimpleNamespace(library_path=lambda: "/unused/plugin.so")
+    _clear_cuda_loader()
+    monkeypatch.setattr(cuda_loader.importlib, "import_module", lambda _: plugin)
+    monkeypatch.setattr(cuda_loader.ctypes.cdll, "LoadLibrary", lambda _: library)
+    with pytest.raises(RuntimeError, match="ABI.*does not match"):
+        cuda_loader.load_library()
+    _clear_cuda_loader()
 
 
 def test_pack_cuda_parameters():

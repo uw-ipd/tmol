@@ -2,45 +2,18 @@
 
 from __future__ import annotations
 
-import ctypes
-import importlib
-from functools import lru_cache
-
 import jax
 import jax.numpy as jnp
+
+from tmol_jax.score._cuda import register_ffi_targets
 
 _GLOBAL_PARAMETER_COUNT = 11
 _C1 = jnp.float32(322.0637)
 
 
-@lru_cache(maxsize=1)
-def _register_library() -> bool:
-    try:
-        plugin = importlib.import_module("tmol_jax_cuda")
-        path = plugin.library_path()
-    except (AttributeError, ImportError, OSError, RuntimeError):
-        return False
-    try:
-        library = ctypes.cdll.LoadLibrary(str(path))
-        symbols = {
-            name: getattr(library, f"tmol_jax_elec_{name}")
-            for name in ("forward", "backward")
-        }
-    except (AttributeError, OSError):
-        return False
-    for name, symbol in symbols.items():
-        jax.ffi.register_ffi_target(
-            f"tmol_jax_elec_{name}",
-            jax.ffi.pycapsule(symbol),
-            platform="CUDA",
-        )
-    _register_library.library = library
-    return True
-
-
 def available() -> bool:
     """Return whether this installation contains its optional CUDA kernel."""
-    return _register_library()
+    return register_ffi_targets("tmol_jax_elec")
 
 
 def _pack_global_parameters(state):

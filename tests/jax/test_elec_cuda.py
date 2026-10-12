@@ -4,6 +4,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
+from tmol_jax.score import _cuda as cuda_loader
 from tmol_jax.score.elec import cuda
 from tmol_jax.score.elec.elec_energy_term import ElecEnergyTerm
 from tmol_jax.score.score_types import ScoreType
@@ -13,10 +14,10 @@ def test_cuda_plugin_is_optional(monkeypatch):
     def missing(_name):
         raise ImportError
 
-    cuda._register_library.cache_clear()
-    monkeypatch.setattr(cuda.importlib, "import_module", missing)
-    assert not cuda.available()
-    cuda._register_library.cache_clear()
+    cuda_loader.load_library.cache_clear()
+    monkeypatch.setattr(cuda_loader.importlib, "import_module", missing)
+    assert cuda_loader.load_library() is None
+    cuda_loader.load_library.cache_clear()
 
 
 def test_pack_cuda_parameters():

@@ -2,67 +2,22 @@
 
 from __future__ import annotations
 
-import ctypes
-import importlib
-from functools import lru_cache
-
 import jax
 import jax.numpy as jnp
+
+from tmol_jax.score._cuda import register_ffi_targets
 
 _PARAMETER_COUNT = 13
 
 
-@lru_cache(maxsize=1)
-def _register_library() -> bool:
-    try:
-        plugin = importlib.import_module("tmol_jax_cuda")
-        path = plugin.library_path()
-    except (AttributeError, ImportError, OSError, RuntimeError):
-        return False
-    try:
-        library = ctypes.cdll.LoadLibrary(str(path))
-        symbols = {
-            name: getattr(library, f"tmol_jax_ljlk_{name}")
-            for name in ("forward", "backward")
-        }
-    except (AttributeError, OSError):
-        return False
-    for name, symbol in symbols.items():
-        jax.ffi.register_ffi_target(
-            f"tmol_jax_ljlk_{name}",
-            jax.ffi.pycapsule(symbol),
-            platform="CUDA",
-        )
-    # The capsule does not own the dynamic library.
-    _register_library.library = library
-    return True
-
-
 def available() -> bool:
     """Return whether this installation contains its optional CUDA kernel."""
-    return _register_library()
+    return register_ffi_targets("tmol_jax_ljlk")
 
 
-@lru_cache(maxsize=1)
 def fused_available() -> bool:
     """Return whether the optional library contains the fused pair kernel."""
-    if not _register_library():
-        return False
-    library = _register_library.library
-    try:
-        symbols = {
-            name: getattr(library, f"tmol_jax_ljlk_elec_{name}")
-            for name in ("forward", "backward")
-        }
-    except AttributeError:
-        return False
-    for name, symbol in symbols.items():
-        jax.ffi.register_ffi_target(
-            f"tmol_jax_ljlk_elec_{name}",
-            jax.ffi.pycapsule(symbol),
-            platform="CUDA",
-        )
-    return True
+    return available() and register_ffi_targets("tmol_jax_ljlk_elec")
 
 
 def _pack_parameters(state):

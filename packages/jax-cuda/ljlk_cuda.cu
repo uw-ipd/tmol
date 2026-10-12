@@ -14,6 +14,8 @@ namespace ffi = xla::ffi;
 namespace pot = tmol::score::ljlk::potentials;
 namespace elec_pot = tmol::score::elec::potentials;
 
+extern "C" int tmol_jax_cuda_abi_version() { return 1; }
+
 using F32R1 = ffi::BufferR1<ffi::DataType::F32>;
 using F32R2 = ffi::BufferR2<ffi::DataType::F32>;
 using F32R3 = ffi::BufferR3<ffi::DataType::F32>;
