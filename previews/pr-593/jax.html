@@ -473,11 +473,12 @@ PyTorch implementation. Its runtime imports <code class="docutils literal notran
 PyTorch. This implementation is under development: numerical parity,
 performance, relaxation and repacking are not yet release validated.</p>
 <p>The initial score preset implements the protein beta2016 channels. Nucleic-acid
-torsion and metal-coordination terms are not implemented. Noncanonical residues, ligands and their generic bonded
-terms fail explicitly. Current pair scoring uses dense arrays; it recomputes
-distances from the supplied coordinates on every call. Relaxation and repacking
-are not yet implemented. Do not use this experimental frontend as a replacement for a
-validated production TMol calculation yet.</p>
+torsion and metal-coordination terms are not implemented. Noncanonical residues,
+ligands, and their generic bonded terms fail explicitly. Current pair scoring
+uses dense arrays; it recomputes distances from the supplied coordinates on
+every call. Cartesian L-BFGS minimization is available; kinematic
+minimization, relaxation, and repacking are not yet implemented. Do not use this experimental frontend as a replacement
+for a validated production TMol calculation yet.</p>
 <section id="build-and-install">
 <h2>Build and install<a class="headerlink" href="#build-and-install" title="Link to this heading">#</a></h2>
 <p>From a TMol developer environment with <code class="docutils literal notranslate"><span class="pre">tmol</span></code>, <code class="docutils literal notranslate"><span class="pre">numpy</span></code> and <code class="docutils literal notranslate"><span class="pre">build</span></code> installed:</p>
@@ -510,6 +511,23 @@ Python 3.12 and JAX 0.11.2; broader version support has not yet been tested.</p>
 for coordinate changes; render again after changing weights, types, connectivity
 or batch layout. Use <code class="docutils literal notranslate"><span class="pre">sum_terms=False</span></code> to return channels in <code class="docutils literal notranslate"><span class="pre">ScoreType</span></code> order,
 and <code class="docutils literal notranslate"><span class="pre">apply_weights=False</span></code> to inspect their unweighted energies.</p>
+</section>
+<section id="minimize-cartesian-coordinates">
+<h2>Minimize Cartesian coordinates<a class="headerlink" href="#minimize-cartesian-coordinates" title="Link to this heading">#</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol_jax</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cart_min</span>
+
+<span class="n">move_atoms</span> <span class="o">=</span> <span class="n">pose</span><span class="o">.</span><span class="n">atom_is_real</span>  <span class="c1"># or a stricter [poses, atoms] boolean mask</span>
+<span class="n">minimized</span><span class="p">,</span> <span class="n">result</span> <span class="o">=</span> <span class="n">run_cart_min</span><span class="p">(</span>
+    <span class="n">pose</span><span class="p">,</span> <span class="n">score_function</span><span class="p">,</span> <span class="n">move_atoms</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">return_result</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>The minimizer renders the dense scorer once and keeps topology fixed. A movement
+mask may select whole atoms or individual xyz components; padding is always
+frozen. For a pose batch, it minimizes the sum of the per-pose scores. The
+input pose is unchanged. Inspect <code class="docutils literal notranslate"><span class="pre">result[&quot;converged&quot;]</span></code> and
+<code class="docutils literal notranslate"><span class="pre">result[&quot;status&quot;]</span></code>, and validate the final structure and energy for the intended
+workflow. This is Cartesian coordinate minimization, not FastRelax or repacking.</p>
 <p>The frontend does not alter global JAX precision settings. Synchronize returned
 arrays with <code class="docutils literal notranslate"><span class="pre">block_until_ready()</span></code> when timing work. Record compilation and setup
 separately from repeated scoring, and include setup in end-to-end comparisons.</p>
@@ -643,6 +661,7 @@ create chain breaks. Prepare chain boundaries explicitly in the input.</p>
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#build-and-install">Build and install</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#score-and-differentiate">Score and differentiate</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#minimize-cartesian-coordinates">Minimize Cartesian coordinates</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#current-validation-and-limitations">Current validation and limitations</a></li>
 </ul>
   </nav></div>

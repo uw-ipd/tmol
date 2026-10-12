@@ -6,11 +6,12 @@ PyTorch. This implementation is under development: numerical parity,
 performance, relaxation and repacking are not yet release validated.
 
 The initial score preset implements the protein beta2016 channels. Nucleic-acid
-torsion and metal-coordination terms are not implemented. Noncanonical residues, ligands and their generic bonded
-terms fail explicitly. Current pair scoring uses dense arrays; it recomputes
-distances from the supplied coordinates on every call. Relaxation and repacking
-are not yet implemented. Do not use this experimental frontend as a replacement for a
-validated production TMol calculation yet.
+torsion and metal-coordination terms are not implemented. Noncanonical residues,
+ligands, and their generic bonded terms fail explicitly. Current pair scoring
+uses dense arrays; it recomputes distances from the supplied coordinates on
+every call. Cartesian L-BFGS minimization is available; kinematic
+minimization, relaxation, and repacking are not yet implemented. Do not use this experimental frontend as a replacement
+for a validated production TMol calculation yet.
 
 ## Build and install
 
@@ -48,6 +49,24 @@ A rendered scorer snapshots its weights, term options and topology. Reuse it
 for coordinate changes; render again after changing weights, types, connectivity
 or batch layout. Use `sum_terms=False` to return channels in `ScoreType` order,
 and `apply_weights=False` to inspect their unweighted energies.
+
+## Minimize Cartesian coordinates
+
+```python
+from tmol_jax import run_cart_min
+
+move_atoms = pose.atom_is_real  # or a stricter [poses, atoms] boolean mask
+minimized, result = run_cart_min(
+    pose, score_function, move_atoms, max_iter=100, return_result=True
+)
+```
+
+The minimizer renders the dense scorer once and keeps topology fixed. A movement
+mask may select whole atoms or individual xyz components; padding is always
+frozen. For a pose batch, it minimizes the sum of the per-pose scores. The
+input pose is unchanged. Inspect `result["converged"]` and
+`result["status"]`, and validate the final structure and energy for the intended
+workflow. This is Cartesian coordinate minimization, not FastRelax or repacking.
 
 The frontend does not alter global JAX precision settings. Synchronize returned
 arrays with `block_until_ready()` when timing work. Record compilation and setup
