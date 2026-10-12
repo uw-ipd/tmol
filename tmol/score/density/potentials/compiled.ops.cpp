@@ -1,5 +1,4 @@
-#include <torch/script.h>
-#include <torch/torch.h>
+#include <tmol/utility/tensor/native_library.hh>
 
 #include <tmol/score/common/device_operations.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
@@ -15,11 +14,12 @@ namespace potentials {
 
 ContextManager mgr;
 
-using torch::Tensor;
-using torch::autograd::AutogradContext;
-using torch::autograd::tensor_list;
+using tmol::native::Tensor;
+using tmol::native::autograd::AutogradContext;
+using tmol::native::autograd::tensor_list;
 
-class DensityScoreOp : public torch::autograd::Function<DensityScoreOp> {
+class DensityScoreOp
+    : public tmol::native::autograd::Function<DensityScoreOp> {
  public:
   static Tensor forward(
       AutogradContext* ctx,
@@ -119,7 +119,9 @@ Tensor density_score(
       n_groups);
 }
 
-TORCH_LIBRARY(tmol_density, m) { m.def("density_score", &density_score); }
+TMOL_LIBRARY(tmol_density, m) {
+  m.def("density_score", TMOL_FN(&density_score));
+}
 
 }  // namespace potentials
 }  // namespace density
