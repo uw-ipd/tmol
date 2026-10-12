@@ -490,8 +490,8 @@ adapters, saved predictions, and gradient checks.</p>
 </div>
 <p>Map model coordinates to named residues and atoms, then build TMol canonical
 tensors. Keep model-specific keys and layouts in your application: TMol provides
-<code class="docutils literal notranslate"><span class="pre">CanonicalOrdering</span></code> / <code class="docutils literal notranslate"><span class="pre">CanonicalForm</span></code>, but no longer provides OpenFold or
-RoseTTAFold2 input adapters.</p>
+<code class="docutils literal notranslate"><span class="pre">CanonicalOrdering</span></code> and <code class="docutils literal notranslate"><span class="pre">CanonicalForm</span></code> for these mappings. The notebook
+provides editable OpenFold and RoseTTAFold2 examples.</p>
 <section id="declare-a-layout-once">
 <h2>Declare a layout once<a class="headerlink" href="#declare-a-layout-once" title="Link to this heading">#</a></h2>
 <p>Supply the ordered residue names corresponding to your integer token IDs and,
@@ -502,15 +502,13 @@ your model’s token numbering. Check both against the version that produced the
 prediction. In particular, do not infer an encoding solely from 14 or 37 slots.</p>
 <p>The notebook’s <code class="docutils literal notranslate"><span class="pre">prepare_named_layout</span></code> function prepares these mappings once
 and binds coordinates using Torch indexed assignment. It accepts batched
-tensors, uses <code class="docutils literal notranslate"><span class="pre">chain_id=-1</span></code>
-for explicit residue padding, and distinguishes unobserved atoms from padded
+tensors, uses <code class="docutils literal notranslate"><span class="pre">chain_id=-1</span></code> for explicit residue padding, and distinguishes unobserved atoms from padded
 residues. Finite supplied coordinates remain connected to autograd. Missing
 coordinates are NaN triplets; infinity and partially finite triplets are rejected.</p>
 <p>The adapter uses the default chemical database and rebuilds the pose on each
 iteration; it caches only the source mapping. Supply all required heavy atoms.
 The adapter does not pack missing side chains. Missing terminal atoms and
-hydrogens use the
-shared tmol construction code. For arbitrary ligands, PTMs or nucleic acids,
+hydrogens use the shared TMol construction code. For arbitrary ligands, PTMs or nucleic acids,
 prepare a <code class="docutils literal notranslate"><span class="pre">PoseBuildContext</span></code> from annotated AtomArray topology first and use
 its matching canonical ordering, packed types and connectivity.</p>
 </section>

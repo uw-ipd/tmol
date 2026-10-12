@@ -521,9 +521,9 @@ four-atom torsions.</p>
 <section id="missing-side-chains-and-hydrogens">
 <h2>Missing side chains and hydrogens<a class="headerlink" href="#missing-side-chains-and-hydrogens" title="Link to this heading">#</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">pose_stack_from_biotite()</span></code> automatically routes blocks with missing heavy atoms
-through <code class="docutils literal notranslate"><span class="pre">build_missing_sidechains()</span></code>. By default it also places and optimizes
-hydrogens for complete residues. Pass <code class="docutils literal notranslate"><span class="pre">no_optH=True</span></code> to skip that hydrogen
-optimization path.</p>
+through <code class="docutils literal notranslate"><span class="pre">build_missing_sidechains()</span></code>. With the default <code class="docutils literal notranslate"><span class="pre">no_optH=True</span></code>, it
+preserves finite supplied protein hydrogens and builds missing atoms. Pass
+<code class="docutils literal notranslate"><span class="pre">no_optH=False</span></code> to optimize supported hydrogen positions and NHQ flips.</p>
 <p>For standard residues and the default parameter database, TMol automatically
 reuses the structure-independent construction and packing setup. If many
 structures share prepared ligand definitions, explicitly reuse a
@@ -536,8 +536,9 @@ structures share prepared ligand definitions, explicitly reuse a
 <span class="p">)</span>
 </pre></div>
 </div>
-<p>Ligand heavy atoms must be present in the input. TMol can prepare and protonate
-ligands, but the side-chain-rebuild sampler only handles polymer residues.</p>
+<p>Missing non-polymer atoms can be reconstructed from prepared conformers when
+sufficient coordinate anchors are available. Underdetermined geometry raises
+an error. These starting conformers are not recovered experimental coordinates.</p>
 </section>
 <section id="kinematic-minimization">
 <h2>Kinematic minimization<a class="headerlink" href="#kinematic-minimization" title="Link to this heading">#</a></h2>

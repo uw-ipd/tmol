@@ -488,11 +488,12 @@ coordinate tensors. Use the tensor interfaces when gradients must reach model ou
 constructor retains chemical identity and declared bonds, including unresolved
 atoms at NaN:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tmol</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_file</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
 
-<span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"cpu"</span><span class="p">)</span>
+<span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span> <span class="k">if</span> <span class="n">tmol</span><span class="o">.</span><span class="n">has_cuda</span><span class="p">()</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"cpu"</span><span class="p">)</span>
 <span class="n">pose_stack</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="n">pose_stack_from_file</span><span class="p">(</span>
     <span class="s2">"complex.cif"</span><span class="p">,</span>
     <span class="n">device</span><span class="p">,</span>
@@ -602,11 +603,12 @@ steps:</p>
 <span class="n">score</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>A single call handles one sample or a whole same-topology batch; hydrogen
-optimization is enabled by default. For high-throughput diffusion or search,
+<p>A single call handles one sample or a whole same-topology batch. For repeated
+diffusion or search,
 reuse both <code class="docutils literal notranslate"><span class="pre">pose_builder</span></code> and the scoring module for every compatible topology
-and batch shape. Pass <code class="docutils literal notranslate"><span class="pre">opt_h=False</span></code> to the builder only when ideal hydrogen
-placement is an intentional speed/accuracy tradeoff. For one-off conversion,
+and batch shape. The default <code class="docutils literal notranslate"><span class="pre">opt_h=False</span></code> preserves finite supplied protein
+hydrogens and builds missing atoms. Pass <code class="docutils literal notranslate"><span class="pre">opt_h=True</span></code> when polar-hydrogen
+optimization is part of your preparation protocol. For one-off conversion,
 <code class="docutils literal notranslate"><span class="pre">pose_stack_from_atom37_and_topology(atom37_coords,</span> <span class="pre">atom_array,</span> <span class="pre">context)</span></code> remains
 available.</p>
 <p>A single <code class="docutils literal notranslate"><span class="pre">AtomArray</span></code> may provide topology for a batch of coordinate tensors. An

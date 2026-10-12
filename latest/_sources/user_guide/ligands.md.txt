@@ -96,14 +96,13 @@ For full protein-ligand structures, load with Biotite and let
 `pose_stack_from_biotite()` prepare every non-standard residue:
 
 ```python
-import biotite.structure as struc
-import biotite.structure.io
 import torch
+import tmol
 
 from tmol.database import ParameterDatabase
 from tmol.io import atom_array_from_file, pose_stack_from_biotite
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if tmol.has_cuda() and torch.cuda.is_available() else "cpu")
 structure = atom_array_from_file("complex.cif")
 
 pose_stack, context = pose_stack_from_biotite(

@@ -11,11 +11,12 @@ atoms at NaN:
 
 ```python
 import torch
+import tmol
 
 from tmol.io import pose_stack_from_file
 from tmol.score import beta2016_score_function
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if tmol.has_cuda() and torch.cuda.is_available() else "cpu")
 pose_stack, context = pose_stack_from_file(
     "complex.cif",
     device,
@@ -133,11 +134,12 @@ score = scorer(pose_stack.coords).sum()
 score.backward()
 ```
 
-A single call handles one sample or a whole same-topology batch; hydrogen
-optimization is enabled by default. For high-throughput diffusion or search,
+A single call handles one sample or a whole same-topology batch. For repeated
+diffusion or search,
 reuse both `pose_builder` and the scoring module for every compatible topology
-and batch shape. Pass `opt_h=False` to the builder only when ideal hydrogen
-placement is an intentional speed/accuracy tradeoff. For one-off conversion,
+and batch shape. The default `opt_h=False` preserves finite supplied protein
+hydrogens and builds missing atoms. Pass `opt_h=True` when polar-hydrogen
+optimization is part of your preparation protocol. For one-off conversion,
 `pose_stack_from_atom37_and_topology(atom37_coords, atom_array, context)` remains
 available.
 
