@@ -171,10 +171,10 @@ Installed-wheel runs under the same protocol measured:
 
 | workload | inference (ms) | value + gradient (ms) | resident MiB (inference / gradient) |
 | --- | ---: | ---: | ---: |
-| 1UBQ | 0.197–0.198 / 0.401–0.421 | 0.438–0.440 / 0.837–0.939 | 1,182 / 1,290 vs 702 / 702 |
-| homogeneous 1UBQ | 0.267–0.271 / 0.400–0.410 | 0.551–0.576 / 0.846–0.911 | 940 / 1,062 vs 702 / 704 |
-| mixed proteins | 0.348–0.356 / 0.452–0.454 | 0.714–0.741 / 0.909–0.934 | 952 / 1,086 vs 702 / 704 |
-| 488-residue protein | 1.181–1.190 / 0.651–0.674 | 2.181–2.188 / 0.863–0.894 | 1,446 / 1,682 vs 784 / 786 |
+| 1UBQ | 0.205–0.210 / 0.424–0.439 | 0.430–0.440 / 0.888–1.069 | 1,180 / 1,288 vs 702 / 702 |
+| homogeneous 1UBQ | 0.272–0.278 / 0.408–0.408 | 0.581–0.582 / 0.863–0.985 | 938 / 1,060 vs 702 / 704 |
+| mixed proteins | 0.352–0.354 / 0.426–0.427 | 0.723–0.742 / 0.890–0.891 | 950 / 1,084 vs 702 / 704 |
+| 488-residue protein | 1.172–1.177 / 0.672–0.697 | 2.169–2.182 / 0.876–0.897 | 1,444 / 1,680 vs 784 / 786 |
 
 This preserves the single-pose win and is a material improvement over dense JAX.
 Relative to otherwise identical separate LJ/LK and electrostatics adapters,
@@ -182,7 +182,7 @@ fusion reduces the large-protein time from 1.286–1.288 to 1.181–1.190 ms for
 inference and from 2.342–2.345 to 2.181–2.188 ms for value-and-gradient. Small,
 homogeneous, and mixed workloads beat Torch for both measured operations,
 although their process residency is still higher. The large case still trails
-Torch by about 1.8x for inference and 2.4–2.5x for value-and-gradient.
+Torch by about 1.7x for inference and 2.4–2.5x for value-and-gradient.
 
 An isolated fused-versus-separate pair comparison used arbitrary cotangents for
 all four channels. Maximum/RMS Cartesian-gradient deltas were
@@ -220,9 +220,13 @@ persistent dense matrices and CUDA adapter inputs. On the 7,561-atom workload
 this reduces each matrix from 228.7 MB to 57.2 MB and lowers process residency
 from 2,222 / 2,786 MiB to 1,446 / 1,682 MiB for inference / gradient. This
 remains above Torch's 784 / 786 MiB. Torch per-operation allocator increments
-are also not comparable to total process residency. Setup plus rendering
-remains 36–38 seconds for the measured JAX processes. Broader chemistry
-validation, kinematic workflows, and repacking remain unfinished.
+are also not comparable to total process residency. Setup-time periodic
+Dunbrack coefficient generation uses SciPy's cubic ``grid-wrap`` prefilter,
+which matches the previous recursion within float32 precision without compiling
+hundreds of tiny JAX scans. In the same four-workload run, fresh-process JAX
+setup plus rendering took 12.8–14.5 seconds, down from 35–38 seconds and within
+the measured Torch range of 11.0–14.5 seconds. Broader chemistry validation,
+kinematic workflows, and repacking remain unfinished.
 
 PDB loading uses the first model and Biotite's first alternate conformation.
 The Biotite frontend also accepts an AtomArrayStack for same-topology batches.

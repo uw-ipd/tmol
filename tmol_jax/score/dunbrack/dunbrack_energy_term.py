@@ -68,11 +68,11 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from tmol_jax.numeric.bspline import bspline_coefficients
 from tmol_jax.score.common.geom import dihedral_angle
 from tmol_jax.score.dunbrack.potentials import (
     _bicubic_bspline_interpolate,
     _frac_index,
+    bspline3_coefficients_for_table,
     bspline3_coeffs_for_2d_table,
     dunbrack_rotdev_score,
     dunbrack_semirot_score,
@@ -643,9 +643,7 @@ class DunbrackEnergyTerm(EnergyTerm):
             # matching tricubic evaluator at score time reproduces the
             # upstream numbers.
             for ri in range(nrot_sr):
-                sr_table[si, ri] = np.asarray(
-                    bspline_coefficients(raw_nlp[ri], degree=3)
-                )
+                sr_table[si, ri] = bspline3_coefficients_for_table(raw_nlp[ri], 3)
 
             # Backbone axes are in the same 10-deg spacing as rotameric.
             sr_start[si] = np.array(

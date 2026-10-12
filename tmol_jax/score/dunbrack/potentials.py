@@ -106,8 +106,8 @@ def _frac_index(angle: Array, start: Array, step: Array, period: Array) -> Array
 #
 # Two pieces:
 #
-# * :func:`_bspline3_coeffs_1d` — convert raw samples along a *single* axis
-#   into B-spline coefficients. Runs on CPU (numpy), called once at setup.
+# * :func:`bspline3_coefficients_for_table` — convert the final periodic grid
+#   axes into B-spline coefficients. Runs on CPU (SciPy), called once at setup.
 # * :func:`_bicubic_bspline_interpolate` — grad-safe 2-D interpolation of
 #   the already-converted coefficient table at a fractional (i, j) index.
 #
@@ -115,67 +115,22 @@ def _frac_index(angle: Array, start: Array, step: Array, period: Array) -> Array
 # the 1-D filter along each axis in turn.
 
 
-def _bspline3_coeffs_1d(line):  # numpy in/out, used at setup time
-    """Compute periodic cubic-B-spline coefficients for a 1-D stripe.
+def bspline3_coefficients_for_table(values, n_grid_axes):
+    """Compute periodic cubic B-spline coefficients on final grid axes.
 
-    Mirrors the ``_init_causal_coeff`` / ``_convert_interp_coeffs``
-    pipeline in ``bspline.hh`` specialised to DEGREE=3 (single pole
-    ``z = sqrt(3) - 2``). Called during setup on each 1-D slice of the
-    input sample grid to produce the B-spline coefficient array.
+    SciPy ``grid-wrap`` implements the same periodic cubic pole recursion as
+    TMol. Filtering the axes sequentially is the separable N-D prefilter,
+    without tracing and compiling hundreds of setup-only JAX scans.
     """
     import numpy as np
+    from scipy.ndimage import spline_filter1d
 
-    line = np.asarray(line, dtype=np.float64).copy()
-    N = line.size
-    if N <= 1:
-        return line.astype(np.float32)
-
-    pole = np.sqrt(3.0) - 2.0  # ≈ -0.2679491924
-    lam = (1.0 - pole) * (1.0 - 1.0 / pole)
-    line *= lam
-
-    tol = 4 * np.finfo(np.float64).eps
-    horiz = int(np.ceil(np.log(tol) / np.log(abs(pole))))
-
-    # --- causal (initial c[0]) --- #
-    zn = pole
-    if horiz < N:
-        s = line[0]
-        for i in range(1, horiz):
-            s += zn * line[N - i]
-            zn *= pole
-        line[0] = s
-    else:
-        s = line[0]
-        for i in range(1, N):
-            s += zn * line[N - i]
-            zn *= pole
-        line[0] = s / (1.0 - zn)
-
-    # Forward recursion: c[j] += pole * c[j-1]
-    for j in range(1, N):
-        line[j] += pole * line[j - 1]
-
-    # --- anticausal (initial c[N-1]) --- #
-    zn = pole
-    if horiz < N:
-        s = line[N - 1]
-        for i in range(horiz):
-            s += zn * line[i]
-            zn *= pole
-        line[N - 1] = s * (-pole)
-    else:
-        s = line[N - 1]
-        for i in range(N):
-            s += zn * line[i]
-            zn *= pole
-        line[N - 1] = s * (-pole / (1.0 - zn))
-
-    # Backward recursion: c[j] = pole * (c[j+1] - c[j])
-    for j in range(N - 2, -1, -1):
-        line[j] = pole * (line[j + 1] - line[j])
-
-    return line.astype(np.float32)
+    arr = np.asarray(values, dtype=np.float64)
+    if n_grid_axes < 1 or n_grid_axes > arr.ndim:
+        raise ValueError("invalid number of B-spline grid axes")
+    for axis in range(arr.ndim - n_grid_axes, arr.ndim):
+        arr = spline_filter1d(arr, order=3, axis=axis, mode="grid-wrap")
+    return arr.astype(np.float32)
 
 
 def bspline3_coeffs_for_2d_table(values):
@@ -185,16 +140,7 @@ def bspline3_coeffs_for_2d_table(values):
     table's last two axes are the (phi, psi) grid; leading axes can be
     rotamer / AA / channel stacks and are batched over.
     """
-    import numpy as np
-
-    arr = np.asarray(values, dtype=np.float64)
-    if arr.ndim < 2:
-        raise ValueError("Need at least 2 dims for bicubic coeffs")
-    # ponytail: np.apply_along_axis handles leading stack dims natively;
-    # filtering only the (phi, psi) axes matches the per-slice 2-D pass.
-    for ax in (-2, -1):
-        arr = np.apply_along_axis(_bspline3_coeffs_1d, ax, arr)
-    return arr.astype(np.float32)
+    return bspline3_coefficients_for_table(values, 2)
 
 
 def _bspline3_weights(f):
