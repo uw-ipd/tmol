@@ -468,10 +468,9 @@
                   
   <section id="installation">
 <h1>Installation<a class="headerlink" href="#installation" title="Link to this heading">#</a></h1>
-<p>TMol requires Python 3.11+ and PyTorch 2.11+. The upcoming 0.1.64 release
-separates the Python API, data, and CPU kernels from optional CUDA kernels.
-These instructions describe that release; see the versioned documentation for
-0.1.63 and earlier packages.</p>
+<p>TMol 0.1.64 is published on PyPI for Python 3.11–3.14 and PyTorch 2.11+.
+<code class="docutils literal notranslate"><span class="pre">tmol</span></code> contains the Python API, data, and CPU kernels; optional <code class="docutils literal notranslate"><span class="pre">tmol-ops-cu12</span></code>
+and <code class="docutils literal notranslate"><span class="pre">tmol-ops-cu13</span></code> packages add CUDA kernels. All three share the same version.</p>
 <section id="cpu">
 <h2>CPU<a class="headerlink" href="#cpu" title="Link to this heading">#</a></h2>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"tmol==0.1.64"</span><span class="w"> </span>--only-binary<span class="o">=</span>:all:
@@ -485,13 +484,14 @@ python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </sp
 </section>
 <section id="gpu">
 <h2>GPU<a class="headerlink" href="#gpu" title="Link to this heading">#</a></h2>
-<p>Install CUDA-enabled PyTorch, then choose the matching CUDA <strong>major</strong>:</p>
+<p>In a fresh environment, install CUDA-enabled PyTorch, then choose the matching
+CUDA <strong>major</strong>. Use one of these tested combinations:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># CUDA 13 example</span>
-python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"torch&gt;=2.11"</span><span class="w"> </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/cu132
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"torch==2.14.1"</span><span class="w"> </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/cu132
 python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"tmol[cu13]==0.1.64"</span><span class="w"> </span>--only-binary<span class="o">=</span>:all:
 
 <span class="c1"># CUDA 12 example</span>
-python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"torch==2.11.*"</span><span class="w"> </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/cu128
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"torch==2.11.0"</span><span class="w"> </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/cu128
 python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"tmol[cu12]==0.1.64"</span><span class="w"> </span>--only-binary<span class="o">=</span>:all:
 </pre></div>
 </div>
@@ -499,7 +499,16 @@ python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </sp
 <code class="docutils literal notranslate"><span class="pre">tmol</span></code>. They contain only native operators and coexist with the CPU package.
 Pip does not detect the GPU or replace an already installed CPU build of
 PyTorch. A CUDA-enabled PyTorch build and a compatible NVIDIA driver are needed;
-<code class="docutils literal notranslate"><span class="pre">nvcc</span></code> is unnecessary for wheel installs.</p>
+<code class="docutils literal notranslate"><span class="pre">nvcc</span></code> is unnecessary for wheel installs. These Torch pins are tested examples,
+not a requirement to match the Torch version used to build TMol. An existing
+Torch 2.11+ installation can be kept if its CUDA major matches the extra.</p>
+<p>The 0.1.64 CUDA wheels use compressed device code that requires a driver from
+CUDA 12.4 or later, <strong>and</strong> a driver compatible with the chosen PyTorch CUDA
+runtime. NVIDIA documents this <a class="reference external" href="https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/#cmdoption-compress-mode">compression restriction</a>.
+Public-wheel checks passed on driver 595.71.05; an A100 with driver 535.129.03
+failed with <code class="docutils literal notranslate"><span class="pre">device</span> <span class="pre">kernel</span> <span class="pre">image</span> <span class="pre">is</span> <span class="pre">invalid</span></code>. Older-driver compatibility-library
+recovery has not been verified. <code class="docutils literal notranslate"><span class="pre">tmol.has_cuda()</span></code> reports compiled capability,
+not driver compatibility.</p>
 <p>TMol selects the operator package matching <code class="docutils literal notranslate"><span class="pre">torch.version.cuda</span></code>. Without an
 operator package it uses its CPU backend. Check both compiled capabilities and
 hardware availability before selecting a device:</p>
@@ -596,17 +605,11 @@ recent container image.</p>
 </section>
 <section id="google-colab">
 <h2>Google Colab<a class="headerlink" href="#google-colab" title="Link to this heading">#</a></h2>
-<p>The tutorial bootstrap supports PyTorch 2.11.0, CUDA 12.8, and Python 3.12 or
-3.13. TMol v0.1.59 provides separate Python-ABI wheels compiled
-for T4 (<code class="docutils literal notranslate"><span class="pre">sm_75</span></code>), A100 (<code class="docutils literal notranslate"><span class="pre">sm_80</span></code>), and L4 (<code class="docutils literal notranslate"><span class="pre">sm_89</span></code>) GPUs. For Python 3.13:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"tmol @ https://github.com/uw-ipd/tmol/releases/download/v0.1.59/tmol-0.1.59+cu128torch2.11-cp313-cp313-manylinux_2_28_x86_64.whl"</span>
-</pre></div>
-</div>
-<p>The tutorial bootstrap selects the wheel matching the runtime’s Python ABI and
-constrains pip to keep Colab’s active PyTorch. It stops with a clear
-compatibility error instead of attempting a long source build when Python,
-PyTorch, or CUDA do not match. Always confirm the active versions before
-installing an ABI-specific wheel URL.</p>
+<p>Select a GPU runtime, then run the tutorial’s setup cell. The shared bootstrap
+installs <code class="docutils literal notranslate"><span class="pre">tmol[cu12]==0.1.64</span></code> or <code class="docutils literal notranslate"><span class="pre">tmol[cu13]==0.1.64</span></code> from PyPI according to
+<code class="docutils literal notranslate"><span class="pre">torch.version.cuda</span></code>, keeps Colab’s installed PyTorch, and requires binary wheels.
+It no longer constructs wheel URLs for individual Python or PyTorch versions.
+The Python, PyTorch, and driver requirements above still apply.</p>
 <p>After installation, run the <a class="reference internal" href="quickstart.html"><span class="doc">Quickstart</span></a>. For an editable
 development environment, see <a class="reference internal" href="user_guide/development.html"><span class="doc">Development</span></a>.</p>
 </section>
