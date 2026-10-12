@@ -466,6 +466,20 @@ jobs:
             fi
           '
 
+      - name: Build native JAX smoke wheel
+        if: inputs.enable-cuda && inputs.python-version == '3.12' && inputs.target-arch == 'x86_64'
+        run: |
+          $CONTAINER_EXEC \
+            "$CONTAINER_ENV_FLAG" CUDA_HOME="${CUDA_HOME}" \
+            "$CONTAINER_TARGET" bash -x -e -o pipefail -c '
+            unset PYTHONPATH
+            export PYTHONNOUSERSITE=1
+            export PATH="${CUDA_HOME}/bin:${PATH}"
+            '"${TARGET_VENV}"'/bin/pip install jax==0.11.2 "setuptools>=77" wheel
+            '"${TARGET_VENV}"'/bin/python scripts/build_jax_cuda.py \
+              --outdir jax-native-dist --cuda-architectures 90
+          '
+
       - name: Validate CUDA architecture contract
         if: inputs.enable-cuda
         run: |
@@ -556,6 +570,13 @@ jobs:
         with:
           name: wheel-cp${{ env.MATRIX_PYTHON_VERSION }}-${{ env.WHEEL_LOCAL_TAG }}-${{ steps.arch.outputs.arch }}
           path: dist/*.whl
+
+      - name: Upload native JAX smoke wheel
+        if: inputs.enable-cuda && inputs.python-version == '3.12' && inputs.target-arch == 'x86_64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: jax-native-${{ env.WHEEL_LOCAL_TAG }}-${{ steps.arch.outputs.arch }}
+          path: jax-native-dist/*.whl
 
       - name: Cleanup container
         if: always()

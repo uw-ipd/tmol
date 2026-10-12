@@ -48,6 +48,40 @@ jobs:
       - name: Test index installs, ABI constraints, hashes and source metadata
         run: python -m pytest -o addopts= scripts/test_release_artifacts.py scripts/test_release_matrix.py scripts/test_native_packages.py scripts/test_pypi_sdist.py scripts/test_cuda13_arm64_metadata.py scripts/test_release_source.py scripts/test_publish_scheduling.py scripts/test_compare_benchmark.py .github/scripts/test_colab_release_config.py -v
 
+  jax-artifacts:
+    if: github.event.action != 'closed'
+    uses: ./.github/workflows/_build_jax_pure.yml
+
+  jax-cpu:
+    name: pytest (JAX-only CPU, ${{ matrix.platform }})
+    if: github.event.action != 'closed'
+    needs: jax-artifacts
+    runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-x86_64
+            runs-on: ubuntu-latest
+            jax-spec: jax==0.11.2
+          - platform: macos-arm64
+            runs-on: macos-15
+            jax-spec: jax>=0.11.2
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          name: tmol-jax-pure
+          path: jax-dist
+      - name: Test installed wheel outside the source checkout
+        env:
+          JAX_SPEC: ${{ matrix.jax-spec }}
+        run: bash .github/ci/test_jax_cpu.sh
+
   cpu:
     name: pytest (cpu, ${{ matrix.platform }})
     if: github.event.action != 'closed'
@@ -194,6 +228,39 @@ jobs:
         with:
           paths: testing.cuda.junit.xml
 
+  jax-gpu:
+    name: pytest (JAX-only native CUDA)
+    if: github.event.action != 'closed'
+    needs: [lint, jax-artifacts]
+    runs-on: [self-hosted, gpu]
+    timeout-minutes: 180
+    env:
+      SIF: /home/bench/git_ci_apptainer/tmol.sif
+      SLURM_PARTITION: gpu-train
+      SLURM_GRES: gpu:1
+      SLURM_CPUS_PER_TASK: 16
+      SLURM_MEM: 96G
+      SLURM_TIME: 00:30:00
+      SLURM_EXCLUDE: g2543,g2547,g2548
+      SRUN_GPU_MAX_ATTEMPTS: 5
+      SRUN_GPU_RETRY_SLEEP: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: tmol-jax-pure
+          path: jax-dist
+      - run: .github/ci/restore_source_timestamps.sh
+      - run: .github/ci/setup_ci_venv.sh
+      - name: Build optional adapter and test installed JAX-only wheels
+        env:
+          GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.jax_gpu_alloc_started
+        run: |
+          rm -f "$GPU_ALLOC_SENTINEL"
+          .github/ci/srun_gpu_retry.sh <<'SCRIPT'
+          .github/ci/exec_gpu_apptainer.sh .github/ci/run_jax_gpu_work.sh
+          SCRIPT
+
   coverage:
     name: Upload coverage reports
     needs: [cpu, gpu]
@@ -236,11 +303,14 @@ jobs:
     name: ci
     runs-on: ubuntu-latest
     if: always() && !cancelled() && github.event.action != 'closed'
-    needs: [lint, packaging, cpu, gpu]
+    needs: [lint, packaging, jax-artifacts, jax-cpu, cpu, gpu, jax-gpu]
     steps:
       - name: require every CI lane
         run: |
           test "${{ needs.lint.result }}" = success
           test "${{ needs.packaging.result }}" = success
+          test "${{ needs.jax-artifacts.result }}" = success
+          test "${{ needs.jax-cpu.result }}" = success
           test "${{ needs.cpu.result }}" = success
           test "${{ needs.gpu.result }}" = success
+          test "${{ needs.jax-gpu.result }}" = success

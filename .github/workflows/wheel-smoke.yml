@@ -13,6 +13,9 @@ on:
       - pyproject.toml
       - packages/**
       - tmol/**
+      - tmol_jax/**
+      - tests/jax/**
+      - docs/jax.md
       - scripts/**
       - .github/workflows/**
       - .github/ci/**
@@ -40,6 +43,9 @@ jobs:
 
   test-sdist:
     uses: ./.github/workflows/_test_sdist.yml
+
+  jax-artifacts:
+    uses: ./.github/workflows/_build_jax_pure.yml
 
   build:
     name: ${{ matrix.label }}
@@ -93,7 +99,7 @@ jobs:
       portability: ${{ matrix.portability }}
 
   test-default-pypi:
-    needs: build
+    needs: [build, jax-artifacts]
     uses: ./.github/workflows/_test_wheel.yml
     with:
       runs-on: ubuntu-22.04
@@ -103,7 +109,8 @@ jobs:
       arch: x86_64
       torch-package-version: "2.14.1"
       default-torch: true
+      test-jax: true
 
   test-gpu:
-    needs: build
+    needs: [build, jax-artifacts]
     uses: ./.github/workflows/_test_gpu_wheel.yml

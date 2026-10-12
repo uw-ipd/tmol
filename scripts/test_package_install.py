@@ -36,6 +36,11 @@ def main():
         type=Path,
         help="Matching tmol wheel for a CUDA operator candidate",
     )
+    parser.add_argument(
+        "--jax-wheel",
+        type=Path,
+        help="Also install and smoke the matching pure JAX frontend wheel",
+    )
     parser.add_argument("--torch-version", required=True)
     parser.add_argument("--torch-index", default="https://pypi.org/simple")
     parser.add_argument("--default-torch", action="store_true")
@@ -139,6 +144,25 @@ def main():
             f'import tmol; assert tmol.has_cuda() == {distribution != "tmol"}',
             cwd=work,
         )
+        if args.jax_wheel:
+            jax_name, jax_version, _, _ = parse_wheel_filename(args.jax_wheel.name)
+            assert jax_name == "tmol-jax"
+            assert jax_version == version
+            check(*pip, "install", args.jax_wheel.resolve(), cwd=work)
+            check(*pip, "check", cwd=work)
+            check(
+                python,
+                "-I",
+                ROOT / "scripts/smoke_installed_jax.py",
+                "--pdb",
+                ROOT / "tmol/tests/data/pdb/1ubq.pdb",
+                "--version",
+                jax_version,
+                "--device",
+                "cpu",
+                "--also-torch",
+                cwd=work,
+            )
         check(
             python,
             "-I",

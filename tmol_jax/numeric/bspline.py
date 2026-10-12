@@ -42,45 +42,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-try:  # Prefer the package-level pytree decorator when importable.
-    from tmol_jax.types import pytree_dataclass  # type: ignore
-except (
-    Exception
-):  # pragma: no cover - fallback for old Python where tmol_jax.types fails to import
-    import attrs
-
-    def pytree_dataclass(cls):
-        """Minimal stand-in: an ``attrs``-defined class registered as a
-        pytree with array children and scalar aux data.
-
-        Keeps this module importable even if the top-level ``tmol_jax.types``
-        module is broken on the current interpreter. Semantics match the
-        version in ``tmol_jax.types``.
-        """
-
-        if not hasattr(cls, "__attrs_attrs__"):
-            cls = attrs.define(slots=False)(cls)
-        field_names = tuple(f.name for f in cls.__attrs_attrs__)
-
-        def tree_flatten(obj):
-            values = [getattr(obj, n) for n in field_names]
-            child_mask = tuple(isinstance(v, (jax.Array, np.ndarray)) for v in values)
-            children = tuple(v for v, m in zip(values, child_mask) if m)
-            aux_values = tuple(v for v, m in zip(values, child_mask) if not m)
-            return children, (child_mask, aux_values)
-
-        def tree_unflatten(aux, children):
-            child_mask, aux_values = aux
-            c_iter = iter(children)
-            a_iter = iter(aux_values)
-            kw = {}
-            for name, is_child in zip(field_names, child_mask):
-                kw[name] = next(c_iter) if is_child else next(a_iter)
-            return cls(**kw)
-
-        jax.tree_util.register_pytree_node(cls, tree_flatten, tree_unflatten)
-        return cls
-
+from tmol_jax.types import pytree_dataclass
 
 # ---------------------------------------------------------------------------
 # Helpers: poles for B-splines of various degrees

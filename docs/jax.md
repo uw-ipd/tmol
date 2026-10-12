@@ -17,6 +17,26 @@ validated production TMol calculation yet.
 
 ## Build and install
 
+The published `tmol` package is currently the PyTorch frontend. A typical
+unpinned CPU installation is `pip install tmol`; its documented CUDA variants
+remain unchanged. `tmol-jax` and `tmol-jax-cuda` are proposed package names for
+this draft and are not published yet. Once published, the intended independent
+choices are:
+
+```sh
+# JAX only (choose the matching CUDA major, or omit the extra for CPU)
+pip install 'tmol-jax[cu13]' tmol-jax-cuda
+
+# Both independent frontends in one environment
+pip install tmol 'tmol-jax[cu13]' tmol-jax-cuda
+```
+
+Installing `tmol` does not install JAX, and installing `tmol-jax` does not
+install or import PyTorch. The pure frontend and optional native adapter own
+the disjoint `tmol_jax` and `tmol_jax_cuda` packages so uninstalling either
+does not remove files from the other. CUDA selection is explicit; use `cu12`
+instead of `cu13` for a CUDA 12 JAX runtime.
+
 From a TMol developer environment with `tmol`, `numpy` and `build` installed:
 
 ```sh

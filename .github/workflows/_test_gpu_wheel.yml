@@ -36,6 +36,24 @@ jobs:
           path: base-wheel
           run-id: ${{ inputs.candidate-run-id || github.run_id }}
           github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: tmol-jax-pure
+          path: jax-wheel
+          run-id: ${{ inputs.candidate-run-id || github.run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: jax-native-cu12-x86_64
+          path: jax-native/cu12
+          run-id: ${{ inputs.candidate-run-id || github.run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: jax-native-cu13-x86_64
+          path: jax-native/cu13
+          run-id: ${{ inputs.candidate-run-id || github.run_id }}
+          github-token: ${{ github.token }}
       - name: Install from variant index and score on CUDA
         env:
           GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.release_gpu_started
