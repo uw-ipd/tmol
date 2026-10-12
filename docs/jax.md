@@ -51,13 +51,15 @@ on GPUs other than the build host. The wheel is version-pinned to the matching
 the parameter database or TMol native sources.
 
 If the optional wheel is absent or cannot load, scoring uses the pure-JAX path.
-The CUDA path currently supports float32 only. LJ/LK and electrostatics
-reevaluate every exact count-pair-qualified atom pair, LK-ball reevaluates its
-exact topology-selected polar x heavy-atom pairs, and hydrogen bonding reevaluates
-the rendered donor x acceptor pairs with their exact bond-separation rule and
-current distance cutoff. All use the current coordinates on every call.
-Coordinate minimization therefore does not use a
-frozen neighbor list.
+The CUDA path currently supports float32 only. LJ/LK and electrostatics use
+exact count-pair-qualified atom pairs. For arrays of at least 2,048 atoms, their
+fused adapter rebuilds conservative 16-atom tile bounds from the current
+coordinates and skips only tile pairs whose bounds exceed the largest cutoff;
+smaller arrays traverse every tile pair. There is no fixed-capacity pair list or
+frozen coordinate state. LK-ball reevaluates its exact topology-selected polar x
+heavy-atom pairs, and hydrogen bonding reevaluates the rendered donor x acceptor
+pairs with their exact bond-separation rule and current distance cutoff. All use
+the current coordinates on every call, including during minimization.
 
 ## Score and differentiate
 
@@ -171,26 +173,28 @@ Installed-wheel runs under the same protocol measured:
 
 | workload | inference (ms) | value + gradient (ms) | resident MiB (inference / gradient) |
 | --- | ---: | ---: | ---: |
-| 1UBQ | 0.205–0.210 / 0.424–0.439 | 0.430–0.440 / 0.888–1.069 | 1,180 / 1,288 vs 702 / 702 |
-| homogeneous 1UBQ | 0.272–0.278 / 0.408–0.408 | 0.581–0.582 / 0.863–0.985 | 938 / 1,060 vs 702 / 704 |
-| mixed proteins | 0.352–0.354 / 0.426–0.427 | 0.723–0.742 / 0.890–0.891 | 950 / 1,084 vs 702 / 704 |
-| 488-residue protein | 1.172–1.177 / 0.672–0.697 | 2.169–2.182 / 0.876–0.897 | 1,444 / 1,680 vs 784 / 786 |
+| 1UBQ | 0.202–0.209 / 0.404–0.423 | 0.434–0.437 / 0.848–0.851 | 1,180 / 1,288 vs 702 / 702 |
+| homogeneous 1UBQ | 0.270–0.271 / 0.399–0.401 | 0.580–0.581 / 0.837–0.838 | 938 / 1,060 vs 702 / 704 |
+| mixed proteins | 0.351–0.354 / 0.424–0.460 | 0.735–0.738 / 0.869–0.928 | 950 / 1,084 vs 702 / 704 |
+| 488-residue protein | 0.688–0.690 / 0.649–0.664 | 1.589 / 0.856–0.871 | 1,444 / 1,680 vs 784 / 786 |
 
-This preserves the single-pose win and is a material improvement over dense JAX.
-Relative to otherwise identical separate LJ/LK and electrostatics adapters,
-fusion reduces the large-protein time from 1.286–1.288 to 1.181–1.190 ms for
-inference and from 2.342–2.345 to 2.181–2.188 ms for value-and-gradient. Small,
-homogeneous, and mixed workloads beat Torch for both measured operations,
-although their process residency is still higher. The large case still trails
-Torch by about 1.7x for inference and 2.4–2.5x for value-and-gradient.
+This preserves the small-system wins and materially improves the large workload.
+Rebuilding conservative current-coordinate tile bounds reduces the large score
+from 1.172–1.177 to 0.688–0.690 ms for inference and from 2.169–2.182 to
+1.589 ms for value-and-gradient. Small, homogeneous, and mixed workloads beat
+Torch for both measured operations, although their process residency is still
+higher. Large inference is close to Torch, while its value-and-gradient remains
+about 1.8–1.9x slower. The AABB path does not reduce process residency.
 
 An isolated fused-versus-separate pair comparison used arbitrary cotangents for
-all four channels. Maximum/RMS Cartesian-gradient deltas were
-7.63e-6/2.49e-7 on 1UBQ and 1.34e-5/2.09e-7 on the large protein. Maximum raw
-channel energy deltas were 9.16e-5 and 0.00171, respectively, from float32
-parallel reduction order. Fusion reduced isolated large forward time from
-0.961 to 0.880 ms and value-and-gradient from 1.430 to 1.263 ms; its gradient
-compiler temporary estimate fell from 98.4 KB to 7.6 KB.
+all four channels. Maximum/RMS Cartesian-gradient deltas were 9.54e-6/2.54e-7
+on 1UBQ and 7.63e-6/2.04e-7 on the large protein. Maximum raw channel energy
+deltas were 0.000153 and 0.00146, respectively, from float32 parallel reduction
+order. Conservative tile pruning reduced isolated large forward time from 0.953
+to 0.395 ms and value-and-gradient from 1.422 to 0.688 ms. A stress check that
+translated every third atom tile by 18 A retained the same contributing pairs
+within the same reduction-order tolerances, confirming that bounds rebuild
+after movement.
 
 An isolated large-protein electrostatics comparison found identical float32
 energies and a 1.46e-5 / 1.18e-6 maximum / RMS gradient delta between the
@@ -209,8 +213,9 @@ For 1UBQ, the full-score Cartesian-gradient maximum/RMS error against Torch is
 0.0129 / 0.00104. For the large protein it is 0.0317 / 0.00193. The previous
 large raw LK-ball discrepancies of about 0.23 and 0.13 score units fall to
 0.0034 and 0.0011 with the shared scalar kernel. The adapter evaluates the same
-topology-selected pairs and potentials, but parallel float32 atomic reduction
-changes accumulation order; it is not bitwise reproducible across processes.
+topology-selected pairs and potentials. Different native implementations and
+parallel float32 atomic accumulation are not bitwise reproducible across
+processes.
 
 With all four optional pair adapters, XLA temporary-buffer estimates range from
 0.1 MB to 0.8 MB for inference and 0.7 MB to 5.4 MB for value-and-gradient;
@@ -224,8 +229,8 @@ are also not comparable to total process residency. Setup-time periodic
 Dunbrack coefficient generation uses SciPy's cubic ``grid-wrap`` prefilter,
 which matches the previous recursion within float32 precision without compiling
 hundreds of tiny JAX scans. In the same four-workload run, fresh-process JAX
-setup plus rendering took 12.8–14.5 seconds, down from 35–38 seconds and within
-the measured Torch range of 11.0–14.5 seconds. Broader chemistry validation,
+setup plus rendering took 12.0–13.6 seconds, down from 35–38 seconds and close to
+the measured Torch range of 10.6–13.4 seconds. Broader chemistry validation,
 kinematic workflows, and repacking remain unfinished.
 
 PDB loading uses the first model and Biotite's first alternate conformation.

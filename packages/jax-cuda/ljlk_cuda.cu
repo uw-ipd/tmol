@@ -1,5 +1,6 @@
 #include <cuda_runtime_api.h>
 
+#include <cmath>
 #include <cstdint>
 
 #include "xla/ffi/api/ffi.h"
@@ -22,6 +23,77 @@ using PredR2 = ffi::BufferR2<ffi::DataType::PRED>;
 constexpr int kTile = 16;
 constexpr int kParams = 13;
 constexpr int kElecGlobalParams = 11;
+// Large all-pairs launches rebuild compact tile bounds from the current
+// coordinates. Bounds only reject provably distant tiles: there is no pair
+// list, capacity, overflow case, or state that can become stale during
+// movement.
+constexpr int kAabbValues = 6;
+constexpr int kAabbMinAtoms = 2048;
+constexpr float kAabbMargin = 0.01f;
+
+__global__ void atom_tile_aabbs(
+    const float* coords,
+    const bool* atom_is_real,
+    int n_atoms,
+    int n_tiles,
+    float* aabbs) {
+  __shared__ float minimum[3][kTile];
+  __shared__ float maximum[3][kTile];
+
+  int pose = blockIdx.x / n_tiles;
+  int tile = blockIdx.x % n_tiles;
+  int atom = tile * kTile + threadIdx.x;
+  int atom_base = pose * n_atoms;
+  bool active = atom < n_atoms && atom_is_real[atom_base + atom];
+#pragma unroll
+  for (int xyz = 0; xyz < 3; ++xyz) {
+    float value = active ? coords[(atom_base + atom) * 3 + xyz] : 0.0f;
+    minimum[xyz][threadIdx.x] = active ? value : INFINITY;
+    maximum[xyz][threadIdx.x] = active ? value : -INFINITY;
+  }
+  __syncthreads();
+  for (int stride = kTile / 2; stride > 0; stride /= 2) {
+    if (threadIdx.x < stride) {
+#pragma unroll
+      for (int xyz = 0; xyz < 3; ++xyz) {
+        minimum[xyz][threadIdx.x] = fminf(
+            minimum[xyz][threadIdx.x], minimum[xyz][threadIdx.x + stride]);
+        maximum[xyz][threadIdx.x] = fmaxf(
+            maximum[xyz][threadIdx.x], maximum[xyz][threadIdx.x + stride]);
+      }
+    }
+    __syncthreads();
+  }
+  if (threadIdx.x == 0) {
+    float* output = aabbs + (pose * n_tiles + tile) * kAabbValues;
+#pragma unroll
+    for (int xyz = 0; xyz < 3; ++xyz) {
+      output[xyz] = minimum[xyz][0];
+      output[3 + xyz] = maximum[xyz][0];
+    }
+  }
+}
+
+__device__ bool aabbs_within_cutoff(
+    const float* aabbs,
+    int pose,
+    int n_tiles,
+    int tile_i,
+    int tile_j,
+    float cutoff) {
+  if (tile_i == tile_j || aabbs == nullptr) return true;
+  const float* a = aabbs + (pose * n_tiles + tile_i) * kAabbValues;
+  const float* b = aabbs + (pose * n_tiles + tile_j) * kAabbValues;
+  float distance2 = 0.0f;
+#pragma unroll
+  for (int xyz = 0; xyz < 3; ++xyz) {
+    float separation =
+        fmaxf(fmaxf(a[xyz] - b[3 + xyz], b[xyz] - a[3 + xyz]), 0.0f);
+    distance2 += separation * separation;
+  }
+  float conservative_cutoff = cutoff + kAabbMargin;
+  return distance2 < conservative_cutoff * conservative_cutoff;
+}
 
 __device__ void tile_pair_from_linear(
     int index, int n_tiles, int& tile_i, int& tile_j) {
@@ -201,6 +273,7 @@ __global__ void ljlk_elec_pairs(
     const bool* atom_is_real,
     const float* ljlk_global_values,
     const float* elec_global_values,
+    const float* aabbs,
     const float* cotangent,
     int n_poses,
     int n_atoms,
@@ -219,6 +292,13 @@ __global__ void ljlk_elec_pairs(
     tile_pair_from_linear(tile_pair, n_tiles, tile_i, tile_j);
   }
   __syncthreads();
+
+  auto ljlk_global = load_global(ljlk_global_values);
+  auto elec_global = load_elec_global(elec_global_values);
+  float pair_cutoff = fmaxf(ljlk_global.max_dis, elec_global.max_dis);
+  if (!aabbs_within_cutoff(aabbs, pose, n_tiles, tile_i, tile_j, pair_cutoff)) {
+    return;
+  }
 
   int atom_i = tile_i * kTile + threadIdx.x / kTile;
   int atom_j = tile_j * kTile + threadIdx.x % kTile;
@@ -240,8 +320,6 @@ __global__ void ljlk_elec_pairs(
     }
     float dist2 =
         delta[0] * delta[0] + delta[1] * delta[1] + delta[2] * delta[2];
-    auto ljlk_global = load_global(ljlk_global_values);
-    auto elec_global = load_elec_global(elec_global_values);
     int ljlk_cp =
         ljlk_bonded_path_length[(atom_base + atom_i) * n_atoms + atom_j];
     int elec_cp =
@@ -349,7 +427,11 @@ ffi::Error forward(
   int n_atoms = coords.dimensions()[1];
   int n_tiles = (n_atoms + kTile - 1) / kTile;
   int blocks = n_poses * n_tiles * (n_tiles + 1) / 2;
-  cudaMemsetAsync(output->typed_data(), 0, output->size_bytes(), stream);
+  if (auto status = cudaMemsetAsync(
+          output->typed_data(), 0, output->size_bytes(), stream);
+      status != cudaSuccess) {
+    return ffi::Error::Internal(cudaGetErrorString(status));
+  }
   if (blocks == 0) return ffi::Error::Success();
   ljlk_pairs<false><<<blocks, kTile * kTile, 0, stream>>>(
       coords.typed_data(),
@@ -385,7 +467,11 @@ ffi::Error backward(
   int n_atoms = coords.dimensions()[1];
   int n_tiles = (n_atoms + kTile - 1) / kTile;
   int blocks = n_poses * n_tiles * (n_tiles + 1) / 2;
-  cudaMemsetAsync(gradient->typed_data(), 0, gradient->size_bytes(), stream);
+  if (auto status = cudaMemsetAsync(
+          gradient->typed_data(), 0, gradient->size_bytes(), stream);
+      status != cudaSuccess) {
+    return ffi::Error::Internal(cudaGetErrorString(status));
+  }
   if (blocks == 0) return ffi::Error::Success();
   ljlk_pairs<true><<<blocks, kTile * kTile, 0, stream>>>(
       coords.typed_data(),
@@ -430,6 +516,7 @@ ffi::Error validate_fused_shapes(
 
 ffi::Error fused_forward(
     cudaStream_t stream,
+    ffi::ScratchAllocator scratch,
     F32R3 coords,
     F32R3 params,
     U8R3 ljlk_bpl,
@@ -455,8 +542,27 @@ ffi::Error fused_forward(
   int n_atoms = coords.dimensions()[1];
   int n_tiles = (n_atoms + kTile - 1) / kTile;
   int blocks = n_poses * n_tiles * (n_tiles + 1) / 2;
-  cudaMemsetAsync(output->typed_data(), 0, output->size_bytes(), stream);
+  if (auto status = cudaMemsetAsync(
+          output->typed_data(), 0, output->size_bytes(), stream);
+      status != cudaSuccess) {
+    return ffi::Error::Internal(cudaGetErrorString(status));
+  }
   if (blocks == 0) return ffi::Error::Success();
+  float* aabbs = nullptr;
+  if (n_atoms >= kAabbMinAtoms) {
+    auto allocation = scratch.Allocate(
+        size_t(n_poses) * n_tiles * kAabbValues * sizeof(float),
+        alignof(float));
+    if (!allocation) {
+      return ffi::Error::Internal("could not allocate tile AABBs");
+    }
+    aabbs = static_cast<float*>(*allocation);
+    atom_tile_aabbs<<<n_poses * n_tiles, kTile, 0, stream>>>(
+        coords.typed_data(), real.typed_data(), n_atoms, n_tiles, aabbs);
+    if (auto status = cudaPeekAtLastError(); status != cudaSuccess) {
+      return ffi::Error::Internal(cudaGetErrorString(status));
+    }
+  }
   ljlk_elec_pairs<false><<<blocks, kTile * kTile, 0, stream>>>(
       coords.typed_data(),
       params.typed_data(),
@@ -466,6 +572,7 @@ ffi::Error fused_forward(
       real.typed_data(),
       ljlk_global.typed_data(),
       elec_global.typed_data(),
+      aabbs,
       nullptr,
       n_poses,
       n_atoms,
@@ -479,6 +586,7 @@ ffi::Error fused_forward(
 
 ffi::Error fused_backward(
     cudaStream_t stream,
+    ffi::ScratchAllocator scratch,
     F32R3 coords,
     F32R3 params,
     U8R3 ljlk_bpl,
@@ -505,8 +613,27 @@ ffi::Error fused_backward(
   int n_atoms = coords.dimensions()[1];
   int n_tiles = (n_atoms + kTile - 1) / kTile;
   int blocks = n_poses * n_tiles * (n_tiles + 1) / 2;
-  cudaMemsetAsync(gradient->typed_data(), 0, gradient->size_bytes(), stream);
+  if (auto status = cudaMemsetAsync(
+          gradient->typed_data(), 0, gradient->size_bytes(), stream);
+      status != cudaSuccess) {
+    return ffi::Error::Internal(cudaGetErrorString(status));
+  }
   if (blocks == 0) return ffi::Error::Success();
+  float* aabbs = nullptr;
+  if (n_atoms >= kAabbMinAtoms) {
+    auto allocation = scratch.Allocate(
+        size_t(n_poses) * n_tiles * kAabbValues * sizeof(float),
+        alignof(float));
+    if (!allocation) {
+      return ffi::Error::Internal("could not allocate tile AABBs");
+    }
+    aabbs = static_cast<float*>(*allocation);
+    atom_tile_aabbs<<<n_poses * n_tiles, kTile, 0, stream>>>(
+        coords.typed_data(), real.typed_data(), n_atoms, n_tiles, aabbs);
+    if (auto status = cudaPeekAtLastError(); status != cudaSuccess) {
+      return ffi::Error::Internal(cudaGetErrorString(status));
+    }
+  }
   ljlk_elec_pairs<true><<<blocks, kTile * kTile, 0, stream>>>(
       coords.typed_data(),
       params.typed_data(),
@@ -516,6 +643,7 @@ ffi::Error fused_backward(
       real.typed_data(),
       ljlk_global.typed_data(),
       elec_global.typed_data(),
+      aabbs,
       cotangent.typed_data(),
       n_poses,
       n_atoms,
@@ -557,6 +685,7 @@ XLA_FFI_DEFINE_HANDLER_SYMBOL(
     fused_forward,
     ffi::Ffi::Bind()
         .Ctx<ffi::PlatformStream<cudaStream_t>>()
+        .Ctx<ffi::ScratchAllocator>()
         .Arg<F32R3>()
         .Arg<F32R3>()
         .Arg<U8R3>()
@@ -572,6 +701,7 @@ XLA_FFI_DEFINE_HANDLER_SYMBOL(
     fused_backward,
     ffi::Ffi::Bind()
         .Ctx<ffi::PlatformStream<cudaStream_t>>()
+        .Ctx<ffi::ScratchAllocator>()
         .Arg<F32R3>()
         .Arg<F32R3>()
         .Arg<U8R3>()
