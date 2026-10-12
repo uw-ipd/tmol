@@ -48,6 +48,15 @@ void counted_parallel_for(
   chunk(task, 0, middle);
   chunk(task, middle, count);
 }
+void reverse_counted_parallel_for(
+    void* opaque, int64_t count, tmol_disulfide_cpu_chunk chunk, void* task) {
+  auto& executor = *static_cast<CountingExecutor*>(opaque);
+  ++executor.calls;
+  executor.last_count = count;
+  auto middle = count / 2;
+  chunk(task, middle, count);
+  chunk(task, 0, middle);
+}
 
 }  // namespace
 
@@ -220,8 +229,8 @@ int main() {
         < 1e-12);
 
   auto required = tmol_disulfide_cpu_f64_recompute_vjp_workspace(1);
-  std::vector<V3> workspace(6);
-  CHECK(required.bytes == workspace.size() * sizeof(V3));
+  std::vector<double> workspace(19);
+  CHECK(required.bytes == workspace.size() * sizeof(double));
   CHECK(
       tmol_disulfide_cpu_f64_recompute_vjp(
           executor,
@@ -248,6 +257,71 @@ int main() {
           workspace.data(),
           required.bytes - 1)
       == TMOL_DISULFIDE_CPU_INSUFFICIENT_WORKSPACE);
+  V3 multipair_coords[12];
+  for (int atom = 0; atom < 6; ++atom) {
+    multipair_coords[atom] = coords[atom];
+    multipair_coords[atom + 6] = coords[atom] + V3(0.4, -0.2, 0.3);
+  }
+  Pair multipairs[] = {
+      {0, 1, 2, 3, 4, 5, 0, 1}, {6, 7, 8, 9, 10, 11, 1, 0}};
+  double multipair_energies[2] = {};
+  V3 multipair_derivatives[2][6] = {};
+  double multipair_cotangents[2] = {0.7, -1.3};
+  V3 multipair_expected_gradient[12] = {}, multipair_gradient[12] = {};
+  auto multipair_inputs = inputs;
+  multipair_inputs.coords = multipair_coords[0].data();
+  multipair_inputs.n_atoms = 12;
+  multipair_inputs.pairs = multipairs[0].data();
+  multipair_inputs.n_pairs = 2;
+  tmol_disulfide_cpu_f64_forward_outputs multipair_outputs{
+      multipair_energies, 1, multipair_derivatives[0][0].data(), 6, 1};
+  CountingExecutor reverse_count;
+  tmol_disulfide_cpu_executor reverse_executor{
+      &reverse_count, reverse_counted_parallel_for};
+  CHECK(
+      tmol_disulfide_cpu_f64_forward(
+          reverse_executor,
+          multipair_inputs,
+          TMOL_DISULFIDE_CPU_TRACKED,
+          multipair_outputs)
+      == TMOL_DISULFIDE_CPU_SUCCESS);
+  CHECK(
+      tmol_disulfide_cpu_f64_vjp(
+          reverse_executor,
+          TMOL_DISULFIDE_CPU_DISJOINT_PAIRS,
+          multipairs[0].data(),
+          2,
+          1,
+          multipair_derivatives[0][0].data(),
+          6,
+          1,
+          multipair_cotangents,
+          1,
+          multipair_expected_gradient[0].data(),
+          12,
+          1)
+      == TMOL_DISULFIDE_CPU_SUCCESS);
+  auto multipair_required =
+      tmol_disulfide_cpu_f64_recompute_vjp_workspace(2);
+  CHECK(multipair_required.bytes == 2 * 19 * sizeof(double));
+  std::vector<double> multipair_workspace(
+      multipair_required.bytes / sizeof(double));
+  CHECK(
+      tmol_disulfide_cpu_f64_recompute_vjp(
+          reverse_executor,
+          TMOL_DISULFIDE_CPU_DISJOINT_PAIRS,
+          multipair_inputs,
+          multipair_cotangents,
+          1,
+          multipair_gradient[0].data(),
+          1,
+          multipair_workspace.data(),
+          multipair_required.bytes)
+      == TMOL_DISULFIDE_CPU_SUCCESS);
+  for (int atom = 0; atom < 12; ++atom)
+    CHECK(
+        (multipair_gradient[atom] - multipair_expected_gradient[atom]).norm()
+        < 1e-12);
 
   float f32_coords[18], f32_params[66], f32_energy = 0;
   for (int atom = 0; atom < 6; ++atom)

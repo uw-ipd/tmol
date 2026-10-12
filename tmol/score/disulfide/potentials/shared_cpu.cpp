@@ -156,7 +156,12 @@ WorkspaceRequirements disulfide_cpu_forward_workspace(int64_t) {
 template <typename Real>
 WorkspaceRequirements disulfide_cpu_recompute_vjp_workspace(int64_t n_pairs) {
   if (n_pairs <= 0) return {0, alignof(DisulfideVec3<Real>)};
-  constexpr size_t row_bytes = 6 * sizeof(DisulfideVec3<Real>);
+  // Keep the forward energy output disjoint from retained derivatives. The
+  // executor may schedule pair chunks in any order, so aliasing the nominally
+  // ignored energy with derivative storage would make the save/recompute
+  // contract depend on the implementation order inside forward_chunk.
+  constexpr size_t row_bytes =
+      6 * sizeof(DisulfideVec3<Real>) + sizeof(Real);
   constexpr auto max = std::numeric_limits<size_t>::max();
   if (static_cast<uint64_t>(n_pairs) > max / row_bytes) {
     return {max, alignof(DisulfideVec3<Real>)};
@@ -266,11 +271,11 @@ DisulfideCPUStatus disulfide_cpu_recompute_vjp(
   TView<DisulfideVec3<Real>, 2, Device::CPU> derivatives(
       static_cast<DisulfideVec3<Real>*>(workspace), deriv_sizes, deriv_strides);
   int64_t energy_size[1] = {inputs.pairs.size(0)};
-  int64_t energy_stride[1] = {18};
-  // Energy aliases the first scalar in each workspace row. Forward writes the
-  // derivative row after energy, so the retained derivative remains intact.
+  int64_t energy_stride[1] = {1};
+  auto* energy_workspace = static_cast<Real*>(workspace)
+                           + 18 * inputs.pairs.size(0);
   TView<Real, 1, Device::CPU> ignored_energies(
-      static_cast<Real*>(workspace), energy_size, energy_stride);
+      energy_workspace, energy_size, energy_stride);
   auto status = disulfide_cpu_forward<Real>(
       executor,
       inputs,
