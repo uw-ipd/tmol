@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -48,6 +49,12 @@ T* device_copy(T const* source, size_t count) {
     return nullptr;
   }
   return result;
+}
+
+__global__ void delay_kernel(unsigned long long cycles) {
+  unsigned long long start = clock64();
+  while (clock64() - start < cycles) {
+  }
 }
 
 }  // namespace
@@ -141,6 +148,8 @@ int main() {
   tmol_disulfide_cuda_f64_forward_outputs outputs{
       d_energies, 1, d_derivatives, 6, 1};
   CHECK(tmol_disulfide_cuda_abi_version() == TMOL_DISULFIDE_CUDA_ABI_VERSION);
+
+  // Warm CUDA context and module initialization before testing enqueue behavior.
   CHECK(
       tmol_disulfide_cuda_f64_forward(
           stream_value,
@@ -149,6 +158,30 @@ int main() {
           outputs,
           d_status)
       == TMOL_DISULFIDE_CUDA_SUCCESS);
+  CUDA_CHECK(cudaStreamSynchronize(stream));
+
+  int clock_khz = 0;
+  CUDA_CHECK(cudaDeviceGetAttribute(&clock_khz, cudaDevAttrClockRate, 0));
+  cudaEvent_t delay_complete;
+  CUDA_CHECK(cudaEventCreateWithFlags(&delay_complete, cudaEventDisableTiming));
+  delay_kernel<<<1, 1, 0, stream>>>(
+      static_cast<unsigned long long>(clock_khz) * 1000 * 2);
+  CUDA_CHECK(cudaPeekAtLastError());
+  CUDA_CHECK(cudaEventRecord(delay_complete, stream));
+
+  auto async_start = std::chrono::steady_clock::now();
+  CHECK(
+      tmol_disulfide_cuda_f64_forward(
+          stream_value,
+          inputs,
+          TMOL_DISULFIDE_CUDA_TRACKED,
+          outputs,
+          d_status)
+      == TMOL_DISULFIDE_CUDA_SUCCESS);
+  auto async_elapsed = std::chrono::steady_clock::now() - async_start;
+  CHECK(cudaEventQuery(delay_complete) == cudaErrorNotReady);
+  CHECK(async_elapsed < std::chrono::seconds(1));
+
   CHECK(
       tmol_disulfide_cuda_f64_vjp(
           stream_value,
@@ -244,10 +277,51 @@ int main() {
           outputs,
           d_status)
       == TMOL_DISULFIDE_CUDA_SUCCESS);
+  // Host success reports enqueue; device status follows stream completion.
+  // Framework adapters must surface this value after their own synchronization.
   CUDA_CHECK(cudaMemcpyAsync(
       &status, d_status, sizeof(status), cudaMemcpyDeviceToHost, stream));
   CUDA_CHECK(cudaStreamSynchronize(stream));
   CHECK(status == TMOL_DISULFIDE_CUDA_INVALID_INDEX);
+
+  // Recompute must not scatter an uninitialized derivative row when parameter
+  // indices are invalid but all atom indices are valid.
+  Pair invalid_param_pairs[] = {pairs[0], pairs[1]};
+  invalid_param_pairs[0][6] = 2;
+  invalid_param_pairs[1][7] = 2;
+  CUDA_CHECK(cudaMemcpyAsync(
+      d_pairs,
+      invalid_param_pairs,
+      sizeof(invalid_param_pairs),
+      cudaMemcpyHostToDevice,
+      stream));
+  CUDA_CHECK(cudaMemsetAsync(d_workspace, 0xff, required.bytes, stream));
+  CHECK(
+      tmol_disulfide_cuda_f64_recompute_vjp(
+          stream_value,
+          TMOL_DISULFIDE_CUDA_DISJOINT_PAIRS,
+          inputs,
+          d_cotangents,
+          1,
+          d_gradient,
+          1,
+          d_workspace,
+          required.bytes,
+          d_status)
+      == TMOL_DISULFIDE_CUDA_SUCCESS);
+  CUDA_CHECK(cudaMemcpyAsync(
+      gpu_gradient,
+      d_gradient,
+      sizeof(gpu_gradient),
+      cudaMemcpyDeviceToHost,
+      stream));
+  CUDA_CHECK(cudaMemcpyAsync(
+      &status, d_status, sizeof(status), cudaMemcpyDeviceToHost, stream));
+  CUDA_CHECK(cudaStreamSynchronize(stream));
+  CHECK(status == TMOL_DISULFIDE_CUDA_INVALID_INDEX);
+  for (int atom = 0; atom < 12; ++atom) {
+    CHECK(gpu_gradient[atom].isZero());
+  }
 
   tmol_disulfide_cuda_f32_inputs empty_inputs{};
   tmol_disulfide_cuda_f32_forward_outputs empty_outputs{};
@@ -269,6 +343,7 @@ int main() {
   CUDA_CHECK(cudaFree(d_params));
   CUDA_CHECK(cudaFree(d_pairs));
   CUDA_CHECK(cudaFree(d_coords));
+  CUDA_CHECK(cudaEventDestroy(delay_complete));
   CUDA_CHECK(cudaStreamDestroy(stream));
   return 0;
 }

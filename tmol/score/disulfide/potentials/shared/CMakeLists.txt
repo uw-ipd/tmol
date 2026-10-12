@@ -91,3 +91,7 @@ if(TMOL_BUILD_CUDA)
     )
     target_link_libraries(test_disulfide_shared_cuda PRIVATE
       tmol_disulfide_shared_cpu tmol_disulfide_shared_cuda
+    )
+    add_test(NAME disulfide_shared_cuda COMMAND test_disulfide_shared_cuda)
+  endif()
+endif()

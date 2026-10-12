@@ -6,6 +6,8 @@
 #include <limits>
 #include <type_traits>
 
+#include <tmol/utility/tensor/TensorAccessor.h>
+
 #include "params_core.hh"
 #include "potentials.hh"
 
@@ -73,6 +75,15 @@ __global__ void forward_kernel(
     valid = valid && pair_values[6] >= 0 && pair_values[6] < inputs.n_params
             && pair_values[7] >= 0 && pair_values[7] < inputs.n_params;
     if (!valid) {
+      if (mode == TMOL_DISULFIDE_CUDA_TRACKED) {
+        auto* derivative_row =
+            reinterpret_cast<Vec3<Real>*>(derivatives)
+            + i * derivative_pair_stride;
+#pragma unroll
+        for (int j = 0; j < 6; ++j) {
+          derivative_row[j * derivative_atom_stride].setZero();
+        }
+      }
       record_invalid_index(status);
       continue;
     }
