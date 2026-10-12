@@ -10,7 +10,6 @@ from tmol_jax.score.score_types import ScoreType
 
 from .minimizers import run_cart_min
 
-
 DEFAULT_REPULSIVE_RAMP = (0.02, 0.25, 0.55, 1.0)
 
 
