@@ -18,8 +18,7 @@ using tmol::native::Tensor;
 using tmol::native::autograd::AutogradContext;
 using tmol::native::autograd::tensor_list;
 
-class DensityScoreOp
-    : public tmol::native::autograd::Function<DensityScoreOp> {
+class DensityScoreOp : public tmol::native::autograd::Function<DensityScoreOp> {
  public:
   static Tensor forward(
       AutogradContext* ctx,
