@@ -11,6 +11,7 @@ name: Publish Release Artifacts
 permissions:
   contents: read
   actions: read
+  pull-requests: read
 
 on:
   push:
@@ -186,8 +187,9 @@ jobs:
       ${{ !cancelled() && needs.verify_release_version.result == 'success' &&
           (needs.verify_release_version.outputs.candidate_run_id != '' ||
            (needs.build_wheels.result == 'success' && needs.build_cpu_wheel.result == 'success')) }}
-    uses: ./.github/workflows/_test_gpu_wheel.yml
+    uses: RosettaCommons/tmol/.github/workflows/_test_gpu_wheel.yml@main
     with:
+      allow-release: true
       candidate-run-id: ${{ needs.verify_release_version.outputs.candidate_run_id }}
 
   upload:
@@ -362,11 +364,13 @@ jobs:
           name: publication
           path: prepared
       - name: Verify wheel pages are publicly available
+        env:
+          DOCS_BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
         run: |
           for page in prepared/wheels/*/*/index.html; do
             relative=${page#prepared/}
             curl --fail --silent --show-error --retry 120 --retry-all-errors --retry-delay 10 \
-              "https://uw-ipd.github.io/tmol/${relative}" --output /tmp/index.html
+              "${DOCS_BASE_URL}/${relative}" --output /tmp/index.html
             cmp "$page" /tmp/index.html
           done
       - run: python -m pip install twine

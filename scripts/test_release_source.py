@@ -117,7 +117,7 @@ def test_manual_release_cannot_publish_from_an_unreviewed_ref(
     monkeypatch.setenv("VALIDATE_ONLY", "false")
     monkeypatch.setenv("GITHUB_EVENT_NAME", "workflow_dispatch")
     monkeypatch.setenv("GITHUB_REF", ref)
-    with pytest.raises(ValueError, match="reviewed workflow on master"):
+    with pytest.raises(ValueError, match="reviewed workflow on main"):
         verify_release_source.main()
 
 
@@ -195,7 +195,7 @@ def test_manual_fresh_build_pins_tag_not_workflow_head(
     git(checkout, "commit", "-am", "Later workflow source")
     monkeypatch.setenv("GITHUB_EVENT_NAME", "workflow_dispatch")
     monkeypatch.setenv(
-        "GITHUB_REF", "refs/heads/repair" if validate_only else "refs/heads/master"
+        "GITHUB_REF", "refs/heads/repair" if validate_only else "refs/heads/main"
     )
     monkeypatch.setenv("RELEASE_TAG", "v9.9.9")
     monkeypatch.setenv("VALIDATE_ONLY", str(validate_only).lower())
@@ -218,7 +218,7 @@ def test_manual_build_rejects_changed_release_configuration(
     release_checkout, monkeypatch, path
 ):
     monkeypatch.setenv("GITHUB_EVENT_NAME", "workflow_dispatch")
-    monkeypatch.setenv("GITHUB_REF", "refs/heads/master")
+    monkeypatch.setenv("GITHUB_REF", "refs/heads/main")
     monkeypatch.setenv("RELEASE_TAG", "v9.9.9")
     Path(path).write_text(Path(path).read_text() + "# changed configuration\n")
     with pytest.raises(ValueError, match="must preserve the tagged"):
@@ -240,7 +240,7 @@ def test_candidate_recovery_still_validates_artifacts_without_rebuilding(
 ):
     _, _, sha, outputs = release_checkout
     monkeypatch.setenv("GITHUB_EVENT_NAME", "workflow_dispatch")
-    monkeypatch.setenv("GITHUB_REF", "refs/heads/master")
+    monkeypatch.setenv("GITHUB_REF", "refs/heads/main")
     monkeypatch.setenv("RELEASE_TAG", "v9.9.9")
     monkeypatch.setenv("CANDIDATE_RUN_ID", "123")
     run, artifacts, jobs = candidate

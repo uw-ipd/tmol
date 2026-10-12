@@ -8,7 +8,7 @@ on:
       - .github/workflows/release-scheduling.yml
       - scripts/test_publish_scheduling.py
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - .github/workflows/publish.yml
       - .github/workflows/*publish_scheduling.yml

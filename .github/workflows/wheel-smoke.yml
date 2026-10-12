@@ -3,11 +3,12 @@ name: Wheel smoke test
 permissions:
   contents: read
   actions: read
+  pull-requests: read
 
 on:
   workflow_dispatch:
   pull_request:
-    branches: [master]
+    branches: [main]
     paths:
       - CMakeLists.txt
       - pyproject.toml
@@ -104,6 +105,8 @@ jobs:
       torch-package-version: "2.14.1"
       default-torch: true
 
+  # PR wheel builds/install checks stay hosted; GPU use is explicitly manual.
   test-gpu:
+    if: github.event_name == 'workflow_dispatch'
     needs: build
     uses: ./.github/workflows/_test_gpu_wheel.yml

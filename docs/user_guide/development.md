@@ -6,7 +6,7 @@ For build requirements and platform support, see {doc}`installation
 ## Local setup
 
 ```bash
-git clone https://github.com/uw-ipd/tmol.git
+git clone https://github.com/RosettaCommons/tmol.git
 cd tmol
 python -m pip install "torch>=2.14" "scikit-build-core>=0.10" "cmake>=3.24,<4" "pybind11>=2.12" ninja packaging
 python -m pip install --no-build-isolation -e ".[dev]"
@@ -130,11 +130,24 @@ apptainer run --nv --bind "$(pwd):/tmol_host" tmol-dev.sif
 
 ## CI
 
-GitHub Actions runs linting, the Linux x86-64, Linux aarch64, and Apple Silicon
-CPU suites, and CPU documentation builds on hosted runners. CUDA tests,
-benchmarks, and the CUDA-only tutorial smoke tests use the self-hosted DIGS
-runner. PR docs builds upload rendered HTML artifacts; same-repository PRs also
-publish previews under the Pages site.
+GitHub Actions runs linting and the Linux x86-64, Linux aarch64, and Apple Silicon
+CPU suites automatically on pushes to `main` and pull requests. Documentation
+also builds on hosted CPU runners.
+
+Maintainers with write, maintain, or admin access can dispatch **GPU CI** from
+`main`, selecting a pull request number or a branch, tag, or commit. It resolves
+an immutable commit, checks the initiating and rerunning users' current access,
+and reports a separate `GPU CI` status on that commit. Rerun all jobs when
+retrying so authorization runs again. CUDA tests use the existing Slurm and
+Apptainer configuration; wheel and release validation use the same access gate.
+
+Before registering a self-hosted GPU runner for this public repository, restrict
+its organization runner group to this repository and the trusted workflows
+`RosettaCommons/tmol/.github/workflows/gpu-ci.yml@refs/heads/main` and
+`RosettaCommons/tmol/.github/workflows/_test_gpu_wheel.yml@refs/heads/main`.
+Workflow permission checks alone cannot stop a pull request from adding another
+self-hosted job. Keep GPU runners unavailable until this restriction is in place.
+Use a separate registration and work directory when sharing an existing host.
 
 ## Native interface
 
