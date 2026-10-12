@@ -3,7 +3,6 @@ name: Docs
 on:
   # Build previews for stacked PRs as well as PRs targeting the main branch.
   pull_request:
-    types: [opened, synchronize, reopened, closed]
   push:
     branches: [main]
   workflow_dispatch:
@@ -21,7 +20,6 @@ env:
 jobs:
   docs:
     name: build docs
-    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:

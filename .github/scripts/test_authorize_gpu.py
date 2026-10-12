@@ -147,10 +147,8 @@ def test_automatic_ci_is_hosted_and_explicitly_cpu_only():
     assert ci["jobs"]["ci"]["name"] == "ci (CPU)"
     assert ci["jobs"]["ci"]["needs"] == ["lint", "packaging", "cpu"]
     assert "self-hosted" not in str(ci)
-    assert (
-        workflow("wheel-smoke")["jobs"]["test-gpu"]["if"]
-        == "github.event_name == 'workflow_dispatch'"
-    )
+    for name in ("wheel-smoke", "gpu-ci", "cuda-arm64-dependencies"):
+        assert set(workflow(name)["on"]) == {"workflow_dispatch"}
 
 
 @pytest.mark.parametrize(
