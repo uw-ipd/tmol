@@ -181,10 +181,7 @@ def test_selfhosted_jobs_require_fresh_hosted_authorization(name, job):
 
 def test_jax_release_gpu_artifacts_are_explicit_opt_in():
     reusable = workflow("_test_gpu_wheel")
-    assert (
-        reusable["on"]["workflow_call"]["inputs"]["test-jax"]["default"]
-        == "false"
-    )
+    assert reusable["on"]["workflow_call"]["inputs"]["test-jax"]["default"] == "false"
     jax_artifacts = {
         "tmol-jax-pure",
         "jax-native-cu12-x86_64",
@@ -197,10 +194,7 @@ def test_jax_release_gpu_artifacts_are_explicit_opt_in():
     ]
     assert {step["with"]["name"] for step in downloads} == jax_artifacts
     assert all(step["if"] == "inputs.test-jax" for step in downloads)
-    assert (
-        workflow("wheel-smoke")["jobs"]["test-gpu"]["with"]["test-jax"]
-        == "true"
-    )
+    assert workflow("wheel-smoke")["jobs"]["test-gpu"]["with"]["test-jax"] == "true"
     publish_with = workflow("publish")["jobs"]["test_gpu_runtime"]["with"]
     assert "test-jax" not in publish_with
     release_script = (ROOT / ".github/ci/test_release_gpu.sh").read_text()

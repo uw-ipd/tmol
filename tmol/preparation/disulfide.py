@@ -134,6 +134,78 @@ def _prepare_parameter_rows(
     return rows
 
 
+def _validate_declared_connections(connections: np.ndarray, real: np.ndarray) -> None:
+    n_poses, n_blocks, n_connections = connections.shape[:3]
+    for pose in range(n_poses):
+        for block in range(n_blocks):
+            for connection in range(n_connections):
+                other, other_connection = map(int, connections[pose, block, connection])
+                if other == -1 and other_connection == -1:
+                    continue
+                if other < 0 or other_connection < 0:
+                    raise ValueError(
+                        "connection endpoints must both be -1 or non-negative"
+                    )
+                if not real[pose, block]:
+                    raise ValueError("padded blocks may not declare connections")
+                if other >= n_blocks or other_connection >= n_connections:
+                    raise ValueError("connection endpoint is out of bounds")
+                if not real[pose, other]:
+                    raise ValueError("connection endpoint targets a padded block")
+                reciprocal = connections[pose, other, other_connection]
+                if tuple(map(int, reciprocal)) != (block, connection):
+                    raise ValueError(
+                        "connection endpoints must be reciprocal: "
+                        f"pose {pose}, ({block}, {connection}) -> "
+                        f"({other}, {other_connection})"
+                    )
+
+
+def _collect_pair_rows(
+    block_types: np.ndarray,
+    offsets: np.ndarray,
+    connections: np.ndarray,
+    enabled: np.ndarray,
+    downstream: np.ndarray,
+) -> list[list[int]]:
+    rows: list[list[int]] = []
+    visited: set[tuple[int, int, int, int, int]] = set()
+    int32 = np.iinfo(np.int32)
+    for pose, pose_block_types in enumerate(block_types):
+        for block, block_type_value in enumerate(pose_block_types):
+            block_type = int(block_type_value)
+            if block_type < 0:
+                continue
+            for connection in np.flatnonzero(enabled[block_type]):
+                other, other_connection = map(int, connections[pose, block, connection])
+                if other < 0:
+                    continue
+                other_type = int(block_types[pose, other])
+                if not enabled[other_type, other_connection]:
+                    continue
+                endpoint = (block, int(connection))
+                partner = (other, other_connection)
+                edge = (pose, *sorted((endpoint, partner)))
+                edge_key = (edge[0], *edge[1], *edge[2])
+                if edge_key in visited:
+                    continue
+                visited.add(edge_key)
+
+                left_local = downstream[block_type, connection, :3]
+                right_local = downstream[other_type, other_connection, :3]
+                if np.any(left_local < 0) or np.any(right_local < 0):
+                    raise ValueError(
+                        "a scored disulfide has an invalid downstream atom"
+                    )
+                left = int(offsets[pose, block]) + left_local[::-1]
+                right = int(offsets[pose, other]) + right_local
+                atoms = np.concatenate((left, right))
+                if np.any(atoms > int32.max):
+                    raise ValueError("flattened disulfide atom index exceeds int32")
+                rows.append([*(int(atom) for atom in atoms), block_type, other_type])
+    return rows
+
+
 def prepare_disulfide_topology(
     block_types: np.ndarray,
     block_coord_offsets: np.ndarray,
@@ -201,74 +273,10 @@ def prepare_disulfide_topology(
             "real blocks must have non-negative flattened coordinate offsets"
         )
 
-    n_poses, n_blocks = block_types.shape
     # Validate the complete declared connection graph first, including ordinary
     # non-disulfide connections. Padding must be exactly (-1, -1).
-    for pose in range(n_poses):
-        for block in range(n_blocks):
-            for connection in range(n_connections):
-                other, other_connection = map(int, connections[pose, block, connection])
-                if other == -1 and other_connection == -1:
-                    continue
-                if other < 0 or other_connection < 0:
-                    raise ValueError(
-                        "connection endpoints must both be -1 or non-negative"
-                    )
-                if not real[pose, block]:
-                    raise ValueError("padded blocks may not declare connections")
-                if other >= n_blocks or other_connection >= n_connections:
-                    raise ValueError("connection endpoint is out of bounds")
-                if not real[pose, other]:
-                    raise ValueError("connection endpoint targets a padded block")
-                reciprocal = connections[pose, other, other_connection]
-                if tuple(map(int, reciprocal)) != (block, connection):
-                    raise ValueError(
-                        "connection endpoints must be reciprocal: "
-                        f"pose {pose}, ({block}, {connection}) -> "
-                        f"({other}, {other_connection})"
-                    )
-
-    rows: list[list[int]] = []
-    visited: set[tuple[int, int, int, int, int]] = set()
-    int32 = np.iinfo(np.int32)
-    for pose in range(n_poses):
-        for block in range(n_blocks):
-            block_type = int(block_types[pose, block])
-            if block_type < 0:
-                continue
-            for connection in np.flatnonzero(enabled[block_type]):
-                other, other_connection = map(int, connections[pose, block, connection])
-                if other < 0:
-                    continue
-                other_type = int(block_types[pose, other])
-                if not enabled[other_type, other_connection]:
-                    continue
-                endpoint = (block, int(connection))
-                partner = (other, other_connection)
-                edge = (pose, *sorted((endpoint, partner)))
-                edge_key = (edge[0], *edge[1], *edge[2])
-                if edge_key in visited:
-                    continue
-                visited.add(edge_key)
-
-                left_local = downstream[block_type, connection, :3]
-                right_local = downstream[other_type, other_connection, :3]
-                if np.any(left_local < 0) or np.any(right_local < 0):
-                    raise ValueError(
-                        "a scored disulfide has an invalid downstream atom"
-                    )
-                left = int(offsets[pose, block]) + left_local[::-1]
-                right = int(offsets[pose, other]) + right_local
-                atoms = np.concatenate((left, right))
-                if np.any(atoms > int32.max):
-                    raise ValueError("flattened disulfide atom index exceeds int32")
-                rows.append(
-                    [
-                        *(int(atom) for atom in atoms),
-                        block_type,
-                        other_type,
-                    ]
-                )
+    _validate_declared_connections(connections, real)
+    rows = _collect_pair_rows(block_types, offsets, connections, enabled, downstream)
 
     pair_rows = np.asarray(rows, dtype=np.int32).reshape((-1, 8))
     return DisulfideTopologyPlan(
