@@ -35,6 +35,7 @@ struct ForwardTask {
   DisulfideCPUInputs<Real> inputs;
   DisulfideForwardMode mode;
   DisulfideCPUForwardOutputs<Real> outputs;
+  bool write_energies;
 };
 
 template <typename Real>
@@ -83,7 +84,7 @@ void forward_chunk(void* opaque, int64_t begin, int64_t end) {
         local_derivs,
         Real(1),
         &energy);
-    task.outputs.energies[i] = energy;
+    if (task.write_energies) task.outputs.energies[i] = energy;
     for (int j = 0; j < 6; ++j) {
       task.outputs.coordinate_derivatives[i][j] = local_derivs_storage[j];
     }
@@ -156,12 +157,7 @@ WorkspaceRequirements disulfide_cpu_forward_workspace(int64_t) {
 template <typename Real>
 WorkspaceRequirements disulfide_cpu_recompute_vjp_workspace(int64_t n_pairs) {
   if (n_pairs <= 0) return {0, alignof(DisulfideVec3<Real>)};
-  // Keep the forward energy output disjoint from retained derivatives. The
-  // executor may schedule pair chunks in any order, so aliasing the nominally
-  // ignored energy with derivative storage would make the save/recompute
-  // contract depend on the implementation order inside forward_chunk.
-  constexpr size_t row_bytes =
-      6 * sizeof(DisulfideVec3<Real>) + sizeof(Real);
+  constexpr size_t row_bytes = 6 * sizeof(DisulfideVec3<Real>);
   constexpr auto max = std::numeric_limits<size_t>::max();
   if (static_cast<uint64_t>(n_pairs) > max / row_bytes) {
     return {max, alignof(DisulfideVec3<Real>)};
@@ -171,11 +167,12 @@ WorkspaceRequirements disulfide_cpu_recompute_vjp_workspace(int64_t n_pairs) {
 }
 
 template <typename Real>
-DisulfideCPUStatus disulfide_cpu_forward(
+DisulfideCPUStatus disulfide_cpu_forward_impl(
     CPUExecutor executor,
     DisulfideCPUInputs<Real> inputs,
     DisulfideForwardMode mode,
-    DisulfideCPUForwardOutputs<Real> outputs) {
+    DisulfideCPUForwardOutputs<Real> outputs,
+    bool write_energies) {
   if (!executor.parallel_for) return DisulfideCPUStatus::invalid_executor;
   if (mode != DisulfideForwardMode::inference
       && mode != DisulfideForwardMode::tracked) {
@@ -183,10 +180,11 @@ DisulfideCPUStatus disulfide_cpu_forward(
   }
   if (inputs.coords.size(0) < 0 || inputs.pairs.size(0) < 0
       || inputs.params.size(0) < 0
-      || outputs.energies.size(0) != inputs.pairs.size(0)
+      || (write_energies && outputs.energies.size(0) != inputs.pairs.size(0))
       || (inputs.pairs.size(0) != 0
           && (!inputs.coords.data() || !inputs.pairs.data()
-              || !inputs.params.data() || !outputs.energies.data()))) {
+              || !inputs.params.data()
+              || (write_energies && !outputs.energies.data())))) {
     return DisulfideCPUStatus::invalid_shape;
   }
   if (mode == DisulfideForwardMode::tracked
@@ -197,10 +195,20 @@ DisulfideCPUStatus disulfide_cpu_forward(
     return DisulfideCPUStatus::missing_derivative_output;
   }
   if (!valid_pair_indices(inputs)) return DisulfideCPUStatus::invalid_index;
-  ForwardTask<Real> task{inputs, mode, outputs};
+  ForwardTask<Real> task{inputs, mode, outputs, write_energies};
   executor.parallel_for(
       executor.context, inputs.pairs.size(0), forward_chunk<Real>, &task);
   return DisulfideCPUStatus::success;
+}
+
+template <typename Real>
+DisulfideCPUStatus disulfide_cpu_forward(
+    CPUExecutor executor,
+    DisulfideCPUInputs<Real> inputs,
+    DisulfideForwardMode mode,
+    DisulfideCPUForwardOutputs<Real> outputs) {
+  return disulfide_cpu_forward_impl<Real>(
+      executor, inputs, mode, outputs, true);
 }
 
 template <typename Real>
@@ -270,17 +278,12 @@ DisulfideCPUStatus disulfide_cpu_recompute_vjp(
   int64_t deriv_strides[2] = {6, 1};
   TView<DisulfideVec3<Real>, 2, Device::CPU> derivatives(
       static_cast<DisulfideVec3<Real>*>(workspace), deriv_sizes, deriv_strides);
-  int64_t energy_size[1] = {inputs.pairs.size(0)};
-  int64_t energy_stride[1] = {1};
-  auto* energy_workspace = static_cast<Real*>(workspace)
-                           + 18 * inputs.pairs.size(0);
-  TView<Real, 1, Device::CPU> ignored_energies(
-      energy_workspace, energy_size, energy_stride);
-  auto status = disulfide_cpu_forward<Real>(
+  auto status = disulfide_cpu_forward_impl<Real>(
       executor,
       inputs,
       DisulfideForwardMode::tracked,
-      {ignored_energies, derivatives});
+      {{}, derivatives},
+      false);
   if (status != DisulfideCPUStatus::success) return status;
   return disulfide_cpu_vjp<Real>(
       executor,

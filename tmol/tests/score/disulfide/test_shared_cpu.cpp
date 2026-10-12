@@ -229,8 +229,8 @@ int main() {
         < 1e-12);
 
   auto required = tmol_disulfide_cpu_f64_recompute_vjp_workspace(1);
-  std::vector<double> workspace(19);
-  CHECK(required.bytes == workspace.size() * sizeof(double));
+  std::vector<V3> workspace(6);
+  CHECK(required.bytes == workspace.size() * sizeof(V3));
   CHECK(
       tmol_disulfide_cpu_f64_recompute_vjp(
           executor,
@@ -303,7 +303,7 @@ int main() {
       == TMOL_DISULFIDE_CPU_SUCCESS);
   auto multipair_required =
       tmol_disulfide_cpu_f64_recompute_vjp_workspace(2);
-  CHECK(multipair_required.bytes == 2 * 19 * sizeof(double));
+  CHECK(multipair_required.bytes == 2 * 6 * sizeof(V3));
   std::vector<double> multipair_workspace(
       multipair_required.bytes / sizeof(double));
   CHECK(
