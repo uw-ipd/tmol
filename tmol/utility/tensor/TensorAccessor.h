@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-inline void handler(int sig, char* file, int line) {
+inline void handler(int sig, char const* file, int line) {
   void* array[10];
   size_t size;
 

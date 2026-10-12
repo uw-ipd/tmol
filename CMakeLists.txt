@@ -179,6 +179,8 @@ set(_TMOL_PYTHON_INCLUDE_DIRS "${Python_INCLUDE_DIRS}")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+option(TMOL_BUILD_TESTS "Build test C++/CUDA extensions" OFF)
+add_subdirectory(tmol/score/disulfide/potentials/shared)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   # LTO can resolve STL calls to Torch's unversioned template exports, even
   # with libstdc++ first. Keep those calls bound to the system C++ runtime.
@@ -494,8 +496,6 @@ endif()
 # ═══════════════════════════════════════════════════════════════════════════════
 # 3. Test extensions (optional, behind TMOL_BUILD_TESTS)
 # ═══════════════════════════════════════════════════════════════════════════════
-
-option(TMOL_BUILD_TESTS "Build test C++/CUDA extensions" OFF)
 
 if(TMOL_BUILD_TESTS)
 
