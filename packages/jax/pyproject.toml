@@ -17,6 +17,7 @@ dependencies = [
 [project.optional-dependencies]
 cu12 = ["jax[cuda12]>=0.11.2"]
 cu13 = ["jax[cuda13]>=0.11.2"]
+native-cuda = ["tmol-jax-cuda"]
 
 [project.urls]
 Repository = "https://github.com/uw-ipd/tmol"

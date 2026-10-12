@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Eigen/src/Core/util/Macros.h>
-#include "params.hh"
+#include "scalar_params.hh"
 
 namespace tmol {
 namespace score {
