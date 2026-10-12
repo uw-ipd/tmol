@@ -103,3 +103,80 @@ def assignment_energies(tables: PackerEnergyTables, assignments: Array) -> jax.A
     pair_by_pose = pair_by_pose.at[edge_pose].add(pair)
     total = oneb + pair_by_pose
     return jnp.where(invalid.any(axis=-1), jnp.nan, total)
+
+
+def run_metropolis_trace(
+    tables: PackerEnergyTables,
+    initial_assignments: Array,
+    proposal_residues: Array,
+    proposal_rotamers: Array,
+    temperatures: Array,
+    uniform_randoms: Array,
+    quenches: Array,
+) -> tuple[jax.Array, jax.Array, jax.Array, jax.Array]:
+    """Apply a caller-supplied rotamer proposal trace with TMol semantics.
+
+    Proposal arrays have shape ``[step, pose, trajectory]``. This function
+    intentionally does not generate a schedule or random stream: supplying the
+    same trace makes acceptance decisions independently reproducible across
+    frontends. It returns final assignments, best assignments, best energies,
+    and the Boolean acceptance trace.
+    """
+    assignments = jnp.asarray(initial_assignments, dtype=jnp.int32)
+    proposal_residues = jnp.asarray(proposal_residues, dtype=jnp.int32)
+    proposal_rotamers = jnp.asarray(proposal_rotamers, dtype=jnp.int32)
+    trace_dtype = jnp.result_type(tables.energy1b, jnp.float32)
+    temperatures = jnp.asarray(temperatures, dtype=trace_dtype)
+    uniform_randoms = jnp.asarray(uniform_randoms, dtype=trace_dtype)
+    quenches = jnp.asarray(quenches, dtype=jnp.bool_)
+    trace_shape = proposal_residues.shape
+    if assignments.ndim != 3 or proposal_residues.ndim != 3:
+        raise ValueError("assignments and proposal traces must be rank 3")
+    if trace_shape[1:] != assignments.shape[:2]:
+        raise ValueError("proposal pose/trajectory dimensions must match assignments")
+    if any(
+        x.shape != trace_shape
+        for x in (proposal_rotamers, temperatures, uniform_randoms, quenches)
+    ):
+        raise ValueError("all proposal traces must have the same shape")
+
+    initial_energy = assignment_energies(tables, assignments)
+
+    def apply_move(carry, move):
+        current, current_energy, best, best_energy = carry
+        residue, rotamer, temperature, uniform_random, quench = move
+        residue_index = residue[..., None]
+        candidate = jnp.put_along_axis(
+            current, residue_index, rotamer[..., None], -1, inplace=False
+        )
+        unassigned = jnp.put_along_axis(current, residue_index, -1, -1, inplace=False)
+        candidate_energy = assignment_energies(tables, candidate)
+        previous_local_energy = current_energy - assignment_energies(tables, unassigned)
+        delta = candidate_energy - current_energy
+        adjusted_delta = jnp.where(
+            previous_local_energy > 1, delta / previous_local_energy, delta
+        )
+        safe_temperature = jnp.maximum(temperature, jnp.finfo(temperature.dtype).tiny)
+        probability = jnp.exp(-adjusted_delta / safe_temperature)
+        accept = (delta < 0) | (~quench & (uniform_random < probability))
+        current = jnp.where(accept[..., None], candidate, current)
+        current_energy = jnp.where(accept, candidate_energy, current_energy)
+        improves = current_energy < best_energy
+        best = jnp.where(improves[..., None], current, best)
+        best_energy = jnp.where(improves, current_energy, best_energy)
+        return (current, current_energy, best, best_energy), accept
+
+    moves = (
+        proposal_residues,
+        proposal_rotamers,
+        temperatures,
+        uniform_randoms,
+        quenches,
+    )
+    final, accepted = jax.lax.scan(
+        apply_move,
+        (assignments, initial_energy, assignments, initial_energy),
+        moves,
+    )
+    final_assignments, _, best_assignments, best_energies = final
+    return final_assignments, best_assignments, best_energies, accepted

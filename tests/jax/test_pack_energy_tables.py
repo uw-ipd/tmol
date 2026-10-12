@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from tmol_jax.pack import PackerEnergyTables, assignment_energies
+from tmol_jax.pack import PackerEnergyTables, assignment_energies, run_metropolis_trace
 
 
 def _mixed_tables():
@@ -66,3 +66,43 @@ def test_assignment_energies_all_fixed_empty_tables():
         energy2b=jnp.empty((0,), dtype=jnp.float32),
     )
     np.testing.assert_array_equal(assignment_energies(tables, [[[-1]]]), [[0]])
+
+
+def test_run_metropolis_trace_matches_canonical_acceptance_rule():
+    initial = jnp.asarray(
+        [[[0, 0, -1]], [[0, -1, 0]]],
+        dtype=jnp.int32,
+    )
+    proposal_residues = jnp.asarray(
+        [[[0], [2]], [[0], [2]], [[0], [2]]], dtype=jnp.int32
+    )
+    proposal_rotamers = jnp.asarray(
+        [[[1], [1]], [[1], [0]], [[1], [0]]], dtype=jnp.int32
+    )
+    temperatures = jnp.ones((3, 2, 1), dtype=jnp.float32)
+    uniforms = jnp.asarray(
+        [[[0.8], [0.9]], [[0.0], [0.99]], [[0.7], [0.5]]],
+        dtype=jnp.float32,
+    )
+    quenches = jnp.asarray([[[False], [False]], [[True], [True]], [[False], [False]]])
+
+    final, best, best_energy, accepted = jax.jit(run_metropolis_trace)(
+        _mixed_tables(),
+        initial,
+        proposal_residues,
+        proposal_rotamers,
+        temperatures,
+        uniforms,
+        quenches,
+    )
+
+    np.testing.assert_array_equal(
+        accepted[..., 0],
+        [[False, True], [False, True], [True, True]],
+    )
+    np.testing.assert_array_equal(
+        final,
+        [[[1, 0, -1]], [[0, -1, 0]]],
+    )
+    np.testing.assert_array_equal(best, initial)
+    np.testing.assert_array_equal(best_energy, [[15], [33]])
