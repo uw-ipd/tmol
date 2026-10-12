@@ -44,4 +44,13 @@ canonical_aa_3letter: tuple = (
 )
 
 
-__all__ = ["canonical_aa_3letter"]
+# Canonical scoring-table aliases used by TMol default protein chemistry.
+# These variants have distinct chemical parameters but share backbone
+# statistics with their neutral parent residue.
+backbone_table_reference_aliases = {
+    "CYD": "CYS",
+    "HIS_POS": "HIS",
+}
+
+
+__all__ = ["backbone_table_reference_aliases", "canonical_aa_3letter"]

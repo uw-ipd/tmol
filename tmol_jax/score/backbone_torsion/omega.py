@@ -41,7 +41,10 @@ import jax.numpy as jnp
 import numpy as np
 
 from tmol_jax.numeric.bspline import bspline_coefficients
-from tmol_jax.score.backbone_torsion._aa import canonical_aa_3letter
+from tmol_jax.score.backbone_torsion._aa import (
+    backbone_table_reference_aliases,
+    canonical_aa_3letter,
+)
 from tmol_jax.database.scoring.omega_bbdep import OmegaBBDepDatabase
 from tmol_jax.score.backbone_torsion.potentials import bicubic_bspline_interp
 from tmol_jax.types import Array, pytree_dataclass
@@ -357,6 +360,11 @@ class OmegaBBDepDatabaseAccess:
             )
             for reference in references
         }
+        for alias, source in backbone_table_reference_aliases.items():
+            if source in self.reference_to_table_idx_2:
+                self.reference_to_table_idx_2[alias] = self.reference_to_table_idx_2[
+                    source
+                ].copy()
         self.aa_to_table_idx = aa_to_table_idx
         self.aa_to_table_idx_2 = aa_to_table_idx_2
         self._source_uniq_id = omega_database.uniq_id

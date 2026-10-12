@@ -32,12 +32,18 @@ def test_rama_reference_selects_variant_tables_and_proline_identity():
         term.omega_access.reference_to_table_idx_2["HIS"],
     )
 
-    for reference in ("HIS_POS", "CYD", None):
+    for reference, parent in (("HIS_POS", "HIS"), ("CYD", "CYS")):
         np.testing.assert_array_equal(
-            term.rama_access.reference_to_table_idx_2.get(reference, (-1, -1)),
-            [-1, -1],
+            term.rama_access.reference_to_table_idx_2[reference],
+            term.rama_access.reference_to_table_idx_2[parent],
         )
         np.testing.assert_array_equal(
-            term.omega_access.reference_to_table_idx_2.get(reference, (-1, -1)),
+            term.omega_access.reference_to_table_idx_2[reference],
+            term.omega_access.reference_to_table_idx_2[parent],
+        )
+
+    for access in (term.rama_access, term.omega_access):
+        np.testing.assert_array_equal(
+            access.reference_to_table_idx_2.get(None, (-1, -1)),
             [-1, -1],
         )

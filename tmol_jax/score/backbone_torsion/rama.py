@@ -46,7 +46,10 @@ import numpy as np
 # import chain that fires as soon as ``tmol_jax.chemical.*`` is
 # imported from here).
 from tmol_jax.numeric.bspline import bspline_coefficients
-from tmol_jax.score.backbone_torsion._aa import canonical_aa_3letter
+from tmol_jax.score.backbone_torsion._aa import (
+    backbone_table_reference_aliases,
+    canonical_aa_3letter,
+)
 from tmol_jax.database.scoring.rama import RamaDatabase
 from tmol_jax.score.backbone_torsion.potentials import rama_potential
 from tmol_jax.types import Array
@@ -257,6 +260,11 @@ class RamaDatabaseAccess:
             )
             for reference in references
         }
+        for alias, source in backbone_table_reference_aliases.items():
+            if source in self.reference_to_table_idx_2:
+                self.reference_to_table_idx_2[alias] = self.reference_to_table_idx_2[
+                    source
+                ].copy()
         self.aa_to_table_idx = aa_to_table_idx_2[:, 0].copy()
         self.aa_to_table_idx_2 = aa_to_table_idx_2
         self._source_uniq_id = rama_database.uniq_id
