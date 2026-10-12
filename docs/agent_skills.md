@@ -14,7 +14,7 @@ The `skills/` directory contains instructions for coding agents. Each
 
 Install a skill from GitHub or copy `skills/<name>/` into your agent's skill
 search path. See
-[`skills/README.md`](https://github.com/RosettaCommons/tmol/tree/master/skills) for the
+[`skills/README.md`](https://github.com/RosettaCommons/tmol/tree/main/skills) for the
 catalog and artifact conventions.
 
 Skills do not authorize external jobs, compute spending, pushes, or merges;

@@ -4,10 +4,10 @@
   "cases": [
     {
       "id": "review-cuda-performance-change",
-      "prompt": "Review a TMol CUDA scoring optimization against origin/master. Confirm correctness and flexibility, measure latency, peak memory, and physical launches on representative B1 and B32 inputs, and prepare only the production change and focused regression tests for review.",
+      "prompt": "Review a TMol CUDA scoring optimization against origin/main. Confirm correctness and flexibility, measure latency, peak memory, and physical launches on representative B1 and B32 inputs, and prepare only the production change and focused regression tests for review.",
       "setup": {
         "cwd": "clean TMol worktree on the candidate branch",
-        "requires": ["supported NVIDIA GPU", "CUDA development environment", "origin/master available"]
+        "requires": ["supported NVIDIA GPU", "CUDA development environment", "origin/main available"]
       },
       "expected_behavior": [
         "Uses isolated build/JIT caches for baseline and candidate",
