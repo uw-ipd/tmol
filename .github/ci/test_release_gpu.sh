@@ -10,6 +10,13 @@ bootstrap=$(mktemp -d)
 trap 'rm -rf "$bootstrap"' EXIT
 python3.12 -m venv "$bootstrap/env"
 "$bootstrap/env/bin/python" -m pip install packaging
-"$bootstrap/env/bin/python" scripts/test_package_install.py \
-  --wheel wheels/*.whl --base-wheel base-wheel/*.whl --torch-version 2.11.0 \
-  --torch-index https://download.pytorch.org/whl/cu128 --device cuda
+for backend in cu12 cu13; do
+  case "$backend" in
+    cu12) torch_cuda=cu128 ;;
+    cu13) torch_cuda=cu130 ;;
+  esac
+  "$bootstrap/env/bin/python" scripts/test_package_install.py \
+    --wheel wheels/tmol_ops_${backend}-*.whl --base-wheel base-wheel/*.whl \
+    --torch-version 2.11.0 \
+    --torch-index "https://download.pytorch.org/whl/$torch_cuda" --device cuda
+done

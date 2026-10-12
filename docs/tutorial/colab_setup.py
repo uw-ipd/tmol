@@ -12,24 +12,7 @@ TUTORIAL_REF = "master"
 RAW_BASE = f"https://raw.githubusercontent.com/uw-ipd/tmol/{TUTORIAL_REF}"
 # Advance only after the release wheels have been published and exercised.
 # The source project's next version may not have downloadable wheels yet.
-TMOL_RELEASE = "0.1.59"
-RELEASE_WHEEL_TORCH_MINOR = "2.11"
-RELEASE_WHEEL_CUDA = "12.8"
-RELEASE_WHEEL_PYTHONS = frozenset({(3, 12), (3, 13)})
-
-
-def _wheel_url(python_version: tuple[int, int]) -> str:
-    """Return the released Colab wheel URL for a supported Python runtime."""
-    if python_version not in RELEASE_WHEEL_PYTHONS:
-        raise ValueError(f"Unsupported Colab Python version: {python_version}")
-    python_tag = "cp" + "".join(map(str, python_version))
-    cuda_tag = RELEASE_WHEEL_CUDA.replace(".", "")
-    build_tag = f"cu{cuda_tag}torch{RELEASE_WHEEL_TORCH_MINOR}"
-    wheel = (
-        f"tmol-{TMOL_RELEASE}+{build_tag}-{python_tag}-{python_tag}-"
-        "manylinux_2_28_x86_64.whl"
-    )
-    return f"https://github.com/uw-ipd/tmol/releases/download/v{TMOL_RELEASE}/{wheel}"
+TMOL_RELEASE = "0.1.64"
 
 
 def _pip_install(requirements: list[str], torch_version: str) -> None:
@@ -44,6 +27,7 @@ def _pip_install(requirements: list[str], torch_version: str) -> None:
                 "pip",
                 "install",
                 "--quiet",
+                "--only-binary=:all:",
                 "--constraint",
                 str(constraint),
                 *requirements,
@@ -53,47 +37,20 @@ def _pip_install(requirements: list[str], torch_version: str) -> None:
 
 def setup_colab(fixtures: list[str]) -> None:
     """Install the matching TMol wheel and download tutorial fixtures."""
-    try:
-        gpu_probe = subprocess.run(
-            ["nvidia-smi"],
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        gpu_available = gpu_probe.returncode == 0
-    except FileNotFoundError:
-        gpu_available = False
-    if not gpu_available:
-        raise RuntimeError(
-            "This tutorial requires a Colab GPU runtime. Choose "
-            "'Runtime > Change runtime type > T4 GPU', reconnect, and run again."
-        )
-
     import torch
+    from packaging.version import Version
 
     if not torch.cuda.is_available():
         raise RuntimeError(
-            "A GPU is visible to Colab, but PyTorch cannot use CUDA. "
-            "Reconnect to the GPU runtime and rerun the setup cell."
+            "This tutorial requires CUDA-enabled PyTorch and a Colab GPU runtime. "
+            "Choose 'Runtime > Change runtime type > T4 GPU', reconnect, "
+            "and run again."
         )
-    torch_version = torch.__version__
-    python_version = sys.version_info[:2]
-    if (
-        not torch_version.startswith(f"{RELEASE_WHEEL_TORCH_MINOR}.")
-        or torch.version.cuda != RELEASE_WHEEL_CUDA
-        or python_version not in RELEASE_WHEEL_PYTHONS
-    ):
-        supported_pythons = ", ".join(
-            ".".join(map(str, version)) for version in sorted(RELEASE_WHEEL_PYTHONS)
-        )
+    cuda_major = (torch.version.cuda or "").split(".")[0]
+    if Version(torch.__version__) < Version("2.11") or cuda_major not in {"12", "13"}:
         raise RuntimeError(
-            f"The TMol v{TMOL_RELEASE} Colab wheels support Python "
-            f"{supported_pythons}, PyTorch "
-            f"{RELEASE_WHEEL_TORCH_MINOR}.x, and CUDA {RELEASE_WHEEL_CUDA}; "
-            f"this runtime provides Python "
-            f"{sys.version_info.major}.{sys.version_info.minor}, PyTorch "
-            f"{torch_version}, and CUDA {torch.version.cuda}. Choose a supported "
-            "Colab GPU runtime or build TMol from source."
+            f"TMol {TMOL_RELEASE} needs PyTorch 2.11+ with CUDA 12 or 13; "
+            f"this runtime has PyTorch {torch.__version__}, CUDA {torch.version.cuda}."
         )
 
     runtime_packages = [
@@ -101,7 +58,9 @@ def setup_colab(fixtures: list[str]) -> None:
         "openbabel-wheel==3.1.1.22",
         "py3Dmol>=2.4,<3",
     ]
-    _pip_install([_wheel_url(python_version), *runtime_packages], torch_version)
+    _pip_install(
+        [f"tmol[cu{cuda_major}]=={TMOL_RELEASE}", *runtime_packages], torch.__version__
+    )
 
     for relative_path in fixtures:
         destination = Path(relative_path)
