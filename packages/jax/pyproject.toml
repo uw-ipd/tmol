@@ -10,6 +10,7 @@ readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.12"
 dependencies = [
+    # Independent JAX frontend: do not add tmol or torch as runtime dependencies.
     "jax>=0.11.2", "numpy>=1.25", "scipy>=1.13.1", "attrs>=21",
     "pyyaml>=6", "networkx>=3", "pandas>=2.2,<4", "biotite>=1.6,<2",
 ]

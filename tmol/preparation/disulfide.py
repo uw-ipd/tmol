@@ -150,6 +150,10 @@ def _validate_declared_connections(connections: np.ndarray, real: np.ndarray) ->
                     raise ValueError("padded blocks may not declare connections")
                 if other >= n_blocks or other_connection >= n_connections:
                     raise ValueError("connection endpoint is out of bounds")
+                if other == block:
+                    raise ValueError(
+                        "inter-block connections may not target the same block"
+                    )
                 if not real[pose, other]:
                     raise ValueError("connection endpoint targets a padded block")
                 reciprocal = connections[pose, other, other_connection]

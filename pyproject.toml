@@ -24,7 +24,8 @@ classifiers = [
 version = "0.1.64"
 
 dependencies = [
-    # Core ML framework.
+    # Current Torch-frontend contract; keep bare tmol behavior unchanged until
+    # a separately validated framework-neutral distribution owns shared files.
     # Stable native C ABI; no PyTorch minor-specific wheels.
     "torch>=2.11",
     "numpy>=1.25",

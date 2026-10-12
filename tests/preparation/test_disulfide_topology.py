@@ -51,21 +51,18 @@ def test_declared_edges_are_prepared_once_with_pilot_atom_ordering():
     assert plan.schema_version == 1
 
 
-def test_reciprocal_self_block_edge_is_scored_once():
+def test_rejects_self_block_edges_in_inter_block_topology():
     connections = np.array([[[[0, 1], [0, 0]]]], dtype=np.int32)
-    plan = prepare_disulfide_topology(
-        np.array([[0]], dtype=np.int32),
-        np.array([[10]], dtype=np.int32),
-        connections,
-        np.ones((1, 2), dtype=bool),
-        np.array([[[0, 1, 2], [3, 4, 5]]], dtype=np.int32),
-        ["l"],
-        parameters(),
-    )
-    np.testing.assert_array_equal(
-        plan.atom_indices_and_parameter_rows,
-        [[12, 11, 10, 13, 14, 15, 0, 0]],
-    )
+    with pytest.raises(ValueError, match="may not target the same block"):
+        prepare_disulfide_topology(
+            np.array([[0]], dtype=np.int32),
+            np.array([[10]], dtype=np.int32),
+            connections,
+            np.ones((1, 2), dtype=bool),
+            np.array([[[0, 1, 2], [3, 4, 5]]], dtype=np.int32),
+            ["l"],
+            parameters(),
+        )
 
 
 def test_parameter_rows_match_pilot_layout_and_mirror_d_residues():
