@@ -259,62 +259,6 @@ def _bilinear_interpolate(
     )
 
 
-def _trilinear_interpolate(
-    table: Array,
-    frac_i: Array,
-    frac_j: Array,
-    frac_k: Array,
-) -> Array:
-    """Trilinear interpolation on a 3-D periodic grid.
-
-    Exactly the same idea as :func:`_bilinear_interpolate`, extended to
-    three axes. The ``table`` has shape ``[N_i, N_j, N_k]``; all three
-    axes are treated as periodic.
-    """
-    ni = table.shape[0]
-    nj = table.shape[1]
-    nk = table.shape[2]
-
-    i0 = jnp.floor(frac_i).astype(jnp.int32)
-    j0 = jnp.floor(frac_j).astype(jnp.int32)
-    k0 = jnp.floor(frac_k).astype(jnp.int32)
-    di = frac_i - i0
-    dj = frac_j - j0
-    dk = frac_k - k0
-
-    i0 = jnp.mod(i0, ni)
-    j0 = jnp.mod(j0, nj)
-    k0 = jnp.mod(k0, nk)
-    i1 = jnp.mod(i0 + 1, ni)
-    j1 = jnp.mod(j0 + 1, nj)
-    k1 = jnp.mod(k0 + 1, nk)
-
-    c000 = table[i0, j0, k0]
-    c001 = table[i0, j0, k1]
-    c010 = table[i0, j1, k0]
-    c011 = table[i0, j1, k1]
-    c100 = table[i1, j0, k0]
-    c101 = table[i1, j0, k1]
-    c110 = table[i1, j1, k0]
-    c111 = table[i1, j1, k1]
-
-    return (
-        c000 * (1 - di) * (1 - dj) * (1 - dk)
-        + c001 * (1 - di) * (1 - dj) * dk
-        + c010 * (1 - di) * dj * (1 - dk)
-        + c011 * (1 - di) * dj * dk
-        + c100 * di * (1 - dj) * (1 - dk)
-        + c101 * di * (1 - dj) * dk
-        + c110 * di * dj * (1 - dk)
-        + c111 * di * dj * dk
-    )
-
-
-# --------------------------------------------------------------------------- #
-# Public scoring primitives                                                   #
-# --------------------------------------------------------------------------- #
-
-
 def dunbrack_rot_score(
     phi: Array,
     psi: Array,

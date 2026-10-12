@@ -76,18 +76,6 @@ def _safe_normalize(v: Array, axis: int = -1, eps: float = _EPS_SQ) -> Array:
     return jnp.where(safe, v / norm, jnp.zeros_like(v))
 
 
-def _safe_acos(x: Array, eps: float = _EPS_ACOS) -> Array:
-    """NaN-safe ``arccos``.
-
-    ``arccos`` has derivative ``-1/sqrt(1 - x^2)``, unbounded at
-    ``|x| == 1``. Clipping strictly inside ``[-1 + eps, 1 - eps]``
-    keeps the gradient finite without perturbing any physically
-    meaningful value (cosines reach the endpoints only at exact
-    colinearity).
-    """
-    return jnp.arccos(jnp.clip(x, -1.0 + eps, 1.0 - eps))
-
-
 def _safe_atan2(y: Array, x: Array, eps: float = _EPS_ATAN2) -> Array:
     """NaN-safe ``arctan2``.
 

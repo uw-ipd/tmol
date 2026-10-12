@@ -110,18 +110,6 @@ def _find_atom_idx(block_type: Any, name: str) -> int:
     return int(block_type.atom_to_idx.get(name, -1))
 
 
-def _connection_atom(block_type: Any, conn_name: str) -> int:
-    """Return the in-block atom index attached to ``conn_name`` or ``-1``."""
-    atom_name: Optional[str] = None
-    for conn in block_type.connections:
-        if conn.name == conn_name:
-            atom_name = conn.atom
-            break
-    if atom_name is None:
-        return -1
-    return _find_atom_idx(block_type, atom_name)
-
-
 def _connection_index(block_type: Any, conn_name: str) -> int:
     """Return the index of ``conn_name`` within the block type's
     connection list (or ``-1``)."""
