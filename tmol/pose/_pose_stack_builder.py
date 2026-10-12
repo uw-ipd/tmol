@@ -147,6 +147,10 @@ class PoseStackBuilder:
         split_block_mapping = cls._split_block_mapping_from_pose_stacks(
             packed_block_types, pose_stacks
         )
+        density_maps = {id(ps.density_map): ps.density_map for ps in pose_stacks}
+        if len(density_maps) > 1:
+            raise ValueError("pose stacks with different density maps cannot be joined")
+        (density_map,) = density_maps.values()
 
         def i64(t):
             return t.to(torch.int64)
@@ -167,6 +171,7 @@ class PoseStackBuilder:
             constraint_set=constraint_set,
             device=coords.device,
             split_block_mapping=split_block_mapping,
+            density_map=density_map,
         )
 
     @staticmethod

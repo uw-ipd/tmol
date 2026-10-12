@@ -30,28 +30,42 @@ score = scorer(coords).sum()
 score.backward()
 ```
 
-## Fitting to a cryo-EM map
+## Fitting to a density map
 
 `beta_nov16_dens_score_function()` is `beta2016_score_function()` plus the
-`elec_dens_fast` fit-to-density term at weight 35, the value Rosetta's cryo-EM
-refinement script uses; every other weight is unchanged. That script also reweights
-`fa_rep` and the bonded terms, which you do with `ScoreFunction.set_weight`. The
-observed map is bound to the score function, so a new one is built for each map.
+`elec_dens_fast` fit-to-density term at weight 35, with the per-residue side-chain
+density scale of Rosetta's cryo-EM refinement (in `beta_nov16_dens.sfxn`). The
+term scores against the map attached to the pose stack; every pose in a stack
+shares one map. Map files do not record their resolution, so `read_mrc` takes it.
 
 ```python
+import attr
 from tmol.score import beta_nov16_dens_score_function
 from tmol.score.density import read_mrc
 
-density_map = read_mrc("map.mrc", device=device)
-sfxn = beta_nov16_dens_score_function(device, density_map, resolution=3.2)
+density_map = read_mrc("map.mrc", resolution=3.2, device=device)
+pose_stack = attr.evolve(pose_stack, density_map=density_map)
+sfxn = beta_nov16_dens_score_function(device)
 scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
 ```
 
-Each heavy atom scores `-(a_elt / 6) * S(x)`, where `S` is the observed map correlated
-with one atom-sized Gaussian, normalized and read by a cubic B-spline. An atom
-therefore sees the map only within the kernel radius, about 3.5 A for a 3.7 A map.
-The score is differentiable in the coordinates and works for whole-pose, block-pair
-and rotamer scoring.
+Each heavy atom scores `-(trunc(a_elt) / 6) * S(x)`, where `S` is the observed map
+correlated with one atom-sized Gaussian, normalized, and read by a cubic B-spline
+whose coefficients are the grid values, as in Rosetta. An atom therefore sees the
+map only within the kernel radius, about 3.5 A for a 3.7 A map. The score is
+differentiable in the coordinates and works for whole-pose, block-pair and rotamer
+scoring.
+
+`read_mrc` reads cryo-EM and crystallographic MRC/CCP4 maps, including skewed
+cells; a crystal map covering less than the unit cell is expanded with its
+symmetry operators. The defaults suit cryo-EM: electron scattering factors and
+an open (non-periodic) map. Two independent score-function options change them;
+a crystallographic map typically wants both:
+
+```python
+sfxn.set_option("density_scatterers", "xray")
+sfxn.set_option("density_periodic", True)
+```
 
 ## CPU batch throughput
 

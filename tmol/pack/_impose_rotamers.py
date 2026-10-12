@@ -273,4 +273,5 @@ def impose_top_rotamer_assignments(
         constraint_set=orig_pose_stack.constraint_set,
         device=device,
         split_block_mapping=orig_pose_stack.split_block_mapping,
+        density_map=orig_pose_stack.density_map,
     )

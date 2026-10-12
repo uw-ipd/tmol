@@ -14,6 +14,7 @@ from tmol.pose import (
 
 if TYPE_CHECKING:
     from tmol.pose._split_block_mapping import SplitBlockMapping
+    from tmol.score.density import ElectronDensityMap
 
 
 @attr.s(auto_attribs=True)
@@ -42,6 +43,7 @@ class PoseStack:
         constraint_set: Optional geometric constraints.
         device: Device holding all pose tensors.
         split_block_mapping: Optional mapping back to pre-split residue blocks.
+        density_map: Optional experimental density map shared by every pose.
     """
 
     packed_block_types: PackedBlockTypes
@@ -70,6 +72,7 @@ class PoseStack:
 
     device: torch.device
     split_block_mapping: "SplitBlockMapping | None" = None
+    density_map: "ElectronDensityMap | None" = None
 
     #################### INIT #####################
 
@@ -196,6 +199,7 @@ class PoseStack:
             constraint_set=new_constraint_set,
             device=self.device,
             split_block_mapping=self.split_block_mapping,
+            density_map=self.density_map,
         )
 
     def clone_sharing_topology(self) -> "PoseStack":
@@ -235,6 +239,7 @@ class PoseStack:
             constraint_set=new_constraint_set,
             device=self.device,
             split_block_mapping=self.split_block_mapping,
+            density_map=self.density_map,
         )
 
     def split(self, index: int) -> "PoseStack":
@@ -275,6 +280,7 @@ class PoseStack:
                 if self.split_block_mapping is None
                 else self.split_block_mapping.split(index)
             ),
+            density_map=self.density_map,
         )
 
     def expand_coords(
