@@ -1,5 +1,8 @@
 JAX implementation adapted from tudorcotet/jtmol, commit
-6c16b888cd50e6da75adcf153e28e13c26f3d2f2, under the Apache License 2.0.
+6c16b888cd50e6da75adcf153e28e13c26f3d2f2.
+
+jtmol Copyright 2026 the jtmol authors.
+Licensed under the Apache License, Version 2.0.
 https://github.com/tudorcotet/jtmol
 
 TMol is Copyright (c) University of Washington / Institute for Protein Design.
