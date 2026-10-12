@@ -1,14 +1,15 @@
-# CI uses independent hosted CPU and self-hosted GPU lanes. Keeping CPU work off
-# the scarce GPU runner gives quick feedback even while DIGS is busy.
+# Automatic hosted CPU checks. Maintainers dispatch GPU CI separately.
 
-name: CI
+name: CPU CI
+
+permissions:
+  contents: read
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    # Validate intermediate stack branches as well as changes targeting master.
-    types: [opened, synchronize, reopened, closed]
+    # Validate intermediate stack branches as well as changes targeting main.
 
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
@@ -17,7 +18,6 @@ concurrency:
 jobs:
   lint:
     name: lint
-    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -36,7 +36,6 @@ jobs:
 
   packaging:
     name: pip resolver and release metadata
-    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -46,7 +45,7 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install --upgrade pip pytest packaging build scikit-build-core pyyaml 'cmake>=3.24,<4' ninja
       - name: Test index installs, ABI constraints, hashes and source metadata
-        run: python -m pytest -o addopts= scripts/test_release_artifacts.py scripts/test_release_matrix.py scripts/test_native_packages.py scripts/test_pypi_sdist.py scripts/test_cuda13_arm64_metadata.py scripts/test_release_source.py scripts/test_publish_scheduling.py scripts/test_compare_benchmark.py .github/scripts/test_colab_release_config.py -v
+        run: python -m pytest -o addopts= scripts/test_release_artifacts.py scripts/test_release_matrix.py scripts/test_native_packages.py scripts/test_pypi_sdist.py scripts/test_cuda13_arm64_metadata.py scripts/test_release_source.py scripts/test_publish_scheduling.py .github/scripts/test_authorize_gpu.py scripts/test_compare_benchmark.py .github/scripts/test_colab_release_config.py -v
 
   jax-artifacts:
     if: github.event.action != 'closed'
@@ -84,7 +83,6 @@ jobs:
 
   cpu:
     name: pytest (cpu, ${{ matrix.platform }})
-    if: github.event.action != 'closed'
     runs-on: ${{ matrix.runs-on }}
     timeout-minutes: 90
     strategy:
@@ -178,139 +176,28 @@ jobs:
         with:
           paths: testing.cpu.junit.xml
 
-  gpu:
-    name: pytest (cuda)
-    if: github.event.action != 'closed'
-    runs-on: [self-hosted, gpu]
-    timeout-minutes: 720
-    needs: lint
-    env:
-      SIF: /home/bench/git_ci_apptainer/tmol.sif
-      SLURM_PARTITION: gpu-train
-      SLURM_GRES: gpu:1
-      SLURM_CPUS_PER_TASK: 16
-      SLURM_MEM: 128G
-      SLURM_TIME: 06:00:00
-      # Exclude nodes with known uncorrectable ECC faults until repaired.
-      SLURM_EXCLUDE: g2543,g2547,g2548
-      SRUN_GPU_MAX_ATTEMPTS: 5
-      SRUN_GPU_RETRY_SLEEP: 10
-      # PR tests need only the architecture of the allocated DIGS GPU.
-      TMOL_CI_CUDA_ARCHITECTURES: native
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          submodules: recursive
-
-      - run: .github/ci/restore_source_timestamps.sh
-      - run: .github/ci/setup_ci_venv.sh
-
-      - name: build and test
-        env:
-          GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.gpu_alloc_started
-        run: |
-          rm -f "$GPU_ALLOC_SENTINEL"
-          .github/ci/srun_gpu_retry.sh <<SCRIPT
-          .github/ci/exec_gpu_apptainer.sh .github/ci/run_ci_gpu_work.sh
-          SCRIPT
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results-cuda
-          path: |
-            testing.cuda.junit.xml
-            coverage.cuda.xml
-          if-no-files-found: ignore
-
-      - uses: test-summary/action@v2
-        if: always()
-        with:
-          paths: testing.cuda.junit.xml
-
-  jax-gpu:
-    name: pytest (JAX-only native CUDA)
-    if: github.event.action != 'closed'
-    needs: [lint, jax-artifacts]
-    runs-on: [self-hosted, gpu]
-    timeout-minutes: 180
-    env:
-      SIF: /home/bench/git_ci_apptainer/tmol.sif
-      SLURM_PARTITION: gpu-train
-      SLURM_GRES: gpu:1
-      SLURM_CPUS_PER_TASK: 16
-      SLURM_MEM: 96G
-      SLURM_TIME: 00:30:00
-      SLURM_EXCLUDE: g2543,g2547,g2548
-      SRUN_GPU_MAX_ATTEMPTS: 5
-      SRUN_GPU_RETRY_SLEEP: 10
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v4
-        with:
-          name: tmol-jax-pure
-          path: jax-dist
-      - run: .github/ci/restore_source_timestamps.sh
-      - run: .github/ci/setup_ci_venv.sh
-      - name: Build optional adapter and test installed JAX-only wheels
-        env:
-          GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.jax_gpu_alloc_started
-        run: |
-          rm -f "$GPU_ALLOC_SENTINEL"
-          .github/ci/srun_gpu_retry.sh <<'SCRIPT'
-          .github/ci/exec_gpu_apptainer.sh .github/ci/run_jax_gpu_work.sh
-          SCRIPT
-
-  coverage:
-    name: Upload coverage reports
-    needs: [cpu, gpu]
-    if: always() && !cancelled() && github.event.action != 'closed'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - uses: actions/download-artifact@v4
-        with:
-          name: test-results-cpu-linux-x86_64
-          path: reports/cpu
-      - uses: actions/download-artifact@v4
-        with:
-          name: test-results-cuda
-          path: reports/cuda
-      - uses: codecov/codecov-action@v5
+      - name: Upload CPU coverage
+        if: matrix.platform == 'linux-x86_64' && !cancelled()
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: reports/cpu/coverage.cpu.xml
+          files: coverage.cpu.xml
           flags: cpu
           use_pypi: true
-          fail_ci_if_error: true
-      - uses: codecov/codecov-action@v5
-        if: always() && hashFiles('reports/cuda/coverage.cuda.xml') != ''
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: reports/cuda/coverage.cuda.xml
-          flags: cuda
-          use_pypi: true
-          fail_ci_if_error: true
+          # Coverage reporting is optional; tests and their artifact remain required.
+          fail_ci_if_error: false
 
-  # Coverage uploads have their own visible status. Service/network failures
-  # can be retried without rerunning successful CPU and GPU test suites.
-  # The historical ci check still requires every runtime and packaging lane.
+  # One required status for all automatic checks; GPU CI reports separately.
   ci:
-    name: ci
+    name: ci (CPU)
     runs-on: ubuntu-latest
-    if: always() && !cancelled() && github.event.action != 'closed'
-    needs: [lint, packaging, jax-artifacts, jax-cpu, cpu, gpu, jax-gpu]
+    if: always() && !cancelled()
+    needs: [lint, packaging, jax-artifacts, jax-cpu, cpu]
     steps:
-      - name: require every CI lane
+      - name: require every automatic CPU lane
         run: |
           test "${{ needs.lint.result }}" = success
           test "${{ needs.packaging.result }}" = success
           test "${{ needs.jax-artifacts.result }}" = success
           test "${{ needs.jax-cpu.result }}" = success
           test "${{ needs.cpu.result }}" = success
-          test "${{ needs.gpu.result }}" = success
-          test "${{ needs.jax-gpu.result }}" = success

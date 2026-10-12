@@ -112,7 +112,7 @@ def prepare(wheels: Path, sdist: Path, destination: Path) -> None:
         write_index(
             files,
             destination / "wheels" / f"v{version}" / variant / "index.html",
-            f"https://github.com/uw-ipd/tmol/releases/download/v{version}",
+            f"https://github.com/RosettaCommons/tmol/releases/download/v{version}",
         )
 
 

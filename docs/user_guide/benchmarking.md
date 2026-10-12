@@ -22,7 +22,7 @@ under `dev/benchmark/`.
 pytest arguments first, then revisions after `--`.
 
 ```bash
-dev/bin/compare_benchmark tmol/tests/score -k cuda-full-lk_ball -- origin/master
+dev/bin/compare_benchmark tmol/tests/score -k cuda-full-lk_ball -- origin/main
 ```
 
 The meta-revision `TREE` means the current working tree:

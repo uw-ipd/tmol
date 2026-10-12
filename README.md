@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/uw-ipd/tmol/master/docs/_static/brand/tmol-logo-dark.svg">
-    <img src="https://raw.githubusercontent.com/uw-ipd/tmol/master/docs/_static/brand/tmol-logo-light.svg" alt="TMol" width="440">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/RosettaCommons/tmol/main/docs/_static/brand/tmol-logo-dark.svg">
+    <img src="https://raw.githubusercontent.com/RosettaCommons/tmol/main/docs/_static/brand/tmol-logo-light.svg" alt="TMol" width="440">
   </picture>
 </p>
 
@@ -9,19 +9,19 @@
   <a href="https://pypi.org/project/tmol/"><img src="https://img.shields.io/pypi/v/tmol.svg" alt="PyPI version"></a>
   <a href="https://pypi.org/project/tmol/"><img src="https://img.shields.io/pypi/pyversions/tmol.svg" alt="Python versions"></a>
   <a href="https://pypi.org/project/tmol/"><img src="https://img.shields.io/pypi/dm/tmol.svg" alt="PyPI downloads"></a>
-  <a href="https://github.com/uw-ipd/tmol/actions/workflows/ci.yml"><img src="https://github.com/uw-ipd/tmol/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
-  <a href="https://uw-ipd.github.io/tmol/"><img src="https://github.com/uw-ipd/tmol/actions/workflows/docs.yml/badge.svg" alt="Documentation"></a>
-  <a href="https://codecov.io/gh/uw-ipd/tmol"><img src="https://codecov.io/gh/uw-ipd/tmol/graph/badge.svg" alt="Code coverage"></a>
-  <a href="https://github.com/uw-ipd/tmol/blob/master/LICENSE"><img src="https://img.shields.io/github/license/uw-ipd/tmol.svg" alt="License"></a>
+  <a href="https://github.com/RosettaCommons/tmol/actions/workflows/ci.yml"><img src="https://github.com/RosettaCommons/tmol/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
+  <a href="https://rosettacommons.github.io/tmol/"><img src="https://github.com/RosettaCommons/tmol/actions/workflows/docs.yml/badge.svg" alt="Documentation"></a>
+  <a href="https://codecov.io/gh/RosettaCommons/tmol"><img src="https://codecov.io/gh/RosettaCommons/tmol/graph/badge.svg" alt="Code coverage"></a>
+  <a href="https://github.com/RosettaCommons/tmol/blob/main/LICENSE"><img src="https://img.shields.io/github/license/RosettaCommons/tmol.svg" alt="License"></a>
 </p>
 
 TMol provides all-atom scoring, packing, minimization, and
 FastRelax in PyTorch. It batches proteins, nucleic acids, ligands, and complexes
 on CPU or CUDA, with gradients through coordinate scoring.
 
-[Documentation](https://uw-ipd.github.io/tmol/) ·
-[Tutorials](https://uw-ipd.github.io/tmol/latest/examples_index.html) ·
-[API reference](https://uw-ipd.github.io/tmol/latest/api_reference.html)
+[Documentation](https://rosettacommons.github.io/tmol/) ·
+[Tutorials](https://rosettacommons.github.io/tmol/latest/examples_index.html) ·
+[API reference](https://rosettacommons.github.io/tmol/latest/api_reference.html)
 
 ## Install
 
@@ -37,7 +37,7 @@ python -m pip install "tmol[cu13]"   # CUDA 13-enabled PyTorch
 The base package contains the Python API, data, and CPU kernels. GPU extras add
 `tmol-ops-cu12` or `tmol-ops-cu13` at the same version. GPU use also needs a
 compatible NVIDIA driver; pip does not detect GPUs or select a PyTorch CUDA build.
-The [installation guide](https://uw-ipd.github.io/tmol/latest/installation.html)
+The [installation guide](https://rosettacommons.github.io/tmol/latest/installation.html)
 covers requirements, verification, upgrades, and source builds. TMol wheels work
 across supported PyTorch minor versions; no per-Torch wheel selection is needed.
 
@@ -63,27 +63,27 @@ score = score_function.render_whole_pose_scoring_module(pose)
 print(score(pose.coords))
 ```
 
-See the [quickstart](https://uw-ipd.github.io/tmol/latest/quickstart.html) for
+See the [quickstart](https://rosettacommons.github.io/tmol/latest/quickstart.html) for
 scoring, minimization, repacking, FastRelax, batching, and ligand preparation.
-The [visual glossary](https://uw-ipd.github.io/tmol/latest/terminology.html) explains
-the concepts, and the [score playground](https://uw-ipd.github.io/tmol/latest/playground.html)
+The [visual glossary](https://rosettacommons.github.io/tmol/latest/terminology.html) explains
+the concepts, and the [score playground](https://rosettacommons.github.io/tmol/latest/playground.html)
 lets you rotate a side chain and inspect TMol scores in the browser. The
-[task index](https://uw-ipd.github.io/tmol/latest/tutorial/recipe_index.html)
+[task index](https://rosettacommons.github.io/tmol/latest/tutorial/recipe_index.html)
 links individual operations to examples and APIs.
 
 ## Development
 
 ```bash
-git clone https://github.com/uw-ipd/tmol.git
+git clone https://github.com/RosettaCommons/tmol.git
 cd tmol
 python -m pip install "torch>=2.14" "scikit-build-core>=0.10" "cmake>=3.24,<4" "pybind11>=2.12" ninja packaging
 python -m pip install --no-build-isolation -e ".[dev]"
 ```
 
-The [development guide](https://uw-ipd.github.io/tmol/latest/user_guide/development.html)
+The [development guide](https://rosettacommons.github.io/tmol/latest/user_guide/development.html)
 covers builds, tests, benchmarks, and releases. See the
-[contributor guide](https://uw-ipd.github.io/tmol/latest/contributor_guide.html)
-for code and documentation conventions, or [agent skills](https://github.com/uw-ipd/tmol/blob/master/skills/README.md)
+[contributor guide](https://rosettacommons.github.io/tmol/latest/contributor_guide.html)
+for code and documentation conventions, or [agent skills](https://github.com/RosettaCommons/tmol/blob/main/skills/README.md)
 for reusable coding-agent instructions.
 
 ## Citation
@@ -95,4 +95,4 @@ If you use TMol in your work, please cite:
 > GPU-accelerated, PyTorch implementation of Rosetta's relax protocol*
 > (manuscript in preparation).
 
-TMol is available under the terms in [LICENSE](https://github.com/uw-ipd/tmol/blob/master/LICENSE).
+TMol is available under the BSD-3-Clause license in [LICENSE](https://github.com/RosettaCommons/tmol/blob/main/LICENSE).

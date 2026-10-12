@@ -20,9 +20,11 @@ for backend in cu12 cu13; do
     --torch-version 2.11.0 \
     --torch-index "https://download.pytorch.org/whl/$torch_cuda" --device cuda
 done
-for backend in cu12 cu13; do
-  "$bootstrap/env/bin/python" scripts/test_jax_package_install.py \
-    --wheel jax-wheel/tmol_jax-*.whl \
-    --native-wheel "jax-native/$backend"/tmol_jax_cuda-*.whl \
-    --backend "$backend"
-done
+if [ "${TEST_JAX:-false}" = true ]; then
+  for backend in cu12 cu13; do
+    "$bootstrap/env/bin/python" scripts/test_jax_package_install.py \
+      --wheel jax-wheel/tmol_jax-*.whl \
+      --native-wheel "jax-native/$backend"/tmol_jax_cuda-*.whl \
+      --backend "$backend"
+  done
+fi

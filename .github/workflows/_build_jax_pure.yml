@@ -2,6 +2,10 @@ name: ~Build pure JAX artifacts
 
 on:
   workflow_call:
+    inputs:
+      checkout_ref:
+        type: string
+        default: ""
 
 jobs:
   build:
@@ -11,6 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ inputs.checkout_ref }}
           submodules: recursive
       - uses: actions/setup-python@v5
         with:
