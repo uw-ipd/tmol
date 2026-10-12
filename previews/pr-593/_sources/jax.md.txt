@@ -33,6 +33,26 @@ JAX runtime, for example `pip install 'jax[cuda13]>=0.11.2'`. The JAX distributi
 also declares `cu12` and `cu13` extras. Current development validation uses
 Python 3.12 and JAX 0.11.2; broader version support has not yet been tested.
 
+An optional CUDA kernel wheel accelerates float32 LJ/LK scoring while leaving
+the default wheel and sdist pure JAX:
+
+```sh
+python scripts/build_jax_cuda.py --outdir dist/jax-cuda
+pip install dist/jax-cuda/tmol_jax_cuda-*.whl
+```
+
+Building this local platform wheel requires `nvcc`; it compiles against the
+canonical TMol scalar LJ/LK headers and the installed JAX FFI headers. Set
+`--cuda-architectures` to a semicolon-separated SM list when the wheel must run
+on GPUs other than the build host. The wheel is version-pinned to the matching
+`tmol-jax` package. It contains only the compiled adapter, not a second copy of
+the parameter database or TMol native sources.
+
+If the optional wheel is absent or cannot load, scoring uses the pure-JAX path.
+The CUDA path currently supports float32 only. It reevaluates every exact
+count-pair-qualified atom pair from the current coordinates on every call, so
+coordinate minimization does not use a frozen neighbor list.
+
 ## Score and differentiate
 
 ```python
@@ -117,8 +137,8 @@ a maximum raw Cartesian-torsion gradient difference of 0.026. Both float64
 implementations agree within 1e-10 there, and centered finite differences agree
 with the JAX result.
 
-Pair scoring still uses dense arrays, although LK-ball selects only polar ×
-heavy atoms from fixed topology. A matched H200/float32 ABBA comparison used the
+The default pair scoring path uses dense arrays, although LK-ball selects only
+polar × heavy atoms from fixed topology. A matched H200/float32 ABBA comparison used the
 same coordinates, topology, weights, and one CPU thread, with five warmup calls
 and 30 synchronized samples. Ranges below span two passes; times are JAX / final
 Torch medians and GPU residency is the process value reported by `nvidia-smi`:
@@ -135,6 +155,23 @@ memory on the other measured workloads, substantially so for the large protein.
 JAX setup plus rendering took 35–38 seconds per fresh process and compilation
 added 6–26 seconds for inference and 11–30 seconds for value-and-gradient. The
 corresponding Torch setup plus rendering took 11–14 seconds.
+
+The optional CUDA wheel replaces only the LJ/LK pair sum. Installed-wheel runs
+under the same protocol measured:
+
+| workload | inference (ms) | value + gradient (ms) | resident MiB (inference / gradient) |
+| --- | ---: | ---: | ---: |
+| 1UBQ | 0.228 | 0.646 | 1,190 / 1,310 |
+| homogeneous 1UBQ | 0.405–0.407 | 1.247–1.311 | 1,232 / 1,392 |
+| mixed proteins | 0.550–0.557 | 5.080–5.090 | 1,268 / 1,974 |
+| 488-residue protein | 1.647 | 9.609 | 2,110 / 3,588 |
+
+This is a material improvement over dense JAX, especially for large inference
+and memory, but it does not reach final Torch throughput. The installed 1UBQ
+kernel differed from dense JAX by at most 2.29e-4 raw score units and 2.44e-4
+in a Cartesian gradient component. The kernel evaluates the same pairs and
+potentials, but parallel float32 atomic reduction changes accumulation order;
+it is not bitwise reproducible across processes.
 
 JAX allocator lifecycle peaks ranged from 276 MB to 3.46 GB. XLA temporary
 buffer estimates ranged from 12.1 MB to 572 MB for inference and 33.7 MB to

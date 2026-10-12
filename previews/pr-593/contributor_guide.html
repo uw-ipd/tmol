@@ -477,9 +477,9 @@
 <h2>Documentation<a class="headerlink" href="#documentation" title="Link to this heading">#</a></h2>
 <p>Sphinx builds the Markdown/RST guides and the notebooks in <code class="docutils literal notranslate"><span class="pre">docs/tutorial/</span></code>.
 Execute the notebooks before building HTML:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/cpu<span class="w"> </span><span class="s2">"torch&gt;=2.8"</span>
-pip<span class="w"> </span>install<span class="w"> </span>scikit-build-core<span class="w"> </span>pybind11<span class="w"> </span>ninja<span class="w"> </span>packaging<span class="w"> </span><span class="s2">"cmake&gt;=3.24,&lt;4"</span>
-pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[docs]"</span><span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/cpu<span class="w"> </span><span class="s2">"torch&gt;=2.14"</span>
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"scikit-build-core&gt;=0.10"</span><span class="w"> </span><span class="s2">"pybind11&gt;=2.12"</span><span class="w"> </span>ninja<span class="w"> </span>packaging<span class="w"> </span><span class="s2">"cmake&gt;=3.24,&lt;4"</span>
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[docs]"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-Ccmake.define.TMOL_ENABLE_CUDA<span class="o">=</span>OFF
 python<span class="w"> </span>.github/scripts/smoke_tutorial_notebooks.py<span class="w"> </span>--write
 make<span class="w"> </span>-C<span class="w"> </span>docs<span class="w"> </span>html

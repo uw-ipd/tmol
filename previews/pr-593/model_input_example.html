@@ -511,94 +511,42 @@
   <section id="Build-your-own-model-input-interface">
 <h1>Build your own model input interface<a class="headerlink" href="#Build-your-own-model-input-interface" title="Link to this heading">#</a></h1>
 <p><a class="reference external" href="https://colab.research.google.com/github/uw-ipd/tmol/blob/master/docs/model_input_example.ipynb">Open in Colab</a></p>
-<p>Adapt an OpenFold-style atom14 prediction and an RF2-style prediction to tmol, score them, and differentiate back to the original coordinate tensors. The adapter functions below are editable application code. Tmol owns the generic canonical construction and scoring.</p>
-<p>Run all cells in order. CPU works; select a GPU runtime for CUDA scoring. The first import compiles tmol’s native extensions and can take several minutes. This example installs AtomWorks from its public release repository.</p>
-<p><a class="reference external" href="https://research.google.com/colaboratory/runtime-version-faq.html">Colab runtime guidance</a> recommends installing notebook dependencies explicitly. This example uses pinned source revisions and the runtime’s installed PyTorch, rather than assuming a particular Colab CUDA version.</p>
+<p>Map OpenFold-style atom14 and RoseTTAFold2 prediction tensors to TMol, score them, and differentiate back to the original coordinates. The adapter functions below are editable application code using TMol’s canonical construction and scoring APIs.</p>
+<p>Run cells in order. In Colab, select a GPU runtime; the shared setup installs published wheels matching PyTorch’s CUDA major and downloads example predictions. No compilation is needed. Locally, follow the <a class="reference internal" href="installation.html"><span class="doc">installation guide</span></a>, then run from a source checkout for the fixtures. CPU and CUDA are supported. Set <code class="docutils literal notranslate"><span class="pre">TMOL_EXAMPLE_SOURCE</span></code> to another fixture checkout or <code class="docutils literal notranslate"><span class="pre">TMOL_EXAMPLE_DEVICE</span></code> to select a device explicitly.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
-<span class="c1"># For an existing development environment, set TMOL_EXAMPLE_SOURCE to its checkout.</span>
-<span class="n">local_source</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"TMOL_EXAMPLE_SOURCE"</span><span class="p">)</span>
-<span class="k">if</span> <span class="n">local_source</span><span class="p">:</span>
-    <span class="n">repo</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">local_source</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">google.colab</span>  <span class="c1"># noqa: F401</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">IN_COLAB</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="k">else</span><span class="p">:</span>
-    <span class="kn">import</span><span class="w"> </span><span class="nn">importlib.metadata</span>
-    <span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
-    <span class="kn">import</span><span class="w"> </span><span class="nn">tarfile</span>
-    <span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
-    <span class="kn">import</span><span class="w"> </span><span class="nn">tomllib</span>
-    <span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
-    <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+    <span class="n">IN_COLAB</span> <span class="o">=</span> <span class="kc">True</span>
 
-    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">"TMOL_USE_JIT"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"1"</span>
+<span class="k">if</span> <span class="n">IN_COLAB</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">urllib.request</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlopen</span>
 
-    <span class="n">TMOL_REVISION</span> <span class="o">=</span> <span class="s2">"10762064d8f34f1e3f46bce9538fdea5a0f8e111"</span>
-    <span class="n">ATOMWORKS_REVISION</span> <span class="o">=</span> <span class="s2">"e0f2e4da0aef2cf6c81a2c506eece3bc4204b75d"</span>
-    <span class="n">workspace</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span> <span class="o">/</span> <span class="s2">"tmol_model_example"</span>
-    <span class="n">workspace</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">download_source</span><span class="p">(</span><span class="n">repository</span><span class="p">,</span> <span class="n">revision</span><span class="p">):</span>
-        <span class="n">destination</span> <span class="o">=</span> <span class="n">workspace</span> <span class="o">/</span> <span class="p">(</span><span class="n">repository</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"-"</span> <span class="o">+</span> <span class="n">revision</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">destination</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-            <span class="k">return</span> <span class="n">destination</span>
-        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"Accept"</span><span class="p">:</span> <span class="s2">"application/vnd.github+json"</span><span class="p">}</span>
-        <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"https://api.github.com/repos/</span><span class="si">{</span><span class="n">repository</span><span class="si">}</span><span class="s2">/tarball/</span><span class="si">{</span><span class="n">revision</span><span class="si">}</span><span class="s2">"</span>
-        <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">(</span><span class="nb">dir</span><span class="o">=</span><span class="n">workspace</span><span class="p">)</span> <span class="k">as</span> <span class="n">temporary</span><span class="p">:</span>
-            <span class="n">archive</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">temporary</span><span class="p">)</span> <span class="o">/</span> <span class="s2">"source.tar.gz"</span>
-            <span class="k">with</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-                <span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">120</span>
-            <span class="p">)</span> <span class="k">as</span> <span class="n">response</span><span class="p">:</span>
-                <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
-                <span class="k">with</span> <span class="n">archive</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">"wb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">output</span><span class="p">:</span>
-                    <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">iter_content</span><span class="p">(</span><span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">):</span>
-                        <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
-            <span class="n">unpacked</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">temporary</span><span class="p">)</span> <span class="o">/</span> <span class="s2">"unpacked"</span>
-            <span class="n">unpacked</span><span class="o">.</span><span class="n">mkdir</span><span class="p">()</span>
-            <span class="k">with</span> <span class="n">tarfile</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">archive</span><span class="p">)</span> <span class="k">as</span> <span class="n">bundle</span><span class="p">:</span>
-                <span class="n">bundle</span><span class="o">.</span><span class="n">extractall</span><span class="p">(</span><span class="n">unpacked</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="s2">"data"</span><span class="p">)</span>
-            <span class="p">(</span><span class="n">checkout</span><span class="p">,)</span> <span class="o">=</span> <span class="n">unpacked</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()</span>
-            <span class="n">checkout</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">destination</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">destination</span>
-
-    <span class="n">repo</span> <span class="o">=</span> <span class="n">download_source</span><span class="p">(</span><span class="s2">"uw-ipd/tmol"</span><span class="p">,</span> <span class="n">TMOL_REVISION</span><span class="p">)</span>
-    <span class="n">atomworks</span> <span class="o">=</span> <span class="n">download_source</span><span class="p">(</span>
-        <span class="s2">"RosettaCommons/atomworks"</span><span class="p">,</span> <span class="n">ATOMWORKS_REVISION</span>
+    <span class="n">exec</span><span class="p">(</span>
+        <span class="n">urlopen</span><span class="p">(</span>
+            <span class="s2">"https://raw.githubusercontent.com/uw-ipd/tmol/"</span>
+            <span class="s2">"master/docs/tutorial/colab_setup.py"</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span>
+        <span class="nb">globals</span><span class="p">(),</span>
     <span class="p">)</span>
-    <span class="n">dependencies</span> <span class="o">=</span> <span class="n">tomllib</span><span class="o">.</span><span class="n">loads</span><span class="p">((</span><span class="n">repo</span> <span class="o">/</span> <span class="s2">"pyproject.toml"</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">())[</span><span class="s2">"project"</span><span class="p">][</span>
-        <span class="s2">"dependencies"</span>
-    <span class="p">]</span>
-    <span class="n">dependencies</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">dependencies</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">item</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"atomworks "</span><span class="p">)]</span>
-    <span class="c1"># Keep the runtime's Torch/CUDA build; compile tmol against that exact build.</span>
-    <span class="n">dependencies</span> <span class="o">+=</span> <span class="p">[</span>
-        <span class="sa">f</span><span class="s2">"torch==</span><span class="si">{</span><span class="n">importlib</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">version</span><span class="p">(</span><span class="s1">'torch'</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
-        <span class="s2">"ninja"</span><span class="p">,</span>
-        <span class="s2">"pybind11"</span><span class="p">,</span>
-    <span class="p">]</span>
-    <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+    <span class="n">setup_colab</span><span class="p">(</span>
         <span class="p">[</span>
-            <span class="n">sys</span><span class="o">.</span><span class="n">executable</span><span class="p">,</span>
-            <span class="s2">"-m"</span><span class="p">,</span>
-            <span class="s2">"pip"</span><span class="p">,</span>
-            <span class="s2">"install"</span><span class="p">,</span>
-            <span class="s2">"--quiet"</span><span class="p">,</span>
-            <span class="nb">str</span><span class="p">(</span><span class="n">atomworks</span><span class="p">),</span>
-            <span class="o">*</span><span class="n">dependencies</span><span class="p">,</span>
-        <span class="p">],</span>
-        <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="s2">"tmol/tests/data/openfold/openfold_ubq_and_sumo.pt"</span><span class="p">,</span>
+            <span class="s2">"tmol/tests/data/rosettafold2/ubiquitin.pt"</span><span class="p">,</span>
+            <span class="s2">"tmol/tests/data/rosettafold2/input_layout.json"</span><span class="p">,</span>
+        <span class="p">]</span>
     <span class="p">)</span>
 
-<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">"SPARSE_AUTO_DENSIFY"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"1"</span>
-<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">"ALLOW_BIOTITE_CCD"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"1"</span>
-<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">"MAX_JOBS"</span><span class="p">,</span> <span class="s2">"2"</span><span class="p">)</span>
+<span class="n">repo</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"TMOL_EXAMPLE_SOURCE"</span><span class="p">,</span> <span class="s2">"."</span><span class="p">))</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
 <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">"OMP_NUM_THREADS"</span><span class="p">,</span> <span class="s2">"2"</span><span class="p">)</span>
-<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">repo</span><span class="p">))</span>
-<span class="k">assert</span> <span class="p">(</span><span class="n">repo</span> <span class="o">/</span> <span class="s2">"tmol/io/_pose_stack_construction.py"</span><span class="p">)</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"tmol source:"</span><span class="p">,</span> <span class="n">repo</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 <br/></pre></div>
 </div>
 </div>
@@ -611,6 +559,7 @@
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tmol</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">CanonicalForm</span><span class="p">,</span>
     <span class="n">default_canonical_ordering</span><span class="p">,</span>
@@ -621,7 +570,8 @@
 
 <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span>
     <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-        <span class="s2">"TMOL_EXAMPLE_DEVICE"</span><span class="p">,</span> <span class="s2">"cuda"</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"cpu"</span>
+        <span class="s2">"TMOL_EXAMPLE_DEVICE"</span><span class="p">,</span>
+        <span class="s2">"cuda"</span> <span class="k">if</span> <span class="n">tmol</span><span class="o">.</span><span class="n">has_cuda</span><span class="p">()</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"cpu"</span><span class="p">,</span>
     <span class="p">)</span>
 <span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">"PyTorch:"</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">,</span> <span class="s2">"device:"</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>

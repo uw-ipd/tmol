@@ -497,8 +497,8 @@ It does not use TorchConfig.cmake or the unstable Torch C++ ABI for production.<
 <li><p>CMake 3.24 or newer.</p></li>
 <li><p>CUDA toolkit with <code class="docutils literal notranslate"><span class="pre">nvcc</span></code> for CUDA builds.</p></li>
 </ul>
-<p>Without CUDA, use a CPU-only build:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span>.<span class="w"> </span>-Ccmake.define.TMOL_ENABLE_CUDA<span class="o">=</span>OFF
+<p>CPU builds are the default. To set this explicitly:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span>.<span class="w"> </span>-Ccmake.define.TMOL_ENABLE_CUDA<span class="o">=</span>OFF
 </pre></div>
 </div>
 </section>
@@ -506,21 +506,21 @@ It does not use TorchConfig.cmake or the unstable Torch C++ ABI for production.<
 <h2>Build extensions<a class="headerlink" href="#build-extensions" title="Link to this heading">#</a></h2>
 <p>TMol builds extensions with CMake through <code class="docutils literal notranslate"><span class="pre">scikit-build-core</span></code>.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Production extensions</span>
-pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span>.
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span>.
 
 <span class="c1"># Include test-only C++/CUDA extensions</span>
-pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span><span class="w"> </span><span class="se">\</span>
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-Ccmake.define.TMOL_BUILD_TESTS<span class="o">=</span>ON
 
 <span class="c1"># CUDA development build, including GPU test helpers</span>
-pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span><span class="w"> </span>-Ccmake.define.TMOL_ENABLE_CUDA<span class="o">=</span>ON<span class="w"> </span><span class="se">\</span>
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span><span class="w"> </span>-Ccmake.define.TMOL_ENABLE_CUDA<span class="o">=</span>ON<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-Ccmake.define.TMOL_BUILD_TESTS<span class="o">=</span>ON<span class="w"> </span>-Ccmake.define.CMAKE_CUDA_ARCHITECTURES<span class="o">=</span><span class="s2">"80;90"</span>
 
 <span class="c1"># Separate distribution containing only CUDA operators</span>
-pip<span class="w"> </span>wheel<span class="w"> </span>--no-build-isolation<span class="w"> </span>--no-deps<span class="w"> </span>./packages/cu13
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>wheel<span class="w"> </span>--no-build-isolation<span class="w"> </span>--no-deps<span class="w"> </span>./packages/cu13
 
 <span class="c1"># Control parallelism</span>
-<span class="nv">MAX_JOBS</span><span class="o">=</span><span class="m">4</span><span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span>.<span class="w"> </span>-Ccmake.define.TMOL_NVCC_THREADS<span class="o">=</span><span class="m">2</span>
+<span class="nv">MAX_JOBS</span><span class="o">=</span><span class="m">4</span><span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span>.<span class="w"> </span>-Ccmake.define.TMOL_NVCC_THREADS<span class="o">=</span><span class="m">2</span>
 </pre></div>
 </div>
 <p>Build settings:</p>
@@ -584,7 +584,8 @@ pip<span class="w"> </span>wheel<span class="w"> </span>--no-build-isolation<spa
 </tbody>
 </table>
 </div>
-<p>Use JIT mode while editing kernels. Use AOT mode for normal installed packages.
+<p>JIT mode requires a source checkout and build tools. Use it while editing
+kernels; use AOT mode for installed packages.
 On Linux, the JIT loader detects PyTorch’s OpenMP CPU backend and propagates
 the corresponding compiler and linker flags, so <code class="docutils literal notranslate"><span class="pre">at::parallel_for</span></code> has the
 same thread behavior as the CMake-built extension. <code class="docutils literal notranslate"><span class="pre">OMP_NUM_THREADS</span></code> and
@@ -617,7 +618,7 @@ RDKit/Gasteiger fallback and no charge-mode switch.</p>
 <p>Docker:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>tmol-dev<span class="w"> </span>-f<span class="w"> </span>containers/docker/tmol-dev.Dockerfile<span class="w"> </span>.
 docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-it<span class="w"> </span>-v<span class="w"> </span><span class="s2">"</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">:/tmol_host"</span><span class="w"> </span>-w<span class="w"> </span>/tmol_host<span class="w"> </span>tmol-dev<span class="w"> </span>bash
-pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span>.
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span>.
 </pre></div>
 </div>
 <p>Apptainer:</p>
@@ -633,6 +634,28 @@ CPU suites, and CPU documentation builds on hosted runners. CUDA tests,
 benchmarks, and the CUDA-only tutorial smoke tests use the self-hosted DIGS
 runner. PR docs builds upload rendered HTML artifacts; same-repository PRs also
 publish previews under the Pages site.</p>
+</section>
+<section id="native-interface">
+<h2>Native interface<a class="headerlink" href="#native-interface" title="Link to this heading">#</a></h2>
+<p>Operators register directly with PyTorch’s stable dispatcher. Python autograd
+owns differentiation and saved-variable version checks; saved tensors cross the
+boundary in batches. Native allocations, dispatch, streams, and generator access
+use the stable C API. PyTorch 2.14+ provides direct Python tensor interop; older
+runtimes exchange real tensor handles through a private stable operator. Neither
+path copies tensor storage. Whole-pose scoring groups eligible precomputed
+coordinate derivatives into one autograd context and CUDA reduction. This path
+checks that static tensors are frozen before skipping per-term gradient queries;
+custom Python wrappers, hooks, trainable parameters, and weighted/parallel execution
+retain their ordinary differentiation paths. The engine schedules remaining
+term graphs directly, without a nested backward call. Saved derivatives stay
+under PyTorch’s saved-variable ownership; CUDA reduction receives the entire
+tensor list through one native dispatcher call on every supported runtime.
+New native operations must preserve this boundary.
+<code class="docutils literal notranslate"><span class="pre">scripts/check_native_abi.py</span></code> catches accidental C++ ABI imports and unversioned
+Linux C++ runtime imports. Production uses C++17 to retain the manylinux floor.
+CUDA packing draws phase seeds through Torch’s public dispatcher rather than
+accessing <code class="docutils literal notranslate"><span class="pre">CUDAGeneratorImpl</span></code>; fixed seeds remain reproducible, but trajectories
+can differ from releases before this refactor.</p>
 </section>
 <section id="releasing">
 <h2>Releasing<a class="headerlink" href="#releasing" title="Link to this heading">#</a></h2>
@@ -654,27 +677,6 @@ uploads both CUDA distributions before the base release, so missing project
 access stops publication before new base extras become visible. No separate
 package index or user-side build is needed. Publication remains gated on the
 complete wheel matrix and CPU/GPU installation checks.</p>
-<p>Operators register directly with PyTorch’s stable dispatcher. Python autograd
-owns differentiation and saved-variable version checks; saved tensors cross the
-boundary in batches. Native allocations, dispatch, streams, and generator access
-use the stable C API. PyTorch 2.14+ provides direct Python tensor interop; older
-runtimes exchange real tensor handles through a private stable operator. Neither
-path copies tensor storage. Whole-pose scoring groups eligible precomputed
-coordinate derivatives into one autograd context and CUDA reduction. This path
-checks that static tensors are frozen before skipping per-term gradient queries;
-Custom Python wrappers, hooks, trainable parameters, and weighted/parallel execution
-retain their ordinary differentiation paths. The engine schedules remaining
-term graphs directly, without a nested backward call. Saved derivatives stay
-under PyTorch’s saved-variable ownership; CUDA reduction receives the entire
-tensor list through one native dispatcher call on every supported runtime.
-New native operations must preserve this boundary.
-<code class="docutils literal notranslate"><span class="pre">scripts/check_native_abi.py</span></code> catches accidental C++ ABI imports and unversioned
-Linux C++ runtime imports. Production uses C++17 to retain the manylinux floor.
-CUDA packing draws phase seeds through Torch’s public dispatcher rather than
-accessing <code class="docutils literal notranslate"><span class="pre">CUDAGeneratorImpl</span></code>; fixed seeds remain reproducible, but trajectories
-can differ from releases before this refactor.</p>
-<p>Before using a versioned wheel URL, check the GitHub Releases page. The version
-in a checkout is not proof that a release has been published.</p>
 </section>
 <section id="code-style">
 <h2>Code style<a class="headerlink" href="#code-style" title="Link to this heading">#</a></h2>
@@ -745,6 +747,7 @@ flake8
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tests">Tests</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#containers">Containers</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ci">CI</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#native-interface">Native interface</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#releasing">Releasing</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#code-style">Code style</a></li>
 </ul>
