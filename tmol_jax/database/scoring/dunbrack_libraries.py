@@ -28,6 +28,7 @@ class RotamericDataForAA:
     backbone_dihedral_start: np.ndarray
     backbone_dihedral_step: np.ndarray
     rotamer_alias: np.ndarray
+    backbone_is_mirrored: bool = False
 
     def nrotamers(self) -> int:
         return int(self.rotamers.shape[0])
@@ -91,11 +92,15 @@ class DunbrackRotamerLibrary:
         )
 
         def _load_rot_data(data, prefix: str) -> RotamericDataForAA:
+            mirror_key = prefix + "data__backbone_is_mirrored"
             return RotamericDataForAA(
                 **{
                     field: np.asarray(data[prefix + "data__" + field]).copy()
                     for field in rot_data_fields
-                }
+                },
+                backbone_is_mirrored=(
+                    bool(data[mirror_key]) if mirror_key in data else False
+                ),
             )
 
         with np.load(npz_path, allow_pickle=False) as data:

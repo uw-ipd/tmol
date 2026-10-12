@@ -97,6 +97,40 @@ def _base3_encode_rotamers(rotamers_1based: np.ndarray) -> np.ndarray:
     return np.sum((rotamers_1based - 1) * exponents, axis=1, dtype=np.int32)
 
 
+def _fill_missing_rotamer_wells(
+    mapping: np.ndarray, probabilities: np.ndarray, mirrored: bool
+) -> None:
+    """Fill undefined wells using the same deterministic rule as TMol."""
+    bins = range(2, -1, -1) if mirrored else range(3)
+    defined = mapping.tolist()
+    n_chi = round(np.log(mapping.size) / np.log(3))
+    strides = [3**power for power in range(n_chi)]
+    most_common = None
+
+    for well, table in enumerate(defined):
+        if table >= 0:
+            continue
+        for stride in strides:
+            bin_index = (well // stride) % 3
+            alternatives = (
+                well + (candidate - bin_index) * stride
+                for candidate in bins
+                if candidate != bin_index
+            )
+            alternative = next(
+                (candidate for candidate in alternatives if defined[candidate] >= 0),
+                None,
+            )
+            if alternative is not None:
+                mapping[well] = defined[alternative]
+                break
+        else:
+            if most_common is None:
+                means = probabilities.reshape(probabilities.shape[0], -1).mean(1)
+                most_common = int(means.argmax())
+            mapping[well] = most_common
+
+
 # --------------------------------------------------------------------------- #
 # Pytree container for the per-pose_stack static state                        #
 # --------------------------------------------------------------------------- #
@@ -520,6 +554,16 @@ class DunbrackEnergyTerm(EnergyTerm):
                         orig_inds = _base3_encode_rotamers(alias_np[:, :alias_nchi])
                         alt_inds = _base3_encode_rotamers(alias_np[:, alias_nchi:])
                         ri2ti[ai, orig_inds] = ri2ti[ai, alt_inds]
+
+                # Native TMol never leaves a rotameric well unmapped: absent
+                # wells use the first defined one-chi neighbour (last chi
+                # inward), or the most probable row when none exists.
+                n_wells = 3**nchi
+                _fill_missing_rotamer_wells(
+                    ri2ti[ai, :n_wells],
+                    rd.rotamer_probabilities,
+                    rd.backbone_is_mirrored,
+                )
 
             bb_start[ai] = np.asarray(rd.backbone_dihedral_start, dtype=np.float32) * (
                 np.pi / 180.0
