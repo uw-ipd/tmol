@@ -1,5 +1,4 @@
-#include <torch/torch.h>
-#include <torch/script.h>
+#include <tmol/utility/tensor/native_library.hh>
 
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/tensor/context_manager.hh>
@@ -18,14 +17,15 @@ namespace potentials {
 ContextManager mgr;
 using namespace tmol::score::common;
 
-using torch::Tensor;
-using torch::autograd::AutogradContext;
-using torch::autograd::tensor_list;
+using tmol::native::Tensor;
+using tmol::native::autograd::AutogradContext;
+using tmol::native::autograd::tensor_list;
 
 template <template <tmol::Device> class DispatchMethod>
-class DunbrackPoseScoreOp
-    : public torch::autograd::Function<DunbrackPoseScoreOp<DispatchMethod>> {
+class DunbrackPoseScoreOp : public tmol::native::autograd::Function<
+                                DunbrackPoseScoreOp<DispatchMethod>> {
  public:
+  static constexpr bool capture_pose_gradient = true;
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
       // common params
@@ -81,8 +81,8 @@ class DunbrackPoseScoreOp
       Tensor block_semirotameric_tableset_offset,
       Tensor block_is_mirrored,
       bool output_block_pair_energies) {
-    at::Tensor score;
-    at::Tensor dscore_dcoords;
+    tmol::native::Tensor score;
+    tmol::native::Tensor dscore_dcoords;
 
     using Int = int32_t;
 
@@ -211,22 +211,25 @@ class DunbrackPoseScoreOp
            block_semirotameric_tableset_offset,
            block_is_mirrored});
     } else {
-      score = score.squeeze(-1).squeeze(-1);
-      ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
+      score = score.reshape({score.size(0), score.size(1)});
+      ctx->save_for_backward({dscore_dcoords});
     }
     // Satisfy the convention of returning two tensors, but with the
     // expectation that no one will be using the second tensor.
+    ctx->mark_non_differentiable({dscore_dcoords});
+    ctx->set_materialize_grads(false);
     return {score, dscore_dcoords};
   }
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    if (!grad_outputs[0].defined()) return tensor_list(46);
     auto saved = ctx->get_saved_variables();
 
-    at::Tensor dV_d_pose_coords;
+    tmol::native::Tensor dV_d_pose_coords;
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
-    if (saved.size() == 2) {
+    if (saved.size() == 1) {
       // whole-pose-score mode
       auto saved_grad = saved[0];
 
@@ -373,67 +376,67 @@ class DunbrackPoseScoreOp
         dV_d_pose_coords,
 
         // 12 common params in addition to rot_coords
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor()};
+        tmol::native::Tensor()};
   }
 };
 
 template <template <tmol::Device> class DispatchMethod>
-class DunbrackRotamerScoreOp
-    : public torch::autograd::Function<DunbrackRotamerScoreOp<DispatchMethod>> {
+class DunbrackRotamerScoreOp : public tmol::native::autograd::Function<
+                                   DunbrackRotamerScoreOp<DispatchMethod>> {
  public:
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
@@ -490,9 +493,9 @@ class DunbrackRotamerScoreOp
       Tensor block_semirotameric_tableset_offset,
       Tensor block_is_mirrored,
       bool output_block_pair_energies) {
-    at::Tensor score;
-    at::Tensor dscore_dcoords;
-    at::Tensor block_neighbors;
+    tmol::native::Tensor score;
+    tmol::native::Tensor dscore_dcoords;
+    tmol::native::Tensor block_neighbors;
 
     using Int = int32_t;
 
@@ -630,15 +633,14 @@ class DunbrackRotamerScoreOp
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
     auto saved = ctx->get_saved_variables();
 
-    at::Tensor dV_d_pose_coords;
+    tmol::native::Tensor dV_d_pose_coords;
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
     if (saved.size() == 2) {
       // whole-pose-score mode
-      auto saved_grads = ctx->get_saved_variables();
-      auto saved_grad = saved_grads[0];
-      auto pose_ind_for_atom = saved_grads[1];
+      auto saved_grad = saved[0];
+      auto pose_ind_for_atom = saved[1];
 
       tensor_list result;
 
@@ -789,61 +791,61 @@ class DunbrackRotamerScoreOp
         dV_d_pose_coords,
 
         // 12 common params in addition to rot_coords
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor()};
+        tmol::native::Tensor()};
   }
 };
 
@@ -1072,10 +1074,13 @@ std::vector<Tensor> dunbrack_rotamer_scores_op(
 }
 
 // See https://stackoverflow.com/a/3221914
-TORCH_LIBRARY(tmol_dunbrack, m) {
-  m.def("dunbrack_pose_scores", &dunbrack_pose_scores_op<DeviceOperations>);
+TMOL_LIBRARY(tmol_dunbrack, m) {
   m.def(
-      "dunbrack_rotamer_scores", &dunbrack_rotamer_scores_op<DeviceOperations>);
+      "dunbrack_pose_scores",
+      TMOL_FN(&dunbrack_pose_scores_op<DeviceOperations>));
+  m.def(
+      "dunbrack_rotamer_scores",
+      TMOL_FN(&dunbrack_rotamer_scores_op<DeviceOperations>));
 }
 
 }  // namespace potentials

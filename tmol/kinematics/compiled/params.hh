@@ -1,3 +1,4 @@
+#include <tmol/utility/tensor/native.hh>
 #pragma once
 
 #include <tmol/utility/tensor/TensorAccessor.h>
@@ -63,7 +64,7 @@ namespace tmol {
 template <typename Int>
 struct enable_tensor_view<kinematics::KinForestParams<Int>> {
   static const bool enabled = enable_tensor_view<Int>::enabled;
-  static const at::ScalarType scalar_type() {
+  static const tmol::native::ScalarType scalar_type() {
     return enable_tensor_view<Int>::scalar_type();
   }
 
@@ -79,7 +80,7 @@ struct enable_tensor_view<kinematics::KinForestParams<Int>> {
 template <typename Int>
 struct enable_tensor_view<kinematics::KinForestGenData<Int>> {
   static const bool enabled = enable_tensor_view<Int>::enabled;
-  static const at::ScalarType scalar_type() {
+  static const tmol::native::ScalarType scalar_type() {
     enable_tensor_view<Int>::scalar_type();
   }
 

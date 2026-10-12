@@ -1,5 +1,4 @@
-#include <torch/torch.h>
-#include <torch/script.h>
+#include <tmol/utility/tensor/native_library.hh>
 
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/tensor/context_manager.hh>
@@ -17,12 +16,13 @@ namespace compiled {
 
 ContextManager mgr;
 
-using torch::Tensor;
-using torch::autograd::AutogradContext;
-using torch::autograd::Function;
-using torch::autograd::tensor_list;
+using tmol::native::Tensor;
+using tmol::native::autograd::AutogradContext;
+using tmol::native::autograd::Function;
+using tmol::native::autograd::tensor_list;
 
-class PoseLeafAtomGen : public torch::autograd::Function<PoseLeafAtomGen> {
+class PoseLeafAtomGen
+    : public tmol::native::autograd::Function<PoseLeafAtomGen> {
  public:
   static Tensor forward(
       AutogradContext* ctx,
@@ -38,7 +38,7 @@ class PoseLeafAtomGen : public torch::autograd::Function<PoseLeafAtomGen> {
       Tensor block_type_atom_icoors,
       Tensor block_type_atom_ancestors_backup,
       Tensor block_type_atom_icoors_backup) {
-    at::Tensor new_coords;
+    tmol::native::Tensor new_coords;
 
     using Int = int32_t;
 
@@ -107,7 +107,7 @@ class PoseLeafAtomGen : public torch::autograd::Function<PoseLeafAtomGen> {
     auto block_type_atom_ancestors_backup = saved[i++];
     auto block_type_atom_icoors_backup = saved[i++];
 
-    at::Tensor dE_d_orig_coords;
+    tmol::native::Tensor dE_d_orig_coords;
 
     using Int = int32_t;
 
@@ -144,19 +144,19 @@ class PoseLeafAtomGen : public torch::autograd::Function<PoseLeafAtomGen> {
 
     return {
         dE_d_orig_coords,
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor()};
+        tmol::native::Tensor(),
+        tmol::native::Tensor()};
   };
 };
 
@@ -197,7 +197,7 @@ Tensor resolve_his_tautomerization(
     Tensor atom_is_present,
     Tensor his_atom_inds,
     Tensor his_remapping_dst_index) {
-  at::Tensor his_taut;
+  tmol::native::Tensor his_taut;
   TMOL_DISPATCH_FLOATING_DEVICE(coords.options(), "resolve_his_taut", ([&] {
                                   using Real = scalar_t;
                                   constexpr tmol::Device Dev = device_t;
@@ -222,9 +222,9 @@ Tensor resolve_his_tautomerization(
   return his_taut;
 }
 
-TORCH_LIBRARY(tmol_io, m) {
-  m.def("gen_pose_leaf_atoms", &pose_leaf_atom_gen_op);
-  m.def("resolve_his_taut", &resolve_his_tautomerization);
+TMOL_LIBRARY(tmol_io, m) {
+  m.def("gen_pose_leaf_atoms", TMOL_FN(&pose_leaf_atom_gen_op));
+  m.def("resolve_his_taut", TMOL_FN(&resolve_his_tautomerization));
 }
 
 }  // namespace compiled

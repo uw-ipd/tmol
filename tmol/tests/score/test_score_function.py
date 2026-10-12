@@ -2169,3 +2169,87 @@ def test_packing_releases_term_iterator_pages(topology_only):
         del indices, values
     assert n_pages == 3
     assert all(ref() is None for ref in live_pages)
+
+
+@pytest.mark.parametrize("layout", ["dense", "strided", "negative"])
+def test_whole_pose_gradient_accumulation(ubq_pdb, torch_device, layout):
+    poses = [pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=n) for n in (4, 6)]
+    pose = PoseStackBuilder.from_poses(poses, torch_device)
+    scorer = beta2016_score_function(torch_device).render_whole_pose_scoring_module(
+        pose
+    )
+    if scorer._native_score_capture is None:
+        pytest.skip("Requires stable native operators")
+    coords = pose.coords.detach().clone()
+    if layout == "strided":
+        coords = torch.stack((coords, coords), dim=1)[:, 0]
+    coords.requires_grad_()
+    if layout == "negative":
+        coords = torch._neg_view(coords)
+    # Explicitly exercise the aggregate path even where CPU execution policy
+    # selects threaded terms or weighted pair fusion instead.
+    with torch.autograd.graph.saved_tensors_hooks(lambda t: t.clone(), lambda t: t):
+        actual = scorer._score_with_gradients(coords)
+        expected = (scorer.unweighted_scores(coords) * scorer.weights).sum(0)
+        actual.mul_(1.25)
+        expected.mul_(1.25)
+        upstream = torch.tensor([0.25, -0.75], device=torch_device, requires_grad=True)
+        ga = torch.autograd.grad(
+            actual, coords, upstream, create_graph=True, retain_graph=True
+        )[0]
+        ge = torch.autograd.grad(expected, coords, upstream, create_graph=True)[0]
+        torch.testing.assert_close(actual, expected, atol=1e-3, rtol=1e-5)
+        torch.testing.assert_close(ga, ge, atol=1e-3, rtol=1e-4)
+        torch.testing.assert_close(
+            torch.autograd.grad(ga.sum(), upstream)[0],
+            torch.autograd.grad(ge.sum(), upstream)[0],
+            atol=1e-3,
+            rtol=1e-4,
+        )
+        # The ordinary backward uses the single CUDA reduction kernel.
+        ordinary = torch.autograd.grad(actual, coords, upstream.detach())[0]
+        torch.testing.assert_close(ordinary, ge, atol=1e-3, rtol=1e-4)
+
+
+@pytest.mark.parametrize("term_name", ["CartBonded", "HBond", "Disulfide"])
+def test_whole_pose_accumulation_preserves_term_hooks(
+    ubq_pdb, torch_device, monkeypatch, term_name
+):
+    monkeypatch.setattr(torch, "get_num_threads", lambda: 1)
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    scorer = beta2016_score_function(torch_device).render_whole_pose_scoring_module(
+        pose
+    )
+    if scorer._native_score_capture is None:
+        pytest.skip("Requires stable native operators")
+    term = next(t for t in scorer._execution_modules if t.classname == term_name)
+    coords = pose.coords.detach().clone().requires_grad_()
+    nested = beta2016_score_function(torch_device).render_whole_pose_scoring_module(
+        pose
+    )
+    # Hooks may transform inputs/outputs and evaluate another rendered scorer.
+    with term.register_forward_pre_hook(lambda module, args: (args[0] * 1.001,)):
+        with term.register_forward_hook(
+            lambda module, args, output: output.square()
+            + nested._score_with_gradients(args[0])
+        ):
+            actual = scorer._score_with_gradients(coords)
+            expected = (scorer.unweighted_scores(coords) * scorer.weights).sum(0)
+            torch.testing.assert_close(actual, expected, atol=1e-3, rtol=1e-5)
+            torch.testing.assert_close(
+                torch.autograd.grad(actual.sum(), coords)[0],
+                torch.autograd.grad(expected.sum(), coords)[0],
+                atol=1e-3,
+                rtol=1e-4,
+            )
+
+    # Native term parameters are held in lists, not registered module fields.
+    # Enabling gradients after rendering must still select ordinary autograd.
+    ref = next(t for t in scorer.term_modules if t.classname == "Ref")
+    pose_ref = ref.term_parameters[1].requires_grad_()
+    actual = scorer(coords)
+    expected = (scorer.unweighted_scores(coords) * scorer.weights).sum(0)
+    torch.testing.assert_close(
+        torch.autograd.grad(actual.sum(), pose_ref)[0],
+        torch.autograd.grad(expected.sum(), pose_ref)[0],
+    )

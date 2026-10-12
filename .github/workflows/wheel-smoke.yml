@@ -10,57 +10,44 @@ on:
     branches: [master]
     paths:
       - CMakeLists.txt
-      - .github/workflows/_build_macos_wheel.yml
-      - .github/workflows/_build_wheel.yml
-      - .github/workflows/publish.yml
-      - .github/workflows/wheel-smoke.yml
       - pyproject.toml
-      - scripts/release_matrix.py
-      - scripts/validate_release_manifest.py
-      - scripts/set_release_wheel_version.py
-      - .github/workflows/_test_wheel.yml
-      - .github/workflows/_test_sdist.yml
-      - .github/workflows/_test_gpu_wheel.yml
-      - .github/ci/test_release_gpu.sh
-      - scripts/release_artifacts.py
-      - scripts/test_package_install.py
-      - scripts/repair_cuda13_arm64_metadata.py
-      - scripts/smoke_installed_package.py
-      - scripts/staging_index.py
-  push:
-    branches:
-      - fix/torch-2.13-wheels
-      - fix/manylinux-wheels
-      - fix/cpu-release-matrix
+      - packages/**
+      - tmol/**
+      - scripts/**
+      - .github/workflows/**
+      - .github/ci/**
 
 concurrency:
   group: wheel-smoke-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  test-sdist:
-    uses: ./.github/workflows/_test_sdist.yml
-
-  release_matrix:
-    name: Prepare complete wheel matrix
-    if: github.event_name != 'pull_request'
+  matrix:
     runs-on: ubuntu-latest
     outputs:
       linux: ${{ steps.matrix.outputs.linux }}
+      macos: ${{ steps.matrix.outputs.macos }}
+      test: ${{ steps.matrix.outputs.test }}
     steps:
       - uses: actions/checkout@v5
+      - id: matrix
+        run: |
+          args=()
+          if [ "${{ github.event_name }}" = pull_request ]; then args+=(--smoke); fi
+          for matrix in linux macos test; do
+            echo "$matrix=$(python scripts/release_matrix.py "$matrix" "${args[@]}")" >> "$GITHUB_OUTPUT"
+          done
 
-      - name: Generate Linux wheel matrix
-        id: matrix
-        run: echo "linux=$(python scripts/release_matrix.py linux)" >> "$GITHUB_OUTPUT"
+  test-sdist:
+    uses: ./.github/workflows/_test_sdist.yml
 
   build:
     name: ${{ matrix.label }}
-    needs: release_matrix
-    if: github.event_name != 'pull_request'
+    needs: matrix
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.release_matrix.outputs.linux) }}
+      max-parallel: 7
+      matrix: ${{ fromJSON(needs.matrix.outputs.linux) }}
     uses: ./.github/workflows/_build_wheel.yml
     with:
       runs-on: ${{ matrix.runs-on }}
@@ -71,153 +58,29 @@ jobs:
       label: ${{ matrix.label }}
       pip-torch-cuda-url: ${{ matrix.torch-index-url }}
       enable-cuda: ${{ matrix.enable-cuda }}
-      cuda-archs: ${{ matrix.cuda-archs || '' }}
+      cuda-version: ${{ matrix.cuda-version }}
+      cuda-archs: ${{ matrix.cuda-archs }}
       use-manylinux-build: true
       target-arch: ${{ matrix.arch }}
 
-  build-linux-cpu:
-    name: "smoke py3.12 pt${{ matrix.torch-version }} CPU ${{ matrix.arch }}"
-    if: github.event_name == 'pull_request'
+  build-macos:
+    name: ${{ matrix.label }}
+    needs: matrix
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - { torch-version: "2.14", torch-package-version: "2.14.1", runs-on: ubuntu-22.04, arch: x86_64 }
-          - { torch-version: "2.14", torch-package-version: "2.14.1", runs-on: ubuntu-24.04-arm, arch: aarch64 }
-    uses: ./.github/workflows/_build_wheel.yml
-    with:
-      runs-on: ${{ matrix.runs-on }}
-      container-image: unused-for-manylinux-cpu
-      torch-version: ${{ matrix.torch-version }}
-      torch-package-version: ${{ matrix.torch-package-version }}
-      python-version: "3.12"
-      label: "smoke py3.12 pt${{ matrix.torch-version }} CPU ${{ matrix.arch }}"
-      pip-torch-cuda-url: "https://download.pytorch.org/whl/cpu"
-      enable-cuda: false
-      use-manylinux-build: true
-      target-arch: ${{ matrix.arch }}
-
-  # CMake and release-build changes must compile the same CUDA 13 architecture
-  # set used by tagged releases. CPU-only pull-request wheels cannot catch
-  # dropped device images or unsupported nvcc flags.
-  build-linux-cuda:
-    name: "smoke py3.12 pt${{ matrix.torch-version }} CUDA ${{ matrix.cuda-version }} x86_64"
-    if: github.event_name == 'pull_request'
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - torch-version: "2.8"
-            torch-package-version: "2.8.0"
-            cuda-version: "12.9"
-            torch-index-url: "https://download.pytorch.org/whl/cu129"
-            container-image: nvcr.io/nvidia/pytorch:25.06-py3
-          - torch-version: "2.14"
-            torch-package-version: "2.14.1"
-            cuda-version: "13.2"
-            torch-index-url: "https://download.pytorch.org/whl/cu132"
-            container-image: nvcr.io/nvidia/pytorch:26.04-py3
-    uses: ./.github/workflows/_build_wheel.yml
-    with:
-      runs-on: ubuntu-22.04
-      container-image: ${{ matrix.container-image }}
-      torch-version: ${{ matrix.torch-version }}
-      torch-package-version: ${{ matrix.torch-package-version }}
-      python-version: "3.12"
-      label: "smoke py3.12 pt${{ matrix.torch-version }} CUDA ${{ matrix.cuda-version }} x86_64"
-      pip-torch-cuda-url: ${{ matrix.torch-index-url }}
-      enable-cuda: true
-      cuda-archs: all
-      use-manylinux-build: true
-      target-arch: x86_64
-
-  test-linux-cpu:
-    name: "pip CPU ${{ matrix.arch }}"
-    needs: build-linux-cpu
-    if: github.event_name == 'pull_request'
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { runs-on: ubuntu-22.04, arch: x86_64 }
-          - { runs-on: ubuntu-24.04-arm, arch: aarch64 }
-    uses: ./.github/workflows/_test_wheel.yml
-    with:
-      runs-on: ${{ matrix.runs-on }}
-      python-version: "3.12"
-      python-tag: "312"
-      local-tag: cputorch2.14
-      arch: ${{ matrix.arch }}
-      torch-package-version: "2.14.1"
-      torch-index-url: https://download.pytorch.org/whl/cpu
-
-  test-default-pypi:
-    name: "plain pip CPU wheel with default PyPI dependencies"
-    needs: build-linux-cpu
-    if: github.event_name == 'pull_request'
-    uses: ./.github/workflows/_test_wheel.yml
-    with:
-      runs-on: ubuntu-22.04
-      python-version: "3.12"
-      python-tag: "312"
-      local-tag: cputorch2.14
-      arch: x86_64
-      torch-package-version: "2.14.1"
-      default-torch: true
-
-  test-linux-cuda:
-    name: "pip CUDA 13.2 / PyTorch 2.14"
-    needs: build-linux-cuda
-    if: github.event_name == 'pull_request'
-    uses: ./.github/workflows/_test_wheel.yml
-    with:
-      runs-on: ubuntu-22.04
-      python-version: "3.12"
-      python-tag: "312"
-      local-tag: cu132torch2.14
-      arch: x86_64
-      torch-package-version: "2.14.1"
-      torch-index-url: https://download.pytorch.org/whl/cu132
-
-  build-macos-cpu:
-    name: "smoke py${{ matrix.python-version }} pt${{ matrix.torch-version }} CPU macOS arm64"
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ${{ fromJSON(github.event_name == 'pull_request' && '["3.12"]' || '["3.11", "3.12", "3.13", "3.14"]') }}
-        torch-version: ["2.14"]
-        include:
-          - { torch-version: "2.14", torch-package-version: "2.14.1" }
+      matrix: ${{ fromJSON(needs.matrix.outputs.macos) }}
     uses: ./.github/workflows/_build_macos_wheel.yml
     with:
       python-version: ${{ matrix.python-version }}
       torch-package-version: ${{ matrix.torch-package-version }}
-      label: "smoke py${{ matrix.python-version }} pt${{ matrix.torch-version }} CPU macOS arm64"
-
-  test-macos-cpu:
-    name: "pip CPU macOS / Python ${{ matrix.python.version }}"
-    needs: build-macos-cpu
-    strategy:
-      fail-fast: false
-      matrix:
-        python: ${{ fromJSON(github.event_name == 'pull_request' && '[{"version":"3.12","tag":"312"}]' || '[{"version":"3.11","tag":"311"},{"version":"3.12","tag":"312"},{"version":"3.13","tag":"313"},{"version":"3.14","tag":"314"}]') }}
-    uses: ./.github/workflows/_test_wheel.yml
-    with:
-      runs-on: macos-15
-      python-version: ${{ matrix.python.version }}
-      python-tag: ${{ matrix.python.tag }}
-      local-tag: cputorch2.14
-      arch: arm64
-      torch-package-version: "2.14.1"
+      label: ${{ matrix.label }}
 
   test:
-    name: "pip cp${{ matrix.python-tag }} ${{ matrix.local-tag }} ${{ matrix.arch }}"
-    needs: [release_matrix, build]
-    if: github.event_name != 'pull_request'
+    name: "${{ matrix.label }} / Torch ${{ matrix.torch-package-version }}"
+    needs: [matrix, build, build-macos]
     strategy:
       fail-fast: false
-      max-parallel: 7
-      matrix: ${{ fromJSON(needs.release_matrix.outputs.linux) }}
+      matrix: ${{ fromJSON(needs.matrix.outputs.test) }}
     uses: ./.github/workflows/_test_wheel.yml
     with:
       runs-on: ${{ matrix.runs-on }}
@@ -227,16 +90,20 @@ jobs:
       arch: ${{ matrix.arch }}
       torch-package-version: ${{ matrix.torch-package-version }}
       torch-index-url: ${{ matrix.torch-index-url }}
-      portability: ${{ matrix.portability || false }}
+      portability: ${{ matrix.portability }}
 
-  gpu-runtime-smoke-pr:
-    name: Release wheel scoring on CUDA
-    needs: build-linux-cuda
-    if: github.event_name == 'pull_request'
-    uses: ./.github/workflows/_test_gpu_wheel.yml
-
-  gpu-runtime-smoke:
-    name: Release wheel scoring on CUDA
+  test-default-pypi:
     needs: build
-    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/_test_wheel.yml
+    with:
+      runs-on: ubuntu-22.04
+      python-version: "3.12"
+      python-tag: "312"
+      local-tag: cpu
+      arch: x86_64
+      torch-package-version: "2.14.1"
+      default-torch: true
+
+  test-gpu:
+    needs: build
     uses: ./.github/workflows/_test_gpu_wheel.yml

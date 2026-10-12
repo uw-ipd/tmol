@@ -1,14 +1,10 @@
+#include <tmol/utility/tensor/native.hh>
 #pragma once
 
-#include <ATen/Device.h>
 #include <stdint.h>
 #include <algorithm>
 #include <cstddef>
 #include <iterator>
-
-#include <ATen/Functions.h>
-#include <ATen/Tensor.h>
-#include <torch/extension.h>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorUtil.h>
@@ -17,13 +13,13 @@ namespace tmol {
 
 template <typename T, size_t N, Device D, PtrTag P = PtrTag::Restricted>
 struct TPack {
-  at::Tensor tensor;
+  tmol::native::Tensor tensor;
   tmol::TView<T, N, D, P> view;
 
-  TPack(at::Tensor tensor, tmol::TView<T, N, D, P> view)
+  TPack(tmol::native::Tensor tensor, tmol::TView<T, N, D, P> view)
       : tensor(tensor), view(view) {};
 
-  TPack(at::Tensor tensor)
+  TPack(tmol::native::Tensor tensor)
       : tensor(tensor), view(tmol::view_tensor<T, N, D, P>(tensor)) {};
 
   TPack() : tensor(), view() {};
@@ -35,10 +31,11 @@ struct TPack {
   // Empty
   template <
       typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
-  static auto empty(at::IntList size) -> TPack<T, N, D, P> {
+  static auto empty(tmol::native::IntList size) -> TPack<T, N, D, P> {
     return _allocate(
-        [](at::IntList size, const at::TensorOptions& options) {
-          return at::empty(size, options);
+        [](tmol::native::IntList size,
+           const tmol::native::TensorOptions& options) {
+          return tmol::native::empty(size, options);
         },
         size);
   }
@@ -48,8 +45,9 @@ struct TPack {
       typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
   static auto empty_like(Target& other) -> TPack<T, N, D, P> {
     return _allocate_like(
-        [](at::IntList size, const at::TensorOptions& options) {
-          return at::empty(size, options);
+        [](tmol::native::IntList size,
+           const tmol::native::TensorOptions& options) {
+          return tmol::native::empty(size, options);
         },
         other);
   }
@@ -57,10 +55,11 @@ struct TPack {
   // Ones
   template <
       typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
-  static auto ones(at::IntList size) -> TPack<T, N, D, P> {
+  static auto ones(tmol::native::IntList size) -> TPack<T, N, D, P> {
     return _allocate(
-        [](at::IntList size, const at::TensorOptions& options) {
-          return at::ones(size, options);
+        [](tmol::native::IntList size,
+           const tmol::native::TensorOptions& options) {
+          return tmol::native::ones(size, options);
         },
         size);
   }
@@ -70,8 +69,9 @@ struct TPack {
       typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
   static auto ones_like(Target& other) -> TPack<T, N, D, P> {
     return _allocate_like(
-        [](at::IntList size, const at::TensorOptions& options) {
-          return at::ones(size, options);
+        [](tmol::native::IntList size,
+           const tmol::native::TensorOptions& options) {
+          return tmol::native::ones(size, options);
         },
         other);
   }
@@ -79,10 +79,11 @@ struct TPack {
   // Zeros
   template <
       typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
-  static auto zeros(at::IntList size) -> TPack<T, N, D, P> {
+  static auto zeros(tmol::native::IntList size) -> TPack<T, N, D, P> {
     return _allocate(
-        [](at::IntList size, const at::TensorOptions& options) {
-          return at::zeros(size, options);
+        [](tmol::native::IntList size,
+           const tmol::native::TensorOptions& options) {
+          return tmol::native::zeros(size, options);
         },
         size);
   }
@@ -92,8 +93,9 @@ struct TPack {
       typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
   static auto zeros_like(Target& other) -> TPack<T, N, D, P> {
     return _allocate_like(
-        [](at::IntList size, const at::TensorOptions& options) {
-          return at::zeros(size, options);
+        [](tmol::native::IntList size,
+           const tmol::native::TensorOptions& options) {
+          return tmol::native::zeros(size, options);
         },
         other);
   }
@@ -102,10 +104,13 @@ struct TPack {
   template <
       typename Scalar,
       typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
-  static auto full(at::IntList size, Scalar value) -> TPack<T, N, D, P> {
+  static auto full(tmol::native::IntList size, Scalar value)
+      -> TPack<T, N, D, P> {
     return _allocate(
-        [value = value](at::IntList size, const at::TensorOptions& options) {
-          return at::full(size, value, options);
+        [value = value](
+            tmol::native::IntList size,
+            const tmol::native::TensorOptions& options) {
+          return tmol::native::full(size, value, options);
         },
         size);
   }
@@ -116,8 +121,10 @@ struct TPack {
       typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
   static auto full_like(Target& other, Scalar value) -> TPack<T, N, D, P> {
     return _allocate_like(
-        [value = value](at::IntList size, const at::TensorOptions& options) {
-          return at::full(size, value, options);
+        [value = value](
+            tmol::native::IntList size,
+            const tmol::native::TensorOptions& options) {
+          return tmol::native::full(size, value, options);
         },
         other);
   }
@@ -126,19 +133,20 @@ struct TPack {
   template <
       typename AllocFun,
       typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
-  static auto _allocate(AllocFun aten_alloc, at::IntList size)
+  static auto _allocate(AllocFun aten_alloc, tmol::native::IntList size)
       -> TPack<T, N, D, P> {
     typedef typename enable_tensor_view<T>::PrimitiveType BaseT;
 
-    at::TensorOptions target_type =
-        at::TensorOptions()
+    tmol::native::TensorOptions target_type =
+        tmol::native::TensorOptions()
             .dtype(enable_tensor_view<T>::scalar_type())
-            .device((D == Device::CPU) ? torch::kCPU : torch::kCUDA);
+            .device(
+                (D == Device::CPU) ? tmol::native::kCPU : tmol::native::kCUDA);
 
     constexpr int nconsumed_dims = enable_tensor_view<T>::nconsumed_dims;
     auto consumed_dims = enable_tensor_view<T>::consumed_dims;
 
-    at::Tensor tensor;
+    tmol::native::Tensor tensor;
 
     if (nconsumed_dims == 0) {
       tensor = aten_alloc(size, target_type);

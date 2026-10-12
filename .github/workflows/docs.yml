@@ -62,6 +62,16 @@ jobs:
       - name: execute tutorials and build docs
         run: .github/ci/run_docs_cpu_work.sh
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Check interactive documentation
+        run: |
+          npm install --prefix "$RUNNER_TEMP/tmol-docs-browser" --no-audit --no-fund playwright@1.62.1
+          "$RUNNER_TEMP/tmol-docs-browser/node_modules/.bin/playwright" install --with-deps chromium
+          NODE_PATH="$RUNNER_TEMP/tmol-docs-browser/node_modules" node .github/scripts/check_docs_explorers.cjs docs/_build/html
+
       - name: Upload rendered docs
         uses: actions/upload-artifact@v4
         with:

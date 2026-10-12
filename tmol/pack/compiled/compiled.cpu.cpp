@@ -1,3 +1,4 @@
+#include <tmol/utility/tensor/native.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/context_manager.hh>
@@ -7,8 +8,6 @@
 #include "simulated_annealing.hh"
 #include "compiled.impl.hh"
 #include "streaming_interaction_graph.impl.hh"
-
-#include <ATen/CPUGeneratorImpl.h>
 
 #include <mutex>
 #include <random>
@@ -22,10 +21,8 @@ namespace {
 // Seeded from torch's default CPU generator, as the CUDA annealer draws from
 // torch's CUDA generator, so torch.manual_seed makes either reproducible.
 std::mt19937_64 annealer_rng() {
-  auto gen = at::get_generator_or_default<at::CPUGeneratorImpl>(
-      std::nullopt, at::detail::getDefaultCPUGenerator());
-  std::lock_guard<std::mutex> lock(gen->mutex_);
-  return std::mt19937_64(gen->random64());
+  auto seed = native::random_seed_tensor({}, native::Device(native::kCPU));
+  return std::mt19937_64(static_cast<uint64_t>(seed.item<int64_t>()));
 }
 
 int random_below(std::mt19937_64& rng, int n) {

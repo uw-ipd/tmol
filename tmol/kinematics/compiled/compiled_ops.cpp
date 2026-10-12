@@ -1,5 +1,4 @@
-#include <torch/torch.h>
-#include <torch/script.h>
+#include <tmol/utility/tensor/native_library.hh>
 
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/tensor/context_manager.hh>
@@ -19,12 +18,12 @@ namespace kinematics {
 // kernel launch
 ContextManager mgr;
 
-using torch::Tensor;
-using torch::autograd::AutogradContext;
-using torch::autograd::Function;
-using torch::autograd::tensor_list;
+using tmol::native::Tensor;
+using tmol::native::autograd::AutogradContext;
+using tmol::native::autograd::Function;
+using tmol::native::autograd::tensor_list;
 
-class KinematicOp : public torch::autograd::Function<KinematicOp> {
+class KinematicOp : public tmol::native::autograd::Function<KinematicOp> {
  public:
   static Tensor forward(
       AutogradContext* ctx,
@@ -36,8 +35,8 @@ class KinematicOp : public torch::autograd::Function<KinematicOp> {
       Tensor scans_b,
       Tensor gens_b,
       Tensor kintree) {
-    at::Tensor coords;
-    at::Tensor HTs;
+    tmol::native::Tensor coords;
+    tmol::native::Tensor HTs;
 
     using Int = int32_t;
 
@@ -73,7 +72,7 @@ class KinematicOp : public torch::autograd::Function<KinematicOp> {
     auto gens_b = saved[i++];
     auto kintree = saved[i++];
 
-    at::Tensor dV_ddof;
+    tmol::native::Tensor dV_ddof;
     using Int = int32_t;
     auto dVdx = grad_outputs[0];
     TMOL_DISPATCH_FLOATING_DEVICE(HTs.options(), "kin_deriv_op", ([&] {
@@ -96,13 +95,13 @@ class KinematicOp : public torch::autograd::Function<KinematicOp> {
 
     return {
         dV_ddof,
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
     };
   }
 };
@@ -127,7 +126,7 @@ Tensor forward_only_op(
     Tensor scans_f,
     Tensor gens_f,
     Tensor kintree) {
-  at::Tensor coords;
+  tmol::native::Tensor coords;
 
   using Int = int32_t;
 
@@ -155,9 +154,9 @@ auto get_kfo_indices_for_atoms(
     Tensor pose_stack_block_type,
     Tensor block_type_n_atoms,
     Tensor block_type_atom_is_real) -> tensor_list {
-  at::Tensor block_kfo_offset_tp;
-  at::Tensor kfo_2_orig_mapping_tp;
-  at::Tensor atom_kfo_index;
+  tmol::native::Tensor block_kfo_offset_tp;
+  tmol::native::Tensor kfo_2_orig_mapping_tp;
+  tmol::native::Tensor atom_kfo_index;
   TMOL_DISPATCH_INDEX_DEVICE(
       pose_stack_block_coord_offset.options(),
       "get_kfo_indices_for_atoms",
@@ -192,8 +191,8 @@ auto get_kfo_atom_parents(
     Tensor block_type_jump_atom,                  // T
     Tensor block_type_n_conn,                     // T
     Tensor block_type_conn_atom) -> tensor_list {
-  at::Tensor kfo_parent_atoms;
-  at::Tensor kfo_grandparent_atoms;
+  tmol::native::Tensor kfo_parent_atoms;
+  tmol::native::Tensor kfo_grandparent_atoms;
   TMOL_DISPATCH_INDEX_DEVICE(
       pose_stack_block_type.options(), "get_kfo_atom_parents", ([&] {
         using Int = int32_t;  // ONLY 32-bit integers supported! No atomicAdd
@@ -229,10 +228,10 @@ auto get_children(
     Tensor kfo_parent_atoms,                   // K
     Tensor block_type_n_conn                   // T
     ) -> tensor_list {
-  at::Tensor n_children;
-  at::Tensor child_list_span;
-  at::Tensor child_list;
-  at::Tensor is_atom_jump;
+  tmol::native::Tensor n_children;
+  tmol::native::Tensor child_list_span;
+  tmol::native::Tensor child_list;
+  tmol::native::Tensor is_atom_jump;
 
   TMOL_DISPATCH_INDEX_DEVICE(
       pose_stack_block_type.options(), "get_children", ([&] {
@@ -267,11 +266,11 @@ auto get_id_and_frame_xyz(
     Tensor child_list,          // K x 3
     Tensor is_atom_jump         // K
     ) -> tensor_list {
-  at::Tensor id;
-  at::Tensor frame_x;
-  at::Tensor frame_y;
-  at::Tensor frame_z;
-  at::Tensor keep_dof_fixed;
+  tmol::native::Tensor id;
+  tmol::native::Tensor frame_x;
+  tmol::native::Tensor frame_y;
+  tmol::native::Tensor frame_z;
+  tmol::native::Tensor keep_dof_fixed;
 
   TMOL_DISPATCH_INDEX_DEVICE(
       parents.options(), "get_id_and_frame_xyz", ([&] {
@@ -623,7 +622,7 @@ auto inv_kin_dispatch(
     Tensor frame_y,
     Tensor frame_z,
     Tensor doftype) -> Tensor {
-  at::Tensor dofs;
+  tmol::native::Tensor dofs;
 
   using Int = int32_t;
 
@@ -649,22 +648,22 @@ auto inv_kin_dispatch(
 
 // See https://stackoverflow.com/a/3221914
 
-TORCH_LIBRARY(tmol_kin, m) {
-  m.def("forward_kin_op", &kinematic_op);
-  m.def("forward_only_op", &forward_only_op);
-  m.def("get_kfo_indices_for_atoms", &get_kfo_indices_for_atoms);
-  m.def("get_kfo_atom_parents", &get_kfo_atom_parents);
-  m.def("get_children", &get_children);
-  m.def("get_id_and_frame_xyz", &get_id_and_frame_xyz);
-  m.def("calculate_ff_edge_delays", &calculate_ff_edge_delays);
-  m.def("get_jump_atom_indices", &get_jump_atom_indices);
+TMOL_LIBRARY(tmol_kin, m) {
+  m.def("forward_kin_op", TMOL_FN(&kinematic_op));
+  m.def("forward_only_op", TMOL_FN(&forward_only_op));
+  m.def("get_kfo_indices_for_atoms", TMOL_FN(&get_kfo_indices_for_atoms));
+  m.def("get_kfo_atom_parents", TMOL_FN(&get_kfo_atom_parents));
+  m.def("get_children", TMOL_FN(&get_children));
+  m.def("get_id_and_frame_xyz", TMOL_FN(&get_id_and_frame_xyz));
+  m.def("calculate_ff_edge_delays", TMOL_FN(&calculate_ff_edge_delays));
+  m.def("get_jump_atom_indices", TMOL_FN(&get_jump_atom_indices));
   m.def(
       "get_block_parent_connectivity_from_toposort",
-      &get_block_parent_connectivity_from_toposort);
-  m.def("get_kinforest_scans_from_stencils", &get_scans2);
-  m.def("get_kinforest_scans_from_stencils2", &get_scans2);
-  m.def("minimizer_map_from_movemap", &minimizer_map_from_movemap);
-  m.def("inverse_kin", &inv_kin_dispatch);
+      TMOL_FN(&get_block_parent_connectivity_from_toposort));
+  m.def("get_kinforest_scans_from_stencils", TMOL_FN(&get_scans2));
+  m.def("get_kinforest_scans_from_stencils2", TMOL_FN(&get_scans2));
+  m.def("minimizer_map_from_movemap", TMOL_FN(&minimizer_map_from_movemap));
+  m.def("inverse_kin", TMOL_FN(&inv_kin_dispatch));
 }
 
 }  // namespace kinematics

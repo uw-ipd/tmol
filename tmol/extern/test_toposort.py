@@ -26,7 +26,9 @@ try:
 except ImportError:
     HAVE_TYPING = False
 
-import tmol.extern.toposort as toposort
+from importlib import import_module
+
+toposort = import_module("tmol.extern.toposort")
 
 
 class TestCase(unittest.TestCase):

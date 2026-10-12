@@ -14,7 +14,8 @@ from tmol.types import Tensor
 from tmol.database import ParameterDatabase
 from tmol.database._yaml import safe_load
 from tmol.score import ScoreType
-from tmol.score.common import ZeroTermPoseScoringModule
+from tmol.score.common import ZeroTermPoseScoringModule, TermWholePoseScoringModule
+from tmol.score.hbond import HBondEnergyTerm
 from tmol.utility._device import resolve_device
 
 # force registration of the terms with the ScoreTermFactory
@@ -166,7 +167,7 @@ def _score_call_in_thread(
 
 def _score_grad_in_thread(
     scores: torch.Tensor,
-    coords: torch.Tensor,
+    coords: torch.Tensor | torch.autograd.graph.GradientEdge,
     grad_scores: torch.Tensor,
     create_graph: bool,
 ) -> torch.Tensor | None:
@@ -219,7 +220,9 @@ class _ParallelScoreTerms(torch.autograd.Function):
             for term in term_modules
         ]
         term_scores = tuple(future.result() for future in futures)
-        ctx.term_coords = term_coords
+        # A view's current gradient edge can change after its base is mutated.
+        # Keep the edge used by these term graphs without retaining the view.
+        ctx.term_edge = torch.autograd.graph.get_gradient_edge(term_coords)
         ctx.term_scores = term_scores
         ctx.term_sizes = tuple(scores.shape[0] for scores in term_scores)
         ctx.executor = executor
@@ -243,7 +246,7 @@ class _ParallelScoreTerms(torch.autograd.Function):
             term_grad_inputs.append(
                 (
                     term_scores,
-                    ctx.term_coords,
+                    ctx.term_edge,
                     grad_scores[offset : offset + term_size],
                     create_graph,
                 )
@@ -781,7 +784,7 @@ class ScoreFunction:
         return sorted_term_list, sorted_score_type_list
 
 
-def _ljlk_elec_native_arguments(ljlk, elec, coords):
+def _ljlk_elec_native_arguments(ljlk, elec, coords, flat_coords=None):
     """Collect dtype-adjusted arguments shared by LJ/LK--Elec fusion paths."""
     ljlk_tail = ljlk._static_tail_for_coords(coords)
     elec_tail = elec._static_tail_for_coords(coords)
@@ -791,7 +794,7 @@ def _ljlk_elec_native_arguments(ljlk, elec, coords):
     lp = ljlk_tail[n_common:-1]
     ep = elec_tail[len(elec.common_parameters) : -1]
     return (
-        coords.flatten(start_dim=0, end_dim=-2),
+        coords.flatten(start_dim=0, end_dim=-2) if flat_coords is None else flat_coords,
         *common,
         lp[0],
         lp[1],
@@ -834,13 +837,15 @@ class _FusedLJLKAndElecWholePoseModule(torch.nn.Module):
     def build_compact_block_neighbors(self, coords, reach):
         return self.ljlk_module.build_compact_block_neighbors(coords, reach)
 
-    def _native_arguments(self, coords, shared_block_neighbors):
+    def _native_arguments(self, coords, shared_block_neighbors, flat_coords=None):
         return (
-            *_ljlk_elec_native_arguments(self.ljlk_module, self.elec_module, coords),
+            *_ljlk_elec_native_arguments(
+                self.ljlk_module, self.elec_module, coords, flat_coords
+            ),
             shared_block_neighbors,
         )
 
-    def forward(self, coords, shared_block_neighbors=None):
+    def forward(self, coords, shared_block_neighbors=None, *, flat_coords=None):
         if shared_block_neighbors is None:
             return torch.cat(
                 (self.ljlk_module(coords), self.elec_module(coords)), dim=0
@@ -851,18 +856,21 @@ class _FusedLJLKAndElecWholePoseModule(torch.nn.Module):
         # composite selects arguments from each child's dtype-adjusted static
         # tail rather than bypassing it and reading raw float32 parameters.
         (scores,) = ljlk_elec_pose_scores(
-            *self._native_arguments(coords, shared_block_neighbors), self.n_valid_rots
+            *self._native_arguments(coords, shared_block_neighbors, flat_coords),
+            self.n_valid_rots,
         )
         return scores
 
-    def forward_weighted(self, coords, shared_block_neighbors, score_weights):
+    def forward_weighted(
+        self, coords, shared_block_neighbors, score_weights, *, flat_coords=None
+    ):
         """Return one weighted lane while retaining the decomposed fallback."""
         from tmol.score.ljlk.potentials import ljlk_elec_weighted_pose_scores
 
         if score_weights.dtype != coords.dtype:
             score_weights = score_weights.to(dtype=coords.dtype)
         (scores,) = ljlk_elec_weighted_pose_scores(
-            *self._native_arguments(coords, shared_block_neighbors),
+            *self._native_arguments(coords, shared_block_neighbors, flat_coords),
             score_weights,
             self.n_valid_rots,
         )
@@ -912,6 +920,79 @@ def _whole_pose_execution_modules(term_modules, device):
     return tuple(grouped)
 
 
+def _score_module_has_custom_call(module):
+    return bool(
+        module._compiled_call_impl is not None
+        or "forward" in module.__dict__
+        or module._forward_pre_hooks
+        or module._forward_hooks
+        or module._backward_pre_hooks
+        or module._backward_hooks
+    )
+
+
+def _global_score_hooks():
+    from torch.nn.modules import module
+
+    return bool(
+        module._global_forward_pre_hooks
+        or module._global_forward_hooks
+        or module._global_backward_pre_hooks
+        or module._global_backward_hooks
+    )
+
+
+def _can_capture_score_term(term):
+    # Custom wrappers and hooks may transform native energies. Preserve their
+    # complete autograd graph instead of assuming its derivative is unchanged.
+    return not _score_module_has_custom_call(term) and (
+        type(term) is _FusedLJLKAndElecWholePoseModule
+        or (
+            type(term) is TermWholePoseScoringModule
+            and (
+                isinstance(term.term_score_poses, torch._ops.OpOverloadPacket)
+                # HBond's prepass runs without autograd; the native score
+                # already includes its coordinate derivatives.
+                or (
+                    getattr(term.term_score_poses, "__func__", None)
+                    is HBondEnergyTerm.pose_score_hbond
+                    and type(term.term_score_poses.__self__) is HBondEnergyTerm
+                )
+            )
+        )
+    )
+
+
+class _WholePoseScore(torch.autograd.Function):
+    """Share one autograd context and reduction for precomputed term derivatives."""
+
+    @staticmethod
+    def forward(ctx, coords, total, scorer, capture):
+        ctx.offsets = capture.offsets
+        ctx.shape = coords.shape
+        ctx.native = scorer._native_score_gradient
+        ctx.save_for_backward(scorer.weights, *capture.derivatives)
+        return total.detach()
+
+    @staticmethod
+    def backward(ctx, upstream):
+        weights, *derivatives = ctx.saved_tensors
+        gradient = None
+        if derivatives and upstream.is_cuda and not torch.is_grad_enabled():
+            gradient = ctx.native(derivatives, ctx.offsets, weights, upstream)
+            return gradient.reshape(ctx.shape), upstream, None, None
+        # Preserve upstream derivative graphs and the CPU path using Torch ops.
+        for offset, derivative in reversed(list(zip(ctx.offsets, derivatives))):
+            channels = derivative.shape[0]
+            scale = weights[offset : offset + channels] * upstream
+            weighted = (
+                derivative.reshape(channels, *ctx.shape) * scale[:, :, None, None]
+            )
+            contribution = weighted[0] if channels == 1 else weighted.sum(0)
+            gradient = contribution if gradient is None else gradient + contribution
+        return gradient, upstream, None, None
+
+
 class WholePoseScoringModule:
     """Rendered energy modules that score complete poses."""
 
@@ -925,10 +1006,20 @@ class WholePoseScoringModule:
         self._execution_modules = _whole_pose_execution_modules(
             self.term_modules, weights.device
         )
-        self._active_term_indices = tuple(
-            index
-            for index, term in enumerate(self._execution_modules)
-            if not isinstance(term, ZeroTermPoseScoringModule)
+        from tmol._cpp_lib import _native
+
+        self._native_score_capture = getattr(_native, "_ScoreCapture", None)
+        self._native_score_gradient = getattr(_native, "_score_gradient", None)
+        self._score_parameters = tuple(
+            {
+                id(p): p
+                for term in self.term_modules
+                for p in (*term.parameters(), *getattr(term, "_static_tail_f32", ()))
+                if isinstance(p, torch.Tensor) and p.is_floating_point()
+            }.values()
+        )
+        self._capture_score_terms = (
+            sum(_can_capture_score_term(t) for t in self._execution_modules) >= 2
         )
         self._has_trainable_term_parameters = any(
             parameter.requires_grad
@@ -997,8 +1088,54 @@ class WholePoseScoringModule:
             coords, self._shared_neighbor_cutoff
         )
 
+    def _score_with_gradients(self, coords):
+        flat = coords.flatten(0, -2)
+        neighbors = self._build_shared_block_neighbors(coords)
+        terms = self._execution_modules if neighbors is not None else self.term_modules
+        scores = []
+        offset = 0
+        with self._native_score_capture() as capture:
+            for term in terms:
+                if type(
+                    term
+                ) is ZeroTermPoseScoringModule and not _score_module_has_custom_call(
+                    term
+                ):
+                    # The scorer already owns the coordinate edge for constant terms.
+                    score = term.forward(coords.detach())
+                else:
+                    capture.select_term(offset, _can_capture_score_term(term))
+                    score = self._call_term(term, coords, neighbors, flat_coords=flat)
+                scores.append(score)
+                offset += score.shape[0]
+        total = torch.cat(scores).mul_(self.weights).sum(0)
+        # Fallback terms remain ordinary graph inputs; the autograd engine
+        # schedules them without a nested backward or retained graph context.
+        return _WholePoseScore.apply(coords, total, self, capture)
+
     @staticmethod
-    def _call_term(term, coords, shared_block_neighbors, fused_score_weights=None):
+    def _call_term(
+        term,
+        coords,
+        shared_block_neighbors,
+        fused_score_weights=None,
+        *,
+        flat_coords=None,
+    ):
+        if (
+            flat_coords is not None
+            and type(term)
+            in (TermWholePoseScoringModule, _FusedLJLKAndElecWholePoseModule)
+            and not _score_module_has_custom_call(term)
+        ):
+            if fused_score_weights is not None:
+                return term.forward_weighted(
+                    coords,
+                    shared_block_neighbors,
+                    fused_score_weights,
+                    flat_coords=flat_coords,
+                )
+            return term.forward(coords, shared_block_neighbors, flat_coords=flat_coords)
         if fused_score_weights is not None:
             return term.forward_weighted(
                 coords, shared_block_neighbors, fused_score_weights
@@ -1066,6 +1203,28 @@ class WholePoseScoringModule:
                 return self._cuda_graphed_forward(coords)
         if not torch.is_grad_enabled() and coords.requires_grad:
             coords = coords.detach()
+        if (
+            sum_terms
+            and apply_weights
+            and torch.is_grad_enabled()
+            and coords.requires_grad
+            and self._native_score_capture is not None
+            and self._capture_score_terms
+            and coords.dim() == 3
+            and coords.dtype == torch.float32
+            and coords.dtype == self.weights.dtype
+            and not self.weights.requires_grad
+            and not any(p.requires_grad for p in self._score_parameters)
+            and not _global_score_hooks()
+            and not self._can_use_weighted_fused_default(coords)
+            and (
+                coords.is_cuda
+                and coords.numel() < _CUDA_PARALLEL_GRAD_SCORE_MIN_COORD_ELEMENTS
+                or coords.device.type == "cpu"
+                and self._cpu_term_workers < 2
+            )
+        ):
+            return self._score_with_gradients(coords)
         fused_score_weights = None
         if sum_terms and apply_weights and self._can_use_weighted_fused_default(coords):
             weight_begin, weight_end = self._fused_ljlk_elec_weight_range
@@ -1142,6 +1301,11 @@ class WholePoseScoringModule:
             if fused_scores is not None:
                 return fused_scores
         if cpu_workers < 2:
+            flat_coords = (
+                None
+                if coords.dim() < 2 or _global_score_hooks()
+                else coords.flatten(0, -2)
+            )
             return torch.cat(
                 [
                     self._call_term(
@@ -1153,6 +1317,7 @@ class WholePoseScoringModule:
                             if index == self._fused_ljlk_elec_module_index
                             else None
                         ),
+                        flat_coords=flat_coords,
                     )
                     for index, term in enumerate(execution_modules)
                 ],

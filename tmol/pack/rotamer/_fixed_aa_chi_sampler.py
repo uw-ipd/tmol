@@ -3,10 +3,7 @@ from __future__ import annotations
 import torch
 import attr
 
-from typing import (
-    Tuple,
-    TYPE_CHECKING,
-)
+from typing import Tuple
 
 from tmol.types import (
     Tensor,
@@ -18,8 +15,6 @@ from tmol.pose import (
     PoseStack,
 )
 
-if TYPE_CHECKING:
-    from tmol.pack._packer_task import SetPackerTask  # noqa: F401
 from tmol.pack.rotamer import ChiSampler
 
 

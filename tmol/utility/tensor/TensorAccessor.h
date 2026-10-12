@@ -1,14 +1,12 @@
 #pragma once
 
-#include <ATen/Tensor.h>
-#include <torch/extension.h>
-
 #include <stdint.h>
+#include <cassert>
 #include <algorithm>
 #include <cstddef>
 #include <iterator>
 
-// Macros from #include <ATen/core/Macros.h>
+// Host/device annotations
 #ifdef __CUDACC__
 // Designates functions callable from the host (CPU) and the device (GPU)
 #define AT_HOST_DEVICE __host__ __device__

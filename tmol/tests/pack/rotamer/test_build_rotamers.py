@@ -1,4 +1,5 @@
 import numpy
+import pytest
 import torch
 from types import SimpleNamespace
 
@@ -493,6 +494,56 @@ def test_inv_kin_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
         at_met = met_rt.atom_to_idx[at]
         at_leu = leu_rt.atom_to_idx[at]
         assert torch.norm(p.coords[0, at_met, :] - reordered_coords[at_leu, :]) < 1e-5
+
+
+@pytest.mark.parametrize("indices", [[], [2, 1, 0, 1, 2]])
+@pytest.mark.parametrize("terminal_offset", [False, True])
+def test_conformer_kinforest_ragged_layout(
+    default_database, fresh_default_restype_set, torch_device, indices, terminal_offset
+):
+    """Compact fields retain residue ordering, atom gaps and independent roots."""
+    restypes = [
+        fresh_default_restype_set.restype_map[name][0] for name in ("TRP", "GLY", "LEU")
+    ]
+    pbt = PackedBlockTypes.from_restype_list(
+        default_database.chemical,
+        fresh_default_restype_set,
+        restypes,
+        device=torch_device,
+    )
+    annotate_everything(default_database.chemical, (FixedAAChiSampler(),), pbt)
+    counts = numpy.array([restypes[i].n_atoms for i in indices], dtype=numpy.int32)
+    offsets = numpy.arange(len(indices), dtype=numpy.int64) * (pbt.max_n_atoms + 7)
+    if terminal_offset:
+        # Prefix-sum layouts may include a final end offset after all starts.
+        # The public constructor historically ignores this unused entry.
+        offsets = numpy.append(offsets, len(indices) * (pbt.max_n_atoms + 7))
+    forest = construct_kinforest_for_conformers(
+        pbt,
+        numpy.array(indices, dtype=numpy.int32),
+        int(counts.sum()),
+        torch.as_tensor(counts, device=torch_device),
+        offsets,
+        torch_device,
+    )
+    for name in ("id", "doftype", "parent", "frame_x", "frame_y", "frame_z"):
+        expected = [numpy.array([-1 if name == "id" else 0], dtype=numpy.int32)]
+        start = 1
+        for i, offset in zip(indices, offsets):
+            values = getattr(restypes[i].rotamer_kinforest, name).copy()
+            if name == "id":
+                values += offset
+            elif name != "doftype":
+                values += start
+                if name == "parent":
+                    values[0] = 0
+            expected.append(values)
+            start += restypes[i].n_atoms
+        result = getattr(forest, name)
+        assert result.is_contiguous()
+        numpy.testing.assert_array_equal(
+            result.cpu().numpy(), numpy.concatenate(expected)
+        )
 
 
 def test_construct_kinforest_for_rotamers(

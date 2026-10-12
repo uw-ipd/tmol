@@ -5,14 +5,13 @@ Calculate whole-pose scores, coordinate gradients, and block-pair contributions.
 `beta2016_score_function()` provides the default all-atom weights and terms.
 
 ```python
-import biotite.structure as struc
-import biotite.structure.io
 import torch
+import tmol
 
 from tmol.io import atom_array_from_file, pose_stack_from_biotite
 from tmol.score import beta2016_score_function
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if tmol.has_cuda() and torch.cuda.is_available() else "cpu")
 structure = atom_array_from_file("1ubq.cif")
 pose_stack = pose_stack_from_biotite(structure, device)
 

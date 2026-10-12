@@ -15,17 +15,11 @@ from tmol.tests.score.common import pose_stack_from_pdb_and_resnums
 def test_build_missing_sidechains_benchmark(
     benchmark, ubq_pdb, torch_device, dun_sampler, n_poses, no_optH
 ):
-    """Rebuilding the sidechains a structure does not carry.
+    """Rebuild sidechains on CPU/CUDA, with optional proton optimization.
 
-    This is the packer as a caller reaches it, and it is the one step of pose
-    construction nothing measured: the existing benchmarks cover building a pose
-    stack and minimizing one, but not filling it in. The two ids separate the
-    rotamer search from the proton optimisation that follows it, which is the
-    comparison anyone weighing ``no_optH`` needs.
+    Coordinate/RNG reset is excluded; all device work completes before the
+    timed call returns. One iteration per round keeps each input identical.
     """
-    if torch_device == torch.device("cpu"):
-        pytest.skip("the packer is benchmarked on the GPU it runs on")
-
     pose = pose_stack_from_pdb_and_resnums(ubq_pdb, torch_device)
     pose_stack = PoseStackBuilder.from_poses([pose] * n_poses, device=torch_device)
     start_coords = pose_stack.coords.clone()
@@ -38,15 +32,22 @@ def test_build_missing_sidechains_benchmark(
     block_has_missing_atoms[:, 40:60] = True
     sfxn = beta2016_score_function(torch_device)
 
-    @benchmark
-    def run():
+    def setup():
+        torch.manual_seed(0)
         pose_stack.coords[:] = start_coords
-        build_missing_sidechains(
+        if torch_device.type == "cuda":
+            torch.cuda.synchronize(torch_device)
+
+    def run():
+        result = build_missing_sidechains(
             pose_stack=pose_stack,
             sfxn=sfxn,
             dunbrack_sampler=dun_sampler,
             no_optH=no_optH,
             block_has_missing_atoms=block_has_missing_atoms,
         )
+        if torch_device.type == "cuda":
+            torch.cuda.synchronize(torch_device)
+        return result
 
-    run
+    benchmark.pedantic(run, setup=setup, rounds=5, iterations=1, warmup_rounds=1)

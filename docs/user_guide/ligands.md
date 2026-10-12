@@ -28,14 +28,15 @@ same preparation path:
 | Covalent conjugate | `covalent_fixtures/lys_biotin_1bdo.cif` (biotinylated lysine) |
 | Covalent inhibitor | `covalent_fixtures/peptide_inhibitor_7zv5.cif` |
 
-For example:
+These fixtures are available under `tmol/tests/data` in a source checkout or
+source distribution; release wheels omit tests and fixtures. For example, load
+your own mmCIF containing a nonstandard polymer:
 
 ```python
 import torch
 from tmol.io import atom_array_from_cif, pose_stack_from_biotite
-from tmol.tests.data import data_path
 
-array = atom_array_from_cif(data_path("ncaa_fixtures", "collagen_hyp_1bkv.cif"))
+array = atom_array_from_cif("modified_polymer.cif")
 pose, context = pose_stack_from_biotite(
     array, torch.device("cuda"), prepare_ligands=True, return_context=True
 )
@@ -95,14 +96,13 @@ For full protein-ligand structures, load with Biotite and let
 `pose_stack_from_biotite()` prepare every non-standard residue:
 
 ```python
-import biotite.structure as struc
-import biotite.structure.io
 import torch
+import tmol
 
 from tmol.database import ParameterDatabase
 from tmol.io import atom_array_from_file, pose_stack_from_biotite
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if tmol.has_cuda() and torch.cuda.is_available() else "cpu")
 structure = atom_array_from_file("complex.cif")
 
 pose_stack, context = pose_stack_from_biotite(

@@ -17,7 +17,8 @@ need CMake, Ninja, and a C++ compiler; CUDA source/JIT builds additionally need
 
 ## Risks and mitigations
 
-- Binary tags are coupled to the Python ABI, PyTorch minor, and CUDA lane. The
+- Binary tags follow Python/platform; optional operators follow the CUDA major.
+  Production wheels use the stable PyTorch ABI (2.11+). The
   skill inspects these before selecting a wheel.
 - Source builds can consume substantial CPU, memory, and time. The skill exposes
   `MAX_JOBS` and does not install system toolchains without authorization.

@@ -1,4 +1,6 @@
 import importlib
+import subprocess
+import sys
 
 import pytest
 
@@ -50,3 +52,23 @@ def test_documented_fragment_interaction_helper_is_public():
     from tmol import score
 
     assert "calculate_fragment_interactions" in score.__all__
+
+
+def test_extern_import_is_independent_of_vendored_tests():
+    # Check a fresh process: pytest may already have collected the vendored tests.
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            """
+import importlib, sys, unittest
+import tmol.extern
+assert 'tmol.extern.test_toposort' not in sys.modules
+assert list(tmol.extern.toposort({'a': set()})) == [{'a'}]
+tests = importlib.import_module('tmol.extern.test_toposort')
+result = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromModule(tests))
+raise SystemExit(not result.wasSuccessful())
+""",
+        ],
+        check=True,
+    )

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Correct the known cuSPARSELt 0.8.0/0.8.1 ARM64 WHEEL tag in this environment.
+"""Correct the known cuSPARSELt 0.7.1/0.8.0/0.8.1 ARM64 WHEEL tags in this environment.
 
 PyTorch pins these NVIDIA releases. Their aarch64 wheel filenames are correct,
 but their internal tag says ``manylinux2014_sbsa``, which pip cannot recognize.
@@ -7,6 +7,7 @@ Only WHEEL and its RECORD entry are changed; version, requirements and native
 libraries are preserved. Run ``python -m pip check`` afterwards as usual.
 
 Fingerprints below come from the original wheels and their RECORD files at
+https://pypi.org/project/nvidia-cusparselt-cu12/0.7.1/ and
 https://pypi.nvidia.com/nvidia-cusparselt-cu13/ (also mirrored on PyPI).
 """
 
@@ -21,23 +22,31 @@ import platform
 import stat
 import tempfile
 
-PACKAGE = "nvidia-cusparselt-cu13"
+PACKAGES = ("nvidia-cusparselt-cu12", "nvidia-cusparselt-cu13")
 BAD_TAG = b"Tag: py3-none-manylinux2014_sbsa\n"
 GOOD_TAG = b"Tag: py3-none-manylinux2014_aarch64\n"
 WHEEL_SHA256 = "f44130c350c4a5261dabead1793c18f3c1b9d54a075af0015ae445e92cbff01b"
 LIBRARY = "nvidia/cusparselt/lib/libcusparseLt.so.0"
 # Full upstream wheel SHA-256, installed METADATA SHA-256, and library RECORD
-# digest. Never extend this list merely to silence a new pip check failure.
+# digest, and installed WHEEL SHA-256. Never extend this list merely to silence a new pip check failure.
 KNOWN = {
+    "0.7.1": (
+        "8878dce784d0fac90131b6817b607e803c36e629ba34dc5b433471382196b6a5",
+        "b264cea6951b70b52a3fd2ffaa88f9109eaf379633aa8d6e0832ecc92ddf6fba",
+        "LGd-Z40ZVabe3WYnTf5MwPkw_qZCHxuKXsCMux6hixc",
+        "6277516b4579f35a685c012370b1634b4d7f3a904f2aa91885c04006ab56253c",
+    ),
     "0.8.0": (
         "400c6ed1cf6780fc6efedd64ec9f1345871767e6a1a0a552a1ea0578117ea77c",
         "72e9b5bb91a38047d99145a1a802ad947ff555431e3bf33751cb31a5fa91f6e2",
         "IN5rNsu_V1OyaCbux1OiAFYI4Uy8O_3UaBE4CYvoaUE",
+        WHEEL_SHA256,
     ),
     "0.8.1": (
         "4dca476c50bf4780d46cd0bfbd82e2bc10a08e4fef7950917ce8d7578d22a23f",
         "353669bafb80cbf22f1324121ac05049d36a6b0fb44b1fed3fab00b513231171",
         "-7A7v40iOGcPJCVsVFIoHCpmAWKJm4OLtNDMBtrQJ98",
+        WHEEL_SHA256,
     ),
 }
 
@@ -61,7 +70,10 @@ def atomic_write(path, data):
 
 
 def repair_distribution(dist):
-    info = f"nvidia_cusparselt_cu13-{dist.version}.dist-info"
+    package = dist.metadata["Name"]
+    if package not in PACKAGES:
+        raise ValueError("Not a supported cuSPARSELt distribution")
+    info = f"{package.replace('-', '_')}-{dist.version}.dist-info"
     wheel_name = f"{info}/WHEEL"
     wheel_path = Path(dist.locate_file(wheel_name))
     record_path = Path(dist.locate_file(f"{info}/RECORD"))
@@ -69,9 +81,9 @@ def repair_distribution(dist):
     if BAD_TAG not in old_wheel:
         return False
     if dist.version not in KNOWN:
-        raise ValueError(f"Refusing to repair an unrecognized {PACKAGE} version")
-    _, metadata_hash, library_hash = KNOWN[dist.version]
-    if hashlib.sha256(old_wheel).hexdigest() != WHEEL_SHA256:
+        raise ValueError(f"Refusing to repair an unrecognized {package} version")
+    _, metadata_hash, library_hash, wheel_hash = KNOWN[dist.version]
+    if hashlib.sha256(old_wheel).hexdigest() != wheel_hash:
         raise ValueError("Refusing to change unrecognized WHEEL metadata")
     metadata = Path(dist.locate_file(f"{info}/METADATA")).read_bytes()
     if hashlib.sha256(metadata).hexdigest() != metadata_hash:
@@ -103,7 +115,7 @@ def repair_distribution(dist):
         atomic_write(wheel_path, old_wheel)
         raise
     print(
-        f"Corrected {PACKAGE} {dist.version} platform metadata: sbsa -> aarch64; "
+        f"Corrected {package} {dist.version} platform metadata: sbsa -> aarch64; "
         "verified original NVIDIA library SHA-256, native bytes unchanged."
     )
     return True
@@ -113,13 +125,13 @@ def main():
     if platform.system() != "Linux" or platform.machine() != "aarch64":
         print("cuSPARSELt ARM64 metadata repair is not needed on this platform.")
         return
-    try:
-        dist = importlib.metadata.distribution(PACKAGE)
-    except importlib.metadata.PackageNotFoundError:
-        print(f"{PACKAGE} is not installed; no metadata repair needed.")
-        return
-    if not repair_distribution(dist):
-        print(f"{PACKAGE} has no known incorrect SBSA tag; metadata unchanged.")
+    for package in PACKAGES:
+        try:
+            dist = importlib.metadata.distribution(package)
+        except importlib.metadata.PackageNotFoundError:
+            continue
+        if not repair_distribution(dist):
+            print(f"{package} has no known incorrect SBSA tag; metadata unchanged.")
 
 
 if __name__ == "__main__":

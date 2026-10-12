@@ -1,3 +1,4 @@
+#include <tmol/utility/tensor/native.hh>
 #pragma once
 
 #include <Eigen/Core>
@@ -7,8 +8,6 @@
 #include <tmol/utility/tensor/TensorCollection.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/context_manager.hh>
-
-#include <ATen/Tensor.h>
 
 namespace tmol {
 namespace pack {

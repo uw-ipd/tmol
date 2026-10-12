@@ -166,8 +166,14 @@ class TermWholePoseScoringModule(TermPoseScoringModule):
         self,
         coords,
         shared_block_neighbors=None,
+        *,
+        flat_coords=None,
     ):
-        flat = coords.flatten(start_dim=0, end_dim=-2)
+        flat = (
+            coords.flatten(start_dim=0, end_dim=-2)
+            if flat_coords is None
+            else flat_coords
+        )
         if (
             self.score_only_in_no_grad
             and not torch.is_grad_enabled()

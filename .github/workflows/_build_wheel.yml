@@ -39,6 +39,10 @@ on:
           When non-empty, reinstall PyTorch from pip using this --index-url.
           Used when the target torch version or CUDA variant differs from
           what the NGC container ships (e.g. Colab cu128 build).
+      cuda-version:
+        type: string
+        default: "13.0"
+        description: CUDA toolkit version, independent of build-time PyTorch.
       enable-cuda:
         required: false
         type: boolean
@@ -299,12 +303,11 @@ jobs:
           echo "MATRIX_TORCH_VERSION=${TORCH_VERSION}" >> "$GITHUB_ENV"
 
           if [ "${{ inputs.enable-cuda }}" = "true" ]; then
-            CUDA_VERSION=$($CONTAINER_EXEC "$CONTAINER_TARGET" bash -e -o pipefail -c "unset PYTHONPATH; export PYTHONNOUSERSITE=1; ${TARGET_VENV}/bin/python -c \"import torch; print(torch.version.cuda.replace('.','')[:3])\"")
-            echo "WHEEL_CUDA_VERSION=${CUDA_VERSION}" >> "$GITHUB_ENV"
-            echo "WHEEL_LOCAL_TAG=cu${CUDA_VERSION}torch${TORCH_VERSION}" >> "$GITHUB_ENV"
+            CUDA_VERSION="${{ inputs.cuda-version }}"
+            echo "WHEEL_LOCAL_TAG=cu${CUDA_VERSION%%.*}" >> "$GITHUB_ENV"
+            echo "CUDA_VERSION=${CUDA_VERSION}" >> "$GITHUB_ENV"
           else
-            echo "WHEEL_CUDA_VERSION=cpu" >> "$GITHUB_ENV"
-            echo "WHEEL_LOCAL_TAG=cputorch${TORCH_VERSION}" >> "$GITHUB_ENV"
+            echo "WHEEL_LOCAL_TAG=cpu" >> "$GITHUB_ENV"
           fi
 
           if [ "${{ inputs.enable-cuda }}" != "true" ]; then
@@ -344,7 +347,7 @@ jobs:
             $CONTAINER_EXEC "$CONTAINER_TARGET" bash -x -e -o pipefail -c "
             unset PYTHONPATH
             export PYTHONNOUSERSITE=1
-            CUDA_VERSION=\$(${TARGET_VENV}/bin/python -c 'import torch; print(torch.version.cuda)')
+            CUDA_VERSION='${{ inputs.cuda-version }}'
             CUDA_MAJOR=\${CUDA_VERSION%%.*}
             CUDA_MINOR=\${CUDA_VERSION#*.}
             CUDA_MINOR=\${CUDA_MINOR%%.*}
@@ -397,12 +400,6 @@ jobs:
               'cmake>=3.24,<4' 'scikit-build-core>=0.10' ninja 'packaging>=24.2' 'pybind11>=2.12' auditwheel
           "
 
-      - name: Set ABI-qualified wheel version
-        run: |
-          $CONTAINER_EXEC "$CONTAINER_TARGET" \
-            "${TARGET_VENV}/bin/python" \
-            scripts/set_release_wheel_version.py "$WHEEL_LOCAL_TAG"
-
       - name: Build wheel
         run: |
           # Full-architecture nvcc compilations can exhaust standard hosted
@@ -442,7 +439,8 @@ jobs:
               CUDA_COMPILER_DEFINE=()
             fi
             if [ "${{ inputs.enable-cuda }}" = "true" ]; then
-              CUDA_MAJOR=$('"${TARGET_VENV}"'/bin/python -c "import torch; print(torch.version.cuda.split('"'"'.'"'"')[0])")
+              CUDA_MAJOR="${{ inputs.cuda-version }}"
+              CUDA_MAJOR=${CUDA_MAJOR%%.*}
               if [ -n "${CUDA_ARCHS_OVERRIDE}" ]; then
                 CUDA_ARCHS="${CUDA_ARCHS_OVERRIDE}"
               elif [ "$CUDA_MAJOR" -ge 13 ]; then
@@ -454,14 +452,16 @@ jobs:
             export CMAKE_PREFIX_PATH=$('"${TARGET_VENV}"'/bin/python -c "import torch; print(torch.utils.cmake_prefix_path)")
             PYBIND11_CMAKE_DIR=$('"${TARGET_VENV}"'/bin/python -c "import pybind11; print(pybind11.get_cmake_dir())")
             if [ "${{ inputs.enable-cuda }}" = "true" ]; then
-              '"${TARGET_VENV}"'/bin/pip wheel . --no-build-isolation --no-deps -w dist \
+              '"${TARGET_VENV}"'/bin/pip wheel ./packages/cu${CUDA_MAJOR} --no-build-isolation --no-deps -w dist \
                 -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
+                -Ccmake.define.CMAKE_CUDA_FLAGS=--compress-mode=size \
                 "${CUDA_COMPILER_DEFINE[@]}" \
                 -Ccmake.define.pybind11_DIR="${PYBIND11_CMAKE_DIR}" \
                 -Ccmake.define.TMOL_NVCC_THREADS=1
             else
-              '"${TARGET_VENV}"'/bin/pip wheel . --no-build-isolation --no-deps -w dist \
+              '"${TARGET_VENV}"'/bin/pip wheel -v . --no-build-isolation --no-deps -w dist \
                 -Ccmake.define.TMOL_ENABLE_CUDA=OFF \
+                -Cbuild.verbose=true \
                 -Ccmake.define.pybind11_DIR="${PYBIND11_CMAKE_DIR}"
             fi
           '
@@ -532,21 +532,12 @@ jobs:
             scripts/repair_linux_wheel.sh dist
           '
 
-      - name: Record wheel name
+      - name: Audit stable ABI and wheel size
         run: |
-          $CONTAINER_EXEC "$CONTAINER_TARGET" bash -c "
-            cd /workspace
-            set -- dist/*.whl
-            test \"\$#\" -eq 1
-            wheel_name=\$(basename \"\$1\")
-            case \"\${wheel_name}\" in
-              tmol-*+${WHEEL_LOCAL_TAG}-*.whl) ;;
-              *) echo \"Unexpected wheel name: \${wheel_name}\"; exit 1 ;;
-            esac
-            echo \${wheel_name}
-          " | tail -1 > /tmp/wheel_name.txt
-          wheel_name=$(cat /tmp/wheel_name.txt)
-          echo "wheel_name=${wheel_name}" >> "$GITHUB_ENV"
+          $CONTAINER_EXEC "$CONTAINER_TARGET" "${TARGET_VENV}/bin/python" scripts/check_native_abi.py dist/*.whl
+          for wheel in dist/*.whl; do
+            test "$(wc -c < "$wheel")" -le 100000000
+          done
 
       - name: Log built wheels
         run: ls -lh dist/

@@ -8,7 +8,6 @@
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/accumulate.hh>
-#include <tmol/score/common/dispatch.hh>
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/launch_box_macros.hh>
 #include <tmol/score/common/uaid_util.hh>

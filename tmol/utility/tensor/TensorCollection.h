@@ -1,12 +1,7 @@
+#include <tmol/utility/tensor/native.hh>
 #pragma once
 
 #include <array>
-
-#include <ATen/Functions.h>
-#include <ATen/ScalarType.h>
-#include <ATen/Tensor.h>
-
-#include <torch/extension.h>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -25,7 +20,7 @@ class TCollection {
  public:
   AT_HOST TCollection() {}
 
-  AT_HOST TCollection(std::vector<at::Tensor>& tviews) {
+  AT_HOST TCollection(std::vector<tmol::native::Tensor>& tviews) {
     int n = tviews.size();
 
     tensors.resize(n);
@@ -42,7 +37,7 @@ class TCollection {
 
     // push view data to CUDA device (if necessary)
     if (D == Device::CUDA) {
-      data = decltype(data)(data_cpu.tensor.to(at::kCUDA));
+      data = decltype(data)(data_cpu.tensor.to(tmol::native::kCUDA));
     } else {
       data = decltype(data)(data_cpu.tensor);
     }
@@ -59,7 +54,7 @@ class TCollection {
 template <typename T, size_t N, Device D, PtrTag P>
 struct enable_tensor_view<tmol::TView<T, N, D, P>> {
   static const bool enabled = enable_tensor_view<uint8_t>::enabled;
-  static const at::ScalarType scalar_type() {
+  static const tmol::native::ScalarType scalar_type() {
     return enable_tensor_view<uint8_t>::scalar_type();
   }
   static const int nconsumed_dims = 1;

@@ -1,3 +1,4 @@
+#include <tmol/utility/tensor/native.hh>
 #pragma once
 
 #include <Eigen/Core>
@@ -10,8 +11,6 @@
 #include <tmol/score/common/device_operations.cpu.impl.hh>
 #include <tmol/score/common/geom.hh>
 #include <tmol/numeric/bspline_compiled/bspline.hh>
-
-#include <ATen/Tensor.h>
 
 #include "dispatch.impl.hh"
 

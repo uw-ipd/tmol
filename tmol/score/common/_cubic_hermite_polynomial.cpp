@@ -1,5 +1,4 @@
 #include <pybind11/eigen.h>
-#include <torch/extension.h>
 
 #include <tmol/score/common/cubic_hermite_polynomial.hh>
 

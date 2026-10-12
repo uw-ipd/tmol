@@ -25,34 +25,31 @@ on CPU or CUDA, with gradients through coordinate scoring.
 
 ## Install
 
-For GPU scoring on Linux with PyTorch 2.14 and CUDA 13.2:
+Install from PyPI. For GPU use, first install [PyTorch](https://pytorch.org/get-started/locally/)
+with the matching CUDA major, then choose one command:
 
 ```bash
-python -m pip install "torch==2.14.*" --only-binary=:all: --index-url https://download.pytorch.org/whl/cu132
-python -m pip install "tmol==0.1.62+cu132torch2.14" --only-binary=:all: \
-  --find-links https://uw-ipd.github.io/tmol/wheels/v0.1.62/cu132torch2.14/
+python -m pip install tmol          # CPU, including Apple Silicon
+python -m pip install "tmol[cu12]"   # CUDA 12-enabled PyTorch
+python -m pip install "tmol[cu13]"   # CUDA 13-enabled PyTorch
 ```
 
-For CPU scoring:
+The base package contains the Python API, data, and CPU kernels. GPU extras add
+`tmol-ops-cu12` or `tmol-ops-cu13` at the same version. GPU use also needs a
+compatible NVIDIA driver; pip does not detect GPUs or select a PyTorch CUDA build.
+The [installation guide](https://uw-ipd.github.io/tmol/latest/installation.html)
+covers requirements, verification, upgrades, and source builds. TMol wheels work
+across supported PyTorch minor versions; no per-Torch wheel selection is needed.
 
-```bash
-python -m pip install "tmol==0.1.62" --only-binary=:all:
-```
-
-PyPI provides CPU wheels; GitHub hosts CUDA variants. Both include AtomWorks 3
-and ligand preparation with RDKit and OpenBabel. See the
-[installation guide](https://uw-ipd.github.io/tmol/latest/installation.html)
-for other CUDA/PyTorch combinations, platform support, and source builds.
-
-Verify the installation:
-
-```bash
-python -c "import tmol; print(tmol.__version__)"
+```python
+import torch, tmol
+print(tmol.__version__, tmol.has_cuda(), torch.cuda.is_available())
 ```
 
 ## Quick start
 
-Score a structure on CPU. With a CUDA TMol wheel, use `torch.device("cuda")`:
+Score a structure on CPU. With matching CUDA-enabled PyTorch and TMol operators,
+use `torch.device("cuda")`:
 
 ```python
 import torch
@@ -67,9 +64,10 @@ print(score(pose.coords))
 ```
 
 See the [quickstart](https://uw-ipd.github.io/tmol/latest/quickstart.html) for
-minimization and ligand preparation. The
-[guides](https://uw-ipd.github.io/tmol/latest/workflows/index.html) cover batching,
-packing, score analysis, and model inputs; the
+scoring, minimization, repacking, FastRelax, batching, and ligand preparation.
+The [visual glossary](https://uw-ipd.github.io/tmol/latest/terminology.html) explains
+the concepts, and the [score playground](https://uw-ipd.github.io/tmol/latest/playground.html)
+lets you rotate a side chain and inspect TMol scores in the browser. The
 [task index](https://uw-ipd.github.io/tmol/latest/tutorial/recipe_index.html)
 links individual operations to examples and APIs.
 
@@ -78,7 +76,7 @@ links individual operations to examples and APIs.
 ```bash
 git clone https://github.com/uw-ipd/tmol.git
 cd tmol
-python -m pip install "scikit-build-core>=0.10" "cmake>=3.24,<4" "pybind11>=2.12" ninja packaging
+python -m pip install "torch>=2.14" "scikit-build-core>=0.10" "cmake>=3.24,<4" "pybind11>=2.12" ninja packaging
 python -m pip install --no-build-isolation -e ".[dev]"
 ```
 

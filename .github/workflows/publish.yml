@@ -1,4 +1,4 @@
-# Publish CUDA/CPU variants to GitHub and standard CPU wheels plus source to PyPI.
+# Publish the CPU/API package and optional CUDA operators to GitHub and PyPI.
 #
 # Tag pushes build and publish. Manual runs use current CI tools to build the
 # immutable tag, or validate existing candidates when a run ID is supplied.
@@ -87,6 +87,7 @@ jobs:
       label: ${{ matrix.label }}
       pip-torch-cuda-url: ${{ matrix.torch-index-url }}
       enable-cuda: ${{ matrix.enable-cuda }}
+      cuda-version: ${{ matrix.cuda-version }}
       cuda-archs: ${{ matrix.cuda-archs || '' }}
       use-manylinux-build: true
       target-arch: ${{ matrix.arch }}
@@ -110,6 +111,7 @@ jobs:
       label: ${{ matrix.label }}
       pip-torch-cuda-url: ${{ matrix.torch-index-url }}
       enable-cuda: ${{ matrix.enable-cuda }}
+      cuda-version: ${{ matrix.cuda-version }}
       use-manylinux-build: true
       target-arch: ${{ matrix.arch }}
 
@@ -172,17 +174,18 @@ jobs:
       runs-on: ubuntu-22.04
       python-version: "3.12"
       python-tag: "312"
-      local-tag: cputorch2.14
+      local-tag: cpu
       arch: x86_64
       torch-package-version: "2.14.1"
       default-torch: true
 
   test_gpu_runtime:
     name: Release wheel scoring on CUDA
-    needs: [verify_release_version, build_wheels]
+    needs: [verify_release_version, build_wheels, build_cpu_wheel]
     if: >-
       ${{ !cancelled() && needs.verify_release_version.result == 'success' &&
-          (needs.verify_release_version.outputs.candidate_run_id != '' || needs.build_wheels.result == 'success') }}
+          (needs.verify_release_version.outputs.candidate_run_id != '' ||
+           (needs.build_wheels.result == 'success' && needs.build_cpu_wheel.result == 'success')) }}
     uses: ./.github/workflows/_test_gpu_wheel.yml
     with:
       candidate-run-id: ${{ needs.verify_release_version.outputs.candidate_run_id }}
@@ -262,7 +265,7 @@ jobs:
           python scripts/validate_pypi_sdist.py dist/*.tar.gz
           python -m twine check --strict dist/*.tar.gz
 
-      - name: Prepare PyPI CPU wheels and versioned wheel indexes
+      - name: Prepare PyPI packages and versioned wheel indexes
         run: |
           python scripts/release_artifacts.py --wheels wheels --sdist dist/*.tar.gz --output prepared
           python -m twine check --strict prepared/pypi/*
@@ -346,7 +349,7 @@ jobs:
         run: gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds"
 
   publish_pypi:
-    name: Publish CPU wheels and source to PyPI
+    name: Publish native packages and source to PyPI
     needs: publish_indexes
     if: ${{ !cancelled() && needs.publish_indexes.result == 'success' }}
     runs-on: ubuntu-latest
@@ -371,7 +374,11 @@ jobs:
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: python -m twine upload --skip-existing prepared/pypi/*
+        run: |
+          # Publish optional backends before exposing base-package extras.
+          # Missing access to either new project must not publish a partial base release.
+          python -m twine upload --skip-existing prepared/pypi/tmol_ops_*.whl
+          python -m twine upload --skip-existing prepared/pypi/tmol-*.whl prepared/pypi/tmol-*.tar.gz
 
   verify_public:
     name: Verify public PyPI installation
@@ -403,6 +410,10 @@ jobs:
             /tmp/tmol-public/bin/pip install 'torch==2.14.*' --index-url https://download.pytorch.org/whl/cpu
           fi
           version=$RELEASE_VERSION
+          if [ "$RUNNER_OS" = Linux ]; then
+            /tmp/tmol-public/bin/pip download --no-deps --only-binary=:all: \
+              "tmol-ops-cu12==$version" "tmol-ops-cu13==$version" --dest /tmp/tmol-public-ops
+          fi
           /tmp/tmol-public/bin/pip install --no-cache-dir --only-binary=tmol "tmol==$version" --index-url https://pypi.org/simple
           /tmp/tmol-public/bin/pip check
           /tmp/tmol-public/bin/python -I scripts/smoke_installed_package.py \
