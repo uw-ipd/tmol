@@ -9,7 +9,6 @@ from functools import lru_cache
 import jax
 import jax.numpy as jnp
 
-
 _PARAMETER_COUNT = 13
 
 

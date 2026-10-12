@@ -92,8 +92,8 @@ __global__ void ljlk_pairs(
   bool active = atom_i < n_atoms && atom_j < n_atoms && atom_i < atom_j;
   int atom_base = pose * n_atoms;
   if (active) {
-    active = atom_is_real[atom_base + atom_i]
-             && atom_is_real[atom_base + atom_j];
+    active =
+        atom_is_real[atom_base + atom_i] && atom_is_real[atom_base + atom_j];
   }
 
   float delta[3] = {0.0f, 0.0f, 0.0f};
@@ -109,8 +109,8 @@ __global__ void ljlk_pairs(
     for (int xyz = 0; xyz < 3; ++xyz) {
       delta[xyz] = coords[coord_i + xyz] - coords[coord_j + xyz];
     }
-    float dist2 = delta[0] * delta[0] + delta[1] * delta[1]
-                  + delta[2] * delta[2];
+    float dist2 =
+        delta[0] * delta[0] + delta[1] * delta[1] + delta[2] * delta[2];
     global = load_global(global_values);
     active = dist2 < global.max_dis * global.max_dis;
     if (active) {
@@ -173,19 +173,14 @@ __global__ void ljlk_pairs(
 }
 
 ffi::Error validate_shapes(
-    F32R3 coords,
-    F32R3 params,
-    S32R3 bpl,
-    PredR2 real,
-    F32R1 global) {
+    F32R3 coords, F32R3 params, S32R3 bpl, PredR2 real, F32R1 global) {
   auto c = coords.dimensions();
   auto p = params.dimensions();
   auto b = bpl.dimensions();
   auto r = real.dimensions();
-  if (c[2] != 3 || p[0] != c[0] || p[1] != c[1]
-      || p[2] != kParams || b[0] != c[0] || b[1] != c[1]
-      || b[2] != c[1] || r[0] != c[0] || r[1] != c[1]
-      || global.element_count() != 5) {
+  if (c[2] != 3 || p[0] != c[0] || p[1] != c[1] || p[2] != kParams
+      || b[0] != c[0] || b[1] != c[1] || b[2] != c[1] || r[0] != c[0]
+      || r[1] != c[1] || global.element_count() != 5) {
     return ffi::Error::InvalidArgument("incompatible LJ/LK FFI shapes");
   }
   return ffi::Error::Success();

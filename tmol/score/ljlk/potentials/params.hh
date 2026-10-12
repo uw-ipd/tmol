@@ -11,7 +11,6 @@ namespace score {
 namespace ljlk {
 namespace potentials {
 
-
 template <typename Real, tmol::Device D>
 struct LJTypeParamTensors {
   TView<Real, 1, D> lj_radius;
