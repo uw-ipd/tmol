@@ -1,14 +1,19 @@
 Model coordinate inputs
 =======================
 
-Run `Model inputs <https://colab.research.google.com/github/uw-ipd/tmol/blob/ae1d35c6ecd243bdeba84d83ee3ce49e7254de81/notebooks/example_02_model_inputs.ipynb>`_
-in Colab or open ``notebooks/example_02_model_inputs.ipynb`` locally for editable
+Run `Model inputs <https://colab.research.google.com/github/uw-ipd/tmol/blob/master/docs/model_input_example.ipynb>`_
+in Colab or open ``docs/model_input_example.ipynb`` locally for editable
 adapters, saved predictions, and gradient checks.
+
+.. toctree::
+   :maxdepth: 1
+
+   model_input_example
 
 Map model coordinates to named residues and atoms, then build TMol canonical
 tensors. Keep model-specific keys and layouts in your application: TMol provides
-``CanonicalOrdering`` / ``CanonicalForm``, but no longer provides OpenFold or
-RoseTTAFold2 input adapters.
+``CanonicalOrdering`` and ``CanonicalForm`` for these mappings. The notebook
+provides editable OpenFold and RoseTTAFold2 examples.
 
 Declare a layout once
 ---------------------
@@ -22,16 +27,14 @@ prediction. In particular, do not infer an encoding solely from 14 or 37 slots.
 
 The notebook's ``prepare_named_layout`` function prepares these mappings once
 and binds coordinates using Torch indexed assignment. It accepts batched
-tensors, uses ``chain_id=-1``
-for explicit residue padding, and distinguishes unobserved atoms from padded
+tensors, uses ``chain_id=-1`` for explicit residue padding, and distinguishes unobserved atoms from padded
 residues. Finite supplied coordinates remain connected to autograd. Missing
 coordinates are NaN triplets; infinity and partially finite triplets are rejected.
 
 The adapter uses the default chemical database and rebuilds the pose on each
 iteration; it caches only the source mapping. Supply all required heavy atoms.
 The adapter does not pack missing side chains. Missing terminal atoms and
-hydrogens use the
-shared tmol construction code. For arbitrary ligands, PTMs or nucleic acids,
+hydrogens use the shared TMol construction code. For arbitrary ligands, PTMs or nucleic acids,
 prepare a ``PoseBuildContext`` from annotated AtomArray topology first and use
 its matching canonical ordering, packed types and connectivity.
 

@@ -30,7 +30,7 @@
 
     <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/togglebutton.css?v=9c3e77be" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=b5f2a73e" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=adb9cd23" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../../../../_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
@@ -38,7 +38,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../../_static/documentation_options.js?v=cc64e7de"></script>
+    <script src="../../../../_static/documentation_options.js?v=a395f30a"></script>
     <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -48,6 +48,7 @@
     <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/score/density/_fast_density';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="../../../../_static/tmol-explorers.js?v=089c5f52"></script>
     <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/score/density/_fast_density.html" />
     <link rel="icon" href="../../../../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../../../../genindex.html" />
@@ -56,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.62" />
+  <meta name="docsearch:version" content="0.1.64" />
   
     
     <script src="../../../../_static/searchtools.js"></script>
@@ -163,8 +164,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../workflows/index.html">
-    Guides
+  <a class="nav-link nav-internal" href="../../../../terminology.html">
+    Glossary
   </a>
 </li>
 
@@ -297,8 +298,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../workflows/index.html">
-    Guides
+  <a class="nav-link nav-internal" href="../../../../terminology.html">
+    Glossary
   </a>
 </li>
 
@@ -429,22 +430,22 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.score.density._fast_density</h1><div class="highlight"><pre>
-<span></span><span class="sd">"""Rosetta-style ``elec_dens_fast`` score grid.</span>
+<span></span><span class="sd">"""Rosetta-style elec_dens_fast score grid.</span>
 
-<span class="sd">The score of an atom at ``x`` is a precomputed, normalized, zero-mean correlation</span>
-<span class="sd">of the observed map with a single atom-sized Gaussian, read at ``x`` by a cubic</span>
-<span class="sd">B-spline::</span>
+<span class="sd">The score of an atom at x is a precomputed, normalized, zero-mean correlation</span>
+<span class="sd">of the observed map with a single atom-sized Gaussian, read at x by a cubic</span>
+<span class="sd">B-spline whose coefficients are the grid values themselves (a smoothing, not an</span>
+<span class="sd">interpolating, spline; this matches what Rosetta computes):</span>
 
-<span class="sd">    S      = IFFT( FFT(rho - mean) * FFT(K - mean) )              periodic convolution</span>
+<span class="sd">    S      = IFFT( FFT(rho - mean) * FFT(K - mean) )</span>
 <span class="sd">    S_norm = S / ( 4 * (S_(5th largest) - S_(5th smallest)) )</span>
-<span class="sd">    E_atom = - (a_elt / 6) * S_norm(x)</span>
+<span class="sd">    E_atom = - (trunc(a_elt) / 6) * S_norm(x)</span>
 
-<span class="sd">``K = k^1.5 exp(-k d^2)`` is truncated where it falls below ``density_cutoff``,</span>
-<span class="sd">with ``k = min(pi^2 / sigma_C, 4 pi^2 / B_eff)`` and</span>
-<span class="sd">``B_eff = 4 max(2 voxel, resolution)^2``. This is a linear correlation, not a</span>
-<span class="sd">Pearson CC: there is no normalization by the model density.</span>
+<span class="sd">K = k^1.5 exp(-k d^2) is truncated where it falls below density_cutoff, with</span>
+<span class="sd">k = min(pi^2 / sigma_C, 4 pi^2 / B_eff) and B_eff = 4 max(2 voxel, resolution)^2.</span>
+<span class="sd">This is a linear correlation, not a Pearson CC.</span>
 
-<span class="sd">This reimplements the algorithm of Rosetta's ``elec_dens_fast``; no Rosetta source</span>
+<span class="sd">This reimplements the algorithm of Rosetta's elec_dens_fast; no Rosetta source</span>
 <span class="sd">code is included.</span>
 <span class="sd">"""</span>
 
@@ -454,149 +455,157 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">.density</span><span class="w"> </span><span class="kn">import</span> <span class="n">ElectronDensityMap</span><span class="p">,</span> <span class="n">_CRYOEM_SCATTERERS</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.density</span><span class="w"> </span><span class="kn">import</span> <span class="n">ElectronDensityMap</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.potentials</span><span class="w"> </span><span class="kn">import</span> <span class="n">_compiled</span> <span class="k">as</span> <span class="n">compiled</span>
+
+<span class="c1"># cubic B-spline support beyond the containing voxel</span>
+<span class="n">_SPLINE_MARGIN</span> <span class="o">=</span> <span class="mi">2</span>
 
 
 <div class="viewcode-block" id="FastDensityScore">
 <a class="viewcode-back" href="../../../../api/score_terms.html#tmol.score.density.FastDensityScore">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">FastDensityScore</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Differentiable ``elec_dens_fast`` score grid, B-spline interpolated in position.</span>
+<span class="w">    </span><span class="sd">"""Differentiable elec_dens_fast score grid, read by a cubic B-spline.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        density_map: Observed map (``[z, y, x]`` values; Cartesian ``origin`` and</span>
-<span class="sd">            ``voxel_size`` in ``[x, y, z]``).</span>
-<span class="sd">        resolution: Map resolution in Angstrom; it sets the kernel width as</span>
-<span class="sd">            Rosetta's ``-edensity::mapreso`` does.</span>
-<span class="sd">        fastdens_params: Rosetta ``-edensity::fastdens_params``, a constant scale of</span>
-<span class="sd">            the kernel.</span>
-<span class="sd">        normalisation_cut: The score range is taken between this-th smallest and</span>
-<span class="sd">            this-th largest grid value.</span>
-<span class="sd">        scalefactor: Rosetta's normalization scale (the score is divided by</span>
-<span class="sd">            ``scalefactor / 2`` times the range).</span>
-<span class="sd">        density_cutoff: The atom kernel is truncated where it falls below this value.</span>
+<span class="sd">        density_map: Observed map; its resolution sets the kernel width.</span>
+<span class="sd">        carbon_sigma: Intrinsic width of the carbon scatterer; caps the kernel</span>
+<span class="sd">            sharpness at high resolution.</span>
+<span class="sd">        periodic: Treat the map as one period of an infinite lattice. If False,</span>
+<span class="sd">            the map is zero-padded by the kernel radius and atoms off the padded</span>
+<span class="sd">            grid score zero.</span>
+<span class="sd">        normalization_cut: The score range is taken between the this-th</span>
+<span class="sd">            smallest and this-th largest grid value.</span>
+<span class="sd">        scalefactor: The score is divided by scalefactor / 2 times the range.</span>
+<span class="sd">        density_cutoff: The atom kernel is truncated where it falls below this.</span>
 <span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">density_map</span><span class="p">:</span> <span class="n">ElectronDensityMap</span><span class="p">,</span>
-        <span class="n">resolution</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">carbon_sigma</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">fastdens_params</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">),</span>
-        <span class="n">normalisation_cut</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="n">periodic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">normalization_cut</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
         <span class="n">scalefactor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">8.0</span><span class="p">,</span>
         <span class="n">density_cutoff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span><span class="p">,</span>
     <span class="p">):</span>
+        <span class="n">resolution</span> <span class="o">=</span> <span class="n">density_map</span><span class="o">.</span><span class="n">resolution</span>
         <span class="k">if</span> <span class="n">resolution</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"resolution must be positive"</span><span class="p">)</span>
-        <span class="n">rho</span> <span class="o">=</span> <span class="n">density_map</span><span class="o">.</span><span class="n">density</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span>
-            <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>  <span class="c1"># [z, y, x] -&gt; [x, y, z]</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="n">density_map</span><span class="o">.</span><span class="n">density</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># [z, y, x] -&gt; [x, y, z]</span>
         <span class="n">dev</span><span class="p">,</span> <span class="n">dt</span> <span class="o">=</span> <span class="n">rho</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">rho</span><span class="o">.</span><span class="n">dtype</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">rho</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">basis</span> <span class="o">=</span> <span class="n">density_map</span><span class="o">.</span><span class="n">voxel_basis</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dev</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">origin</span> <span class="o">=</span> <span class="n">density_map</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dev</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">voxel</span> <span class="o">=</span> <span class="n">density_map</span><span class="o">.</span><span class="n">voxel_size</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dev</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">resolution</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inv_basis</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">basis</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">periodic</span> <span class="o">=</span> <span class="n">periodic</span>
 
-        <span class="n">sigma_carbon</span> <span class="o">=</span> <span class="n">_CRYOEM_SCATTERERS</span><span class="p">[</span><span class="mi">6</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">effective_b</span> <span class="o">=</span> <span class="mf">4.0</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">voxel</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolution</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">k</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="n">sigma_carbon</span><span class="p">,</span> <span class="mf">4.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="n">effective_b</span><span class="p">)</span>
-        <span class="n">amp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="o">**</span><span class="mf">1.5</span>
-        <span class="n">kernel_radius_sq</span> <span class="o">=</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">amp</span><span class="p">)</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">density_cutoff</span><span class="p">))</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">k</span>
+        <span class="n">max_spacing</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">basis</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+        <span class="n">effective_b</span> <span class="o">=</span> <span class="mf">4.0</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">max_spacing</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">resolution</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="n">carbon_sigma</span><span class="p">,</span> <span class="mf">4.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="n">effective_b</span><span class="p">)</span>
+        <span class="n">amp</span> <span class="o">=</span> <span class="n">k</span><span class="o">**</span><span class="mf">1.5</span>
+        <span class="n">kernel_radius_sq</span> <span class="o">=</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">amp</span><span class="p">)</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">density_cutoff</span><span class="p">))</span> <span class="o">/</span> <span class="n">k</span>
 
-        <span class="c1"># periodic minimal-image squared distance from the origin voxel</span>
-        <span class="n">d2</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">for</span> <span class="n">axis</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">periodic</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pad</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">rho</span> <span class="o">=</span> <span class="n">rho</span> <span class="o">-</span> <span class="n">rho</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># grid steps covering the kernel radius along each axis: the</span>
+            <span class="c1"># distance between adjacent lattice planes is 1 / |row of inv_basis|</span>
+            <span class="n">reach</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">kernel_radius_sq</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">inv_basis</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pad</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">r</span><span class="p">))</span> <span class="o">+</span> <span class="n">_SPLINE_MARGIN</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">reach</span><span class="p">)</span>
+            <span class="n">rho</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+                <span class="n">rho</span> <span class="o">-</span> <span class="n">rho</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">[</span><span class="mi">2</span><span class="p">],)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">[</span><span class="mi">1</span><span class="p">],)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">[</span><span class="mi">0</span><span class="p">],)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">rho</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+        <span class="c1"># squared Cartesian length of the minimal-image grid offset of each voxel</span>
+        <span class="n">metric</span> <span class="o">=</span> <span class="n">basis</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">basis</span>
+        <span class="n">offsets</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">axis</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">shape</span><span class="p">):</span>
             <span class="n">idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">dev</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
-            <span class="n">off</span> <span class="o">=</span> <span class="p">((</span><span class="n">idx</span> <span class="o">+</span> <span class="n">n</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span> <span class="o">%</span> <span class="n">n</span> <span class="o">-</span> <span class="n">n</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">voxel</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span>
             <span class="n">view</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
             <span class="n">view</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">=</span> <span class="n">n</span>
-            <span class="n">term</span> <span class="o">=</span> <span class="p">(</span><span class="n">off</span> <span class="o">*</span> <span class="n">off</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">view</span><span class="p">)</span>
-            <span class="n">d2</span> <span class="o">=</span> <span class="n">term</span> <span class="k">if</span> <span class="n">d2</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">d2</span> <span class="o">+</span> <span class="n">term</span>
-        <span class="n">kernel</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
-            <span class="n">d2</span> <span class="o">&lt;=</span> <span class="n">kernel_radius_sq</span><span class="p">,</span> <span class="n">amp</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span> <span class="o">*</span> <span class="n">d2</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">d2</span><span class="p">)</span>
-        <span class="p">)</span>
-        <span class="n">kernel</span> <span class="o">=</span> <span class="n">kernel</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="n">fastdens_params</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="n">fastdens_params</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">offsets</span><span class="o">.</span><span class="n">append</span><span class="p">(((</span><span class="n">idx</span> <span class="o">+</span> <span class="n">n</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span> <span class="o">%</span> <span class="n">n</span> <span class="o">-</span> <span class="n">n</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">view</span><span class="p">))</span>
+        <span class="n">d2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">dev</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+                <span class="n">d2</span> <span class="o">+=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">j</span> <span class="k">else</span> <span class="mf">2.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">metric</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">*</span> <span class="n">offsets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">offsets</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+        <span class="n">kernel</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">d2</span> <span class="o">&lt;=</span> <span class="n">kernel_radius_sq</span><span class="p">,</span> <span class="n">amp</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">k</span> <span class="o">*</span> <span class="n">d2</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">d2</span><span class="p">,</span> <span class="n">offsets</span>
 
-        <span class="c1"># zero-mean both maps (the DC term of each spectrum is zero); multiplying</span>
-        <span class="c1"># the spectra is a periodic convolution</span>
-        <span class="n">f_rho</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">rfftn</span><span class="p">(</span><span class="n">rho</span><span class="p">)</span>
-        <span class="n">f_rho</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1"># zero-mean both maps (zero DC term); multiplying spectra is a convolution</span>
+        <span class="n">spectrum</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">rfftn</span><span class="p">(</span><span class="n">rho</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">rho</span>
         <span class="n">f_ker</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">rfftn</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
-        <span class="n">f_ker</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">score</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">irfftn</span><span class="p">(</span><span class="n">f_rho</span> <span class="o">*</span> <span class="n">f_ker</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">kernel</span>
+        <span class="n">spectrum</span> <span class="o">*=</span> <span class="n">f_ker</span>
+        <span class="k">del</span> <span class="n">f_ker</span>
+        <span class="n">spectrum</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">score</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">irfftn</span><span class="p">(</span><span class="n">spectrum</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">spectrum</span>
 
         <span class="n">flat</span> <span class="o">=</span> <span class="n">score</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">lo</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">kthvalue</span><span class="p">(</span><span class="n">flat</span><span class="p">,</span> <span class="n">normalisation_cut</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
-        <span class="n">hi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">kthvalue</span><span class="p">(</span><span class="n">flat</span><span class="p">,</span> <span class="n">flat</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">-</span> <span class="n">normalisation_cut</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">lo</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">flat</span><span class="p">,</span> <span class="n">normalization_cut</span><span class="p">,</span> <span class="n">largest</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">hi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">flat</span><span class="p">,</span> <span class="n">normalization_cut</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">sigma</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">scalefactor</span> <span class="o">*</span> <span class="p">(</span><span class="n">hi</span> <span class="o">-</span> <span class="n">lo</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">sigma</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">float</span><span class="p">(</span><span class="n">sigma</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"density score grid is degenerate (map is constant?)"</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">=</span> <span class="n">score</span> <span class="o">/</span> <span class="n">sigma</span>
+        <span class="n">score</span> <span class="o">/=</span> <span class="n">sigma</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coeffs</span> <span class="o">=</span> <span class="n">score</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="n">shape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_table_cache</span> <span class="o">=</span> <span class="p">{}</span>
 
-        <span class="c1"># interpolating cubic B-spline: coefficients c with</span>
-        <span class="c1"># (c[i-1] + 4 c[i] + c[i+1]) / 6 = score[i] (periodic)</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">for</span> <span class="n">axis</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">):</span>
-            <span class="n">freq</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">rfftfreq</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">dev</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">axis</span> <span class="o">==</span> <span class="mi">2</span>
-                <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftfreq</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">dev</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_tables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Grid, origin, inverse basis and padding in the given dtype and device."""</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table_cache</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_table_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">coeffs</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">inv_basis</span><span class="p">,</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span>
+                <span class="p">)</span>
             <span class="p">)</span>
-            <span class="n">resp</span> <span class="o">=</span> <span class="p">(</span><span class="mf">4.0</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">freq</span><span class="p">))</span> <span class="o">/</span> <span class="mf">6.0</span>
-            <span class="n">view</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-            <span class="n">view</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span>
-            <span class="n">resp</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">view</span><span class="p">)</span>
-            <span class="n">response</span> <span class="o">=</span> <span class="n">resp</span> <span class="k">if</span> <span class="n">response</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">response</span> <span class="o">*</span> <span class="n">resp</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">coeffs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">irfftn</span><span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">rfftn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">score</span><span class="p">)</span> <span class="o">/</span> <span class="n">response</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_dims</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">dev</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
-    <span class="nd">@staticmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">amplitude</span><span class="p">(</span><span class="n">atomic_numbers</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Rosetta's per-element amplitude ``trunc(a) / 6``; unknown ones are carbon."""</span>
-        <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-            <span class="n">atomic_numbers</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
-            <span class="nb">float</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">trunc</span><span class="p">(</span><span class="n">_CRYOEM_SCATTERERS</span><span class="p">[</span><span class="mi">6</span><span class="p">][</span><span class="mi">0</span><span class="p">])),</span>
-            <span class="n">device</span><span class="o">=</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">score</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">atom_index</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">atom_group</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">atom_weight</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">n_groups</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Sum of -atom_weight * S(coords[atom_index]) into n_groups slots.</span>
+
+<span class="sd">        coords is [n, 3]; atom_index entries must be distinct. Differentiable in</span>
+<span class="sd">        coords.</span>
+<span class="sd">        """</span>
+        <span class="n">coeffs</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">inv_basis</span><span class="p">,</span> <span class="n">pad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tables</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">compiled</span><span class="o">.</span><span class="n">density_score</span><span class="p">(</span>
+            <span class="n">coords</span><span class="o">.</span><span class="n">contiguous</span><span class="p">(),</span>
+            <span class="n">coeffs</span><span class="p">,</span>
+            <span class="n">origin</span><span class="p">,</span>
+            <span class="n">inv_basis</span><span class="p">,</span>
+            <span class="n">pad</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">periodic</span><span class="p">,</span>
+            <span class="n">atom_index</span><span class="p">,</span>
+            <span class="n">atom_group</span><span class="p">,</span>
+            <span class="n">atom_weight</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+            <span class="n">n_groups</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">for</span> <span class="n">z</span><span class="p">,</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="n">_CRYOEM_SCATTERERS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
-                <span class="n">atomic_numbers</span> <span class="o">==</span> <span class="n">z</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">trunc</span><span class="p">(</span><span class="n">a</span><span class="p">))),</span> <span class="n">out</span>
-            <span class="p">)</span>
-        <span class="k">return</span> <span class="n">out</span> <span class="o">/</span> <span class="mf">6.0</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xyz</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Normalized score at points ``xyz [..., 3]`` (periodic), differentiable."""</span>
-        <span class="n">u</span> <span class="o">=</span> <span class="p">(</span><span class="n">xyz</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">xyz</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">voxel</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">xyz</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dims</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="n">u</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">remainder</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">n</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-        <span class="n">i0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">u</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
-        <span class="n">t</span> <span class="o">=</span> <span class="n">u</span> <span class="o">-</span> <span class="n">i0</span>
-        <span class="n">i0</span> <span class="o">=</span> <span class="n">i0</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
-        <span class="n">t2</span><span class="p">,</span> <span class="n">t3</span> <span class="o">=</span> <span class="n">t</span> <span class="o">*</span> <span class="n">t</span><span class="p">,</span> <span class="n">t</span> <span class="o">*</span> <span class="n">t</span> <span class="o">*</span> <span class="n">t</span>
-        <span class="n">w</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
-            <span class="p">[</span>
-                <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">t</span><span class="p">)</span> <span class="o">**</span> <span class="mi">3</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">,</span>
-                <span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">t3</span> <span class="o">-</span> <span class="mi">6</span> <span class="o">*</span> <span class="n">t2</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">,</span>
-                <span class="p">(</span><span class="o">-</span><span class="mi">3</span> <span class="o">*</span> <span class="n">t3</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">t2</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">,</span>
-                <span class="n">t3</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">,</span>
-            <span class="p">],</span>
-            <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
-        <span class="p">)</span>  <span class="c1"># [..., 3 (axis), 4 (offset)]</span>
-        <span class="n">offs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="n">idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">remainder</span><span class="p">(</span>
-            <span class="n">i0</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">offs</span><span class="p">,</span> <span class="n">n</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">*</span><span class="p">([</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">i0</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)),</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="p">)</span>
-        <span class="n">ix</span><span class="p">,</span> <span class="n">iy</span><span class="p">,</span> <span class="n">iz</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">idx</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
-            <span class="n">idx</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">],</span>
-            <span class="n">idx</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:],</span>
-        <span class="p">)</span>
-        <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coeffs</span><span class="p">[</span><span class="n">ix</span><span class="p">,</span> <span class="n">iy</span><span class="p">,</span> <span class="n">iz</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
-            <span class="s2">"...abc,...a,...b,...c-&gt;..."</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">w</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:],</span> <span class="n">w</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="n">w</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">:]</span>
-        <span class="p">)</span></div>
+<span class="w">        </span><span class="sd">"""Normalized score at points xyz [..., 3], differentiable."""</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="n">xyz</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">points</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">xyz</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">weight</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">points</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">xyz</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">points</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">value</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">xyz</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span></div>
 
 </pre></div>
 

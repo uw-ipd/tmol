@@ -31,7 +31,7 @@
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
-    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=b5f2a73e" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=adb9cd23" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=cc64e7de"></script>
+    <script src="../_static/documentation_options.js?v=a395f30a"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -49,6 +49,7 @@
     <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'api/database';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="../_static/tmol-explorers.js?v=089c5f52"></script>
     <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/api/database.html" />
     <link rel="icon" href="../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -59,7 +60,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.62" />
+  <meta name="docsearch:version" content="0.1.64" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -166,8 +167,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../workflows/index.html">
-    Guides
+  <a class="nav-link nav-internal" href="../terminology.html">
+    Glossary
   </a>
 </li>
 
@@ -302,8 +303,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../workflows/index.html">
-    Guides
+  <a class="nav-link nav-internal" href="../terminology.html">
+    Glossary
   </a>
 </li>
 
@@ -582,7 +583,7 @@ is patched against the same set.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="tmol.database.ScoringDatabase">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmol.database.</span></span><span class="sig-name descname"><span class="pre">ScoringDatabase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cartbonded</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">CartBondedDatabase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">genbonded</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">GenBondedDatabase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disulfide</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DisulfideDatabase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metal_coordination</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MetalCoordinationDatabase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">na_torsion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">NaTorsionDatabase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dun</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DunbrackRotamerLibrary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ElecDatabase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hbond</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">HBondDatabase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ljlk</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LJLKDatabase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega_bbdep</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">OmegaBBDepDatabase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rama</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">RamaDatabase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">RefDatabase</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring.html#ScoringDatabase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.database.ScoringDatabase" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmol.database.</span></span><span class="sig-name descname"><span class="pre">ScoringDatabase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cartbonded</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">CartBondedDatabase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">genbonded</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">GenBondedDatabase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disulfide</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DisulfideDatabase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metal_coordination</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">MetalCoordinationDatabase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">na_torsion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">NaTorsionDatabase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dun</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DunbrackRotamerLibrary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ElecDatabase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elec_dens</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ElecDensDatabase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hbond</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">HBondDatabase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ljlk</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LJLKDatabase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega_bbdep</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">OmegaBBDepDatabase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rama</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">RamaDatabase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">RefDatabase</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring.html#ScoringDatabase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.database.ScoringDatabase" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Immutable parameters for all standard TMol energy terms.</p>
 <dl class="py method">

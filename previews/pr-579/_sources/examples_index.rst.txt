@@ -5,10 +5,10 @@ Runnable notebooks with molecular viewers, plots, and exercises. Start with
 01–03, then use packing (04) and minimization (05) before FastRelax (06).
 For a specific operation, use the :doc:`task index <tutorial/recipe_index>`.
 
-In Colab, select **Runtime → Change runtime type → T4 GPU**, then **Run all**.
-The setup cell installs TMol and downloads the example data. The bootstrap
-supports Python 3.12/3.13, PyTorch 2.11, and CUDA 12.8, including Colab's
-**2026.07** runtime. For local execution, follow :doc:`installation`.
+In Colab, select a GPU under **Runtime → Change runtime type**, then **Run all**.
+The shared setup installs a tested TMol release with operators matching Colab's
+PyTorch CUDA major and downloads the example data. For local notebooks and
+supported environments, follow :doc:`installation`.
 
 .. nbgallery::
    :caption: Basics

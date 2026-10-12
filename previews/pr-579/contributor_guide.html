@@ -31,7 +31,7 @@
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=9c3e77be" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=b5f2a73e" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=adb9cd23" />
   
   <!-- So that users can add custom icons -->
   <script defer src="_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=cc64e7de"></script>
+    <script src="_static/documentation_options.js?v=a395f30a"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -49,6 +49,7 @@
     <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'contributor_guide';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="_static/tmol-explorers.js?v=089c5f52"></script>
     <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/contributor_guide.html" />
     <link rel="icon" href="_static/favicon.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
@@ -59,7 +60,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.62" />
+  <meta name="docsearch:version" content="0.1.64" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -166,8 +167,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="workflows/index.html">
-    Guides
+  <a class="nav-link nav-internal" href="terminology.html">
+    Glossary
   </a>
 </li>
 
@@ -302,8 +303,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="workflows/index.html">
-    Guides
+  <a class="nav-link nav-internal" href="terminology.html">
+    Glossary
   </a>
 </li>
 
@@ -452,9 +453,9 @@
 <h2>Documentation<a class="headerlink" href="#documentation" title="Link to this heading">#</a></h2>
 <p>Sphinx builds the Markdown/RST guides and the notebooks in <code class="docutils literal notranslate"><span class="pre">docs/tutorial/</span></code>.
 Execute the notebooks before building HTML:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/cpu<span class="w"> </span><span class="s2">"torch&gt;=2.8"</span>
-pip<span class="w"> </span>install<span class="w"> </span>scikit-build-core<span class="w"> </span>pybind11<span class="w"> </span>ninja<span class="w"> </span>packaging<span class="w"> </span><span class="s2">"cmake&gt;=3.24,&lt;4"</span>
-pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[docs]"</span><span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--index-url<span class="w"> </span>https://download.pytorch.org/whl/cpu<span class="w"> </span><span class="s2">"torch&gt;=2.14"</span>
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"scikit-build-core&gt;=0.10"</span><span class="w"> </span><span class="s2">"pybind11&gt;=2.12"</span><span class="w"> </span>ninja<span class="w"> </span>packaging<span class="w"> </span><span class="s2">"cmake&gt;=3.24,&lt;4"</span>
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-build-isolation<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[docs]"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-Ccmake.define.TMOL_ENABLE_CUDA<span class="o">=</span>OFF
 python<span class="w"> </span>.github/scripts/smoke_tutorial_notebooks.py<span class="w"> </span>--write
 make<span class="w"> </span>-C<span class="w"> </span>docs<span class="w"> </span>html

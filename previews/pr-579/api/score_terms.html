@@ -31,7 +31,7 @@
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
-    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=b5f2a73e" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=adb9cd23" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=cc64e7de"></script>
+    <script src="../_static/documentation_options.js?v=a395f30a"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -49,6 +49,7 @@
     <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'api/score_terms';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="../_static/tmol-explorers.js?v=089c5f52"></script>
     <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/api/score_terms.html" />
     <link rel="icon" href="../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -59,7 +60,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.62" />
+  <meta name="docsearch:version" content="0.1.64" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -166,8 +167,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../workflows/index.html">
-    Guides
+  <a class="nav-link nav-internal" href="../terminology.html">
+    Glossary
   </a>
 </li>
 
@@ -302,8 +303,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../workflows/index.html">
-    Guides
+  <a class="nav-link nav-internal" href="../terminology.html">
+    Glossary
   </a>
 </li>
 
@@ -511,8 +512,8 @@ circular-harmonic torsion constraints attached through
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">elec_dens_fast</span></code></p></td>
 <td><p><a class="reference internal" href="#tmol.score.density.DensityEnergyTerm" title="tmol.score.density.DensityEnergyTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">DensityEnergyTerm</span></code></a></p></td>
-<td><p>Rosetta-style fit of every heavy atom to a cryo-EM map. The map is a
-score-function option; use
+<td><p>Rosetta-style fit of every heavy atom to a cryo-EM or crystallographic
+map attached to the pose stack (<code class="docutils literal notranslate"><span class="pre">PoseStack.density_map</span></code>); use
 <a class="reference internal" href="score.html#tmol.score.beta_nov16_dens_score_function" title="tmol.score.beta_nov16_dens_score_function"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmol.score.beta_nov16_dens_score_function()</span></code></a>.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">disulfide</span></code></p></td>
@@ -734,39 +735,35 @@ for lower-level analysis and extension work.</p>
 <dt class="sig sig-object py" id="tmol.score.density.DensityEnergyTerm">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmol.score.density.</span></span><span class="sig-name descname"><span class="pre">DensityEnergyTerm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><span class="pre">ParameterDatabase</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/2.14/tensor_attributes.html#torch.device" title="(in PyTorch v2.14)"><span class="pre">device</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/density/_density_energy_term.html#DensityEnergyTerm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.density.DensityEnergyTerm" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">EnergyTerm</span></code></p>
-<p>Rosetta-style <code class="docutils literal notranslate"><span class="pre">elec_dens_fast</span></code> fit-to-density score of every heavy atom.</p>
-<p><code class="docutils literal notranslate"><span class="pre">E</span> <span class="pre">=</span> <span class="pre">-</span> <span class="pre">sum_atoms</span> <span class="pre">(a_elt</span> <span class="pre">/</span> <span class="pre">6)</span> <span class="pre">*</span> <span class="pre">sidechain_scale</span> <span class="pre">*</span> <span class="pre">S(x_atom)</span></code> over heavy
-atoms, where <code class="docutils literal notranslate"><span class="pre">S</span></code> is the normalized score grid of <a class="reference internal" href="#tmol.score.density.FastDensityScore" title="tmol.score.density.FastDensityScore"><code class="xref py py-class docutils literal notranslate"><span class="pre">FastDensityScore</span></code></a>.
-The term is unweighted; weight it through <code class="docutils literal notranslate"><span class="pre">ScoreType.elec_dens_fast</span></code>
-(Rosetta’s cryo-EM script uses 35).</p>
-<p>The observed map is a score-function option, not part of the pose:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sfxn</span><span class="o">.</span><span class="n">set_options</span><span class="p">(</span>
-    <span class="p">{</span><span class="s2">"density_map"</span><span class="p">:</span> <span class="n">ElectronDensityMap</span><span class="p">,</span> <span class="s2">"density_resolution"</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">}</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-<p><code class="docutils literal notranslate"><span class="pre">density_scale_sidechains</span></code> (default <code class="docutils literal notranslate"><span class="pre">True</span></code>) applies Rosetta’s per-residue
-side-chain scale.</p>
+<p>Rosetta-style elec_dens_fast fit-to-density score of every heavy atom.</p>
+<p>E = - sum_atoms (trunc(a_elt) / 6) * sc_scale * S(x_atom), where S is the
+normalized score grid of FastDensityScore.</p>
+<p>The observed map is pose_stack.density_map, one map per stack.</p>
+<dl class="simple">
+<dt>Score-function options:</dt><dd><p>density_periodic: treat the map as periodic (default False).
+density_scatterers: scattering table, “electron” (default) or “xray”.
+density_sc_scale: residue name -&gt; side-chain scale (default: none).</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="tmol.score.density.FastDensityScore">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmol.score.density.</span></span><span class="sig-name descname"><span class="pre">FastDensityScore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">density_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ElectronDensityMap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolution</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">fastdens_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">(0.4,</span> <span class="pre">0.6)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalisation_cut</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scalefactor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">8.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">density_cutoff</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0001</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/density/_fast_density.html#FastDensityScore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.density.FastDensityScore" title="Link to this definition">#</a></dt>
-<dd><p>Differentiable <code class="docutils literal notranslate"><span class="pre">elec_dens_fast</span></code> score grid, B-spline interpolated in position.</p>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmol.score.density.</span></span><span class="sig-name descname"><span class="pre">FastDensityScore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">density_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ElectronDensityMap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">carbon_sigma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">periodic</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalization_cut</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scalefactor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">8.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">density_cutoff</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0001</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/density/_fast_density.html#FastDensityScore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmol.score.density.FastDensityScore" title="Link to this definition">#</a></dt>
+<dd><p>Differentiable elec_dens_fast score grid, read by a cubic B-spline.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>density_map</strong> – Observed map (<code class="docutils literal notranslate"><span class="pre">[z,</span> <span class="pre">y,</span> <span class="pre">x]</span></code> values; Cartesian <code class="docutils literal notranslate"><span class="pre">origin</span></code> and
-<code class="docutils literal notranslate"><span class="pre">voxel_size</span></code> in <code class="docutils literal notranslate"><span class="pre">[x,</span> <span class="pre">y,</span> <span class="pre">z]</span></code>).</p></li>
-<li><p><strong>resolution</strong> – Map resolution in Angstrom; it sets the kernel width as
-Rosetta’s <code class="docutils literal notranslate"><span class="pre">-edensity::mapreso</span></code> does.</p></li>
-<li><p><strong>fastdens_params</strong> – Rosetta <code class="docutils literal notranslate"><span class="pre">-edensity::fastdens_params</span></code>, a constant scale of
-the kernel.</p></li>
-<li><p><strong>normalisation_cut</strong> – The score range is taken between this-th smallest and
-this-th largest grid value.</p></li>
-<li><p><strong>scalefactor</strong> – Rosetta’s normalization scale (the score is divided by
-<code class="docutils literal notranslate"><span class="pre">scalefactor</span> <span class="pre">/</span> <span class="pre">2</span></code> times the range).</p></li>
-<li><p><strong>density_cutoff</strong> – The atom kernel is truncated where it falls below this value.</p></li>
+<li><p><strong>density_map</strong> – Observed map; its resolution sets the kernel width.</p></li>
+<li><p><strong>carbon_sigma</strong> – Intrinsic width of the carbon scatterer; caps the kernel
+sharpness at high resolution.</p></li>
+<li><p><strong>periodic</strong> – Treat the map as one period of an infinite lattice. If False,
+the map is zero-padded by the kernel radius and atoms off the padded
+grid score zero.</p></li>
+<li><p><strong>normalization_cut</strong> – The score range is taken between the this-th
+smallest and this-th largest grid value.</p></li>
+<li><p><strong>scalefactor</strong> – The score is divided by scalefactor / 2 times the range.</p></li>
+<li><p><strong>density_cutoff</strong> – The atom kernel is truncated where it falls below this.</p></li>
 </ul>
 </dd>
 </dl>

@@ -30,7 +30,7 @@
 
     <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/togglebutton.css?v=9c3e77be" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=b5f2a73e" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=adb9cd23" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../../../../_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
@@ -38,7 +38,7 @@
   <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../../_static/documentation_options.js?v=cc64e7de"></script>
+    <script src="../../../../_static/documentation_options.js?v=a395f30a"></script>
     <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -48,6 +48,7 @@
     <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/tmol/pack/rotamer/_build_rotamers';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="../../../../_static/tmol-explorers.js?v=089c5f52"></script>
     <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/_modules/tmol/pack/rotamer/_build_rotamers.html" />
     <link rel="icon" href="../../../../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../../../../genindex.html" />
@@ -56,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.62" />
+  <meta name="docsearch:version" content="0.1.64" />
   
     
     <script src="../../../../_static/searchtools.js"></script>
@@ -163,8 +164,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../workflows/index.html">
-    Guides
+  <a class="nav-link nav-internal" href="../../../../terminology.html">
+    Glossary
   </a>
 </li>
 
@@ -297,8 +298,8 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../workflows/index.html">
-    Guides
+  <a class="nav-link nav-internal" href="../../../../terminology.html">
+    Glossary
   </a>
 </li>
 
@@ -596,10 +597,7 @@
 <span class="sd">    trial pass corrects every chi at once.</span>
 <span class="sd">    """</span>
     <span class="c1"># trial forward pass to get coords in RTO</span>
-    <span class="n">n_at_total</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">n_atoms_offset_for_conformer_torch</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-        <span class="o">+</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">block_type_ind_for_conformer_torch</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-    <span class="p">)</span>
+    <span class="n">n_at_total</span> <span class="o">=</span> <span class="n">conformer_kinforest</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span>
     <span class="n">trial_coords_rto</span> <span class="o">=</span> <span class="n">calculate_rotamer_coords</span><span class="p">(</span>
         <span class="n">pbt</span><span class="p">,</span> <span class="n">n_at_total</span><span class="p">,</span> <span class="n">conformer_kinforest</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">scans</span><span class="p">,</span> <span class="n">gens</span><span class="p">,</span> <span class="n">conf_dofs_kto</span>
     <span class="p">)</span>
@@ -884,67 +882,33 @@
 
     <span class="n">n_atoms_for_conf</span> <span class="o">=</span> <span class="n">n_atoms_for_conf</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
 
-    <span class="c1"># append a 1 for the root node and then treat</span>
-    <span class="c1"># the resulting (inclusive) scan as if it</span>
-    <span class="c1"># represents offsets</span>
-    <span class="n">temp</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">numpy</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">n_atoms_for_conf</span><span class="p">))</span>
-    <span class="n">n_atoms_offset_for_conf</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span>
+    <span class="c1"># Gather only real atoms. A padded conformer-by-atom gather for each field</span>
+    <span class="c1"># scales with the largest residue type, even when it is rarely sampled.</span>
+    <span class="n">starts</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">n_atoms_for_conf</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span> <span class="o">-</span> <span class="n">n_atoms_for_conf</span>
+    <span class="n">source</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
+        <span class="n">conf_block_type_ind</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span> <span class="o">*</span> <span class="n">pbt</span><span class="o">.</span><span class="n">max_n_atoms</span> <span class="o">-</span> <span class="n">starts</span><span class="p">,</span>
+        <span class="n">n_atoms_for_conf</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">source</span> <span class="o">+=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_atoms_total</span><span class="p">)</span>
+    <span class="n">offsets</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">starts</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_atoms_for_conf</span><span class="p">)</span>
+    <span class="n">fields</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"id"</span><span class="p">,</span> <span class="s2">"doftype"</span><span class="p">,</span> <span class="s2">"parent"</span><span class="p">,</span> <span class="s2">"frame_x"</span><span class="p">,</span> <span class="s2">"frame_y"</span><span class="p">,</span> <span class="s2">"frame_z"</span><span class="p">)</span>
+    <span class="n">compact</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">fields</span><span class="p">),</span> <span class="n">n_atoms_total</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fields</span><span class="p">):</span>
+        <span class="n">compact</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="n">source</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">"id"</span><span class="p">:</span>
+            <span class="n">compact</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">+=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
+                <span class="n">block_offset_for_conf</span><span class="p">[:</span> <span class="n">n_atoms_for_conf</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">n_atoms_for_conf</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">name</span> <span class="o">!=</span> <span class="s2">"doftype"</span><span class="p">:</span>
+            <span class="n">compact</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">+=</span> <span class="n">offsets</span>
+    <span class="n">compact</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="c1"># Every nonempty conformer attaches directly to the shared virtual root.</span>
+    <span class="n">compact</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="n">starts</span><span class="p">[</span><span class="n">n_atoms_for_conf</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">nab</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">arr</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="n">arr</span><span class="p">[</span><span class="n">conf_block_type_ind</span><span class="p">],</span> <span class="n">n_atoms_total</span><span class="p">,</span> <span class="n">n_atoms_for_conf</span><span class="p">)</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">nab2</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">conf_offset</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">func</span><span class="p">(</span>
-            <span class="n">arr</span><span class="p">[</span><span class="n">conf_block_type_ind</span><span class="p">],</span> <span class="n">n_atoms_total</span><span class="p">,</span> <span class="n">n_atoms_for_conf</span><span class="p">,</span> <span class="n">conf_offset</span>
-        <span class="p">)</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_t</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
-
-    <span class="nb">id</span> <span class="o">=</span> <span class="n">_t</span><span class="p">(</span>
-        <span class="n">nab2</span><span class="p">(</span>
-            <span class="n">load_from_rotamers_w_offsets</span><span class="p">,</span>
-            <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-            <span class="n">block_offset_for_conf</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="p">)</span>
-    <span class="nb">id</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="n">doftype</span> <span class="o">=</span> <span class="n">_t</span><span class="p">(</span><span class="n">nab</span><span class="p">(</span><span class="n">load_from_rotamers</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">doftype</span><span class="p">))</span>
-    <span class="n">parent</span> <span class="o">=</span> <span class="n">_t</span><span class="p">(</span>
-        <span class="n">nab2</span><span class="p">(</span>
-            <span class="n">load_rotamer_parents</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span> <span class="n">n_atoms_offset_for_conf</span>
-        <span class="p">)</span>
-    <span class="p">)</span>
-    <span class="n">frame_x</span> <span class="o">=</span> <span class="n">_t</span><span class="p">(</span>
-        <span class="n">nab2</span><span class="p">(</span>
-            <span class="n">load_from_rotamers_w_offsets</span><span class="p">,</span>
-            <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">frame_x</span><span class="p">,</span>
-            <span class="n">n_atoms_offset_for_conf</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="p">)</span>
-    <span class="n">frame_y</span> <span class="o">=</span> <span class="n">_t</span><span class="p">(</span>
-        <span class="n">nab2</span><span class="p">(</span>
-            <span class="n">load_from_rotamers_w_offsets</span><span class="p">,</span>
-            <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">frame_y</span><span class="p">,</span>
-            <span class="n">n_atoms_offset_for_conf</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="p">)</span>
-    <span class="n">frame_z</span> <span class="o">=</span> <span class="n">_t</span><span class="p">(</span>
-        <span class="n">nab2</span><span class="p">(</span>
-            <span class="n">load_from_rotamers_w_offsets</span><span class="p">,</span>
-            <span class="n">pbt</span><span class="o">.</span><span class="n">rotamer_kinforest</span><span class="o">.</span><span class="n">frame_z</span><span class="p">,</span>
-            <span class="n">n_atoms_offset_for_conf</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">KinForest</span><span class="p">(</span>
-        <span class="nb">id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
-        <span class="n">doftype</span><span class="o">=</span><span class="n">doftype</span><span class="p">,</span>
-        <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span>
-        <span class="n">frame_x</span><span class="o">=</span><span class="n">frame_x</span><span class="p">,</span>
-        <span class="n">frame_y</span><span class="o">=</span><span class="n">frame_y</span><span class="p">,</span>
-        <span class="n">frame_z</span><span class="o">=</span><span class="n">frame_z</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="c1"># Transfer all six contiguous fields together; each resulting row remains</span>
+    <span class="c1"># contiguous for the native kinematics operators.</span>
+    <span class="n">packed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">compact</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">KinForest</span><span class="p">(</span><span class="o">**</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">fields</span><span class="p">,</span> <span class="n">packed</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="mi">0</span><span class="p">))))</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">measure_dofs_from_orig_coords</span><span class="p">(</span>
@@ -1360,9 +1324,18 @@
     <span class="n">block_type_ind_for_conformer</span> <span class="o">=</span> <span class="n">gbt_block_type_ind</span><span class="p">[</span><span class="n">gbt_for_conformer_np</span><span class="p">]</span>
     <span class="n">block_type_ind_for_conformer_torch</span> <span class="o">=</span> <span class="n">_t</span><span class="p">(</span><span class="n">block_type_ind_for_conformer</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
 
-    <span class="n">n_atoms_for_conformer</span> <span class="o">=</span> <span class="n">pbt</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">[</span><span class="n">block_type_ind_for_conformer_torch</span><span class="p">]</span>
-    <span class="n">n_atoms_offset_for_conformer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">n_atoms_for_conformer</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    <span class="n">n_atoms_offset_for_conformer</span> <span class="o">=</span> <span class="n">n_atoms_offset_for_conformer</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="c1"># The topology plan is assembled on the host. Residue atom counts are</span>
+    <span class="c1"># immutable metadata, so do not send conformer types to the device merely</span>
+    <span class="c1"># to gather counts and immediately copy their prefix sum back.</span>
+    <span class="n">n_atoms_by_type</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">rt</span><span class="o">.</span><span class="n">n_atoms</span> <span class="k">for</span> <span class="n">rt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span>
+    <span class="p">)</span>
+    <span class="n">n_atoms_for_conformer_np</span> <span class="o">=</span> <span class="n">n_atoms_by_type</span><span class="p">[</span><span class="n">block_type_ind_for_conformer</span><span class="p">]</span>
+    <span class="n">n_atoms_for_conformer_cpu</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">n_atoms_for_conformer_np</span><span class="p">)</span>
+    <span class="n">n_atoms_for_conformer</span> <span class="o">=</span> <span class="n">n_atoms_for_conformer_cpu</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">n_atoms_offset_for_conformer</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span>
+        <span class="n">n_atoms_for_conformer_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span>
+    <span class="p">)</span>
     <span class="n">n_atoms_total</span> <span class="o">=</span> <span class="n">n_atoms_offset_for_conformer</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">n_atoms_total</span> <span class="o">&gt;=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -1378,7 +1351,7 @@
         <span class="n">pbt</span><span class="p">,</span>
         <span class="n">block_type_ind_for_conformer</span><span class="p">,</span>
         <span class="n">n_atoms_total</span><span class="p">,</span>
-        <span class="n">n_atoms_for_conformer</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+        <span class="n">n_atoms_for_conformer_cpu</span><span class="p">,</span>
         <span class="n">n_atoms_offset_for_conformer</span><span class="p">,</span>
         <span class="n">pbt</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
     <span class="p">)</span>

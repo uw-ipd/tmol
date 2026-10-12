@@ -31,7 +31,7 @@
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
-    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=b5f2a73e" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=adb9cd23" />
   
   <!-- So that users can add custom icons -->
   <script defer src="../_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=cc64e7de"></script>
+    <script src="../_static/documentation_options.js?v=a395f30a"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -49,6 +49,7 @@
     <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/integrations';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="../_static/tmol-explorers.js?v=089c5f52"></script>
     <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/user_guide/integrations.html" />
     <link rel="icon" href="../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -59,7 +60,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.62" />
+  <meta name="docsearch:version" content="0.1.64" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -158,16 +159,16 @@
 </li>
 
 
-<li class="nav-item ">
+<li class="nav-item current active">
   <a class="nav-link nav-internal" href="../quickstart.html">
     Quickstart
   </a>
 </li>
 
 
-<li class="nav-item current active">
-  <a class="nav-link nav-internal" href="../workflows/index.html">
-    Guides
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../terminology.html">
+    Glossary
   </a>
 </li>
 
@@ -294,16 +295,16 @@
 </li>
 
 
-<li class="nav-item ">
+<li class="nav-item current active">
   <a class="nav-link nav-internal" href="../quickstart.html">
     Quickstart
   </a>
 </li>
 
 
-<li class="nav-item current active">
-  <a class="nav-link nav-internal" href="../workflows/index.html">
-    Guides
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../terminology.html">
+    Glossary
   </a>
 </li>
 
@@ -385,33 +386,35 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Structures and tensors</span></p>
-<ul class="current nav bd-sidenav">
-<li class="toctree-l1 has-children"><a class="reference internal" href="../concepts.html">Concepts</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
-<li class="toctree-l2"><a class="reference internal" href="../architecture.html">Architecture</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../datatypes.html">Tensors and data objects</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../terminology.html">Terminology</a></li>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../workflows/index.html">Workflow reference</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../concepts.html">Concepts</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../datatypes.html">Tensors and data objects</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../terminology.html">Terminology</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l4"><a class="reference internal" href="../playground.html">Protein score playground</a></li>
 </ul>
 </details></li>
-<li class="toctree-l1"><a class="reference internal" href="../workflows/structure_io.html">Structure I/O and visualization</a></li>
-<li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">Model and structure integrations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../model_inputs.html">Model coordinate inputs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../workflows/gpu_batching.html">GPU batching</a></li>
-<li class="toctree-l1"><a class="reference internal" href="cpu_threading.html">CPU threading</a></li>
 </ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Scoring and modeling</span></p>
-<ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="scoring.html">Scoring and analysis</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../workflows/packing.html">Packing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="optimization.html">Minimization and FastRelax</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../workflows/protein_interfaces.html">Protein-interface analysis</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ligands.html">Ligand Preparation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../workflows/nucleic_acids.html">Nucleic acids</a></li>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflows/structure_io.html">Structure I/O and visualization</a></li>
+<li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">Model and structure integrations</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../model_inputs.html">Model coordinate inputs</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="../model_input_example.html">Build your own model input interface</a></li>
 </ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extension and performance</span></p>
-<ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="../workflows/extending_tmol.html">Extending TMol</a></li>
-<li class="toctree-l1"><a class="reference internal" href="benchmarking.html">Benchmarking</a></li>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflows/gpu_batching.html">GPU batching</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cpu_threading.html">CPU threading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scoring.html">Scoring and analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflows/packing.html">Packing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="optimization.html">Minimization and FastRelax</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflows/protein_interfaces.html">Protein-interface analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ligands.html">Ligand Preparation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflows/nucleic_acids.html">Nucleic acids</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflows/extending_tmol.html">Extending TMol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="benchmarking.html">Benchmarking</a></li>
+</ul>
+</details></li>
 </ul>
 </div>
 </nav></div>
@@ -453,7 +456,10 @@
       </a>
     </li>
     
-    <li class="breadcrumb-item"><a href="../workflows/index.html" class="nav-link">Guides</a></li>
+    <li class="breadcrumb-item"><a href="../quickstart.html" class="nav-link">Quickstart</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../workflows/index.html" class="nav-link">Workflow reference</a></li>
     
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Model and structure integrations</span></li>
   </ul>
@@ -482,11 +488,12 @@ coordinate tensors. Use the tensor interfaces when gradients must reach model ou
 constructor retains chemical identity and declared bonds, including unresolved
 atoms at NaN:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tmol</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_file</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
 
-<span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"cpu"</span><span class="p">)</span>
+<span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span> <span class="k">if</span> <span class="n">tmol</span><span class="o">.</span><span class="n">has_cuda</span><span class="p">()</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"cpu"</span><span class="p">)</span>
 <span class="n">pose_stack</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="n">pose_stack_from_file</span><span class="p">(</span>
     <span class="s2">"complex.cif"</span><span class="p">,</span>
     <span class="n">device</span><span class="p">,</span>
@@ -517,7 +524,7 @@ have shape <code class="docutils literal notranslate"><span class="pre">[batch,<
 Tensor shape alone does not identify an encoding.</p>
 <p>For atom14 or another named layout, map the predictor’s token IDs and atom
 names into <code class="docutils literal notranslate"><span class="pre">CanonicalForm</span></code>, then call <code class="docutils literal notranslate"><span class="pre">pose_stack_from_canonical_form()</span></code>. The
-<a class="reference download internal" download="" href="../_downloads/0a8a05e1c450313bc9855369c1f711c2/example_02_model_inputs.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">executable</span> <span class="pre">model-input</span> <span class="pre">tutorial</span></code></a>
+<a class="reference download internal" download="" href="../_downloads/35b95a8461606a5e7799f8c158de4f01/model_input_example.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">executable</span> <span class="pre">model-input</span> <span class="pre">tutorial</span></code></a>
 implements OpenFold and RoseTTAFold2 examples using this shared contract. It
 shows final-recycle selection, explicit masks, batched scoring and gradients,
 and both preservation and rebuilding of RF2’s supplied hydrogen slots. Those
@@ -596,11 +603,12 @@ steps:</p>
 <span class="n">score</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>A single call handles one sample or a whole same-topology batch; hydrogen
-optimization is enabled by default. For high-throughput diffusion or search,
+<p>A single call handles one sample or a whole same-topology batch. For repeated
+diffusion or search,
 reuse both <code class="docutils literal notranslate"><span class="pre">pose_builder</span></code> and the scoring module for every compatible topology
-and batch shape. Pass <code class="docutils literal notranslate"><span class="pre">opt_h=False</span></code> to the builder only when ideal hydrogen
-placement is an intentional speed/accuracy tradeoff. For one-off conversion,
+and batch shape. The default <code class="docutils literal notranslate"><span class="pre">opt_h=False</span></code> preserves finite supplied protein
+hydrogens and builds missing atoms. Pass <code class="docutils literal notranslate"><span class="pre">opt_h=True</span></code> when polar-hydrogen
+optimization is part of your preparation protocol. For one-off conversion,
 <code class="docutils literal notranslate"><span class="pre">pose_stack_from_atom37_and_topology(atom37_coords,</span> <span class="pre">atom_array,</span> <span class="pre">context)</span></code> remains
 available.</p>
 <p>A single <code class="docutils literal notranslate"><span class="pre">AtomArray</span></code> may provide topology for a batch of coordinate tensors. An

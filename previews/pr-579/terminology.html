@@ -7,7 +7,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Terminology and modeling choices &#8212; TMol</title>
+    <title>Glossary &#8212; TMol</title>
   
   
   
@@ -31,7 +31,7 @@
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
     <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=9c3e77be" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=b5f2a73e" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=adb9cd23" />
   
   <!-- So that users can add custom icons -->
   <script defer src="_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="_static/documentation_options.js?v=cc64e7de"></script>
+    <script src="_static/documentation_options.js?v=a395f30a"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -49,17 +49,18 @@
     <script>var togglebuttonSelector = '#Setup .nbinput, .nbinput.collapse-code';</script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'terminology';</script>
     <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="_static/tmol-explorers.js?v=089c5f52"></script>
     <link rel="canonical" href="https://uw-ipd.github.io/tmol/latest/terminology.html" />
     <link rel="icon" href="_static/favicon.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Structure I/O and visualization" href="workflows/structure_io.html" />
+    <link rel="next" title="Protein score playground" href="playground.html" />
     <link rel="prev" title="Data model and conventions" href="datatypes.html" />
   
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.62" />
+  <meta name="docsearch:version" content="0.1.64" />
   
     
     <script src="_static/searchtools.js"></script>
@@ -166,8 +167,8 @@
 
 
 <li class="nav-item current active">
-  <a class="nav-link nav-internal" href="workflows/index.html">
-    Guides
+  <a class="nav-link nav-internal" href="#" aria-current="page">
+    Glossary
   </a>
 </li>
 
@@ -302,8 +303,8 @@
 
 
 <li class="nav-item current active">
-  <a class="nav-link nav-internal" href="workflows/index.html">
-    Guides
+  <a class="nav-link nav-internal" href="#" aria-current="page">
+    Glossary
   </a>
 </li>
 
@@ -385,33 +386,8 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Structures and tensors</span></p>
-<ul class="current nav bd-sidenav">
-<li class="toctree-l1 current active has-children"><a class="reference internal" href="concepts.html">Concepts</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="architecture.html">Architecture</a></li>
-<li class="toctree-l2"><a class="reference internal" href="datatypes.html">Tensors and data objects</a></li>
-<li class="toctree-l2 current active"><a aria-current="page" class="current reference internal" href="#">Terminology</a></li>
-</ul>
-</details></li>
-<li class="toctree-l1"><a class="reference internal" href="workflows/structure_io.html">Structure I/O and visualization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide/integrations.html">Model and structure integrations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="model_inputs.html">Model coordinate inputs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="workflows/gpu_batching.html">GPU batching</a></li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide/cpu_threading.html">CPU threading</a></li>
-</ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Scoring and modeling</span></p>
-<ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="user_guide/scoring.html">Scoring and analysis</a></li>
-<li class="toctree-l1"><a class="reference internal" href="workflows/packing.html">Packing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide/optimization.html">Minimization and FastRelax</a></li>
-<li class="toctree-l1"><a class="reference internal" href="workflows/protein_interfaces.html">Protein-interface analysis</a></li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide/ligands.html">Ligand Preparation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="workflows/nucleic_acids.html">Nucleic acids</a></li>
-</ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extension and performance</span></p>
-<ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="workflows/extending_tmol.html">Extending TMol</a></li>
-<li class="toctree-l1"><a class="reference internal" href="user_guide/benchmarking.html">Benchmarking</a></li>
+  <div class="bd-toc-item navbar-nav"><ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="playground.html">Protein score playground</a></li>
 </ul>
 </div>
 </nav></div>
@@ -453,12 +429,15 @@
       </a>
     </li>
     
-    <li class="breadcrumb-item"><a href="workflows/index.html" class="nav-link">Guides</a></li>
+    <li class="breadcrumb-item"><a href="quickstart.html" class="nav-link">Quickstart</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="workflows/index.html" class="nav-link">Workflow reference</a></li>
     
     
     <li class="breadcrumb-item"><a href="concepts.html" class="nav-link">Concepts</a></li>
     
-    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Terminology and modeling choices</span></li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Glossary</span></li>
   </ul>
 </nav>
 </div>
@@ -475,57 +454,164 @@
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="terminology-and-modeling-choices">
-<h1>Terminology and modeling choices<a class="headerlink" href="#terminology-and-modeling-choices" title="Link to this heading">#</a></h1>
+  <section id="glossary">
+<h1>Glossary<a class="headerlink" href="#glossary" title="Link to this heading">#</a></h1>
+<p>Terms used in the <a class="reference internal" href="quickstart.html"><span class="doc">Quickstart</span></a> and API. The diagrams show how scores
+and coordinate changes relate; the <a class="reference internal" href="playground.html"><span class="doc">Protein score playground</span></a> gives a working example.</p>
+<section id="score-function-and-score-terms">
+<span id="glossary-score-function"></span><h2>Score function and score terms<a class="headerlink" href="#score-function-and-score-terms" title="Link to this heading">#</a></h2>
+<p>A score function combines weighted contributions from atomic interactions and
+molecular geometry. Lower totals are favored during minimization and packing.
+Individual terms show which interactions contribute to a change.</p>
+<section class="concept-explorer" id="score-circuit" aria-label="Explore the scoring calculation">
+  <div class="score-flow" role="group" aria-label="Parts of the scoring calculation">
+    <button type="button" data-part="coordinates" aria-pressed="false">Coordinates<br><small>atom positions</small></button>
+    <span class="flow-arrow" aria-hidden="true"></span>
+    <div class="score-branches">
+      <button type="button" data-part="contacts" aria-pressed="true">Atomic contacts</button>
+      <button type="button" data-part="hydrogen" aria-pressed="false">H bonds &amp; solvation</button>
+      <button type="button" data-part="geometry" aria-pressed="false">Geometry &amp; torsions</button>
+    </div>
+    <span class="flow-arrow" aria-hidden="true"></span>
+    <button type="button" data-part="total" aria-pressed="false">Weighted sum<br><small>one total per pose</small></button>
+  </div>
+  <div class="gradient-flow"><span aria-hidden="true">↳</span><button type="button" data-part="gradient" aria-pressed="false">Coordinate gradients → minimization</button></div>
+  <p class="explorer-explanation" aria-live="polite">Attraction, short-range repulsion, and electrostatics depend on the relative positions of atoms.</p>
+</section><p><code class="docutils literal notranslate"><span class="pre">sum_terms=False</span></code> returns weighted contributions in <code class="docutils literal notranslate"><span class="pre">sfxn.all_score_types()</span></code>
+order. <code class="docutils literal notranslate"><span class="pre">apply_weights=False</span></code> returns unweighted values instead.
+See <a class="reference internal" href="api/score_terms.html"><span class="doc">score terms</span></a> for individual definitions.</p>
 <p><span id="posestack-pose-block-and-atom"></span></p>
-<section id="poses-blocks-and-atoms">
-<h2>Poses, blocks, and atoms<a class="headerlink" href="#poses-blocks-and-atoms" title="Link to this heading">#</a></h2>
-<p>A <a class="reference internal" href="api/pose.html#tmol.pose.PoseStack" title="tmol.pose.PoseStack"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.pose.PoseStack</span></code></a> stores molecular systems as padded tensors on one
-PyTorch device. <code class="docutils literal notranslate"><span class="pre">n_poses</span></code> is the batch dimension. Use <code class="docutils literal notranslate"><span class="pre">real_atoms</span></code> and block-index
-tensors to distinguish molecular entries from padding.</p>
-<p>A <strong>block</strong> is a chemical unit described by one <code class="docutils literal notranslate"><span class="pre">RefinedResidueType</span></code>: an amino
-acid, nucleotide, ligand fragment, ion, or other residue type. A single system
-still uses a <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code>.</p>
+</section>
+<section id="pose-block-and-posestack">
+<span id="glossary-posestack"></span><h2>Pose, block, and PoseStack<a class="headerlink" href="#pose-block-and-posestack" title="Link to this heading">#</a></h2>
+<p>A <strong>pose</strong> is one molecular system. A <strong>block</strong> is a typed chemical unit, such
+as an amino acid, nucleotide, or ligand fragment. A <strong>PoseStack</strong> batches poses
+as padded tensors on a single PyTorch device.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>PoseStack
+  pose 0  [ALA]—[PHE]—[GLY]—[SER]
+  pose 1  [LEU]—[TYR]  ···   ···   ← padding, not atoms
+</pre></div>
+</div>
+<p>Use atom and block masks to distinguish real entries from padding. Group
+similarly sized poses to limit padding; see <a class="reference internal" href="datatypes.html"><span class="doc">tensor layouts</span></a>.</p>
+</section>
+<section id="torsions-rotamers-and-repacking">
+<span id="glossary-repacking"></span><h2>Torsions, rotamers, and repacking<a class="headerlink" href="#torsions-rotamers-and-repacking" title="Link to this heading">#</a></h2>
+<p>A <strong>torsion</strong> is a rotation around a bond, described by four atoms. Protein
+backbone angles include φ and ψ; side-chain angles are called χ1, χ2, and so on.
+A <strong>rotamer</strong> is a candidate side-chain conformation.</p>
+<p><strong>Repacking</strong> chooses conformations for a fixed sequence. It considers how
+neighboring choices interact. <strong>Design</strong> also permits residue identities to
+change, according to the packer task.</p>
+<p>The <a class="reference internal" href="playground.html"><span class="doc">Protein score playground</span></a> isolates two side-chain angles. The
+<a class="reference internal" href="tutorial/04_packing_and_mutation_scan.html"><span class="doc">packing notebook</span></a> runs a full
+repacking calculation with residue-specific conformer samplers.</p>
+<p><span id="cartesian-and-kinematic-movement"></span></p>
+</section>
+<section id="gradients-and-minimization">
+<h2>Gradients and minimization<a class="headerlink" href="#gradients-and-minimization" title="Link to this heading">#</a></h2>
+<p>A coordinate gradient tells you how the score changes as an atom moves.
+Minimization uses these derivatives to improve a conformation continuously.
+Repacking searches discrete candidates; minimization can refine their geometry.</p>
+<p><strong>Cartesian minimization</strong> changes atom coordinates. <strong>Kinematic minimization</strong>
+changes selected internal coordinates and rigid-body jumps. The allowed moves
+come from a coordinate mask or a <code class="docutils literal notranslate"><span class="pre">MoveMap</span></code>, respectively.</p>
+</section>
+<section id="fold-tree-fold-forest-and-jumps">
+<span id="glossary-foldforest"></span><h2>Fold tree, fold forest, and jumps<a class="headerlink" href="#fold-tree-fold-forest-and-jumps" title="Link to this heading">#</a></h2>
+<p>A <strong>fold tree</strong> is a rooted, acyclic description of how coordinates are built
+for one pose. A <strong>fold forest</strong> stores these trees across a batch. A <strong>jump</strong>
+defines a rigid-body connection in that coordinate model; it is not a chemical
+bond. Polymer and chemical edges describe other kinematic connections.</p>
+<p>In this schematic, orange nodes move downstream of the selected edge.
+The two poses remain independent.</p>
+<section class="concept-explorer" id="fold-forest" aria-label="Explore movement through a fold forest">
+  <div class="explorer-buttons" role="group" aria-label="Choose a kinematic move">
+    <button type="button" data-move="backbone" aria-pressed="true">Backbone torsion</button>
+    <button type="button" data-move="jump" aria-pressed="false">Rigid-body jump</button>
+    <button type="button" data-move="other" aria-pressed="false">Second pose</button>
+  </div>
+  <svg viewBox="0 0 660 250" role="img" aria-labelledby="forest-title forest-desc">
+    <title id="forest-title">Two independent pose trees</title>
+    <desc id="forest-desc">Pose 0 has chain A with nodes A1, A2, A3, and chain B with nodes B1 and B2 connected by a jump from A1. Pose 1 has C1 and C2. Highlighted nodes move downstream of the selected edge.</desc>
+    <defs><marker id="forest-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="currentColor"/></marker></defs>
+    <rect x="10" y="10" width="406" height="230" rx="12" class="forest-panel"/>
+    <rect x="432" y="10" width="218" height="230" rx="12" class="forest-panel"/>
+    <path d="M424 10V240" class="forest-divider"/>
+    <text x="30" y="40" class="forest-heading">Pose 0</text><text x="452" y="40" class="forest-heading">Pose 1</text>
+    <path d="M96 91H203" class="forest-edge active" data-edge="backbone" marker-end="url(#forest-arrow)"/>
+    <path d="M255 91H349" class="forest-edge" marker-end="url(#forest-arrow)"/>
+    <path d="M76 116V185H203" class="forest-edge jump" data-edge="jump" marker-end="url(#forest-arrow)"/>
+    <path d="M255 185H349" class="forest-edge" marker-end="url(#forest-arrow)"/>
+    <path d="M494 116V159" class="forest-edge" data-edge="other" marker-end="url(#forest-arrow)"/>
+    <g class="forest-node" data-node="A1"><circle cx="76" cy="91" r="24"/><text x="76" y="97">A1</text></g>
+    <g class="forest-node active" data-node="A2"><circle cx="230" cy="91" r="24"/><text x="230" y="97">A2</text></g>
+    <g class="forest-node active" data-node="A3"><circle cx="376" cy="91" r="24"/><text x="376" y="97">A3</text></g>
+    <g class="forest-node" data-node="B1"><circle cx="230" cy="185" r="24"/><text x="230" y="191">B1</text></g>
+    <g class="forest-node" data-node="B2"><circle cx="376" cy="185" r="24"/><text x="376" y="191">B2</text></g>
+    <g class="forest-node" data-node="C1"><circle cx="494" cy="91" r="24"/><text x="494" y="97">C1</text></g>
+    <g class="forest-node" data-node="C2"><circle cx="494" cy="185" r="24"/><text x="494" y="191">C2</text></g>
+    <text x="108" y="171" class="forest-label">jump</text>
+    <text x="111" y="75" class="forest-label">polymer</text>
+    <text x="530" y="138" class="forest-label">polymer</text>
+  </svg>
+  <p class="explorer-explanation" aria-live="polite">A backbone torsion along A1 → A2 moves downstream A2 and A3. Chain B is attached through A1, so this move leaves it fixed.</p>
+</section><p>Chemical connectivity and the kinematic tree are distinct. A cyclic molecule
+needs a cut in its kinematic representation even though its chemical bond
+remains. Choose the tree and allowed moves together; see the
+<a class="reference internal" href="tutorial/12_explicit_foldforests_and_torsions.html"><span class="doc">fold-forest notebook</span></a>.</p>
+</section>
+<section id="movemap-and-constraints">
+<h2>MoveMap and constraints<a class="headerlink" href="#movemap-and-constraints" title="Link to this heading">#</a></h2>
+<p>A <strong>MoveMap</strong> selects torsions and jumps for kinematic movement. Creating one
+does not enable movement: set its flags or masks explicitly. A
+<strong>CartesianMoveMap</strong> selects atom coordinates for Cartesian FastRelax.</p>
+<p>A <strong>constraint</strong> adds a score penalty, such as a restraint to a target position.
+It affects optimization only when attached to the pose and given a nonzero
+score-function weight. A frozen degree of freedom cannot move; a restrained
+one may move at a scoring cost.</p>
+</section>
+<section id="fastrelax">
+<span id="glossary-fastrelax"></span><h2>FastRelax<a class="headerlink" href="#fastrelax" title="Link to this heading">#</a></h2>
+<p>FastRelax alternates repacking with minimization. Early stages soften steric
+repulsion so side chains can rearrange; later stages restore its full weight.
+The protocol retains the best conformation for each pose under the acceptance
+score. Lower repulsion during a stage does not itself mean the structure improved.</p>
+<p>Select a stage to see the default repulsion-weight fractions:</p>
+<section class="concept-explorer" id="relax-schedule" aria-label="Explore the default FastRelax schedule">
+  <div class="relax-stages" role="group" aria-label="FastRelax stage">
+    <button type="button" data-stage="0" aria-pressed="true"><span class="stage-bar" style="--stage-height: 5%"></span>Stage 1</button>
+    <button type="button" data-stage="1" aria-pressed="false"><span class="stage-bar" style="--stage-height: 28%"></span>Stage 2</button>
+    <button type="button" data-stage="2" aria-pressed="false"><span class="stage-bar" style="--stage-height: 58%"></span>Stage 3</button>
+    <button type="button" data-stage="3" aria-pressed="false"><span class="stage-bar" style="--stage-height: 100%"></span>Stage 4</button>
+  </div>
+  <div class="relax-operations"><span>Repack <strong id="relax-pack">4.0%</strong></span><span aria-hidden="true">→</span><span>Minimize <strong id="relax-min">5.1%</strong></span><span aria-hidden="true">→</span><span>Next stage</span></div>
+  <p class="explorer-explanation" aria-live="polite">Stage 1: repack, then minimize at the indicated fractions of the full repulsion weight.</p>
+</section><p>The default protocol uses Cartesian minimization and repeats the four-stage
+schedule twice. See the <a class="reference internal" href="tutorial/06_fast_relax.html"><span class="doc">FastRelax notebook</span></a> to run
+it and compare structures.</p>
 <p><span id="parameterdatabase-and-packedblocktypes"></span></p>
 </section>
-<section id="chemical-definitions">
-<h2>Chemical definitions<a class="headerlink" href="#chemical-definitions" title="Link to this heading">#</a></h2>
-<p><a class="reference internal" href="api/database.html#tmol.database.ParameterDatabase" title="tmol.database.ParameterDatabase"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.database.ParameterDatabase</span></code></a> holds chemical definitions and scoring
-parameters. Extending it returns a new database.</p>
-<p><a class="reference internal" href="api/pose.html#tmol.pose.PackedBlockTypes" title="tmol.pose.PackedBlockTypes"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.pose.PackedBlockTypes</span></code></a> holds block types and device-resident setup
-data. Reuse it for compatible structures on the same device. It does not cache
-conformation energies.</p>
+<section id="parameters-and-prepared-chemistry">
+<h2>Parameters and prepared chemistry<a class="headerlink" href="#parameters-and-prepared-chemistry" title="Link to this heading">#</a></h2>
+<p><strong>ParameterDatabase</strong> holds chemical definitions and scoring parameters.
+<strong>PackedBlockTypes</strong> holds the block types and their device-resident setup data;
+it does not cache conformation energies.</p>
 <p><span id="deposited-atoms-and-built-atoms"></span></p>
-</section>
-<section id="deposited-and-built-atoms">
-<h2>Deposited and built atoms<a class="headerlink" href="#deposited-and-built-atoms" title="Link to this heading">#</a></h2>
-<p>TMol assigns chemical types to input atoms and may build missing atoms. Check
-histidine state, termini, disulfides, and noncanonical chemistry in the I/O build
-context. Prefer mmCIF through Biotite when metadata or explicit ligand bonds
-matter; PDB cannot preserve every preparation decision.</p>
 <p><span id="the-no-opth-choice"></span></p>
-</section>
-<section id="polar-hydrogens-no-opth">
-<h2>Polar hydrogens: <code class="docutils literal notranslate"><span class="pre">no_optH</span></code><a class="headerlink" href="#polar-hydrogens-no-opth" title="Link to this heading">#</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">no_optH=False</span></code> optimizes movable polar hydrogens during preparation and requires
-a score function. Use <code class="docutils literal notranslate"><span class="pre">no_optH=True</span></code> to skip this step when retaining supplied
-proton geometry or deferring optimization. This choice affects coordinates and
-scores; record it with your results.</p>
+<p>Preparing a ligand may extend the parameter database. Use the returned
+<code class="docutils literal notranslate"><span class="pre">context.parameter_database</span></code> to score that pose. Check termini, protonation,
+disulfides, and built atoms when preparing inputs. <code class="docutils literal notranslate"><span class="pre">no_optH=True</span></code> skips polar
+hydrogen optimization; it does not freeze those atoms in later optimization.</p>
 <p><span id="rendered-scorers-and-changing-coordinates"></span></p>
 </section>
-<section id="reusing-a-scorer">
-<h2>Reusing a scorer<a class="headerlink" href="#reusing-a-scorer" title="Link to this heading">#</a></h2>
-<p>A <a class="reference internal" href="api/score.html#tmol.score.ScoreFunction" title="tmol.score.ScoreFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.ScoreFunction</span></code></a> renders a PyTorch module for a specific
-<code class="docutils literal notranslate"><span class="pre">PoseStack</span></code> layout. Reuse it when only coordinates change. Render a new scorer
-after changing block types, atom counts, connectivity, or batch layout.</p>
-</section>
-<section id="cartesian-and-kinematic-movement">
-<h2>Cartesian and kinematic movement<a class="headerlink" href="#cartesian-and-kinematic-movement" title="Link to this heading">#</a></h2>
-<p>Cartesian minimization changes selected atom coordinates. Kinematic minimization
-changes internal and rigid-body degrees of freedom selected by a
-<a class="reference internal" href="api/kinematics.html#tmol.kinematics.MoveMap" title="tmol.kinematics.MoveMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.kinematics.MoveMap</span></code></a> over a <a class="reference internal" href="api/kinematics.html#tmol.kinematics.FoldForest" title="tmol.kinematics.FoldForest"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.kinematics.FoldForest</span></code></a>.
-Compare the two only with matched masks, weights, stopping rules, and iteration
-budgets. See <a class="reference internal" href="user_guide/optimization.html"><span class="doc">optimization</span></a> for examples.</p>
+<section id="rendered-scorer">
+<h2>Rendered scorer<a class="headerlink" href="#rendered-scorer" title="Link to this heading">#</a></h2>
+<p>Rendering builds a scoring module for a particular pose layout. Reuse it while
+coordinates change. Render a new scorer after changing block types, atom counts,
+connectivity, or batch layout, including after packing.</p>
+<div class="toctree-wrapper compound">
+</div>
 </section>
 </section>
 
@@ -549,11 +635,11 @@ budgets. See <a class="reference internal" href="user_guide/optimization.html"><
       </div>
     </a>
     <a class="right-next"
-       href="workflows/structure_io.html"
+       href="playground.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Structure I/O and visualization</p>
+        <p class="prev-next-title">Protein score playground</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -576,12 +662,15 @@ budgets. See <a class="reference internal" href="user_guide/optimization.html"><
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#poses-blocks-and-atoms">Poses, blocks, and atoms</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#chemical-definitions">Chemical definitions</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#deposited-and-built-atoms">Deposited and built atoms</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#polar-hydrogens-no-opth">Polar hydrogens: <code class="docutils literal notranslate"><span class="pre">no_optH</span></code></a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#reusing-a-scorer">Reusing a scorer</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cartesian-and-kinematic-movement">Cartesian and kinematic movement</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#score-function-and-score-terms">Score function and score terms</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pose-block-and-posestack">Pose, block, and PoseStack</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#torsions-rotamers-and-repacking">Torsions, rotamers, and repacking</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#gradients-and-minimization">Gradients and minimization</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fold-tree-fold-forest-and-jumps">Fold tree, fold forest, and jumps</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#movemap-and-constraints">MoveMap and constraints</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fastrelax">FastRelax</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#parameters-and-prepared-chemistry">Parameters and prepared chemistry</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#rendered-scorer">Rendered scorer</a></li>
 </ul>
   </nav></div>
 

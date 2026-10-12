@@ -47,9 +47,9 @@ four-atom torsions.
 ## Missing side chains and hydrogens
 
 `pose_stack_from_biotite()` automatically routes blocks with missing heavy atoms
-through `build_missing_sidechains()`. By default it also places and optimizes
-hydrogens for complete residues. Pass `no_optH=True` to skip that hydrogen
-optimization path.
+through `build_missing_sidechains()`. With the default `no_optH=True`, it
+preserves finite supplied protein hydrogens and builds missing atoms. Pass
+`no_optH=False` to optimize supported hydrogen positions and NHQ flips.
 
 For standard residues and the default parameter database, TMol automatically
 reuses the structure-independent construction and packing setup. If many
@@ -65,8 +65,9 @@ pose_stack = pose_stack_from_biotite(
 )
 ```
 
-Ligand heavy atoms must be present in the input. TMol can prepare and protonate
-ligands, but the side-chain-rebuild sampler only handles polymer residues.
+Missing non-polymer atoms can be reconstructed from prepared conformers when
+sufficient coordinate anchors are available. Underdetermined geometry raises
+an error. These starting conformers are not recovered experimental coordinates.
 
 ## Kinematic minimization
 
