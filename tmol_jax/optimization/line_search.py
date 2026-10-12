@@ -42,7 +42,6 @@ from typing import Callable, Tuple
 
 import jax.numpy as jnp
 
-
 # Cubic interpolant floor: if the bracket length drops below this we
 # bail out and accept the best point seen so far.
 _MIN_BRACKET_LEN = 1e-12
@@ -182,9 +181,7 @@ def strong_wolfe_line_search(
             best_g = g_a
 
         # Armijo violation (or non-monotone on subsequent trials) -> bracket.
-        if (phi_a > phi0 + c1 * alpha * dphi0) or (
-            evals > 1 and phi_a >= phi_prev
-        ):
+        if (phi_a > phi0 + c1 * alpha * dphi0) or (evals > 1 and phi_a >= phi_prev):
             bracket_lo, bracket_hi = alpha_prev, alpha
             bracket_phi_lo, bracket_phi_hi = phi_prev, phi_a
             bracket_dphi_lo, bracket_dphi_hi = dphi_prev, dphi_a
@@ -240,9 +237,7 @@ def strong_wolfe_line_search(
             best_g = g_new
 
         # Shrink bracket depending on where the new point falls.
-        if (phi_new > phi0 + c1 * alpha_new * dphi0) or (
-            phi_new >= bracket_phi_lo
-        ):
+        if (phi_new > phi0 + c1 * alpha_new * dphi0) or (phi_new >= bracket_phi_lo):
             bracket_hi = alpha_new
             bracket_phi_hi = phi_new
             bracket_dphi_hi = dphi_new

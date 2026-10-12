@@ -103,7 +103,7 @@ def lbfgs_minimize(
     c2: float = 0.9,
     verbose: bool = False,
     value_and_grad: Optional[Callable[[jnp.ndarray], Any]] = None,
-) -> Dict[str, Any]:
+) -> Dict[str, Any]:  # noqa: C901
     """Minimize ``fn(x)`` with L-BFGS + strong-Wolfe line search.
 
     Parameters
