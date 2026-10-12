@@ -483,6 +483,23 @@ implemented. Do not use this experimental frontend as a replacement for a
 validated production TMol calculation yet.</p>
 <section id="build-and-install">
 <h2>Build and install<a class="headerlink" href="#build-and-install" title="Link to this heading">#</a></h2>
+<p>The published <code class="docutils literal notranslate"><span class="pre">tmol</span></code> package is currently the PyTorch frontend. A typical
+unpinned CPU installation is <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">tmol</span></code>; its documented CUDA variants
+remain unchanged. <code class="docutils literal notranslate"><span class="pre">tmol-jax</span></code> and <code class="docutils literal notranslate"><span class="pre">tmol-jax-cuda</span></code> are proposed package names for
+this draft and are not published yet. Once published, the intended independent
+choices are:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># JAX only (choose the matching CUDA major, or omit the extra for CPU)</span>
+pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'tmol-jax[cu13]'</span><span class="w"> </span>tmol-jax-cuda
+
+<span class="c1"># Both independent frontends in one environment</span>
+pip<span class="w"> </span>install<span class="w"> </span>tmol<span class="w"> </span><span class="s1">'tmol-jax[cu13]'</span><span class="w"> </span>tmol-jax-cuda
+</pre></div>
+</div>
+<p>Installing <code class="docutils literal notranslate"><span class="pre">tmol</span></code> does not install JAX, and installing <code class="docutils literal notranslate"><span class="pre">tmol-jax</span></code> does not
+install or import PyTorch. The pure frontend and optional native adapter own
+the disjoint <code class="docutils literal notranslate"><span class="pre">tmol_jax</span></code> and <code class="docutils literal notranslate"><span class="pre">tmol_jax_cuda</span></code> packages so uninstalling either
+does not remove files from the other. CUDA selection is explicit; use <code class="docutils literal notranslate"><span class="pre">cu12</span></code>
+instead of <code class="docutils literal notranslate"><span class="pre">cu13</span></code> for a CUDA 12 JAX runtime.</p>
 <p>From a TMol developer environment with <code class="docutils literal notranslate"><span class="pre">tmol</span></code>, <code class="docutils literal notranslate"><span class="pre">numpy</span></code> and <code class="docutils literal notranslate"><span class="pre">build</span></code> installed:</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>scripts/build_jax.py<span class="w"> </span>--outdir<span class="w"> </span>dist/jax
 pip<span class="w"> </span>install<span class="w"> </span>dist/jax/tmol_jax-*.whl
