@@ -8,9 +8,9 @@ Sphinx builds the Markdown/RST guides and the notebooks in `docs/tutorial/`.
 Execute the notebooks before building HTML:
 
 ```bash
-pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.8"
-pip install scikit-build-core pybind11 ninja packaging "cmake>=3.24,<4"
-pip install --no-build-isolation -e ".[docs]" \
+python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.14"
+python -m pip install "scikit-build-core>=0.10" "pybind11>=2.12" ninja packaging "cmake>=3.24,<4"
+python -m pip install --no-build-isolation -e ".[docs]" \
   -Ccmake.define.TMOL_ENABLE_CUDA=OFF
 python .github/scripts/smoke_tutorial_notebooks.py --write
 make -C docs html

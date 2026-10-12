@@ -43,7 +43,7 @@ def setup_colab(fixtures: list[str]) -> None:
     if not torch.cuda.is_available():
         raise RuntimeError(
             "This tutorial requires CUDA-enabled PyTorch and a Colab GPU runtime. "
-            "Choose 'Runtime > Change runtime type > T4 GPU', reconnect, "
+            "Choose a GPU under 'Runtime > Change runtime type', reconnect, "
             "and run again."
         )
     cuda_major = (torch.version.cuda or "").split(".")[0]
@@ -55,7 +55,6 @@ def setup_colab(fixtures: list[str]) -> None:
 
     runtime_packages = [
         "itables>=2.0",
-        "openbabel-wheel==3.1.1.22",
         "py3Dmol>=2.4,<3",
     ]
     _pip_install(

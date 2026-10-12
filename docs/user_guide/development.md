@@ -27,10 +27,10 @@ Requirements:
 - CMake 3.24 or newer.
 - CUDA toolkit with `nvcc` for CUDA builds.
 
-Without CUDA, use a CPU-only build:
+CPU builds are the default. To set this explicitly:
 
 ```bash
-pip install --no-build-isolation -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF
+python -m pip install --no-build-isolation -e . -Ccmake.define.TMOL_ENABLE_CUDA=OFF
 ```
 
 ## Build extensions
@@ -39,21 +39,21 @@ TMol builds extensions with CMake through `scikit-build-core`.
 
 ```bash
 # Production extensions
-pip install --no-build-isolation -e .
+python -m pip install --no-build-isolation -e .
 
 # Include test-only C++/CUDA extensions
-pip install --no-build-isolation -e ".[dev]" \
+python -m pip install --no-build-isolation -e ".[dev]" \
   -Ccmake.define.TMOL_BUILD_TESTS=ON
 
 # CUDA development build, including GPU test helpers
-pip install --no-build-isolation -e ".[dev]" -Ccmake.define.TMOL_ENABLE_CUDA=ON \
+python -m pip install --no-build-isolation -e ".[dev]" -Ccmake.define.TMOL_ENABLE_CUDA=ON \
   -Ccmake.define.TMOL_BUILD_TESTS=ON -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="80;90"
 
 # Separate distribution containing only CUDA operators
-pip wheel --no-build-isolation --no-deps ./packages/cu13
+python -m pip wheel --no-build-isolation --no-deps ./packages/cu13
 
 # Control parallelism
-MAX_JOBS=4 pip install --no-build-isolation -e . -Ccmake.define.TMOL_NVCC_THREADS=2
+MAX_JOBS=4 python -m pip install --no-build-isolation -e . -Ccmake.define.TMOL_NVCC_THREADS=2
 ```
 
 Build settings:
@@ -81,7 +81,8 @@ Environment variables:
 | `TMOL_USE_JIT=1` | Force JIT mode. |
 | `TMOL_JIT_FALLBACK=1` | Try AOT first, then JIT if AOT is unavailable. |
 
-Use JIT mode while editing kernels. Use AOT mode for normal installed packages.
+JIT mode requires a source checkout and build tools. Use it while editing
+kernels; use AOT mode for installed packages.
 On Linux, the JIT loader detects PyTorch's OpenMP CPU backend and propagates
 the corresponding compiler and linker flags, so `at::parallel_for` has the
 same thread behavior as the CMake-built extension. `OMP_NUM_THREADS` and
@@ -117,7 +118,7 @@ Docker:
 ```bash
 docker build -t tmol-dev -f containers/docker/tmol-dev.Dockerfile .
 docker run --gpus all -it -v "$(pwd):/tmol_host" -w /tmol_host tmol-dev bash
-pip install --no-build-isolation -e .
+python -m pip install --no-build-isolation -e .
 ```
 
 Apptainer:
@@ -134,6 +135,28 @@ CPU suites, and CPU documentation builds on hosted runners. CUDA tests,
 benchmarks, and the CUDA-only tutorial smoke tests use the self-hosted DIGS
 runner. PR docs builds upload rendered HTML artifacts; same-repository PRs also
 publish previews under the Pages site.
+
+## Native interface
+
+Operators register directly with PyTorch's stable dispatcher. Python autograd
+owns differentiation and saved-variable version checks; saved tensors cross the
+boundary in batches. Native allocations, dispatch, streams, and generator access
+use the stable C API. PyTorch 2.14+ provides direct Python tensor interop; older
+runtimes exchange real tensor handles through a private stable operator. Neither
+path copies tensor storage. Whole-pose scoring groups eligible precomputed
+coordinate derivatives into one autograd context and CUDA reduction. This path
+checks that static tensors are frozen before skipping per-term gradient queries;
+custom Python wrappers, hooks, trainable parameters, and weighted/parallel execution
+retain their ordinary differentiation paths. The engine schedules remaining
+term graphs directly, without a nested backward call. Saved derivatives stay
+under PyTorch's saved-variable ownership; CUDA reduction receives the entire
+tensor list through one native dispatcher call on every supported runtime.
+New native operations must preserve this boundary.
+`scripts/check_native_abi.py` catches accidental C++ ABI imports and unversioned
+Linux C++ runtime imports. Production uses C++17 to retain the manylinux floor.
+CUDA packing draws phase seeds through Torch's public dispatcher rather than
+accessing `CUDAGeneratorImpl`; fixed seeds remain reproducible, but trajectories
+can differ from releases before this refactor.
 
 ## Releasing
 
@@ -157,29 +180,6 @@ uploads both CUDA distributions before the base release, so missing project
 access stops publication before new base extras become visible. No separate
 package index or user-side build is needed. Publication remains gated on the
 complete wheel matrix and CPU/GPU installation checks.
-
-Operators register directly with PyTorch's stable dispatcher. Python autograd
-owns differentiation and saved-variable version checks; saved tensors cross the
-boundary in batches. Native allocations, dispatch, streams, and generator access
-use the stable C API. PyTorch 2.14+ provides direct Python tensor interop; older
-runtimes exchange real tensor handles through a private stable operator. Neither
-path copies tensor storage. Whole-pose scoring groups eligible precomputed
-coordinate derivatives into one autograd context and CUDA reduction. This path
-checks that static tensors are frozen before skipping per-term gradient queries;
-Custom Python wrappers, hooks, trainable parameters, and weighted/parallel execution
-retain their ordinary differentiation paths. The engine schedules remaining
-term graphs directly, without a nested backward call. Saved derivatives stay
-under PyTorch's saved-variable ownership; CUDA reduction receives the entire
-tensor list through one native dispatcher call on every supported runtime.
-New native operations must preserve this boundary.
-`scripts/check_native_abi.py` catches accidental C++ ABI imports and unversioned
-Linux C++ runtime imports. Production uses C++17 to retain the manylinux floor.
-CUDA packing draws phase seeds through Torch's public dispatcher rather than
-accessing `CUDAGeneratorImpl`; fixed seeds remain reproducible, but trajectories
-can differ from releases before this refactor.
-
-Before using a versioned wheel URL, check the GitHub Releases page. The version
-in a checkout is not proof that a release has been published.
 
 ## Code style
 
