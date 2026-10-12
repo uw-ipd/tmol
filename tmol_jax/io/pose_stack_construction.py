@@ -1,68 +1,8 @@
-"""Construct a ``PoseStack`` from a canonical-form dict -- pure numpy.
-
-Upstream reference: ``tmol/io/pose_stack_construction.py`` (torch, with
-helper modules in ``tmol/io/details/`` doing disulfide resolution, HIS
-tautomer resolution, left-justification, missing-atom building, etc.).
-
-The JAX port does a lean version of those details:
-
-* Chain termini are detected from per-residue ``chain_id`` (when the
-  canonical-form dict carries one) and the first / last residue of each
-  chain is promoted to the matching ``:nterm`` / ``:cterm`` variant
-  block type (e.g. ``MET`` -> ``MET:nterm``, ``GLY`` -> ``GLY:cterm``).
-  Single-residue "chains" use the ``:cterm:nterm`` variant when it
-  exists in the palette. Termini resolution requires the palette to
-  contain the variant block types -- the default palette does, via
-  :meth:`tmol_jax.pose.packed_block_types.PackedBlockTypes.default`.
-* HIS tautomer detection: for each HIS residue, inspect which of HD1/HE2
-  are provided and assign either HIS (NE2-protonated, default), HIS_D
-  (ND1-protonated) or HIS_POS (both protonated). Mirrors upstream's
-  ``resolve_his_tautomerization``.
-* Disulfide detection: if two CYS residues' SG atoms are within 2.5 Å of
-  each other, both are promoted to CYD. Mirrors upstream's
-  ``find_disulfides``.
-* Atoms whose canonical-slot is not present in the input (the common
-  case is H1/H2/H3 added by the N-term variant and OXT added by the
-  C-term variant when the source PDB does not provide them) are built
-  from the residue's icoor tree, superposed onto the available
-  backbone frame via a Kabsch-like alignment. When a PDB *does*
-  provide those atoms (as 1ubq does), their authored coordinates are
-  used directly.
-* Non-leaf atoms (any atom that is a parent of another atom in the icoor
-  tree) must be present in the input; if they are missing the builder
-  raises ``ValueError`` with the same wording upstream uses. Leaf atoms
-  (hydrogens, backbone O, OXT, ND1/NE2 termini on HIS variants) may be
-  absent and are built from ideal coords.
-* ``left_justify_canonical_form`` has no analogue -- we accept the
-  residues in the layout the caller provides.
-
-The primary API:
-
-    pose_stack_from_canonical_form(
-        canonical_form_dict,
-        packed_block_types,
-        chain_id=None,
-        res_num=None,
-    ) -> PoseStack
-
-with ``canonical_form_dict`` having:
-- ``"coords"``: ``float32[n_poses, max_n_res, max_n_can_atoms, 3]``
-- ``"atom_is_present"`` (optional): ``bool[n_poses, max_n_res, max_n_can_atoms]``
-  -- overrides the NaN-sniffing fallback. An atom is treated as "present"
-  iff ``atom_is_present[p, r, a]`` is True.
-- ``"res_name"`` (or ``"res_names"``): ``list[list[str]]`` of 3-letter
-  codes. If omitted we fall back to ``"res_types"`` (an int array of
-  canonical-ordering indices) combined with the provided
-  :class:`CanonicalOrdering` (passed via the dict under the key
-  ``"canonical_ordering"``).
-- ``"chain_id"`` (optional): ``int[n_poses, max_n_res]`` per-residue
-  chain index. Used for termini detection; if absent we fall back to
-  the ``chain_id`` kwarg (per-pose sequences) or assume a single chain.
-"""
+"""Build canonical protein poses with explicit topology and icoor reconstruction."""
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -238,33 +178,6 @@ def _build_name3_special_case_lookup(pbt: Any) -> Dict[str, Dict[str, str]]:
     return out
 
 
-def _variant_bt_for_terminus(
-    variants: Dict[str, int],
-    is_nterm: bool,
-    is_cterm: bool,
-) -> Optional[int]:
-    """Pick the right block-type index for a (nterm, cterm) state.
-
-    Returns ``None`` if no suitable variant exists (caller should
-    fall back to the base block type).
-    """
-    if is_nterm and is_cterm:
-        # Single-residue chain; try both-terminal variant first.
-        for key in ("cterm:nterm", "nterm:cterm"):
-            if key in variants:
-                return variants[key]
-        # Fall back to one-terminal variant (cterm > nterm arbitrary).
-        if "cterm" in variants:
-            return variants["cterm"]
-        if "nterm" in variants:
-            return variants["nterm"]
-        return None
-    if is_nterm:
-        return variants.get("nterm")
-    if is_cterm:
-        return variants.get("cterm")
-    return None  # non-terminal -> use base
-
 
 def _canonical_to_variant_map(
     co_atom_names: Tuple[str, ...],
@@ -435,25 +348,6 @@ def _resolve_disulfide_pairs(
     return paired, pairs
 
 
-def _kabsch_align(src: np.ndarray, dst: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """Return ``(R, t)`` such that ``src @ R.T + t`` best-aligns ``src``
-    onto ``dst`` (same shape ``(n, 3)``). Standard Kabsch; works for
-    any ``n >= 1`` but requires ``n >= 3`` for a unique rotation.
-    """
-    src = np.asarray(src, dtype=np.float64)
-    dst = np.asarray(dst, dtype=np.float64)
-    src_c = src.mean(axis=0)
-    dst_c = dst.mean(axis=0)
-    H = (src - src_c).T @ (dst - dst_c)
-    U, _, Vt = np.linalg.svd(H)
-    # Handle reflection.
-    d = np.sign(np.linalg.det(Vt.T @ U.T))
-    D = np.eye(3)
-    D[2, 2] = d
-    R = Vt.T @ D @ U.T
-    t = dst_c - src_c @ R.T
-    return R.astype(np.float32), t.astype(np.float32)
-
 
 def _is_leaf_atom_for_bt(bt: Any) -> np.ndarray:
     """Return ``bool[n_atoms]`` marking each atom as "leaf" in the icoor
@@ -519,28 +413,6 @@ def _is_leaf_atom_for_bt(bt: Any) -> np.ndarray:
     return is_leaf
 
 
-def _fill_missing_from_ideal(
-    ideal: np.ndarray,
-    actual: np.ndarray,
-    present_mask: np.ndarray,
-) -> np.ndarray:
-    """Build a filled-in coord array aligned with ``actual`` where
-    ``present_mask`` is True, and aligned-ideal values elsewhere.
-
-    ``ideal``, ``actual`` both shape ``(n, 3)``; ``present_mask`` is
-    ``bool[n]``. When there are < 3 present atoms, the returned
-    coord for absent atoms is ``actual`` (i.e. unchanged -- leaves
-    the zero fill in place) so callers can decide to fall back.
-    """
-    filled = actual.copy()
-    ok = np.where(present_mask)[0]
-    if ok.shape[0] >= 3:
-        R, t = _kabsch_align(ideal[ok], actual[ok])
-        missing = np.where(~present_mask)[0]
-        if missing.size > 0:
-            filled[missing] = ideal[missing] @ R.T + t
-    return filled
-
 
 def _fill_missing_from_icoors(
     bt: Any,
@@ -559,14 +431,6 @@ def _fill_missing_from_icoors(
     themselves missing can still be built in subsequent passes after
     their immediate ancestor has been placed (H1 -> H2 -> H3 on
     MET:nterm is the canonical example).
-
-    When an ancestor name is a connection name (e.g. ``"down"`` for the
-    previous residue's C), the optional ``conn_atom_xyz`` dict supplies
-    the cross-block coordinate. This is the difference between
-    backbone-H placement working (an ALA at the middle of a chain has
-    a real prev-C to reference) and failing (the first residue in a
-    chain has no prev-C; we mark the H as "leaf" and let it fall
-    through to Kabsch alignment, which gives a sane geometry).
 
     Returns ``(new_coords, newly_filled_mask)``. Atoms whose ancestors
     can't be fully resolved are left unchanged.
@@ -658,452 +522,255 @@ def _fill_missing_from_icoors(
 # --------------------------------------------------------------------------- #
 
 
+def _canonical_rows(value, shape, default, name):
+    array = np.asarray(default if value is None else value, dtype=object)
+    if array.ndim == 1:
+        array = array[None, :]
+    if array.shape != shape:
+        raise ValueError(f"{name} must have shape {shape}; got {array.shape}")
+    return array
+
+
+def _choose_residue_types(pbt, names, coords, present, starts, ends, co):
+    variants = _build_variant_lookup(pbt, _bt_name_index(pbt))
+    special_cases = _build_name3_special_case_lookup(pbt)
+    keys = ["default"] * len(names)
+    for index, name in enumerate(names):
+        if name == "HIS":
+            keys[index] = _resolve_his_spcase(
+                name,
+                co.restypes_ordered_atom_names[name],
+                present[index],
+                coords[index],
+            )
+    flags, disulfides = _resolve_disulfide_pairs(
+        list(range(len(names))),
+        names,
+        co.restypes_ordered_atom_names.get("CYS", ()),
+        present[None],
+        coords[None],
+        0,
+    )
+    for index in np.flatnonzero(flags):
+        keys[index] = "cyd"
+    indices = []
+    for index, name in enumerate(names):
+        cases = special_cases.get(name, {})
+        base = cases.get(keys[index], cases.get("default", name))
+        tags = [
+            tag
+            for enabled, tag in ((ends[index], "cterm"), (starts[index], "nterm"))
+            if enabled
+        ]
+        choices = variants.get(base, {})
+        selected = choices.get(":".join(tags), choices.get(":".join(reversed(tags))))
+        if selected is None:
+            raise ValueError(
+                f"residue palette lacks required variant {base}:{':'.join(tags)}"
+            )
+        indices.append(selected)
+    return np.asarray(indices, dtype=np.int32), disulfides
+
+
+def _map_residue_atoms(residue, source, present, co):
+    names = co.restypes_ordered_atom_names[residue.name3]
+    aliases = {
+        alias: names[index]
+        for alias, index in co.restypes_atom_index_mapping[residue.name3].items()
+        if alias not in names
+    }
+    mapping = _canonical_to_variant_map(
+        names, aliases, tuple(atom.name for atom in residue.atoms), residue.aliases_map
+    )
+    valid = (mapping >= 0) & (mapping < source.shape[0])
+    safe = np.where(valid, mapping, 0)
+    available = valid & present[safe]
+    coords = np.where(available[:, None], source[safe], 0).astype(np.float32)
+    missing = ~available & ~_is_leaf_atom_for_bt(residue)
+    if missing.any():
+        atoms = ", ".join(
+            residue.atoms[index].name for index in np.flatnonzero(missing)
+        )
+        raise ValueError(f"missing non-leaf atoms on {residue.name}: {atoms}")
+    return coords, available
+
+
+def _connection_coordinates(index, residues, coords, present, starts, ends):
+    result = {}
+    candidates = (
+        ("down", index - 1, "up", not starts[index]),
+        ("up", index + 1, "down", not ends[index]),
+    )
+    for connection, neighbor, reverse, connected in candidates:
+        if not connected:
+            continue
+        atom = residues[neighbor].connection_to_idx.get(reverse)
+        if atom is not None and present[neighbor][atom]:
+            result[connection] = coords[neighbor][atom]
+    return result
+
+
+def _reconstruct_pose_atoms(residues, source, present, starts, ends, co):
+    mapped = [
+        _map_residue_atoms(residue, xyz, mask, co)
+        for residue, xyz, mask in zip(residues, source, present)
+    ]
+    coordinates, available = map(list, zip(*mapped))
+    for index, residue in enumerate(residues):
+        if available[index].all():
+            continue
+        stubs = _connection_coordinates(
+            index, residues, coordinates, available, starts, ends
+        )
+        coordinates[index], filled = _fill_missing_from_icoors(
+            residue, coordinates[index], available[index], conn_atom_xyz=stubs
+        )
+        available[index] |= filled
+        if not available[index].all():
+            missing = ", ".join(
+                residue.atoms[atom].name
+                for atom in np.flatnonzero(~available[index])
+            )
+            raise ValueError(
+                f"icoor reconstruction could not place {residue.name}: {missing}"
+            )
+        if not np.isfinite(coordinates[index]).all():
+            raise ValueError(f"non-finite reconstructed coordinates for {residue.name}")
+    return np.concatenate(coordinates)
+
+
+def _chain_segments(indices, chains, disconnected):
+    changed = chains[indices[1:]] != chains[indices[:-1]]
+    broken = (
+        changed
+        | (np.diff(indices) != 1)
+        | disconnected[indices[:-1], 1]
+        | disconnected[indices[1:], 0]
+    )
+    starts = np.r_[True, broken]
+    ends = np.r_[broken, True]
+    return starts, ends, np.cumsum(starts) - 1
+
+
 def pose_stack_from_canonical_form(
-    canonical_form_dict: Dict[str, Any],
-    packed_block_types: Any,
-    chain_id: Optional[Sequence[Sequence[Any]]] = None,
-    res_num: Optional[Sequence[Sequence[int]]] = None,
-) -> Any:
-    """Build a :class:`PoseStack` from a canonical-form dict.
+    canonical_form_dict, packed_block_types, chain_id=None, res_num=None
+):
+    """Build canonical proteins, respecting explicit chain breaks and atom names.
 
-    See the module docstring for the expected keys. Returns a
-    :class:`tmol_jax.pose.pose_stack.PoseStack` with
-    ``inter_residue_connections`` and ``inter_block_bondsep`` populated
-    via :meth:`PoseStackBuilder.from_block_types_and_coords`'s chain
-    adjacency approximation.
-
-    Termini detection uses ``canonical_form_dict["chain_id"]`` when
-    present; otherwise falls back to the ``chain_id`` kwarg. If neither
-    is supplied, every residue is treated as belonging to the same
-    chain "A" and only the first / last overall residues are tagged as
-    terminal.
+    Coordinates are [poses, residues, canonical atoms, 3]. Missing leaf atoms
+    are reconstructed; missing non-leaf atoms and unavailable variants raise.
+    res_not_connected[..., 0/1] breaks the preceding/following polymer bond.
     """
-    # Local imports so this module imports cleanly even before sibling
-    # ports finish populating.
+    import attrs
+    from tmol_jax.io.canonical_ordering import default_canonical_ordering
+    from tmol_jax.pose.packed_block_types import PackedBlockTypes
     from tmol_jax.pose.pose_stack_builder import PoseStackBuilder
 
-    pbt = packed_block_types
     cf = canonical_form_dict
-
-    # ------------------------------------------------------------------
-    # Shapes
-    # ------------------------------------------------------------------
+    pbt = packed_block_types
     coords = np.asarray(cf["coords"], dtype=np.float32)
-    if coords.ndim != 4 or coords.shape[-1] != 3:
-        raise ValueError(
-            f"coords must be [n_poses, max_n_res, max_n_can_atoms, 3]; "
-            f"got shape {coords.shape}."
+    if coords.ndim != 4 or coords.shape[-1] != 3 or min(coords.shape[:3]) == 0:
+        raise ValueError("coords must have nonempty shape [poses, residues, atoms, 3]")
+    shape = coords.shape[:2]
+    present = np.asarray(
+        cf.get("atom_is_present", np.isfinite(coords).all(axis=-1)), dtype=bool
+    )
+    if present.shape != coords.shape[:-1] or np.any(
+        present & ~np.isfinite(coords).all(axis=-1)
+    ):
+        raise ValueError("atom_is_present must match finite canonical coordinates")
+    co = cf.get("canonical_ordering") or default_canonical_ordering()
+    names = _normalise_res_names(dict(cf, canonical_ordering=co), *shape)
+    if len(names) != shape[0] or any(len(row) != shape[1] for row in names):
+        raise ValueError("residue names must match the canonical coordinate shape")
+    chain_values = cf.get("chain_id")
+    if chain_values is None:
+        chain_values = chain_id
+    chains = _canonical_rows(
+        chain_values, shape, np.zeros(shape, dtype=np.int32), "chain_id"
+    )
+    labels = _canonical_rows(cf.get("chain_labels"), shape, chains, "chain_labels")
+    number_values = cf.get("res_num")
+    if number_values is None:
+        number_values = res_num
+    numbers = _canonical_rows(
+        number_values,
+        shape,
+        np.broadcast_to(np.arange(shape[1]) + 1, shape),
+        "res_num",
+    )
+    disconnected = np.asarray(
+        cf.get("res_not_connected", np.zeros(shape + (2,), dtype=bool)), dtype=bool
+    )
+    if disconnected.shape != shape + (2,):
+        raise ValueError("res_not_connected must have shape [poses, residues, 2]")
+    known = set(_bt_name3_index(pbt))
+    (
+        types,
+        coordinates,
+        segments,
+        authors,
+        residue_numbers,
+        residue_names,
+        disulfides,
+    ) = ([] for _ in range(7))
+    for pose, row in enumerate(names):
+        indices = np.array(
+            [index for index, name in enumerate(row) if name], dtype=np.int32
         )
-    n_poses, max_n_res, max_n_can_atoms, _ = coords.shape
-
-    # atom_is_present falls back to "is finite / not NaN".
-    if "atom_is_present" in cf and cf["atom_is_present"] is not None:
-        atom_is_present = np.asarray(cf["atom_is_present"], dtype=bool)
-        if atom_is_present.shape != (n_poses, max_n_res, max_n_can_atoms):
-            raise ValueError(
-                "atom_is_present shape mismatches coords; "
-                f"got {atom_is_present.shape} vs "
-                f"({n_poses}, {max_n_res}, {max_n_can_atoms})."
+        selected_names = [row[index] for index in indices]
+        unknown = set(selected_names) - known
+        if unknown:
+            raise NotImplementedError(
+                "unsupported residues: " + ", ".join(sorted(unknown))
             )
-    else:
-        atom_is_present = np.all(np.isfinite(coords), axis=-1)
-
-    res_names = _normalise_res_names(cf, n_poses, max_n_res)
-
-    bt_name_index = _bt_name_index(pbt)
-    name3_to_bt = _bt_name3_index(pbt)
-    variant_lookup = _build_variant_lookup(pbt, bt_name_index)
-    name3_spcase_lookup = _build_name3_special_case_lookup(pbt)
-
-    n_atoms_per_bt = np.asarray(pbt.n_atoms, dtype=np.int32)
-
-    # Canonical ordering (for per-residue atom names / aliases). Prefer
-    # an explicit override from the caller.
-    co = cf.get("canonical_ordering", None)
-    if co is None:
-        from tmol_jax.io.canonical_ordering import default_canonical_ordering
-
-        co = default_canonical_ordering()
-    co_atom_names_map = getattr(co, "restypes_ordered_atom_names", None)
-    # CanonicalOrdering stores aliases as part of the index mapping, not
-    # as a standalone alt_name->canonical dict. Construct one now.
-    co_alias_maps: Dict[str, Dict[str, str]] = {}
-    if co_atom_names_map is not None:
-        idx_map = getattr(co, "restypes_atom_index_mapping", {})
-        for n3, names in co_atom_names_map.items():
-            name_to_idx: Dict[str, int] = {n: i for i, n in enumerate(names)}
-            aliases: Dict[str, str] = {}
-            for alt_name, idx in idx_map.get(n3, {}).items():
-                if alt_name in name_to_idx:
-                    continue  # primary canonical name
-                if 0 <= idx < len(names):
-                    aliases[alt_name] = names[idx]
-            co_alias_maps[n3] = aliases
-
-    # Cache per-variant "variant-atom -> canonical-atom" index maps so
-    # we only compute them once per (name3, variant_tag) pair.
-    canon_map_cache: Dict[int, np.ndarray] = {}
-
-    def _map_for_bt(bt_ind: int) -> np.ndarray:
-        cached = canon_map_cache.get(bt_ind)
-        if cached is not None:
-            return cached
-        bt = pbt.active_block_types[bt_ind]
-        n3 = getattr(bt, "name3", None) or getattr(bt, "name", "")
-        co_names = (
-            co_atom_names_map.get(n3, tuple())
-            if co_atom_names_map is not None
-            else tuple()
+        if not len(indices):
+            raise ValueError("each pose must contain at least one protein residue")
+        starts, ends, chain_segments = _chain_segments(
+            indices, chains[pose], disconnected[pose]
         )
-        co_aliases = co_alias_maps.get(n3, {})
-        bt_atom_names = tuple(a.name for a in bt.atoms)
-        bt_aliases = dict(getattr(bt, "aliases_map", {}) or {})
-        m = _canonical_to_variant_map(co_names, co_aliases, bt_atom_names, bt_aliases)
-        canon_map_cache[bt_ind] = m
-        return m
-
-    # Cache per-variant ideal coords.
-    ideal_cache: Dict[int, np.ndarray] = {}
-
-    def _ideal_for_bt(bt_ind: int) -> np.ndarray:
-        cached = ideal_cache.get(bt_ind)
-        if cached is not None:
-            return cached
-        bt = pbt.active_block_types[bt_ind]
-        ic_arr = np.asarray(bt.ideal_coords, dtype=np.float32)[bt.at_to_icoor_ind]
-        ideal_cache[bt_ind] = ic_arr
-        return ic_arr
-
-    # ------------------------------------------------------------------
-    # Per-pose chain id lookup (for termini detection).
-    # ------------------------------------------------------------------
-    cf_chain_id_arr: Optional[np.ndarray] = None
-    if "chain_id" in cf and cf["chain_id"] is not None:
-        cf_chain_id_arr = np.asarray(cf["chain_id"], dtype=np.int64)
-        if cf_chain_id_arr.ndim == 1:
-            cf_chain_id_arr = cf_chain_id_arr[None, :]
-        if cf_chain_id_arr.shape[0] != n_poses:
-            cf_chain_id_arr = None
-
-    # ------------------------------------------------------------------
-    # Resolve block_type_ind per (pose, residue)
-    # ------------------------------------------------------------------
-    block_type_inds_per_pose: List[np.ndarray] = []
-    coords_per_pose: List[np.ndarray] = []
-    chain_per_pose: List[List[Any]] = []
-    resnum_per_pose: List[List[int]] = []
-    res_name_per_pose: List[List[str]] = []
-    # Disulfide pairs collected per pose: list-of-tuples ``(k_i, k_j)``
-    # giving the two CYD half indices in the *real-residue* list (i.e.
-    # the same index space as ``block_type_inds_per_pose[p]``). Passed
-    # through to PoseStackBuilder so the dslf inter-residue connection
-    # gets wired before bondsep is computed.
-    disulfide_pairs_per_pose: List[List[Tuple[int, int]]] = []
-
-    chain_input_is_per_pose = chain_id is not None and len(chain_id) == n_poses
-    resnum_input_is_per_pose = res_num is not None and len(res_num) == n_poses
-
-    def _default_chain_row(p: int, n_real: int) -> List[str]:
-        return ["A"] * n_real
-
-    def _default_resnum_row(p: int, n_real: int) -> List[int]:
-        return list(range(1, n_real + 1))
-
-    for p in range(n_poses):
-        # -- First pass: collect the 'real' residue indices (those with
-        #    a known name3) and their per-residue chain id.
-        real_r_inds: List[int] = []
-        real_chain_ids: List[int] = []
-        real_name3s: List[str] = []
-        for r in range(max_n_res):
-            name3 = (
-                res_names[p][r].strip()
-                if res_names[p] and r < len(res_names[p])
-                else ""
-            )
-            if name3 == "" or name3 not in name3_to_bt:
-                continue
-            real_r_inds.append(r)
-            real_name3s.append(name3)
-            if cf_chain_id_arr is not None:
-                real_chain_ids.append(int(cf_chain_id_arr[p, r]))
-            else:
-                real_chain_ids.append(0)
-
-        real_res_count = len(real_r_inds)
-
-        # -- Determine termini flags per real residue index.
-        is_nterm_flags: List[bool] = [False] * real_res_count
-        is_cterm_flags: List[bool] = [False] * real_res_count
-        if real_res_count > 0:
-            is_nterm_flags[0] = True
-            is_cterm_flags[-1] = True
-            for k in range(1, real_res_count):
-                if real_chain_ids[k] != real_chain_ids[k - 1]:
-                    is_nterm_flags[k] = True
-                    is_cterm_flags[k - 1] = True
-
-        # -- Special-case variant selection: HIS tautomer, disulfide CYD.
-        # Defaults to the name3's "default" base (CYS, HIS, ALA, ...).
-        spcase_key_per_k: List[str] = ["default"] * real_res_count
-
-        # HIS tautomer resolution -- mirrors upstream resolve_his_tautomerization.
-        his_co_names = (
-            co_atom_names_map.get("HIS", tuple()) if co_atom_names_map else tuple()
+        selected, pairs = _choose_residue_types(
+            pbt,
+            selected_names,
+            coords[pose, indices],
+            present[pose, indices],
+            starts,
+            ends,
+            co,
         )
-        for k in range(real_res_count):
-            if real_name3s[k] != "HIS":
-                continue
-            r = real_r_inds[k]
-            spcase_key_per_k[k] = _resolve_his_spcase(
-                "HIS", his_co_names, atom_is_present[p, r], coords[p, r]
+        residues = [pbt.active_block_types[index] for index in selected]
+        coordinates.append(
+            _reconstruct_pose_atoms(
+                residues,
+                coords[pose, indices],
+                present[pose, indices],
+                starts,
+                ends,
+                co,
             )
-
-        # Disulfide resolution -- mirrors upstream find_disulfides.
-        cys_co_names = (
-            co_atom_names_map.get("CYS", tuple()) if co_atom_names_map else tuple()
         )
-        disulfide_flags, disulfide_pairs_p = _resolve_disulfide_pairs(
-            real_r_inds, real_name3s, cys_co_names, atom_is_present, coords, p
-        )
-        for k, flag in enumerate(disulfide_flags):
-            if flag:
-                spcase_key_per_k[k] = "cyd"
-
-        # -- Pick block-type index per real residue (variant-aware).
-        bt_inds_p: List[int] = []
-        for k in range(real_res_count):
-            n3 = real_name3s[k]
-            # Resolve base name (HIS / HIS_D / HIS_POS / CYS / CYD / ...).
-            spcase_entry = name3_spcase_lookup.get(n3, {})
-            base_name = spcase_entry.get(
-                spcase_key_per_k[k], spcase_entry.get("default", n3)
-            )
-            variant_dict = variant_lookup.get(base_name, {})
-            chosen = _variant_bt_for_terminus(
-                variant_dict, is_nterm_flags[k], is_cterm_flags[k]
-            )
-            if chosen is None:
-                # Fall back to the base (mid-chain) variant of this base_name.
-                chosen = variant_dict.get("", None)
-            if chosen is None:
-                # Last-resort fallback: the default base for this name3.
-                chosen = name3_to_bt[n3]
-            bt_inds_p.append(int(chosen))
-
-        # -- Pack atoms for real residues into a flat [sum(n_atoms), 3]
-        #    array. Use ``variant_to_canonical`` mapping so variant
-        #    atom order is honoured, and fill missing atoms from the
-        #    variant's ideal coords aligned onto the available backbone.
-        n_atoms_this_pose = int(sum(n_atoms_per_bt[bi] for bi in bt_inds_p))
-        coords_flat = np.zeros((n_atoms_this_pose, 3), dtype=np.float32)
-
-        # Collect non-leaf-missing errors so we can raise once with the
-        # full list (matches upstream's build_missing_leaf_atoms error
-        # formatting).
-        nonleaf_err_msgs: List[str] = []
-
-        # Cache of leaf-atom masks keyed by block-type index.
-        leaf_mask_cache: Dict[int, np.ndarray] = {}
-
-        def _leaf_mask_for_bt(bt_ind: int) -> np.ndarray:
-            cached = leaf_mask_cache.get(bt_ind)
-            if cached is not None:
-                return cached
-            bt = pbt.active_block_types[bt_ind]
-            mask = _is_leaf_atom_for_bt(bt)
-            leaf_mask_cache[bt_ind] = mask
-            return mask
-
-        # First pass: collect each block's variant-mapped atoms + present
-        # mask, **without** filling missing atoms yet. We need every
-        # block's atoms placed (or absent) before we can resolve
-        # cross-block ``down`` / ``up`` references during icoor build.
-        block_var_coords: List[np.ndarray] = []
-        block_var_present: List[np.ndarray] = []
-        block_atom_name_to_idx: List[Dict[str, int]] = []
-        for k in range(real_res_count):
-            r = real_r_inds[k]
-            bt_ind = bt_inds_p[k]
-            n_bt_atoms = int(n_atoms_per_bt[bt_ind])
-            bt = pbt.active_block_types[bt_ind]
-            bt_name_str = str(getattr(bt, "name", ""))
-
-            var_to_can = _map_for_bt(bt_ind)  # variant_slot -> canonical_slot
-            var_present = np.zeros(n_bt_atoms, dtype=bool)
-            var_coords = np.zeros((n_bt_atoms, 3), dtype=np.float32)
-            for j in range(n_bt_atoms):
-                can_a = int(var_to_can[j]) if j < len(var_to_can) else -1
-                if can_a < 0 or can_a >= max_n_can_atoms:
-                    continue
-                if atom_is_present[p, r, can_a]:
-                    var_present[j] = True
-                    var_coords[j, 0] = coords[p, r, can_a, 0]
-                    var_coords[j, 1] = coords[p, r, can_a, 1]
-                    var_coords[j, 2] = coords[p, r, can_a, 2]
-
-            # Validate that all non-leaf atoms are present.
-            leaf_mask = _leaf_mask_for_bt(bt_ind)[:n_bt_atoms]
-            missing_mask = ~var_present
-            nonleaf_missing = np.logical_and(missing_mask, ~leaf_mask)
-            if np.any(nonleaf_missing):
-                bt_atoms = list(bt.atoms)
-                for j in np.where(nonleaf_missing)[0]:
-                    at_name = bt_atoms[j].name if j < len(bt_atoms) else f"atom_{j}"
-                    nonleaf_err_msgs.append(
-                        f"Error: missing non-leaf atom {at_name} on residue {k} "
-                        f"{bt_name_str} on pose {p} real res? True"
-                    )
-
-            block_var_coords.append(var_coords)
-            block_var_present.append(var_present)
-            block_atom_name_to_idx.append({a.name: i for i, a in enumerate(bt.atoms)})
-
-        # Second pass: fill missing atoms with cross-block-aware icoor
-        # resolution, then pack into the flat output.
-        idx_ptr = 0
-        for k in range(real_res_count):
-            bt_ind = bt_inds_p[k]
-            n_bt_atoms = int(n_atoms_per_bt[bt_ind])
-            bt = pbt.active_block_types[bt_ind]
-
-            var_coords = block_var_coords[k]
-            var_present = block_var_present[k]
-
-            # If any variant atoms are missing (most often H1/H2/H3 or
-            # OXT) fill them in. Primary path: icoor-tree build (mirrors
-            # upstream's ``gen_pose_leaf_atoms``); fallback: Kabsch-align
-            # the ideal coords onto the present frame.
-            if not var_present.all():
-                # Resolve cross-block connection-atom xyzs for this block.
-                # ``down`` -> previous residue's "up" connection atom
-                # (typically C of the prev residue for amino acids).
-                # ``up``   -> next residue's "down" connection atom
-                # (typically N of the next residue).
-                conn_atom_xyz: Dict[str, np.ndarray] = {}
-                # ``down`` connection: previous-residue's "up" atom.
-                # Only valid when (k > 0) AND not an n-terminal break
-                # (i.e. is_nterm_flags[k] is False because we set it on
-                # chain breaks too).
-                if k > 0 and not is_nterm_flags[k]:
-                    prev_bt = pbt.active_block_types[bt_inds_p[k - 1]]
-                    up_conn = None
-                    for c in getattr(prev_bt, "connections", ()) or ():
-                        if getattr(c, "name", None) == "up":
-                            up_conn = c
-                            break
-                    if up_conn is not None:
-                        prev_at_name = getattr(up_conn, "atom", None)
-                        prev_atom_to_idx = block_atom_name_to_idx[k - 1]
-                        if prev_at_name in prev_atom_to_idx:
-                            prev_idx = prev_atom_to_idx[prev_at_name]
-                            if block_var_present[k - 1][prev_idx]:
-                                conn_atom_xyz["down"] = block_var_coords[k - 1][
-                                    prev_idx
-                                ]
-                if k < real_res_count - 1 and not is_cterm_flags[k]:
-                    next_bt = pbt.active_block_types[bt_inds_p[k + 1]]
-                    down_conn = None
-                    for c in getattr(next_bt, "connections", ()) or ():
-                        if getattr(c, "name", None) == "down":
-                            down_conn = c
-                            break
-                    if down_conn is not None:
-                        next_at_name = getattr(down_conn, "atom", None)
-                        next_atom_to_idx = block_atom_name_to_idx[k + 1]
-                        if next_at_name in next_atom_to_idx:
-                            next_idx = next_atom_to_idx[next_at_name]
-                            if block_var_present[k + 1][next_idx]:
-                                conn_atom_xyz["up"] = block_var_coords[k + 1][next_idx]
-
-                # First try icoor-based build (matches upstream exactly).
-                var_coords, newly_filled = _fill_missing_from_icoors(
-                    bt, var_coords, var_present, conn_atom_xyz=conn_atom_xyz
-                )
-                var_present = var_present | newly_filled
-                # Any residual missing atoms fall back to Kabsch-align.
-                if not var_present.all() and var_present.sum() >= 3:
-                    ideal = _ideal_for_bt(bt_ind)
-                    if ideal.shape[0] >= n_bt_atoms:
-                        var_coords = _fill_missing_from_ideal(
-                            ideal[:n_bt_atoms], var_coords, var_present
-                        )
-
-                # Keep our cached entries in sync so a later block
-                # querying ``conn_atom_xyz["down"]`` against this block's
-                # "up" connection atom sees the filled value (rarely
-                # matters because heavy ``up`` atoms are always present,
-                # but defensive).
-                block_var_coords[k] = var_coords
-                block_var_present[k] = var_present
-
-            coords_flat[idx_ptr : idx_ptr + n_bt_atoms] = var_coords
-            idx_ptr += n_bt_atoms
-
-        if nonleaf_err_msgs:
-            raise ValueError("\n".join(nonleaf_err_msgs))
-
-        block_type_inds_per_pose.append(np.asarray(bt_inds_p, dtype=np.int32))
-        coords_per_pose.append(coords_flat)
-
-        # Chain / resnum rows: derive from cf preferentially, else kwargs,
-        # else synthesise.
-        if "chain_labels" in cf and cf["chain_labels"] is not None:
-            cl_raw = cf["chain_labels"]
-            cl_arr = np.asarray(cl_raw, dtype=object)
-            if cl_arr.ndim == 1:
-                cl_arr = cl_arr[None, :]
-            chain_row = [str(cl_arr[p, ri]) for ri in real_r_inds]
-        elif chain_input_is_per_pose:
-            row = list(chain_id[p])
-            if len(row) < real_res_count:
-                row = row + ["A"] * (real_res_count - len(row))
-            chain_row = row[:real_res_count]
-        else:
-            chain_row = _default_chain_row(p, real_res_count)
-        chain_per_pose.append(chain_row)
-
-        if "res_num" in cf and cf["res_num"] is not None:
-            rn_raw = np.asarray(cf["res_num"])
-            if rn_raw.ndim == 1:
-                rn_raw = rn_raw[None, :]
-            resnum_row = [int(rn_raw[p, ri]) for ri in real_r_inds]
-        elif resnum_input_is_per_pose:
-            row = list(res_num[p])
-            if len(row) < real_res_count:
-                row = row + list(range(len(row) + 1, real_res_count + 1))
-            resnum_row = [int(x) for x in row[:real_res_count]]
-        else:
-            resnum_row = _default_resnum_row(p, real_res_count)
-        resnum_per_pose.append(resnum_row)
-
-        res_name_per_pose.append(list(real_name3s))
-        disulfide_pairs_per_pose.append(disulfide_pairs_p)
-
-    # ------------------------------------------------------------------
-    # Delegate to PoseStackBuilder.from_block_types_and_coords
-    # ------------------------------------------------------------------
-    # Score only residue types used by this batch. All-palette pair setup is
-    # quadratic in the number of types and otherwise retains unused parameters.
-    from tmol_jax.pose.packed_block_types import PackedBlockTypes
-
-    used = np.unique(np.concatenate(block_type_inds_per_pose))
-    remap = np.full(len(pbt.active_block_types), -1, dtype=np.int32)
+        types.append(selected)
+        segments.append(chain_segments)
+        authors.append([str(labels[pose, index]) for index in indices])
+        residue_numbers.append([int(numbers[pose, index]) for index in indices])
+        residue_names.append(selected_names)
+        disulfides.append(pairs)
+    used = np.unique(np.concatenate(types))
+    remap = np.full(pbt.n_types, -1, np.int32)
     remap[used] = np.arange(len(used), dtype=np.int32)
-    pbt = PackedBlockTypes.from_restypes(
-        pbt.chem_db, [pbt.active_block_types[i] for i in used]
+    compact = PackedBlockTypes.from_restypes(
+        pbt.chem_db, [pbt.active_block_types[index] for index in used]
     )
-    block_type_inds_per_pose = [remap[indices] for indices in block_type_inds_per_pose]
-
-    return PoseStackBuilder.from_block_types_and_coords(
-        pbt=pbt,
-        block_type_inds_per_pose=block_type_inds_per_pose,
-        coords_per_pose=coords_per_pose,
-        chain_id_per_pose=chain_per_pose,
-        res_num_per_pose=resnum_per_pose,
-        res_name_per_pose=res_name_per_pose,
-        disulfide_pairs_per_pose=disulfide_pairs_per_pose,
+    result = PoseStackBuilder.from_block_types_and_coords(
+        compact,
+        [remap[row] for row in types],
+        coordinates,
+        segments,
+        residue_numbers,
+        residue_names,
+        disulfides,
     )
+    return result.replace(pdb_info=attrs.evolve(result.pdb_info, chain_id=authors))
 
 
 __all__ = ["pose_stack_from_canonical_form"]
