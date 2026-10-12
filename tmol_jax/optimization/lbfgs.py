@@ -90,7 +90,7 @@ def _two_loop_recursion(
     return r
 
 
-def lbfgs_minimize(
+def lbfgs_minimize(  # noqa: C901
     fn: Callable[[jnp.ndarray], jnp.ndarray],
     x0: jnp.ndarray,
     max_iter: int = 100,
@@ -103,7 +103,7 @@ def lbfgs_minimize(
     c2: float = 0.9,
     verbose: bool = False,
     value_and_grad: Optional[Callable[[jnp.ndarray], Any]] = None,
-) -> Dict[str, Any]:  # noqa: C901
+) -> Dict[str, Any]:
     """Minimize ``fn(x)`` with L-BFGS + strong-Wolfe line search.
 
     Parameters
