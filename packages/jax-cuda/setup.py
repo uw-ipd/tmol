@@ -49,7 +49,10 @@ class CudaBuildExt(build_ext):
 
 setup(
     ext_modules=[
-        Extension("tmol_jax_cuda._ljlk_cuda", ["ljlk_cuda.cu", "lkball_cuda.cu"])
+        Extension(
+            "tmol_jax_cuda._ljlk_cuda",
+            ["ljlk_cuda.cu", "lkball_cuda.cu", "elec_cuda.cu"],
+        )
     ],
     cmdclass={"build_ext": CudaBuildExt},
     install_requires=[

@@ -1,12 +1,10 @@
 """Whole-pose electrostatics scoring term.
 
-Port of :mod:`tmol.score.elec.elec_energy_term` to pure JAX. Unlike
-the upstream C++/CUDA implementation, which uses tiled shared-memory
-kernels, we express the pairwise sum as a dense
-``[max_n_atoms, max_n_atoms]`` matrix multiply-style reduction. That
-is perfectly adequate for the pose sizes the JAX port targets
-(single-ubiquitin class, ~1k atoms) and keeps the code compact and
-``jit`` / ``vmap``-safe.
+Port of :mod:`tmol.score.elec.elec_energy_term` to JAX. The portable path
+uses a dense ``[max_n_atoms, max_n_atoms]`` reduction and remains available
+on CPU or without the optional CUDA package. Float32 GPU installations may
+dispatch the pair sum to a bounded-memory adapter around TMol's canonical,
+Torch-independent scalar potential.
 
 The term produces one score channel --
 :attr:`tmol_jax.score.score_types.ScoreType.fa_elec` -- and stores all
@@ -25,7 +23,7 @@ Setup pipeline (done once on the host, using numpy):
    ``elec_{inter,intra}_repr_path_distance``.
 4. Stack those per-type arrays over the packed-block-types palette.
 
-Scoring (pure JAX, ``jit``-safe):
+Portable scoring (pure JAX, ``jit``-safe):
 
 1. Gather per-atom charges ``[P, N]`` from ``pbt.elec_partial_charge``.
 2. Compute a ``[P, N, N]`` pair distance matrix from coords.
@@ -160,127 +158,6 @@ def _annotate_packed_block_types(packed_block_types: Any, elec_db: Any) -> None:
 # --------------------------------------------------------------------- #
 
 
-def _scatter_charges(
-    per_type_charges: np.ndarray,  # [T, A_bt] float32
-    block_type_ind: np.ndarray,  # [P, B]
-    block_coord_offset: np.ndarray,  # [P, B]
-    n_atoms_per_type: np.ndarray,  # [T]
-    n_poses: int,
-    max_n_atoms_per_pose: int,
-) -> np.ndarray:
-    """Host-side scatter of per-BT charges into a flat ``[P, N]`` array."""
-    out = np.zeros((n_poses, max_n_atoms_per_pose), dtype=np.float32)
-    for p in range(n_poses):
-        for b in range(block_type_ind.shape[1]):
-            t = int(block_type_ind[p, b])
-            if t < 0:
-                continue
-            n = int(n_atoms_per_type[t])
-            start = int(block_coord_offset[p, b])
-            out[p, start : start + n] = per_type_charges[t, :n]
-    return out
-
-
-def _scatter_pair_bondsep(
-    per_type_intra_rpd: np.ndarray,  # [T, A_bt, A_bt]
-    per_type_inter_rpd: np.ndarray,  # [T, A_bt, A_bt]
-    block_type_ind: np.ndarray,
-    block_coord_offset: np.ndarray,
-    n_atoms_per_type: np.ndarray,
-    inter_block_bondsep: np.ndarray,  # [P, B, B, C, C]
-    conn_atoms: np.ndarray,  # [T, max_n_conn]
-    n_conn_per_type: np.ndarray,  # [T]
-    n_poses: int,
-    max_n_atoms_per_pose: int,
-) -> np.ndarray:
-    """Build ``[P, N, N]`` bonded path-length matrix for every atom pair.
-
-    The algorithm tracks upstream's ``inter_block_separation``:
-
-    * **Same block** (``ra == rb``): distance is
-      ``intra_rpd[t_a][atom_a, atom_b]`` where ``t_a == t_b``.
-    * **Different blocks**: minimum over all connection atoms
-      ``ca`` on block A, ``cb`` on block B of
-
-          inter_rpd[t_a][ca_on_A, atom_a]
-          + inter_block_bondsep[p, ra, rb, ca, cb]
-          + inter_rpd[t_b][cb_on_B, atom_b]
-
-      clamped above by ``_MAX_COUNTPAIR_SEPARATION``.
-
-    The calculation is done in numpy because the per-pose layout is
-    static once the PoseStack has been built; we convert to a JAX
-    array before returning.
-    """
-    P = n_poses
-    N = max_n_atoms_per_pose
-    # Default: "far apart" -- connectivity_weight >= 1.0 region.
-    out = np.full((P, N, N), _MAX_COUNTPAIR_SEPARATION, dtype=np.int32)
-
-    B = block_type_ind.shape[1]
-    for p in range(P):
-        # Per-block metadata for this pose.
-        starts = block_coord_offset[p]
-        bti_p = block_type_ind[p]
-
-        # ---- intra-block fills
-        for b in range(B):
-            t = int(bti_p[b])
-            if t < 0:
-                continue
-            n = int(n_atoms_per_type[t])
-            s = int(starts[b])
-            out[p, s : s + n, s : s + n] = np.minimum(
-                per_type_intra_rpd[t, :n, :n], _MAX_COUNTPAIR_SEPARATION
-            )
-
-        # ---- inter-block fills (pairs of distinct blocks)
-        for ba in range(B):
-            ta = int(bti_p[ba])
-            if ta < 0:
-                continue
-            na = int(n_atoms_per_type[ta])
-            sa = int(starts[ba])
-            n_conn_a = int(n_conn_per_type[ta])
-            for bb in range(B):
-                if bb == ba:
-                    continue
-                tb = int(bti_p[bb])
-                if tb < 0:
-                    continue
-                nb = int(n_atoms_per_type[tb])
-                sb = int(starts[bb])
-                n_conn_b = int(n_conn_per_type[tb])
-                if n_conn_a == 0 or n_conn_b == 0:
-                    continue
-
-                # For each (ca, cb) pair, walk the triangle sum.
-                # block_type_inter_repr_path_distance is [T, A, A] and
-                # we index axis 1 by "conn_atom_index_on_bt".
-                best = np.full((na, nb), _MAX_COUNTPAIR_SEPARATION, dtype=np.int32)
-                for ca in range(n_conn_a):
-                    conn_atom_a = int(conn_atoms[ta, ca])
-                    if conn_atom_a < 0:
-                        continue
-                    # path from each atom on A to this connection
-                    # inter_rpd[ta, conn_atom_a, :] == pd[conn_atom_a, rep[:]]
-                    da = per_type_inter_rpd[ta, conn_atom_a, :na]
-                    for cb in range(n_conn_b):
-                        conn_atom_b = int(conn_atoms[tb, cb])
-                        if conn_atom_b < 0:
-                            continue
-                        db = per_type_inter_rpd[tb, conn_atom_b, :nb]
-                        link = int(inter_block_bondsep[p, ba, bb, ca, cb])
-                        # outer-sum, then elementwise min with `best`
-                        cand = da[:, None] + link + db[None, :]
-                        best = np.minimum(best, cand)
-                out[p, sa : sa + na, sb : sb + nb] = np.minimum(
-                    best, _MAX_COUNTPAIR_SEPARATION
-                )
-
-    return out
-
-
 def pair_bonded_path_length(pose_stack: Any, packed_block_types: Any) -> jax.Array:
     """Compute the ``[n_poses, max_n_atoms_per_pose, max_n_atoms_per_pose]``
     matrix of bonded path lengths.
@@ -404,6 +281,7 @@ class _ElecState:
     S: jax.Array
     min_dis: jax.Array
     max_dis: jax.Array
+    cuda_global_parameters: jax.Array
 
 
 class ElecEnergyTerm(EnergyTerm):
@@ -492,6 +370,7 @@ class ElecEnergyTerm(EnergyTerm):
         mask = _atom_is_real_mask(pose_stack, pbt)
 
         gp = self.global_params
+        from tmol_jax.score.elec import cuda
 
         bpl_jax = jnp.asarray(bpl, dtype=jnp.int32)
         mask_jax = jnp.asarray(mask, dtype=bool)
@@ -507,6 +386,7 @@ class ElecEnergyTerm(EnergyTerm):
             S=jnp.asarray(gp.S, dtype=jnp.float32),
             min_dis=jnp.asarray(gp.min_dis, dtype=jnp.float32),
             max_dis=jnp.asarray(gp.max_dis, dtype=jnp.float32),
+            cuda_global_parameters=cuda._pack_global_parameters(gp),
         )
 
     # ---- scoring ----------------------------------------------------
@@ -526,6 +406,12 @@ class ElecEnergyTerm(EnergyTerm):
         """
 
         coords = coords_override if coords_override is not None else pose_stack.coords
+
+        if coords.dtype == jnp.float32 and jax.default_backend() == "gpu":
+            from tmol_jax.score.elec import cuda
+
+            if cuda.available():
+                return {ScoreType.fa_elec: cuda.score(term_state, coords)}
 
         # NaN-safe pairwise distances (double-where on the inside of sqrt).
         dist = _pairwise_distance(coords)  # [P, N, N]
