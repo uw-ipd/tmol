@@ -239,8 +239,8 @@ class OmegaBBDepDatabaseAccess:
         "params",
         "aa_to_table_idx",
         "aa_to_table_idx_2",
+        "reference_to_table_idx_2",
         "has_tables",
-        "last_table_idx",
         "_source_uniq_id",
     )
 
@@ -346,18 +346,19 @@ class OmegaBBDepDatabaseAccess:
             self.has_tables = False
             aa_to_table_idx = aa_to_table_idx_2[:, 0].copy()
 
+        references = set(name_to_tid_nonprepro) | set(name_to_tid_prepro)
+        self.reference_to_table_idx_2 = {
+            reference: np.array(
+                [
+                    table_id_to_idx.get(name_to_tid_nonprepro.get(reference), -1),
+                    table_id_to_idx.get(name_to_tid_prepro.get(reference), -1),
+                ],
+                dtype=np.int32,
+            )
+            for reference in references
+        }
         self.aa_to_table_idx = aa_to_table_idx
         self.aa_to_table_idx_2 = aa_to_table_idx_2
-        # Mirror upstream's pandas-iloc-[-1] fallback behaviour for
-        # residues whose block-type name is not in the omega lookup
-        # table (HIS_POS, HIS_D, CYD, ...). See the matching comment in
-        # :class:`RamaDatabaseAccess` for the full explanation.
-        self.last_table_idx = -1
-        if omega_database.bbdep_omega_lookup:
-            last_row = omega_database.bbdep_omega_lookup[-1]
-            last_tid = getattr(last_row, "table_id", None)
-            if last_tid is not None and last_tid in table_id_to_idx:
-                self.last_table_idx = int(table_id_to_idx[last_tid])
         self._source_uniq_id = omega_database.uniq_id
 
     # --------------------------------------------------------------- #

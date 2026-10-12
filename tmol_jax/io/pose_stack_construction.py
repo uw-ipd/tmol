@@ -178,7 +178,6 @@ def _build_name3_special_case_lookup(pbt: Any) -> Dict[str, Dict[str, str]]:
     return out
 
 
-
 def _canonical_to_variant_map(
     co_atom_names: Tuple[str, ...],
     co_aliases: Dict[str, str],
@@ -348,7 +347,6 @@ def _resolve_disulfide_pairs(
     return paired, pairs
 
 
-
 def _is_leaf_atom_for_bt(bt: Any) -> np.ndarray:
     """Return ``bool[n_atoms]`` marking each atom as "leaf" in the icoor
     tree (i.e. not a parent of any other atom).
@@ -411,7 +409,6 @@ def _is_leaf_atom_for_bt(bt: Any) -> np.ndarray:
     if n <= 3:
         is_leaf[:] = False
     return is_leaf
-
 
 
 def _fill_missing_from_icoors(
@@ -628,8 +625,7 @@ def _reconstruct_pose_atoms(residues, source, present, starts, ends, co):
         available[index] |= filled
         if not available[index].all():
             missing = ", ".join(
-                residue.atoms[atom].name
-                for atom in np.flatnonzero(~available[index])
+                residue.atoms[atom].name for atom in np.flatnonzero(~available[index])
             )
             raise ValueError(
                 f"icoor reconstruction could not place {residue.name}: {missing}"

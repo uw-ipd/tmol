@@ -131,17 +131,6 @@ def _connection_index(block_type: Any, conn_name: str) -> int:
     return -1
 
 
-def _aa_canon_index(block_type: Any) -> int:
-    """Map a block type to a canonical-AA index (``0..19``)."""
-    from tmol_jax.score.backbone_torsion._aa import canonical_aa_3letter
-
-    name = getattr(block_type, "base_name", block_type.name)
-    try:
-        return int(canonical_aa_3letter.index(name))
-    except ValueError:
-        return -1
-
-
 def _resolve_torsion_atoms(
     pose_stack: Any,
     pbt: Any,
@@ -440,48 +429,15 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
             per_block_atom_C[i] = _find_atom_idx(bt, "C")
             per_block_down_cind[i] = _connection_index(bt, "down")
             per_block_up_cind[i] = _connection_index(bt, "up")
-            base_name = getattr(bt, "base_name", bt.name)
-            per_block_is_pro[i] = 1 if base_name == "PRO" else 0
+            per_block_is_pro[i] = 1 if bt.rama_reference == "PRO" else 0
 
-            canon = _aa_canon_index(bt)
-            if canon >= 0:
-                per_block_aa_rama2[i, 0] = int(
-                    self.rama_access.aa_to_table_idx_2[canon, 0]
-                )
-                per_block_aa_rama2[i, 1] = int(
-                    self.rama_access.aa_to_table_idx_2[canon, 1]
-                )
-                per_block_aa_omega2[i, 0] = int(
-                    self.omega_access.aa_to_table_idx_2[canon, 0]
-                )
-                per_block_aa_omega2[i, 1] = int(
-                    self.omega_access.aa_to_table_idx_2[canon, 1]
-                )
-            else:
-                # Upstream's ``bb_torsion_energy_term`` looks up
-                # ``(block_type.name, '_')`` and ``(block_type.name, 'PRO')``
-                # via ``pandas.Index.get_indexer`` and then indexes into
-                # the ``rama_lookup`` dataframe with ``iloc``. When the
-                # name isn't in the lookup (e.g. HIS_POS, HIS_D, CYD),
-                # ``get_indexer`` returns ``-1`` and pandas' negative
-                # indexing then grabs the LAST row of the dataframe --
-                # which happens to be ``(VAL, PRO) -> VAL_prepro``. The
-                # C++ energy code accepts any non-negative table index,
-                # so the wrong table is applied to those residues. We
-                # replicate that behaviour here to keep the forward
-                # energies bit-for-bit identical to upstream; otherwise
-                # 1r21's 5 HIS_POS residues (and any CYD / HIS_D) would
-                # contribute 0 kcal/mol to rama while upstream scores a
-                # nonzero VAL_prepro-table value.
-                last_rama = self.rama_access.last_table_idx
-                last_omega = self.omega_access.last_table_idx
-                if last_rama >= 0:
-                    per_block_aa_rama2[i, 0] = int(last_rama)
-                    per_block_aa_rama2[i, 1] = int(last_rama)
-                if last_omega >= 0:
-                    per_block_aa_omega2[i, 0] = int(last_omega)
-                    per_block_aa_omega2[i, 1] = int(last_omega)
-
+            reference = bt.rama_reference
+            per_block_aa_rama2[i] = self.rama_access.reference_to_table_idx_2.get(
+                reference, (-1, -1)
+            )
+            per_block_aa_omega2[i] = self.omega_access.reference_to_table_idx_2.get(
+                reference, (-1, -1)
+            )
         phi_idx_np, psi_idx_np, omega_idx_np = _resolve_torsion_atoms(
             pose_stack,
             pbt,

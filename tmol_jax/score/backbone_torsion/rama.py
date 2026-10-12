@@ -166,8 +166,8 @@ class RamaDatabaseAccess:
         "bbstep",
         "aa_to_table_idx",
         "aa_to_table_idx_2",
+        "reference_to_table_idx_2",
         "has_tables",
-        "last_table_idx",
         "_source_uniq_id",
     )
 
@@ -246,23 +246,19 @@ class RamaDatabaseAccess:
         # Backwards-compat: a 1-D non-prepro view as the primary
         # ``aa_to_table_idx``. Callers that don't consult the upper-
         # neighbour identity still see the non-prepro mapping.
+        references = set(name_to_tid_nonprepro) | set(name_to_tid_prepro)
+        self.reference_to_table_idx_2 = {
+            reference: np.array(
+                [
+                    table_id_to_idx.get(name_to_tid_nonprepro.get(reference), -1),
+                    table_id_to_idx.get(name_to_tid_prepro.get(reference), -1),
+                ],
+                dtype=np.int32,
+            )
+            for reference in references
+        }
         self.aa_to_table_idx = aa_to_table_idx_2[:, 0].copy()
         self.aa_to_table_idx_2 = aa_to_table_idx_2
-        # Upstream's ``bb_torsion_energy_term.setup_block_type`` looks up
-        # rama table ids via ``rama_lookup.index.get_indexer([...])``
-        # followed by ``rama_lookup.iloc[inds]`` -- for names not in the
-        # index (e.g. HIS_POS, HIS_D, CYD) the lookup returns ``-1`` and
-        # pandas' negative indexing grabs the LAST row of the dataframe,
-        # silently applying the wrong table to those residues. We record
-        # the table index of that last row so the energy term can mirror
-        # the same fallback and keep forward energies bit-for-bit
-        # identical to upstream.
-        self.last_table_idx = -1
-        if rama_database.rama_lookup:
-            last_row = rama_database.rama_lookup[-1]
-            last_tid = getattr(last_row, "table_id", None)
-            if last_tid is not None and last_tid in table_id_to_idx:
-                self.last_table_idx = int(table_id_to_idx[last_tid])
         self._source_uniq_id = rama_database.uniq_id
 
     # --------------------------------------------------------------- #

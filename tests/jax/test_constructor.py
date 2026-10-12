@@ -8,7 +8,6 @@ from tmol_jax.io import (
     pose_stack_from_canonical_form,
 )
 
-
 PDB = Path(__file__).parents[2] / "tmol/tests/data/pdb/1ubq.pdb"
 
 
@@ -46,9 +45,7 @@ def test_internal_padding_creates_two_chain_segments():
     canonical["atom_is_present"][0, 1] = False
     pose = pose_stack_from_canonical_form(canonical, default_packed_block_types())
     assert pose.max_n_blocks == 2
-    assert all(
-        "nterm" in name and "cterm" in name for name in _variant_names(pose)
-    )
+    assert all("nterm" in name and "cterm" in name for name in _variant_names(pose))
     assert np.all(np.asarray(pose.inter_residue_connections) == -1)
     assert np.isfinite(np.asarray(pose.coords)).all()
 
