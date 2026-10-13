@@ -182,7 +182,10 @@ DisulfideCPUStatus disulfide_cpu_forward_impl(
       || inputs.params.size(0) < 0
       || (write_energies && outputs.energies.size(0) != inputs.pairs.size(0))
       || (inputs.pairs.size(0) != 0
-          && (!inputs.coords.data() || !inputs.pairs.data()
+          && (inputs.coords.stride(0) < 1 || inputs.pairs.stride(0) < 1
+              || inputs.params.stride(0) < 1
+              || (write_energies && outputs.energies.stride(0) < 1)
+              || !inputs.coords.data() || !inputs.pairs.data()
               || !inputs.params.data()
               || (write_energies && !outputs.energies.data())))) {
     return DisulfideCPUStatus::invalid_shape;
@@ -191,7 +194,9 @@ DisulfideCPUStatus disulfide_cpu_forward_impl(
       && (outputs.coordinate_derivatives.size(0) != inputs.pairs.size(0)
           || outputs.coordinate_derivatives.size(1) != 6
           || (inputs.pairs.size(0) != 0
-              && !outputs.coordinate_derivatives.data()))) {
+              && (outputs.coordinate_derivatives.stride(0) < 1
+                  || outputs.coordinate_derivatives.stride(1) < 1
+                  || !outputs.coordinate_derivatives.data())))) {
     return DisulfideCPUStatus::missing_derivative_output;
   }
   if (!valid_pair_indices(inputs)) return DisulfideCPUStatus::invalid_index;
@@ -229,9 +234,13 @@ DisulfideCPUStatus disulfide_cpu_vjp(
       || coordinate_derivatives.size(1) != 6
       || cotangents.size(0) != pairs.size(0)
       || (pairs.size(0) != 0
-          && (!pairs.data() || !coordinate_derivatives.data()
-              || !cotangents.data()))
-      || (coordinate_gradient.size(0) != 0 && !coordinate_gradient.data())) {
+          && (pairs.stride(0) < 1 || coordinate_derivatives.stride(0) < 1
+              || coordinate_derivatives.stride(1) < 1
+              || cotangents.stride(0) < 1 || !pairs.data()
+              || !coordinate_derivatives.data() || !cotangents.data()))
+      || (coordinate_gradient.size(0) != 0
+          && (coordinate_gradient.stride(0) < 1
+              || !coordinate_gradient.data()))) {
     return DisulfideCPUStatus::invalid_shape;
   }
   for (int64_t i = 0; i < pairs.size(0); ++i) {

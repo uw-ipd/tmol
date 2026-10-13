@@ -113,6 +113,25 @@ int main() {
       == TMOL_DISULFIDE_CPU_SUCCESS);
   CHECK(std::abs(inference_energy - energies[0]) < 1e-12);
 
+  auto invalid_stride_inputs = inputs;
+  invalid_stride_inputs.coord_stride = 0;
+  CHECK(
+      tmol_disulfide_cpu_f64_forward(
+          executor,
+          invalid_stride_inputs,
+          TMOL_DISULFIDE_CPU_INFERENCE,
+          inference_outputs)
+      == TMOL_DISULFIDE_CPU_INVALID_SHAPE);
+  auto invalid_stride_outputs = outputs;
+  invalid_stride_outputs.derivative_atom_stride = 0;
+  CHECK(
+      tmol_disulfide_cpu_f64_forward(
+          executor,
+          inputs,
+          TMOL_DISULFIDE_CPU_TRACKED,
+          invalid_stride_outputs)
+      == TMOL_DISULFIDE_CPU_MISSING_DERIVATIVE_OUTPUT);
+
   Pair chirality_pairs[] = {
       {0, 1, 2, 3, 4, 5, 0, 0},
       {0, 1, 2, 3, 4, 5, 0, 1},
@@ -197,6 +216,22 @@ int main() {
     CHECK(
         (gradient[atom] - cotangents[0] * derivatives[0][atom]).norm() < 1e-12);
   }
+  CHECK(
+      tmol_disulfide_cpu_f64_vjp(
+          executor,
+          TMOL_DISULFIDE_CPU_DISJOINT_PAIRS,
+          pairs[0].data(),
+          1,
+          1,
+          derivatives[0][0].data(),
+          6,
+          1,
+          cotangents,
+          0,
+          gradient[0].data(),
+          6,
+          1)
+      == TMOL_DISULFIDE_CPU_INVALID_SHAPE);
 
   Pair overlapping_pairs[] = {pairs[0], pairs[0]};
   V3 overlapping_derivatives[2][6];
@@ -257,6 +292,18 @@ int main() {
           workspace.data(),
           required.bytes - 1)
       == TMOL_DISULFIDE_CPU_INSUFFICIENT_WORKSPACE);
+  CHECK(
+      tmol_disulfide_cpu_f64_recompute_vjp(
+          executor,
+          TMOL_DISULFIDE_CPU_DISJOINT_PAIRS,
+          inputs,
+          cotangents,
+          0,
+          recomputed_gradient[0].data(),
+          1,
+          workspace.data(),
+          required.bytes)
+      == TMOL_DISULFIDE_CPU_INVALID_SHAPE);
   V3 multipair_coords[12];
   for (int atom = 0; atom < 6; ++atom) {
     multipair_coords[atom] = coords[atom];

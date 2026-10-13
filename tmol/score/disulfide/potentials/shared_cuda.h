@@ -54,7 +54,8 @@ typedef struct tmol_disulfide_cuda_workspace {
  * after the submitted stream completes.
  *
  * Strides are measured in logical xyz, eight-int pair, or 33-scalar parameter
- * records. Every record itself is tightly packed.
+ * records. Every record itself is tightly packed. Every stride of a nonempty
+ * borrowed view must be positive.
  */
 #define TMOL_DISULFIDE_DECLARE_CUDA_ABI(Suffix, Real)                      \
   typedef struct tmol_disulfide_cuda_##Suffix##_inputs {                   \

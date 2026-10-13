@@ -60,7 +60,8 @@ typedef struct tmol_disulfide_cpu_workspace {
 } tmol_disulfide_cpu_workspace;
 
 /* Strides are measured in logical records: xyz, eight-int pair, or 33-scalar
- * parameter records. Every xyz/pair/parameter record is tightly packed. */
+ * parameter records. Every xyz/pair/parameter record is tightly packed.
+ * Every stride of a nonempty borrowed view must be positive. */
 #define TMOL_DISULFIDE_DECLARE_C_ABI(Suffix, Real)                            \
   typedef struct tmol_disulfide_cpu_##Suffix##_inputs {                       \
     const Real* coords;                                                       \
