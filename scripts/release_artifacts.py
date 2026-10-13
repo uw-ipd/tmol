@@ -53,6 +53,62 @@ def _only_for_extra(requirement: Requirement, extra: str) -> bool:
     )
 
 
+def _validate_base_dependencies(metadata, requirements: list[Requirement]) -> None:
+    extras = set(metadata.get_all("Provides-Extra", []))
+    if not {"torch", "jax"}.issubset(extras):
+        raise ValueError("base wheel must declare torch and jax extras")
+    tensor_requirements = [
+        requirement
+        for requirement in requirements
+        if requirement.name in {"torch", "jax", "tmol-jax"}
+    ]
+    torch_requirements = [
+        requirement
+        for requirement in tensor_requirements
+        if requirement.name == "torch"
+    ]
+    jax_requirements = [
+        requirement for requirement in tensor_requirements if requirement.name == "jax"
+    ]
+    if (
+        len(torch_requirements) != 1
+        or len(jax_requirements) != 1
+        or any(requirement.name == "tmol-jax" for requirement in tensor_requirements)
+    ):
+        raise ValueError(
+            "base wheel must declare exactly one Torch and one JAX requirement"
+        )
+    torch = torch_requirements[0]
+    if str(torch.specifier) != ">=2.11" or not _only_for_extra(torch, "torch"):
+        raise ValueError("torch extra must target the stable PyTorch ABI")
+    jax = jax_requirements[0]
+    if str(jax.specifier) != ">=0.11.2" or not _only_for_extra(jax, "jax"):
+        raise ValueError("jax extra must require the supported JAX runtime")
+
+
+def _validate_operator_dependencies(
+    requirements: list[Requirement], names: list[str], version
+) -> None:
+    torch = [r for r in requirements if r.name == "torch"]
+    if (
+        len(torch) != 1
+        or str(torch[0].specifier) != ">=2.11"
+        or torch[0].marker is not None
+    ):
+        raise ValueError(
+            "operator wheel must target the stable PyTorch ABI (torch>=2.11)"
+        )
+    tmol = [r for r in requirements if r.name == "tmol"]
+    if (
+        len(tmol) != 1
+        or str(tmol[0].specifier) != f"=={version}"
+        or tmol[0].marker is not None
+    ):
+        raise ValueError("operator package must require the matching TMol release")
+    if any(path.startswith("tmol/") for path in names):
+        raise ValueError("operator package must not overwrite the tmol package")
+
+
 def validate_wheel(source: Path) -> None:
     """Check package identity, dependency ownership, and RECORD hashes."""
     name, version, _, tags = parse_wheel_filename(source.name)
@@ -72,62 +128,9 @@ def validate_wheel(source: Path) -> None:
             raise ValueError("wheel filename and metadata disagree")
         requirements = [Requirement(r) for r in metadata.get_all("Requires-Dist", [])]
         if name == "tmol":
-            extras = set(metadata.get_all("Provides-Extra", []))
-            if not {"torch", "jax"}.issubset(extras):
-                raise ValueError("base wheel must declare torch and jax extras")
-            tensor_requirements = [
-                requirement
-                for requirement in requirements
-                if requirement.name in {"torch", "jax", "tmol-jax"}
-            ]
-            torch_requirements = [
-                requirement
-                for requirement in tensor_requirements
-                if requirement.name == "torch"
-            ]
-            jax_requirements = [
-                requirement
-                for requirement in tensor_requirements
-                if requirement.name == "jax"
-            ]
-            if (
-                len(torch_requirements) != 1
-                or len(jax_requirements) != 1
-                or any(
-                    requirement.name == "tmol-jax"
-                    for requirement in tensor_requirements
-                )
-            ):
-                raise ValueError(
-                    "base wheel must declare exactly one Torch and one JAX requirement"
-                )
-            torch = torch_requirements[0]
-            if str(torch.specifier) != ">=2.11" or not _only_for_extra(torch, "torch"):
-                raise ValueError("torch extra must target the stable PyTorch ABI")
-            jax = jax_requirements[0]
-            if str(jax.specifier) != ">=0.11.2" or not _only_for_extra(jax, "jax"):
-                raise ValueError("jax extra must require the supported JAX runtime")
+            _validate_base_dependencies(metadata, requirements)
         else:
-            torch = [r for r in requirements if r.name == "torch"]
-            if (
-                len(torch) != 1
-                or str(torch[0].specifier) != ">=2.11"
-                or torch[0].marker is not None
-            ):
-                raise ValueError(
-                    "operator wheel must target the stable PyTorch ABI (torch>=2.11)"
-                )
-            tmol = [r for r in requirements if r.name == "tmol"]
-            if (
-                len(tmol) != 1
-                or str(tmol[0].specifier) != f"=={version}"
-                or tmol[0].marker is not None
-            ):
-                raise ValueError(
-                    "operator package must require the matching TMol release"
-                )
-            if any(path.startswith("tmol/") for path in names):
-                raise ValueError("operator package must not overwrite the tmol package")
+            _validate_operator_dependencies(requirements, names, version)
         if any(r.url for r in requirements):
             raise ValueError("release dependencies must come from package indexes")
         wheel_metadata = BytesParser().parsebytes(archive.read(prefix + "WHEEL"))
