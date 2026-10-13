@@ -126,10 +126,7 @@ int main() {
   invalid_stride_outputs.derivative_atom_stride = 0;
   CHECK(
       tmol_disulfide_cpu_f64_forward(
-          executor,
-          inputs,
-          TMOL_DISULFIDE_CPU_TRACKED,
-          invalid_stride_outputs)
+          executor, inputs, TMOL_DISULFIDE_CPU_TRACKED, invalid_stride_outputs)
       == TMOL_DISULFIDE_CPU_MISSING_DERIVATIVE_OUTPUT);
 
   Pair chirality_pairs[] = {
