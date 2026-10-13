@@ -41,6 +41,9 @@ executable energy or gradient parity has not been established. The static
 `recompute_backward` choice must be a concrete Python `bool`; its default keeps
 pair derivatives for the backward pass, while recompute mode keeps
 coordinates, pairs, and parameters.
+Autodiff is defined only for coordinates. Pairs and parameters are treated as
+nondifferentiable constants, and the backward rule returns `None` for both; this
+contract does not claim parameter differentiability.
 
 Native wiring must register these CPU targets with the following contracts:
 

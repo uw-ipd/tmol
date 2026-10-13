@@ -114,6 +114,17 @@ def test_default_vjp_retains_pair_derivatives(monkeypatch):
     assert calls[-1][1] == ((2, 8), (2, 6, 3), (2,))
 
 
+def test_parameters_are_nondifferentiable_constants(monkeypatch):
+    register_mock_targets(monkeypatch)
+    calls = install_mock_calls(monkeypatch)
+    coords, pairs, params = arrays()
+
+    gradient = jax.grad(lambda p: disulfide.score(coords, pairs, p).sum())(params)
+
+    np.testing.assert_array_equal(np.asarray(gradient), np.zeros(params.shape))
+    assert [role for role, _ in calls] == ["tracked_forward", "vjp"]
+
+
 def test_recompute_vjp_saves_inputs_and_uses_recompute_target(monkeypatch):
     register_mock_targets(monkeypatch)
     calls = install_mock_calls(monkeypatch)

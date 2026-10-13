@@ -162,7 +162,9 @@ def score(coords, pairs, params, *, recompute_backward=False):
     The static ``recompute_backward`` policy must be a concrete Python bool.
     The default differentiated forward retains pair derivatives; recompute mode
     instead retains the three inputs and delegates derivative scratch ownership
-    to the future XLA FFI handler.
+    to the future XLA FFI handler. Autodiff is defined only for coordinates.
+    Pairs and parameters are nondifferentiable constants; the backward rule
+    returns ``None`` for both.
     """
 
     _validate_inputs(coords, pairs, params, recompute_backward)
