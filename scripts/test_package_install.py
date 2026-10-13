@@ -96,6 +96,7 @@ def main():
                 "ninja",
                 "packaging",
                 "pybind11>=2.12",
+                "jax>=0.11.2",
                 cwd=work,
             )
         with serve(work) as url:

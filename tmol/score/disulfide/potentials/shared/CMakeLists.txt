@@ -40,6 +40,11 @@ set_target_properties(tmol_disulfide_shared_cpu PROPERTIES
 # copy it into either framework adapter: that would give coexistence installs
 # two independently upgradeable copies of the same common ABI.
 
+if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR
+   AND NOT TMOL_OPS_CUDA)
+  install(TARGETS tmol_disulfide_shared_cpu LIBRARY DESTINATION tmol)
+endif()
+
 if(TMOL_BUILD_TESTS)
   enable_testing()
   add_executable(test_disulfide_shared_cpu

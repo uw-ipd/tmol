@@ -95,7 +95,7 @@ def test_current_frontend_distributions_have_independent_dependencies():
     assert torch_extra == {"torch"}
     assert jax_extra == {"jax"}
     assert torch_extra | jax_extra == {"torch", "jax"}
-    assert "torch" in build_requirements  # Wheel neutrality remains a later gate.
+    assert {"torch", "jax"} <= build_requirements
 
     assert jax_project["name"] == "tmol-jax"
     assert "jax" in jax_requirements
@@ -137,15 +137,32 @@ def test_optional_packages_preserve_disjoint_framework_ownership():
         assert metadata["tool"]["scikit-build"]["wheel"]["packages"] == []
 
 
-def test_shared_library_install_waits_for_single_neutral_owner():
-    """Keep the common ABI out of both adapters until base tmol is neutral."""
+def test_base_package_is_single_shared_library_owner():
+    """The base wheel owns one common ABI and its two dormant adapters."""
     shared_cmake = (
         REPOSITORY / "tmol/score/disulfide/potentials/shared/CMakeLists.txt"
     ).read_text(encoding="utf-8")
+    root_cmake = (REPOSITORY / "CMakeLists.txt").read_text(encoding="utf-8")
 
     assert "add_library(tmol_disulfide_shared_cpu SHARED" in shared_cmake
-    assert "install(TARGETS tmol_disulfide_shared_cpu" not in shared_cmake
+    assert (
+        "install(TARGETS tmol_disulfide_shared_cpu LIBRARY DESTINATION tmol)"
+        in shared_cmake
+    )
     assert "install(TARGETS tmol_disulfide_shared_cuda" not in shared_cmake
+    assert (
+        "install(TARGETS tmol_disulfide_shared_torch LIBRARY DESTINATION tmol)"
+        in root_cmake
+    )
+    assert (
+        "install(TARGETS tmol_disulfide_shared_jax LIBRARY DESTINATION tmol)"
+        in root_cmake
+    )
+    for package in ("jax", "jax-cuda", "cu12", "cu13"):
+        package_root = REPOSITORY / "packages" / package
+        for cmake in package_root.rglob("CMakeLists.txt"):
+            text = cmake.read_text(encoding="utf-8")
+            assert "tmol_disulfide_shared_cpu" not in text
 
 
 def test_future_install_migration_is_explicit_and_unreleased():

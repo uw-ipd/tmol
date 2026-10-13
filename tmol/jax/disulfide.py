@@ -1,13 +1,15 @@
-"""Dormant JAX contract for the framework-neutral CPU disulfide core.
+"""Explicit JAX contract for the framework-neutral CPU disulfide core.
 
-No native FFI handler is installed by this module. A future native package must
-register all handlers explicitly before :func:`score` can dispatch them.
+The base wheel owns the native adapter, but callers must register its handlers
+explicitly before :func:`score` can dispatch them.
 """
 
 from __future__ import annotations
 
+import ctypes
 from functools import lru_cache
 from importlib import import_module
+from pathlib import Path
 from types import MappingProxyType
 
 DISULFIDE_CPU_FFI_TARGETS = MappingProxyType(
@@ -20,6 +22,27 @@ DISULFIDE_CPU_FFI_TARGETS = MappingProxyType(
 )
 
 _REGISTERED_TARGETS = {}
+_NATIVE_LIBRARY = None
+
+
+def _installed_capsules():
+    """Load the base-wheel-owned CPU adapter without importing Torch."""
+
+    global _NATIVE_LIBRARY
+    if _NATIVE_LIBRARY is None:
+        package_dir = Path(__file__).resolve().parent.parent
+        candidates = sorted(package_dir.glob("_shared_disulfide_ffi.*"))
+        if len(candidates) != 1:
+            raise RuntimeError(
+                "TMol JAX disulfide CPU adapter is missing or ambiguous; "
+                "reinstall the matching tmol wheel"
+            )
+        _NATIVE_LIBRARY = ctypes.CDLL(str(candidates[0]))
+    jax = _jax()
+    return {
+        role: jax.ffi.pycapsule(getattr(_NATIVE_LIBRARY, target))
+        for role, target in DISULFIDE_CPU_FFI_TARGETS.items()
+    }
 
 
 def _jax():
@@ -32,7 +55,7 @@ def _jax():
         ) from error
 
 
-def register_ffi_targets(capsules):
+def register_ffi_targets(capsules=None):
     """Register a complete or partial role-to-capsule mapping on CPU.
 
     Repeating a registration with the identical capsule object is a no-op.
@@ -41,6 +64,8 @@ def register_ffi_targets(capsules):
     existing handler.
     """
 
+    if capsules is None:
+        capsules = _installed_capsules()
     unknown = set(capsules) - set(DISULFIDE_CPU_FFI_TARGETS)
     if unknown:
         raise ValueError(f"unknown disulfide CPU FFI roles: {sorted(unknown)}")

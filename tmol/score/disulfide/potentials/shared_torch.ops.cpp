@@ -342,5 +342,5 @@ TMOL_LIBRARY(tmol_disulfide_shared, m) {
 }  // namespace tmol::score::disulfide::potentials
 
 #ifdef TMOL_SHARED_DISULFIDE_TEST_MODULE
-PYBIND11_MODULE(_shared_disulfide_test, m) { tmol::native::bind_libraries(m); }
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) { tmol::native::bind_libraries(m); }
 #endif

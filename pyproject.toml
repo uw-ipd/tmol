@@ -70,6 +70,8 @@ cu13 = ["tmol-ops-cu13==0.1.64"]
 dev = [
     # Development and the current canonical frontend exercise Torch APIs.
     "torch>=2.11",
+    # Build the dormant XLA FFI adapter from JAX's public header bundle.
+    "jax>=0.11.2",
     # Linters & formatters
     # Keep formatter and linter pins in sync with .pre-commit-config.yaml.
     "black==26.10.0",
@@ -129,6 +131,9 @@ Releases = "https://github.com/RosettaCommons/tmol/releases"
 requires = [
     "scikit-build-core>=0.10",
     "torch>=2.14",
+    # Headers only: the installed CPU FFI adapter is linked exclusively to the
+    # framework-neutral common library and is loaded lazily by tmol.jax.
+    "jax>=0.11.2",
     "pybind11>=2.12",
     "ninja",
     "packaging",

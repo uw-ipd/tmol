@@ -471,10 +471,67 @@ else()
 endif()
 install(TARGETS _C DESTINATION "${_TMOL_NATIVE_PACKAGE}")
 
-# The shared disulfide Torch consumer remains test-only until the base tmol
-# distribution is framework-neutral and can own the common library.  Keeping
-# this target separate prevents the dormant operator and its DT_NEEDED entry
-# from entering the installed canonical _C module.
+# Keep the shared disulfide adapters separate from canonical _C: the base wheel
+# owns their common ABI, while backend imports and operator registration remain
+# explicit and lazy.
+if(NOT TMOL_OPS_CUDA)
+  if(APPLE)
+    set(_TMOL_SHARED_ADAPTER_RPATH "@loader_path")
+  else()
+    set(_TMOL_SHARED_ADAPTER_RPATH "$ORIGIN")
+  endif()
+  # The base distribution is the single owner of both dormant adapters. They
+  # remain separate from canonical _C and are loaded only by an explicit
+  # backend call, so framework-absent imports do not load either adapter.
+  pybind11_add_module(tmol_disulfide_shared_torch MODULE
+    tmol/score/disulfide/potentials/shared_torch.ops.cpp
+  )
+  target_compile_definitions(tmol_disulfide_shared_torch PRIVATE
+    TORCH_EXTENSION_NAME=_shared_disulfide_torch
+    TMOL_SHARED_DISULFIDE_TEST_MODULE
+  )
+  tmol_set_cpp_flags(tmol_disulfide_shared_torch)
+  target_include_directories(tmol_disulfide_shared_torch BEFORE PRIVATE
+    ${pybind11_INCLUDE_DIRS})
+  target_link_libraries(tmol_disulfide_shared_torch PRIVATE
+    tmol_disulfide_shared_cpu
+  )
+  set_target_properties(tmol_disulfide_shared_torch PROPERTIES
+    OUTPUT_NAME "_shared_disulfide_torch"
+    BUILD_RPATH "$<TARGET_FILE_DIR:tmol_disulfide_shared_cpu>"
+    INSTALL_RPATH "${_TMOL_SHARED_ADAPTER_RPATH}"
+  )
+  install(TARGETS tmol_disulfide_shared_torch LIBRARY DESTINATION tmol)
+
+  set(TMOL_JAX_INCLUDE_DIR "" CACHE PATH "JAX FFI include directory")
+  if(NOT TMOL_JAX_INCLUDE_DIR)
+    execute_process(
+      COMMAND ${Python_EXECUTABLE} -c "import jax; print(jax.ffi.include_dir())"
+      OUTPUT_VARIABLE TMOL_JAX_INCLUDE_DIR
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      COMMAND_ERROR_IS_FATAL ANY
+    )
+  endif()
+  add_library(tmol_disulfide_shared_jax MODULE
+    tmol/score/disulfide/potentials/shared_ffi.cpp
+  )
+  target_include_directories(tmol_disulfide_shared_jax PRIVATE
+    ${TMOL_JAX_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}
+  )
+  target_link_libraries(tmol_disulfide_shared_jax PRIVATE
+    tmol_disulfide_shared_cpu
+  )
+  set_target_properties(tmol_disulfide_shared_jax PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "_shared_disulfide_ffi"
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN YES
+    BUILD_RPATH "$<TARGET_FILE_DIR:tmol_disulfide_shared_cpu>"
+    INSTALL_RPATH "${_TMOL_SHARED_ADAPTER_RPATH}"
+  )
+  install(TARGETS tmol_disulfide_shared_jax LIBRARY DESTINATION tmol)
+endif()
 if(TMOL_BUILD_TESTS AND NOT TMOL_OPS_CUDA)
   enable_testing()
   pybind11_add_module(tmol_disulfide_shared_torch_test MODULE
