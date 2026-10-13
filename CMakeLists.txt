@@ -471,6 +471,40 @@ else()
 endif()
 install(TARGETS _C DESTINATION "${_TMOL_NATIVE_PACKAGE}")
 
+# The shared disulfide Torch consumer remains test-only until the base tmol
+# distribution is framework-neutral and can own the common library.  Keeping
+# this target separate prevents the dormant operator and its DT_NEEDED entry
+# from entering the installed canonical _C module.
+if(TMOL_BUILD_TESTS AND NOT TMOL_OPS_CUDA)
+  enable_testing()
+  pybind11_add_module(tmol_disulfide_shared_torch_test MODULE
+    tmol/score/disulfide/potentials/shared_torch.ops.cpp
+  )
+  target_compile_definitions(tmol_disulfide_shared_torch_test PRIVATE
+    TORCH_EXTENSION_NAME=_shared_disulfide_test
+    TMOL_SHARED_DISULFIDE_TEST_MODULE
+  )
+  tmol_set_cpp_flags(tmol_disulfide_shared_torch_test)
+  # Stable Torch headers vendor a deliberately disabled pybind11 tree.  Keep
+  # the independently discovered pybind11 headers first for this test module.
+  target_include_directories(tmol_disulfide_shared_torch_test BEFORE PRIVATE
+    ${pybind11_INCLUDE_DIRS})
+  target_link_libraries(tmol_disulfide_shared_torch_test PRIVATE
+    tmol_disulfide_shared_cpu
+  )
+  set_target_properties(tmol_disulfide_shared_torch_test PROPERTIES
+    OUTPUT_NAME "_shared_disulfide_test"
+    BUILD_RPATH "$<TARGET_FILE_DIR:tmol_disulfide_shared_cpu>"
+  )
+  add_test(
+    NAME disulfide_shared_torch_adapter
+    COMMAND ${Python_EXECUTABLE}
+      ${CMAKE_SOURCE_DIR}/tmol/tests/score/disulfide/test_shared_torch_adapter.py
+      $<TARGET_FILE:tmol_disulfide_shared_torch_test>
+      $<TARGET_FILE:tmol_disulfide_shared_cpu>
+  )
+endif()
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 2. Production pybind11 modules
