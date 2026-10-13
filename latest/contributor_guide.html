@@ -478,6 +478,27 @@ of repeating them on every page.</p></li>
 checklists and descriptions of what the page is about to explain.</p></li>
 <li><p>Keep notebook code, fixtures, outputs, and Colab setup consistent.</p></li>
 </ul>
+<p>For tutorials, keep the explanation next to the operation it explains:</p>
+<ul class="simple">
+<li><p>Start with a concrete molecular question, the structure used to answer it,
+and the result the reader will produce. Give a short roadmap in execution order.</p></li>
+<li><p>Complete that story with a result check before optional extensions. Connect the
+final table or structure back to the opening question; do not promise a specific
+stochastic outcome or imply that a short run establishes convergence.</p></li>
+<li><p>Introduce each new object when it first appears. Distinguish residue labels
+from zero-based block indices, and state what a mask selects.</p></li>
+<li><p>Give each code cell one job: prepare inputs, calculate, or inspect a result.
+Prefer public APIs over manual edits to internal tensors.</p></li>
+<li><p>After a calculation, say what to look for in its table, plot, or viewer.
+Explain the reference and sign of a score difference before interpreting it.</p></li>
+<li><p>Keep modeling calls and movement controls visible. Tag lengthy plotting or
+measurement helpers with <code class="docutils literal notranslate"><span class="pre">collapse-code</span></code>; their outputs should remain open.</p></li>
+<li><p>Put advanced extensions after the first complete example. Keep necessary
+scientific limits beside the result rather than repeating them in every cell.</p></li>
+<li><p>Keep result tables focused on the comparison: use readable column labels and
+separate score summaries from geometry checks. State what the reader should
+compare before showing the table or plot.</p></li>
+</ul>
 </section>
 <section id="pull-requests">
 <h2>Pull requests<a class="headerlink" href="#pull-requests" title="Link to this heading">#</a></h2>

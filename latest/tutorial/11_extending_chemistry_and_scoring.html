@@ -389,23 +389,26 @@
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Basics</span></p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Load and score structures</span></p>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="01_working_with_tmol.html">Tutorial 01 — Working with structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="02_gpu_batching.html">Tutorial 02 — GPU batching</a></li>
 <li class="toctree-l1"><a class="reference internal" href="03_scoring_and_analysis.html">Tutorial 03 — Scoring and analysis</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Change conformations and sequence</span></p>
+<ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="04_packing_and_mutation_scan.html">Tutorial 04 — Packing and mutation scans</a></li>
 <li class="toctree-l1"><a class="reference internal" href="05_minimization_constraints_kinematics.html">Tutorial 05 — Minimization, constraints, and kinematics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="06_fast_relax.html">Tutorial 06 — FastRelax</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Ligands, nucleic acids, and interfaces</span></p>
+<ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="07_ligand_and_params.html">Tutorial 07 — Ligands and parameter files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="08_nucleic_acids.html">Tutorial 08 — DNA and RNA</a></li>
-</ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Applications</span></p>
-<ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="09_protein_interface_hotspot_scan.html">Tutorial 09 — Protein interface analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="10_ligand_pose_sensitivity.html">Tutorial 10 — Ligand pose sensitivity</a></li>
 </ul>
-<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extending TMol</span></p>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extend TMol</span></p>
 <ul class="current nav bd-sidenav">
 <li class="toctree-l1 current active"><a aria-current="page" class="current reference internal" href="#">Tutorial 11 — Extending chemistry and scoring</a></li>
 <li class="toctree-l1"><a class="reference internal" href="12_explicit_foldforests_and_torsions.html">Tutorial 12 — Explicit FoldForests and torsions</a></li>
@@ -476,13 +479,19 @@
   <section id="Tutorial-11-—-Extending-chemistry-and-scoring">
 <h1>Tutorial 11 — Extending chemistry and scoring<a class="headerlink" href="#Tutorial-11-—-Extending-chemistry-and-scoring" title="Link to this heading">#</a></h1>
 <p><a class="reference external" href="https://colab.research.google.com/github/uw-ipd/tmol/blob/master/docs/tutorial/11_extending_chemistry_and_scoring.ipynb"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></p>
-<p>Build a chemistry subset, inspect packed metadata, and change one bonded parameter in a new immutable database. Assumes <a class="reference internal" href="01_working_with_tmol.html"><span class="doc">structure I/O</span></a>, <a class="reference internal" href="03_scoring_and_analysis.html"><span class="doc">scoring</span></a>, and <a class="reference internal" href="07_ligand_and_params.html"><span class="doc">ligand preparation</span></a>.</p>
-<p>A smaller type set changes storage. A modified spring constant changes the energy model and requires independent validation.</p>
+<p>What changes when we make one bond harder to stretch? We will build a small peptide and finish with two score curves that isolate a change to proline’s N–CD bond spring constant.</p>
+<p><strong>We will:</strong></p>
+<ol class="arabic simple">
+<li><p>Follow the chemistry objects and keep only the residue types needed for <code class="docutils literal notranslate"><span class="pre">AGSPA</span></code>.</p></li>
+<li><p>Create a derived database with one doubled spring constant.</p></li>
+<li><p>Move proline CD through eleven positions and compare the original and modified scores.</p></li>
+</ol>
+<p>The original database stays unchanged. This extends <a class="reference internal" href="01_working_with_tmol.html"><span class="doc">loading</span></a> and <a class="reference internal" href="03_scoring_and_analysis.html"><span class="doc">scoring</span></a>.</p>
 <section id="Setup">
 <h2>Setup<a class="headerlink" href="#Setup" title="Link to this heading">#</a></h2>
-<p>In Colab, select a <strong>GPU runtime</strong>, then <strong>Run all</strong>. For local execution, follow the <a class="reference internal" href="../installation.html"><span class="doc">installation guide</span></a>. Setup installs TMol and downloads the fixtures on first use.</p>
-<p>No external structures are downloaded. The examples build a five-residue peptide from sequence using the chemistry shipped with the currently installed TMol release. The setup reports exact package versions and uses the selected CPU or CUDA device.</p>
-<div class="nbinput nblast docutils container">
+<p>In Colab, choose a <strong>GPU runtime</strong> and <strong>Run all</strong>. For local execution, follow the <a class="reference internal" href="../installation.html"><span class="doc">installation guide</span></a> with the documentation extras. Run cells in order; setup selects CUDA when available, otherwise CPU.</p>
+<p>We build a short peptide from sequence; no structure download is needed.</p>
+<div class="nbinput nblast collapse-code docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
@@ -511,7 +520,19 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="c1"># The example files do not need local PDB or CCD mirrors.</span>
+<span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">"atomworks.constants"</span><span class="p">)</span><span class="o">.</span><span class="n">addFilter</span><span class="p">(</span>
+    <span class="k">lambda</span> <span class="n">record</span><span class="p">:</span> <span class="ow">not</span> <span class="n">record</span><span class="o">.</span><span class="n">getMessage</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span>
+        <span class="p">(</span>
+            <span class="s2">"Environment variable CCD_MIRROR_PATH not set."</span><span class="p">,</span>
+            <span class="s2">"Environment variable PDB_MIRROR_PATH not set."</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">attrs</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
@@ -530,8 +551,6 @@
 <span class="n">SEED</span> <span class="o">=</span> <span class="mi">20260910</span>
 <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">SEED</span><span class="p">)</span>
 <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">SEED</span><span class="p">)</span>
-<span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
-    <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">manual_seed_all</span><span class="p">(</span><span class="n">SEED</span><span class="p">)</span>
 
 <span class="n">device</span> <span class="o">=</span> <span class="p">(</span>
     <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">current_device</span><span class="p">())</span>
@@ -540,14 +559,10 @@
 <span class="p">)</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">show_table</span><span class="p">(</span><span class="n">frame</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Use a sortable table in rendered docs, with a pandas fallback."""</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">itables</span><span class="w"> </span><span class="kn">import</span> <span class="n">show</span>
-    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">display</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">show</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">itables</span><span class="w"> </span><span class="kn">import</span> <span class="n">show</span> <span class="k">as</span> <span class="n">show_table</span>
 
+<span class="c1"># Format displayed numbers without changing the values used in calculations.</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">float_format</span> <span class="o">=</span> <span class="s2">"</span><span class="si">{:.4g}</span><span class="s2">"</span><span class="o">.</span><span class="n">format</span>
 
 <span class="n">environment_frame</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
     <span class="p">[</span>
@@ -565,7 +580,7 @@
 </div>
 <div class="output_area rendered_html docutils container">
 <!--| quarto-html-table-processing: none -->
-<table id="itables_3a8250d6_ff80_4769_886a_0acefa4b8d71" hidden="hidden">
+<table id="itables_816610ea_1c20_4f1a_b0bd_7edfdfec16c0" hidden="hidden">
   <tbody>
     <tr>
       <td style="vertical-align:middle; text-align:left"><a href=https://itables.org/><svg class="main-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -664,19 +679,19 @@ width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
     </tr>
   </tbody>
 </table>
-<div id="itables_3a8250d6_ff80_4769_886a_0acefa4b8d71_fallback"><table style="border-collapse:collapse"><thead>    <tr style="text-align: right;">
+<div id="itables_816610ea_1c20_4f1a_b0bd_7edfdfec16c0_fallback"><table style="border-collapse:collapse"><thead>    <tr style="text-align: right;">
       <th style="border:1px solid #ddd;padding:8px"><sup><noscript><span title="JavaScript not allowed. Please trust this notebook to get interactive tables.">🔒</span></noscript><a href=https://itables.org/fallbacks/static_preview.html title="ITables v2.9.1 static preview">ⓘ</a></sup>component</th>
       <th style="border:1px solid #ddd;padding:8px">version</th>
     </tr></thead><tbody>
 <tr><td style="border:1px solid #ddd;padding:8px">TMol</td><td style="border:1px solid #ddd;padding:8px">0.1.64</td></tr>
 <tr><td style="border:1px solid #ddd;padding:8px">PyTorch</td><td style="border:1px solid #ddd;padding:8px">2.14.1+cpu</td></tr>
 <tr><td style="border:1px solid #ddd;padding:8px">device</td><td style="border:1px solid #ddd;padding:8px">cpu</td></tr>
-</tbody></table></div><script>document.getElementById("itables_3a8250d6_ff80_4769_886a_0acefa4b8d71")?.removeAttribute("hidden");document.getElementById("itables_3a8250d6_ff80_4769_886a_0acefa4b8d71_fallback")?.setAttribute("hidden", "hidden");</script>
+</tbody></table></div><script>document.getElementById("itables_816610ea_1c20_4f1a_b0bd_7edfdfec16c0")?.removeAttribute("hidden");document.getElementById("itables_816610ea_1c20_4f1a_b0bd_7edfdfec16c0_fallback")?.setAttribute("hidden", "hidden");</script>
 <link href="https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.css" rel="stylesheet">
 <script type="module">
     import { ITable, jQuery as $ } from 'https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.js';
 
-    document.querySelectorAll("#itables_3a8250d6_ff80_4769_886a_0acefa4b8d71:not(.dataTable)").forEach(table => {
+    document.querySelectorAll("#itables_816610ea_1c20_4f1a_b0bd_7edfdfec16c0:not(.dataTable)").forEach(table => {
         if (!(table instanceof HTMLTableElement))
             return;
 
@@ -694,35 +709,35 @@ width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
 </script></div>
 </div>
 </section>
-<section id="Chemistry,-coordinates,-and-scores">
-<h2>Chemistry, coordinates, and scores<a class="headerlink" href="#Chemistry,-coordinates,-and-scores" title="Link to this heading">#</a></h2>
+<section id="Follow-chemistry-from-the-database-to-a-pose">
+<h2>Follow chemistry from the database to a pose<a class="headerlink" href="#Follow-chemistry-from-the-database-to-a-pose" title="Link to this heading">#</a></h2>
 <div class="pst-scrollable-table-container"><table class="table">
 <thead>
 <tr class="row-odd"><th class="head"><p>Object</p></th>
-<th class="head"><p>Contents</p></th>
+<th class="head"><p>Role in this example</p></th>
 </tr>
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ParameterDatabase</span></code></p></td>
-<td><p>Immutable chemical definitions and scoring parameters</p></td>
+<td><p>Atom definitions and scoring parameters</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ResidueTypeSet</span></code></p></td>
-<td><p>Refined types, including terminal variants</p></td>
+<td><p>Usable residue types, including terminal variants</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PackedBlockTypes</span></code></p></td>
-<td><p>Ordered types and device setup data shared by poses and terms</p></td>
+<td><p>Those types packed into device tensors</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CanonicalOrdering</span></code></p></td>
-<td><p>External tensor indices for residue-equivalence classes and atoms</p></td>
+<td><p>Named atoms mapped to external tensor slots</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ScoreFunction</span></code></p></td>
-<td><p>Term weights and options</p></td>
+<td><p>Weights for the score terms</p></td>
 </tr>
 </tbody>
 </table>
 </div>
-<p>Rendering prepares topology-dependent scoring data. Reuse the layout when only coordinates change. The diagram shows ownership, not call order.</p>
-<div class="nbinput docutils container">
+<p>The diagram shows which objects share this information. A rendered scorer can be reused while only coordinates change; a new layout requires a new scorer.</p>
+<div class="nbinput collapse-code docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
@@ -756,7 +771,13 @@ width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
     <span class="p">((</span><span class="mf">0.74</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.81</span><span class="p">,</span> <span class="mf">0.60</span><span class="p">)),</span>
 <span class="p">]</span>
 <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="n">arrows</span><span class="p">:</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="n">xy</span><span class="o">=</span><span class="n">end</span><span class="p">,</span> <span class="n">xytext</span><span class="o">=</span><span class="n">start</span><span class="p">,</span> <span class="n">xycoords</span><span class="o">=</span><span class="s2">"axes fraction"</span><span class="p">,</span> <span class="n">arrowprops</span><span class="o">=</span><span class="p">{</span><span class="s2">"arrowstyle"</span><span class="p">:</span> <span class="s2">"-&gt;"</span><span class="p">,</span> <span class="s2">"lw"</span><span class="p">:</span> <span class="mf">1.8</span><span class="p">,</span> <span class="s2">"color"</span><span class="p">:</span> <span class="s2">"#315a9b"</span><span class="p">})</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+        <span class="s2">""</span><span class="p">,</span>
+        <span class="n">xy</span><span class="o">=</span><span class="n">end</span><span class="p">,</span>
+        <span class="n">xytext</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="n">xycoords</span><span class="o">=</span><span class="s2">"axes fraction"</span><span class="p">,</span>
+        <span class="n">arrowprops</span><span class="o">=</span><span class="p">{</span><span class="s2">"arrowstyle"</span><span class="p">:</span> <span class="s2">"-&gt;"</span><span class="p">,</span> <span class="s2">"lw"</span><span class="p">:</span> <span class="mf">1.8</span><span class="p">,</span> <span class="s2">"color"</span><span class="p">:</span> <span class="s2">"#315a9b"</span><span class="p">},</span>
+    <span class="p">)</span>
 <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">"TMol chemistry, interchange, pose, and scoring layers"</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
@@ -771,22 +792,28 @@ width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
 </div>
 </div>
 </section>
-<section id="Inspect-the-default-refined-chemistry">
-<h2>Inspect the default refined chemistry<a class="headerlink" href="#Inspect-the-default-refined-chemistry" title="Link to this heading">#</a></h2>
-<p>The raw database contains base residue definitions and named patches. Refinement materializes usable block types such as terminal amino acids and nucleic-acid termini. Counting refined types by polymer backbone makes it clear why a general-purpose packed set is larger than the twenty canonical amino acids.</p>
-<div class="nbinput docutils container">
+<section id="Count-the-available-residue-types">
+<h2>Count the available residue types<a class="headerlink" href="#Count-the-available-residue-types" title="Link to this heading">#</a></h2>
+<p>The database contains base residue definitions and patches such as termini. <code class="docutils literal notranslate"><span class="pre">ResidueTypeSet.from_database()</span></code> combines them into usable types. Grouping by chemical family shows why the result has many more than twenty entries.</p>
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">parameter_db</span> <span class="o">=</span> <span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
 <span class="n">residue_type_set</span> <span class="o">=</span> <span class="n">ResidueTypeSet</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">parameter_db</span><span class="o">.</span><span class="n">chemical</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">chemistry_family</span><span class="p">(</span><span class="n">residue_type</span><span class="p">):</span>
+<br/></pre></div>
+</div>
+</div>
+<p>Group the refined types by polymer family and count them.</p>
+<div class="nbinput collapse-code docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">chemistry_family</span><span class="p">(</span><span class="n">residue_type</span><span class="p">):</span>
     <span class="n">polymer</span> <span class="o">=</span> <span class="n">residue_type</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">polymer</span><span class="o">.</span><span class="n">is_polymer</span><span class="p">:</span>
         <span class="k">return</span> <span class="s2">"non-polymer"</span>
-    <span class="k">if</span> <span class="n">polymer</span><span class="o">.</span><span class="n">backbone_type</span> <span class="o">==</span> <span class="s2">"alpha"</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">polymer</span><span class="o">.</span><span class="n">polymer_type</span> <span class="o">==</span> <span class="s2">"amino_acid"</span><span class="p">:</span>
         <span class="k">return</span> <span class="s2">"protein"</span>
     <span class="k">if</span> <span class="n">polymer</span><span class="o">.</span><span class="n">backbone_type</span> <span class="o">==</span> <span class="s2">"dna"</span><span class="p">:</span>
         <span class="k">return</span> <span class="s2">"DNA"</span>
@@ -836,7 +863,7 @@ width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
 </div>
 <div class="output_area rendered_html docutils container">
 <!--| quarto-html-table-processing: none -->
-<table id="itables_63303a0e_73e3_47e6_ad92_424ea883d6e8" hidden="hidden">
+<table id="itables_57efd5e8_28ad_4623_b555_811aebf61904" hidden="hidden">
   <tbody>
     <tr>
       <td style="vertical-align:middle; text-align:left"><a href=https://itables.org/><svg class="main-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -935,31 +962,30 @@ width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
     </tr>
   </tbody>
 </table>
-<div id="itables_63303a0e_73e3_47e6_ad92_424ea883d6e8_fallback"><table style="border-collapse:collapse"><thead>    <tr style="text-align: right;">
-      <th style="border:1px solid #ddd;padding:8px"><sup><noscript><span title="JavaScript not allowed. Please trust this notebook to get interactive tables.">🔒</span></noscript><a href=https://itables.org/fallbacks/static_preview.html title="ITables v2.9.1 static preview">ⓘ</a></sup></th>
-      <th style="border:1px solid #ddd;padding:8px">family</th>
+<div id="itables_57efd5e8_28ad_4623_b555_811aebf61904_fallback"><table style="border-collapse:collapse"><thead>    <tr style="text-align: right;">
+      <th style="border:1px solid #ddd;padding:8px"><sup><noscript><span title="JavaScript not allowed. Please trust this notebook to get interactive tables.">🔒</span></noscript><a href=https://itables.org/fallbacks/static_preview.html title="ITables v2.9.1 static preview">ⓘ</a></sup>family</th>
       <th style="border:1px solid #ddd;padding:8px">refined_block_types</th>
     </tr></thead><tbody>
-<tr><td style="border:1px solid #ddd;padding:8px">2</td><td style="border:1px solid #ddd;padding:8px">alpha_aa</td><td style="border:1px solid #ddd;padding:8px">216</td></tr>
-<tr><td style="border:1px solid #ddd;padding:8px">3</td><td style="border:1px solid #ddd;padding:8px">non-polymer</td><td style="border:1px solid #ddd;padding:8px">48</td></tr>
-<tr><td style="border:1px solid #ddd;padding:8px">1</td><td style="border:1px solid #ddd;padding:8px">RNA</td><td style="border:1px solid #ddd;padding:8px">24</td></tr>
-<tr><td style="border:1px solid #ddd;padding:8px">0</td><td style="border:1px solid #ddd;padding:8px">DNA</td><td style="border:1px solid #ddd;padding:8px">24</td></tr>
-</tbody></table></div><script>document.getElementById("itables_63303a0e_73e3_47e6_ad92_424ea883d6e8")?.removeAttribute("hidden");document.getElementById("itables_63303a0e_73e3_47e6_ad92_424ea883d6e8_fallback")?.setAttribute("hidden", "hidden");</script>
+<tr><td style="border:1px solid #ddd;padding:8px">protein</td><td style="border:1px solid #ddd;padding:8px">216</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">non-polymer</td><td style="border:1px solid #ddd;padding:8px">48</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">RNA</td><td style="border:1px solid #ddd;padding:8px">24</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">DNA</td><td style="border:1px solid #ddd;padding:8px">24</td></tr>
+</tbody></table></div><script>document.getElementById("itables_57efd5e8_28ad_4623_b555_811aebf61904")?.removeAttribute("hidden");document.getElementById("itables_57efd5e8_28ad_4623_b555_811aebf61904_fallback")?.setAttribute("hidden", "hidden");</script>
 <link href="https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.css" rel="stylesheet">
 <script type="module">
     import { ITable, jQuery as $ } from 'https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.js';
 
-    document.querySelectorAll("#itables_63303a0e_73e3_47e6_ad92_424ea883d6e8:not(.dataTable)").forEach(table => {
+    document.querySelectorAll("#itables_57efd5e8_28ad_4623_b555_811aebf61904:not(.dataTable)").forEach(table => {
         if (!(table instanceof HTMLTableElement))
             return;
 
         let dt_args = {
           "classes": ["display", "nowrap", "compact"],
-          "data_json": "[[2, \"alpha_aa\", 216], [3, \"non-polymer\", 48], [1, \"RNA\", 24], [0, \"DNA\", 24]]",
+          "data_json": "[[\"protein\", 216], [\"non-polymer\", 48], [\"RNA\", 24], [\"DNA\", 24]]",
           "layout": {"bottomEnd": null, "bottomStart": null, "topEnd": null, "topStart": null},
           "order": [],
           "style": {"caption-side": "bottom", "margin": "auto", "table-layout": "auto", "width": "auto"},
-          "table_html": "<table><thead>\n    <tr style=\"text-align: right;\">\n      <th></th>\n      <th>family</th>\n      <th>refined_block_types</th>\n    </tr>\n  </thead></table>",
+          "table_html": "<table><thead>\n    <tr style=\"text-align: right;\">\n      \n      <th>family</th>\n      <th>refined_block_types</th>\n    </tr>\n  </thead></table>",
           "text_in_header_can_be_selected": true
         };
         new ITable(table, dt_args);
@@ -970,17 +996,16 @@ width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/tutorial_11_extending_chemistry_and_scoring_7_1.png" src="../_images/tutorial_11_extending_chemistry_and_scoring_7_1.png" />
+<img alt="../_images/tutorial_11_extending_chemistry_and_scoring_9_1.png" src="../_images/tutorial_11_extending_chemistry_and_scoring_9_1.png" />
 </div>
 </div>
-<p>Protein block types dominate the refined inventory because base residues acquire compatible terminal and other variants. These are chemical alternatives, not additional sequence positions. Code that assumes one packed type per one-letter amino-acid code will fail on termini, protonation variants, nucleic acids, and non-polymers.</p>
+<p>Each entry is a chemical alternative, not a sequence position. For example, an internal alanine and a terminal alanine need different definitions.</p>
 </section>
-<section id="Build-a-chemistry-subset">
-<h2>Build a chemistry subset<a class="headerlink" href="#Build-a-chemistry-subset" title="Link to this heading">#</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">create_stable_subset()</span></code> selects base names and variants in deterministic order, retaining the full scoring database. Use it only when the complete input alphabet is known.</p>
-<p>Keep ALA, GLY, SER, PRO, and protein termini, then build <code class="docutils literal notranslate"><span class="pre">AGSPA</span></code> to check coverage of its internal and terminal types.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<section id="Keep-only-the-types-needed-for-AGSPA">
+<h2>Keep only the types needed for AGSPA<a class="headerlink" href="#Keep-only-the-types-needed-for-AGSPA" title="Link to this heading">#</a></h2>
+<p>Select ALA, GLY, SER, PRO, and their terminal variants with <code class="docutils literal notranslate"><span class="pre">create_stable_subset()</span></code>. It preserves deterministic ordering and the full scoring database. Build the peptide <code class="docutils literal notranslate"><span class="pre">AGSPA</span></code> to check that the subset covers every position.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">subset_db</span> <span class="o">=</span> <span class="n">parameter_db</span><span class="o">.</span><span class="n">create_stable_subset</span><span class="p">(</span>
@@ -998,8 +1023,15 @@ width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
 <span class="n">peptide</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">extended_pose_stack_from_sequences</span><span class="p">(</span>
     <span class="s2">"AGSPA"</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">param_db</span><span class="o">=</span><span class="n">subset_db</span>
 <span class="p">)</span>
-
-<span class="n">subset_frame</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+<br/></pre></div>
+</div>
+</div>
+<p>Compare database and packed-type counts, then view the peptide.</p>
+<div class="nbinput collapse-code docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">subset_frame</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
     <span class="p">[</span>
         <span class="p">{</span>
             <span class="s2">"context"</span><span class="p">:</span> <span class="s2">"default refined chemistry"</span><span class="p">,</span>
@@ -1016,37 +1048,22 @@ width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
     <span class="p">]</span>
 <span class="p">)</span>
 <span class="n">show_table</span><span class="p">(</span><span class="n">subset_frame</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"pose block types:"</span><span class="p">,</span> <span class="p">[</span><span class="n">peptide</span><span class="o">.</span><span class="n">block_type</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">peptide</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">)])</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">"pose block types:"</span><span class="p">,</span>
+    <span class="p">[</span><span class="n">peptide</span><span class="o">.</span><span class="n">block_type</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">peptide</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">)],</span>
+<span class="p">)</span>
 
-<span class="k">try</span><span class="p">:</span>
-    <span class="n">peptide_viewer</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">peptide</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">720</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">380</span><span class="p">)</span>
-    <span class="n">peptide_viewer</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-<span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">"Interactive peptide viewer unavailable:"</span><span class="p">,</span> <span class="n">exc</span><span class="p">)</span>
+<span class="n">peptide_viewer</span> <span class="o">=</span> <span class="n">tmol</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">peptide</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">720</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">380</span><span class="p">)</span>
+<span class="n">peptide_viewer</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 <br/></pre></div>
 </div>
 </div>
 <div class="nboutput docutils container">
 <div class="prompt empty docutils container">
 </div>
-<div class="output_area stderr docutils container">
-<div class="highlight"><pre>
-Environment variable CCD_MIRROR_PATH not set. Will not be able to use function requiring this variable. To set it you may:
-  (1) add the line &#39;export VAR_NAME=path/to/variable&#39; to your .bashrc or .zshrc file
-  (2) set it in your current shell with &#39;export VAR_NAME=path/to/variable&#39;
-  (3) write it to a .env file in the root of the atomworks.io repository
-Environment variable PDB_MIRROR_PATH not set. Will not be able to use function requiring this variable. To set it you may:
-  (1) add the line &#39;export VAR_NAME=path/to/variable&#39; to your .bashrc or .zshrc file
-  (2) set it in your current shell with &#39;export VAR_NAME=path/to/variable&#39;
-  (3) write it to a .env file in the root of the atomworks.io repository
-</pre></div></div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt empty docutils container">
-</div>
 <div class="output_area rendered_html docutils container">
 <!--| quarto-html-table-processing: none -->
-<table id="itables_cdaa816c_d741_47b7_a9c6_3c6751527941" hidden="hidden">
+<table id="itables_2c9b8cf9_fa87_433f_be76_069c5f913cf1" hidden="hidden">
   <tbody>
     <tr>
       <td style="vertical-align:middle; text-align:left"><a href=https://itables.org/><svg class="main-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -1145,7 +1162,7 @@ width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
     </tr>
   </tbody>
 </table>
-<div id="itables_cdaa816c_d741_47b7_a9c6_3c6751527941_fallback"><table style="border-collapse:collapse"><thead>    <tr style="text-align: right;">
+<div id="itables_2c9b8cf9_fa87_433f_be76_069c5f913cf1_fallback"><table style="border-collapse:collapse"><thead>    <tr style="text-align: right;">
       <th style="border:1px solid #ddd;padding:8px"><sup><noscript><span title="JavaScript not allowed. Please trust this notebook to get interactive tables.">🔒</span></noscript><a href=https://itables.org/fallbacks/static_preview.html title="ITables v2.9.1 static preview">ⓘ</a></sup>context</th>
       <th style="border:1px solid #ddd;padding:8px">refined_types</th>
       <th style="border:1px solid #ddd;padding:8px">packed_types</th>
@@ -1153,12 +1170,12 @@ width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
     </tr></thead><tbody>
 <tr><td style="border:1px solid #ddd;padding:8px">default refined chemistry</td><td style="border:1px solid #ddd;padding:8px">312</td><td style="border:1px solid #ddd;padding:8px">268</td><td style="border:1px solid #ddd;padding:8px">82</td></tr>
 <tr><td style="border:1px solid #ddd;padding:8px">AGSP subset</td><td style="border:1px solid #ddd;padding:8px">16</td><td style="border:1px solid #ddd;padding:8px">16</td><td style="border:1px solid #ddd;padding:8px">4</td></tr>
-</tbody></table></div><script>document.getElementById("itables_cdaa816c_d741_47b7_a9c6_3c6751527941")?.removeAttribute("hidden");document.getElementById("itables_cdaa816c_d741_47b7_a9c6_3c6751527941_fallback")?.setAttribute("hidden", "hidden");</script>
+</tbody></table></div><script>document.getElementById("itables_2c9b8cf9_fa87_433f_be76_069c5f913cf1")?.removeAttribute("hidden");document.getElementById("itables_2c9b8cf9_fa87_433f_be76_069c5f913cf1_fallback")?.setAttribute("hidden", "hidden");</script>
 <link href="https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.css" rel="stylesheet">
 <script type="module">
     import { ITable, jQuery as $ } from 'https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.js';
 
-    document.querySelectorAll("#itables_cdaa816c_d741_47b7_a9c6_3c6751527941:not(.dataTable)").forEach(table => {
+    document.querySelectorAll("#itables_2c9b8cf9_fa87_433f_be76_069c5f913cf1:not(.dataTable)").forEach(table => {
         if (!(table instanceof HTMLTableElement))
             return;
 
@@ -1187,8 +1204,8 @@ pose block types: [&#39;ALA:nterm&#39;, &#39;GLY&#39;, &#39;SER&#39;, &#39;PRO&#
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area rendered_html docutils container">
-<div id="3dmolviewer_1791785961080006"  style="position: relative; width: 720px; height: 380px;">
-        <p id="3dmolwarning_1791785961080006" style="background-color:#ffcccc;color:black">3Dmol.js failed to load for some reason.  Please check your browser console for error messages.<br></p>
+<div id="3dmolviewer_17918673596014316"  style="position: relative; width: 720px; height: 380px;">
+        <p id="3dmolwarning_17918673596014316" style="background-color:#ffcccc;color:black">3Dmol.js failed to load for some reason.  Please check your browser console for error messages.<br></p>
         </div>
 <script>
 
@@ -1219,39 +1236,47 @@ $3Dmolpromise = null;
   $3Dmolpromise = loadScriptAsync('https://cdn.jsdelivr.net/npm/3dmol@2.5.5/build/3Dmol-min.js');
 }
 
-var viewer_1791785961080006 = null;
-var warn = document.getElementById("3dmolwarning_1791785961080006");
+var viewer_17918673596014316 = null;
+var warn = document.getElementById("3dmolwarning_17918673596014316");
 if(warn) {
     warn.parentNode.removeChild(warn);
 }
 $3Dmolpromise.then(function() {
-viewer_1791785961080006 = $3Dmol.createViewer(document.getElementById("3dmolviewer_1791785961080006"),{backgroundColor:"white"});
-viewer_1791785961080006.zoomTo();
-    viewer_1791785961080006.addModel("MODEL 1\nATOM      1  N   ALA A   1       0.000  -0.000   0.000  1.00 30.00\nATOM      2  CA  ALA A   1       1.458   0.000   0.000  1.00 30.00\nATOM      3  C   ALA A   1       2.009   1.420   0.000  1.00 30.00\nATOM      4  O   ALA A   1       1.540   2.278  -0.748  1.00 30.00\nATOM      5  CB  ALA A   1       1.988  -0.773  -1.199  1.00 30.00\nATOM      6  HA  ALA A   1       1.797  -0.490   0.913  1.00 30.00\nATOM      7  HB1 ALA A   1       3.078  -0.764  -1.185  1.00 30.00\nATOM      8  HB2 ALA A   1       1.633  -1.802  -1.154  1.00 30.00\nATOM      9  HB3 ALA A   1       1.633  -0.307  -2.117  1.00 30.00\nATOM     10  H1  ALA A   1      -0.334  -0.943  -0.000  1.00 30.00\nATOM     11  H2  ALA A   1      -0.334   0.471   0.816  1.00 30.00\nATOM     12  H3  ALA A   1      -0.334   0.471  -0.816  1.00 30.00\nATOM     13  N   GLY A   2       3.007   1.662   0.843  1.00 30.00\nATOM     14  CA  GLY A   2       3.624   2.980   0.942  1.00 30.00\nATOM     15  C   GLY A   2       5.143   2.875   0.976  1.00 30.00\nATOM     16  O   GLY A   2       5.702   2.041   1.688  1.00 30.00\nATOM     17  H   GLY A   2       3.347   0.914   1.431  1.00 30.00\nATOM     18  HA2 GLY A   2       3.316   3.590   0.093  1.00 30.00\nATOM     19  HA3 GLY A   2       3.270   3.480   1.842  1.00 30.00\nATOM     20  N   SER A   3       5.807   3.727   0.202  1.00 30.00\nATOM     21  CA  SER A   3       7.264   3.732   0.142  1.00 30.00\nATOM     22  C   SER A   3       7.813   5.151   0.211  1.00 30.00\nATOM     23  O   SER A   3       7.313   6.054  -0.459  1.00 30.00\nATOM     24  CB  SER A   3       7.736   3.059  -1.132  1.00 30.00\nATOM     25  OG  SER A   3       6.650   2.618  -1.900  1.00 30.00\nATOM     26  H   SER A   3       5.289   4.388  -0.359  1.00 30.00\nATOM     27  HA  SER A   3       7.647   3.174   0.998  1.00 30.00\nATOM     28  HB2 SER A   3       8.336   3.760  -1.713  1.00 30.00\nATOM     29  HB3 SER A   3       8.375   2.213  -0.881  1.00 30.00\nATOM     30  HG  SER A   3       5.862   2.862  -1.408  1.00 30.00\nATOM     31  N   PRO A   4       8.845   5.342   1.027  1.00 30.00\nATOM     32  CA  PRO A   4       9.464   6.652   1.185  1.00 30.00\nATOM     33  C   PRO A   4      10.984   6.551   1.150  1.00 30.00\nATOM     34  O   PRO A   4      11.572   5.674   1.783  1.00 30.00\nATOM     35  CB  PRO A   4       8.960   7.108   2.558  1.00 30.00\nATOM     36  CG  PRO A   4       8.772   5.840   3.318  1.00 30.00\nATOM     37  CD  PRO A   4       8.330   4.843   2.280  1.00 30.00\nATOM     38  HA  PRO A   4       9.103   7.321   0.390  1.00 30.00\nATOM     39  HB2 PRO A   4       9.695   7.780   3.024  1.00 30.00\nATOM     40  HB3 PRO A   4       8.027   7.680   2.445  1.00 30.00\nATOM     41  HG2 PRO A   4       9.712   5.549   3.811  1.00 30.00\nATOM     42  HG3 PRO A   4       8.026   5.981   4.114  1.00 30.00\nATOM     43  HD2 PRO A   4       8.761   3.857   2.511  1.00 30.00\nATOM     44  HD3 PRO A   4       7.232   4.792   2.264  1.00 30.00\nATOM     45  N   ALA A   5      11.615   7.453   0.406  1.00 30.00\nATOM     46  CA  ALA A   5      13.068   7.467   0.287  1.00 30.00\nATOM     47  C   ALA A   5      13.618   8.881   0.425  1.00 30.00\nATOM     48  CB  ALA A   5      13.496   6.860  -1.041  1.00 30.00\nATOM     49  H   ALA A   5      11.074   8.147  -0.090  1.00 30.00\nATOM     50  HA  ALA A   5      13.480   6.867   1.099  1.00 30.00\nATOM     51  HB1 ALA A   5      14.584   6.878  -1.115  1.00 30.00\nATOM     52  HB2 ALA A   5      13.145   5.830  -1.101  1.00 30.00\nATOM     53  HB3 ALA A   5      13.068   7.437  -1.859  1.00 30.00\nATOM     54  O   ALA A   5      13.752   9.369   1.513  1.00 30.00\nATOM     55  OXT ALA A   5      13.919   9.506  -0.554  1.00 30.00\nTER\nENDMDL\n","pdb");
-    viewer_1791785961080006.setBackgroundColor("white");
-    viewer_1791785961080006.setStyle({},{"cartoon": {"color": "spectrum"}});
-    viewer_1791785961080006.addStyle({"not": {"hetflag": true}},{"stick": {"radius": 0.08, "opacity": 0.55}});
-    viewer_1791785961080006.setStyle({"hetflag": true},{"stick": {"colorscheme": "orangeCarbon", "radius": 0.22}});
-    viewer_1791785961080006.setHoverable({},true,"function(atom,viewer) {\n        if(!atom.label) {\n            atom.label = viewer.addLabel(\n                atom.chain + ':' + atom.resn + '(' + atom.resi + '):' +\n                atom.atom + '(idx' + atom.serial + ')',\n                {position: atom, backgroundColor:\"white\", fontColor:\"black\"}\n            );\n        }\n    }","function(atom,viewer) {\n        if(atom.label) {\n            viewer.removeLabel(atom.label);\n            delete atom.label;\n        }\n    }");
-    viewer_1791785961080006.zoomTo();
-viewer_1791785961080006.render();
+viewer_17918673596014316 = $3Dmol.createViewer(document.getElementById("3dmolviewer_17918673596014316"),{backgroundColor:"white"});
+viewer_17918673596014316.zoomTo();
+    viewer_17918673596014316.addModel("MODEL 1\nATOM      1  N   ALA A   1       0.000  -0.000   0.000  1.00 30.00\nATOM      2  CA  ALA A   1       1.458   0.000   0.000  1.00 30.00\nATOM      3  C   ALA A   1       2.009   1.420   0.000  1.00 30.00\nATOM      4  O   ALA A   1       1.540   2.278  -0.748  1.00 30.00\nATOM      5  CB  ALA A   1       1.988  -0.773  -1.199  1.00 30.00\nATOM      6  HA  ALA A   1       1.797  -0.490   0.913  1.00 30.00\nATOM      7  HB1 ALA A   1       3.078  -0.764  -1.185  1.00 30.00\nATOM      8  HB2 ALA A   1       1.633  -1.802  -1.154  1.00 30.00\nATOM      9  HB3 ALA A   1       1.633  -0.307  -2.117  1.00 30.00\nATOM     10  H1  ALA A   1      -0.334  -0.943  -0.000  1.00 30.00\nATOM     11  H2  ALA A   1      -0.334   0.471   0.816  1.00 30.00\nATOM     12  H3  ALA A   1      -0.334   0.471  -0.816  1.00 30.00\nATOM     13  N   GLY A   2       3.007   1.662   0.843  1.00 30.00\nATOM     14  CA  GLY A   2       3.624   2.980   0.942  1.00 30.00\nATOM     15  C   GLY A   2       5.143   2.875   0.976  1.00 30.00\nATOM     16  O   GLY A   2       5.702   2.041   1.688  1.00 30.00\nATOM     17  H   GLY A   2       3.347   0.914   1.431  1.00 30.00\nATOM     18  HA2 GLY A   2       3.316   3.590   0.093  1.00 30.00\nATOM     19  HA3 GLY A   2       3.270   3.480   1.842  1.00 30.00\nATOM     20  N   SER A   3       5.807   3.727   0.202  1.00 30.00\nATOM     21  CA  SER A   3       7.264   3.732   0.142  1.00 30.00\nATOM     22  C   SER A   3       7.813   5.151   0.211  1.00 30.00\nATOM     23  O   SER A   3       7.313   6.054  -0.459  1.00 30.00\nATOM     24  CB  SER A   3       7.736   3.059  -1.132  1.00 30.00\nATOM     25  OG  SER A   3       6.650   2.618  -1.900  1.00 30.00\nATOM     26  H   SER A   3       5.289   4.388  -0.359  1.00 30.00\nATOM     27  HA  SER A   3       7.647   3.174   0.998  1.00 30.00\nATOM     28  HB2 SER A   3       8.336   3.760  -1.713  1.00 30.00\nATOM     29  HB3 SER A   3       8.375   2.213  -0.881  1.00 30.00\nATOM     30  HG  SER A   3       5.862   2.862  -1.408  1.00 30.00\nATOM     31  N   PRO A   4       8.845   5.342   1.027  1.00 30.00\nATOM     32  CA  PRO A   4       9.464   6.652   1.185  1.00 30.00\nATOM     33  C   PRO A   4      10.984   6.551   1.150  1.00 30.00\nATOM     34  O   PRO A   4      11.572   5.674   1.783  1.00 30.00\nATOM     35  CB  PRO A   4       8.960   7.108   2.558  1.00 30.00\nATOM     36  CG  PRO A   4       8.772   5.840   3.318  1.00 30.00\nATOM     37  CD  PRO A   4       8.330   4.843   2.280  1.00 30.00\nATOM     38  HA  PRO A   4       9.103   7.321   0.390  1.00 30.00\nATOM     39  HB2 PRO A   4       9.695   7.780   3.024  1.00 30.00\nATOM     40  HB3 PRO A   4       8.027   7.680   2.445  1.00 30.00\nATOM     41  HG2 PRO A   4       9.712   5.549   3.811  1.00 30.00\nATOM     42  HG3 PRO A   4       8.026   5.981   4.114  1.00 30.00\nATOM     43  HD2 PRO A   4       8.761   3.857   2.511  1.00 30.00\nATOM     44  HD3 PRO A   4       7.232   4.792   2.264  1.00 30.00\nATOM     45  N   ALA A   5      11.615   7.453   0.406  1.00 30.00\nATOM     46  CA  ALA A   5      13.068   7.467   0.287  1.00 30.00\nATOM     47  C   ALA A   5      13.618   8.881   0.425  1.00 30.00\nATOM     48  CB  ALA A   5      13.496   6.860  -1.041  1.00 30.00\nATOM     49  H   ALA A   5      11.074   8.147  -0.090  1.00 30.00\nATOM     50  HA  ALA A   5      13.480   6.867   1.099  1.00 30.00\nATOM     51  HB1 ALA A   5      14.584   6.878  -1.115  1.00 30.00\nATOM     52  HB2 ALA A   5      13.145   5.830  -1.101  1.00 30.00\nATOM     53  HB3 ALA A   5      13.068   7.437  -1.859  1.00 30.00\nATOM     54  O   ALA A   5      13.752   9.369   1.513  1.00 30.00\nATOM     55  OXT ALA A   5      13.919   9.506  -0.554  1.00 30.00\nTER\nENDMDL\n","pdb");
+    viewer_17918673596014316.setBackgroundColor("white");
+    viewer_17918673596014316.setStyle({},{"cartoon": {"color": "spectrum"}});
+    viewer_17918673596014316.addStyle({"not": {"hetflag": true}},{"stick": {"radius": 0.08, "opacity": 0.55}});
+    viewer_17918673596014316.setStyle({"hetflag": true},{"stick": {"colorscheme": "orangeCarbon", "radius": 0.22}});
+    viewer_17918673596014316.setHoverable({},true,"function(atom,viewer) {\n        if(!atom.label) {\n            atom.label = viewer.addLabel(\n                atom.chain + ':' + atom.resn + '(' + atom.resi + '):' +\n                atom.atom + '(idx' + atom.serial + ')',\n                {position: atom, backgroundColor:\"white\", fontColor:\"black\"}\n            );\n        }\n    }","function(atom,viewer) {\n        if(atom.label) {\n            viewer.removeLabel(atom.label);\n            delete atom.label;\n        }\n    }");
+    viewer_17918673596014316.zoomTo();
+viewer_17918673596014316.render();
 });
 </script></div>
 </div>
-<p>The smaller set builds a complete terminated peptide from ideal internal geometry. An extended structure does not establish folding or validate the energy model.</p>
+<p>The viewer shows a peptide built from ideal internal geometry. Building it confirms type coverage; it does not fold the peptide.</p>
 </section>
-<section id="Separate-score-weights-from-score-parameters">
-<h2>Separate score weights from score parameters<a class="headerlink" href="#Separate-score-weights-from-score-parameters" title="Link to this heading">#</a></h2>
-<p>Use weights when an existing energy term should contribute differently. Use a modified <code class="docutils literal notranslate"><span class="pre">ParameterDatabase</span></code> only when the term’s underlying model changes. The focused score function below gives only Cartesian bond-length energy a nonzero weight. Cartesian length, angle, torsion, improper, and hydroxyl-torsion lanes share one implementation term, so rendering it exposes all five lanes even when four weights are zero. Setting every lane owned by a term to zero removes that implementation term.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<section id="Isolate-the-bond-length-term">
+<h2>Isolate the bond-length term<a class="headerlink" href="#Isolate-the-bond-length-term" title="Link to this heading">#</a></h2>
+<p>Changing a score weight scales an existing contribution. Changing a database parameter changes how that contribution is calculated.</p>
+<p>To measure the effect of one spring constant, enable only <code class="docutils literal notranslate"><span class="pre">cart_lengths</span></code>. Other Cartesian bonded terms may still appear in the rendered output because they share an implementation, but their weights are zero.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">beta</span> <span class="o">=</span> <span class="n">beta2016_score_function</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">param_db</span><span class="o">=</span><span class="n">subset_db</span><span class="p">)</span>
 <span class="n">focused</span> <span class="o">=</span> <span class="n">ScoreFunction</span><span class="p">(</span><span class="n">subset_db</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
 <span class="n">focused</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">cart_lengths</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
-
-<span class="n">weight_rows</span> <span class="o">=</span> <span class="p">[]</span>
+<br/></pre></div>
+</div>
+</div>
+<p>Compare the full beta2016 weights with the one-term score function. Only <code class="docutils literal notranslate"><span class="pre">cart_lengths</span></code> has a nonzero weight in the latter.</p>
+<div class="nbinput collapse-code docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">weight_rows</span> <span class="o">=</span> <span class="p">[]</span>
 <span class="k">for</span> <span class="n">score_type</span> <span class="ow">in</span> <span class="n">beta</span><span class="o">.</span><span class="n">all_score_types</span><span class="p">():</span>
     <span class="n">weight</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">beta</span><span class="o">.</span><span class="n">get_weight</span><span class="p">(</span><span class="n">score_type</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
     <span class="k">if</span> <span class="n">weight</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">:</span>
@@ -1259,16 +1284,19 @@ viewer_1791785961080006.render();
             <span class="p">{</span><span class="s2">"score_type"</span><span class="p">:</span> <span class="n">score_type</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">"beta2016_weight"</span><span class="p">:</span> <span class="n">weight</span><span class="p">}</span>
         <span class="p">)</span>
 <span class="n">weight_frame</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">weight_rows</span><span class="p">)</span>
-<span class="n">weight_frame</span><span class="p">[</span><span class="s2">"focused_cart_length_weight"</span><span class="p">]</span> <span class="o">=</span> <span class="n">weight_frame</span><span class="p">[</span><span class="s2">"score_type"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
-    <span class="p">{</span><span class="s2">"cart_lengths"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">}</span>
-<span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+<span class="n">weight_frame</span><span class="p">[</span><span class="s2">"focused_cart_length_weight"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">weight_frame</span><span class="p">[</span><span class="s2">"score_type"</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">({</span><span class="s2">"cart_lengths"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">})</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+<span class="p">)</span>
 <span class="n">show_table</span><span class="p">(</span><span class="n">weight_frame</span><span class="p">)</span>
 <span class="n">focused_nonzero</span> <span class="o">=</span> <span class="p">[</span>
     <span class="n">score_type</span>
     <span class="k">for</span> <span class="n">score_type</span> <span class="ow">in</span> <span class="n">focused</span><span class="o">.</span><span class="n">all_score_types</span><span class="p">()</span>
     <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">focused</span><span class="o">.</span><span class="n">get_weight</span><span class="p">(</span><span class="n">score_type</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span> <span class="o">!=</span> <span class="mf">0.0</span>
 <span class="p">]</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"focused rendered score lanes:"</span><span class="p">,</span> <span class="p">[</span><span class="n">st</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">focused</span><span class="o">.</span><span class="n">all_score_types</span><span class="p">()])</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">"focused rendered score lanes:"</span><span class="p">,</span>
+    <span class="p">[</span><span class="n">st</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">focused</span><span class="o">.</span><span class="n">all_score_types</span><span class="p">()],</span>
+<span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">"focused nonzero weights:"</span><span class="p">,</span> <span class="p">[</span><span class="n">st</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">focused_nonzero</span><span class="p">])</span>
 <span class="k">assert</span> <span class="n">focused_nonzero</span> <span class="o">==</span> <span class="p">[</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">cart_lengths</span><span class="p">]</span>
 <br/></pre></div>
@@ -1279,7 +1307,7 @@ viewer_1791785961080006.render();
 </div>
 <div class="output_area rendered_html docutils container">
 <!--| quarto-html-table-processing: none -->
-<table id="itables_e9ee2811_7356_4100_8f43_3f17304c3717" hidden="hidden">
+<table id="itables_41161d15_6722_4054_b563_e67e6167dabd" hidden="hidden">
   <tbody>
     <tr>
       <td style="vertical-align:middle; text-align:left"><a href=https://itables.org/><svg class="main-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -1378,34 +1406,34 @@ width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
     </tr>
   </tbody>
 </table>
-<div id="itables_e9ee2811_7356_4100_8f43_3f17304c3717_fallback"><table style="border-collapse:collapse"><thead>    <tr style="text-align: right;">
+<div id="itables_41161d15_6722_4054_b563_e67e6167dabd_fallback"><table style="border-collapse:collapse"><thead>    <tr style="text-align: right;">
       <th style="border:1px solid #ddd;padding:8px"><sup><noscript><span title="JavaScript not allowed. Please trust this notebook to get interactive tables.">🔒</span></noscript><a href=https://itables.org/fallbacks/static_preview.html title="ITables v2.9.1 static preview">ⓘ</a></sup>score_type</th>
       <th style="border:1px solid #ddd;padding:8px">beta2016_weight</th>
       <th style="border:1px solid #ddd;padding:8px">focused_cart_length_weight</th>
     </tr></thead><tbody>
-<tr><td style="border:1px solid #ddd;padding:8px">fa_ljatr</td><td style="border:1px solid #ddd;padding:8px">1.00</td><td style="border:1px solid #ddd;padding:8px">0.0</td></tr>
-<tr><td style="border:1px solid #ddd;padding:8px">fa_ljrep</td><td style="border:1px solid #ddd;padding:8px">0.55</td><td style="border:1px solid #ddd;padding:8px">0.0</td></tr>
-<tr><td style="border:1px solid #ddd;padding:8px">fa_lk</td><td style="border:1px solid #ddd;padding:8px">1.00</td><td style="border:1px solid #ddd;padding:8px">0.0</td></tr>
-<tr><td style="border:1px solid #ddd;padding:8px">fa_elec</td><td style="border:1px solid #ddd;padding:8px">1.00</td><td style="border:1px solid #ddd;padding:8px">0.0</td></tr>
-<tr><td style="border:1px solid #ddd;padding:8px">hbond</td><td style="border:1px solid #ddd;padding:8px">1.00</td><td style="border:1px solid #ddd;padding:8px">0.0</td></tr>
-<tr><td style="border:1px solid #ddd;padding:8px">cart_lengths</td><td style="border:1px solid #ddd;padding:8px">0.50</td><td style="border:1px solid #ddd;padding:8px">1.0</td></tr>
-<tr><td style="border:1px solid #ddd;padding:8px">cart_angles</td><td style="border:1px solid #ddd;padding:8px">0.50</td><td style="border:1px solid #ddd;padding:8px">0.0</td></tr>
-<tr><td style="border:1px solid #ddd;padding:8px">cart_torsions</td><td style="border:1px solid #ddd;padding:8px">0.50</td><td style="border:1px solid #ddd;padding:8px">0.0</td></tr>
-<tr><td style="border:1px solid #ddd;padding:8px">cart_impropers</td><td style="border:1px solid #ddd;padding:8px">0.50</td><td style="border:1px solid #ddd;padding:8px">0.0</td></tr>
-<tr><td style="border:1px solid #ddd;padding:8px">cart_hxltorsions</td><td style="border:1px solid #ddd;padding:8px">1.00</td><td style="border:1px solid #ddd;padding:8px">0.0</td></tr>
-</tbody><tfoot><tr><td colspan="3" style="border:none;padding:8px;text-align:center">(15 more rows not shown)</td></tr></tfoot></table></div><script>document.getElementById("itables_e9ee2811_7356_4100_8f43_3f17304c3717")?.removeAttribute("hidden");document.getElementById("itables_e9ee2811_7356_4100_8f43_3f17304c3717_fallback")?.setAttribute("hidden", "hidden");</script>
+<tr><td style="border:1px solid #ddd;padding:8px">fa_ljatr</td><td style="border:1px solid #ddd;padding:8px">1</td><td style="border:1px solid #ddd;padding:8px">0</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">fa_ljrep</td><td style="border:1px solid #ddd;padding:8px">0.55</td><td style="border:1px solid #ddd;padding:8px">0</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">fa_lk</td><td style="border:1px solid #ddd;padding:8px">1</td><td style="border:1px solid #ddd;padding:8px">0</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">fa_elec</td><td style="border:1px solid #ddd;padding:8px">1</td><td style="border:1px solid #ddd;padding:8px">0</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">hbond</td><td style="border:1px solid #ddd;padding:8px">1</td><td style="border:1px solid #ddd;padding:8px">0</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">cart_lengths</td><td style="border:1px solid #ddd;padding:8px">0.5</td><td style="border:1px solid #ddd;padding:8px">1</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">cart_angles</td><td style="border:1px solid #ddd;padding:8px">0.5</td><td style="border:1px solid #ddd;padding:8px">0</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">cart_torsions</td><td style="border:1px solid #ddd;padding:8px">0.5</td><td style="border:1px solid #ddd;padding:8px">0</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">cart_impropers</td><td style="border:1px solid #ddd;padding:8px">0.5</td><td style="border:1px solid #ddd;padding:8px">0</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">cart_hxltorsions</td><td style="border:1px solid #ddd;padding:8px">1</td><td style="border:1px solid #ddd;padding:8px">0</td></tr>
+</tbody><tfoot><tr><td colspan="3" style="border:none;padding:8px;text-align:center">(15 more rows not shown)</td></tr></tfoot></table></div><script>document.getElementById("itables_41161d15_6722_4054_b563_e67e6167dabd")?.removeAttribute("hidden");document.getElementById("itables_41161d15_6722_4054_b563_e67e6167dabd_fallback")?.setAttribute("hidden", "hidden");</script>
 <link href="https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.css" rel="stylesheet">
 <script type="module">
     import { ITable, jQuery as $ } from 'https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.js';
 
-    document.querySelectorAll("#itables_e9ee2811_7356_4100_8f43_3f17304c3717:not(.dataTable)").forEach(table => {
+    document.querySelectorAll("#itables_41161d15_6722_4054_b563_e67e6167dabd:not(.dataTable)").forEach(table => {
         if (!(table instanceof HTMLTableElement))
             return;
 
         let dt_args = {
           "classes": ["display", "nowrap", "compact"],
           "columnDefs": [{"render": "function (data, type, row, meta) { return type === 'sort' || type === 'type' ? data[1] : data[0]; }", "targets": [1, 2]}],
-          "data_json": "[[\"fa_ljatr\", [\"1.00\", 1.0], [\"0.0\", 0.0]], [\"fa_ljrep\", [\"0.55\", 0.550000011920929], [\"0.0\", 0.0]], [\"fa_lk\", [\"1.00\", 1.0], [\"0.0\", 0.0]], [\"fa_elec\", [\"1.00\", 1.0], [\"0.0\", 0.0]], [\"hbond\", [\"1.00\", 1.0], [\"0.0\", 0.0]], [\"cart_lengths\", [\"0.50\", 0.5], [\"1.0\", 1.0]], [\"cart_angles\", [\"0.50\", 0.5], [\"0.0\", 0.0]], [\"cart_torsions\", [\"0.50\", 0.5], [\"0.0\", 0.0]], [\"cart_impropers\", [\"0.50\", 0.5], [\"0.0\", 0.0]], [\"cart_hxltorsions\", [\"1.00\", 1.0], [\"0.0\", 0.0]], [\"disulfide\", [\"1.25\", 1.25], [\"0.0\", 0.0]], [\"rama\", [\"1.00\", 1.0], [\"0.0\", 0.0]], [\"omega\", [\"0.48\", 0.47999998927116394], [\"0.0\", 0.0]], [\"dunbrack_rot\", [\"0.76\", 0.7599999904632568], [\"0.0\", 0.0]], [\"dunbrack_rotdev\", [\"0.69\", 0.6899999976158142], [\"0.0\", 0.0]], [\"dunbrack_semirot\", [\"0.78\", 0.7799999713897705], [\"0.0\", 0.0]], [\"lk_ball_iso\", [\"-0.38\", -0.3799999952316284], [\"0.0\", 0.0]], [\"lk_ball\", [\"0.92\", 0.9200000166893005], [\"0.0\", 0.0]], [\"lk_bridge\", [\"-0.33\", -0.33000001311302185], [\"0.0\", 0.0]], [\"lk_bridge_uncpl\", [\"-0.33\", -0.33000001311302185], [\"0.0\", 0.0]], [\"ref\", [\"1.00\", 1.0], [\"0.0\", 0.0]], [\"gen_torsions\", [\"1.00\", 1.0], [\"0.0\", 0.0]], [\"na_torsion\", [\"1.00\", 1.0], [\"0.0\", 0.0]], [\"na_torsion_well\", [\"1.00\", 1.0], [\"0.0\", 0.0]], [\"metal_coordination\", [\"1.00\", 1.0], [\"0.0\", 0.0]]]",
+          "data_json": "[[\"fa_ljatr\", [\"1\", 1.0], [\"0\", 0.0]], [\"fa_ljrep\", [\"0.55\", 0.550000011920929], [\"0\", 0.0]], [\"fa_lk\", [\"1\", 1.0], [\"0\", 0.0]], [\"fa_elec\", [\"1\", 1.0], [\"0\", 0.0]], [\"hbond\", [\"1\", 1.0], [\"0\", 0.0]], [\"cart_lengths\", [\"0.5\", 0.5], [\"1\", 1.0]], [\"cart_angles\", [\"0.5\", 0.5], [\"0\", 0.0]], [\"cart_torsions\", [\"0.5\", 0.5], [\"0\", 0.0]], [\"cart_impropers\", [\"0.5\", 0.5], [\"0\", 0.0]], [\"cart_hxltorsions\", [\"1\", 1.0], [\"0\", 0.0]], [\"disulfide\", [\"1.25\", 1.25], [\"0\", 0.0]], [\"rama\", [\"1\", 1.0], [\"0\", 0.0]], [\"omega\", [\"0.48\", 0.47999998927116394], [\"0\", 0.0]], [\"dunbrack_rot\", [\"0.76\", 0.7599999904632568], [\"0\", 0.0]], [\"dunbrack_rotdev\", [\"0.69\", 0.6899999976158142], [\"0\", 0.0]], [\"dunbrack_semirot\", [\"0.78\", 0.7799999713897705], [\"0\", 0.0]], [\"lk_ball_iso\", [\"-0.38\", -0.3799999952316284], [\"0\", 0.0]], [\"lk_ball\", [\"0.92\", 0.9200000166893005], [\"0\", 0.0]], [\"lk_bridge\", [\"-0.33\", -0.33000001311302185], [\"0\", 0.0]], [\"lk_bridge_uncpl\", [\"-0.33\", -0.33000001311302185], [\"0\", 0.0]], [\"ref\", [\"1\", 1.0], [\"0\", 0.0]], [\"gen_torsions\", [\"1\", 1.0], [\"0\", 0.0]], [\"na_torsion\", [\"1\", 1.0], [\"0\", 0.0]], [\"na_torsion_well\", [\"1\", 1.0], [\"0\", 0.0]], [\"metal_coordination\", [\"1\", 1.0], [\"0\", 0.0]]]",
           "keys_to_be_evaluated": [["columnDefs", 0, "render"]],
           "layout": {"bottomEnd": "paging", "bottomStart": "info", "topEnd": "search", "topStart": "pageLength"},
           "order": [],
@@ -1427,12 +1455,12 @@ focused nonzero weights: [&#39;cart_lengths&#39;]
 </pre></div></div>
 </div>
 </section>
-<section id="Change-one-immutable-Cartesian-bonded-parameter">
-<h2>Change one immutable Cartesian bonded parameter<a class="headerlink" href="#Change-one-immutable-Cartesian-bonded-parameter" title="Link to this heading">#</a></h2>
-<p>This extension-level example doubles the spring constant for the intraproline N–CD bond. <code class="docutils literal notranslate"><span class="pre">attrs.evolve()</span></code> and <code class="docutils literal notranslate"><span class="pre">CartBondedDatabase.from_cartres_dict()</span></code> create new immutable database layers; the shared default remains untouched.</p>
-<p>To isolate the change, the code displaces only the internal proline CD atom and compares two score functions containing only <code class="docutils literal notranslate"><span class="pre">cart_lengths</span></code>. Plotting relative energies removes any constant offset. This is a sensitivity test of one implementation change—not parameter fitting, physical calibration, or evidence that the altered model is better.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<section id="Double-the-proline-N–CD-spring-constant">
+<h2>Double the proline N–CD spring constant<a class="headerlink" href="#Double-the-proline-N–CD-spring-constant" title="Link to this heading">#</a></h2>
+<p>Create a derived database with one change: double the spring constant for the bond between proline N and CD. <code class="docutils literal notranslate"><span class="pre">attrs.evolve()</span></code> replaces immutable layers while leaving the original database intact.</p>
+<p>Then move only CD by a series of displacements and score each position with both parameter sets. This controlled experiment tests the effect of the edit; it does not fit or validate a new force field.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cart_db</span> <span class="o">=</span> <span class="n">subset_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">cartbonded</span>
@@ -1457,15 +1485,36 @@ focused nonzero weights: [&#39;cart_lengths&#39;]
     <span class="n">subset_db</span><span class="o">.</span><span class="n">scoring</span><span class="p">,</span> <span class="n">cartbonded</span><span class="o">=</span><span class="n">strengthened_cart_db</span>
 <span class="p">)</span>
 <span class="n">strengthened_db</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">subset_db</span><span class="p">,</span> <span class="n">scoring</span><span class="o">=</span><span class="n">strengthened_scoring_db</span><span class="p">)</span>
-
-<span class="n">standard_cart</span> <span class="o">=</span> <span class="n">ScoreFunction</span><span class="p">(</span><span class="n">subset_db</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<section id="Build-the-two-scorers">
+<h3>Build the two scorers<a class="headerlink" href="#Build-the-two-scorers" title="Link to this heading">#</a></h3>
+<p>Both use only the bond-length term. The database’s proline N–CD spring constant is their only parameter difference.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">standard_cart</span> <span class="o">=</span> <span class="n">ScoreFunction</span><span class="p">(</span><span class="n">subset_db</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
 <span class="n">standard_cart</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">cart_lengths</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
 <span class="n">strengthened_cart</span> <span class="o">=</span> <span class="n">ScoreFunction</span><span class="p">(</span><span class="n">strengthened_db</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
 <span class="n">strengthened_cart</span><span class="o">.</span><span class="n">set_weight</span><span class="p">(</span><span class="n">ScoreType</span><span class="o">.</span><span class="n">cart_lengths</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
 <span class="n">standard_scorer</span> <span class="o">=</span> <span class="n">standard_cart</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">peptide</span><span class="p">)</span>
-<span class="n">strengthened_scorer</span> <span class="o">=</span> <span class="n">strengthened_cart</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">peptide</span><span class="p">)</span>
-
-<span class="n">pro_block</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+<span class="n">strengthened_scorer</span> <span class="o">=</span> <span class="n">strengthened_cart</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span>
+    <span class="n">peptide</span>
+<span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+</section>
+<section id="Displace-proline-CD">
+<h3>Displace proline CD<a class="headerlink" href="#Displace-proline-CD" title="Link to this heading">#</a></h3>
+<p>Move the same atom through eleven positions from 0 to 0.50 Å and score each with both models.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pro_block</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
     <span class="n">index</span>
     <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">peptide</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">peptide</span><span class="o">.</span><span class="n">block_type</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">name3</span> <span class="o">==</span> <span class="s2">"PRO"</span>
@@ -1485,14 +1534,30 @@ focused nonzero weights: [&#39;cart_lengths&#39;]
     <span class="n">scan_rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
         <span class="p">{</span>
             <span class="s2">"CD_x_displacement_A"</span><span class="p">:</span> <span class="n">displacement</span><span class="p">,</span>
-            <span class="s2">"standard_cart_lengths"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">standard_scorer</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[</span><span class="mi">0</span><span class="p">]),</span>
-            <span class="s2">"strengthened_cart_lengths"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">strengthened_scorer</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[</span><span class="mi">0</span><span class="p">]),</span>
+            <span class="s2">"standard_cart_lengths"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span>
+                <span class="n">standard_scorer</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">),</span>
+            <span class="s2">"strengthened_cart_lengths"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span>
+                <span class="n">strengthened_scorer</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">),</span>
         <span class="p">}</span>
     <span class="p">)</span>
-
-<span class="n">scan_frame</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">scan_rows</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+</section>
+<section id="Compare-relative-score-curves">
+<h3>Compare relative score curves<a class="headerlink" href="#Compare-relative-score-curves" title="Link to this heading">#</a></h3>
+<p>Subtract each curve’s value at zero displacement to remove constant offsets.</p>
+<div class="nbinput collapse-code docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">scan_frame</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">scan_rows</span><span class="p">)</span>
 <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"standard_cart_lengths"</span><span class="p">,</span> <span class="s2">"strengthened_cart_lengths"</span><span class="p">]:</span>
-    <span class="n">scan_frame</span><span class="p">[</span><span class="sa">f</span><span class="s2">"relative_</span><span class="si">{</span><span class="n">column</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span> <span class="o">=</span> <span class="n">scan_frame</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">-</span> <span class="n">scan_frame</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">scan_frame</span><span class="p">[</span><span class="sa">f</span><span class="s2">"relative_</span><span class="si">{</span><span class="n">column</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">scan_frame</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">-</span> <span class="n">scan_frame</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="p">)</span>
 <span class="n">show_table</span><span class="p">(</span><span class="n">scan_frame</span><span class="o">.</span><span class="n">iloc</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">]])</span>
 
 <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">7.5</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">))</span>
@@ -1518,8 +1583,14 @@ focused nonzero weights: [&#39;cart_lengths&#39;]
 <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 
-<span class="k">assert</span> <span class="n">parameter_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">cartbonded</span><span class="o">.</span><span class="n">residue_params</span><span class="p">[</span><span class="s2">"PRO"</span><span class="p">]</span><span class="o">.</span><span class="n">length_parameters</span> <span class="o">!=</span> <span class="n">strengthened_pro</span><span class="o">.</span><span class="n">length_parameters</span>
-<span class="k">assert</span> <span class="n">scan_frame</span><span class="p">[</span><span class="s2">"relative_strengthened_cart_lengths"</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">scan_frame</span><span class="p">[</span><span class="s2">"relative_standard_cart_lengths"</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<span class="k">assert</span> <span class="p">(</span>
+    <span class="n">parameter_db</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">cartbonded</span><span class="o">.</span><span class="n">residue_params</span><span class="p">[</span><span class="s2">"PRO"</span><span class="p">]</span><span class="o">.</span><span class="n">length_parameters</span>
+    <span class="o">!=</span> <span class="n">strengthened_pro</span><span class="o">.</span><span class="n">length_parameters</span>
+<span class="p">)</span>
+<span class="k">assert</span> <span class="p">(</span>
+    <span class="n">scan_frame</span><span class="p">[</span><span class="s2">"relative_strengthened_cart_lengths"</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="o">&gt;</span> <span class="n">scan_frame</span><span class="p">[</span><span class="s2">"relative_standard_cart_lengths"</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<span class="p">)</span>
 <br/></pre></div>
 </div>
 </div>
@@ -1528,7 +1599,7 @@ focused nonzero weights: [&#39;cart_lengths&#39;]
 </div>
 <div class="output_area rendered_html docutils container">
 <!--| quarto-html-table-processing: none -->
-<table id="itables_45746c44_ec7a_46d9_85fe_79fa12575285" hidden="hidden">
+<table id="itables_a0941edc_227c_47bc_bddc_19d79739fe5f" hidden="hidden">
   <tbody>
     <tr>
       <td style="vertical-align:middle; text-align:left"><a href=https://itables.org/><svg class="main-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -1627,7 +1698,7 @@ width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
     </tr>
   </tbody>
 </table>
-<div id="itables_45746c44_ec7a_46d9_85fe_79fa12575285_fallback"><table style="border-collapse:collapse"><thead>    <tr style="text-align: right;">
+<div id="itables_a0941edc_227c_47bc_bddc_19d79739fe5f_fallback"><table style="border-collapse:collapse"><thead>    <tr style="text-align: right;">
       <th style="border:1px solid #ddd;padding:8px"><sup><noscript><span title="JavaScript not allowed. Please trust this notebook to get interactive tables.">🔒</span></noscript><a href=https://itables.org/fallbacks/static_preview.html title="ITables v2.9.1 static preview">ⓘ</a></sup></th>
       <th style="border:1px solid #ddd;padding:8px">CD_x_displacement_A</th>
       <th style="border:1px solid #ddd;padding:8px">standard_cart_lengths</th>
@@ -1635,23 +1706,23 @@ width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
       <th style="border:1px solid #ddd;padding:8px">relative_standard_cart_lengths</th>
       <th style="border:1px solid #ddd;padding:8px">relative_strengthened_cart_lengths</th>
     </tr></thead><tbody>
-<tr><td style="border:1px solid #ddd;padding:8px">0</td><td style="border:1px solid #ddd;padding:8px">0.00</td><td style="border:1px solid #ddd;padding:8px">0.619408</td><td style="border:1px solid #ddd;padding:8px">0.671390</td><td style="border:1px solid #ddd;padding:8px">0.000000</td><td style="border:1px solid #ddd;padding:8px">0.000000</td></tr>
-<tr><td style="border:1px solid #ddd;padding:8px">2</td><td style="border:1px solid #ddd;padding:8px">0.10</td><td style="border:1px solid #ddd;padding:8px">1.490051</td><td style="border:1px solid #ddd;padding:8px">1.722580</td><td style="border:1px solid #ddd;padding:8px">0.870642</td><td style="border:1px solid #ddd;padding:8px">1.051190</td></tr>
-<tr><td style="border:1px solid #ddd;padding:8px">5</td><td style="border:1px solid #ddd;padding:8px">0.25</td><td style="border:1px solid #ddd;padding:8px">5.258331</td><td style="border:1px solid #ddd;padding:8px">5.847925</td><td style="border:1px solid #ddd;padding:8px">4.638923</td><td style="border:1px solid #ddd;padding:8px">5.176534</td></tr>
-<tr><td style="border:1px solid #ddd;padding:8px">10</td><td style="border:1px solid #ddd;padding:8px">0.50</td><td style="border:1px solid #ddd;padding:8px">16.821915</td><td style="border:1px solid #ddd;padding:8px">17.758902</td><td style="border:1px solid #ddd;padding:8px">16.202506</td><td style="border:1px solid #ddd;padding:8px">17.087511</td></tr>
-</tbody></table></div><script>document.getElementById("itables_45746c44_ec7a_46d9_85fe_79fa12575285")?.removeAttribute("hidden");document.getElementById("itables_45746c44_ec7a_46d9_85fe_79fa12575285_fallback")?.setAttribute("hidden", "hidden");</script>
+<tr><td style="border:1px solid #ddd;padding:8px">0</td><td style="border:1px solid #ddd;padding:8px">0</td><td style="border:1px solid #ddd;padding:8px">0.6194</td><td style="border:1px solid #ddd;padding:8px">0.6714</td><td style="border:1px solid #ddd;padding:8px">0</td><td style="border:1px solid #ddd;padding:8px">0</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">2</td><td style="border:1px solid #ddd;padding:8px">0.1</td><td style="border:1px solid #ddd;padding:8px">1.49</td><td style="border:1px solid #ddd;padding:8px">1.723</td><td style="border:1px solid #ddd;padding:8px">0.8706</td><td style="border:1px solid #ddd;padding:8px">1.051</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">5</td><td style="border:1px solid #ddd;padding:8px">0.25</td><td style="border:1px solid #ddd;padding:8px">5.258</td><td style="border:1px solid #ddd;padding:8px">5.848</td><td style="border:1px solid #ddd;padding:8px">4.639</td><td style="border:1px solid #ddd;padding:8px">5.177</td></tr>
+<tr><td style="border:1px solid #ddd;padding:8px">10</td><td style="border:1px solid #ddd;padding:8px">0.5</td><td style="border:1px solid #ddd;padding:8px">16.82</td><td style="border:1px solid #ddd;padding:8px">17.76</td><td style="border:1px solid #ddd;padding:8px">16.2</td><td style="border:1px solid #ddd;padding:8px">17.09</td></tr>
+</tbody></table></div><script>document.getElementById("itables_a0941edc_227c_47bc_bddc_19d79739fe5f")?.removeAttribute("hidden");document.getElementById("itables_a0941edc_227c_47bc_bddc_19d79739fe5f_fallback")?.setAttribute("hidden", "hidden");</script>
 <link href="https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.css" rel="stylesheet">
 <script type="module">
     import { ITable, jQuery as $ } from 'https://www.unpkg.com/dt_for_itables@2.5.8/dt_bundle.js';
 
-    document.querySelectorAll("#itables_45746c44_ec7a_46d9_85fe_79fa12575285:not(.dataTable)").forEach(table => {
+    document.querySelectorAll("#itables_a0941edc_227c_47bc_bddc_19d79739fe5f:not(.dataTable)").forEach(table => {
         if (!(table instanceof HTMLTableElement))
             return;
 
         let dt_args = {
           "classes": ["display", "nowrap", "compact"],
           "columnDefs": [{"render": "function (data, type, row, meta) { return type === 'sort' || type === 'type' ? data[1] : data[0]; }", "targets": [1, 2, 3, 4, 5]}],
-          "data_json": "[[0, [\"0.00\", 0.0], [\"0.619408\", 0.6194083094596863], [\"0.671390\", 0.6713904142379761], [\"0.000000\", 0.0], [\"0.000000\", 0.0]], [2, [\"0.10\", 0.1], [\"1.490051\", 1.4900507926940918], [\"1.722580\", 1.7225804328918457], [\"0.870642\", 0.8706424832344055], [\"1.051190\", 1.0511900186538696]], [5, [\"0.25\", 0.25], [\"5.258331\", 5.258330821990967], [\"5.847925\", 5.847924709320068], [\"4.638923\", 4.6389225125312805], [\"5.176534\", 5.176534295082092]], [10, [\"0.50\", 0.5], [\"16.821915\", 16.821914672851562], [\"17.758902\", 17.758901596069336], [\"16.202506\", 16.202506363391876], [\"17.087511\", 17.08751118183136]]]",
+          "data_json": "[[0, [\"0\", 0.0], [\"0.6194\", 0.6194083094596863], [\"0.6714\", 0.6713904142379761], [\"0\", 0.0], [\"0\", 0.0]], [2, [\"0.1\", 0.1], [\"1.49\", 1.4900507926940918], [\"1.723\", 1.7225804328918457], [\"0.8706\", 0.8706424832344055], [\"1.051\", 1.0511900186538696]], [5, [\"0.25\", 0.25], [\"5.258\", 5.258330821990967], [\"5.848\", 5.847924709320068], [\"4.639\", 4.6389225125312805], [\"5.177\", 5.176534295082092]], [10, [\"0.5\", 0.5], [\"16.82\", 16.821914672851562], [\"17.76\", 17.758901596069336], [\"16.2\", 16.202506363391876], [\"17.09\", 17.08751118183136]]]",
           "keys_to_be_evaluated": [["columnDefs", 0, "render"]],
           "layout": {"bottomEnd": null, "bottomStart": null, "topEnd": null, "topStart": null},
           "order": [],
@@ -1667,31 +1738,28 @@ width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/tutorial_11_extending_chemistry_and_scoring_15_1.png" src="../_images/tutorial_11_extending_chemistry_and_scoring_15_1.png" />
+<img alt="../_images/tutorial_11_extending_chemistry_and_scoring_27_1.png" src="../_images/tutorial_11_extending_chemistry_and_scoring_27_1.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">displaced_peptide</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">peptide</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">displaced_coords</span><span class="p">)</span>
-<span class="k">try</span><span class="p">:</span>
-    <span class="n">display</span><span class="p">(</span>
-        <span class="n">tmol</span><span class="o">.</span><span class="n">switchable_view</span><span class="p">(</span>
-            <span class="p">{</span>
-                <span class="s2">"ideal input"</span><span class="p">:</span> <span class="n">peptide</span><span class="p">,</span>
-                <span class="s2">"CD displaced by 0.50 Å"</span><span class="p">:</span> <span class="n">displaced_peptide</span><span class="p">,</span>
-            <span class="p">},</span>
-            <span class="n">notes</span><span class="o">=</span><span class="p">{</span>
-                <span class="s2">"ideal input"</span><span class="p">:</span> <span class="s2">"Subset-built AGSPA peptide"</span><span class="p">,</span>
-                <span class="s2">"CD displaced by 0.50 Å"</span><span class="p">:</span> <span class="s2">"Only the internal proline CD coordinate was translated"</span><span class="p">,</span>
-            <span class="p">},</span>
-            <span class="n">width</span><span class="o">=</span><span class="mi">720</span><span class="p">,</span>
-            <span class="n">height</span><span class="o">=</span><span class="mi">380</span><span class="p">,</span>
-        <span class="p">)</span>
+<span class="n">display</span><span class="p">(</span>
+    <span class="n">tmol</span><span class="o">.</span><span class="n">switchable_view</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">"ideal input"</span><span class="p">:</span> <span class="n">peptide</span><span class="p">,</span>
+            <span class="s2">"CD displaced by 0.50 Å"</span><span class="p">:</span> <span class="n">displaced_peptide</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="n">notes</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">"ideal input"</span><span class="p">:</span> <span class="s2">"Subset-built AGSPA peptide"</span><span class="p">,</span>
+            <span class="s2">"CD displaced by 0.50 Å"</span><span class="p">:</span> <span class="s2">"Only the internal proline CD coordinate was translated"</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="n">width</span><span class="o">=</span><span class="mi">720</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="mi">380</span><span class="p">,</span>
     <span class="p">)</span>
-<span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">"Interactive comparison unavailable:"</span><span class="p">,</span> <span class="n">exc</span><span class="p">)</span>
+<span class="p">)</span>
 <br/></pre></div>
 </div>
 </div>
@@ -1699,15 +1767,15 @@ width="64" viewBox="0 0 500 400" style="font-family: 'Droid Sans', sans-serif;">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area rendered_html docutils container">
-<div class="tmol-switchable-view" id="tmol-switch-0d46cf74541240b4b2e0de3a8ed03501" style="max-width:720px">
-  <label>Structure: <select id="tmol-switch-0d46cf74541240b4b2e0de3a8ed03501-select"><option value="0">ideal input</option><option value="1">CD displaced by 0.50 Å</option></select></label>
+<div class="tmol-switchable-view" id="tmol-switch-942cd2b47eff4523abe62387258708e3" style="max-width:720px">
+  <label>Structure: <select id="tmol-switch-942cd2b47eff4523abe62387258708e3-select"><option value="0">ideal input</option><option value="1">CD displaced by 0.50 Å</option></select></label>
   <div style="position:relative;width:100%;height:412px">
 
-<section id="tmol-switch-0d46cf74541240b4b2e0de3a8ed03501-panel-0" class="tmol-switch-panel"
+<section id="tmol-switch-942cd2b47eff4523abe62387258708e3-panel-0" class="tmol-switch-panel"
          style="position:absolute;inset:0;visibility:visible">
   <div class="tmol-viewer-note">Subset-built AGSPA peptide</div>
-  <div id="3dmolviewer_17917859619720533"  style="position: relative; width: 720px; height: 380px;">
-        <p id="3dmolwarning_17917859619720533" style="background-color:#ffcccc;color:black">3Dmol.js failed to load for some reason.  Please check your browser console for error messages.<br></p>
+  <div id="3dmolviewer_1791867360624821"  style="position: relative; width: 720px; height: 380px;">
+        <p id="3dmolwarning_1791867360624821" style="background-color:#ffcccc;color:black">3Dmol.js failed to load for some reason.  Please check your browser console for error messages.<br></p>
         </div>
 <script>
 
@@ -1738,30 +1806,30 @@ $3Dmolpromise = null;
   $3Dmolpromise = loadScriptAsync('https://cdn.jsdelivr.net/npm/3dmol@2.5.5/build/3Dmol-min.js');
 }
 
-var viewer_17917859619720533 = null;
-var warn = document.getElementById("3dmolwarning_17917859619720533");
+var viewer_1791867360624821 = null;
+var warn = document.getElementById("3dmolwarning_1791867360624821");
 if(warn) {
     warn.parentNode.removeChild(warn);
 }
 $3Dmolpromise.then(function() {
-viewer_17917859619720533 = $3Dmol.createViewer(document.getElementById("3dmolviewer_17917859619720533"),{backgroundColor:"white"});
-viewer_17917859619720533.zoomTo();
-    viewer_17917859619720533.addModel("MODEL 1\nATOM      1  N   ALA A   1       0.000  -0.000   0.000  1.00 30.00\nATOM      2  CA  ALA A   1       1.458   0.000   0.000  1.00 30.00\nATOM      3  C   ALA A   1       2.009   1.420   0.000  1.00 30.00\nATOM      4  O   ALA A   1       1.540   2.278  -0.748  1.00 30.00\nATOM      5  CB  ALA A   1       1.988  -0.773  -1.199  1.00 30.00\nATOM      6  HA  ALA A   1       1.797  -0.490   0.913  1.00 30.00\nATOM      7  HB1 ALA A   1       3.078  -0.764  -1.185  1.00 30.00\nATOM      8  HB2 ALA A   1       1.633  -1.802  -1.154  1.00 30.00\nATOM      9  HB3 ALA A   1       1.633  -0.307  -2.117  1.00 30.00\nATOM     10  H1  ALA A   1      -0.334  -0.943  -0.000  1.00 30.00\nATOM     11  H2  ALA A   1      -0.334   0.471   0.816  1.00 30.00\nATOM     12  H3  ALA A   1      -0.334   0.471  -0.816  1.00 30.00\nATOM     13  N   GLY A   2       3.007   1.662   0.843  1.00 30.00\nATOM     14  CA  GLY A   2       3.624   2.980   0.942  1.00 30.00\nATOM     15  C   GLY A   2       5.143   2.875   0.976  1.00 30.00\nATOM     16  O   GLY A   2       5.702   2.041   1.688  1.00 30.00\nATOM     17  H   GLY A   2       3.347   0.914   1.431  1.00 30.00\nATOM     18  HA2 GLY A   2       3.316   3.590   0.093  1.00 30.00\nATOM     19  HA3 GLY A   2       3.270   3.480   1.842  1.00 30.00\nATOM     20  N   SER A   3       5.807   3.727   0.202  1.00 30.00\nATOM     21  CA  SER A   3       7.264   3.732   0.142  1.00 30.00\nATOM     22  C   SER A   3       7.813   5.151   0.211  1.00 30.00\nATOM     23  O   SER A   3       7.313   6.054  -0.459  1.00 30.00\nATOM     24  CB  SER A   3       7.736   3.059  -1.132  1.00 30.00\nATOM     25  OG  SER A   3       6.650   2.618  -1.900  1.00 30.00\nATOM     26  H   SER A   3       5.289   4.388  -0.359  1.00 30.00\nATOM     27  HA  SER A   3       7.647   3.174   0.998  1.00 30.00\nATOM     28  HB2 SER A   3       8.336   3.760  -1.713  1.00 30.00\nATOM     29  HB3 SER A   3       8.375   2.213  -0.881  1.00 30.00\nATOM     30  HG  SER A   3       5.862   2.862  -1.408  1.00 30.00\nATOM     31  N   PRO A   4       8.845   5.342   1.027  1.00 30.00\nATOM     32  CA  PRO A   4       9.464   6.652   1.185  1.00 30.00\nATOM     33  C   PRO A   4      10.984   6.551   1.150  1.00 30.00\nATOM     34  O   PRO A   4      11.572   5.674   1.783  1.00 30.00\nATOM     35  CB  PRO A   4       8.960   7.108   2.558  1.00 30.00\nATOM     36  CG  PRO A   4       8.772   5.840   3.318  1.00 30.00\nATOM     37  CD  PRO A   4       8.330   4.843   2.280  1.00 30.00\nATOM     38  HA  PRO A   4       9.103   7.321   0.390  1.00 30.00\nATOM     39  HB2 PRO A   4       9.695   7.780   3.024  1.00 30.00\nATOM     40  HB3 PRO A   4       8.027   7.680   2.445  1.00 30.00\nATOM     41  HG2 PRO A   4       9.712   5.549   3.811  1.00 30.00\nATOM     42  HG3 PRO A   4       8.026   5.981   4.114  1.00 30.00\nATOM     43  HD2 PRO A   4       8.761   3.857   2.511  1.00 30.00\nATOM     44  HD3 PRO A   4       7.232   4.792   2.264  1.00 30.00\nATOM     45  N   ALA A   5      11.615   7.453   0.406  1.00 30.00\nATOM     46  CA  ALA A   5      13.068   7.467   0.287  1.00 30.00\nATOM     47  C   ALA A   5      13.618   8.881   0.425  1.00 30.00\nATOM     48  CB  ALA A   5      13.496   6.860  -1.041  1.00 30.00\nATOM     49  H   ALA A   5      11.074   8.147  -0.090  1.00 30.00\nATOM     50  HA  ALA A   5      13.480   6.867   1.099  1.00 30.00\nATOM     51  HB1 ALA A   5      14.584   6.878  -1.115  1.00 30.00\nATOM     52  HB2 ALA A   5      13.145   5.830  -1.101  1.00 30.00\nATOM     53  HB3 ALA A   5      13.068   7.437  -1.859  1.00 30.00\nATOM     54  O   ALA A   5      13.752   9.369   1.513  1.00 30.00\nATOM     55  OXT ALA A   5      13.919   9.506  -0.554  1.00 30.00\nTER\nENDMDL\n","pdb");
-    viewer_17917859619720533.setBackgroundColor("white");
-    viewer_17917859619720533.setStyle({},{"cartoon": {"color": "spectrum"}});
-    viewer_17917859619720533.addStyle({"not": {"hetflag": true}},{"stick": {"radius": 0.08, "opacity": 0.55}});
-    viewer_17917859619720533.setStyle({"hetflag": true},{"stick": {"colorscheme": "orangeCarbon", "radius": 0.22}});
-    viewer_17917859619720533.setHoverable({},true,"function(atom,viewer) {\n        if(!atom.label) {\n            atom.label = viewer.addLabel(\n                atom.chain + ':' + atom.resn + '(' + atom.resi + '):' +\n                atom.atom + '(idx' + atom.serial + ')',\n                {position: atom, backgroundColor:\"white\", fontColor:\"black\"}\n            );\n        }\n    }","function(atom,viewer) {\n        if(atom.label) {\n            viewer.removeLabel(atom.label);\n            delete atom.label;\n        }\n    }");
-    viewer_17917859619720533.zoomTo();
-viewer_17917859619720533.render();
+viewer_1791867360624821 = $3Dmol.createViewer(document.getElementById("3dmolviewer_1791867360624821"),{backgroundColor:"white"});
+viewer_1791867360624821.zoomTo();
+    viewer_1791867360624821.addModel("MODEL 1\nATOM      1  N   ALA A   1       0.000  -0.000   0.000  1.00 30.00\nATOM      2  CA  ALA A   1       1.458   0.000   0.000  1.00 30.00\nATOM      3  C   ALA A   1       2.009   1.420   0.000  1.00 30.00\nATOM      4  O   ALA A   1       1.540   2.278  -0.748  1.00 30.00\nATOM      5  CB  ALA A   1       1.988  -0.773  -1.199  1.00 30.00\nATOM      6  HA  ALA A   1       1.797  -0.490   0.913  1.00 30.00\nATOM      7  HB1 ALA A   1       3.078  -0.764  -1.185  1.00 30.00\nATOM      8  HB2 ALA A   1       1.633  -1.802  -1.154  1.00 30.00\nATOM      9  HB3 ALA A   1       1.633  -0.307  -2.117  1.00 30.00\nATOM     10  H1  ALA A   1      -0.334  -0.943  -0.000  1.00 30.00\nATOM     11  H2  ALA A   1      -0.334   0.471   0.816  1.00 30.00\nATOM     12  H3  ALA A   1      -0.334   0.471  -0.816  1.00 30.00\nATOM     13  N   GLY A   2       3.007   1.662   0.843  1.00 30.00\nATOM     14  CA  GLY A   2       3.624   2.980   0.942  1.00 30.00\nATOM     15  C   GLY A   2       5.143   2.875   0.976  1.00 30.00\nATOM     16  O   GLY A   2       5.702   2.041   1.688  1.00 30.00\nATOM     17  H   GLY A   2       3.347   0.914   1.431  1.00 30.00\nATOM     18  HA2 GLY A   2       3.316   3.590   0.093  1.00 30.00\nATOM     19  HA3 GLY A   2       3.270   3.480   1.842  1.00 30.00\nATOM     20  N   SER A   3       5.807   3.727   0.202  1.00 30.00\nATOM     21  CA  SER A   3       7.264   3.732   0.142  1.00 30.00\nATOM     22  C   SER A   3       7.813   5.151   0.211  1.00 30.00\nATOM     23  O   SER A   3       7.313   6.054  -0.459  1.00 30.00\nATOM     24  CB  SER A   3       7.736   3.059  -1.132  1.00 30.00\nATOM     25  OG  SER A   3       6.650   2.618  -1.900  1.00 30.00\nATOM     26  H   SER A   3       5.289   4.388  -0.359  1.00 30.00\nATOM     27  HA  SER A   3       7.647   3.174   0.998  1.00 30.00\nATOM     28  HB2 SER A   3       8.336   3.760  -1.713  1.00 30.00\nATOM     29  HB3 SER A   3       8.375   2.213  -0.881  1.00 30.00\nATOM     30  HG  SER A   3       5.862   2.862  -1.408  1.00 30.00\nATOM     31  N   PRO A   4       8.845   5.342   1.027  1.00 30.00\nATOM     32  CA  PRO A   4       9.464   6.652   1.185  1.00 30.00\nATOM     33  C   PRO A   4      10.984   6.551   1.150  1.00 30.00\nATOM     34  O   PRO A   4      11.572   5.674   1.783  1.00 30.00\nATOM     35  CB  PRO A   4       8.960   7.108   2.558  1.00 30.00\nATOM     36  CG  PRO A   4       8.772   5.840   3.318  1.00 30.00\nATOM     37  CD  PRO A   4       8.330   4.843   2.280  1.00 30.00\nATOM     38  HA  PRO A   4       9.103   7.321   0.390  1.00 30.00\nATOM     39  HB2 PRO A   4       9.695   7.780   3.024  1.00 30.00\nATOM     40  HB3 PRO A   4       8.027   7.680   2.445  1.00 30.00\nATOM     41  HG2 PRO A   4       9.712   5.549   3.811  1.00 30.00\nATOM     42  HG3 PRO A   4       8.026   5.981   4.114  1.00 30.00\nATOM     43  HD2 PRO A   4       8.761   3.857   2.511  1.00 30.00\nATOM     44  HD3 PRO A   4       7.232   4.792   2.264  1.00 30.00\nATOM     45  N   ALA A   5      11.615   7.453   0.406  1.00 30.00\nATOM     46  CA  ALA A   5      13.068   7.467   0.287  1.00 30.00\nATOM     47  C   ALA A   5      13.618   8.881   0.425  1.00 30.00\nATOM     48  CB  ALA A   5      13.496   6.860  -1.041  1.00 30.00\nATOM     49  H   ALA A   5      11.074   8.147  -0.090  1.00 30.00\nATOM     50  HA  ALA A   5      13.480   6.867   1.099  1.00 30.00\nATOM     51  HB1 ALA A   5      14.584   6.878  -1.115  1.00 30.00\nATOM     52  HB2 ALA A   5      13.145   5.830  -1.101  1.00 30.00\nATOM     53  HB3 ALA A   5      13.068   7.437  -1.859  1.00 30.00\nATOM     54  O   ALA A   5      13.752   9.369   1.513  1.00 30.00\nATOM     55  OXT ALA A   5      13.919   9.506  -0.554  1.00 30.00\nTER\nENDMDL\n","pdb");
+    viewer_1791867360624821.setBackgroundColor("white");
+    viewer_1791867360624821.setStyle({},{"cartoon": {"color": "spectrum"}});
+    viewer_1791867360624821.addStyle({"not": {"hetflag": true}},{"stick": {"radius": 0.08, "opacity": 0.55}});
+    viewer_1791867360624821.setStyle({"hetflag": true},{"stick": {"colorscheme": "orangeCarbon", "radius": 0.22}});
+    viewer_1791867360624821.setHoverable({},true,"function(atom,viewer) {\n        if(!atom.label) {\n            atom.label = viewer.addLabel(\n                atom.chain + ':' + atom.resn + '(' + atom.resi + '):' +\n                atom.atom + '(idx' + atom.serial + ')',\n                {position: atom, backgroundColor:\"white\", fontColor:\"black\"}\n            );\n        }\n    }","function(atom,viewer) {\n        if(atom.label) {\n            viewer.removeLabel(atom.label);\n            delete atom.label;\n        }\n    }");
+    viewer_1791867360624821.zoomTo();
+viewer_1791867360624821.render();
 });
 </script>
 </section>
-<section id="tmol-switch-0d46cf74541240b4b2e0de3a8ed03501-panel-1" class="tmol-switch-panel"
+<section id="tmol-switch-942cd2b47eff4523abe62387258708e3-panel-1" class="tmol-switch-panel"
          style="position:absolute;inset:0;visibility:hidden">
   <div class="tmol-viewer-note">Only the internal proline CD coordinate was translated</div>
-  <div id="3dmolviewer_1791785961976659"  style="position: relative; width: 720px; height: 380px;">
-        <p id="3dmolwarning_1791785961976659" style="background-color:#ffcccc;color:black">3Dmol.js failed to load for some reason.  Please check your browser console for error messages.<br></p>
+  <div id="3dmolviewer_17918673606311433"  style="position: relative; width: 720px; height: 380px;">
+        <p id="3dmolwarning_17918673606311433" style="background-color:#ffcccc;color:black">3Dmol.js failed to load for some reason.  Please check your browser console for error messages.<br></p>
         </div>
 <script>
 
@@ -1792,22 +1860,22 @@ $3Dmolpromise = null;
   $3Dmolpromise = loadScriptAsync('https://cdn.jsdelivr.net/npm/3dmol@2.5.5/build/3Dmol-min.js');
 }
 
-var viewer_1791785961976659 = null;
-var warn = document.getElementById("3dmolwarning_1791785961976659");
+var viewer_17918673606311433 = null;
+var warn = document.getElementById("3dmolwarning_17918673606311433");
 if(warn) {
     warn.parentNode.removeChild(warn);
 }
 $3Dmolpromise.then(function() {
-viewer_1791785961976659 = $3Dmol.createViewer(document.getElementById("3dmolviewer_1791785961976659"),{backgroundColor:"white"});
-viewer_1791785961976659.zoomTo();
-    viewer_1791785961976659.addModel("MODEL 1\nATOM      1  N   ALA A   1       0.000  -0.000   0.000  1.00 30.00\nATOM      2  CA  ALA A   1       1.458   0.000   0.000  1.00 30.00\nATOM      3  C   ALA A   1       2.009   1.420   0.000  1.00 30.00\nATOM      4  O   ALA A   1       1.540   2.278  -0.748  1.00 30.00\nATOM      5  CB  ALA A   1       1.988  -0.773  -1.199  1.00 30.00\nATOM      6  HA  ALA A   1       1.797  -0.490   0.913  1.00 30.00\nATOM      7  HB1 ALA A   1       3.078  -0.764  -1.185  1.00 30.00\nATOM      8  HB2 ALA A   1       1.633  -1.802  -1.154  1.00 30.00\nATOM      9  HB3 ALA A   1       1.633  -0.307  -2.117  1.00 30.00\nATOM     10  H1  ALA A   1      -0.334  -0.943  -0.000  1.00 30.00\nATOM     11  H2  ALA A   1      -0.334   0.471   0.816  1.00 30.00\nATOM     12  H3  ALA A   1      -0.334   0.471  -0.816  1.00 30.00\nATOM     13  N   GLY A   2       3.007   1.662   0.843  1.00 30.00\nATOM     14  CA  GLY A   2       3.624   2.980   0.942  1.00 30.00\nATOM     15  C   GLY A   2       5.143   2.875   0.976  1.00 30.00\nATOM     16  O   GLY A   2       5.702   2.041   1.688  1.00 30.00\nATOM     17  H   GLY A   2       3.347   0.914   1.431  1.00 30.00\nATOM     18  HA2 GLY A   2       3.316   3.590   0.093  1.00 30.00\nATOM     19  HA3 GLY A   2       3.270   3.480   1.842  1.00 30.00\nATOM     20  N   SER A   3       5.807   3.727   0.202  1.00 30.00\nATOM     21  CA  SER A   3       7.264   3.732   0.142  1.00 30.00\nATOM     22  C   SER A   3       7.813   5.151   0.211  1.00 30.00\nATOM     23  O   SER A   3       7.313   6.054  -0.459  1.00 30.00\nATOM     24  CB  SER A   3       7.736   3.059  -1.132  1.00 30.00\nATOM     25  OG  SER A   3       6.650   2.618  -1.900  1.00 30.00\nATOM     26  H   SER A   3       5.289   4.388  -0.359  1.00 30.00\nATOM     27  HA  SER A   3       7.647   3.174   0.998  1.00 30.00\nATOM     28  HB2 SER A   3       8.336   3.760  -1.713  1.00 30.00\nATOM     29  HB3 SER A   3       8.375   2.213  -0.881  1.00 30.00\nATOM     30  HG  SER A   3       5.862   2.862  -1.408  1.00 30.00\nATOM     31  N   PRO A   4       8.845   5.342   1.027  1.00 30.00\nATOM     32  CA  PRO A   4       9.464   6.652   1.185  1.00 30.00\nATOM     33  C   PRO A   4      10.984   6.551   1.150  1.00 30.00\nATOM     34  O   PRO A   4      11.572   5.674   1.783  1.00 30.00\nATOM     35  CB  PRO A   4       8.960   7.108   2.558  1.00 30.00\nATOM     36  CG  PRO A   4       8.772   5.840   3.318  1.00 30.00\nATOM     37  CD  PRO A   4       8.830   4.843   2.280  1.00 30.00\nATOM     38  HA  PRO A   4       9.103   7.321   0.390  1.00 30.00\nATOM     39  HB2 PRO A   4       9.695   7.780   3.024  1.00 30.00\nATOM     40  HB3 PRO A   4       8.027   7.680   2.445  1.00 30.00\nATOM     41  HG2 PRO A   4       9.712   5.549   3.811  1.00 30.00\nATOM     42  HG3 PRO A   4       8.026   5.981   4.114  1.00 30.00\nATOM     43  HD2 PRO A   4       8.761   3.857   2.511  1.00 30.00\nATOM     44  HD3 PRO A   4       7.232   4.792   2.264  1.00 30.00\nATOM     45  N   ALA A   5      11.615   7.453   0.406  1.00 30.00\nATOM     46  CA  ALA A   5      13.068   7.467   0.287  1.00 30.00\nATOM     47  C   ALA A   5      13.618   8.881   0.425  1.00 30.00\nATOM     48  CB  ALA A   5      13.496   6.860  -1.041  1.00 30.00\nATOM     49  H   ALA A   5      11.074   8.147  -0.090  1.00 30.00\nATOM     50  HA  ALA A   5      13.480   6.867   1.099  1.00 30.00\nATOM     51  HB1 ALA A   5      14.584   6.878  -1.115  1.00 30.00\nATOM     52  HB2 ALA A   5      13.145   5.830  -1.101  1.00 30.00\nATOM     53  HB3 ALA A   5      13.068   7.437  -1.859  1.00 30.00\nATOM     54  O   ALA A   5      13.752   9.369   1.513  1.00 30.00\nATOM     55  OXT ALA A   5      13.919   9.506  -0.554  1.00 30.00\nTER\nENDMDL\n","pdb");
-    viewer_1791785961976659.setBackgroundColor("white");
-    viewer_1791785961976659.setStyle({},{"cartoon": {"color": "spectrum"}});
-    viewer_1791785961976659.addStyle({"not": {"hetflag": true}},{"stick": {"radius": 0.08, "opacity": 0.55}});
-    viewer_1791785961976659.setStyle({"hetflag": true},{"stick": {"colorscheme": "orangeCarbon", "radius": 0.22}});
-    viewer_1791785961976659.setHoverable({},true,"function(atom,viewer) {\n        if(!atom.label) {\n            atom.label = viewer.addLabel(\n                atom.chain + ':' + atom.resn + '(' + atom.resi + '):' +\n                atom.atom + '(idx' + atom.serial + ')',\n                {position: atom, backgroundColor:\"white\", fontColor:\"black\"}\n            );\n        }\n    }","function(atom,viewer) {\n        if(atom.label) {\n            viewer.removeLabel(atom.label);\n            delete atom.label;\n        }\n    }");
-    viewer_1791785961976659.zoomTo();
-viewer_1791785961976659.render();
+viewer_17918673606311433 = $3Dmol.createViewer(document.getElementById("3dmolviewer_17918673606311433"),{backgroundColor:"white"});
+viewer_17918673606311433.zoomTo();
+    viewer_17918673606311433.addModel("MODEL 1\nATOM      1  N   ALA A   1       0.000  -0.000   0.000  1.00 30.00\nATOM      2  CA  ALA A   1       1.458   0.000   0.000  1.00 30.00\nATOM      3  C   ALA A   1       2.009   1.420   0.000  1.00 30.00\nATOM      4  O   ALA A   1       1.540   2.278  -0.748  1.00 30.00\nATOM      5  CB  ALA A   1       1.988  -0.773  -1.199  1.00 30.00\nATOM      6  HA  ALA A   1       1.797  -0.490   0.913  1.00 30.00\nATOM      7  HB1 ALA A   1       3.078  -0.764  -1.185  1.00 30.00\nATOM      8  HB2 ALA A   1       1.633  -1.802  -1.154  1.00 30.00\nATOM      9  HB3 ALA A   1       1.633  -0.307  -2.117  1.00 30.00\nATOM     10  H1  ALA A   1      -0.334  -0.943  -0.000  1.00 30.00\nATOM     11  H2  ALA A   1      -0.334   0.471   0.816  1.00 30.00\nATOM     12  H3  ALA A   1      -0.334   0.471  -0.816  1.00 30.00\nATOM     13  N   GLY A   2       3.007   1.662   0.843  1.00 30.00\nATOM     14  CA  GLY A   2       3.624   2.980   0.942  1.00 30.00\nATOM     15  C   GLY A   2       5.143   2.875   0.976  1.00 30.00\nATOM     16  O   GLY A   2       5.702   2.041   1.688  1.00 30.00\nATOM     17  H   GLY A   2       3.347   0.914   1.431  1.00 30.00\nATOM     18  HA2 GLY A   2       3.316   3.590   0.093  1.00 30.00\nATOM     19  HA3 GLY A   2       3.270   3.480   1.842  1.00 30.00\nATOM     20  N   SER A   3       5.807   3.727   0.202  1.00 30.00\nATOM     21  CA  SER A   3       7.264   3.732   0.142  1.00 30.00\nATOM     22  C   SER A   3       7.813   5.151   0.211  1.00 30.00\nATOM     23  O   SER A   3       7.313   6.054  -0.459  1.00 30.00\nATOM     24  CB  SER A   3       7.736   3.059  -1.132  1.00 30.00\nATOM     25  OG  SER A   3       6.650   2.618  -1.900  1.00 30.00\nATOM     26  H   SER A   3       5.289   4.388  -0.359  1.00 30.00\nATOM     27  HA  SER A   3       7.647   3.174   0.998  1.00 30.00\nATOM     28  HB2 SER A   3       8.336   3.760  -1.713  1.00 30.00\nATOM     29  HB3 SER A   3       8.375   2.213  -0.881  1.00 30.00\nATOM     30  HG  SER A   3       5.862   2.862  -1.408  1.00 30.00\nATOM     31  N   PRO A   4       8.845   5.342   1.027  1.00 30.00\nATOM     32  CA  PRO A   4       9.464   6.652   1.185  1.00 30.00\nATOM     33  C   PRO A   4      10.984   6.551   1.150  1.00 30.00\nATOM     34  O   PRO A   4      11.572   5.674   1.783  1.00 30.00\nATOM     35  CB  PRO A   4       8.960   7.108   2.558  1.00 30.00\nATOM     36  CG  PRO A   4       8.772   5.840   3.318  1.00 30.00\nATOM     37  CD  PRO A   4       8.830   4.843   2.280  1.00 30.00\nATOM     38  HA  PRO A   4       9.103   7.321   0.390  1.00 30.00\nATOM     39  HB2 PRO A   4       9.695   7.780   3.024  1.00 30.00\nATOM     40  HB3 PRO A   4       8.027   7.680   2.445  1.00 30.00\nATOM     41  HG2 PRO A   4       9.712   5.549   3.811  1.00 30.00\nATOM     42  HG3 PRO A   4       8.026   5.981   4.114  1.00 30.00\nATOM     43  HD2 PRO A   4       8.761   3.857   2.511  1.00 30.00\nATOM     44  HD3 PRO A   4       7.232   4.792   2.264  1.00 30.00\nATOM     45  N   ALA A   5      11.615   7.453   0.406  1.00 30.00\nATOM     46  CA  ALA A   5      13.068   7.467   0.287  1.00 30.00\nATOM     47  C   ALA A   5      13.618   8.881   0.425  1.00 30.00\nATOM     48  CB  ALA A   5      13.496   6.860  -1.041  1.00 30.00\nATOM     49  H   ALA A   5      11.074   8.147  -0.090  1.00 30.00\nATOM     50  HA  ALA A   5      13.480   6.867   1.099  1.00 30.00\nATOM     51  HB1 ALA A   5      14.584   6.878  -1.115  1.00 30.00\nATOM     52  HB2 ALA A   5      13.145   5.830  -1.101  1.00 30.00\nATOM     53  HB3 ALA A   5      13.068   7.437  -1.859  1.00 30.00\nATOM     54  O   ALA A   5      13.752   9.369   1.513  1.00 30.00\nATOM     55  OXT ALA A   5      13.919   9.506  -0.554  1.00 30.00\nTER\nENDMDL\n","pdb");
+    viewer_17918673606311433.setBackgroundColor("white");
+    viewer_17918673606311433.setStyle({},{"cartoon": {"color": "spectrum"}});
+    viewer_17918673606311433.addStyle({"not": {"hetflag": true}},{"stick": {"radius": 0.08, "opacity": 0.55}});
+    viewer_17918673606311433.setStyle({"hetflag": true},{"stick": {"colorscheme": "orangeCarbon", "radius": 0.22}});
+    viewer_17918673606311433.setHoverable({},true,"function(atom,viewer) {\n        if(!atom.label) {\n            atom.label = viewer.addLabel(\n                atom.chain + ':' + atom.resn + '(' + atom.resi + '):' +\n                atom.atom + '(idx' + atom.serial + ')',\n                {position: atom, backgroundColor:\"white\", fontColor:\"black\"}\n            );\n        }\n    }","function(atom,viewer) {\n        if(atom.label) {\n            viewer.removeLabel(atom.label);\n            delete atom.label;\n        }\n    }");
+    viewer_17918673606311433.zoomTo();
+viewer_17918673606311433.render();
 });
 </script>
 </section>
@@ -1815,8 +1883,8 @@ viewer_1791785961976659.render();
 </div>
 <script>
 (() => {
-  const root = document.getElementById("tmol-switch-0d46cf74541240b4b2e0de3a8ed03501");
-  const select = document.getElementById("tmol-switch-0d46cf74541240b4b2e0de3a8ed03501-select");
+  const root = document.getElementById("tmol-switch-942cd2b47eff4523abe62387258708e3");
+  const select = document.getElementById("tmol-switch-942cd2b47eff4523abe62387258708e3-select");
   const panels = root.querySelectorAll('.tmol-switch-panel');
   select.addEventListener('change', () => {
     panels.forEach((panel, index) => {
@@ -1827,36 +1895,25 @@ viewer_1791785961976659.render();
 })();
 </script></div>
 </div>
-<p>The modified curve rises more steeply because only the selected spring constant changed. The switcher confirms that the coordinate experiment is local. The absolute curve includes all bond-length deviations in the peptide, so the difference between curves—not either absolute value—is the cleanest diagnostic of this parameter change.</p>
 </section>
-<section id="Validation">
-<h2>Validation<a class="headerlink" href="#Validation" title="Link to this heading">#</a></h2>
-<p>Before shipping a custom database:</p>
-<ol class="arabic simple">
-<li><p>Keep the source database immutable and construct a derived object.</p></li>
-<li><p>Build the smallest pose that exercises the modified chemistry.</p></li>
-<li><p>Compare changed and unchanged parameters explicitly.</p></li>
-<li><p>Test values and coordinate gradients on CPU and CUDA.</p></li>
-<li><p>Validate complete scientific workflows separately from local unit tests.</p></li>
-<li><p>Record parameter provenance.</p></li>
-</ol>
 </section>
-<section id="Exercises">
-<h2>Exercises<a class="headerlink" href="#Exercises" title="Link to this heading">#</a></h2>
+<section id="Read-the-parameter-experiment">
+<h2>Read the parameter experiment<a class="headerlink" href="#Read-the-parameter-experiment" title="Link to this heading">#</a></h2>
+<p>We built <code class="docutils literal notranslate"><span class="pre">AGSPA</span></code> from a restricted database and changed one parameter without editing the original. The difference between the curves isolates the changed parameter. Each absolute curve also includes the other bond-length penalties. Use the viewer to confirm that only CD was displaced.</p>
+<p>Before using a custom database in a scientific workflow, test its values and gradients on the relevant devices and record the source of its parameters.</p>
+</section>
+<section id="Try-it">
+<h2>Try it<a class="headerlink" href="#Try-it" title="Link to this heading">#</a></h2>
 <ol class="arabic simple">
-<li><p>Add VAL to the stable subset and verify that <code class="docutils literal notranslate"><span class="pre">AGSPV</span></code> builds without changing the existing packed-type order.</p></li>
-<li><p>Change the focused score function to contain <code class="docutils literal notranslate"><span class="pre">cart_angles</span></code> instead of <code class="docutils literal notranslate"><span class="pre">cart_lengths</span></code>; perturb an angle-defining coordinate and plot the response.</p></li>
-<li><p>Repeat the N–CD scan with gradients enabled and compare <code class="docutils literal notranslate"><span class="pre">dE/dx</span></code> between the two parameterizations.</p></li>
+<li><p>Add VAL to the subset and build <code class="docutils literal notranslate"><span class="pre">AGSPV</span></code>.</p></li>
+<li><p>Change an angle parameter and design a coordinate perturbation that tests it.</p></li>
+<li><p>Enable gradients during the CD scan and compare the two derivatives.</p></li>
 </ol>
 </section>
 <section id="References">
 <h2>References<a class="headerlink" href="#References" title="Link to this heading">#</a></h2>
 <ul class="simple">
-<li><p><a class="reference internal" href="01_working_with_tmol.html"><span class="doc">Tutorial 01 — Working with TMol</span></a></p></li>
-<li><p><a class="reference internal" href="03_scoring_and_analysis.html"><span class="doc">Tutorial 03 — Scoring and Analysis</span></a></p></li>
-<li><p><a class="reference internal" href="07_ligand_and_params.html"><span class="doc">Tutorial 07 — Ligands and Parameter Files</span></a></p></li>
 <li><p><a class="reference internal" href="../api/database.html"><span class="doc">Database API</span></a></p></li>
-<li><p><a class="reference internal" href="../api/pose.html"><span class="doc">Pose API</span></a></p></li>
 <li><p><a class="reference internal" href="../api/score.html"><span class="doc">Score API</span></a></p></li>
 </ul>
 </section>
@@ -1912,13 +1969,18 @@ viewer_1791785961976659.render();
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Setup">Setup</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Chemistry,-coordinates,-and-scores">Chemistry, coordinates, and scores</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Inspect-the-default-refined-chemistry">Inspect the default refined chemistry</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Build-a-chemistry-subset">Build a chemistry subset</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Separate-score-weights-from-score-parameters">Separate score weights from score parameters</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Change-one-immutable-Cartesian-bonded-parameter">Change one immutable Cartesian bonded parameter</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Validation">Validation</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Exercises">Exercises</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Follow-chemistry-from-the-database-to-a-pose">Follow chemistry from the database to a pose</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Count-the-available-residue-types">Count the available residue types</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Keep-only-the-types-needed-for-AGSPA">Keep only the types needed for AGSPA</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Isolate-the-bond-length-term">Isolate the bond-length term</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Double-the-proline-N–CD-spring-constant">Double the proline N–CD spring constant</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Build-the-two-scorers">Build the two scorers</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Displace-proline-CD">Displace proline CD</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Compare-relative-score-curves">Compare relative score curves</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Read-the-parameter-experiment">Read the parameter experiment</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Try-it">Try it</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#References">References</a></li>
 </ul>
   </nav></div>
