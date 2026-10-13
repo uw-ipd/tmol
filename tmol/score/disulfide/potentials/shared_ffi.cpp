@@ -347,9 +347,8 @@ ffi::Error recompute_vjp(
     Result gradient,
     Result workspace) {
   if (auto error = check_abi(); error.failure()) return error;
-  if (auto error =
-          check_recompute_buffers(
-              coords, pairs, params, cotangents, gradient, workspace);
+  if (auto error = check_recompute_buffers(
+          coords, pairs, params, cotangents, gradient, workspace);
       error.failure()) {
     return error;
   }
