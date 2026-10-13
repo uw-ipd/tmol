@@ -14,6 +14,33 @@ backend matching your PyTorch installation:
 GPU installations also support CPU execution. You do not need a separate TMol
 wheel for each PyTorch minor version or CUDA minor version.
 
+## Planned framework-neutral install contract
+
+Published TMol 0.1.64 keeps the PyTorch installation behavior documented
+above; it will not be republished with different dependencies. A future release
+will make the base runtime tensor-framework-neutral and require an explicit
+frontend choice:
+
+```bash
+python -m pip install tmol
+python -m pip install "tmol[torch]"
+python -m pip install "tmol[jax]"
+python -m pip install "tmol[torch,jax]"
+```
+
+Bare `tmol` will own shared chemistry and host-side preparation without
+installing either tensor framework. Existing PyTorch users will use the
+`torch` extra; the public PyTorch API remains under `tmol`. The `jax` extra
+will select JAX directly; the backend must ultimately be exposed under `tmol`,
+alongside the preserved PyTorch API. That namespace and adapter migration is
+not implemented yet.
+
+The repository metadata stages this runtime dependency contract while retaining
+the historical 0.1.64 version marker. This is not yet a working JAX install or
+clean-install proof: the namespace migration, adapters, build requirements, and
+native wheel contents must also become framework-neutral before these commands
+can describe a release artifact.
+
 ## Requirements
 
 - Python 3.11–3.14 and PyTorch 2.11 or newer.
@@ -170,7 +197,7 @@ Some PyTorch builds pin NVIDIA cuSPARSELt wheels whose internal platform tag
 is `manylinux2014_sbsa` instead of `aarch64`. Installation succeeds, but
 `python -m pip check` reports that cuSPARSELt is unsupported. If you encounter
 this error, use the metadata repair supplied with the
-[TMol release](https://github.com/uw-ipd/tmol/releases):
+[TMol release](https://github.com/RosettaCommons/tmol/releases):
 
 ```bash
 curl -fLO https://github.com/uw-ipd/tmol/releases/download/v0.1.64/repair_cuda13_arm64_metadata.py

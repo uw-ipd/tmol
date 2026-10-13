@@ -6,7 +6,7 @@ For build requirements and platform support, see {doc}`installation
 ## Local setup
 
 ```bash
-git clone https://github.com/uw-ipd/tmol.git
+git clone https://github.com/RosettaCommons/tmol.git
 cd tmol
 python -m pip install "torch>=2.14" "scikit-build-core>=0.10" "cmake>=3.24,<4" "pybind11>=2.12" ninja packaging
 python -m pip install --no-build-isolation -e ".[dev]"
@@ -130,11 +130,68 @@ apptainer run --nv --bind "$(pwd):/tmol_host" tmol-dev.sif
 
 ## CI
 
-GitHub Actions runs linting, the Linux x86-64, Linux aarch64, and Apple Silicon
-CPU suites, and CPU documentation builds on hosted runners. CUDA tests,
-benchmarks, and the CUDA-only tutorial smoke tests use the self-hosted DIGS
-runner. PR docs builds upload rendered HTML artifacts; same-repository PRs also
-publish previews under the Pages site.
+GitHub Actions runs linting and the Linux x86-64, Linux aarch64, and Apple Silicon
+CPU suites automatically on pushes to `main` and pull requests. Documentation
+also builds on hosted CPU runners. Routine CI has six CPU/check jobs plus the
+docs build and same-repository preview deployment. Coverage uploads are a step
+in the Linux x86-64 job; a coverage-service outage does not fail tested code.
+Closing a pull request does not start an empty CI run.
+
+The **Validate release wheels** workflow is manual. It builds all 28 wheels once
+per Python/platform/backend, then tests the same artifacts against the supported
+Torch runtimes. The release workflow runs the complete matrix again on an
+immutable version tag before publishing. Publication-condition regressions run
+as fast unit tests in the packaging job; there is no simulated release workflow.
+The separate CUDA ARM64 dependency-repair probe is manual; real ARM64 wheel
+installation checks remain in the full candidate/release matrix.
+
+Maintainers with write, maintain, or admin access can dispatch **GPU CI** from
+`main`, selecting a pull request number or a branch, tag, or commit. It resolves
+an immutable commit, checks the initiating and rerunning users' current access,
+and reports a separate `GPU CI` status on that commit. Rerun all jobs when
+retrying so authorization runs again. CUDA tests use the existing Slurm and
+Apptainer configuration; wheel and release validation use the same access gate.
+
+### Enable the GPU runner
+
+An organization owner (or delegated runner administrator) must configure the
+runner group before registering a runner for this public repository:
+
+1. Open **RosettaCommons → Settings → Actions → Runner groups** and create
+   `tmol-gpu`. Under **Repository access**, select only `RosettaCommons/tmol`
+   and allow public repositories.
+2. Under **Workflow access**, select **Selected workflows** and allow exactly:
+
+   ```text
+   RosettaCommons/tmol/.github/workflows/gpu-ci.yml@refs/heads/main
+   RosettaCommons/tmol/.github/workflows/_test_gpu_wheel.yml@refs/heads/main
+   ```
+
+   If selected-workflow restrictions are unavailable, keep the runner offline;
+   repository access alone does not prevent a PR from proposing another job.
+3. Under the organization's **Actions → Runners**, choose **New self-hosted
+   runner → Linux x64**. Install its verified archive in a separate directory
+   on the existing Slurm/Apptainer CI host. Never reuse another registration's
+   credentials or work directory. Register using the short-lived token shown
+   there (the command prompts for it):
+
+   ```bash
+   ./config.sh --url https://github.com/RosettaCommons \
+     --runnergroup tmol-gpu --name tmol-gpu-slurm --labels gpu --work _work
+   ```
+
+4. Start the runner with `./run.sh` in a persistent session, or have the host
+   administrator install/start its service with `svc.sh`. The account must
+   have Slurm access and read access to the Apptainer image configured in
+   `gpu-ci.yml` and `_test_gpu_wheel.yml`. Confirm the runner is **Idle** in
+   `tmol-gpu` and that the selected-workflow restriction is saved.
+5. In the repository's **Actions → GPU CI → Run workflow**, select `main` and
+   enter a reviewed PR number or ref. Leave both blank to test this `main`
+   commit. A hosted job checks maintainer access before any GPU job starts.
+
+The group restriction is the enforcement boundary; workflow checks alone cannot
+stop a pull request from adding another self-hosted job. See GitHub's
+[runner-group documentation](https://docs.github.com/en/enterprise-cloud@latest/actions/how-tos/manage-runners/self-hosted-runners/manage-access).
 
 ## Native interface
 

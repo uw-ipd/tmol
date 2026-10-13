@@ -2,13 +2,13 @@
 name = "tmol-ops-cu13"
 version = "0.1.64"
 description = "TMol native operators for CUDA 13"
-readme = {text = "CUDA 13 native operators for TMol. Install `tmol[cu13]` with a CUDA 13-enabled PyTorch build. The Python API and data are provided by `tmol`.", content-type = "text/markdown"}
+readme = {text = "CUDA 13 native operators for TMol. Install with the matching TMol Torch and/or JAX extra. The Python API and data are provided by `tmol`.", content-type = "text/markdown"}
 requires-python = ">=3.11"
-license = {text = "Apache-2.0"}
-dependencies = ["tmol==0.1.64", "torch>=2.11"]
+license = {text = "BSD-3-Clause"}
+dependencies = ["tmol==0.1.64"]
 
 [build-system]
-requires = ["scikit-build-core>=0.10", "torch>=2.14", "pybind11>=2.12", "ninja"]
+requires = ["scikit-build-core>=0.10", "torch>=2.14", "jax>=0.11.2", "pybind11>=2.12", "ninja"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]

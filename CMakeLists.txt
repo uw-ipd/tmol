@@ -179,6 +179,9 @@ set(_TMOL_PYTHON_INCLUDE_DIRS "${Python_INCLUDE_DIRS}")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+option(TMOL_BUILD_TESTS "Build test C++/CUDA extensions" OFF)
+set(TMOL_BUILD_CUDA "${TMOL_HAS_CUDA}")
+add_subdirectory(tmol/score/disulfide/potentials/shared)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   # LTO can resolve STL calls to Torch's unversioned template exports, even
   # with libstdc++ first. Keep those calls bound to the system C++ runtime.
@@ -469,6 +472,174 @@ else()
 endif()
 install(TARGETS _C DESTINATION "${_TMOL_NATIVE_PACKAGE}")
 
+# Keep the shared disulfide adapters separate from canonical _C: the base wheel
+# owns their common ABI, while backend imports and operator registration remain
+# explicit and lazy.
+if(NOT TMOL_OPS_CUDA)
+  if(APPLE)
+    set(_TMOL_SHARED_ADAPTER_RPATH "@loader_path")
+  else()
+    set(_TMOL_SHARED_ADAPTER_RPATH "$ORIGIN")
+  endif()
+  # The base distribution is the single owner of both dormant adapters. They
+  # remain separate from canonical _C and are loaded only by an explicit
+  # backend call, so framework-absent imports do not load either adapter.
+  pybind11_add_module(tmol_disulfide_shared_torch MODULE
+    tmol/score/disulfide/potentials/shared_torch.ops.cpp
+  )
+  target_compile_definitions(tmol_disulfide_shared_torch PRIVATE
+    TORCH_EXTENSION_NAME=_shared_disulfide_torch
+    TMOL_SHARED_DISULFIDE_TEST_MODULE
+  )
+  tmol_set_cpp_flags(tmol_disulfide_shared_torch)
+  target_include_directories(tmol_disulfide_shared_torch BEFORE PRIVATE
+    ${pybind11_INCLUDE_DIRS})
+  target_link_libraries(tmol_disulfide_shared_torch PRIVATE
+    tmol_disulfide_shared_cpu ${CMAKE_DL_LIBS}
+  )
+  set_target_properties(tmol_disulfide_shared_torch PROPERTIES
+    OUTPUT_NAME "_shared_disulfide_torch"
+    BUILD_RPATH "$<TARGET_FILE_DIR:tmol_disulfide_shared_cpu>"
+    INSTALL_RPATH "${_TMOL_SHARED_ADAPTER_RPATH}"
+  )
+  install(TARGETS tmol_disulfide_shared_torch LIBRARY DESTINATION tmol)
+
+  set(TMOL_JAX_INCLUDE_DIR "" CACHE PATH "JAX FFI include directory")
+  if(NOT TMOL_JAX_INCLUDE_DIR)
+    execute_process(
+      COMMAND ${Python_EXECUTABLE} -c "import jax; print(jax.ffi.include_dir())"
+      OUTPUT_VARIABLE TMOL_JAX_INCLUDE_DIR
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      COMMAND_ERROR_IS_FATAL ANY
+    )
+  endif()
+  add_library(tmol_disulfide_shared_jax MODULE
+    tmol/score/disulfide/potentials/shared_ffi.cpp
+  )
+  target_include_directories(tmol_disulfide_shared_jax PRIVATE
+    ${TMOL_JAX_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}
+  )
+  target_link_libraries(tmol_disulfide_shared_jax PRIVATE
+    tmol_disulfide_shared_cpu
+  )
+  set_target_properties(tmol_disulfide_shared_jax PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "_shared_disulfide_ffi"
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN YES
+    BUILD_RPATH "$<TARGET_FILE_DIR:tmol_disulfide_shared_cpu>"
+    INSTALL_RPATH "${_TMOL_SHARED_ADAPTER_RPATH}"
+  )
+  install(TARGETS tmol_disulfide_shared_jax LIBRARY DESTINATION tmol)
+endif()
+
+# CUDA companions own the stream-aware JAX adapter beside the CUDA common
+# library. It uses JAX's public FFI headers only at build time and has no
+# runtime linkage to either tensor framework.
+if(TMOL_OPS_CUDA)
+  set(TMOL_JAX_INCLUDE_DIR "" CACHE PATH "JAX FFI include directory")
+  if(NOT TMOL_JAX_INCLUDE_DIR)
+    execute_process(
+      COMMAND ${Python_EXECUTABLE} -c "import jax; print(jax.ffi.include_dir())"
+      OUTPUT_VARIABLE TMOL_JAX_INCLUDE_DIR
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      COMMAND_ERROR_IS_FATAL ANY
+    )
+  endif()
+  add_library(tmol_disulfide_shared_jax_cuda MODULE
+    tmol/score/disulfide/potentials/shared_cuda_ffi.cu
+  )
+  target_include_directories(tmol_disulfide_shared_jax_cuda PRIVATE
+    ${TMOL_JAX_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}
+  )
+  target_link_libraries(tmol_disulfide_shared_jax_cuda PRIVATE
+    tmol_disulfide_shared_cuda
+  )
+  set_target_properties(tmol_disulfide_shared_jax_cuda PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "_shared_disulfide_cuda_ffi"
+    CUDA_STANDARD 17
+    CUDA_STANDARD_REQUIRED ON
+    CXX_VISIBILITY_PRESET hidden
+    CUDA_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN YES
+    BUILD_RPATH "$<TARGET_FILE_DIR:tmol_disulfide_shared_cuda>"
+    INSTALL_RPATH "$ORIGIN"
+  )
+  install(
+    TARGETS tmol_disulfide_shared_jax_cuda
+    LIBRARY DESTINATION "${_TMOL_NATIVE_PACKAGE}"
+  )
+endif()
+if(TMOL_BUILD_TESTS AND NOT TMOL_OPS_CUDA)
+  enable_testing()
+  pybind11_add_module(tmol_disulfide_shared_torch_test MODULE
+    tmol/score/disulfide/potentials/shared_torch.ops.cpp
+  )
+  target_compile_definitions(tmol_disulfide_shared_torch_test PRIVATE
+    TORCH_EXTENSION_NAME=_shared_disulfide_test
+    TMOL_SHARED_DISULFIDE_TEST_MODULE
+  )
+  tmol_set_cpp_flags(tmol_disulfide_shared_torch_test)
+  # Stable Torch headers vendor a deliberately disabled pybind11 tree.  Keep
+  # the independently discovered pybind11 headers first for this test module.
+  target_include_directories(tmol_disulfide_shared_torch_test BEFORE PRIVATE
+    ${pybind11_INCLUDE_DIRS})
+  target_link_libraries(tmol_disulfide_shared_torch_test PRIVATE
+    tmol_disulfide_shared_cpu ${CMAKE_DL_LIBS}
+  )
+  set_target_properties(tmol_disulfide_shared_torch_test PROPERTIES
+    OUTPUT_NAME "_shared_disulfide_test"
+    BUILD_RPATH "$<TARGET_FILE_DIR:tmol_disulfide_shared_cpu>"
+  )
+  add_test(
+    NAME disulfide_shared_torch_adapter
+    COMMAND ${Python_EXECUTABLE}
+      ${CMAKE_SOURCE_DIR}/tmol/tests/score/disulfide/test_shared_torch_adapter.py
+      $<TARGET_FILE:tmol_disulfide_shared_torch_test>
+      $<TARGET_FILE:tmol_disulfide_shared_cpu>
+  )
+endif()
+
+# The XLA FFI consumer is a dormant correctness target.  Its serial CPU
+# executor is not thread-parity or performance evidence, and the target must
+# remain outside installed _C until neutral native-library ownership lands.
+set(TMOL_JAX_INCLUDE_DIR "" CACHE PATH "JAX FFI include directory for tests")
+set(TMOL_JAX_TEST_PYTHON "" CACHE FILEPATH "Python with JAX for FFI tests")
+if(TMOL_BUILD_TESTS AND NOT TMOL_OPS_CUDA
+   AND TMOL_JAX_INCLUDE_DIR AND TMOL_JAX_TEST_PYTHON)
+  enable_testing()
+  add_library(tmol_disulfide_shared_jax_test MODULE
+    tmol/score/disulfide/potentials/shared_ffi.cpp
+  )
+  target_include_directories(tmol_disulfide_shared_jax_test PRIVATE
+    ${TMOL_JAX_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}
+  )
+  target_link_libraries(tmol_disulfide_shared_jax_test PRIVATE
+    tmol_disulfide_shared_cpu
+  )
+  set_target_properties(tmol_disulfide_shared_jax_test PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "_shared_disulfide_ffi_test"
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN YES
+    BUILD_RPATH "$<TARGET_FILE_DIR:tmol_disulfide_shared_cpu>"
+  )
+  add_test(
+    NAME disulfide_shared_jax_adapter
+    COMMAND ${TMOL_JAX_TEST_PYTHON}
+      ${CMAKE_SOURCE_DIR}/tmol/tests/score/disulfide/test_shared_jax_adapter.py
+      $<TARGET_FILE:tmol_disulfide_shared_jax_test>
+      $<TARGET_FILE:tmol_disulfide_shared_cpu>
+  )
+  set_tests_properties(disulfide_shared_jax_adapter PROPERTIES
+    ENVIRONMENT "PYTHONPATH=${CMAKE_SOURCE_DIR};JAX_PLATFORMS=cpu;JAX_ENABLE_X64=1;PYTHONDONTWRITEBYTECODE=1"
+  )
+endif()
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 2. Production pybind11 modules
@@ -494,8 +665,6 @@ endif()
 # ═══════════════════════════════════════════════════════════════════════════════
 # 3. Test extensions (optional, behind TMOL_BUILD_TESTS)
 # ═══════════════════════════════════════════════════════════════════════════════
-
-option(TMOL_BUILD_TESTS "Build test C++/CUDA extensions" OFF)
 
 if(TMOL_BUILD_TESTS)
 

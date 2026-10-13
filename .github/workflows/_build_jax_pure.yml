@@ -1,0 +1,53 @@
+name: ~Build pure JAX artifacts
+
+on:
+  workflow_call:
+    inputs:
+      checkout_ref:
+        type: string
+        default: ""
+
+jobs:
+  build:
+    name: build Torch-free JAX artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.checkout_ref }}
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Export canonical data and build wheel and sdist
+        run: |
+          python -m venv .jax-export
+          .jax-export/bin/python -m pip install --upgrade pip
+          .jax-export/bin/python -m pip install \
+            --index-url https://download.pytorch.org/whl/cpu torch
+          .jax-export/bin/python -m pip install \
+            astor attrs biotite==1.6.0 cattrs decorator numpy packaging \
+            'pandas>=2.2,<4' 'pint>=0.23,<1' pyyaml 'toolz>=0.12,<2' \
+            typing_inspect build
+          PYTHONPATH="$PWD" .jax-export/bin/python scripts/build_jax.py \
+            --outdir jax-dist
+          .jax-export/bin/python scripts/check_jax_artifacts.py \
+            jax-dist/tmol_jax-*.whl jax-dist/tmol_jax-*.tar.gz
+      - name: Rebuild standalone sdist without Torch
+        run: |
+          python -m venv .jax-sdist
+          .jax-sdist/bin/python -m pip install --upgrade pip
+          .jax-sdist/bin/python -m pip wheel --no-deps \
+            --wheel-dir jax-rebuilt jax-dist/tmol_jax-*.tar.gz
+          .jax-sdist/bin/python -I - <<'PY'
+          from importlib.util import find_spec
+
+          assert find_spec("torch") is None
+          PY
+          .jax-export/bin/python scripts/check_jax_artifacts.py \
+            jax-rebuilt/tmol_jax-*.whl jax-dist/tmol_jax-*.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tmol-jax-pure
+          path: jax-dist/tmol_jax-*

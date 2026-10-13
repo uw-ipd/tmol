@@ -1,0 +1,160 @@
+# Restrict the GPU runner group to this workflow at refs/heads/main.
+# YAML checks alone cannot restrict workflows proposed by public pull requests.
+name: GPU CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: "Pull request number (review the head before dispatching)"
+        type: string
+        default: ""
+      ref:
+        description: "Branch, tag or SHA; leave both inputs blank for this main commit"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: gpu-ci-${{ inputs.pr || inputs.ref || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    uses: ./.github/workflows/_authorize_gpu.yml
+    with:
+      pr: ${{ inputs.pr }}
+      ref: ${{ inputs.ref }}
+
+  jax-artifacts:
+    needs: authorize
+    uses: ./.github/workflows/_build_jax_pure.yml
+    with:
+      checkout_ref: ${{ needs.authorize.outputs.sha }}
+
+  gpu:
+    name: pytest (cuda)
+    if: needs.authorize.outputs.attempt == github.run_attempt
+    runs-on: [self-hosted, gpu]
+    timeout-minutes: 720
+    needs: authorize
+    env:
+      SIF: /home/bench/git_ci_apptainer/tmol.sif
+      SLURM_PARTITION: gpu-train
+      SLURM_GRES: gpu:1
+      SLURM_CPUS_PER_TASK: 16
+      SLURM_MEM: 128G
+      SLURM_TIME: 06:00:00
+      # Exclude nodes with known uncorrectable ECC faults until repaired.
+      SLURM_EXCLUDE: g2543,g2547,g2548
+      SRUN_GPU_MAX_ATTEMPTS: 5
+      SRUN_GPU_RETRY_SLEEP: 10
+      # Compile for the allocated GPU; preserve the existing bounded Slurm lane.
+      TMOL_CI_CUDA_ARCHITECTURES: native
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.authorize.outputs.sha }}
+          persist-credentials: false
+          submodules: recursive
+
+      - run: .github/ci/restore_source_timestamps.sh
+      - run: .github/ci/setup_ci_venv.sh
+
+      - name: build and test
+        env:
+          GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.gpu_alloc_started
+        run: |
+          rm -f "$GPU_ALLOC_SENTINEL"
+          .github/ci/srun_gpu_retry.sh <<SCRIPT
+          .github/ci/exec_gpu_apptainer.sh .github/ci/run_ci_gpu_work.sh
+          SCRIPT
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-cuda
+          path: |
+            testing.cuda.junit.xml
+            coverage.cuda.xml
+          if-no-files-found: ignore
+
+      - uses: test-summary/action@v2
+        if: always()
+        with:
+          paths: testing.cuda.junit.xml
+
+  jax-gpu:
+    name: pytest (JAX-only native CUDA)
+    if: needs.authorize.outputs.attempt == github.run_attempt
+    needs: [authorize, jax-artifacts]
+    runs-on: [self-hosted, gpu]
+    timeout-minutes: 180
+    env:
+      SIF: /home/bench/git_ci_apptainer/tmol.sif
+      SLURM_PARTITION: gpu-train
+      SLURM_GRES: gpu:1
+      SLURM_CPUS_PER_TASK: 16
+      SLURM_MEM: 96G
+      SLURM_TIME: 00:30:00
+      SLURM_EXCLUDE: g2543,g2547,g2548
+      SRUN_GPU_MAX_ATTEMPTS: 5
+      SRUN_GPU_RETRY_SLEEP: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.authorize.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: tmol-jax-pure
+          path: jax-dist
+      - run: .github/ci/restore_source_timestamps.sh
+      - run: .github/ci/setup_ci_venv.sh
+      - name: Build optional adapter and test installed JAX-only wheels
+        env:
+          GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.jax_gpu_alloc_started
+        run: |
+          rm -f "$GPU_ALLOC_SENTINEL"
+          .github/ci/srun_gpu_retry.sh <<'SCRIPT'
+          .github/ci/exec_gpu_apptainer.sh .github/ci/run_jax_gpu_work.sh
+          SCRIPT
+
+  result:
+    if: always()
+    needs: [authorize, gpu, jax-gpu]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      statuses: write
+    steps:
+      - name: Report the exact tested commit
+        uses: actions/github-script@v7
+        env:
+          AUTHORIZATION: ${{ needs.authorize.result }}
+          AUTHORIZED_ATTEMPT: ${{ needs.authorize.outputs.attempt }}
+          GPU_RESULT: ${{ needs.gpu.result }}
+          JAX_GPU_RESULT: ${{ needs.jax-gpu.result }}
+          TESTED_SHA: ${{ needs.authorize.outputs.sha }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        with:
+          script: |
+            if (process.env.AUTHORIZATION !== 'success' ||
+                process.env.AUTHORIZED_ATTEMPT !== process.env.RUN_ATTEMPT) {
+              core.setFailed('Fresh maintainer authorization required; rerun all jobs or dispatch again.');
+              return;
+            }
+            const passed = process.env.GPU_RESULT === 'success' &&
+              process.env.JAX_GPU_RESULT === 'success';
+            await github.rest.repos.createCommitStatus({
+              ...context.repo,
+              sha: process.env.TESTED_SHA,
+              state: passed ? 'success' : 'failure',
+              context: 'GPU CI',
+              description: passed ? 'CUDA Torch and JAX tests passed' : 'CUDA Torch or JAX tests failed, were cancelled, or did not run',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
+            if (!passed) core.setFailed('Authorized GPU validation did not succeed.');

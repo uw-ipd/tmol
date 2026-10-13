@@ -12,7 +12,13 @@ import tomllib
 import zipfile
 
 import pytest
-from release_artifacts import validate_wheel, write_index
+from release_artifacts import (
+    REQUIRED_NEUTRAL_MIGRATION_EVIDENCE,
+    prepare,
+    require_neutral_migration_ready,
+    validate_wheel,
+    write_index,
+)
 from staging_index import serve
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,25 +31,41 @@ def wheel(
     name="tmol",
     tag="py3-none-any",
     newline="\n",
+    root_torch_marker='; extra == "torch"',
+    root_jax_marker='; extra == "jax"',
+    duplicate_torch_marker=None,
+    duplicate_jax_marker=None,
 ):
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / f"{name}-{version}-{tag}.whl"
     info = f"{name}-{version}.dist-info"
+    metadata = ["Metadata-Version: 2.1", f"Name: {name}", f"Version: {version}"]
+    if name == "tmol":
+        metadata.extend(
+            [
+                "Provides-Extra: torch",
+                "Provides-Extra: jax",
+                f"Requires-Dist: torch{torch}{root_torch_marker}",
+                f"Requires-Dist: jax>=0.11.2{root_jax_marker}",
+            ]
+        )
+        if duplicate_torch_marker is not None:
+            metadata.append(f"Requires-Dist: torch{torch}{duplicate_torch_marker}")
+        if duplicate_jax_marker is not None:
+            metadata.append(f"Requires-Dist: jax>=0.11.2{duplicate_jax_marker}")
+    elif name.startswith("tmol_ops"):
+        metadata.extend(
+            [
+                f"Requires-Dist: torch{torch}",
+                f"Requires-Dist: tmol=={version}",
+            ]
+        )
     contents = {
         f"{name}/__init__.py": b"# fixture package\n",
         # Binary bytes stand in for the extension; repackaging must preserve them.
         f"{name}/_C.so": bytes(range(256)),
         f"{name}-{version}.data/data/share/tmol/params.bin": b"shared data",
-        f"{info}/METADATA": (
-            f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n"
-            + (f"Requires-Dist: torch{torch}\n" if name.startswith("tmol") else "")
-            + (
-                f"Requires-Dist: tmol=={version}\n"
-                if name.startswith("tmol_ops")
-                else ""
-            )
-            + "\nFixture\n"
-        )
+        f"{info}/METADATA": ("\n".join(metadata) + "\n\nFixture\n")
         .replace("\n", newline)
         .encode(),
         f"{info}/WHEEL": f"Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: {tag}\n".encode(),
@@ -113,6 +135,40 @@ def test_validates_identity_constraints_and_record(tmp_path, name):
 def test_rejects_unstable_torch_constraints(tmp_path, torch):
     with pytest.raises(ValueError, match="stable PyTorch ABI"):
         validate_wheel(wheel(tmp_path, torch=torch))
+
+
+def test_rejects_unconditional_root_tensor_dependencies(tmp_path):
+    with pytest.raises(ValueError, match="torch extra"):
+        validate_wheel(wheel(tmp_path, root_torch_marker=""))
+    with pytest.raises(ValueError, match="jax extra"):
+        validate_wheel(wheel(tmp_path, root_jax_marker=""))
+
+
+@pytest.mark.parametrize(
+    "duplicate",
+    [
+        {"duplicate_torch_marker": '; extra == "torch"'},
+        {"duplicate_torch_marker": ""},
+        {"duplicate_jax_marker": '; extra == "jax"'},
+        {"duplicate_jax_marker": ""},
+    ],
+)
+def test_rejects_duplicate_root_tensor_requirements(tmp_path, duplicate):
+    with pytest.raises(ValueError, match="exactly one Torch and one JAX"):
+        validate_wheel(wheel(tmp_path, **duplicate))
+
+
+def test_neutral_migration_publication_gate_is_fail_closed():
+    with pytest.raises(ValueError, match="not publication-ready") as error:
+        require_neutral_migration_ready()
+    for item in REQUIRED_NEUTRAL_MIGRATION_EVIDENCE:
+        assert item in str(error.value)
+    require_neutral_migration_ready(REQUIRED_NEUTRAL_MIGRATION_EVIDENCE)
+
+
+def test_publication_preparation_uses_fail_closed_gate(tmp_path):
+    with pytest.raises(ValueError, match="not publication-ready"):
+        prepare(tmp_path / "wheels", tmp_path / "tmol-9.9.9.tar.gz", tmp_path / "out")
 
 
 def test_pip_resolves_packages_and_verifies_hashes(tmp_path):

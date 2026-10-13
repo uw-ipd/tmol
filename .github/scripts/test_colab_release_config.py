@@ -34,7 +34,7 @@ def test_colab_uses_a_released_version_and_current_tutorials():
     module = _load_colab_setup()
     source = (ROOT / "docs/tutorial/colab_setup.py").read_text(encoding="utf-8")
 
-    assert module.TUTORIAL_REF == "master"
+    assert module.TUTORIAL_REF == "main"
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     # Colab needs published wheels; the source version can be unreleased.
     release = module.TMOL_RELEASE
@@ -46,14 +46,15 @@ def test_colab_uses_a_released_version_and_current_tutorials():
         == "native"
     )
     assert "install_tutorial_source" not in source
-    assert "git+https://github.com/uw-ipd/tmol.git" not in source
+    assert "git+https://github.com/RosettaCommons/tmol.git" not in source
     assert "CMAKE_CUDA_ARCHITECTURES" not in source
     assert "_tmol_tutorial_visualize.py" not in source
     for notebook_path in sorted((ROOT / "docs/tutorial").glob("[0-9][0-9]_*.ipynb")):
         notebook = notebook_path.read_text(encoding="utf-8")
         assert "install_tutorial_source" not in notebook
         assert (
-            f"/uw-ipd/tmol/blob/master/docs/tutorial/{notebook_path.name}" in notebook
+            f"/RosettaCommons/tmol/blob/main/docs/tutorial/{notebook_path.name}"
+            in notebook
         )
         assert "kdidi/sphinx-docs-refactor" not in notebook
 

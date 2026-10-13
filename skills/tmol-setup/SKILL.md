@@ -6,7 +6,7 @@ description: >
   and import or compiler failures. Do not use for scoring or modeling once an
   installation already works.
 allowed-tools: Bash, Read, Write, AskUserQuestion
-license: Apache-2.0
+license: BSD-3-Clause
 ---
 
 # TMol setup
@@ -36,7 +36,7 @@ constructing a versioned wheel URL.
 ## Source builds
 
 ```bash
-git clone https://github.com/uw-ipd/tmol.git
+git clone https://github.com/RosettaCommons/tmol.git
 cd tmol
 TMOL_DISABLE_WHEEL_FETCH=1 python -m pip install -e ".[dev]"
 ```

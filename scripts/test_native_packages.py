@@ -1,25 +1,46 @@
-"""The optional backends share a release and leave Torch minors unconstrained."""
+"""Native packages preserve versioned, non-overlapping backend ownership."""
 
 import tomllib
 from pathlib import Path
 from packaging.requirements import Requirement
+from test_package_install import install_requirement
+
+
+def requirement(project, name):
+    return next(
+        Requirement(value)
+        for value in project["dependencies"]
+        if Requirement(value).name == name
+    )
 
 
 def test_native_package_metadata():
     root = Path(__file__).resolve().parents[1]
     base = tomllib.loads((root / "pyproject.toml").read_text())["project"]
+    version = base["version"]
+    base_names = {Requirement(value).name for value in base["dependencies"]}
+
+    assert base_names.isdisjoint({"torch", "jax", "tmol-jax"})
+    assert base["optional-dependencies"]["torch"] == ["torch>=2.11"]
+    assert base["optional-dependencies"]["jax"] == ["jax>=0.11.2"]
+
     for major in (12, 13):
         project = tomllib.loads(
             (root / f"packages/cu{major}/pyproject.toml").read_text()
         )["project"]
+        dependency_names = {
+            Requirement(value).name for value in project["dependencies"]
+        }
         assert project["name"] == f"tmol-ops-cu{major}"
-        assert project["version"] == base["version"]
-        assert f"tmol=={base['version']}" in project["dependencies"]
+        assert project["version"] == version
+        assert dependency_names == {"tmol"}
+        assert str(requirement(project, "tmol").specifier) == f"=={version}"
         assert base["optional-dependencies"][f"cu{major}"] == [
-            f"{project['name']}=={base['version']}"
+            f"{project['name']}=={version}"
         ]
-        for dependencies in (base["dependencies"], project["dependencies"]):
-            torch = next(
-                Requirement(r) for r in dependencies if Requirement(r).name == "torch"
-            )
-            assert str(torch.specifier) == ">=2.11"
+
+
+def test_default_pypi_torch_smoke_requests_torch_extra():
+    assert install_requirement("tmol", "9.9.9", True) == "tmol[torch]==9.9.9"
+    assert install_requirement("tmol", "9.9.9", False) == "tmol==9.9.9"
+    assert install_requirement("tmol-ops-cu13", "9.9.9", True) == "tmol-ops-cu13==9.9.9"

@@ -26,6 +26,11 @@ def check(*command, cwd, env=None):
     subprocess.run(list(map(str, command)), cwd=cwd, env=env, check=True)
 
 
+def install_requirement(distribution, version, default_torch):
+    extras = "[torch]" if distribution == "tmol" and default_torch else ""
+    return f"{distribution}{extras}=={version}"
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     source = parser.add_mutually_exclusive_group(required=True)
@@ -35,6 +40,11 @@ def main():
         "--base-wheel",
         type=Path,
         help="Matching tmol wheel for a CUDA operator candidate",
+    )
+    parser.add_argument(
+        "--jax-wheel",
+        type=Path,
+        help="Also install and smoke the matching pure JAX frontend wheel",
     )
     parser.add_argument("--torch-version", required=True)
     parser.add_argument("--torch-index", default="https://pypi.org/simple")
@@ -86,6 +96,7 @@ def main():
                 "ninja",
                 "packaging",
                 "pybind11>=2.12",
+                "jax>=0.11.2",
                 cwd=work,
             )
         with serve(work) as url:
@@ -109,7 +120,7 @@ def main():
                 *build,
                 "--report",
                 work / "install.json",
-                f"{distribution}=={version}",
+                install_requirement(distribution, version, args.default_torch),
                 cwd=work,
                 env=dict(os.environ, CMAKE_BUILD_PARALLEL_LEVEL="2"),
             )
@@ -139,6 +150,25 @@ def main():
             f'import tmol; assert tmol.has_cuda() == {distribution != "tmol"}',
             cwd=work,
         )
+        if args.jax_wheel:
+            jax_name, jax_version, _, _ = parse_wheel_filename(args.jax_wheel.name)
+            assert jax_name == "tmol-jax"
+            assert jax_version == version
+            check(*pip, "install", args.jax_wheel.resolve(), cwd=work)
+            check(*pip, "check", cwd=work)
+            check(
+                python,
+                "-I",
+                ROOT / "scripts/smoke_installed_jax.py",
+                "--pdb",
+                ROOT / "tmol/tests/data/pdb/1ubq.pdb",
+                "--version",
+                jax_version,
+                "--device",
+                "cpu",
+                "--also-torch",
+                cwd=work,
+            )
         check(
             python,
             "-I",

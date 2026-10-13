@@ -10,6 +10,12 @@ CPU_PYTEST_WORKERS="${CPU_PYTEST_WORKERS:-4}"
 export OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS:-1}"
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
 
+python -I - <<'PY'
+from importlib.util import find_spec
+
+assert find_spec("jax") is None, "Torch-only CI unexpectedly contains JAX"
+PY
+
 CUDA_VISIBLE_DEVICES="" COVERAGE_FILE="${GITHUB_WORKSPACE}/.coverage.cpu" \
   pytest -p no:rerunfailures -ra --durations=25 \
   -n "${CPU_PYTEST_WORKERS}" --dist=worksteal \

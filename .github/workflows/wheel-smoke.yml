@@ -1,21 +1,12 @@
-name: Wheel smoke test
+name: Validate release wheels
 
 permissions:
   contents: read
   actions: read
+  pull-requests: read
 
 on:
   workflow_dispatch:
-  pull_request:
-    branches: [master]
-    paths:
-      - CMakeLists.txt
-      - pyproject.toml
-      - packages/**
-      - tmol/**
-      - scripts/**
-      - .github/workflows/**
-      - .github/ci/**
 
 concurrency:
   group: wheel-smoke-${{ github.ref }}
@@ -32,14 +23,15 @@ jobs:
       - uses: actions/checkout@v5
       - id: matrix
         run: |
-          args=()
-          if [ "${{ github.event_name }}" = pull_request ]; then args+=(--smoke); fi
           for matrix in linux macos test; do
-            echo "$matrix=$(python scripts/release_matrix.py "$matrix" "${args[@]}")" >> "$GITHUB_OUTPUT"
+            echo "$matrix=$(python scripts/release_matrix.py "$matrix")" >> "$GITHUB_OUTPUT"
           done
 
   test-sdist:
     uses: ./.github/workflows/_test_sdist.yml
+
+  jax-artifacts:
+    uses: ./.github/workflows/_build_jax_pure.yml
 
   build:
     name: ${{ matrix.label }}
@@ -93,7 +85,7 @@ jobs:
       portability: ${{ matrix.portability }}
 
   test-default-pypi:
-    needs: build
+    needs: [build, jax-artifacts]
     uses: ./.github/workflows/_test_wheel.yml
     with:
       runs-on: ubuntu-22.04
@@ -103,7 +95,11 @@ jobs:
       arch: x86_64
       torch-package-version: "2.14.1"
       default-torch: true
+      test-jax: true
 
+  # Maintainers dispatch this complete candidate matrix before a release.
   test-gpu:
-    needs: build
+    needs: [build, jax-artifacts]
     uses: ./.github/workflows/_test_gpu_wheel.yml
+    with:
+      test-jax: true

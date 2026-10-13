@@ -17,6 +17,7 @@ The tutorials contain runnable notebooks for more detailed workflows.
 
    Installation <installation>
    Quickstart <quickstart>
+   JAX frontend (experimental) <jax>
    Glossary <terminology>
    Tutorials <examples_index>
    API reference <api_reference>

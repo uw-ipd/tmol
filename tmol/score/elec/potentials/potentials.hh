@@ -11,7 +11,7 @@
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/common/tuple_operators.hh>
 
-#include "params.hh"
+#include "scalar_params.hh"
 
 #undef B0
 

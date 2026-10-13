@@ -1,3 +1,5 @@
+# Restrict the GPU runner group to this workflow at refs/heads/main.
+# YAML checks alone cannot restrict workflows proposed by public pull requests.
 name: ~Score with a release wheel on a GPU
 
 on:
@@ -6,9 +8,28 @@ on:
       candidate-run-id:
         type: string
         default: ""
+      allow-release:
+        type: boolean
+        default: false
+      test-jax:
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
 
 jobs:
+  authorize:
+    uses: ./.github/workflows/_authorize_gpu.yml
+    with:
+      allow-release: ${{ inputs.allow-release }}
+
   install:
+    needs: authorize
+    # Rerun all jobs (or dispatch anew) so a fresh hosted permission check runs.
+    if: needs.authorize.outputs.attempt == github.run_attempt
     runs-on: [self-hosted, gpu]
     timeout-minutes: 180
     env:
@@ -23,6 +44,9 @@ jobs:
       SRUN_GPU_RETRY_SLEEP: 10
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.authorize.outputs.sha }}
+          persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
           pattern: wheel-cp312-cu*-x86_64
@@ -36,11 +60,49 @@ jobs:
           path: base-wheel
           run-id: ${{ inputs.candidate-run-id || github.run_id }}
           github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        if: inputs.test-jax
+        with:
+          name: tmol-jax-pure
+          path: jax-wheel
+          run-id: ${{ inputs.candidate-run-id || github.run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        if: inputs.test-jax
+        with:
+          name: jax-native-cu12-x86_64
+          path: jax-native/cu12
+          run-id: ${{ inputs.candidate-run-id || github.run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        if: inputs.test-jax
+        with:
+          name: jax-native-cu13-x86_64
+          path: jax-native/cu13
+          run-id: ${{ inputs.candidate-run-id || github.run_id }}
+          github-token: ${{ github.token }}
       - name: Install from variant index and score on CUDA
         env:
           GPU_ALLOC_SENTINEL: ${{ github.workspace }}/.release_gpu_started
+          TEST_JAX: ${{ inputs.test-jax }}
         run: |
           rm -f "$GPU_ALLOC_SENTINEL"
           .github/ci/srun_gpu_retry.sh <<'SCRIPT'
           .github/ci/exec_gpu_apptainer.sh .github/ci/test_release_gpu.sh
           SCRIPT
+
+  result:
+    if: always()
+    needs: [authorize, install]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require authorized GPU execution
+        env:
+          AUTHORIZATION: ${{ needs.authorize.result }}
+          GPU_RESULT: ${{ needs.install.result }}
+          AUTHORIZED_ATTEMPT: ${{ needs.authorize.outputs.attempt }}
+        run: |
+          test "$AUTHORIZATION" = success
+          test "$AUTHORIZED_ATTEMPT" = "$GITHUB_RUN_ATTEMPT"
+          test "$GPU_RESULT" = success

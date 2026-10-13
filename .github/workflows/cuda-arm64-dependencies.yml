@@ -1,14 +1,6 @@
 name: CUDA ARM64 dependencies
 
 on:
-  pull_request:
-    paths:
-      - scripts/repair_cuda13_arm64_metadata.py
-      - scripts/test_package_install.py
-      - scripts/release_matrix.py
-      - .github/workflows/cuda-arm64-dependencies.yml
-      - .github/workflows/publish.yml
-      - .github/workflows/_test_wheel.yml
   workflow_dispatch:
 
 jobs:

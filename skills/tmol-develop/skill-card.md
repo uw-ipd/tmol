@@ -8,7 +8,7 @@ quality, and a reviewable integration handoff.
 
 ## Owner and license
 
-TMol maintainers. Apache-2.0; see the repository `LICENSE`.
+TMol maintainers. BSD-3-Clause; see the repository `LICENSE`.
 
 ## Requirements
 

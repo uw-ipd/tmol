@@ -1,0 +1,1002 @@
+"""Residue patching aligned with current TMol chemistry semantics."""
+
+from typing import Tuple
+from tmol_jax.chemical.restypes import _refined_from_raw
+from collections import defaultdict
+
+from tmol_jax.database.chemical import (
+    Element,
+    AtomType,
+    RawResidueType,
+    VariantType,
+    ChemicalDatabase,
+    Icoor,
+    Name3Alias,
+)
+
+from tmol_jax.extern.pysmiles import read_smiles
+
+import attr
+import copy
+
+import networkx as nx
+import networkx.algorithms.isomorphism as iso
+
+
+# build a graph from a restype
+class RestypeGraphBuilder:
+    def __init__(self, atomtypedict):
+        self.atomtypedict = atomtypedict
+
+    def from_raw_res(self, r):
+        mol = nx.Graph()
+        for x in r.atoms:
+            mol.add_node(x.name, element=self.atomtypedict[x.atom_type])
+        for x in r.bonds:
+            mol.add_edge(x[0], x[1])
+        for x in r.connections:
+            mol.add_node(x.name, element="{" + x.name + "}")
+            mol.add_edge(x.name, x.atom)
+        return mol
+
+
+# remove all atom references from a raw restype
+# delete atoms, bonds, torsions, connections, and mainchain entries involving atom
+def remove_atom(res, atom):
+    res.atoms = tuple(x for x in res.atoms if x.name != atom)
+    res.bonds = tuple(b for b in res.bonds if b[0] != atom and b[1] != atom)
+    res.io_bond_orders = tuple(
+        b for b in res.io_bond_orders if b[0] != atom and b[1] != atom
+    )
+    res.torsions = tuple(
+        x for x in res.torsions if atom not in [x.a.atom, x.b.atom, x.c.atom, x.d.atom]
+    )
+    res.torsions = tuple(
+        x
+        for x in res.torsions
+        if atom not in [x.a.connection, x.b.connection, x.c.connection, x.d.connection]
+    )
+    res.connections = tuple(x for x in res.connections if x.name != atom)
+    # a chi sample names a torsion; one whose torsion has just gone with the
+    #    atom would name nothing
+    remaining = {x.name for x in res.torsions}
+    res.chi_samples = tuple(x for x in res.chi_samples if x.chi_dihedral in remaining)
+
+    # atom_downstream_of_conn indexes every mainchain atom, so a patch that drops
+    # one (e.g. the DNA 5' terminus dropping P) must drop it here too
+    mainchain = res.properties.polymer.mainchain_atoms
+    if mainchain is not None and atom in mainchain:
+        res.properties = attr.evolve(
+            res.properties,
+            polymer=attr.evolve(
+                res.properties.polymer,
+                mainchain_atoms=tuple(x for x in mainchain if x != atom),
+            ),
+        )
+    return res
+
+
+def modify_atom(res, atom):
+    res.atoms = tuple(x if x.name != atom.name else atom for x in res.atoms)
+    return res
+
+
+# update icoors corresponding to a patch definition
+def update_icoor(res, patch, atoms_remove, namemap):
+    new_icoor = []
+    for target_i in patch:
+        if target_i.source:
+            source_name_i = namemap[target_i.source]
+            source_idx = [i for i, x in enumerate(res) if x.name == source_name_i]
+            source_i = res[source_idx[0]]
+        else:
+            source_i = Icoor(
+                name=None,
+                phi=None,
+                theta=None,
+                d=None,
+                parent=None,
+                grand_parent=None,
+                great_grand_parent=None,
+            )
+
+        # a field the patch omits is inherited from its source; only an
+        #    absent field is omitted, since 0.0 is a legitimate angle
+        def inherited(field):
+            value = getattr(target_i, field)
+            return getattr(source_i, field) if value is None else value
+
+        def mapped(field):
+            name = inherited(field)
+            return namemap[name] if name in namemap else name
+
+        icoor_i = Icoor(
+            name=namemap.get(target_i.name, target_i.name),
+            phi=inherited("phi"),
+            theta=inherited("theta"),
+            d=inherited("d"),
+            parent=mapped("parent"),
+            grand_parent=mapped("grand_parent"),
+            great_grand_parent=mapped("great_grand_parent"),
+        )
+
+        new_icoor.append(icoor_i)
+
+    # create final icoor list, ordered so every icoor follows the ones that
+    # frame it -- build_coords_from_icoors reads parents in order. Neither
+    # position alone is right: a redefined icoor left where it sat can precede
+    # the atoms the patch added for it to hang on, and appended it can follow
+    # atoms that hang on it. Sort, keeping the given order among independents.
+    removed = {namemap[i] for i in atoms_remove}
+    replacements = {i.name: i for i in new_icoor}
+    merged = [replacements.pop(x.name, x) for x in res if x.name not in removed]
+    merged.extend(replacements.values())
+    return tuple(_icoors_in_dependency_order(merged))
+
+
+def _icoors_in_dependency_order(icoors):
+    """Order icoors so each follows the ones it is framed on.
+
+    A stable topological sort: an icoor is emitted once its parent, grandparent
+    and great-grandparent have been, and ties keep the incoming order. A frame
+    atom no icoor defines -- a connection name -- imposes no constraint.
+
+    The root is exempt from its whole frame, not just from naming itself. A
+    residue's root names the next two atoms as its grandparent and
+    great-grandparent -- SER's is ``N: N, CA, C`` -- and those name it back, so
+    honouring the root's frame makes a three-cycle that stalls the sort on its
+    first pass and returns the input untouched. That is inertness dressed as
+    conservatism: the caller would silently keep whatever order it had.
+    """
+    pending = list(icoors)
+    defined = {icoor.name for icoor in pending}
+    emitted, ordered = set(), []
+    while pending:
+        deferred = []
+        for icoor in pending:
+            frame = (icoor.parent, icoor.grand_parent, icoor.great_grand_parent)
+            if icoor.parent == icoor.name:
+                # the root: it is built from nothing, so nothing constrains it
+                frame = ()
+            if all(
+                name not in defined or name in emitted or name == icoor.name
+                for name in frame
+            ):
+                ordered.append(icoor)
+                emitted.add(icoor.name)
+            else:
+                deferred.append(icoor)
+        if len(deferred) == len(pending):
+            # A cycle among the frames. Leave the remainder as given rather than
+            # invent an order; assert_no_orphaned_icoors owns that report.
+            ordered.extend(deferred)
+            break
+        pending = deferred
+    return ordered
+
+
+def assert_no_orphaned_icoors(icoors, removed, res_name):
+    """Every surviving atom must still be framed on atoms that survive.
+
+    A patch removes atoms without looking at what was placed against them, so
+    one that takes away an atom another is built from leaves a residue that
+    cannot be built at all. Which atom a residue roots its tree at is what
+    makes a patch safe -- a nucleotide roots at its 5' oxygen so that losing
+    the phosphate before it orphans nothing -- and that is a property of the
+    residue and the patch, not something to repair here.
+    """
+    if not removed:
+        return
+    orphaned = sorted(
+        f"{i.name} on {ref}"
+        for i in icoors
+        for ref in (i.parent, i.grand_parent, i.great_grand_parent)
+        if ref in removed
+    )
+    if orphaned:
+        raise ValueError(
+            f"{res_name}: patch leaves atoms framed on ones it removes "
+            f"({', '.join(orphaned[:4])}). The residue's icoor tree is rooted "
+            "where the patch can take the root away."
+        )
+
+
+# get a list of atoms modified by a patch
+def get_modified_atoms(patch):
+    added, modded, deleted = [], [], []
+
+    for i in patch.remove_atoms:
+        deleted.append(i)
+
+    for i in patch.add_atoms:
+        added.append(i.name)
+    for i in patch.modify_atoms:
+        modded.append(i.name)
+    for i in patch.add_connections:
+        modded.append(i.atom)
+        added.append(i.name)
+
+    # modded finds all atoms whose CONNECTIVITY or COORDINATES have changed
+    for i, j, *_ in patch.add_bonds:
+        if i[0] == "<" and i[-1] == ">" and i not in modded:
+            modded.append(i)
+        if j[0] == "<" and j[-1] == ">" and j not in modded:
+            modded.append(j)
+
+    for i in patch.icoors:
+        if i.name[0] == "<" and i.name[-1] == ">" and i.name not in modded:
+            modded.append(i.name)
+
+    return added, modded, deleted
+
+
+# validate raw residues
+def validate_raw_residue(res):
+    allatoms = set([i.name for i in res.atoms])
+    allconns = set([i.name for i in res.connections])
+
+    _validate_raw_residue_atoms(res, allatoms)
+    _validate_raw_residue_bonds(res, allatoms)
+    _validate_raw_residue_torsions(res, allatoms, allconns)
+    _validate_raw_residue_connections(res, allatoms)
+    _validate_raw_residue_icoors(res, allatoms, allconns)
+    _validate_raw_residue_metal_sites(res, allatoms)
+
+
+def _validate_raw_residue_metal_sites(res, allatoms):
+    """Every metal site names atoms this residue has, and no site is oversubscribed;
+    a patch deleting an atom a site names fails here.
+    """
+    from tmol_jax.database.chemical import GEOMETRY_SITE_COUNT
+
+    for site in res.metal_sites:
+        named = (site.metal_atom, *site.internal_satisfiers, *site.site_virts)
+        missing = [name for name in named if name not in allatoms]
+        if missing:
+            raise RuntimeError(
+                f"Bad raw residue: {res.name}\n"
+                f"Error: metal site on {site.metal_atom} names atoms the residue "
+                f"does not have: {', '.join(missing)}"
+            )
+
+        virtual = set(res.properties.virtual)
+        not_virtual = [name for name in site.site_virts if name not in virtual]
+        if not_virtual:
+            raise RuntimeError(
+                f"Bad raw residue: {res.name}\n"
+                f"Error: metal site on {site.metal_atom} marks free sites with "
+                f"atoms that are not virtual: {', '.join(not_virtual)}"
+            )
+
+        connections = {c.name: c for c in res.connections}
+        for name in site.site_connections:
+            conn = connections.get(name)
+            if conn is None or conn.atom != site.metal_atom or conn.kinematic:
+                raise RuntimeError(
+                    f"Bad raw residue: {res.name}\n"
+                    f"Error: metal site connection {name} must be a non-kinematic "
+                    f"connection on {site.metal_atom}"
+                )
+
+        n_total = GEOMETRY_SITE_COUNT[site.geometry]
+        if n_total is None:
+            # untemplated: occupancy comes from the structure, so there is no
+            # vertex budget to exceed
+            continue
+        n_named = len(site.internal_satisfiers) + len(site.site_virts)
+        if n_named > n_total:
+            raise RuntimeError(
+                f"Bad raw residue: {res.name}\n"
+                f"Error: metal site on {site.metal_atom} is {site.geometry} with "
+                f"{n_total} sites, but names {len(site.internal_satisfiers)} "
+                f"internal satisfier(s) and {len(site.site_virts)} free-site "
+                f"virtual(s)"
+            )
+        if len(site.site_connections) != len(site.site_virts):
+            raise RuntimeError(
+                f"Bad raw residue: {res.name}\n"
+                f"Error: metal site on {site.metal_atom} has "
+                f"{len(site.site_virts)} free-site virtual(s) but "
+                f"{len(site.site_connections)} site connection(s)"
+            )
+
+
+def _validate_raw_residue_atoms(res, allatoms):
+    # No duplicate atom names
+    if len(allatoms) != len(res.atoms):
+        duplicated = defaultdict(int)
+        for i, at in enumerate(res.atoms):
+            if at.name in duplicated:
+                continue
+            for j, at2 in enumerate(res.atoms[(i + 1) :]):
+                if at.name == at2.name:
+                    duplicated[at.name] += 1
+
+        err_msg = "".join(
+            [
+                f"Bad raw residue: {res.name}\n",
+                "Error: duplicated_atom_name; atoms may appear only once\n",
+                "Offending atoms:\n",
+                "\n".join(
+                    [f'    "{x}" appears {duplicated[x] + 1} times' for x in duplicated]
+                ),
+            ]
+        )
+        raise RuntimeError(err_msg)
+
+
+def _validate_raw_residue_bonds(res, allatoms):
+    # illegal bonds
+    bad_bonds = []
+    for i, j, *_ in res.bonds:
+        if i not in allatoms:
+            bad_bonds.append((i, i, j))
+        if j not in allatoms:
+            bad_bonds.append((j, i, j))
+    if len(bad_bonds) > 0:
+        err_msg = "".join(
+            [
+                f"Bad raw residue: {res.name}\n",
+                "Error: illegal_bond; must be between declared atoms\n"
+                "Offending atoms:\n",
+                "\n".join(
+                    [
+                        f'    Undeclared atom "{x[0]}" in bond ("{x[1]}", "{x[2]}")'
+                        for x in bad_bonds
+                    ]
+                ),
+            ]
+        )
+        raise RuntimeError(err_msg)
+
+
+def _validate_raw_residue_torsions(res, allatoms, allconns):
+    bad_torsions = []
+    for i in res.torsions:
+        for a_i in (i.a, i.b, i.c, i.d):
+            if a_i.atom is None:
+                if a_i.connection is None or a_i.connection not in allconns:
+                    bad_torsions.append(("connection", a_i, i))
+            else:
+                if a_i.atom not in allatoms:
+                    bad_torsions.append(("atom", a_i, i))
+    if len(bad_torsions) > 0:
+
+        def str_ua(x):
+            return x.atom if x.atom is not None else x.connection
+
+        err_msg = "".join(
+            [
+                f"Bad raw residue: {res.name}\n",
+                "Error: illegal_torsion; Torsion atoms must be either ",
+                "previously-declared connections or previously-declared atoms\n",
+                f'Offending atom{"s" if len(bad_torsions) > 1 else ""}:\n',
+                "\n".join(
+                    [
+                        f'    atom "{str_ua(x[1])}" of'
+                        f" ({str_ua(x[2].a)}, {str_ua(x[2].b)},"
+                        f" {str_ua(x[2].c)}, {str_ua(x[2].d)})"
+                        f" is not a declared {x[0]}"
+                        for x in bad_torsions
+                    ]
+                ),
+            ]
+        )
+        raise RuntimeError(err_msg)
+
+
+def _validate_raw_residue_connections(res, allatoms):
+    bad_conns = []
+    for i in res.connections:
+        if i.atom not in allatoms:
+            bad_conns.append(i)
+    if len(bad_conns) > 0:
+        err_msg = "".join(
+            [
+                f"Bad raw residue: {res.name}\n",
+                "Error: illegal_connection; connection atom must be previously declared\n",
+                f'Offending connection{"s" if len(bad_conns) > 1 else ""}:\n',
+                "\n".join(
+                    [
+                        f'    connection "{x.name}" with undeclared atom "{x.atom}"'
+                        for x in bad_conns
+                    ]
+                ),
+            ]
+        )
+        raise RuntimeError(err_msg)
+
+
+def _validate_raw_residue_icoors(res, allatoms, allconns):
+    bad_icoors = []
+    for i in res.icoors:
+        if i.name not in allatoms and i.name not in allconns:
+            bad_icoors.append((i, "name"))
+        for anc in ("parent", "grand_parent", "great_grand_parent"):
+            a_i = getattr(i, anc)
+            if a_i not in allatoms and a_i not in allconns:
+                bad_icoors.append((i, anc))
+    if len(bad_icoors) > 0:
+        err_msg = "".join(
+            [
+                f"Bad raw residue: {res.name}\n",
+                "Error: illegal_icoor; must reference previoulsy-declared atoms or connections only.\n",
+                f'Offending icoor{"s" if len(bad_icoors) > 1 else ""}\n',
+                "\n".join(
+                    [
+                        f'    icoor for {x[0].name}: {x[1]} atom "{getattr(x[0], x[1])}" undeclared'
+                        for x in bad_icoors
+                    ]
+                ),
+            ]
+        )
+        raise RuntimeError(err_msg)
+
+
+def validate_patch(patch):
+    """Validate a given patch object or raise a RuntimeException"""
+    addedatoms = set([i.name for i in patch.add_atoms])
+    added_ats_and_conns = addedatoms.union(set([i.name for i in patch.add_connections]))
+
+    _validate_patch_fields(patch)
+    _validate_patch_scope(patch)
+    _validate_patch_atom_references(
+        patch, "remove_atoms", "remove_nonreference_atom", lambda x: x
+    )
+    _validate_patch_atom_references(
+        patch, "modify_atoms", "modify_nonreference_atom", lambda x: x.name
+    )
+    _validate_patch_atom_aliases(patch, addedatoms)
+    _validate_patch_bonds(patch, added_ats_and_conns)
+    _validate_patch_icoors(patch, added_ats_and_conns)
+
+
+def _validate_patch_scope(patch):
+    """A patch naming atoms outright must name the one residue type it means."""
+    if patch.pattern:
+        return
+    base_names = patch.applies_to.base_names
+    if not base_names or len(base_names) != 1:
+        raise RuntimeError(
+            f"Bad patch: {patch.name}\n"
+            "Error: a patch with no pattern names atoms outright, so it must "
+            "be scoped with applies_to.base_names to exactly one residue type."
+        )
+
+
+def _validate_patch_fields(patch):
+    # make sure all fields are defined
+    missing = []
+    required_attrs = [
+        "name",
+        "display_name",
+        "pattern",
+        "remove_atoms",
+        "add_atoms",
+        "add_atom_aliases",
+        "modify_atoms",
+        "add_connections",
+        "add_bonds",
+        "icoors",
+    ]
+    for attribute in required_attrs:
+        if getattr(patch, attribute) is None:
+            missing.append(attribute)
+    if len(missing) > 0:
+        err_msg = "".join(
+            [
+                f"Bad patch: {patch.name}\n",
+                "Error: Undefined field",
+                ("s: " if len(missing) > 1 else ": "),
+                ", ".join(missing),
+            ]
+        )
+        raise RuntimeError(err_msg)
+
+
+def _validate_patch_atom_references(
+    patch, atom_list_attribute_name, error_name, get_atom_name
+):
+    bad_atom_inds = []
+    atom_list = getattr(patch, atom_list_attribute_name)
+    for i in range(len(atom_list)):
+        if (
+            get_atom_name(atom_list[i])[0] != "<"
+            or get_atom_name(atom_list[i])[-1] != ">"
+        ):
+            bad_atom_inds.append(i)
+    if len(bad_atom_inds) > 0:
+        err_msg = "".join(
+            [
+                f"Bad patch: {patch.name}\n",
+                f"Error: {error_name}; ",
+                f'atoms listed with "{atom_list_attribute_name}" must begin with "<" and end with ">".\n',
+                "Offending atoms: ",
+                ",".join([get_atom_name(atom_list[i]) for i in bad_atom_inds]),
+            ]
+        )
+        raise RuntimeError(err_msg)
+
+
+def _validate_patch_atom_aliases(patch, addedatoms):
+    # make sure that aliases are for new atoms
+    bad_aliases = []
+    for i in patch.add_atom_aliases:
+        if i.name not in addedatoms:
+            bad_aliases.append(i)
+
+    if len(bad_aliases) > 0:
+        err_msg = "".join(
+            [
+                f"Bad patch {patch.name}\n",
+                "Error: illegal_add_alias. "
+                "Added atom alias must refer to newly added atoms. "
+                "Bad add_atom_aliases from: ",
+                ", ".join([f'"{x.name}" --> "{x.alt_name}"' for x in bad_aliases]),
+            ]
+        )
+        raise RuntimeError(err_msg)
+
+
+def _validate_patch_bonds(patch, added_ats_and_conns):
+    # make sure all bonds are references or added atoms
+    bad_bonds = []
+    for i, j, *_ in patch.add_bonds:
+        if (i[0] != "<" or i[-1] != ">") and (i not in added_ats_and_conns):
+            bad_bonds.append((i, j))
+    if len(bad_bonds) > 0:
+        err_msg = "".join(
+            [
+                f"Bad patch {patch.name}\n",
+                "Error: illegal bond; "
+                "first atom in each bond must be either atom reference ",
+                '(start with "<" and end with ">") or an added atom.\n',
+                "Offending bonds: ",
+                ", ".join([f'("{x[0]}" "{x[1]}")' for x in bad_bonds]),
+            ]
+        )
+        raise RuntimeError(err_msg)
+
+
+def _validate_patch_icoors(patch, added_ats_and_conns):
+    # make sure all icoors are references or added atoms
+    bad_icoors = []
+    for i in patch.icoors:
+        if (i.name[0] != "<" or i.name[-1] != ">") and (
+            i.name not in added_ats_and_conns
+        ):
+            bad_icoors.append(("name", i))
+        for anc in ("source", "parent", "grand_parent", "great_grand_parent"):
+            a_i = getattr(i, anc)
+            if a_i is None:
+                # ok for source to be None, ok for p, gp, ggp to be None if source is given
+                if anc != "source" and getattr(i, "source") is None:
+                    bad_icoors.append((anc, i))
+                continue
+            if (a_i[0] != "<" or a_i[-1] != ">") and (a_i not in added_ats_and_conns):
+                bad_icoors.append((anc, i))
+    if len(bad_icoors) > 0:
+        added_ats_and_conns_list = sorted(added_ats_and_conns)
+        err_msg = "".join(
+            [
+                f"Bad patch {patch.name}\n",
+                "Error: illegal_icoor; ",
+                "icoor atoms must be for either atom reference ",
+                '(start with "<" and end with ">") or an added atom / connection,\n'
+                'and ancestor atoms may only be omitted (i.e. "None") if the "source" atom is provided\n'
+                "Offending icoors:\n",
+                "\n".join(
+                    [
+                        f'    Icoor for {x[1].name} with atom reference "{x[0]}" of "{getattr(x[1], x[0])}"'
+                        for x in bad_icoors
+                    ]
+                ),
+                "\nWhere the added atom / connection list is: ",
+                ", ".join([f'"{x}"' for x in added_ats_and_conns_list]),
+            ]
+        )
+        raise RuntimeError(err_msg)
+
+
+def pattern_namemaps(variant, resgraph, patchgraph, res=None):
+    """Each distinct way the patch's pattern binds to the residue.
+
+    A namemap sends every pattern placeholder to the name it matched, which is
+    an atom's or, at a connection, the connection's. Two bindings that modify
+    the same atoms are one binding found twice.
+
+    A patch with no pattern names the residue's atoms outright: ``<OG>`` is the
+    atom called OG. Generated patches are written that way, since a pattern
+    cannot tell one hydroxyl of a sugar from another.
+    """
+    if patchgraph is None:
+        # the residue's own atoms, hydrogens included; resgraph carries only
+        #    the heavy ones a SMILES pattern can match
+        names = [atom.name for atom in res.atoms] + [c.name for c in res.connections]
+        namemap = {"<" + str(name) + ">": name for name in names}
+        added, modded, deleted = get_modified_atoms(variant)
+        # a pattern stops matching once its atoms are gone; so does this
+        if any(
+            name not in namemap for name in (*modded, *deleted) if name not in added
+        ):
+            return []
+        return [namemap]
+
+    def atoms_match(x, y):
+        return "element" not in y or "element" not in x or x["element"] == y["element"]
+
+    gm = iso.GraphMatcher(resgraph, patchgraph, node_match=atoms_match)
+    _added, modded, _deleted = get_modified_atoms(variant)
+
+    unique, namemaps = [], []
+    for subgraph_x in gm.subgraph_monomorphisms_iter():
+        namemap = {
+            "<" + patchgraph.nodes[y]["name"] + ">": x for x, y in subgraph_x.items()
+        }
+        mod_i = [namemap[x] for x in modded]
+        if mod_i not in unique:
+            unique.append(mod_i)
+            namemaps.append(namemap)
+    return namemaps
+
+
+def _patch_preserves_torsion_support(res, variant, namemap, deleted):
+    """A combination must retain the references of its connected torsions."""
+    atoms = ({a.name for a in res.atoms} - set(deleted)) | {
+        a.name for a in variant.add_atoms
+    }
+    connections = ({c.name for c in res.connections} - set(deleted)) | {
+        c.name for c in variant.add_connections
+    }
+    for torsion in variant.add_torsions:
+        for ref in (torsion.a, torsion.b, torsion.c, torsion.d):
+            if ref.atom is not None and namemap.get(ref.atom, ref.atom) not in atoms:
+                return False
+            if (
+                ref.connection is not None
+                and namemap.get(ref.connection, ref.connection) not in connections
+            ):
+                return False
+    for torsion in res.torsions:
+        refs = (torsion.a, torsion.b, torsion.c, torsion.d)
+        if any(ref.connection in connections for ref in refs) and any(
+            ref.atom is not None and ref.atom not in atoms for ref in refs
+        ):
+            return False
+    return True
+
+
+# marks an atom a patch created, as against one it modified
+CREATED = "+"
+# marks an atom a patch only bonded to or took a neighbor from, leaving the
+#    atom itself (its type, its placement) as it was
+ANCHORED = "~"
+
+
+def _only_adds_connections(variant):
+    return bool(variant.add_connections) and not (
+        variant.add_atoms
+        or variant.remove_atoms
+        or variant.modify_atoms
+        or variant.add_bonds
+        or variant.icoors
+    )
+
+
+# apply a patch to a rawresidue
+#    res, resgraph - base residue, graph
+#    variant, patchgraph - patch variant, patch graph
+#    marked - atoms modified in the base residue
+# returns:
+#    newreses - list of new residues produced by the patch (currently only support for 1)
+#    newmarked - updated list of modified atoms in new residue
+def do_patch(res, variant, resgraph, patchgraph, marked):  # noqa: C901
+    added, modded, deleted = get_modified_atoms(variant)
+    assert len(modded) + len(deleted) > 0, (
+        "Patch " + variant.name + " does not modify any atoms!"
+    )
+
+    namemaps = pattern_namemaps(variant, resgraph, patchgraph, res)
+
+    # fd: this could be supported in the future, with a few issues to work out
+    #    -if the patch adds atoms, we need to figure out how to ensure unique names
+    #    -need a patch naming scheme if a patch applied twice
+    assert len(namemaps) <= 1, (
+        f"Patch {variant.name} applies to residue {res.name} multiple times, "
+        f"matching the atom sets "
+        f"{[[m[x] for x in modded] for m in namemaps]}. Narrow the pattern, or "
+        f"scope the patch with applies_to."
+    )
+
+    # apply patches
+    newreses, newmarked = [], []
+    for namemap in namemaps:
+        newmark = copy.deepcopy(marked)
+        modded = [namemaps[0][x] for x in modded]
+        deleted = [namemaps[0][x] for x in deleted]
+
+        # -1. Add atoms bonded to deleted atoms to modded set
+        #     needs to be done after name map
+        for i, j, *_ in res.bonds:
+            if i in deleted and j not in deleted:
+                modded.append(j)
+            if j in deleted and i not in deleted:
+                modded.append(i)
+
+        # 0. check if we've already modified any of these atoms; a patch only adding
+        #    connections may attach to an atom another created (1YJO) or anchored (2G8F)
+        blocking = {
+            x.lstrip(CREATED + ANCHORED)
+            for x in newmark
+            if not (
+                x.startswith((CREATED, ANCHORED)) and _only_adds_connections(variant)
+            )
+        }
+        if set(modded) & blocking:
+            continue
+
+        # a patch cannot delete an atom a connection it keeps sits on (7EOH: the
+        #    phosphate oxygens its Mg ions bond)
+        gone = set(deleted)
+        if any(c.atom in gone and c.name not in gone for c in res.connections):
+            continue
+
+        if not _patch_preserves_torsion_support(res, variant, namemap, deleted):
+            continue
+
+        newres = attr.evolve(res, name=res.name + ":" + variant.display_name)
+
+        # hydrogens on removed atoms go with them; a prepared residue can carry
+        #    some where canonical ones do not (7KW4 A:2 XY7's HOP1/HOP2)
+        removed = {namemap[a] for a in variant.remove_atoms if a in namemap}
+        stranded = sorted(
+            name
+            for name, element in resgraph.nodes(data="element")
+            if element in ("H", "D")
+            and name not in removed
+            and resgraph[name]
+            and set(resgraph[name]) <= removed
+        )
+        namemap = {**namemap, **{name: name for name in stranded}}
+        remove_atoms = (*variant.remove_atoms, *stranded)
+
+        # 1. remove atoms
+        for atom in remove_atoms:
+            atom = namemap[atom]
+            newres = remove_atom(newres, atom)
+
+        for atom in variant.modify_atoms:
+            atom = attr.evolve(atom, name=namemap[atom.name])
+            newres = modify_atom(newres, atom)
+
+        # 2. add atoms
+        newres.atoms = (*newres.atoms, *variant.add_atoms)
+
+        # 2b. add atom alias; a source name the base residue already aliases keeps
+        #     that meaning, since input names are read per name3 (1MWI D:7 AAB O3P)
+        claimed = {a.alt_name: a.name for a in res.atom_aliases}
+        newres.atom_aliases = (
+            *newres.atom_aliases,
+            *(
+                a
+                for a in variant.add_atom_aliases
+                if claimed.get(a.alt_name, a.name) == a.name
+            ),
+        )
+
+        # 3. add connections
+        newconnections = []
+        for i in variant.add_connections:
+            if i.atom in namemap:
+                i = attr.evolve(i, atom=namemap[i.atom])
+            newconnections.append(i)
+        newres.connections = (*newres.connections, *newconnections)
+
+        # 4. add bonds
+        newbonds = []
+        for bond in variant.add_bonds:
+            i, j, btype = bond[0], bond[1], bond[2]
+            is_ring = bond[3] if len(bond) > 3 else False
+            if i in namemap:
+                i = namemap[i]
+            if j in namemap:
+                j = namemap[j]
+            newbonds.append((i, j, btype, is_ring))
+        newres.bonds = (*newres.bonds, *newbonds)
+
+        # 5. update icoors
+        newres.icoors = update_icoor(
+            newres.icoors, variant.icoors, remove_atoms, namemap
+        )
+        assert_no_orphaned_icoors(
+            newres.icoors,
+            # an atom the patch removes and adds again under the same name --
+            #    a carboxy terminus does that with its carbonyl oxygen -- has
+            #    not gone anywhere
+            {namemap[i] for i in remove_atoms if i in namemap}
+            - {a.name for a in variant.add_atoms},
+            newres.name,
+        )
+
+        # 5b. add torsions and the chi samples that name them
+        newtorsions = []
+        for torsion in variant.add_torsions:
+            ats = {
+                x: attr.evolve(a, atom=namemap.get(a.atom, a.atom))
+                for x, a in (
+                    ("a", torsion.a),
+                    ("b", torsion.b),
+                    ("c", torsion.c),
+                    ("d", torsion.d),
+                )
+            }
+            newtorsions.append(attr.evolve(torsion, **ats))
+        newres.torsions = (*newres.torsions, *newtorsions)
+        newres.chi_samples = (*newres.chi_samples, *variant.add_chi_samples)
+
+        # 6. update modified atoms
+        # a) directly modified/added; an atom whose type, placement or
+        #    connections the patch changed, as against one it only anchored
+        changed = {
+            namemap.get(x, x)
+            for x in (
+                *(a.name for a in variant.modify_atoms),
+                *(i.name for i in variant.icoors),
+                *(c.atom for c in variant.add_connections),
+            )
+        }
+        newmark.extend(x if x in changed else ANCHORED + x for x in modded)
+        newmark.extend(CREATED + a for a in added)
+
+        # b) removed atoms
+        newmark = [x for x in newmark if x.lstrip(CREATED + ANCHORED) not in deleted]
+
+        newreses.append(newres)
+        newmarked.append(newmark)
+
+    return newreses, newmarked
+
+
+def patch_residue(res, variants, graph_builder):
+    """Return res plus every variant form of it."""
+    # resolve against the unpatched residue
+    #   BY DESIGN ... a patch can never be made conditional on another
+    #   patch having been applied
+    applicable = [v for v in variants if v.applies_to.matches(res)]
+
+    resvariants, resvariantnames, marked_atoms = [res], [""], [[]]
+    done = False
+    while not done:
+        done = True
+
+        # newly added variants, variant names, marked atoms
+        rv_new, rvn_new, ma_new = [], [], []
+        for res_i, name_i, mark_i in zip(resvariants, resvariantnames, marked_atoms):
+            resgraph = graph_builder.from_raw_res(res_i)
+            for variant in applicable:
+                newtag = [*name_i, variant.name]
+                newtag.sort()
+                if newtag in resvariantnames or newtag in rvn_new:
+                    continue  # we already made this variant
+
+                patchgraph = (
+                    read_smiles(
+                        variant.pattern,
+                        explicit_hydrogen=True,
+                        do_fill_valence=False,
+                    )
+                    if variant.pattern
+                    else None
+                )
+                patched_reses, mark_i_new = do_patch(
+                    res_i, variant, resgraph, patchgraph, mark_i
+                )
+
+                if len(patched_reses) > 0:
+                    rv_new.extend(patched_reses)
+                    rvn_new.extend((newtag,) * len(patched_reses))
+                    ma_new.extend(mark_i_new)
+                    done = False  # added new residues
+
+        resvariants.extend(rv_new)
+        resvariantnames.extend(rvn_new)
+        marked_atoms.extend(ma_new)
+    return resvariants
+
+
+# takes a ChemicalDatabase containing Tuple[RawResidueType] and Tuple[VariantType]
+# applies all patches to all residues types
+# returns PatchedChemicalDatabase containing only Tuple[RawResidueType]
+@attr.s(auto_attribs=True)
+class PatchedChemicalDatabase:
+    """Chemical database containing residue types after variant application."""
+
+    element_types: Tuple[Element, ...]
+    atom_types: Tuple[AtomType, ...]
+    residues: Tuple[RawResidueType, ...]
+    variants: Tuple[VariantType, ...]
+    name3_aliases: Tuple[Name3Alias, ...] = ()
+
+    @classmethod
+    def from_chem_db(cls, chemdb: ChemicalDatabase):
+        G = RestypeGraphBuilder({x.name: x.element for x in chemdb.atom_types})
+
+        for variant in chemdb.variants:
+            validate_patch(variant)
+
+        for res in chemdb.residues:
+            validate_raw_residue(res)
+
+        patched_residues = []
+        for res in chemdb.residues:
+            patched_residues.extend(patch_residue(res, chemdb.variants, G))
+
+        for res in patched_residues:
+            validate_raw_residue(res)
+
+        return cls(
+            element_types=chemdb.element_types,
+            atom_types=chemdb.atom_types,
+            residues=tuple(_refined_from_raw(r) for r in patched_residues),
+            variants=chemdb.variants,
+            name3_aliases=chemdb.name3_aliases,
+        )
+
+    def with_variants_applied(self, variants):
+        """Return a copy with new patches applied to the residues already held.
+
+        ``with_added_residues`` patches only what it adds, which is right for a
+        patch a new residue brings with it. A conjugation patch instead acts on
+        a residue the database already has -- serine gains a connection at OG
+        -- so its forms are built here and appended alongside the base.
+        """
+        known = {v.name for v in self.variants}
+        extra = tuple(v for v in variants if v.name not in known)
+        if not extra:
+            return self
+        all_variants = (*self.variants, *extra)
+        G = RestypeGraphBuilder({x.name: x.element for x in self.atom_types})
+        present = {res.name for res in self.residues}
+        added = []
+        for res in self.residues:
+            if ":" in res.name:
+                continue  # a variant form; patching starts from the base
+            if not any(v.applies_to.matches(res) for v in extra):
+                continue
+            for form in patch_residue(res, all_variants, G):
+                if form.name not in present:
+                    added.append(form)
+                    present.add(form.name)
+        return attr.evolve(
+            self, residues=(*self.residues, *added), variants=all_variants
+        )
+
+    def with_added_residues(self, residues, atom_types=None, variants=None):
+        """Return a copy with residues patched and appended.
+
+        ``variants`` are extra patches the residues bring with them, scoped to
+        their own base types; they are kept on the database so a later addition
+        is patched against the same set.
+        """
+        # injection happens after from_chem_db, so patch here or the new
+        #    residues arrive with no termini forms
+        atom_types = self.atom_types if atom_types is None else tuple(atom_types)
+        known = {v.name for v in self.variants}
+        extra = tuple(v for v in (variants or ()) if v.name not in known)
+        all_variants = (*self.variants, *extra)
+        G = RestypeGraphBuilder({x.name: x.element for x in atom_types})
+        added = []
+        for res in residues:
+            added.extend(patch_residue(res, all_variants, G))
+        return attr.evolve(
+            self,
+            atom_types=atom_types,
+            residues=(*self.residues, *added),
+            variants=all_variants,
+        )
+
+
+def default_patched_chemdb():
+    from tmol_jax.database import ParameterDatabase
+
+    return ParameterDatabase.get_default().chemical

@@ -5,13 +5,19 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
-#include <pybind11/pybind11.h>
-
+#include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/common/tuple_operators.hh>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
+
+#include "params_core.hh"
+
+#ifndef TMOL_DEVICE_FUNC
+#define TMOL_DEVICE_FUNC EIGEN_DEVICE_FUNC
+#define TMOL_DISULFIDE_UNDEF_DEVICE_FUNC
+#endif
 
 namespace tmol {
 namespace score {
@@ -40,7 +46,7 @@ TMOL_DEVICE_FUNC DihedralScore<Real> dihedral_mixture(
     density += component;
     derivative += component * kappa[i] * sin(delta);
   }
-  return {-log(density), derivative / density};
+  return {Real(-log(density)), derivative / density};
 }
 
 template <typename Real>
@@ -70,6 +76,62 @@ TMOL_DEVICE_FUNC DihedralScore<Real> cs_dihedral(
   Real kappa[] = {p.dcs_kappa1, p.dcs_kappa2, p.dcs_kappa3};
   Real mu[] = {p.dcs_mu1, p.dcs_mu2, p.dcs_mu3};
   return dihedral_mixture(angle, logA, kappa, mu);
+}
+
+template <typename Real>
+TMOL_DEVICE_FUNC Real disulfide_score_from_geometry(
+    Real ss_distance,
+    Real cs_angle_1,
+    Real cs_angle_2,
+    Real ss_dihedral_angle,
+    Real cs_dihedral_angle_1,
+    Real cs_dihedral_angle_2,
+    const DisulfideGlobalParams<Real>& params1,
+    const DisulfideGlobalParams<Real>& params2) {
+  const Real MEST = exp(-20.0);
+  Real z = (ss_distance - params1.d_location) / params1.d_scale;
+  Real score_d =
+      z * z / 2 - log(std::erfc(-params1.d_shape * z / sqrt(2.0)) + MEST);
+  Real score = -params1.shift + params1.wt_len * score_d;
+  score +=
+      params1.wt_ang
+      * (-params1.a_logA - params1.a_kappa * cos(cs_angle_1 - params1.a_mu));
+  score +=
+      params1.wt_ang
+      * (-params1.a_logA - params1.a_kappa * cos(cs_angle_2 - params1.a_mu));
+  score +=
+      params1.wt_dih_ss * ss_dihedral(ss_dihedral_angle, params1, params2).V;
+  score += params1.wt_dih_cs * cs_dihedral(cs_dihedral_angle_1, params1).V;
+  score += params2.wt_dih_cs * cs_dihedral(cs_dihedral_angle_2, params2).V;
+  return score;
+}
+
+template <typename Real, tmol::Device D>
+TMOL_DEVICE_FUNC Real disulfide_energy(
+    TView<Vec<Real, 3>, 1, D> coords,
+    int A_CA_ind,
+    int A_CB_ind,
+    int A_S_ind,
+    int B_S_ind,
+    int B_CB_ind,
+    int B_CA_ind,
+    const DisulfideGlobalParams<Real>& params1,
+    const DisulfideGlobalParams<Real>& params2) {
+  auto A_CA = coords[A_CA_ind];
+  auto A_CB = coords[A_CB_ind];
+  auto A_S = coords[A_S_ind];
+  auto B_S = coords[B_S_ind];
+  auto B_CB = coords[B_CB_ind];
+  auto B_CA = coords[B_CA_ind];
+  return disulfide_score_from_geometry(
+      distance<Real>::V(A_S, B_S),
+      pt_interior_angle<Real>::V(A_CB, A_S, B_S),
+      pt_interior_angle<Real>::V(B_CB, B_S, A_S),
+      dihedral_angle<Real>::V(A_CB, A_S, B_S, B_CB),
+      dihedral_angle<Real>::V(A_CA, A_CB, A_S, B_S),
+      dihedral_angle<Real>::V(B_CA, B_CB, B_S, A_S),
+      params1,
+      params2);
 }
 
 template <typename Real, tmol::Device D>
@@ -110,16 +172,13 @@ TMOL_DEVICE_FUNC void accumulate_disulfide(
       dihedral_angle<Real>::V_dV(B_CA, B_CB, B_S, A_S);
 
   const Real MEST = exp(-20.0);
-
   Real score = -params1.shift;
 
   {  // Calculate Distance
-    // Score
     Real z = (ssdist.V - params1.d_location) / params1.d_scale;
     Real score_d =
         z * z / 2 - log(std::erfc(-params1.d_shape * z / sqrt(2.0)) + MEST);
     score += params1.wt_len * score_d;
-
     // Derivatives
     Real dscore_d =
         z / params1.d_scale
@@ -135,9 +194,8 @@ TMOL_DEVICE_FUNC void accumulate_disulfide(
   }
 
   {  // Calculate Angles
-    // Score
-    Real ang_score(0);
     Real angle1(csang_1.V), angle2(csang_2.V);
+    Real ang_score(0);
     ang_score +=
         params1.wt_ang
         * (-params1.a_logA - params1.a_kappa * cos(angle1 - params1.a_mu));
@@ -145,7 +203,6 @@ TMOL_DEVICE_FUNC void accumulate_disulfide(
         params1.wt_ang
         * (-params1.a_logA - params1.a_kappa * cos(angle2 - params1.a_mu));
     score += ang_score;
-
     // Derivatives
     Real dscore_a =
         params1.a_kappa * sin(angle1 - params1.a_mu) * params1.wt_ang;
@@ -223,3 +280,8 @@ TMOL_DEVICE_FUNC void accumulate_disulfide(
 }  // namespace disulfide
 }  // namespace score
 }  // namespace tmol
+
+#ifdef TMOL_DISULFIDE_UNDEF_DEVICE_FUNC
+#undef TMOL_DISULFIDE_UNDEF_DEVICE_FUNC
+#undef TMOL_DEVICE_FUNC
+#endif

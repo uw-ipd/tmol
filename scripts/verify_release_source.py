@@ -3,7 +3,7 @@
 
 Recovery revalidates artifacts from the original tag run with the current CI
 tools. Manual runs without candidates build the verified tag with current CI
-tools. Manual publication requires master; branch runs are validation only.
+tools. Manual publication requires main; branch runs are validation only.
 """
 
 import json
@@ -82,10 +82,10 @@ def main():
             )
         if (
             os.environ.get("VALIDATE_ONLY") != "true"
-            and os.environ["GITHUB_REF"] != "refs/heads/master"
+            and os.environ["GITHUB_REF"] != "refs/heads/main"
         ):
             raise ValueError(
-                "Manual publication must use the reviewed workflow on master"
+                "Manual publication must use the reviewed workflow on main"
             )
         tag = requested_tag
     else:

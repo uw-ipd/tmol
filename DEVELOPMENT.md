@@ -16,7 +16,7 @@ This document covers building, testing, and contributing to tmol.
 ## Local Setup
 
 ```bash
-git clone https://github.com/uw-ipd/tmol.git && cd tmol
+git clone https://github.com/RosettaCommons/tmol.git && cd tmol
 pip install -e ".[dev]"   # builds C++/CUDA extensions via CMake
 ```
 
@@ -150,7 +150,7 @@ parameter-generation parity is the guanfeng DUD-80 SMILES suite
 pip install "torch==2.10.*" --index-url https://download.pytorch.org/whl/cu128
 
 # Install a release wheel from GitHub
-pip install https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.10-cp312-cp312-manylinux_2_28_x86_64.whl
+pip install https://github.com/RosettaCommons/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.10-cp312-cp312-manylinux_2_28_x86_64.whl
 ```
 
 Release wheels omit tests and fixtures. Use the [Quickstart](docs/quickstart.md)
@@ -158,7 +158,7 @@ to check an installed wheel. The full test suite remains in source checkouts
 and source distributions; to test a release from source, use its matching tag:
 
 ```bash
-git clone --branch vX.Y.Z https://github.com/uw-ipd/tmol.git tmol-release
+git clone --branch vX.Y.Z https://github.com/RosettaCommons/tmol.git tmol-release
 cd tmol-release
 python -m pip install "scikit-build-core>=0.10" "cmake>=3.24,<4" pybind11 ninja packaging
 python -m pip install --no-build-isolation -e ".[dev]" -Ccmake.define.TMOL_BUILD_TESTS=ON
@@ -169,7 +169,7 @@ On Google Colab (Python 3.12 or 3.13, PyTorch 2.11, Turing T4), use the
 matching `+cu128torch2.11` wheel. This lane explicitly includes `sm_75`:
 
 ```bash
-pip install "https://github.com/uw-ipd/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"
+pip install "https://github.com/RosettaCommons/tmol/releases/download/vX.Y.Z/tmol-X.Y.Z+cu128torch2.11-cp312-cp312-manylinux_2_28_x86_64.whl"
 ```
 
 ## Containers
@@ -197,17 +197,18 @@ tmol uses GitHub Actions for all CI:
 
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
-| `ci.yml` | Push to `master`, PRs | Lint, packaging checks, hosted CPU tests, and self-hosted CUDA tests through Slurm and Apptainer. |
-| `wheel-smoke.yml` | Relevant PRs, maintenance branches, manual | Builds representative PR wheels or the complete matrix, then checks installation, platform metadata, portability, and GPU loading. |
-| `publish.yml` | Push `v*` tag, manual | Builds Linux GPU/CPU and Apple Silicon CPU wheels plus an sdist, publishes validated CPU wheels and source to PyPI, and publishes all ABI-qualified wheels to GitHub. |
+| `ci.yml` | Push to `main`, PRs | Automatic lint, packaging checks, and hosted CPU tests. |
+| `wheel-smoke.yml` | Maintainer dispatch | Validates the full release wheel matrix, installation, portability, and GPU loading. |
+| `publish.yml` | Push `v*` tag, manual | Builds Linux GPU/CPU and Apple Silicon CPU wheels plus an sdist, publishes the validated `tmol`, `tmol-ops-cu12`, and `tmol-ops-cu13` artifacts to PyPI and GitHub. |
 
 The full Linux build, smoke-test, and release-manifest matrix is defined once in
 `scripts/release_matrix.py`. Update that file when adding a Python, PyTorch,
-CUDA, or architecture lane; pull-request smoke jobs stay intentionally focused.
+CUDA, or architecture lane. Ordinary PRs run CPU suites and packaging tests;
+the full wheel matrix runs on a maintainer dispatch or release tag.
 
-Hosted CPU lanes and the self-hosted GPU lane run independently. The GPU lane
+Maintainers dispatch GPU CI manually from `main` after reviewing the target. The GPU lane
 uses the Slurm/Apptainer helpers under `.github/ci/`; runner configuration and
-resource settings are defined in `.github/workflows/ci.yml`.
+resource settings are defined in `.github/workflows/gpu-ci.yml`.
 
 ## Releasing
 
@@ -216,7 +217,7 @@ published. Check both GitHub Releases and PyPI before choosing the next version
 or using a versioned wheel URL; published versions and artifacts are immutable.
 
 1. Bump `project.version` in `pyproject.toml` and merge the reviewed release PR
-   after `CI` and `Wheel smoke test` pass.
+   after `CPU CI` and the manually dispatched `Validate release wheels` pass.
 2. Push the matching immutable `vX.Y.Z` tag. The publish workflow verifies the
    tag/version, builds every candidate, and requires fresh-environment pip
    installation, scoring/gradients, source installation, and GPU runtime checks

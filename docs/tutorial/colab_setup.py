@@ -8,8 +8,8 @@ import tempfile
 from pathlib import Path
 from urllib.request import urlretrieve
 
-TUTORIAL_REF = "master"
-RAW_BASE = f"https://raw.githubusercontent.com/uw-ipd/tmol/{TUTORIAL_REF}"
+TUTORIAL_REF = "main"
+RAW_BASE = f"https://raw.githubusercontent.com/RosettaCommons/tmol/{TUTORIAL_REF}"
 # Advance only after the release wheels have been published and exercised.
 # The source project's next version may not have downloadable wheels yet.
 TMOL_RELEASE = "0.1.64"
