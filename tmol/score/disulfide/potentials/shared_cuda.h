@@ -56,61 +56,61 @@ typedef struct tmol_disulfide_cuda_workspace {
  * Strides are measured in logical xyz, eight-int pair, or 33-scalar parameter
  * records. Every record itself is tightly packed.
  */
-#define TMOL_DISULFIDE_DECLARE_CUDA_ABI(Suffix, Real)                           \
-  typedef struct tmol_disulfide_cuda_##Suffix##_inputs {                        \
-    const Real* coords;                                                         \
-    int64_t n_atoms;                                                            \
-    int64_t coord_stride;                                                       \
-    const int32_t* pairs;                                                       \
-    int64_t n_pairs;                                                            \
-    int64_t pair_stride;                                                        \
-    const Real* params;                                                         \
-    int64_t n_params;                                                           \
-    int64_t param_stride;                                                       \
-  } tmol_disulfide_cuda_##Suffix##_inputs;                                      \
-  typedef struct tmol_disulfide_cuda_##Suffix##_forward_outputs {               \
-    Real* energies;                                                             \
-    int64_t energy_stride;                                                      \
-    Real* coordinate_derivatives;                                               \
-    int64_t derivative_pair_stride;                                             \
-    int64_t derivative_atom_stride;                                             \
-  } tmol_disulfide_cuda_##Suffix##_forward_outputs;                             \
-  TMOL_DISULFIDE_CUDA_API tmol_disulfide_cuda_workspace                        \
-  tmol_disulfide_cuda_##Suffix##_forward_workspace(int64_t n_pairs);            \
-  TMOL_DISULFIDE_CUDA_API tmol_disulfide_cuda_workspace                        \
-  tmol_disulfide_cuda_##Suffix##_recompute_vjp_workspace(int64_t n_pairs);      \
-  TMOL_DISULFIDE_CUDA_API int32_t tmol_disulfide_cuda_##Suffix##_forward(       \
-      uintptr_t stream,                                                         \
-      tmol_disulfide_cuda_##Suffix##_inputs inputs,                             \
-      int32_t mode,                                                             \
-      tmol_disulfide_cuda_##Suffix##_forward_outputs outputs,                   \
-      int32_t* device_status);                                                  \
-  TMOL_DISULFIDE_CUDA_API int32_t tmol_disulfide_cuda_##Suffix##_vjp(           \
-      uintptr_t stream,                                                         \
-      int32_t mode,                                                             \
-      const int32_t* pairs,                                                     \
-      int64_t n_pairs,                                                          \
-      int64_t pair_stride,                                                      \
-      const Real* coordinate_derivatives,                                       \
-      int64_t derivative_pair_stride,                                           \
-      int64_t derivative_atom_stride,                                           \
-      const Real* cotangents,                                                   \
-      int64_t cotangent_stride,                                                 \
-      Real* coordinate_gradient,                                                \
-      int64_t n_atoms,                                                          \
-      int64_t gradient_stride,                                                  \
-      int32_t* device_status);                                                  \
-  TMOL_DISULFIDE_CUDA_API int32_t                                               \
-  tmol_disulfide_cuda_##Suffix##_recompute_vjp(                                 \
-      uintptr_t stream,                                                         \
-      int32_t mode,                                                             \
-      tmol_disulfide_cuda_##Suffix##_inputs inputs,                             \
-      const Real* cotangents,                                                   \
-      int64_t cotangent_stride,                                                 \
-      Real* coordinate_gradient,                                                \
-      int64_t gradient_stride,                                                  \
-      void* workspace,                                                          \
-      size_t workspace_bytes,                                                   \
+#define TMOL_DISULFIDE_DECLARE_CUDA_ABI(Suffix, Real)                      \
+  typedef struct tmol_disulfide_cuda_##Suffix##_inputs {                   \
+    const Real* coords;                                                    \
+    int64_t n_atoms;                                                       \
+    int64_t coord_stride;                                                  \
+    const int32_t* pairs;                                                  \
+    int64_t n_pairs;                                                       \
+    int64_t pair_stride;                                                   \
+    const Real* params;                                                    \
+    int64_t n_params;                                                      \
+    int64_t param_stride;                                                  \
+  } tmol_disulfide_cuda_##Suffix##_inputs;                                 \
+  typedef struct tmol_disulfide_cuda_##Suffix##_forward_outputs {          \
+    Real* energies;                                                        \
+    int64_t energy_stride;                                                 \
+    Real* coordinate_derivatives;                                          \
+    int64_t derivative_pair_stride;                                        \
+    int64_t derivative_atom_stride;                                        \
+  } tmol_disulfide_cuda_##Suffix##_forward_outputs;                        \
+  TMOL_DISULFIDE_CUDA_API tmol_disulfide_cuda_workspace                    \
+  tmol_disulfide_cuda_##Suffix##_forward_workspace(int64_t n_pairs);       \
+  TMOL_DISULFIDE_CUDA_API tmol_disulfide_cuda_workspace                    \
+  tmol_disulfide_cuda_##Suffix##_recompute_vjp_workspace(int64_t n_pairs); \
+  TMOL_DISULFIDE_CUDA_API int32_t tmol_disulfide_cuda_##Suffix##_forward(  \
+      uintptr_t stream,                                                    \
+      tmol_disulfide_cuda_##Suffix##_inputs inputs,                        \
+      int32_t mode,                                                        \
+      tmol_disulfide_cuda_##Suffix##_forward_outputs outputs,              \
+      int32_t* device_status);                                             \
+  TMOL_DISULFIDE_CUDA_API int32_t tmol_disulfide_cuda_##Suffix##_vjp(      \
+      uintptr_t stream,                                                    \
+      int32_t mode,                                                        \
+      const int32_t* pairs,                                                \
+      int64_t n_pairs,                                                     \
+      int64_t pair_stride,                                                 \
+      const Real* coordinate_derivatives,                                  \
+      int64_t derivative_pair_stride,                                      \
+      int64_t derivative_atom_stride,                                      \
+      const Real* cotangents,                                              \
+      int64_t cotangent_stride,                                            \
+      Real* coordinate_gradient,                                           \
+      int64_t n_atoms,                                                     \
+      int64_t gradient_stride,                                             \
+      int32_t* device_status);                                             \
+  TMOL_DISULFIDE_CUDA_API int32_t                                          \
+  tmol_disulfide_cuda_##Suffix##_recompute_vjp(                            \
+      uintptr_t stream,                                                    \
+      int32_t mode,                                                        \
+      tmol_disulfide_cuda_##Suffix##_inputs inputs,                        \
+      const Real* cotangents,                                              \
+      int64_t cotangent_stride,                                            \
+      Real* coordinate_gradient,                                           \
+      int64_t gradient_stride,                                             \
+      void* workspace,                                                     \
+      size_t workspace_bytes,                                              \
       int32_t* device_status)
 
 TMOL_DISULFIDE_DECLARE_CUDA_ABI(f32, float);

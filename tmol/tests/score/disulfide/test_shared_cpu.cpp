@@ -262,8 +262,7 @@ int main() {
     multipair_coords[atom] = coords[atom];
     multipair_coords[atom + 6] = coords[atom] + V3(0.4, -0.2, 0.3);
   }
-  Pair multipairs[] = {
-      {0, 1, 2, 3, 4, 5, 0, 1}, {6, 7, 8, 9, 10, 11, 1, 0}};
+  Pair multipairs[] = {{0, 1, 2, 3, 4, 5, 0, 1}, {6, 7, 8, 9, 10, 11, 1, 0}};
   double multipair_energies[2] = {};
   V3 multipair_derivatives[2][6] = {};
   double multipair_cotangents[2] = {0.7, -1.3};
@@ -301,8 +300,7 @@ int main() {
           12,
           1)
       == TMOL_DISULFIDE_CPU_SUCCESS);
-  auto multipair_required =
-      tmol_disulfide_cpu_f64_recompute_vjp_workspace(2);
+  auto multipair_required = tmol_disulfide_cpu_f64_recompute_vjp_workspace(2);
   CHECK(multipair_required.bytes == 2 * 6 * sizeof(V3));
   std::vector<double> multipair_workspace(
       multipair_required.bytes / sizeof(double));

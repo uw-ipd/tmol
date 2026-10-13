@@ -16,12 +16,13 @@ using Params =
 using V3 = Eigen::Matrix<double, 3, 1>;
 using Pair = Eigen::Matrix<int32_t, 8, 1>;
 
-#define CHECK(condition)                                                       \
-  do {                                                                         \
-    if (!(condition)) {                                                        \
-      std::fprintf(stderr, "CHECK failed at line %d: %s\n", __LINE__, #condition); \
-      return 1;                                                                \
-    }                                                                          \
+#define CHECK(condition)                                                  \
+  do {                                                                    \
+    if (!(condition)) {                                                   \
+      std::fprintf(                                                       \
+          stderr, "CHECK failed at line %d: %s\n", __LINE__, #condition); \
+      return 1;                                                           \
+    }                                                                     \
   } while (false)
 
 #define CUDA_CHECK(expression) CHECK((expression) == cudaSuccess)
@@ -42,8 +43,7 @@ template <typename T>
 T* device_copy(T const* source, size_t count) {
   T* result = nullptr;
   if (cudaMalloc(&result, count * sizeof(T)) != cudaSuccess) return nullptr;
-  if (cudaMemcpy(
-          result, source, count * sizeof(T), cudaMemcpyHostToDevice)
+  if (cudaMemcpy(result, source, count * sizeof(T), cudaMemcpyHostToDevice)
       != cudaSuccess) {
     cudaFree(result);
     return nullptr;
@@ -72,8 +72,7 @@ int main() {
     coords[atom] = base[atom];
     coords[atom + 6] = base[atom] + V3(0.4, -0.2, 0.3);
   }
-  Pair pairs[] = {
-      {0, 1, 2, 3, 4, 5, 0, 1}, {6, 7, 8, 9, 10, 11, 1, 0}};
+  Pair pairs[] = {{0, 1, 2, 3, 4, 5, 0, 1}, {6, 7, 8, 9, 10, 11, 1, 0}};
   Params params[] = {parameters(), parameters()};
   params[1].chirality = -1;
   params[1].dcs_mu1 *= -1;
@@ -149,14 +148,11 @@ int main() {
       d_energies, 1, d_derivatives, 6, 1};
   CHECK(tmol_disulfide_cuda_abi_version() == TMOL_DISULFIDE_CUDA_ABI_VERSION);
 
-  // Warm CUDA context and module initialization before testing enqueue behavior.
+  // Warm CUDA context and module initialization before testing enqueue
+  // behavior.
   CHECK(
       tmol_disulfide_cuda_f64_forward(
-          stream_value,
-          inputs,
-          TMOL_DISULFIDE_CUDA_TRACKED,
-          outputs,
-          d_status)
+          stream_value, inputs, TMOL_DISULFIDE_CUDA_TRACKED, outputs, d_status)
       == TMOL_DISULFIDE_CUDA_SUCCESS);
   CUDA_CHECK(cudaStreamSynchronize(stream));
 
@@ -172,11 +168,7 @@ int main() {
   auto async_start = std::chrono::steady_clock::now();
   CHECK(
       tmol_disulfide_cuda_f64_forward(
-          stream_value,
-          inputs,
-          TMOL_DISULFIDE_CUDA_TRACKED,
-          outputs,
-          d_status)
+          stream_value, inputs, TMOL_DISULFIDE_CUDA_TRACKED, outputs, d_status)
       == TMOL_DISULFIDE_CUDA_SUCCESS);
   auto async_elapsed = std::chrono::steady_clock::now() - async_start;
   CHECK(cudaEventQuery(delay_complete) == cudaErrorNotReady);
@@ -268,14 +260,14 @@ int main() {
   Pair invalid_pairs[] = {pairs[0], pairs[1]};
   invalid_pairs[1][0] = 12;
   CUDA_CHECK(cudaMemcpyAsync(
-      d_pairs, invalid_pairs, sizeof(invalid_pairs), cudaMemcpyHostToDevice, stream));
+      d_pairs,
+      invalid_pairs,
+      sizeof(invalid_pairs),
+      cudaMemcpyHostToDevice,
+      stream));
   CHECK(
       tmol_disulfide_cuda_f64_forward(
-          stream_value,
-          inputs,
-          TMOL_DISULFIDE_CUDA_TRACKED,
-          outputs,
-          d_status)
+          stream_value, inputs, TMOL_DISULFIDE_CUDA_TRACKED, outputs, d_status)
       == TMOL_DISULFIDE_CUDA_SUCCESS);
   // Host success reports enqueue; device status follows stream completion.
   // Framework adapters must surface this value after their own synchronization.
