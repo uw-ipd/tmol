@@ -32,6 +32,31 @@ install or import PyTorch. The current disjoint `tmol_jax` and `tmol_jax_cuda`
 packages remain unpublished prototype artifacts used only for development
 validation; they do not satisfy the final namespace contract.
 
+### Dormant shared CPU disulfide contract
+
+The `tmol.jax` namespace now reserves a Python-only wrapper contract for a
+future shared CPU disulfide implementation. No native XLA FFI handler is
+installed or registered yet, so calling this wrapper fails explicitly and
+executable energy or gradient parity has not been established. The static
+`recompute_backward` choice must be a concrete Python `bool`; its default keeps
+pair derivatives for the backward pass, while recompute mode keeps
+coordinates, pairs, and parameters.
+
+Native wiring must register these CPU targets with the following contracts:
+
+| target | inputs | outputs |
+| --- | --- | --- |
+| `tmol_disulfide_cpu_ffi_forward` | coordinates `[n_atoms, 3]`, pairs `int32 [n_pairs, 8]`, parameters `[n_params, 33]` | energies `[n_pairs]` |
+| `tmol_disulfide_cpu_ffi_forward_tracked` | coordinates, pairs, parameters | energies `[n_pairs]`, pair derivatives `[n_pairs, 6, 3]` |
+| `tmol_disulfide_cpu_ffi_vjp` | pairs, pair derivatives, cotangents `[n_pairs]` | coordinate gradient `[n_atoms, 3]` |
+| `tmol_disulfide_cpu_ffi_recompute_vjp` | coordinates, pairs, parameters, cotangents | coordinate gradient `[n_atoms, 3]` |
+
+Coordinates and parameters must share `float32` or `float64` dtype. The wrapper
+dispatches only through `jax.ffi.ffi_call`; it does not copy coordinates to the
+host or use a Python callback. The future recompute handler must obtain
+temporary storage through XLA FFI caller/scratch allocation and must never call
+`malloc` or round-trip coordinates through the host in its hot path.
+
 From a TMol developer environment with `tmol`, `numpy` and `build` installed:
 
 ```sh
