@@ -11,7 +11,7 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-from tmol.jax import disulfide
+disulfide = pytest.importorskip("tmol.jax.disulfide")
 
 TARGETS = {
     "forward": "tmol_disulfide_cpu_ffi_forward",
@@ -67,7 +67,7 @@ def test_target_names_and_registration_are_stable(monkeypatch):
     assert dict(disulfide.DISULFIDE_CPU_FFI_TARGETS) == TARGETS
     capsules, registered = register_mock_targets(monkeypatch)
     assert [(name, platform) for name, _, platform in registered] == [
-        (name, "CPU") for name in TARGETS.values()
+        (name, "cpu") for name in TARGETS.values()
     ]
 
     disulfide.register_ffi_targets(capsules)

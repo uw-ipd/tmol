@@ -60,7 +60,7 @@ def register_ffi_targets(capsules):
         if role in _REGISTERED_TARGETS:
             continue
         jax.ffi.register_ffi_target(
-            DISULFIDE_CPU_FFI_TARGETS[role], capsule, platform="CPU"
+            DISULFIDE_CPU_FFI_TARGETS[role], capsule, platform="cpu"
         )
         _REGISTERED_TARGETS[role] = capsule
 

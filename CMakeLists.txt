@@ -505,6 +505,43 @@ if(TMOL_BUILD_TESTS AND NOT TMOL_OPS_CUDA)
   )
 endif()
 
+# The XLA FFI consumer is a dormant correctness target.  Its serial CPU
+# executor is not thread-parity or performance evidence, and the target must
+# remain outside installed _C until neutral native-library ownership lands.
+set(TMOL_JAX_INCLUDE_DIR "" CACHE PATH "JAX FFI include directory for tests")
+set(TMOL_JAX_TEST_PYTHON "" CACHE FILEPATH "Python with JAX for FFI tests")
+if(TMOL_BUILD_TESTS AND NOT TMOL_OPS_CUDA
+   AND TMOL_JAX_INCLUDE_DIR AND TMOL_JAX_TEST_PYTHON)
+  enable_testing()
+  add_library(tmol_disulfide_shared_jax_test MODULE
+    tmol/score/disulfide/potentials/shared_ffi.cpp
+  )
+  target_include_directories(tmol_disulfide_shared_jax_test PRIVATE
+    ${TMOL_JAX_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}
+  )
+  target_link_libraries(tmol_disulfide_shared_jax_test PRIVATE
+    tmol_disulfide_shared_cpu
+  )
+  set_target_properties(tmol_disulfide_shared_jax_test PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "_shared_disulfide_ffi_test"
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN YES
+    BUILD_RPATH "$<TARGET_FILE_DIR:tmol_disulfide_shared_cpu>"
+  )
+  add_test(
+    NAME disulfide_shared_jax_adapter
+    COMMAND ${TMOL_JAX_TEST_PYTHON}
+      ${CMAKE_SOURCE_DIR}/tmol/tests/score/disulfide/test_shared_jax_adapter.py
+      $<TARGET_FILE:tmol_disulfide_shared_jax_test>
+      $<TARGET_FILE:tmol_disulfide_shared_cpu>
+  )
+  set_tests_properties(disulfide_shared_jax_adapter PROPERTIES
+    ENVIRONMENT "PYTHONPATH=${CMAKE_SOURCE_DIR};JAX_PLATFORMS=cpu;JAX_ENABLE_X64=1;PYTHONDONTWRITEBYTECODE=1"
+  )
+endif()
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 2. Production pybind11 modules
