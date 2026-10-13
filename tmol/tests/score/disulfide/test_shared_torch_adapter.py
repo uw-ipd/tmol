@@ -3,6 +3,7 @@ import importlib.util
 from pathlib import Path
 import subprocess
 import sys
+import warnings
 
 import torch
 
@@ -104,8 +105,10 @@ def main():
     assert not no_grad_energy.requires_grad
     assert saved == []
 
-    tracked_energy, tracked_grad, tracked_saved = gradient(False)
-    recompute_energy, recompute_grad, recompute_saved = gradient(True)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("error", message=".*autograd kernel.*")
+        tracked_energy, tracked_grad, tracked_saved = gradient(False)
+        recompute_energy, recompute_grad, recompute_saved = gradient(True)
     assert tracked_saved == 2  # pairs plus retained pair derivatives
     assert recompute_saved == 3  # coords, pairs, and params
     torch.testing.assert_close(tracked_energy, inference, rtol=0, atol=1e-12)

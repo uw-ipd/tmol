@@ -335,7 +335,7 @@ Tensor prepared_disulfide(
 
 }  // namespace
 
-TMOL_LIBRARY(tmol_disulfide_shared, m) {
+TMOL_CPU_AUTOGRAD_LIBRARY(tmol_disulfide_shared, m) {
   m.def("prepared", TMOL_FN(&prepared_disulfide));
 }
 
