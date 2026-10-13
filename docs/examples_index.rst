@@ -2,7 +2,8 @@ Tutorials
 =========
 
 Each notebook works through a molecular experiment, with code, plots, and
-structure viewers together. Run it independently from top to bottom.
+structure viewers together. Each opens with a goal and short roadmap, then
+checks the result against that goal. Run it independently from top to bottom.
 Start with loading (01) and scoring (03); use batching (02) when you want to
 process several structures. Then choose the operation or molecular system
 you need below. The :doc:`task index <tutorial/recipe_index>` lists individual

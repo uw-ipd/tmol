@@ -35,7 +35,11 @@ Sphinx consumes. CI performs the same two-step notebook-and-Sphinx build.
 
 For tutorials, keep the explanation next to the operation it explains:
 
-- Start with a concrete molecular question and the structure used to answer it.
+- Start with a concrete molecular question, the structure used to answer it,
+  and the result the reader will produce. Give a short roadmap in execution order.
+- Complete that story with a result check before optional extensions. Connect the
+  final table or structure back to the opening question; do not promise a specific
+  stochastic outcome or imply that a short run establishes convergence.
 - Introduce each new object when it first appears. Distinguish residue labels
   from zero-based block indices, and state what a mask selects.
 - Give each code cell one job: prepare inputs, calculate, or inspect a result.
