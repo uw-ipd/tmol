@@ -117,7 +117,8 @@ ffi::Error check_recompute_buffers(
     Buffer pairs,
     Buffer params,
     Buffer cotangents,
-    Result gradient) {
+    Result gradient,
+    Result workspace) {
   if (auto error = check_inputs(coords, pairs, params); error.failure()) {
     return error;
   }
@@ -127,12 +128,20 @@ ffi::Error check_recompute_buffers(
   if (!shape_is(*gradient, {coords.dimensions()[0], 3})) {
     return invalid("gradient must have shape [n_atoms, 3]");
   }
+  if (!shape_is(*workspace, {pairs.dimensions()[0], 6, 3})) {
+    return invalid("workspace must have shape [n_pairs, 6, 3]");
+  }
   if (auto error =
           check_real_dtype(cotangents, coords.element_type(), "cotangents");
       error.failure()) {
     return error;
   }
-  return check_real_dtype(*gradient, coords.element_type(), "gradient");
+  if (auto error =
+          check_real_dtype(*gradient, coords.element_type(), "gradient");
+      error.failure()) {
+    return error;
+  }
+  return check_real_dtype(*workspace, coords.element_type(), "workspace");
 }
 
 ffi::Error common_status(int32_t status) {
@@ -331,30 +340,22 @@ ffi::Error vjp(
 }
 
 ffi::Error recompute_vjp(
-    ffi::ScratchAllocator scratch,
     Buffer coords,
     Buffer pairs,
     Buffer params,
     Buffer cotangents,
-    Result gradient) {
+    Result gradient,
+    Result workspace) {
   if (auto error = check_abi(); error.failure()) return error;
   if (auto error =
-          check_recompute_buffers(coords, pairs, params, cotangents, gradient);
+          check_recompute_buffers(
+              coords, pairs, params, cotangents, gradient, workspace);
       error.failure()) {
     return error;
   }
   auto invoke = [&](auto real_tag) -> ffi::Error {
     using Real = decltype(real_tag);
     auto required = Core<Real>::workspace(pairs.dimensions()[0]);
-    void* workspace = nullptr;
-    if (required.bytes != 0) {
-      auto allocation = scratch.Allocate(required.bytes, required.alignment);
-      if (!allocation) {
-        return ffi::Error::Internal(
-            "could not allocate shared disulfide recompute workspace");
-      }
-      workspace = *allocation;
-    }
     return common_status(
         Core<Real>::recompute_vjp(
             coords,
@@ -362,7 +363,7 @@ ffi::Error recompute_vjp(
             params,
             cotangents,
             gradient,
-            workspace,
+            required.bytes == 0 ? nullptr : workspace->untyped_data(),
             required.bytes));
   };
   return coords.element_type() == ffi::DataType::F32 ? invoke(float{})
@@ -410,11 +411,11 @@ XLA_FFI_DEFINE_HANDLER_SYMBOL(
     tmol_disulfide_cpu_ffi_recompute_vjp,
     recompute_vjp,
     ffi::Ffi::Bind()
-        .Ctx<ffi::ScratchAllocator>()
         .Arg<Buffer>()
         .Arg<Buffer>()
         .Arg<Buffer>()
         .Arg<Buffer>()
+        .Ret<Buffer>()
         .Ret<Buffer>());
 
 #undef TMOL_DISULFIDE_FFI_EXPORT

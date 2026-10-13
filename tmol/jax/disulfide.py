@@ -139,9 +139,10 @@ def _score_call(coord_shape, dtype_name, recompute_backward):
         gradient_shape = _result(jax, coord_shape, dtype)
         if recompute_backward:
             coords, pairs, params = residual
-            gradient = _call(
+            workspace_shape = _result(jax, (pairs.shape[0], 6, 3), dtype)
+            gradient, _ = _call(
                 "recompute_vjp",
-                gradient_shape,
+                (gradient_shape, workspace_shape),
                 coords,
                 pairs,
                 params,
