@@ -5,6 +5,7 @@ from ._term_creator import TermCreator, score_term_creator  # noqa: F401
 from ._backbone_torsion_creator import BackboneTorsionTermCreator  # noqa: F401
 from ._cartbonded_creator import CartBondedTermCreator  # noqa: F401
 from ._constraint_creator import ConstraintTermCreator  # noqa: F401
+from ._density_creator import DensityTermCreator  # noqa: F401
 from ._disulfide_creator import DisulfideTermCreator  # noqa: F401
 from ._dunbrack_creator import DunbrackTermCreator  # noqa: F401
 from ._elec_creator import ElecTermCreator  # noqa: F401
@@ -20,6 +21,7 @@ __all__ = [
     "BackboneTorsionTermCreator",
     "CartBondedTermCreator",
     "ConstraintTermCreator",
+    "DensityTermCreator",
     "DisulfideTermCreator",
     "DunbrackTermCreator",
     "ElecTermCreator",

@@ -38,21 +38,24 @@ if TYPE_CHECKING:
     pass
 
 
-def _non_memoized_beta2016(
-    device: torch.device, param_db: Optional[ParameterDatabase] = None
+def _load_score_function(
+    filename: str, device: torch.device, param_db: Optional[ParameterDatabase] = None
 ) -> "ScoreFunction":
-    """Build a beta_nov2016 score function without memoization."""
+    """Build a score function from a file in ``tmol/database/score_functions``."""
     if param_db is None:
         param_db = ParameterDatabase.get_default()
 
     _weights_path = os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "database",
-        "score_functions",
-        "beta2016.sfxn",
+        os.path.dirname(__file__), "..", "database", "score_functions", filename
     )
     return ScoreFunction.from_sfxn_file(_weights_path, param_db, device)
+
+
+def _non_memoized_beta2016(
+    device: torch.device, param_db: Optional[ParameterDatabase] = None
+) -> "ScoreFunction":
+    """Build a beta_nov2016 score function without memoization."""
+    return _load_score_function("beta2016.sfxn", device, param_db)
 
 
 @toolz.functoolz.memoize
@@ -93,6 +96,25 @@ def beta2016_score_function(
     return _memoized_beta2016(device)
 
 
+def beta_nov16_dens_score_function(
+    device: torch.device, param_db: Optional[ParameterDatabase] = None
+) -> "ScoreFunction":
+    """Return beta_nov2016 plus the elec_dens_fast term.
+
+    The term scores against pose_stack.density_map with cryo-EM defaults
+    (electron scattering, non-periodic map); set the score-function options
+    density_scatterers and density_periodic to change them.
+
+    Args:
+        device: Target torch device.
+        param_db: Optional parameter database; the process default is used when omitted.
+
+    Returns:
+        A new ScoreFunction.
+    """
+    return _load_score_function("beta_nov16_dens.sfxn", device, param_db)
+
+
 __all__ = [
     "AcceptorHybridization",
     "AtomTypeParamResolver",
@@ -106,5 +128,6 @@ __all__ = [
     "ScoreType",
     "WholePoseScoringModule",
     "beta2016_score_function",
+    "beta_nov16_dens_score_function",
     "calculate_fragment_interactions",
 ]

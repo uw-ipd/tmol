@@ -381,6 +381,9 @@ set(_C_SOURCES
   # score/constraint
   tmol/score/constraint/potentials/compiled.ops.cpp
   tmol/score/constraint/potentials/constraint_score.cpu.cpp
+  # score/density
+  tmol/score/density/potentials/compiled.ops.cpp
+  tmol/score/density/potentials/density_score.cpu.cpp
   # score/disulfide
   tmol/score/disulfide/potentials/compiled.ops.cpp
   tmol/score/disulfide/potentials/disulfide_pose_score.cpu.cpp
@@ -422,6 +425,7 @@ if(TMOL_HAS_CUDA)
     tmol/score/cartbonded/potentials/cartbonded_pose_score.cuda.cu
     tmol/score/genbonded/potentials/genbonded_pose_score.cuda.cu
     tmol/score/constraint/potentials/constraint_score.cuda.cu
+    tmol/score/density/potentials/density_score.cuda.cu
     tmol/score/disulfide/potentials/disulfide_pose_score.cuda.cu
     tmol/score/dunbrack/potentials/dunbrack_pose_score.cuda.cu
     tmol/score/elec/potentials/elec_pose_score.cuda.cu
