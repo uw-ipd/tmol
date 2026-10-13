@@ -33,6 +33,8 @@ def wheel(
     newline="\n",
     root_torch_marker='; extra == "torch"',
     root_jax_marker='; extra == "jax"',
+    duplicate_torch_marker=None,
+    duplicate_jax_marker=None,
 ):
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / f"{name}-{version}-{tag}.whl"
@@ -47,6 +49,10 @@ def wheel(
                 f"Requires-Dist: jax>=0.11.2{root_jax_marker}",
             ]
         )
+        if duplicate_torch_marker is not None:
+            metadata.append(f"Requires-Dist: torch{torch}{duplicate_torch_marker}")
+        if duplicate_jax_marker is not None:
+            metadata.append(f"Requires-Dist: jax>=0.11.2{duplicate_jax_marker}")
     elif name.startswith("tmol_ops"):
         metadata.extend(
             [
@@ -136,6 +142,20 @@ def test_rejects_unconditional_root_tensor_dependencies(tmp_path):
         validate_wheel(wheel(tmp_path, root_torch_marker=""))
     with pytest.raises(ValueError, match="jax extra"):
         validate_wheel(wheel(tmp_path, root_jax_marker=""))
+
+
+@pytest.mark.parametrize(
+    "duplicate",
+    [
+        {"duplicate_torch_marker": '; extra == "torch"'},
+        {"duplicate_torch_marker": ""},
+        {"duplicate_jax_marker": '; extra == "jax"'},
+        {"duplicate_jax_marker": ""},
+    ],
+)
+def test_rejects_duplicate_root_tensor_requirements(tmp_path, duplicate):
+    with pytest.raises(ValueError, match="exactly one Torch and one JAX"):
+        validate_wheel(wheel(tmp_path, **duplicate))
 
 
 def test_neutral_migration_publication_gate_is_fail_closed():

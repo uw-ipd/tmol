@@ -80,17 +80,31 @@ def validate_wheel(source: Path) -> None:
                 for requirement in requirements
                 if requirement.name in {"torch", "jax", "tmol-jax"}
             ]
-            if {requirement.name for requirement in tensor_requirements} != {
-                "torch",
-                "jax",
-            }:
-                raise ValueError(
-                    "base wheel has unexpected tensor runtime dependencies"
+            torch_requirements = [
+                requirement
+                for requirement in tensor_requirements
+                if requirement.name == "torch"
+            ]
+            jax_requirements = [
+                requirement
+                for requirement in tensor_requirements
+                if requirement.name == "jax"
+            ]
+            if (
+                len(torch_requirements) != 1
+                or len(jax_requirements) != 1
+                or any(
+                    requirement.name == "tmol-jax"
+                    for requirement in tensor_requirements
                 )
-            torch = next(r for r in tensor_requirements if r.name == "torch")
+            ):
+                raise ValueError(
+                    "base wheel must declare exactly one Torch and one JAX requirement"
+                )
+            torch = torch_requirements[0]
             if str(torch.specifier) != ">=2.11" or not _only_for_extra(torch, "torch"):
                 raise ValueError("torch extra must target the stable PyTorch ABI")
-            jax = next(r for r in tensor_requirements if r.name == "jax")
+            jax = jax_requirements[0]
             if str(jax.specifier) != ">=0.11.2" or not _only_for_extra(jax, "jax"):
                 raise ValueError("jax extra must require the supported JAX runtime")
         else:
