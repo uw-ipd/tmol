@@ -1,7 +1,7 @@
+#include <tmol/utility/tensor/native.hh>
 #pragma once
 
 #include <tmol/utility/tensor/pybind.h>
-#include <torch/extension.h>
 
 namespace tmol {
 namespace utility {

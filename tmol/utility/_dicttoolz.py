@@ -26,7 +26,7 @@ def keys(d):
 
 
 def vals(d):
-    return d.vals()
+    return d.values()
 
 
 def flat_items(d):

@@ -1,0 +1,183 @@
+"""Join an input split across files (a PDB protein, a MOL2 ligand) into one CIF that
+carries its own component chemistry."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import biotite.structure as struc
+import numpy as np
+from atomworks.io.utils.atom_array_plus import (
+    as_atom_array_plus,
+    concatenate_atom_array_plus,
+)
+from atomworks.io.utils.io_utils import CIFWriteConfig, to_cif_string
+
+# Chain IDs to draw from when a part collides with one already taken.
+_CHAIN_ID_POOL = tuple("LMNOPQRSTUVWXYZABCDEFGHIJK")
+
+
+def atom_array_from_mol2(
+    mol2_path: str | Path,
+    *,
+    res_name: str | None = None,
+    chain_id: str = "L",
+    res_id: int = 1,
+) -> struc.AtomArray:
+    """Read a Tripos MOL2 (or MDL SDF/MOL) ligand as an AtomArray with the file's bond
+    orders, formal charges and aromatic flags, registered as its own component template.
+
+    Args:
+        mol2_path: Path to the MOL2, SDF or MOL file.
+        res_name: Component code to give the ligand. Taken from the file's
+            substructure record when None.
+        chain_id: Chain to place the ligand on.
+        res_id: Residue number within that chain.
+
+    Returns:
+        A single-residue AtomArray with a populated bond list.
+
+    Examples:
+        >>> ligand = atom_array_from_mol2("ligand.mol2")
+        >>> ligand.bonds.get_bond_count() > 0
+        True
+    """
+    # tmol.ligand imports tmol.io
+    from tmol.ligand._detect import nonstandard_residue_info_from_file
+
+    info = nonstandard_residue_info_from_file(mol2_path, res_name=res_name)
+    atom_array = as_atom_array_plus(info.atom_array.copy())
+    atom_array.chain_id[:] = chain_id
+    atom_array.res_id[:] = res_id
+    atom_array.hetero[:] = True
+    # The file's molecule is its own component, whatever its name: PDBbind 3URI names
+    # a 65-atom ligand PRO, whose CCD entry is a peptide-linking amino acid
+    atom_array.set_annotation("chem_comp_type", np.full(len(atom_array), "NON-POLYMER"))
+    # a placeholder code can be a real entry ("LG1"): the file, not the name, decides
+    atom_array._custom_ccd_registry[str(atom_array.res_name[0]).upper()] = (
+        _component_template(atom_array)
+    )
+    return atom_array
+
+
+def _component_template(residue: struc.AtomArray) -> struc.AtomArray:
+    """The residue as its own component template, in the annotations a CIF writer reads."""
+    template = residue.copy()
+    if "is_aromatic" not in template.get_annotation_categories():
+        aromatic = (
+            template.get_annotation("tmol_aromatic")
+            if "tmol_aromatic" in template.get_annotation_categories()
+            else np.zeros(template.array_length(), dtype=bool)
+        )
+        template.set_annotation("is_aromatic", np.asarray(aromatic, dtype=bool))
+    if "is_leaving_atom" not in template.get_annotation_categories():
+        template.set_annotation(
+            "is_leaving_atom", np.zeros(template.array_length(), dtype=bool)
+        )
+    return template
+
+
+def _harmonised(parts: list[struc.AtomArray]) -> list[struc.AtomArray]:
+    """Give every part the union of the annotations (zero-filled), so concatenation
+    keeps them all, ``charge`` above all."""
+    union: dict[str, np.ndarray] = {}
+    for part in parts:
+        for category in part.get_annotation_categories():
+            union.setdefault(category, part.get_annotation(category))
+
+    filled = []
+    for part in parts:
+        part = part.copy()
+        for category, sample in union.items():
+            if category in part.get_annotation_categories():
+                continue
+            part.set_annotation(
+                category, np.zeros(part.array_length(), dtype=sample.dtype)
+            )
+        filled.append(part)
+    return filled
+
+
+def _with_unique_chain_ids(parts: list[struc.AtomArray]) -> list[struc.AtomArray]:
+    """Move a part onto free chain IDs when it collides with an earlier one."""
+    taken: set[str] = set()
+    result = []
+    for part in parts:
+        part = part.copy()
+        collisions = {str(c) for c in np.unique(part.chain_id)} & taken
+        for collision in sorted(collisions):
+            replacement = next(
+                (
+                    c
+                    for c in _CHAIN_ID_POOL
+                    if c not in taken and c not in part.chain_id
+                ),
+                None,
+            )
+            if replacement is None:
+                raise ValueError("Ran out of chain IDs while assembling the input")
+            part.chain_id[part.chain_id == collision] = replacement
+            taken.add(replacement)
+        taken.update(str(c) for c in np.unique(part.chain_id))
+        result.append(part)
+    return result
+
+
+def assemble_input(*parts: struc.AtomArray) -> struc.AtomArray:
+    """Join separately-read parts with their bonds, annotations and templates; a chain
+    ID claimed by an earlier part is moved to a free one.
+
+    Args:
+        *parts: Structures to join, in the order they should appear.
+
+    Returns:
+        The joined structure.
+
+    Raises:
+        ValueError: If no parts are given, or chain IDs cannot be made unique.
+
+    Examples:
+        >>> complex = assemble_input(protein, ligand)
+        >>> sorted(set(complex.chain_id))
+        ['A', 'L']
+    """
+    if not parts:
+        raise ValueError("assemble_input requires at least one structure")
+    prepared = _harmonised(_with_unique_chain_ids(list(parts)))
+    return concatenate_atom_array_plus(prepared)
+
+
+def cif_from_atom_array(
+    atom_array: struc.AtomArray,
+    *,
+    path: str | Path | None = None,
+    entry_id: str = "assembled",
+) -> str | Path:
+    """Write a structure as a CIF carrying its own component chemistry: known components
+    from the dictionary, others (a MOL2 ligand) from the structure itself.
+
+    Args:
+        atom_array: Structure to write.
+        path: Where to write. Returns the CIF text instead when None.
+        entry_id: Data block name.
+
+    Returns:
+        The written path, or the CIF text when ``path`` is None.
+
+    Examples:
+        >>> text = cif_from_atom_array(assemble_input(protein, ligand))
+        >>> "_chem_comp_bond" in text
+        True
+    """
+    config = CIFWriteConfig(
+        id=entry_id,
+        include_entity_categories=True,
+        chem_comp_source="ccd",
+        warn_on_ccd_without_registry=False,
+    )
+    text = to_cif_string(atom_array, config=config)
+    if path is None:
+        return text
+    path = Path(path)
+    path.write_text(text)
+    return path

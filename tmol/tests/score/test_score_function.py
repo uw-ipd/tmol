@@ -289,6 +289,50 @@ def test_fused_ljlk_elec_preserves_term_lanes_weights_and_gradients(
     assert torch.count_nonzero(fused.weights.grad[:4]) != 0
 
 
+@pytest.mark.parametrize("weighted", [False, True])
+@pytest.mark.parametrize("batched", [False, True])
+def test_cuda_fused_pose_accumulation_stability(
+    distinct_pose_stacks,
+    stack_of_distinct_poses,
+    default_database,
+    torch_device,
+    weighted,
+    batched,
+):
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA block-pair accumulation regression")
+    pose = stack_of_distinct_poses if batched else distinct_pose_stacks[-1]
+    sfxn = ScoreFunction(default_database, torch_device)
+    for term, weight in (
+        (ScoreType.fa_ljatr, 1.0),
+        (ScoreType.fa_ljrep, 0.55),
+        (ScoreType.fa_lk, 1.0),
+        (ScoreType.fa_elec, 1.0),
+    ):
+        sfxn.set_weight(term, weight)
+    scorer = sfxn.render_whole_pose_scoring_module(pose)
+    assert scorer._execution_modules[0].classname == "LJLK+Elec"
+    # Exercise both independent term lanes and the compact weighted lane.
+    scorer._force_weighted_fusion_for_cuda_graph = weighted
+    with torch.no_grad():
+        reference = scorer(pose.coords.double(), sum_terms=weighted)
+        repeated = torch.stack(
+            [scorer(pose.coords, sum_terms=weighted) for _ in range(32)]
+        )
+    assert repeated.dtype == torch.float32
+    torch.testing.assert_close(
+        repeated.double(), reference.expand_as(repeated), rtol=1e-4, atol=1e-3
+    )
+    # A long FP32 atomic sum drifts by multiple ULPs with workgroup order.
+    # Double accumulation followed by one cast retains FP32 rounding accuracy.
+    torch.testing.assert_close(
+        repeated,
+        repeated[0].expand_as(repeated),
+        rtol=torch.finfo(torch.float32).eps,
+        atol=0,
+    )
+
+
 def test_fused_ljlk_elec_weighted_gradient_finite_difference(
     ubq_pdb, default_database, torch_device
 ):
@@ -1731,6 +1775,33 @@ def _assert_matches_gold(score_map, gold_map, score_types, rtol, atol):
         )
 
 
+@pytest.mark.parametrize("weights", ["beta2016", "beta_soft"])
+def test_hydroxyl_torsion_weight(ubq_pdb, default_database, torch_device, weights):
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device)
+    weights_path = os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "..",
+        "database",
+        "score_functions",
+        f"{weights}.sfxn",
+    )
+    sfxn = ScoreFunction.from_sfxn_file(weights_path, default_database, torch_device)
+    scorer = sfxn.render_whole_pose_scoring_module(pose)
+    lane = sfxn.all_score_types().index(ScoreType.cart_hxltorsions)
+    coords = pose.coords.clone().requires_grad_(True)
+    unweighted = scorer(coords, sum_terms=False, apply_weights=False)[lane]
+    weighted = scorer(coords, sum_terms=False, apply_weights=True)[lane]
+    assert torch.isfinite(unweighted).all()
+    assert (unweighted > 0).all()
+    torch.testing.assert_close(weighted, unweighted)
+    unweighted_grad = torch.autograd.grad(unweighted.sum(), coords)[0]
+    weighted_grad = torch.autograd.grad(weighted.sum(), coords)[0]
+    assert torch.isfinite(unweighted_grad).all()
+    assert unweighted_grad.abs().max() > 0
+    torch.testing.assert_close(weighted_grad, unweighted_grad)
+
+
 def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_device):
     ps = pose_stack_from_pdb(ubq_pdb, torch_device)
 
@@ -1760,10 +1831,11 @@ def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_de
     gold_score_map = {
         ScoreType.cart_lengths: n([38.056973]),
         ScoreType.cart_angles: n([183.9738]),
-        ScoreType.cart_torsions: n([27.477385]),
-        ScoreType.cart_impropers: n([20.951893]),
+        ScoreType.cart_torsions: n([46.02357]),
+        ScoreType.cart_impropers: n([9.430529]),
         ScoreType.cart_hxltorsions: n([47.41971]),
         ScoreType.disulfide: n([0.0]),
+        ScoreType.metal_coordination: n([0.0]),
         ScoreType.fa_ljatr: n([-417.02362]),
         ScoreType.fa_ljrep: n([39.92654]),
         ScoreType.fa_lk: n([301.93347]),
@@ -1773,7 +1845,7 @@ def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_de
         ScoreType.lk_ball: n([172.19647]),
         ScoreType.lk_bridge: n([1.5817453]),
         ScoreType.lk_bridge_uncpl: n([11.031567]),
-        ScoreType.rama: n([-12.743372]),
+        ScoreType.rama: n([-4.582839]),
         ScoreType.omega: n([4.100171]),
         ScoreType.ref: n([18.7695]),
         ScoreType.dunbrack_rot: n([70.64968]),
@@ -1810,10 +1882,11 @@ def test_score_function_all_score_types(ubq_pdb):
     gold_score_map = {
         ScoreType.cart_lengths: n([38.056973]),
         ScoreType.cart_angles: n([183.9738]),
-        ScoreType.cart_torsions: n([27.477385]),
-        ScoreType.cart_impropers: n([20.951893]),
+        ScoreType.cart_torsions: n([46.02357]),
+        ScoreType.cart_impropers: n([9.430529]),
         ScoreType.cart_hxltorsions: n([47.41971]),
         ScoreType.disulfide: n([0.0]),
+        ScoreType.metal_coordination: n([0.0]),
         ScoreType.fa_ljatr: n([-417.02362]),
         ScoreType.fa_ljrep: n([240.7147]),
         ScoreType.fa_lk: n([301.93347]),
@@ -1823,7 +1896,7 @@ def test_score_function_all_score_types(ubq_pdb):
         ScoreType.lk_ball: n([172.19647]),
         ScoreType.lk_bridge: n([1.5817453]),
         ScoreType.lk_bridge_uncpl: n([11.031567]),
-        ScoreType.rama: n([-12.743372]),
+        ScoreType.rama: n([-4.582839]),
         ScoreType.omega: n([4.100171]),
         ScoreType.ref: n([-41.275]),
         ScoreType.dunbrack_rot: n([70.64968]),
@@ -1863,11 +1936,12 @@ def test_score_function_all_score_types_protein_dna(protein_dna_pdb):
         ScoreType.hbond: n([-173.997391]),
         ScoreType.cart_lengths: n([157.134415]),
         ScoreType.cart_angles: n([963.831909]),
-        ScoreType.cart_torsions: n([24.962362]),
-        ScoreType.cart_impropers: n([23.998163]),
+        ScoreType.cart_torsions: n([134.518875]),
+        ScoreType.cart_impropers: n([11.086108]),
         ScoreType.cart_hxltorsions: n([26.123291]),
         ScoreType.disulfide: n([0.0]),
-        ScoreType.rama: n([91.406868]),
+        ScoreType.metal_coordination: n([0.0]),
+        ScoreType.rama: n([97.412605]),
         ScoreType.omega: n([133.222443]),
         ScoreType.dunbrack_rot: n([198.613831]),
         ScoreType.dunbrack_rotdev: n([553.206238]),
@@ -1913,6 +1987,7 @@ def test_score_function_two_body_terms_getter():
     )
     from tmol.score.cartbonded import CartBondedEnergyTerm
     from tmol.score.disulfide import DisulfideEnergyTerm
+    from tmol.score.metal import MetalCoordinationEnergyTerm
     from tmol.score.na_torsion import (
         NaTorsionEnergyTerm,
     )
@@ -1933,6 +2008,7 @@ def test_score_function_two_body_terms_getter():
         BackboneTorsionEnergyTerm,
         CartBondedEnergyTerm,
         DisulfideEnergyTerm,
+        MetalCoordinationEnergyTerm,
         NaTorsionEnergyTerm,
         ElecEnergyTerm,
         GenBondedEnergyTerm,
@@ -1955,6 +2031,7 @@ def test_score_function_all_terms_getter():
     )
     from tmol.score.cartbonded import CartBondedEnergyTerm
     from tmol.score.disulfide import DisulfideEnergyTerm
+    from tmol.score.metal import MetalCoordinationEnergyTerm
     from tmol.score.na_torsion import (
         NaTorsionEnergyTerm,
     )
@@ -1979,6 +2056,7 @@ def test_score_function_all_terms_getter():
         BackboneTorsionEnergyTerm,
         CartBondedEnergyTerm,
         DisulfideEnergyTerm,
+        MetalCoordinationEnergyTerm,
         NaTorsionEnergyTerm,
         ElecEnergyTerm,
         GenBondedEnergyTerm,
@@ -1993,3 +2071,185 @@ def test_score_function_all_terms_getter():
                 found = True
                 break
         assert found
+
+
+@pytest.mark.parametrize("topology_only", [False, True])
+def test_packing_releases_previous_page_before_allocating_next(
+    monkeypatch, topology_only
+):
+    import weakref
+    from tmol.score.ljlk import potentials
+
+    class Term(torch.nn.Module):
+        def __init__(self, name, width, cutoff):
+            super().__init__()
+            self.classname = name
+            self.n_score_types = width
+            self.block_neighbor_cutoff = cutoff
+            self.rotamer_dispatch_key = "sphere_overlap"
+            self.n_poses = 1
+            self.n_rots = 4
+
+    ljlk = Term("LJLK", 3, 6.0)
+    elec = Term("Elec", 1, 5.5)
+    fused = score_function_module._FusedLJLKAndElecRotamerModule(ljlk, elec)
+    scorer = RotamerScoringModule(torch.ones(4), [ljlk, elec])
+    scorer._fused_ljlk_elec = fused
+    scorer._fused_ljlk_elec_index = 0
+    scorer._fused_ljlk_elec_weight_offset = 0
+    monkeypatch.setattr(fused, "_native_arguments", lambda _: ())
+    monkeypatch.setattr(score_function_module, "_PACK_FUSED_ROTAMER_SCORE_WINDOW", 2)
+    live_layouts = []
+    live_scores = []
+
+    def dispatches(_):
+        for _ in range(3):
+            assert all(ref() is None for ref in live_layouts)
+            assert all(ref() is None for ref in live_scores)
+            indices = torch.zeros((3, 4), dtype=torch.int32)
+            live_layouts.append(weakref.ref(indices))
+            yield indices
+            del indices
+
+    def score(*args):
+        assert not topology_only
+        assert all(ref() is None for ref in live_scores)
+        indices = args[-1]
+        scores = torch.ones((1, indices.shape[1]))
+        live_scores.append(weakref.ref(scores))
+        return scores, indices, torch.empty(0)
+
+    monkeypatch.setattr(fused, "iter_packing_dispatches", dispatches)
+    monkeypatch.setattr(potentials, "ljlk_elec_weighted_rotamer_scores", score)
+    n_pages = 0
+    with torch.no_grad():
+        for _, indices, values in scorer._iter_weighted_sparse_entries(
+            torch.zeros((1, 3)),
+            retain_shared_dispatch=False,
+            topology_only=topology_only,
+        ):
+            assert indices.shape == (3, 2)
+            assert values.numel() == (0 if topology_only else 2)
+            n_pages += 1
+            del indices, values
+    assert n_pages == 6
+    assert all(ref() is None for ref in live_layouts + live_scores)
+
+
+@pytest.mark.parametrize("topology_only", [False, True])
+def test_packing_releases_term_iterator_pages(topology_only):
+    import weakref
+
+    live_pages = []
+
+    class Term(torch.nn.Module):
+        n_score_types = 1
+        packing_score_iterator = True
+
+        def iter_packing_entries(self, coords, *, topology_only):
+            for _ in range(3):
+                assert all(ref() is None for ref in live_pages)
+                indices = torch.zeros((3, 2), dtype=torch.int32)
+                scores = None if topology_only else torch.ones((1, 2))
+                live_pages.append(weakref.ref(indices))
+                if scores is not None:
+                    live_pages.append(weakref.ref(scores))
+                yield scores, indices
+                del scores, indices
+
+    scorer = RotamerScoringModule(torch.ones(1), [Term()])
+    n_pages = 0
+    for _, indices, values in scorer._iter_weighted_sparse_entries(
+        torch.zeros((1, 3)),
+        retain_shared_dispatch=False,
+        topology_only=topology_only,
+    ):
+        assert values.numel() == (0 if topology_only else 2)
+        n_pages += 1
+        del indices, values
+    assert n_pages == 3
+    assert all(ref() is None for ref in live_pages)
+
+
+@pytest.mark.parametrize("layout", ["dense", "strided", "negative"])
+def test_whole_pose_gradient_accumulation(ubq_pdb, torch_device, layout):
+    poses = [pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=n) for n in (4, 6)]
+    pose = PoseStackBuilder.from_poses(poses, torch_device)
+    scorer = beta2016_score_function(torch_device).render_whole_pose_scoring_module(
+        pose
+    )
+    if scorer._native_score_capture is None:
+        pytest.skip("Requires stable native operators")
+    coords = pose.coords.detach().clone()
+    if layout == "strided":
+        coords = torch.stack((coords, coords), dim=1)[:, 0]
+    coords.requires_grad_()
+    if layout == "negative":
+        coords = torch._neg_view(coords)
+    # Explicitly exercise the aggregate path even where CPU execution policy
+    # selects threaded terms or weighted pair fusion instead.
+    with torch.autograd.graph.saved_tensors_hooks(lambda t: t.clone(), lambda t: t):
+        actual = scorer._score_with_gradients(coords)
+        expected = (scorer.unweighted_scores(coords) * scorer.weights).sum(0)
+        actual.mul_(1.25)
+        expected.mul_(1.25)
+        upstream = torch.tensor([0.25, -0.75], device=torch_device, requires_grad=True)
+        ga = torch.autograd.grad(
+            actual, coords, upstream, create_graph=True, retain_graph=True
+        )[0]
+        ge = torch.autograd.grad(expected, coords, upstream, create_graph=True)[0]
+        torch.testing.assert_close(actual, expected, atol=1e-3, rtol=1e-5)
+        torch.testing.assert_close(ga, ge, atol=1e-3, rtol=1e-4)
+        torch.testing.assert_close(
+            torch.autograd.grad(ga.sum(), upstream)[0],
+            torch.autograd.grad(ge.sum(), upstream)[0],
+            atol=1e-3,
+            rtol=1e-4,
+        )
+        # The ordinary backward uses the single CUDA reduction kernel.
+        ordinary = torch.autograd.grad(actual, coords, upstream.detach())[0]
+        torch.testing.assert_close(ordinary, ge, atol=1e-3, rtol=1e-4)
+
+
+@pytest.mark.parametrize("term_name", ["CartBonded", "HBond", "Disulfide"])
+def test_whole_pose_accumulation_preserves_term_hooks(
+    ubq_pdb, torch_device, monkeypatch, term_name
+):
+    monkeypatch.setattr(torch, "get_num_threads", lambda: 1)
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    scorer = beta2016_score_function(torch_device).render_whole_pose_scoring_module(
+        pose
+    )
+    if scorer._native_score_capture is None:
+        pytest.skip("Requires stable native operators")
+    term = next(t for t in scorer._execution_modules if t.classname == term_name)
+    coords = pose.coords.detach().clone().requires_grad_()
+    nested = beta2016_score_function(torch_device).render_whole_pose_scoring_module(
+        pose
+    )
+    # Hooks may transform inputs/outputs and evaluate another rendered scorer.
+    with term.register_forward_pre_hook(lambda module, args: (args[0] * 1.001,)):
+        with term.register_forward_hook(
+            lambda module, args, output: output.square()
+            + nested._score_with_gradients(args[0])
+        ):
+            actual = scorer._score_with_gradients(coords)
+            expected = (scorer.unweighted_scores(coords) * scorer.weights).sum(0)
+            torch.testing.assert_close(actual, expected, atol=1e-3, rtol=1e-5)
+            torch.testing.assert_close(
+                torch.autograd.grad(actual.sum(), coords)[0],
+                torch.autograd.grad(expected.sum(), coords)[0],
+                atol=1e-3,
+                rtol=1e-4,
+            )
+
+    # Native term parameters are held in lists, not registered module fields.
+    # Enabling gradients after rendering must still select ordinary autograd.
+    ref = next(t for t in scorer.term_modules if t.classname == "Ref")
+    pose_ref = ref.term_parameters[1].requires_grad_()
+    actual = scorer(coords)
+    expected = (scorer.unweighted_scores(coords) * scorer.weights).sum(0)
+    torch.testing.assert_close(
+        torch.autograd.grad(actual.sum(), pose_ref)[0],
+        torch.autograd.grad(expected.sum(), pose_ref)[0],
+    )

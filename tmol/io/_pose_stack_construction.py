@@ -7,6 +7,7 @@ from tmol.types import (
     validate_args,
 )
 from typing import Optional
+from tmol.database.chemical import GEOMETRY_NAMES
 from tmol.pose import (
     PDBInfo,
     DEFAULT_ATOM_OCCUPANCY,
@@ -33,13 +34,20 @@ def pose_stack_from_canonical_form(  # noqa: C901
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
     cyclic_bonds: Optional[Tensor[torch.int64][:, 3]] = None,
     covalent_bonds: Optional[Tensor[torch.int64][:, 5]] = None,
+    metal_sites: Optional[Tensor[torch.int64][:, 3]] = None,
+    metal_coordination: Optional[Tensor[torch.int64][:, 5]] = None,
+    metal_origins: Optional[NDArray[object][:, :]] = None,
+    residue_annotations: Optional[numpy.ndarray] = None,
+    protonation_variants: Optional[Tensor[torch.int64][:, :]] = None,
     *,
     trust_hydrogen_names: bool = False,
     find_additional_disulfides: Optional[bool] = True,
     find_additional_cyclic_closures: Optional[bool] = True,
+    find_additional_metal_coordination: bool = True,
     return_chain_ind: bool = False,
     return_atom_mapping: bool = False,
     return_block_has_missing_atoms: bool = False,
+    packer_atoms=None,
 ):
     """Build a pose stack from tensors in canonical atom ordering.
 
@@ -71,6 +79,20 @@ def pose_stack_from_canonical_form(  # noqa: C901
         cyclic_bonds: Explicit ``[pose, up_res, down_res]`` polymer closures.
             If omitted, terminal connection atoms within 2 A imply a closure.
         find_additional_cyclic_closures: Detect closures absent from cyclic_bonds.
+        metal_sites: Explicit ``[pose, metal, geometry]`` rows, geometry an index
+            into GEOMETRY_NAMES. A listed metal is not detected.
+        metal_coordination: Explicit ``[pose, metal, site, donor, atom]`` rows
+            for listed metals, atom in canonical ordering.
+        metal_origins: Per residue, where a metal split out of a component
+            sat, kept in pdb_info so export can put it back.
+        residue_annotations: Per residue, input annotations such as
+            is_polymer, kept in pdb_info and written back on export.
+        protonation_variants: Per residue, the res_type_variant the input's
+            protonation state selects, or -1 to leave it to tmol. Disulfides
+            are tmol's to find.
+        find_additional_metal_coordination: Detect the geometry and donors of
+            metals absent from metal_sites; otherwise they take their default
+            geometry with every site open.
         trust_hydrogen_names: Preserve generated-residue hydrogens whose names
             match the prepared database, for example in canonical roundtrips.
         return_chain_ind: Include the left-justified ``chain_ind`` tensor.
@@ -78,6 +100,8 @@ def pose_stack_from_canonical_form(  # noqa: C901
             ``ps_atom_mapping`` tensors between canonical and pose atom order.
         return_block_has_missing_atoms: Include a ``[pose, residue]`` mask for
             blocks missing non-leaf input atoms instead of rejecting them.
+        packer_atoms: Given a block type, the atoms rotamer packing will place;
+            missing ones are left for the packer instead of built here.
 
     Returns:
         The pose stack. If any return flag is set, returns ``(pose_stack,
@@ -86,6 +110,17 @@ def pose_stack_from_canonical_form(  # noqa: C901
 
     from tmol.io.details import left_justify_canonical_form
     from tmol.io.details import find_cyclic_closures, find_disulfides
+    from tmol.io.details._metal_detection import (
+        donor_patches,
+        find_metal_geometries,
+        metal_connection_rows,
+        place_site_virtuals,
+        with_donor_patches,
+    )
+    from tmol.io.details._protonation_variants import (
+        neutral_terminus_patches,
+        select_protonation_variants,
+    )
     from tmol.io.details import resolve_his_tautomerization
     from tmol.io.details import (
         assign_block_types,
@@ -119,7 +154,8 @@ def pose_stack_from_canonical_form(  # noqa: C901
     # step 2: remove any "virtual residues," marked with a res-type ind of -1
     #         by shifting all of the residues in each Pose "to the left"
     # step 3: resolve disulfides and cyclic-chain closures
-    # step 4: resolve his tautomer
+    # step 4: resolve his tautomer, then protonation variants and the donor
+    #         forms metal connections need
     # step 5: resolve termini variants, assign block-types to each input
     #         residue, and populate the inter-block connectivity tensors
     # step 6: select the atoms from the canonically-ordered input tensors
@@ -133,6 +169,10 @@ def pose_stack_from_canonical_form(  # noqa: C901
     # 1: look for NaNs in the input coordinates tensor
     atom_is_present = torch.all(torch.logical_not(torch.isnan(coords)), dim=3)
 
+    declared_metal_sites, required_metal_donors = _declared_metal_sites(
+        res_types, metal_sites, metal_coordination
+    )
+
     # 2
     # "left justify" the input canonical-form residues: residues that are
     # given with a "-1" residue-type should be excised from the center of
@@ -140,6 +180,25 @@ def pose_stack_from_canonical_form(  # noqa: C901
     # downstream will work properly. This effectively means "shifting left"
     # all the other residues in the Pose to fill the vacated slots.
     # Single-slot poses are already left-justified.
+    real = res_types != -1
+    order = torch.argsort((~real).to(torch.int8), dim=1, stable=True)
+    kept = torch.gather(real, 1, order)
+    if protonation_variants is not None:
+        protonation_variants = torch.where(
+            kept,
+            torch.gather(protonation_variants.to(res_types.device), 1, order),
+            -1,
+        )
+    if metal_origins is not None:
+        metal_origins = numpy.where(
+            kept.cpu().numpy(),
+            numpy.take_along_axis(metal_origins, order.cpu().numpy(), 1),
+            None,
+        )
+    if residue_annotations is not None:
+        residue_annotations = numpy.take_along_axis(
+            residue_annotations, order.cpu().numpy(), 1
+        )
     if res_types.shape[1] != 1:
         (
             chain_id,
@@ -194,6 +253,22 @@ def pose_stack_from_canonical_form(  # noqa: C901
             find_additional_disulfides,
         )
 
+    # 3a: a metal's geometry rides the variant axis a disulfide does (they never
+    #     collide); a disulfide cysteine cannot donate.
+    metal_variants, metal_assignments = find_metal_geometries(
+        canonical_ordering,
+        pbt.chem_db,
+        res_types,
+        coords,
+        excluded_donor_residues=res_type_variants != 0,
+        declared_sites=declared_metal_sites,
+        find_additional=find_additional_metal_coordination,
+        required_donors=required_metal_donors,
+    )
+    res_type_variants = torch.where(
+        metal_variants != 0, metal_variants, res_type_variants
+    )
+
     # 3b
     cyclic_closures = find_cyclic_closures(
         canonical_ordering,
@@ -214,6 +289,35 @@ def pose_stack_from_canonical_form(  # noqa: C901
         canonical_ordering, res_types, res_type_variants, coords, atom_is_present
     )
 
+    # 4a: protonation follows the hydrogens present, else the input's state.
+    #     After 4, which rewrites every histidine's variant.
+    res_type_variants = select_protonation_variants(
+        canonical_ordering,
+        pbt.chem_db,
+        res_types,
+        res_type_variants,
+        resolved_atom_is_present,
+        metal_assignments,
+        covalent_bonds,
+    )
+    if protonation_variants is not None:
+        state = protonation_variants.clone()
+        state[found_disulfides[:, 0], found_disulfides[:, 1]] = -1
+        state[found_disulfides[:, 0], found_disulfides[:, 2]] = -1
+        res_type_variants = torch.where(state >= 0, state, res_type_variants).to(
+            res_type_variants.dtype
+        )
+
+    # 4b: a coordinating atom needs a connection its metal can fill, a neutral
+    #     amino terminus its own form; both are made for this input only
+    pbt = with_donor_patches(
+        pbt,
+        donor_patches(canonical_ordering, pbt.chem_db, res_types, metal_assignments)
+        + neutral_terminus_patches(
+            canonical_ordering, pbt.chem_db, res_types, res_type_variants
+        ),
+    )
+
     # 5
     (
         block_types64,
@@ -230,6 +334,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
         res_not_connected,
         cyclic_closures,
         covalent_bonds,
+        metal_connection_rows(metal_assignments),
     )
 
     # 6
@@ -250,6 +355,12 @@ def pose_stack_from_canonical_form(  # noqa: C901
         trust_hydrogen_names=trust_hydrogen_names,
     )
 
+    # 6a: a free ion's site virtuals have no frame to build from; orient them
+    #     from the fitted geometry
+    block_coords, missing_atoms = place_site_virtuals(
+        pbt, block_types64, block_coords, missing_atoms, metal_assignments
+    )
+
     # 7
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
     (
@@ -266,6 +377,7 @@ def pose_stack_from_canonical_form(  # noqa: C901
         missing_atoms,
         inter_residue_connections,
         fail_on_missing_nonleaf_atoms=not return_block_has_missing_atoms,
+        packer_atoms=packer_atoms,
     )
 
     def i64(x):
@@ -295,6 +407,8 @@ def pose_stack_from_canonical_form(  # noqa: C901
         chain_labels=chain_labels,
         atom_occupancy=atom_occupancy_pose_layout,
         atom_b_factor=atom_b_factor_pose_layout,
+        metal_origins=metal_origins,
+        residue_annotations=residue_annotations,
     )
 
     block_coord_offset64 = i64(block_coord_offset)
@@ -306,7 +420,6 @@ def pose_stack_from_canonical_form(  # noqa: C901
         inter_residue_connections=inter_residue_connections,
         inter_residue_connections64=inter_residue_connections64,
         inter_block_bondsep=inter_block_bondsep,
-        inter_block_bondsep64=i64(inter_block_bondsep),
         block_type_ind=i32(block_types64),
         block_type_ind64=block_types64,
         chain_id=chain_id,
@@ -360,3 +473,37 @@ def pose_stack_from_canonical_form(  # noqa: C901
     if len(opt_return_vals) > 0:
         return ps, opt_return_vals
     return ps
+
+
+def _declared_metal_sites(res_types, metal_sites, metal_coordination):
+    """Left-justified {(pose, metal): (geometry, ((site, donor, atom), ...))}, and
+    {(pose, metal): {(donor, atom)}} for bonds whose metal has no declared geometry."""
+    # tmol.io.details imports this module's package, as the builder above does
+    from tmol.io.details import left_justify_residue_indices
+
+    if res_types.shape[1] != 1:
+        if metal_sites is not None:
+            metal_sites = left_justify_residue_indices(res_types, metal_sites, (1,))
+        if metal_coordination is not None:
+            metal_coordination = left_justify_residue_indices(
+                res_types, metal_coordination, (1, 3)
+            )
+    geometry_for = {
+        (pose, metal): GEOMETRY_NAMES[geometry]
+        for pose, metal, geometry in (
+            metal_sites.tolist() if metal_sites is not None else []
+        )
+    }
+    filled, required = {}, {}
+    for pose, metal, site, donor, atom in (
+        metal_coordination.tolist() if metal_coordination is not None else []
+    ):
+        if (pose, metal) in geometry_for and site >= 0:
+            filled.setdefault((pose, metal), []).append((site, donor, atom))
+        else:
+            required.setdefault((pose, metal), set()).add((donor, atom))
+    declared = {
+        key: (geometry, tuple(filled.get(key, ())))
+        for key, geometry in geometry_for.items()
+    }
+    return declared, required

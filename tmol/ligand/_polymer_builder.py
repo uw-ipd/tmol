@@ -5,8 +5,6 @@ with polymer connections, re-roots the atom tree on the first mainchain atom,
 and declares the polymer properties the score terms read.
 """
 
-import math
-
 import attr
 from collections import deque
 
@@ -22,8 +20,8 @@ from tmol.database.chemical import (
     Torsion,
     UnresolvedAtom,
 )
+from tmol.ligand._icoor_tree import icoor_geometry_from_coords
 from tmol.ligand._polymer_profile import PolymerProfile
-from tmol.ligand._residue_builder import _angle, _dihedral, _distance
 
 # non-canonicals with no acceptible sidechain mapping fall back to this AA
 #   for backbone potential mapping
@@ -589,33 +587,28 @@ def _parents(profile, adj, order, hydrogens=frozenset()):
 
 def _computed_icoors(order, frames, coords):
     """Internal coordinates measured off the generated conformer."""
-    icoors = []
-    for i, name in enumerate(order):
-        par, gp, ggp = frames[name]
-        if i == 0:
-            d, theta, phi = 0.0, 0.0, 0.0
-        elif i == 1:
-            d, theta, phi = _distance(coords[name], coords[par]), 180.0, 0.0
-        elif i == 2:
-            d = _distance(coords[name], coords[par])
-            theta = 180.0 - _angle(coords[name], coords[par], coords[gp])
-            phi = 0.0
-        else:
-            d = _distance(coords[name], coords[par])
-            theta = 180.0 - _angle(coords[name], coords[par], coords[gp])
-            phi = -_dihedral(coords[name], coords[par], coords[gp], coords[ggp])
-        icoors.append(
-            Icoor(
-                name=name,
-                phi=math.radians(phi),
-                theta=math.radians(theta),
-                d=d,
-                parent=par,
-                grand_parent=gp,
-                great_grand_parent=ggp,
-            )
+    index = {name: i for i, name in enumerate(order)}
+    positions = numpy.array([coords[name] for name in order])
+    parent = {i: index[frames[name][0]] for i, name in enumerate(order)}
+    grandparents = {
+        i: (index[frames[name][1]], index[frames[name][2]])
+        for i, name in enumerate(order)
+    }
+    geometry = icoor_geometry_from_coords(
+        positions, list(range(len(order))), parent, grandparents
+    )
+    return [
+        Icoor(
+            name=name,
+            phi=phi,
+            theta=theta,
+            d=d,
+            parent=frames[name][0],
+            grand_parent=frames[name][1],
+            great_grand_parent=frames[name][2],
         )
-    return icoors
+        for name, (d, theta, phi) in zip(order, geometry.tolist())
+    ]
 
 
 def _carboxyl_neighbor(center, adj, elements):
@@ -905,6 +898,11 @@ def to_polymer_residue_type(
         hydrogens_regenerated=restype.hydrogens_regenerated,
         dunbrack_reference=dunbrack_reference,
         rama_reference=rama_reference,
+        io_bond_orders=tuple(
+            (rename(a), rename(b), order)
+            for a, b, order in restype.io_bond_orders
+            if a not in dropped and b not in dropped
+        ),
     )
 
 

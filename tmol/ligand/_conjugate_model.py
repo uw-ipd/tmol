@@ -12,16 +12,16 @@ import biotite.structure as struc
 import networkx as nx
 import numpy as np
 from rdkit import Chem
-from atomworks.io.tools.rdkit import (
-    ccd_template_to_rdkit,
-    transfer_tetrahedral_stereochemistry,
-)
 from atomworks.io.utils.atom_array_plus import concatenate_atom_array_plus
-from atomworks.io.utils.leaving_atoms import get_leaving_atom_groups
+from atomworks.io.utils.link_chemistry import get_leaving_atom_groups
 
 from tmol.ligand._polymer_profile import cap_residue, profile_for_atom_array
 from tmol.ligand._conjugation_patches import connection_name
-from tmol.ligand._rdkit_mol import rdkit_mol_from_ligand_atom_array
+from tmol.ligand._rdkit_mol import (
+    ccd_template_to_rdkit,
+    rdkit_mol_from_ligand_atom_array,
+    transfer_tetrahedral_stereochemistry,
+)
 
 
 @dataclass(frozen=True)
@@ -37,6 +37,11 @@ class CappedConjugateModel:
     connection_names: tuple[tuple[str, str], ...]
 
 
+def is_polymer_link(first, second):
+    """A bond links two polymer residues only from one's up port to the other's down port."""
+    return {first, second} == {"up", "down"}
+
+
 def _polymer_connection(residue, atom):
     if not residue.properties.polymer.is_polymer:
         return None
@@ -50,22 +55,24 @@ def _polymer_connection(residue, atom):
     )
 
 
-def attachment_connection_name(atom_array, index, partner, residue):
-    """Classify a cross-residue endpoint from both atoms' chemistry.
-
-    A polymer nitrogen's ``down`` connection means an incoming carbonyl, not
-    every possible bond at that atom. Alkyl carbon and phosphorus partners are
-    ordinary conjugations, including when the nitrogen is at a chain end.
-    """
+def attachment_connection_name(
+    atom_array, index, partner, residue, partner_residue=None
+):
+    """A polymer ``down`` N takes only an incoming (thio)carbonyl (1MRO GL3); a port of a
+    known partner only its complementary port (7AG5, 3W93, 1I72); else a conjugation."""
     atom = str(atom_array.atom_name[index])
     declared = _polymer_connection(residue, atom)
+    if declared is not None and partner_residue is not None:
+        other = _polymer_connection(partner_residue, str(atom_array.atom_name[partner]))
+        if not is_polymer_link(declared, other):
+            return connection_name(atom)
     if declared != "down" or str(atom_array.element[index]).strip().upper() != "N":
         return declared or connection_name(atom)
     if str(atom_array.element[partner]).strip().upper() != "C":
         return connection_name(atom)
     neighbors, orders = atom_array.bonds.get_bonds(partner)
     carbonyl = any(
-        str(atom_array.element[neighbor]).strip().upper() == "O"
+        str(atom_array.element[neighbor]).strip().upper() in ("O", "S")
         and int(order) == int(struc.BondType.DOUBLE)
         for neighbor, order in zip(neighbors, orders)
         if neighbor != index
@@ -162,11 +169,16 @@ def iter_capped_conjugate_models(atom_array, chemical_database):
     bonds = atom_array.bonds.as_array()
     cross = bonds[indices[bonds[:, 0]] != indices[bonds[:, 1]]]
 
+    def partner_definition(partner):
+        return definitions.get(str(atom_array.res_name[partner]))
+
     def port(index, partner):
         ri = int(indices[index])
         return (
             ri,
-            attachment_connection_name(atom_array, index, partner, definition(ri)),
+            attachment_connection_name(
+                atom_array, index, partner, definition(ri), partner_definition(partner)
+            ),
         )
 
     def label(index, partner):
@@ -185,9 +197,8 @@ def iter_capped_conjugate_models(atom_array, chemical_database):
                     f"{label(previous, endpoint)} and {label(partner, endpoint)}. "
                     "Each connection accepts one partner; resolve the input bond graph."
                 )
-        ci = attachment_connection_name(atom_array, first, second, definition(ri))
-        cj = attachment_connection_name(atom_array, second, first, definition(rj))
-        if {ci, cj} == {"up", "down"}:
+        ci, cj = port(first, second)[1], port(second, first)[1]
+        if is_polymer_link(ci, cj):
             polymer_attached.update(
                 (
                     (ri, str(atom_array.atom_name[first])),
@@ -330,7 +341,7 @@ def _restore_template_stereochemistry(
         if template is None:
             continue
         if name not in references:
-            reference = ccd_template_to_rdkit(template, hydrogen_policy="remove")
+            reference = ccd_template_to_rdkit(template)
             references[name] = (
                 reference,
                 {

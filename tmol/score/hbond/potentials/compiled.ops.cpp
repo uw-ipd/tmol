@@ -1,5 +1,4 @@
-#include <torch/torch.h>
-#include <torch/script.h>
+#include <tmol/utility/tensor/native_library.hh>
 
 #include <limits>
 
@@ -23,15 +22,16 @@ namespace potentials {
 
 ContextManager mgr;
 
-using torch::Tensor;
-using torch::autograd::AutogradContext;
-using torch::autograd::Function;
-using torch::autograd::tensor_list;
+using tmol::native::Tensor;
+using tmol::native::autograd::AutogradContext;
+using tmol::native::autograd::Function;
+using tmol::native::autograd::tensor_list;
 
 template <template <tmol::Device> class DispatchMethod>
-class HBondPoseScoresOp
-    : public torch::autograd::Function<HBondPoseScoresOp<DispatchMethod>> {
+class HBondPoseScoresOp : public tmol::native::autograd::Function<
+                              HBondPoseScoresOp<DispatchMethod>> {
  public:
+  static constexpr bool capture_pose_gradient = true;
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
       // common params
@@ -51,7 +51,7 @@ class HBondPoseScoresOp
 
       // term specific params
       Tensor pose_stack_inter_residue_connections,
-      Tensor pose_stack_min_bond_separation,
+      Tensor pose_stack_near_blocks,
       Tensor pose_stack_inter_block_bondsep,
 
       // packed block type params
@@ -87,9 +87,9 @@ class HBondPoseScoresOp
       bool allow_split_pairs
 
   ) {
-    at::Tensor score;
-    at::Tensor dscore_dcoords;
-    at::Tensor block_neighbors;
+    tmol::native::Tensor score;
+    tmol::native::Tensor dscore_dcoords;
+    tmol::native::Tensor block_neighbors;
 
     using Int = int32_t;
 
@@ -118,7 +118,7 @@ class HBondPoseScoresOp
 
                   // term specific params
                   TCAST(pose_stack_inter_residue_connections),
-                  TCAST(pose_stack_min_bond_separation),
+                  TCAST(pose_stack_near_blocks),
                   TCAST(pose_stack_inter_block_bondsep),
 
                   // packed block type params
@@ -183,7 +183,7 @@ class HBondPoseScoresOp
 
            // term specific params
            pose_stack_inter_residue_connections,
-           pose_stack_min_bond_separation,
+           pose_stack_near_blocks,
            pose_stack_inter_block_bondsep,
 
            // packed block type params
@@ -218,8 +218,9 @@ class HBondPoseScoresOp
 
           });
     } else {
-      score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
-      ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
+      score = score.reshape(
+          {score.size(0), score.size(1)});  // remove final 2 "dummy" dims
+      ctx->save_for_backward({dscore_dcoords});
     }
 
     // The integer neighbor output has no derivative. Do not allocate an
@@ -235,11 +236,11 @@ class HBondPoseScoresOp
     }
     auto saved = ctx->get_saved_variables();
 
-    at::Tensor dV_d_pose_coords;
+    tmol::native::Tensor dV_d_pose_coords;
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
-    if (saved.size() == 2) {
+    if (saved.size() == 1) {
       // single-score mode
       auto saved_grad = saved[0];
       dV_d_pose_coords =
@@ -266,7 +267,7 @@ class HBondPoseScoresOp
 
       // term specific params
       auto pose_stack_inter_residue_connections = saved[i++];
-      auto pose_stack_min_bond_separation = saved[i++];
+      auto pose_stack_near_blocks = saved[i++];
       auto pose_stack_inter_block_bondsep = saved[i++];
 
       // packed block type params
@@ -332,7 +333,7 @@ class HBondPoseScoresOp
 
                     // term specific params
                     TCAST(pose_stack_inter_residue_connections),
-                    TCAST(pose_stack_min_bond_separation),
+                    TCAST(pose_stack_near_blocks),
                     TCAST(pose_stack_inter_block_bondsep),
 
                     // packed block type params
@@ -376,8 +377,8 @@ class HBondPoseScoresOp
 };
 
 template <template <tmol::Device> class DispatchMethod>
-class HBondRotamerScoresOp
-    : public torch::autograd::Function<HBondRotamerScoresOp<DispatchMethod>> {
+class HBondRotamerScoresOp : public tmol::native::autograd::Function<
+                                 HBondRotamerScoresOp<DispatchMethod>> {
  public:
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
@@ -399,7 +400,7 @@ class HBondRotamerScoresOp
 
       // term specific params
       Tensor pose_stack_inter_residue_connections,
-      Tensor pose_stack_min_bond_separation,
+      Tensor pose_stack_near_blocks,
       Tensor pose_stack_inter_block_bondsep,
 
       // packed block type params
@@ -434,9 +435,9 @@ class HBondRotamerScoresOp
       Tensor shared_dispatch_indices
 
   ) {
-    at::Tensor score;
-    at::Tensor dscore_dcoords;
-    at::Tensor block_neighbors;
+    tmol::native::Tensor score;
+    tmol::native::Tensor dscore_dcoords;
+    tmol::native::Tensor block_neighbors;
 
     using Int = int32_t;
 
@@ -467,7 +468,7 @@ class HBondRotamerScoresOp
 
                       // term specific params
                       TCAST(pose_stack_inter_residue_connections),
-                      TCAST(pose_stack_min_bond_separation),
+                      TCAST(pose_stack_near_blocks),
                       TCAST(pose_stack_inter_block_bondsep),
 
                       // packed block type params
@@ -529,7 +530,7 @@ class HBondRotamerScoresOp
 
            // term specific params
            pose_stack_inter_residue_connections,
-           pose_stack_min_bond_separation,
+           pose_stack_near_blocks,
            pose_stack_inter_block_bondsep,
 
            // packed block type params
@@ -573,15 +574,14 @@ class HBondRotamerScoresOp
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
     auto saved = ctx->get_saved_variables();
 
-    at::Tensor dV_d_pose_coords;
+    tmol::native::Tensor dV_d_pose_coords;
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
     if (saved.size() == 2) {
       // single-score mode
-      auto saved_grads = ctx->get_saved_variables();
-      auto saved_grad = saved_grads[0];
-      auto pose_ind_for_atom = saved_grads[1];
+      auto saved_grad = saved[0];
+      auto pose_ind_for_atom = saved[1];
       auto atom_ingrads =
           grad_outputs[0].index_select(1, pose_ind_for_atom).unsqueeze(-1);
 
@@ -608,7 +608,7 @@ class HBondRotamerScoresOp
 
       // term specific params
       auto pose_stack_inter_residue_connections = saved[i++];
-      auto pose_stack_min_bond_separation = saved[i++];
+      auto pose_stack_near_blocks = saved[i++];
       auto pose_stack_inter_block_bondsep = saved[i++];
 
       // packed block type params
@@ -674,7 +674,7 @@ class HBondRotamerScoresOp
 
                     // term specific params
                     TCAST(pose_stack_inter_residue_connections),
-                    TCAST(pose_stack_min_bond_separation),
+                    TCAST(pose_stack_near_blocks),
                     TCAST(pose_stack_inter_block_bondsep),
 
                     // packed block type params
@@ -737,7 +737,7 @@ std::vector<Tensor> hbond_pose_scores_op(
 
     // term specific params
     Tensor pose_stack_inter_residue_connections,
-    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_near_blocks,
     Tensor pose_stack_inter_block_bondsep,
 
     // packed block type params
@@ -789,7 +789,7 @@ std::vector<Tensor> hbond_pose_scores_op(
 
       // term specific params
       pose_stack_inter_residue_connections,
-      pose_stack_min_bond_separation,
+      pose_stack_near_blocks,
       pose_stack_inter_block_bondsep,
 
       // packed block type params
@@ -845,7 +845,7 @@ std::vector<Tensor> hbond_rotamer_scores_op(
 
     // term specific params
     Tensor pose_stack_inter_residue_connections,
-    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_near_blocks,
     Tensor pose_stack_inter_block_bondsep,
 
     // packed block type params
@@ -877,8 +877,8 @@ std::vector<Tensor> hbond_rotamer_scores_op(
     Tensor derived_atom_inds,
 
     bool output_block_pair_energies) {
-  Tensor empty_dispatch_indices = torch::empty(
-      {0, 0}, rot_coords.options().dtype(torch::kInt32).requires_grad(false));
+  Tensor empty_dispatch_indices = tmol::native::empty(
+      {0, 0}, rot_coords.options().dtype(tmol::native::kInt32));
   return HBondRotamerScoresOp<DispatchMethod>::apply(
       // common params
       rot_coords,
@@ -898,7 +898,7 @@ std::vector<Tensor> hbond_rotamer_scores_op(
 
       // term specific params
       pose_stack_inter_residue_connections,
-      pose_stack_min_bond_separation,
+      pose_stack_near_blocks,
       pose_stack_inter_block_bondsep,
 
       // packed block type params
@@ -950,7 +950,7 @@ std::vector<Tensor> hbond_rotamer_scores_shared_op(
     Tensor lockstep_group_for_block,
     int64_t max_n_rots_per_pose,
     Tensor pose_stack_inter_residue_connections,
-    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_near_blocks,
     Tensor pose_stack_inter_block_bondsep,
     Tensor block_type_n_atoms,
     Tensor block_type_n_interblock_bonds,
@@ -979,7 +979,7 @@ std::vector<Tensor> hbond_rotamer_scores_shared_op(
           && shared_dispatch_indices.size(0) == 3,
       "shared hydrogen-bond rotamer dispatch must have shape [3, nnz]");
   TORCH_CHECK(
-      shared_dispatch_indices.scalar_type() == torch::kInt32,
+      shared_dispatch_indices.scalar_type() == tmol::native::kInt32,
       "shared hydrogen-bond rotamer dispatch must have dtype int32");
   TORCH_CHECK(
       shared_dispatch_indices.device() == rot_coords.device(),
@@ -1000,7 +1000,7 @@ std::vector<Tensor> hbond_rotamer_scores_shared_op(
       lockstep_group_for_block,
       max_n_rots_per_pose,
       pose_stack_inter_residue_connections,
-      pose_stack_min_bond_separation,
+      pose_stack_near_blocks,
       pose_stack_inter_block_bondsep,
       block_type_n_atoms,
       block_type_n_interblock_bonds,
@@ -1052,8 +1052,8 @@ std::vector<Tensor> gen_hbond_bases_op(
     Tensor block_type_tile_acc_inds,
     Tensor block_type_tile_hybridization,
     Tensor block_type_atom_is_hydrogen) {
-  at::Tensor derived_coords;
-  at::Tensor derived_atom_inds;
+  tmol::native::Tensor derived_coords;
+  tmol::native::Tensor derived_atom_inds;
 
   using Int = int32_t;
 
@@ -1167,7 +1167,7 @@ Tensor hbond_rotamer_dispatch_page_op(
 }
 
 // See https://stackoverflow.com/a/3221914
-TORCH_LIBRARY(tmol_hbond, m) {
+TMOL_LIBRARY(tmol_hbond, m) {
   // Preserve the inferred positional argument names for existing callers.
   m.def(
       "hbond_pose_scores(Tensor _0, Tensor _1, Tensor _2, Tensor _3, Tensor "
@@ -1178,20 +1178,20 @@ TORCH_LIBRARY(tmol_hbond, m) {
       "Tensor _29, Tensor _30, Tensor _31, Tensor _32, Tensor _33, Tensor _34, "
       "Tensor _35, bool _36, Tensor _37, bool allow_split_pairs=False) -> "
       "Tensor[] _0",
-      &hbond_pose_scores_op<common::DeviceOperations>);
+      TMOL_FN(&hbond_pose_scores_op<common::DeviceOperations>));
   m.def(
       "hbond_rotamer_scores",
-      &hbond_rotamer_scores_op<common::DeviceOperations>);
+      TMOL_FN(&hbond_rotamer_scores_op<common::DeviceOperations>));
   m.def(
       "hbond_rotamer_scores_shared",
-      &hbond_rotamer_scores_shared_op<common::DeviceOperations>);
+      TMOL_FN(&hbond_rotamer_scores_shared_op<common::DeviceOperations>));
   m.def(
       "hbond_rotamer_spheres",
-      &hbond_rotamer_spheres_op<common::DeviceOperations>);
+      TMOL_FN(&hbond_rotamer_spheres_op<common::DeviceOperations>));
   m.def(
       "hbond_rotamer_dispatch_page",
-      &hbond_rotamer_dispatch_page_op<common::DeviceOperations>);
-  m.def("gen_hbond_bases", &gen_hbond_bases_op);
+      TMOL_FN(&hbond_rotamer_dispatch_page_op<common::DeviceOperations>));
+  m.def("gen_hbond_bases", TMOL_FN(&gen_hbond_bases_op));
 }
 
 }  // namespace potentials

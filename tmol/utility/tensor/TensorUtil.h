@@ -1,12 +1,7 @@
+#include <tmol/utility/tensor/native.hh>
 #pragma once
 
 #include <array>
-
-#include <ATen/Functions.h>
-#include <ATen/ScalarType.h>
-#include <ATen/Tensor.h>
-
-#include <torch/extension.h>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -15,17 +10,17 @@
 
 namespace tmol {
 
-inline bool operator==(const tmol::Device& lhs, const at::Device::Type& rhs) {
+inline bool operator==(const tmol::Device& lhs, const native::DeviceType& rhs) {
   if (lhs == tmol::Device::CPU) {
-    return rhs == at::Device::Type::CPU;
+    return rhs == native::DeviceType::CPU;
   } else if (lhs == tmol::Device::CUDA) {
-    return rhs == at::Device::Type::CUDA;
+    return rhs == native::DeviceType::CUDA;
   } else {
     AT_ERROR("Unknown tmol::Device type.");
   }
 };
 
-inline bool operator==(const at::Device::Type& lhs, const tmol::Device& rhs) {
+inline bool operator==(const native::DeviceType& lhs, const tmol::Device& rhs) {
   return rhs == lhs;
 };
 
@@ -37,24 +32,24 @@ struct enable_tensor_view {
 // bool size is ostensibly implementation dependent
 static_assert(sizeof(bool) == 1);
 
-#define FORALL_SCALAR_TYPES_EXCEPT_HALF(_) \
-  _(bool, at::ScalarType::Bool)            \
-  _(uint8_t, at::ScalarType::Byte)         \
-  _(int8_t, at::ScalarType::Char)          \
-  _(int16_t, at::ScalarType::Short)        \
-  _(int, at::ScalarType::Int)              \
-  _(int64_t, at::ScalarType::Long)         \
-  _(float, at::ScalarType::Float)          \
-  _(double, at::ScalarType::Double)
+#define FORALL_SCALAR_TYPES_EXCEPT_HALF(_)    \
+  _(bool, tmol::native::ScalarType::Bool)     \
+  _(uint8_t, tmol::native::ScalarType::Byte)  \
+  _(int8_t, tmol::native::ScalarType::Char)   \
+  _(int16_t, tmol::native::ScalarType::Short) \
+  _(int, tmol::native::ScalarType::Int)       \
+  _(int64_t, tmol::native::ScalarType::Long)  \
+  _(float, tmol::native::ScalarType::Float)   \
+  _(double, tmol::native::ScalarType::Double)
 
-#define SCALAR_VIEW(ctype, stype)                         \
-  template <>                                             \
-  struct enable_tensor_view<ctype> {                      \
-    static const bool enabled = true;                     \
-    static at::ScalarType scalar_type() { return stype; } \
-    static const int nconsumed_dims = 0;                  \
-    static int consumed_dims(int) { return 0; }           \
-    typedef ctype PrimitiveType;                          \
+#define SCALAR_VIEW(ctype, stype)                                   \
+  template <>                                                       \
+  struct enable_tensor_view<ctype> {                                \
+    static const bool enabled = true;                               \
+    static tmol::native::ScalarType scalar_type() { return stype; } \
+    static const int nconsumed_dims = 0;                            \
+    static int consumed_dims(int) { return 0; }                     \
+    typedef ctype PrimitiveType;                                    \
   };
 
 FORALL_SCALAR_TYPES_EXCEPT_HALF(SCALAR_VIEW)
@@ -66,7 +61,7 @@ FORALL_SCALAR_TYPES_EXCEPT_HALF(SCALAR_VIEW)
 template <typename T, int M, int N>
 struct enable_tensor_view<Eigen::Matrix<T, M, N>> {
   static const bool enabled = enable_tensor_view<T>::enabled;
-  static const at::ScalarType scalar_type() {
+  static const tmol::native::ScalarType scalar_type() {
     return enable_tensor_view<T>::scalar_type();
   }
   static constexpr int nconsumed_dims = ((N > 1) ? 2 : 1);
@@ -85,7 +80,7 @@ struct enable_tensor_view<Eigen::Matrix<T, M, N>> {
 template <typename T, int N>
 struct enable_tensor_view<Eigen::AlignedBox<T, N>> {
   static const bool enabled = enable_tensor_view<T>::enabled;
-  static const at::ScalarType scalar_type() {
+  static const tmol::native::ScalarType scalar_type() {
     return enable_tensor_view<T>::scalar_type();
   }
   static const int nconsumed_dims = 1;
@@ -99,7 +94,7 @@ template <
     Device D,
     PtrTag P = PtrTag::Restricted,
     typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
-auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
+auto view_tensor(tmol::native::Tensor input_t) -> tmol::TView<T, N, D, P> {
   typedef typename enable_tensor_view<T>::PrimitiveType FromT;
   int64_t stride_factor = sizeof(T) / sizeof(FromT);
 
@@ -155,16 +150,18 @@ auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
       input_t.device().type() == D,
       "view_tensor of incorrect device type.",
       " device: ",
-      input_t.device().type());
+      static_cast<int>(input_t.device().type()));
 
-  auto input = input_t.accessor<FromT, N + nconsumed_dims>();
+  TORCH_CHECK(
+      input_t.scalar_type() == enable_tensor_view<FromT>::scalar_type(),
+      "view_tensor dtype mismatch");
 
   int64_t sizes[N];
   int64_t strides[N];
 
   for (int d = 0; d < N; ++d) {
-    sizes[d] = input.size(d);
-    strides[d] = input.stride(d) / stride_factor;
+    sizes[d] = input_t.size(d);
+    strides[d] = input_t.stride(d) / stride_factor;
   }
 
   return tmol::TView<T, N, D, P>(
@@ -177,13 +174,12 @@ template <
     Device D,
     PtrTag P = PtrTag::Restricted,
     typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
-auto view_tensor(at::Tensor tensor, const std::string& name)
+auto view_tensor(tmol::native::Tensor tensor, const std::string& name)
     -> tmol::TView<T, N, D, P> {
   try {
     return view_tensor<T, N, D, P>(tensor);
-  } catch (at::Error err) {
-    AT_ERROR(
-        "Error viewing tensor '" + name + "': " + err.what_without_backtrace());
+  } catch (tmol::native::Error err) {
+    AT_ERROR("Error viewing tensor '" + name + "': " + err.what());
   }
 }
 

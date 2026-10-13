@@ -43,3 +43,10 @@ binding-pocket contact sits at the same distance as a covalent bond.
 Written rather than taken from a deposited entry: one heavy atom per residue is
 enough to place the contact, and a real glycan would carry the `struct_conn`
 records whose absence is the point.
+
+## Component named by an unrelated CCD code
+
+`hivrt_lg1.bond_table_only.cif` is TMol's former `protein_ligand_test/cif_inputs/hivrt.ligand.cif`
+(the DUD hivrt crystal ligand): `atom_site` plus `chem_comp_bond` under `LG1`, a CCD code of
+another molecule, and no `chem_comp_atom`. `tmol/tests/io/test_pdbbind_regressions.py` reads
+it with its own 45 bonds and none of CCD LG1's.

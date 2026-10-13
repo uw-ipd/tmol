@@ -1,3 +1,4 @@
+from operator import attrgetter
 from pathlib import Path
 
 import biotite.structure as struc
@@ -271,18 +272,16 @@ def test_prepared_atom37_builder_is_reusable_and_differentiable(
         "block_coord_offset64",
         "inter_residue_connections",
         "inter_residue_connections64",
-        "inter_block_bondsep",
-        "inter_block_bondsep64",
+        "inter_block_bondsep.near_blocks",
+        "inter_block_bondsep.bondsep",
         "block_type_ind",
         "block_type_ind64",
         "chain_id",
         "chain_id64",
     )
     for name in structural_tensors:
-        assert (
-            getattr(first_pose, name).data_ptr()
-            != getattr(cached_pose, name).data_ptr()
-        )
+        tensor = attrgetter(name)
+        assert tensor(first_pose).data_ptr() != tensor(cached_pose).data_ptr()
     assert not np.shares_memory(
         first_pose.pdb_info.residue_labels, cached_pose.pdb_info.residue_labels
     )
@@ -312,17 +311,10 @@ def test_prepared_atom37_builder_is_reusable_and_differentiable(
     assert second_pose.packed_block_types is context.packed_block_types
     torch.testing.assert_close(first_pose.coords, first_snapshot)
     for name in structural_tensors:
-        torch.testing.assert_close(
-            getattr(second_pose, name), getattr(expected_second, name)
-        )
-        assert (
-            getattr(second_pose, name).data_ptr()
-            != getattr(cached_pose, name).data_ptr()
-        )
-        assert (
-            getattr(second_pose, name).data_ptr()
-            != getattr(first_pose, name).data_ptr()
-        )
+        tensor = attrgetter(name)
+        torch.testing.assert_close(tensor(second_pose), tensor(expected_second))
+        assert tensor(second_pose).data_ptr() != tensor(cached_pose).data_ptr()
+        assert tensor(second_pose).data_ptr() != tensor(first_pose).data_ptr()
     for name in (
         "residue_labels",
         "residue_insertion_codes",
@@ -457,7 +449,7 @@ def test_prepared_atom37_builder_falls_back_for_ambiguous_histidine_hydrogen(
 
 @pytest.mark.parametrize("prebuilt", [True, False])
 def test_atom37_pose_uses_ligand_context(torch_device, prebuilt):
-    cif_path = data_path("protein_ligand_test", "cif_inputs", "ace.ligand.cif")
+    cif_path = data_path("protein_ligand_test", "cif_inputs", "ace.ligand.cif.zst")
     params_path = data_path("protein_ligand_test", "ace.xtal-lig.mmff94.tmol")
     from tmol.io import atom_array_from_cif
 
@@ -469,6 +461,7 @@ def test_atom37_pose_uses_ligand_context(torch_device, prebuilt):
         torch_device,
         prepare_ligands=True,
         ligand_params_files=[str(params_path)] if prebuilt else None,
+        ligand_seed=20260909,
     )
 
     pose = pose_stack_from_atom37_and_topology(atom37, structure, context)
@@ -615,3 +608,39 @@ def test_atom37_coordinate_shape_and_pose_count_validation(biotite_1ubq, torch_d
             torch_device,
             atom37_coords=atom37,
         )
+
+
+def test_geometric_gap_drops_bond_inferred_from_consecutive_numbering(
+    tmp_path, torch_device
+):
+    """A residue deleted and the rest renumbered leaves consecutive numbering over
+    a gap; the reader's inferred peptide bond must not reconnect it.
+
+    Guards canonical_form_from_biotite in io/_pose_stack_from_biotite.py, where
+    _break_connections_for_missing_density flagged the gap but covalent_bonds_np
+    kept the bond inferred from numbering.
+    """
+    from tmol.io import atom_array_from_cif
+
+    lines = []
+    for line in data_path("pdb", "1ubq.pdb").read_text().splitlines():
+        if not line.startswith("ATOM"):
+            continue
+        resnum = int(line[22:26])
+        if resnum > 10 or resnum == 5:
+            continue
+        if resnum > 5:
+            line = f"{line[:22]}{resnum - 1:4d}{line[26:]}"
+        lines.append(line)
+    path = tmp_path / "ubq_gap.pdb"
+    path.write_text("\n".join(lines + ["END"]) + "\n")
+
+    cf = canonical_form_from_biotite(atom_array_from_cif(path), torch_device)
+
+    # residues 4 and 5 (0-based 3 and 4) are the old 4 and 6
+    assert bool(cf.res_not_connected[0, 3, 1]) and bool(cf.res_not_connected[0, 4, 0])
+    bonds = cf.covalent_bonds
+    across = ((bonds[:, 1] == 3) & (bonds[:, 3] == 4)) | (
+        (bonds[:, 1] == 4) & (bonds[:, 3] == 3)
+    )
+    assert not bool(across.any())

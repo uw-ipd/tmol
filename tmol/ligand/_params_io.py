@@ -315,7 +315,7 @@ def write_params_from_mol2(
     """Build params from a mol2 file and write a tmol ``.tmol`` file.
 
     Args:
-        mol2_path: Input Tripos mol2; see :func:`prepare_ligand_from_mol2`.
+        mol2_path: Input Tripos MOL2 or MDL SDF; see :func:`prepare_ligand_from_mol2`.
         out_path: Output file path (see :func:`write_params_file`).
         res_name: Optional residue name override.
         ph: Target pH for protonation.

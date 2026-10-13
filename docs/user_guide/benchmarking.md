@@ -1,29 +1,11 @@
 # Benchmarking
 
-Use this guide for implementation-regression benchmarks. For application
-throughput, follow the batching recipe and tutorial instead.
+Use the developer harness to measure implementation regressions. For application
+throughput, batch size, and memory use, see {doc}`GPU batching
+</workflows/gpu_batching>`. Both require a {doc}`development installation
+<development>`.
 
-> - **Prerequisites:** A development installation; see {doc}`Development
->   </user_guide/development>`.
-> - **Deep tutorial:** {doc}`02 — GPU Batching with TMol
->   </tutorial/02_gpu_batching>` for application measurements.
-> - **Related workflow:** {doc}`GPU batching </workflows/gpu_batching>`.
-> - **API reference:** {doc}`Pose </api/pose>` and {doc}`Scoring </api/score>`.
-> - **Rosetta mapping:** {doc}`GPU batching and external orchestration
->   </tutorial/rosetta_crosswalk>`.
-
-Performance work happens at two different levels:
-
-- Application-level GPU batching measures a real workload over a `PoseStack`;
-  use the {doc}`GPU batching workflow </workflows/gpu_batching>` for batch
-  construction, synchronized timing, memory measurement, and chunking.
-- The developer benchmark harness runs pytest benchmark cases to detect kernel
-  or implementation regressions across code revisions.
-
-The harness is not an application scheduler and its microbenchmark results do
-not choose a production batch size.
-
-## Running Developer Benchmarks
+## Run benchmarks
 
 Use `dev/bin/benchmark` with pytest selectors:
 
@@ -34,7 +16,7 @@ dev/bin/benchmark tmol/tests/score -k cuda-full-lk_ball
 The wrapper enables pytest benchmarks, prints a summary, and writes JSON results
 under `dev/benchmark/`.
 
-## Comparing Revisions
+## Compare revisions
 
 `dev/bin/compare_benchmark` compares benchmark results across revisions. Put
 pytest arguments first, then revisions after `--`.
@@ -49,7 +31,39 @@ The meta-revision `TREE` means the current working tree:
 dev/bin/compare_benchmark tmol/tests/score -k cuda-full-lk_ball -- TREE HEAD
 ```
 
-Ancillary benchmark plots live near the tests as `plot_*.py` scripts.
+Run the wrapper from an activated development environment with the required
+build dependencies, PyTorch, and `tmol[dev]` dependencies installed. Each revision
+gets an isolated source checkout, virtual environment, native build, and JIT
+cache. Installed dependencies are shared from the calling environment, but its
+editable-install hooks are not loaded. Dependency changes between revisions
+therefore require a separate matched dependency environment.
+
+`TREE` includes staged and unstaged tracked edits, tracked deletions, and
+non-ignored untracked files. Ignored build products are excluded. The caller's
+branch, index, local changes, and stash are never modified. Revisions run in the
+requested order; reverse the order on a second run to check for machine drift.
+Without revision arguments the comparison is `TREE HEAD`; one revision argument
+compares `TREE` with that revision.
+
+The tool prints a results directory containing per-revision JSON, build/test
+logs, a source manifest, and `comparison.txt`. These files remain available after
+failure; temporary source checkouts and environments are removed. Choose a new
+output directory with `--benchmark-outdir` before the pytest selectors:
+
+```bash
+dev/bin/compare_benchmark --benchmark-outdir /tmp/tmol-comparison \
+  tmol/tests/score -k cuda-full-lk_ball -- TREE HEAD
+```
+
+Build and test failures, including runs with no recorded benchmark samples,
+stop the comparison with a nonzero exit status. The manifest records commit IDs
+and a digest of `TREE` edits; logs include the installed dependencies and PyTorch build configuration. Keep input, dtype,
+thread counts, device, and benchmark settings fixed between revisions. CUDA
+benchmarks must warm up and synchronize timed work. These rebuilds can take
+substantial time; use the ordinary benchmark wrapper for repeated runs of an
+already-built checkout.
+
+Ancillary benchmark plots live near the tests as `_plot_*.py` scripts.
 
 ## Profiling
 

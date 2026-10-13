@@ -7,6 +7,7 @@ which atoms form the backbone, what the caps are, and what the resulting residue
 type must declare.
 """
 
+import functools
 import logging
 import math
 from collections import Counter, defaultdict, deque
@@ -18,6 +19,7 @@ import biotite.structure as struc
 from rdkit import Chem
 from rdkit.Chem import rdFMCS
 from atomworks.io.utils.atom_array_plus import concatenate_atom_array_plus
+from atomworks.io.utils.link_chemistry import get_leaving_atom_groups
 
 from tmol.utility.weak_identity_cache import WeakIdentityLRU
 
@@ -520,6 +522,23 @@ def _heavy_adjacency(atom_array):
     return adj, double, element
 
 
+def _can_cap_through(atom_array, atom: str) -> bool:
+    """Whether a terminating residue's only bond can be a peptide bond: through a carbon
+    only with its C=O/C=S (not 5T4J's PLP C4A aldimine); untyped bonds keep the cap."""
+    _adj, double, element = _heavy_adjacency(atom_array)
+    if element.get(atom, "").strip().upper() != "C":
+        return True
+    index = numpy.flatnonzero(atom_array.atom_name == atom)
+    if (
+        len(index)
+        and (atom_array.bonds.get_bonds(int(index[0]))[1] == struc.BondType.ANY).any()
+    ):
+        return True
+    return any(
+        element.get(o, "").strip().upper() in ("O", "S") for o in double.get(atom, ())
+    )
+
+
 def _smallest_ring_size(adj, start: str, end: str) -> Optional[int]:
     """Size of the smallest ring containing the ``start``-``end`` bond."""
     queue = deque([(start, [start])])
@@ -754,24 +773,27 @@ def completed_connection_atoms(atom_array, connection_atoms):
         if alpha_backbone_atoms(atom_array, frozenset({known, c})) is not None
     ]
     if len(conventional) == 1:
-        logger.warning(
-            "%s is seen only at a chain terminus and %s could each carry its "
-            "other connection; it is read as the conventional backbone through "
-            "%s. A copy of the residue in a chain would settle it.",
-            res_name or "this residue",
-            ", ".join(sorted(candidates)),
-            conventional[0],
-        )
+        _warn_terminal_ambiguity(res_name, tuple(sorted(candidates)), conventional[0])
         return frozenset({known, conventional[0]})
     if len(candidates) > 1:
-        logger.warning(
-            "%s is seen only at a chain terminus and %s could each carry its "
-            "other connection, none of them a conventional backbone; it cannot "
-            "be told apart. A copy of the residue in a chain would settle it.",
-            res_name or "this residue",
-            ", ".join(sorted(candidates)),
-        )
+        _warn_terminal_ambiguity(res_name, tuple(sorted(candidates)), None)
     return connection_atoms
+
+
+@functools.cache
+def _warn_terminal_ambiguity(res_name: str, candidates: tuple, chosen: Optional[str]):
+    """Report, once per case, a terminal residue whose far end chemistry cannot pick."""
+    logger.warning(
+        "%s is seen only at a chain terminus and %s could each carry its other "
+        "connection; %s. A copy of the residue in a chain would settle it.",
+        res_name or "this residue",
+        ", ".join(candidates),
+        (
+            f"it is read as the conventional backbone through {chosen}"
+            if chosen is not None
+            else "none of them is a conventional backbone, so it cannot be told apart"
+        ),
+    )
 
 
 def mainchain_path(atom_array, connection_atoms) -> Optional[Tuple[str, ...]]:
@@ -782,17 +804,7 @@ def mainchain_path(atom_array, connection_atoms) -> Optional[Tuple[str, ...]]:
     start, end = _orient_connections(sorted(connection_atoms), double, element)
     if start not in adj or end not in adj:
         return None
-    queue = deque([(start, (start,))])
-    seen = {start}
-    while queue:
-        current, path = queue.popleft()
-        if current == end:
-            return path
-        for neighbour in sorted(adj.get(current, ())):
-            if neighbour not in seen:
-                seen.add(neighbour)
-                queue.append((neighbour, path + (neighbour,)))
-    return None
+    return _shortest_path(adj, start, end)
 
 
 def _orient_connections(ends, double, element):
@@ -1175,20 +1187,22 @@ def profile_for_atom_array(
         from tmol.database import ParameterDatabase
 
         chemdb = ParameterDatabase.get_default().chemical
-    # a sugar has no backbone; its attachments carry its topology instead
-    if is_carbohydrate(atom_array, connection_atoms):
-        return None
-    # Recognize the sugar before peptide end completion: a terminal nucleotide
-    # can carry a base amine that is unrelated to its polymer backbone.
+    # Recognize the nucleotide before sugars (AAB's C1' hydroxyl) and peptide ends
+    # (a terminal nucleotide's base amine is not its backbone).
     kind = na_backbone_kind(atom_array, connection_atoms)
     if kind is not None:
         return _na_profile_for_structure(
             atom_array, connection_atoms, na_profile(chemdb, kind)
         )
+    # a sugar has no backbone; its attachments carry its topology instead
+    if is_carbohydrate(atom_array, connection_atoms):
+        return None
     if connection_atoms and len(connection_atoms) == 1:
         known = next(iter(connection_atoms))
         # nothing to continue the chain with: this residue terminates it
         if _chain_end_candidates(atom_array, known) == []:
+            if not _can_cap_through(atom_array, known):
+                return None
             return cap_polymer_profile(atom_array, known, chemdb)
     connection_atoms = completed_connection_atoms(atom_array, connection_atoms)
     if alpha_backbone_atoms(atom_array, connection_atoms) is not None:
@@ -1201,13 +1215,33 @@ def profile_for_atom_array(
 
 
 def _na_profile_for_structure(atom_array, connection_atoms, profile):
-    """A phosphate with a retained ester substituent has no free polymer port."""
-    if profile is None or profile.down is None:
+    """Drop a polymer port the structure cannot use: the 5' one of a substituted phosphate
+    or 5' oxygen, the 3' one of a 3'-deoxy sugar (DDG, DOC) or substituted 3' oxygen."""
+    if profile is None:
         return profile
     adjacency, _, elements = _heavy_adjacency(atom_array)
     path, _ = na_sugar_mainchain(adjacency, elements)
+    if path is None:
+        return profile
+    if profile.up is not None and elements.get(path[-1]) != "O":
+        # no 3' oxygen: the backbone ends at C3', so nothing may graft one on
+        profile = _without_atom(_without_connection(profile, "up"), profile.up[1])
+    elif profile.up is not None and adjacency[path[-1]] - {path[-2]}:
+        # 1HQ1 B:178 CCC: a substituted 3' oxygen (2',3'-cyclic phosphate) has no port
+        profile = _without_connection(profile, "up")
     if (
-        path is None
+        profile.down is not None
+        and elements.get(path[0]) == "O"
+        and adjacency[path[0]] - {path[1]}
+    ):
+        # a 5'-O ether (1CX5 A:7 MMT's O5'-N) leaves no room to graft a phosphate on
+        profile = _without_connection(profile, "down")
+        for atom, _type in tuple(profile.backbone_types):
+            if atom not in elements:
+                profile = _without_atom(profile, atom)
+        return profile
+    if (
+        profile.down is None
         or elements.get(path[0]) != "P"
         or path[0] in (connection_atoms or ())
     ):
@@ -1218,9 +1252,24 @@ def _na_profile_for_structure(atom_array, connection_atoms, profile):
         and len(adjacency[neighbor]) > 1
         for neighbor in adjacency[path[0]]
     )
-    if not substituted:
-        return profile
-    blocked = {profile.down[1]}
+    return _without_connection(profile, "down") if substituted else profile
+
+
+def _without_atom(profile, atom):
+    """The profile with a backbone atom the residue lacks no longer described."""
+    return attr.evolve(
+        profile,
+        mainchain_atoms=tuple(a for a in profile.mainchain_atoms if a != atom),
+        backbone_types=tuple(t for t in profile.backbone_types if t[0] != atom),
+        backbone_h_types=tuple(t for t in profile.backbone_h_types if t[0] != atom),
+        transplant_icoors=tuple(a for a in profile.transplant_icoors if a != atom),
+    )
+
+
+def _without_connection(profile, which):
+    """The profile with its down or up port, and what stands across it, removed."""
+    connection = getattr(profile, which)
+    blocked = {connection[1]}
     caps = []
     for cap in profile.caps:
         if cap.bond_to in blocked:
@@ -1229,13 +1278,15 @@ def _na_profile_for_structure(atom_array, connection_atoms, profile):
             caps.append(cap)
     return attr.evolve(
         profile,
-        down=None,
-        down_partner=None,
+        **{which: None, f"{which}_partner": None},
         caps=tuple(caps),
         mainchain_torsions=tuple(
             (name, atoms)
             for name, atoms in profile.mainchain_torsions
-            if not any(atom.startswith(profile.down[0] + ":") for atom in atoms)
+            if not any(
+                atom.startswith(connection[0] + ":") or atom in blocked
+                for atom in atoms
+            )
         ),
     )
 
@@ -1245,43 +1296,49 @@ def na_sugar_mainchain(adjacency, element):
 
     Returns (path, ring) with the path running 5' to 3' -- P-O5'-C5'-C4'-C3'-O3',
     or the same without the phosphate, which a residue seen only at a 5'
-    terminus does not have. Derived from the ring rather than from the
-    connections, since a residue at a chain end has only one of those and the
-    missing one is exactly what has to be worked out.
+    terminus does not have, or without O3', which a 3'-deoxy sugar (DDG) lacks.
+    Derived from the ring rather than from the connections, since a residue at
+    a chain end has only one of those and the missing one is exactly what has
+    to be worked out.
     """
-    for ring in _five_rings(adjacency, element):
-        hetero = next(a for a in ring if element.get(a) != "C")
-        for c3 in ring:
-            if c3 == hetero:
-                continue
-            exocyclic_o = [
-                n
-                for n in sorted(adjacency[c3])
-                if n not in ring and element.get(n) == "O"
-            ]
-            for c4 in sorted(adjacency[c3] & ring):
-                if c4 == hetero or hetero not in adjacency[c4]:
-                    continue
-                for c5 in sorted(adjacency[c4] - ring):
-                    if element.get(c5) != "C":
-                        continue
-                    for o5 in sorted(adjacency[c5]):
-                        if element.get(o5) != "O" or o5 in ring:
-                            continue
-                        for o3 in exocyclic_o:
-                            path = [o5, c5, c4, c3, o3]
-                            if len(set(path)) != 5:
-                                continue
-                            phosphate = [
-                                n
-                                for n in sorted(adjacency[o5])
-                                if element.get(n) == "P"
-                            ]
-                            return (
-                                tuple(phosphate[:1] + path),
-                                tuple(ring),
-                            )
+    # a sugar with its 3' oxygen is preferred over one read without it
+    for require_o3 in (True, False):
+        for ring in _five_rings(adjacency, element):
+            found = _sugar_path(adjacency, element, ring, require_o3)
+            if found is not None:
+                return found, tuple(ring)
     return None, None
+
+
+def _sugar_path(adjacency, element, ring, require_o3):
+    """P-O5'-C5'-C4'-C3'(-O3') on this ring, or None."""
+    hetero = next(a for a in ring if element.get(a) != "C")
+    for c3 in ring:
+        if c3 == hetero:
+            continue
+        exocyclic_o = [
+            n for n in sorted(adjacency[c3]) if n not in ring and element.get(n) == "O"
+        ]
+        if require_o3 != bool(exocyclic_o):
+            continue
+        for c4 in sorted(adjacency[c3] & ring):
+            if c4 == hetero or hetero not in adjacency[c4]:
+                continue
+            for c5 in sorted(adjacency[c4] - ring):
+                if element.get(c5) != "C":
+                    continue
+                for o5 in sorted(adjacency[c5]):
+                    if element.get(o5) != "O" or o5 in ring:
+                        continue
+                    for o3 in exocyclic_o or [None]:
+                        path = [o5, c5, c4, c3] + ([o3] if o3 is not None else [])
+                        if len(set(path)) != len(path):
+                            continue
+                        phosphate = [
+                            n for n in sorted(adjacency[o5]) if element.get(n) == "P"
+                        ]
+                        return tuple(phosphate[:1] + path)
+    return None
 
 
 def _five_rings(adjacency, element):
@@ -1362,7 +1419,8 @@ def na_backbone_kind(atom_array, connection_atoms) -> Optional[str]:
     Standard means a five-membered sugar with the phosphate-to-3'-oxygen path
     closed on it. What hangs off the sugar is not looked at, so a modified base
     or a substituted 2' position is still standard; RNA is told from DNA by an
-    oxygen on the sugar, which is where a ribose differs from a deoxyribose.
+    oxygen on C2', where a ribose differs from a deoxyribose (1G5E abasic AAB has a
+    C1' hydroxyl and is DNA).
     """
     if not connection_atoms:
         return None
@@ -1370,16 +1428,17 @@ def na_backbone_kind(atom_array, connection_atoms) -> Optional[str]:
     path, ring = na_sugar_mainchain(adjacency, element)
     if path is None:
         return None
-    # the connections have to be this backbone's ends, not a sidechain's
+    # the chain has to bond at this backbone's ends
     if not set(connection_atoms) <= {path[0], path[-1]}:
         return None
 
+    # C2' is the ring carbon past C3', the last ring atom on the path
+    c4, c3 = [atom for atom in path if atom in ring][-2:]
+    c2 = next(atom for atom in adjacency[c3] & set(ring) if atom != c4)
     exocyclic_oxygen = any(
         element.get(other_atom) == "O"
-        for atom in ring
-        if atom not in path
-        for other_atom in adjacency[atom]
-        if other_atom not in ring and other_atom not in path
+        for other_atom in adjacency[c2]
+        if other_atom not in ring
     )
     return "rna" if exocyclic_oxygen else "dna"
 
@@ -1416,6 +1475,21 @@ def resolve_cap_names(profile: PolymerProfile, existing):
         resolved[cap.name] = name
         taken.add(name)
     return resolved
+
+
+def _declared_if_tied(atom_array, anchor, leaving):
+    """Tied leaving candidates narrowed to the one the component definition declares.
+
+    6C8D A:1 LCC: O1P and OXT tie at P; the definition declares OXT as leaving.
+    """
+    template = getattr(atom_array, "_custom_ccd_registry", {}).get(
+        str(atom_array.res_name[0])
+    )
+    if len(leaving) < 2 or template is None:
+        return leaving
+    groups = get_leaving_atom_groups(template).get(anchor, ())
+    declared = [n for n in leaving if any(n in group for group in groups)]
+    return declared if len(declared) == 1 else leaving
 
 
 def cap_residue(atom_array, profile: PolymerProfile, *, include_coordinates=True):
@@ -1467,6 +1541,7 @@ def cap_residue(atom_array, profile: PolymerProfile, *, include_coordinates=True
             and n not in double.get(anchor, ())
             and (carbonyl or n not in retained_backbone)
         ]
+        leaving = _declared_if_tied(atom_array, anchor, leaving)
         if len(leaving) > 1:
             raise ValueError(
                 f"Ambiguous leaving atoms at polymer connection {anchor}: {leaving}"
@@ -1580,6 +1655,8 @@ def sugar_backbone(residue, mainchain, element):
         adjacency[a].add(b)
         adjacency[b].add(a)
     types = {a.name: a.atom_type for a in residue.atoms}
+    if not set(mainchain) <= types.keys():
+        return None
 
     ring = _smallest_ring_through(adjacency, mainchain[-2], mainchain[-3])
     if ring is None or len(ring) != 5:
@@ -1702,7 +1779,7 @@ def _build_na_profile(chemdb, kind: str) -> Optional[PolymerProfile]:
     ring = _commonest(Counter(rings))
     anchors = (_commonest(anchor_counts),) if anchor_counts else tuple(sorted(ring))
 
-    torsions = _na_backbone_torsions(residues, shared, mainchain)
+    torsions = _na_backbone_torsions(residues, shared, mainchain, element)
     icoors = {r.name: {i.name: i for i in r.icoors} for r in residues}
     reference = residues[0]
     ref_icoors = icoors[reference.name]
@@ -1767,16 +1844,19 @@ def _na_caps(icoors, mainchain, down_atom, up_atom, reference=None):
             "OY1", "O", (c3, up_atom, "PY"), icoors["OP1"], -130.0, "PY", "DOUBLE"
         ),
         _stub_from_icoor("OY2", "O", (c3, up_atom, "PY"), icoors["OP2"], 114.0, "PY"),
-        _stub_from_icoor("OY3", "O", (c3, up_atom, "PY"), icoors[phosphate], 0.0, "PY"),
+        _stub_from_icoor(
+            "OY3", "O", (c3, up_atom, "PY"), icoors[ref_phosphate], 0.0, "PY"
+        ),
     )
 
 
-def _na_backbone_torsions(residues, backbone, mainchain):
+def _na_backbone_torsions(residues, backbone, mainchain, element):
     """The canonical torsions that name only backbone atoms and connections.
 
     Everything but the glycosidic one: alpha through zeta and the sugar
     puckers are the same four atoms in every nucleotide, while chi runs into
-    the base and is named per residue.
+    the base and is named per residue. Proton chis (1BZT PSU's 2'-hydroxyl) stay
+    with the residue's own chi.
     """
 
     def spec(atom):
@@ -1786,9 +1866,12 @@ def _na_backbone_torsions(residues, backbone, mainchain):
 
     out, seen = [], set()
     for residue in residues:
+        types = {a.name: a.atom_type for a in residue.atoms}
         for torsion in residue.torsions:
             atoms = tuple(spec(a) for a in (torsion.a, torsion.b, torsion.c, torsion.d))
             if torsion.name in seen:
+                continue
+            if any(element.get(types.get(a, "")) == "H" for a in atoms):
                 continue
             if not all(a in backbone or ":" in a for a in atoms):
                 continue
@@ -1879,7 +1962,16 @@ def _generic_na_profile(path, chemdb) -> PolymerProfile:
         up=("up", path[-1]),
         connection_bond_type="SINGLE",
         caps=_na_caps(
-            icoors, (path[0], path[1], path[2], path[-3], path[-2]), path[0], path[-1]
+            icoors,
+            (path[0], path[1], path[2], path[-3], path[-2]),
+            path[0],
+            path[-1],
+            # the reference's icoors are keyed by its own atom names
+            (
+                None
+                if reference is None
+                else (reference.mainchain_atoms[0], reference.up[1])
+            ),
         ),
         down_partner="OY",
         up_partner="PY",
@@ -1923,7 +2015,9 @@ def complete_backbone_from_reference(atom_array, profile, param_db):
     )
     if donor_type is None:
         return atom_array
-    coords = _ideal_coords_for(donor_type)
+    from tmol.ligand._preparation import _ideal_coords_by_name
+
+    coords = _ideal_coords_by_name(donor_type)
     shared = sorted(present & set(coords))
     if len(shared) < 3 or not wanted <= set(coords):
         return atom_array
@@ -2007,17 +2101,6 @@ def _localized_bonds(residue_type, existing_orders=None):
             seen.add(bond)
             localized.append((bond[0], bond[1], 2 if bond in doubled else 1))
     return localized
-
-
-def _ideal_coords_for(residue_type):
-    """A canonical residue's ideal coordinates, by atom name."""
-    import cattr
-
-    from tmol.chemical._restypes import RefinedResidueType
-
-    refined = cattr.structure(cattr.unstructure(residue_type), RefinedResidueType)
-    xyz = refined.compute_ideal_coords()
-    return {ic.name: numpy.asarray(xyz[i]) for i, ic in enumerate(refined.icoors)}
 
 
 def _element_of(residue_type, name):

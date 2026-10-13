@@ -1,0 +1,23 @@
+[project]
+name = "tmol-ops-cu12"
+version = "0.1.64"
+description = "TMol native operators for CUDA 12"
+readme = {text = "CUDA 12 native operators for TMol. Install `tmol[cu12]` with a CUDA 12-enabled PyTorch build. The Python API and data are provided by `tmol`.", content-type = "text/markdown"}
+requires-python = ">=3.11"
+license = {text = "Apache-2.0"}
+dependencies = ["tmol==0.1.64", "torch>=2.11"]
+
+[build-system]
+requires = ["scikit-build-core>=0.10", "torch>=2.14", "pybind11>=2.12", "ninja"]
+build-backend = "scikit_build_core.build"
+
+[tool.scikit-build]
+cmake.source-dir = "../.."
+cmake.build-type = "Release"
+cmake.version = ">=3.24,<4"
+build-dir = "../../build/cu12/{wheel_tag}"
+wheel.packages = []
+
+[tool.scikit-build.cmake.define]
+TMOL_OPS_CUDA = "12"
+CMAKE_CUDA_ARCHITECTURES = {env = "CMAKE_CUDA_ARCHITECTURES", default = "native"}

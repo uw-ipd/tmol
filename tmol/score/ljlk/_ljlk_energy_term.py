@@ -131,28 +131,22 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         # excludes on a binary rule.
         rosetta_typed = self.rosetta_typed
         ljlk_bond_separation = packed_block_types.bond_separation.clone()
+        ligand = numpy.zeros(ljlk_bond_separation.shape[:2], dtype=bool)
+        all_ligand = numpy.zeros(len(ligand), dtype=numpy.int32)
         for i, bt in enumerate(packed_block_types.active_block_types):
-            n = len(bt.atoms)
-            ligand = torch.tensor(
-                [a.atom_type not in rosetta_typed for a in bt.atoms],
-                dtype=torch.bool,
-                device=ljlk_bond_separation.device,
-            )
-            both = ligand.unsqueeze(1) & ligand.unsqueeze(0)
-            slab = ljlk_bond_separation[i, :n, :n]
-            slab[both[:n, :n] & ((slab == 3) | (slab == 4))] = 5
+            typed = [a.atom_type not in rosetta_typed for a in bt.atoms]
+            ligand[i, : len(typed)] = typed
+            all_ligand[i] = all(typed)
+        ligand = torch.from_numpy(ligand).to(ljlk_bond_separation.device)
+        both = ligand.unsqueeze(2) & ligand.unsqueeze(1)
+        ljlk_bond_separation[
+            both & ((ljlk_bond_separation == 3) | (ljlk_bond_separation == 4))
+        ] = 5
         setattr(packed_block_types, "ljlk_bond_separation", ljlk_bond_separation)
         setattr(
             packed_block_types,
             "ljlk_all_atoms_ligand_typed",
-            torch.tensor(
-                [
-                    all(a.atom_type not in self.rosetta_typed for a in bt.atoms)
-                    for bt in packed_block_types.active_block_types
-                ],
-                dtype=torch.int32,
-                device=self.device,
-            ),
+            torch.from_numpy(all_ligand).to(self.device),
         )
         return store_annotation(
             packed_block_types,
@@ -244,8 +238,8 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             dim=1,
         )
         return [
-            pose_stack.min_block_bondsep,
-            pose_stack.inter_block_bondsep,
+            pose_stack.inter_block_bondsep.near_blocks,
+            pose_stack.inter_block_bondsep.bondsep,
             pose_stack.packed_block_types.n_atoms,
             annotation[0],
             annotation[1],

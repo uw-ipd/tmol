@@ -6,7 +6,6 @@
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 
-#include <tmol/score/common/dispatch.hh>
 #include <tuple>
 
 namespace tmol {

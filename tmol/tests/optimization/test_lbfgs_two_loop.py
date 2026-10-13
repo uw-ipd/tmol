@@ -107,3 +107,54 @@ def test_lbfgs_two_loop_benchmark(benchmark, dtype):
         out = lbfgs_two_loop(grad, dirs, stps)
         torch.cuda.synchronize()
         return out
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+@pytest.mark.parametrize("history_start", [1, 3, 7])
+@pytest.mark.parametrize("layout", ["single", "batched", "broadcast", "strided"])
+def test_circular_history_matches_chronological_history(
+    dtype, history_start, layout, torch_device
+):
+    from tmol.optimization._lbfgs_armijo import _lbfgs_two_loop
+
+    torch.manual_seed(713)
+    batch = 1 if layout == "single" else 3
+    history_batch = 1 if layout == "broadcast" else batch
+    stride = 2 if layout == "strided" else 1
+    steps = torch.randn(8, history_batch, 37 * stride, dtype=dtype, device=torch_device)
+    steps = steps[..., ::stride]
+    directions = 2 * steps + 0.1 * torch.randn_like(steps)
+    # Include rejected curvature slots and a completely reset segment.
+    steps[2].zero_()
+    directions[2].zero_()
+    if history_batch > 1:
+        steps[:, 1].zero_()
+        directions[:, 1].zero_()
+    grad = torch.randn(batch, 37, dtype=dtype, device=torch_device)
+    actual = _lbfgs_two_loop(grad, directions, steps, history_start)
+    expected = lbfgs_two_loop(
+        grad,
+        torch.roll(directions, -history_start, dims=0),
+        torch.roll(steps, -history_start, dims=0),
+    )
+    tolerance = 1e-12 if dtype == torch.float64 else 1e-6
+    torch.testing.assert_close(actual, expected, atol=tolerance, rtol=tolerance)
+
+    # The internal circular path also preserves the helper's autograd behavior.
+    grad.requires_grad_()
+    directions.requires_grad_()
+    steps.requires_grad_()
+    actual = _lbfgs_two_loop(grad, directions, steps, history_start)
+    expected = lbfgs_two_loop(
+        grad,
+        torch.roll(directions, -history_start, dims=0),
+        torch.roll(steps, -history_start, dims=0),
+    )
+    actual_grads = torch.autograd.grad(actual.square().sum(), (grad, directions, steps))
+    expected_grads = torch.autograd.grad(
+        expected.square().sum(), (grad, directions, steps)
+    )
+    for actual_grad, expected_grad in zip(actual_grads, expected_grads):
+        torch.testing.assert_close(
+            actual_grad, expected_grad, atol=tolerance, rtol=tolerance
+        )

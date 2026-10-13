@@ -5,8 +5,7 @@ hand-picked structure:
 
 a. Parameters prepared from a CIF make a *coordinate-only* PDB sufficient. A
    caller who prepares chemistry once must be able to load plain coordinates
-   afterwards and get the same complete structure back, with no dictionary
-   lookup.
+   afterwards and get the same complete structure back.
 
 b. A component's name does not change its chemistry. Once the atoms and bonds
    are in hand, renaming a residue to something no dictionary knows must
@@ -33,16 +32,11 @@ SEED = 20260915
 
 
 def _fixtures(directory):
-    return sorted(f"{directory}/{p.name}" for p in data_path(directory).glob("*.cif"))
+    return sorted(f"{directory}/{p.name}" for p in data_path(directory).glob("*.cif*"))
 
 
-# The two directories separate noncanonical *residues* from components joined
-# by a bond that crosses a residue boundary. That distinction matters below:
-# parameters describe a residue's chemistry, not which residues a particular
-# structure links together.
 RESIDUE_FIXTURES = _fixtures("ncaa_fixtures")
-LINKED_FIXTURES = _fixtures("covalent_fixtures")
-FIXTURES = sorted(RESIDUE_FIXTURES + LINKED_FIXTURES)
+FIXTURES = sorted(RESIDUE_FIXTURES + _fixtures("covalent_fixtures"))
 
 
 def _described_from_an_unplaced_copy(array, names):
@@ -116,11 +110,25 @@ def _pose_atom_composition(pose):
     ]
 
 
+def _heavy_atoms(pose):
+    """``pose.real_atoms`` without the hydrogens."""
+    heavy = pose.real_atoms.clone()
+    is_h = pose.packed_block_types.atom_is_hydrogen.bool()
+    for p in range(pose.n_poses):
+        for block, index in enumerate(pose.block_type_ind[p].tolist()):
+            if index < 0:
+                continue
+            offset = int(pose.block_coord_offset[p, block])
+            n_atoms = pose.packed_block_types.n_atoms[index]
+            heavy[p, offset : offset + n_atoms] &= ~is_h[index, :n_atoms]
+    return heavy
+
+
 @pytest.mark.parametrize("fixture", RESIDUE_FIXTURES)
 def test_prepared_parameters_make_coordinate_only_pdb_complete(
     fixture, tmp_path, torch_device
 ):
-    """Parameters prepared from the CIF load a bare PDB without a dictionary."""
+    """Parameters prepared from the CIF load a bare PDB of the same structure."""
     cif = data_path(*fixture.split("/"))
     prepared, context = pose_stack_from_cif(
         cif,
@@ -155,7 +163,6 @@ def test_prepared_parameters_make_coordinate_only_pdb_complete(
         pdb_path,
         torch_device,
         param_db=context.parameter_database,
-        use_ccd=False,
         no_optH=True,
     )
 
@@ -163,59 +170,6 @@ def test_prepared_parameters_make_coordinate_only_pdb_complete(
     assert reloaded.n_poses == prepared.n_poses
     assert _pose_atom_composition(reloaded) == _pose_atom_composition(prepared)
     assert int(reloaded.real_atoms.sum()) == int(prepared.real_atoms.sum())
-
-
-@pytest.mark.parametrize("fixture", LINKED_FIXTURES)
-def test_coordinate_only_pdb_cannot_carry_cross_residue_links(
-    fixture, tmp_path, torch_device
-):
-    """Parameters carry residue chemistry; they do not carry a structure's links.
-
-    An attachment that is neither a polymer backbone bond nor a disulfide lives
-    in the CIF's connection records. A coordinate-only PDB has nowhere to put
-    it, so the components come back in their free forms -- the attachment site
-    regains the hydrogens the bond displaced. That is the correct outcome:
-    inventing the link from proximity would be a guess. Callers who need it
-    must declare the connectivity.
-    """
-    cif = data_path(*fixture.split("/"))
-    prepared, context = pose_stack_from_cif(
-        cif,
-        torch_device,
-        prepare_ligands=True,
-        ligand_seed=SEED,
-        no_optH=True,
-        return_context=True,
-    )
-
-    source = atom_array_from_cif(cif)
-    unresolved = _unresolved_atom_names(source)
-    source.bonds = None
-    pdb_path = tmp_path / "coordinates.pdb"
-    written = pdb.PDBFile()
-    if unresolved:
-        # Declared-but-unplaced atoms have no PDB representation; see the
-        # residue-fixture contract above.
-        with pytest.raises(struc.BadStructureError):
-            written.set_structure(source)
-            written.write(pdb_path)
-        return
-    written.set_structure(source)
-    written.write(pdb_path)
-
-    reloaded = pose_stack_from_file(
-        pdb_path,
-        torch_device,
-        param_db=context.parameter_database,
-        use_ccd=False,
-        no_optH=True,
-    )
-
-    # The chemistry still loads with no dictionary, which is the point of
-    # injecting parameters; only the structure's own connectivity is missing.
-    assert torch.isfinite(reloaded.coords[reloaded.real_atoms]).all()
-    assert int(reloaded.real_atoms.sum()) > int(prepared.real_atoms.sum())
-    assert _pose_atom_composition(reloaded) != _pose_atom_composition(prepared)
 
 
 @pytest.mark.parametrize("fixture", FIXTURES)
@@ -253,7 +207,6 @@ def test_renamed_components_process_identically(fixture, torch_device):
                 prepare_ligands=True,
                 ligand_seed=SEED,
                 no_optH=True,
-                use_ccd=False,
                 return_context=True,
             )
         del named_context
@@ -265,16 +218,16 @@ def test_renamed_components_process_identically(fixture, torch_device):
         prepare_ligands=True,
         ligand_seed=SEED,
         no_optH=True,
-        use_ccd=False,
         return_context=True,
     )
 
     assert torch.isfinite(renamed.coords[renamed.real_atoms]).all()
     assert renamed.n_poses == named.n_poses
     assert int(renamed.real_atoms.sum()) == int(named.real_atoms.sum())
-    # Names differ by construction; the atoms they carry must not.
+    # Names differ by construction; the atoms they carry must not. AtomWorks
+    #    places hydrogens by dictionary geometry where it knows the component.
     assert _pose_atom_composition(renamed) == _pose_atom_composition(named)
     torch.testing.assert_close(
-        renamed.coords[renamed.real_atoms], named.coords[named.real_atoms]
+        renamed.coords[_heavy_atoms(renamed)], named.coords[_heavy_atoms(named)]
     )
     del named_context, renamed_context

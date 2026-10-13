@@ -80,9 +80,7 @@ def parse_all_tables(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir):
         paapp[aa] = energies
 
     for aa, prob in prepro.items():
-        # convert rama to energies
-        # NOTE: this normalization is not properly done in R3 for prepro
-        prob /= numpy.sum(prob)
+        # convert rama to energies; raw probs, matching R3 (prepro is jointly normalized)
         entropy = numpy.sum(prob * numpy.log(prob))
         energies = -numpy.log(prob) + entropy
 
@@ -91,7 +89,6 @@ def parse_all_tables(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir):
 
     for aa, prob in general.items():
         # convert rama to energies
-        prob /= numpy.sum(prob)
         entropy = numpy.sum(prob * numpy.log(prob))
         energies = -numpy.log(prob) + entropy
 

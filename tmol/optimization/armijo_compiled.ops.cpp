@@ -1,5 +1,4 @@
-#include <torch/script.h>
-#include <torch/torch.h>
+#include <tmol/utility/tensor/native_library.hh>
 
 #include <tmol/optimization/armijo_compiled.hh>
 #include <tmol/score/common/device_operations.hh>
@@ -9,7 +8,7 @@
 namespace tmol {
 namespace optimization {
 
-using torch::Tensor;
+using tmol::native::Tensor;
 ContextManager mgr;
 
 Tensor armijo_start(Tensor searching, Tensor alpha0) {
@@ -145,12 +144,12 @@ std::tuple<Tensor, Tensor> armijo_finalize(
   return {step, failed};
 }
 
-TORCH_LIBRARY(tmol_optimization, m) {
-  m.def("armijo_start", &armijo_start);
-  m.def("armijo_classify", &armijo_classify);
-  m.def("armijo_trial", &armijo_trial);
-  m.def("armijo_update", &armijo_update);
-  m.def("armijo_finalize", &armijo_finalize);
+TMOL_LIBRARY(tmol_optimization, m) {
+  m.def("armijo_start", TMOL_FN(&armijo_start));
+  m.def("armijo_classify", TMOL_FN(&armijo_classify));
+  m.def("armijo_trial", TMOL_FN(&armijo_trial));
+  m.def("armijo_update", TMOL_FN(&armijo_update));
+  m.def("armijo_finalize", TMOL_FN(&armijo_finalize));
 }
 
 }  // namespace optimization

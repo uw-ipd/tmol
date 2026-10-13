@@ -4,7 +4,6 @@ from tmol.database import ParameterDatabase
 from tmol.ligand import (
     get_hbond_properties,
     get_polar_classes,
-    get_sp2_atom_types,
 )
 
 
@@ -20,11 +19,8 @@ def test_hbond_properties_derived_from_chemical_db() -> None:
     assert "acceptor_hybridization" in hbond_props["Ohx"]
 
 
-def test_polar_and_sp2_classes_come_from_db_tables() -> None:
-    """Polar and sp2 atom-type sets are sourced from the database tables."""
+def test_polar_classes_come_from_db_tables() -> None:
+    """Polar atom-type classes are sourced from the database tables."""
     polar_classes = get_polar_classes()
-    sp2_atom_types = get_sp2_atom_types()
 
     assert "PG3" in polar_classes
-    assert "CD" in sp2_atom_types
-    assert "Nim" in sp2_atom_types

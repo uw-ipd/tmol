@@ -33,7 +33,7 @@ param_db, co = prepare_ligand_from_cif("ligand.cif")
 
 # 3) SMILES — no input geometry. Dimorphite-DL protonates at the target pH and
 #    a 3D conformer + MMFF94 charges are generated.
-param_db, co = prepare_ligand_from_smiles("c1ccccc1C(=O)O", res_name="BEN")
+param_db, co = prepare_ligand_from_smiles("c1ccccc1C(=O)O", res_name="L_1")
 ```
 
 To detect and prepare **every** non-standard residue in a structure at once
@@ -378,7 +378,6 @@ it into the pose. Failure modes, in order of likelihood:
 | `_detect.py` | `NonStandardResidueInfo`, non-standard residue detection, mol2/SMILES readers |
 | `_structure_to_smiles.py` | SMILES from an AtomArray bond table (no geometry perception, no CCD lookup) |
 | `_fragmentation.py` | Fragment annotations, fragment block types/connections, pose mapping |
-| `_dimorphite_dl.py` | pKa-based protonation-state enumeration on SMILES |
 | `_conformer_generation.py` | 3D coordinates via RDKit distance geometry (replaces OpenBabel `make3D`) |
 | `_generated_geometry.py` | Corrections to known systematic errors in generated conformers |
 | `_openbabel_compat.py` | SMILES→mol2 (conformer + MMFF94 charges), mol2 read fallbacks |

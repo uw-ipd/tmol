@@ -2,7 +2,8 @@ import numpy
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_pdb
+from tmol.io import atom_array_from_cif, pose_stack_from_biotite, pose_stack_from_pdb
+from tmol.optimization import run_cart_min
 from tmol.pack import PackerPalette, PackerTask, SetPackerTask
 from tmol.pack.rotamer import IncludeCurrentSampler, build_rotamers
 from tmol.pose import PoseStackBuilder
@@ -11,6 +12,7 @@ from tmol.score import (
     ScoreFunction,
     ScoreType,
 )
+from tmol.tests.data import data_path
 from tmol.tests.score.common import EnergyTermTestBase
 
 
@@ -252,3 +254,32 @@ def test_compact_specialization_preserves_subsets(
             torch.testing.assert_close(
                 actual_grad, expected_grad, atol=tolerance, rtol=tolerance
             )
+
+
+def test_an_acceptor_without_a_base_has_finite_gradients(torch_device):
+    """1MBO: the dioxygen on the haem iron (OXY) is an acceptor whose base is
+    undefined, so gen_hbond_bases leaves its base coordinates NaN. Its pairs
+    scored 0 with a NaN gradient (NaN * 0), which minimization spread into NaN
+    coordinates."""
+    structure = atom_array_from_cif(
+        data_path("sweep_regressions", "oxygen_acceptor_1mbo.cif.zst")
+    )
+    pose_stack, context = pose_stack_from_biotite(
+        structure,
+        torch_device,
+        prepare_ligands=True,
+        ligand_seed=0,
+        return_context=True,
+    )
+    assert any(
+        bt.name.startswith("OXY")
+        for bt in pose_stack.packed_block_types.active_block_types
+    )
+    sfxn = ScoreFunction(context.parameter_database, torch_device)
+    sfxn.set_weight(ScoreType.hbond, 1.0)
+    coords = pose_stack.coords.detach().clone().requires_grad_(True)
+    (grad,) = torch.autograd.grad(
+        sfxn.render_whole_pose_scoring_module(pose_stack)(coords).sum(), coords
+    )
+    assert torch.isfinite(grad).all()
+    assert torch.isfinite(run_cart_min(pose_stack, sfxn).coords).all()

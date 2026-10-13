@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from rdkit import Chem
 
-from tmol.ligand._structure_to_smiles import _infer_carboxylate_bonds
+from tmol.ligand._input_repair import _infer_carboxylate_bonds
 
 
 def motif():

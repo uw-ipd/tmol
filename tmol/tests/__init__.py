@@ -5,7 +5,9 @@ from ._torch import (  # noqa: F401
     torch_device,
     zero_padded_counts,
 )  # noqa: F401
-from ._autograd import VectorizedOp, gradcheck  # noqa: F401
+from torch.autograd import gradcheck  # noqa: F401
+
+from ._autograd import VectorizedOp  # noqa: F401
 from ._benchmark import (  # noqa: F401
     make_fixture,
     make_subfixture,

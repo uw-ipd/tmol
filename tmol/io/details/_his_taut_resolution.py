@@ -66,8 +66,6 @@ def resolve_his_tautomerization(
             device=res_types.device,
         ),
         (res_types.shape[0], res_types.shape[1], 1),
-    ).reshape(
-        res_types.shape[0], res_types.shape[1], canonical_ordering.max_n_canonical_atoms
     )
 
     his_taut = resolve_his_taut(

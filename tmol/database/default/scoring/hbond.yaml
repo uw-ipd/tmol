@@ -15,6 +15,7 @@ donor_atom_types:
   - { d: Narg,     donor_type: hbdon_GDH } #ex: Arg NH{1 2}--{1 2}HH{1 2} 
   - { d: NH2O,     donor_type: hbdon_CXA } #ex: Asn ND2--{1 2}HD2; Gln NE2--{1 2}HE2 
   - { d: Nlys,     donor_type: hbdon_AMO } #ex: Lys NZ--{1 2 3}HZ
+  - { d: NlysDepro, donor_type: hbdon_AMO } #ex: LYS_DEP NZ--{1 2}HZ
   - { d: OH,       donor_type: hbdon_HXL } #ex: Ser OG--HG; Thr OG1--HG1
   - { d: OHphenol, donor_type: hbdon_AHX } #ex: Tyr OH--HH
   - { d: Owat,     donor_type: hbdon_H2O } #ex: water O--H

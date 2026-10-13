@@ -1,5 +1,4 @@
-#include <torch/torch.h>
-#include <torch/script.h>
+#include <tmol/utility/tensor/native_library.hh>
 
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/tensor/context_manager.hh>
@@ -21,15 +20,16 @@ ContextManager mgr;
 
 using namespace tmol::score::common;
 
-using torch::Tensor;
-using torch::autograd::AutogradContext;
-using torch::autograd::Function;
-using torch::autograd::tensor_list;
+using tmol::native::Tensor;
+using tmol::native::autograd::AutogradContext;
+using tmol::native::autograd::Function;
+using tmol::native::autograd::tensor_list;
 
 template <template <tmol::Device> class DispatchMethod>
-class DisulfidePoseScoreOp
-    : public torch::autograd::Function<DisulfidePoseScoreOp<DispatchMethod>> {
+class DisulfidePoseScoreOp : public tmol::native::autograd::Function<
+                                 DisulfidePoseScoreOp<DispatchMethod>> {
  public:
+  static constexpr bool capture_pose_gradient = true;
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
 
@@ -58,8 +58,8 @@ class DisulfidePoseScoreOp
       Tensor global_params,
 
       bool output_block_pair_energies) {
-    at::Tensor score;
-    at::Tensor dscore_dcoords;
+    tmol::native::Tensor score;
+    tmol::native::Tensor dscore_dcoords;
 
     using Int = int32_t;
 
@@ -124,22 +124,25 @@ class DisulfidePoseScoreOp
            block_type_atom_downstream_of_conn,
            global_params});
     } else {
-      score = score.squeeze(-1).squeeze(-1);
-      ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
+      score = score.reshape({score.size(0), score.size(1)});
+      ctx->save_for_backward({dscore_dcoords});
     }
     // Stick to convention: return two tensors, with the understanding
     // that no one will use the second tensor
+    ctx->mark_non_differentiable({dscore_dcoords});
+    ctx->set_materialize_grads(false);
     return {score, dscore_dcoords};
   }
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    if (!grad_outputs[0].defined()) return tensor_list(19);
     auto saved = ctx->get_saved_variables();
 
-    at::Tensor dV_d_pose_coords;
+    tmol::native::Tensor dV_d_pose_coords;
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
-    if (saved.size() == 2) {
+    if (saved.size() == 1) {
       // single-score mode
       auto saved_grad = saved[0];
 
@@ -221,34 +224,34 @@ class DisulfidePoseScoreOp
     return {
         // 13 common params including dV_d_pose_coords
         dV_d_pose_coords,
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
         // 6 custom params
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor()};
+        tmol::native::Tensor()};
   }
 };
 
 template <template <tmol::Device> class DispatchMethod>
-class DisulfideRotamerScoreOp : public torch::autograd::Function<
+class DisulfideRotamerScoreOp : public tmol::native::autograd::Function<
                                     DisulfideRotamerScoreOp<DispatchMethod>> {
  public:
   static std::vector<Tensor> forward(
@@ -279,10 +282,10 @@ class DisulfideRotamerScoreOp : public torch::autograd::Function<
       Tensor global_params,
 
       bool output_block_pair_energies) {
-    at::Tensor score;
-    at::Tensor dscore_dcoords;
-    at::Tensor dispatch_indices;
-    at::Tensor conns_for_dispatch_indices;
+    tmol::native::Tensor score;
+    tmol::native::Tensor dscore_dcoords;
+    tmol::native::Tensor dispatch_indices;
+    tmol::native::Tensor conns_for_dispatch_indices;
 
     using Int = int32_t;
 
@@ -359,15 +362,14 @@ class DisulfideRotamerScoreOp : public torch::autograd::Function<
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
     auto saved = ctx->get_saved_variables();
 
-    at::Tensor dV_d_pose_coords;
+    tmol::native::Tensor dV_d_pose_coords;
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
     if (saved.size() == 2) {
       // single-score mode
-      auto saved_grads = ctx->get_saved_variables();
-      auto saved_grad = saved_grads[0];
-      auto pose_ind_for_atom = saved_grads[1];
+      auto saved_grad = saved[0];
+      auto pose_ind_for_atom = saved[1];
 
       tensor_list result;
 
@@ -457,29 +459,29 @@ class DisulfideRotamerScoreOp : public torch::autograd::Function<
     return {
         // 13 common params including dV_d_pose_coords
         dV_d_pose_coords,
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
         // 6 custom params
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor()};
+        tmol::native::Tensor()};
   }
 };
 
@@ -595,11 +597,13 @@ std::vector<Tensor> disulfide_rotamer_scores_op(
       output_block_pair_energies);
 }
 // See https://stackoverflow.com/a/3221914
-TORCH_LIBRARY(tmol_disulfide, m) {
-  m.def("disulfide_pose_scores", &disulfide_pose_scores_op<DeviceOperations>);
+TMOL_LIBRARY(tmol_disulfide, m) {
+  m.def(
+      "disulfide_pose_scores",
+      TMOL_FN(&disulfide_pose_scores_op<DeviceOperations>));
   m.def(
       "disulfide_rotamer_scores",
-      &disulfide_rotamer_scores_op<DeviceOperations>);
+      TMOL_FN(&disulfide_rotamer_scores_op<DeviceOperations>));
 }
 
 }  // namespace potentials

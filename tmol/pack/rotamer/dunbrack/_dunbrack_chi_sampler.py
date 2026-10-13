@@ -694,11 +694,10 @@ class DunbrackChiSampler(ChiSampler):
             if requests:
                 with torch.no_grad():
                     values = _measure_torsions(pose_stack, requests, degrees=False)
-                if not numpy.isfinite(values).all():
-                    raise ValueError(
-                        "Cannot freeze chi without resolved defining atoms"
-                    )
                 row, chi = torch.tensor(destinations, device=self.device).T
+                # A chi whose defining atoms are unresolved keeps its ideal value.
+                ideal = non_dunbrack_expansion_for_bbt[row, chi, 0].cpu().numpy()
+                values = numpy.where(numpy.isfinite(values), values, ideal)
                 non_dunbrack_expansion_for_bbt[row, chi, 0] = torch.as_tensor(
                     values,
                     dtype=non_dunbrack_expansion_for_bbt.dtype,

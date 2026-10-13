@@ -1,4 +1,5 @@
 import copy
+from collections import defaultdict
 from enum import IntEnum
 
 from frozendict import frozendict
@@ -65,70 +66,43 @@ ResName3 = typing.NewType("ResName3", str)
 IcoorIndex = NewType("AtomIndex", int)
 
 
+_ONE_LETTER_CODE = {
+    "ALA": "A",
+    "CYS": "C",
+    "ASP": "D",
+    "GLU": "E",
+    "PHE": "F",
+    "GLY": "G",
+    "HIS": "H",
+    "ILE": "I",
+    "LYS": "K",
+    "LEU": "L",
+    "MET": "M",
+    "ASN": "N",
+    "PRO": "P",
+    "GLN": "Q",
+    "ARG": "R",
+    "SER": "S",
+    "THR": "T",
+    "VAL": "V",
+    "TRP": "W",
+    "TYR": "Y",
+}
+_THREE_LETTER_CODE = {one: three for three, one in _ONE_LETTER_CODE.items()}
+
+
 def three2one(three: str) -> Union[str, None]:
     """Return the one-letter amino acid code given its three letter code,
     or None if not a valid three-letter code
     """
-    # 'static'
-    if not hasattr(three2one, "_mapping"):
-        three2one._mapping = {
-            "ALA": "A",
-            "CYS": "C",
-            "ASP": "D",
-            "GLU": "E",
-            "PHE": "F",
-            "GLY": "G",
-            "HIS": "H",
-            "ILE": "I",
-            "LYS": "K",
-            "LEU": "L",
-            "MET": "M",
-            "ASN": "N",
-            "PRO": "P",
-            "GLN": "Q",
-            "ARG": "R",
-            "SER": "S",
-            "THR": "T",
-            "VAL": "V",
-            "TRP": "W",
-            "TYR": "Y",
-        }
-    if three in three2one._mapping:
-        return three2one._mapping[three]
-    return None
+    return _ONE_LETTER_CODE.get(three)
 
 
 def one2three(one: str) -> Union[str, None]:
     """Return the three-letter amino acid code given its one-letter code,
     or None if not a valid one-letter code.
     """
-    # 'static'
-    if not hasattr(one2three, "_mapping"):
-        one2three._mapping = {
-            "A": "ALA",
-            "C": "CYS",
-            "D": "ASP",
-            "E": "GLU",
-            "F": "PHE",
-            "G": "GLY",
-            "H": "HIS",
-            "I": "ILE",
-            "K": "LYS",
-            "L": "LEU",
-            "M": "MET",
-            "N": "ASN",
-            "P": "PRO",
-            "Q": "GLN",
-            "R": "ARG",
-            "S": "SER",
-            "T": "THR",
-            "V": "VAL",
-            "W": "TRP",
-            "Y": "TYR",
-        }
-    if one in one2three._mapping:
-        return one2three._mapping[one]
-    return None
+    return _THREE_LETTER_CODE.get(one)
 
 
 def get_element_from_atom_name(atom_name: str) -> str:
@@ -476,29 +450,39 @@ class RefinedResidueType(RawResidueType):
         # 3 paths coming from that atom, followed by the 3 coming out
         # of each of those in turn. If a path doesn't exist, it is
         # filled with -1s to ensure deterministic indexing of the paths.
-        def get_paths_length_3(connection):
-            paths = numpy.full((MAX_PATHS_FROM_CONNECTION, 3), -1, dtype=numpy.int32)
-            # create a convenient datastructure for following connections
-            bondmap = {-1: []}
-            for bond in self.bond_indices:
-                if bond[0] not in bondmap:
-                    bondmap[bond[0]] = []
+        # bonds to follow, built once for every connection; virtual atoms have no
+        #    bonded geometry to reach
+        virtual = {self.atom_to_idx[name] for name in self.properties.virtual}
+        bondmap = defaultdict(list)
+        for bond in self.bond_indices:
+            if bond[0] not in virtual and bond[1] not in virtual:
                 bondmap[bond[0]].append(bond[1])
 
+        def get_paths_length_3(connection):
+            paths = numpy.full((MAX_PATHS_FROM_CONNECTION, 3), -1, dtype=numpy.int32)
             atom0 = self.atom_to_idx[connection.atom]
             # Add the immediate atom
             paths[0] = (atom0, -1, -1)
 
+            # an atom with more than three partners besides the way back (a
+            #    cluster metal or a bridging oxide) keeps the first three
+            def partners(atom, back=None):
+                out = bondmap[atom]
+                rest = [a for a in out if a != back]
+                if len(rest) > 3:
+                    out = ([back] if back in out else []) + rest[:3]
+                return out + [-1] * (3 - len(out))
+
             idx = 1
             # Add the 3 paths connecting to the immediate atom
-            for atom1 in bondmap[atom0] + [-1] * (3 - len(bondmap[atom0])):
+            for atom1 in partners(atom0):
                 if atom1 != -1:
                     paths[idx] = (atom0, atom1, -1)
                 idx += 1
 
             # Add the 9 paths connecting to the 3 from the previous step
-            for atom1 in bondmap[atom0] + [-1] * (3 - len(bondmap[atom0])):
-                for atom2 in bondmap[atom1] + [-1] * (3 - len(bondmap[atom1])):
+            for atom1 in partners(atom0):
+                for atom2 in partners(atom1, atom0):
                     if atom2 != atom0 and atom2 != -1:
                         paths[idx] = (atom0, atom1, atom2)
                     if atom2 != atom0:
@@ -693,6 +677,28 @@ class ResidueTypeSet:
             restype_map=restype_map,
             chem_db=chemical_db,
         )
+
+    def extended(self, chemical_db: PatchedChemicalDatabase) -> "ResidueTypeSet":
+        """This set grown to ``chemical_db``, whose residues begin with this set's; the
+        types already here stay the same objects.
+
+        Raises:
+            ValueError: If this set does not hold one type per residue of its
+                database, or ``chemical_db`` does not begin with those residues.
+        """
+        old = self.chem_db.residues
+        if (
+            len(self.residue_types) != len(old)
+            or len(chemical_db.residues) < len(old)
+            or any(a is not b for a, b in zip(chemical_db.residues, old))
+        ):
+            raise ValueError("chemical_db does not extend this residue type set")
+        cache = self._default_refined_cache()
+        added = [
+            copy.copy(cache[id(r)]) if id(r) in cache else self._refine(r)
+            for r in chemical_db.residues[len(old) :]
+        ]
+        return self.from_restype_list(chemical_db, [*self.residue_types, *added])
 
     @classmethod
     def from_restype_list(

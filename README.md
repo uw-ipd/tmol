@@ -1,6 +1,9 @@
-<h1 align="center">TMol</h1>
-
-<p align="center"><em>Rosetta molecular modeling at PyTorch speed.</em></p>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/uw-ipd/tmol/master/docs/_static/brand/tmol-logo-dark.svg">
+    <img src="https://raw.githubusercontent.com/uw-ipd/tmol/master/docs/_static/brand/tmol-logo-light.svg" alt="TMol" width="440">
+  </picture>
+</p>
 
 <p align="center">
   <a href="https://pypi.org/project/tmol/"><img src="https://img.shields.io/pypi/v/tmol.svg" alt="PyPI version"></a>
@@ -9,56 +12,50 @@
   <a href="https://github.com/uw-ipd/tmol/actions/workflows/ci.yml"><img src="https://github.com/uw-ipd/tmol/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
   <a href="https://uw-ipd.github.io/tmol/"><img src="https://github.com/uw-ipd/tmol/actions/workflows/docs.yml/badge.svg" alt="Documentation"></a>
   <a href="https://codecov.io/gh/uw-ipd/tmol"><img src="https://codecov.io/gh/uw-ipd/tmol/graph/badge.svg" alt="Code coverage"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/uw-ipd/tmol.svg" alt="License"></a>
+  <a href="https://github.com/uw-ipd/tmol/blob/master/LICENSE"><img src="https://img.shields.io/github/license/uw-ipd/tmol.svg" alt="License"></a>
 </p>
 
-TMol scores, packs, minimizes, and relaxes all-atom molecular structures as
-batched PyTorch tensors—on CPU or GPU, with gradients. It provides fast
-C++/CUDA kernels and modeling primitives for proteins, nucleic acids, ligands,
-and their complexes.
+TMol provides all-atom scoring, packing, minimization, and
+FastRelax in PyTorch. It batches proteins, nucleic acids, ligands, and complexes
+on CPU or CUDA, with gradients through coordinate scoring.
 
-Explore the **[TMol documentation](https://uw-ipd.github.io/tmol/)** for
-complete installation guidance, executable tutorials, workflows, and the API
-reference.
-
-Four ways in:
-
-- 🚀 **Start scoring** → [quick start](#quick-start), then the full **[Quickstart](https://uw-ipd.github.io/tmol/latest/quickstart.html)**.
-- 🧬 **Build a workflow** → **[scoring, packing, minimization, FastRelax, and ligand recipes](https://uw-ipd.github.io/tmol/latest/workflows/index.html)**.
-- 🤖 **Guide an agent** → **[portable TMol skills](skills/README.md)** for setup, scoring, packing/relax, and development.
-- 🛠️ **Develop TMol** → **[contributor guide](https://uw-ipd.github.io/tmol/latest/contributor_guide.html)**.
+[Documentation](https://uw-ipd.github.io/tmol/) ·
+[Tutorials](https://uw-ipd.github.io/tmol/latest/examples_index.html) ·
+[API reference](https://uw-ipd.github.io/tmol/latest/api_reference.html)
 
 ## Install
 
-The shortest path is:
+Install from PyPI. For GPU use, first install [PyTorch](https://pytorch.org/get-started/locally/)
+with the matching CUDA major, then choose one command:
 
 ```bash
-pip install tmol
+python -m pip install tmol          # CPU, including Apple Silicon
+python -m pip install "tmol[cu12]"   # CUDA 12-enabled PyTorch
+python -m pip install "tmol[cu13]"   # CUDA 13-enabled PyTorch
 ```
 
-TMol first looks for a matching prebuilt wheel and otherwise builds locally.
-For a deterministic CPU/GPU binary install, supported Python/PyTorch/CUDA
-combinations, Colab, macOS, and HPC troubleshooting, see the
-**[installation guide](https://uw-ipd.github.io/tmol/latest/installation.html)**
-and **[GitHub Releases](https://github.com/uw-ipd/tmol/releases)**.
+The base package contains the Python API, data, and CPU kernels. GPU extras add
+`tmol-ops-cu12` or `tmol-ops-cu13` at the same version. GPU use also needs a
+compatible NVIDIA driver; pip does not detect GPUs or select a PyTorch CUDA build.
+The [installation guide](https://uw-ipd.github.io/tmol/latest/installation.html)
+covers requirements, verification, upgrades, and source builds. TMol wheels work
+across supported PyTorch minor versions; no per-Torch wheel selection is needed.
 
-Verify the installation:
-
-```bash
-python -c "import tmol; print(tmol.__version__)"
+```python
+import torch, tmol
+print(tmol.__version__, tmol.has_cuda(), torch.cuda.is_available())
 ```
-
----
 
 ## Quick start
 
-Score a structure on GPU when CUDA is available, otherwise on CPU:
+Score a structure on CPU. With matching CUDA-enabled PyTorch and TMol operators,
+use `torch.device("cuda")`:
 
 ```python
 import torch
 import tmol
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
 pose = tmol.pose_stack_from_pdb("input.pdb", device)
 
 score_function = tmol.beta2016_score_function(device)
@@ -66,36 +63,28 @@ score = score_function.render_whole_pose_scoring_module(pose)
 print(score(pose.coords))
 ```
 
-From here, use the **[interactive examples](https://uw-ipd.github.io/tmol/latest/examples_index.html)**
-to pack side chains, analyze score terms, minimize coordinates, run FastRelax,
-prepare ligands, or model nucleic acids.
-
----
-
-## What TMol provides
-
-- Batched, differentiable all-atom structures backed by PyTorch tensors.
-- Rosetta-inspired score terms with CPU and CUDA implementations.
-- Side-chain packing and design, Cartesian and kinematic minimization, and FastRelax.
-- Protein, ligand, RNA, and DNA structure preparation and analysis.
-- RoseTTAFold2, OpenFold, Biotite, PDB, and canonical tensor integrations.
-- Ahead-of-time compiled wheels plus source and just-in-time build paths.
-
-See the **[task index](https://uw-ipd.github.io/tmol/latest/tutorial/recipe_index.html)**
-to jump from a modeling task to its maintained tutorial, workflow, and API.
-
----
+See the [quickstart](https://uw-ipd.github.io/tmol/latest/quickstart.html) for
+scoring, minimization, repacking, FastRelax, batching, and ligand preparation.
+The [visual glossary](https://uw-ipd.github.io/tmol/latest/terminology.html) explains
+the concepts, and the [score playground](https://uw-ipd.github.io/tmol/latest/playground.html)
+lets you rotate a side chain and inspect TMol scores in the browser. The
+[task index](https://uw-ipd.github.io/tmol/latest/tutorial/recipe_index.html)
+links individual operations to examples and APIs.
 
 ## Development
 
 ```bash
 git clone https://github.com/uw-ipd/tmol.git
 cd tmol
-TMOL_DISABLE_WHEEL_FETCH=1 pip install -e ".[dev]"
+python -m pip install "torch>=2.14" "scikit-build-core>=0.10" "cmake>=3.24,<4" "pybind11>=2.12" ninja packaging
+python -m pip install --no-build-isolation -e ".[dev]"
 ```
 
-The **[development guide](https://uw-ipd.github.io/tmol/latest/user_guide/development.html)**
-covers CMake/CUDA builds, tests, benchmarks, containers, CI, and releases.
+The [development guide](https://uw-ipd.github.io/tmol/latest/user_guide/development.html)
+covers builds, tests, benchmarks, and releases. See the
+[contributor guide](https://uw-ipd.github.io/tmol/latest/contributor_guide.html)
+for code and documentation conventions, or [agent skills](https://github.com/uw-ipd/tmol/blob/master/skills/README.md)
+for reusable coding-agent instructions.
 
 ## Citation
 
@@ -106,4 +95,4 @@ If you use TMol in your work, please cite:
 > GPU-accelerated, PyTorch implementation of Rosetta's relax protocol*
 > (manuscript in preparation).
 
-TMol is available under the terms in [LICENSE](LICENSE).
+TMol is available under the terms in [LICENSE](https://github.com/uw-ipd/tmol/blob/master/LICENSE).

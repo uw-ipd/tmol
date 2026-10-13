@@ -1,52 +1,47 @@
-Examples
-========
+Tutorials
+=========
 
-These thirteen executable notebooks are in-depth demonstrations with live molecular
-viewers, selectable structures and atom subsets, result tables, plots, and
-exercises. For shorter, reusable recipes, see :doc:`Workflows <workflows/index>`.
-Start with Tutorials 01–03. From scoring, branch to packing (04) or
-minimization (05), then combine both in FastRelax (06). Tutorials 07 and 08
-cover specialized ligand and nucleic-acid workflows. Case Studies 09 and 10
-bring those primitives together around protein-interface mutation and ligand
-pose-sensitivity questions. Tutorials 11–13 are advanced extension recipes for
-custom chemistry and scoring contexts, explicit kinematics, and packer internals.
+Each notebook works through a molecular experiment, with code, plots, and
+structure viewers together. Each opens with a goal and short roadmap, then
+checks the result against that goal. Run it independently from top to bottom.
+Start with loading (01) and scoring (03); use batching (02) when you want to
+process several structures. Then choose the operation or molecular system
+you need below. The :doc:`task index <tutorial/recipe_index>` lists individual
+API recipes.
 
-To run a notebook, use its **Open In Colab** button, select **Runtime → Change
-runtime type → T4 GPU**, then **Runtime → Run all**. The setup cell installs a
-published TMol wheel and downloads any listed repository fixtures. It supports
-Python 3.12/3.13 with PyTorch 2.11 and CUDA 12.8; Colab's **2026.07** runtime is
-one compatible option. Installation and the first calculation take longer than
-later cells. Local users can follow :doc:`Installation <installation>` and run the
-same notebooks with their installed TMol package.
+Setup and lengthy plotting helpers start folded. Expand them when you need
+the details; the modeling steps and their results stay visible. Sections
+marked **Optional** extend a completed example.
 
-Use the :doc:`task index <tutorial/recipe_index>` to find a maintained
-tutorial, workflow recipe, or API page for a specific operation.
-
-Readers coming from Rosetta or PyRosetta can consult the
-:doc:`Rosetta-to-TMol crosswalk <tutorial/rosetta_crosswalk>` alongside the
-Tutorials. The crosswalk distinguishes genuine API parallels from capabilities
-that TMol does not currently implement.
+In Colab, select a GPU under **Runtime → Change runtime type**, then **Run all**.
+The shared setup installs a tested TMol release with operators matching Colab's
+PyTorch CUDA major and downloads the example data. For local notebooks and
+supported environments, follow :doc:`installation`.
 
 .. nbgallery::
-   :caption: Core interactive tutorials
+   :caption: Load and score structures
 
    tutorial/01_working_with_tmol
    tutorial/02_gpu_batching
    tutorial/03_scoring_and_analysis
+
+.. nbgallery::
+   :caption: Change conformations and sequence
+
    tutorial/04_packing_and_mutation_scan
    tutorial/05_minimization_constraints_kinematics
    tutorial/06_fast_relax
-   tutorial/07_ligand_and_params
-   tutorial/08_nucleic_acids
 
 .. nbgallery::
-   :caption: Integrated case studies
+   :caption: Ligands, nucleic acids, and interfaces
 
+   tutorial/07_ligand_and_params
+   tutorial/08_nucleic_acids
    tutorial/09_protein_interface_hotspot_scan
    tutorial/10_ligand_pose_sensitivity
 
 .. nbgallery::
-   :caption: Advanced extension recipes
+   :caption: Extend TMol
 
    tutorial/11_extending_chemistry_and_scoring
    tutorial/12_explicit_foldforests_and_torsions
@@ -56,4 +51,3 @@ that TMol does not currently implement.
    :hidden:
 
    Task index <tutorial/recipe_index>
-   Rosetta-to-TMol crosswalk <tutorial/rosetta_crosswalk>

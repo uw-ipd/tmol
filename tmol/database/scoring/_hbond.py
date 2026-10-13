@@ -1,6 +1,6 @@
 import attr
 import cattr
-from tmol.database._yaml import safe_load
+from tmol.database._yaml import load_yaml
 import pandas
 
 from typing import Tuple
@@ -86,9 +86,7 @@ class HBondDatabaseRaw:
 
     @classmethod
     def from_file(cls, path):
-        with open(path, "r") as infile:
-            raw = safe_load(infile)
-        return cattr.structure(raw, cls)
+        return cattr.structure(load_yaml(path), cls)
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

@@ -1,0 +1,164 @@
+[
+ {
+  "fixture": "numbered_gap_3kgp.pdb.zst",
+  "source": "PDBbind v2013-core 3kgp/3kgp_protein.pdb (copy /mnt/data/kdidi/pdbbind/v2013-core/3kgp/3kgp_protein.pdb)",
+  "source_sha256": "9303531c3de6547a39db0131bef5a2fe0c88d2427c17bdeb68cc903f20a2ba4a",
+  "transformation": "ATOM/HETATM records of chain A residues 33-42 of 3kgp_protein.pdb (PDBbind v2013-core), END appended; zstd -19",
+  "sha256": "345d09623b918c7affec9426522fbef051a2ca742bc8e120ee89eef8929a1de9",
+  "bytes": 9168,
+  "compressed_sha256": "0fb0df8b5da51706b8195fa77409db95cc8a3744d9f4e22268229b703605ea5e"
+ },
+ {
+  "fixture": "pocket_1gpk.pdb.zst",
+  "source": "PDBbind v2013-core 1gpk/1gpk_pocket.pdb (copy /mnt/data/kdidi/pdbbind/v2013-core/1gpk/1gpk_pocket.pdb)",
+  "source_sha256": "8530a1e106983a61b79e22368692f6ee29b9a4e3055a9f288ac3bd45d500e435",
+  "transformation": "ATOM records of the first six residues (84, 116-119, 121) of 1gpk_pocket.pdb (PDBbind v2013-core, blank chain ID), END appended; zstd -19",
+  "sha256": "3a808791ec8ab2cf133f5e6935742366cc0492263b633a90380ce9fd243fa178",
+  "bytes": 4665,
+  "compressed_sha256": "e25fd5d1580ceb3737e76a78b58090cdfcb0d5e6123939d2ae3a22dc1a9d225f"
+ },
+ {
+  "fixture": "capped_break_1err.pdb.zst",
+  "source": "PDBbind v2020 prepared (zenodo 7014096) v2020-other-PL_5/1err/1err_prot/1err_p.pdb (copy /mnt/data/kdidi/pdbbind/v2020_partial/v2020-other-PL_5/1err/1err_prot/1err_p.pdb)",
+  "source_sha256": "18df5b34c751036cbeeeb570dcfd3f5eb3fbefd89c18f5f45b33d1a49a16ee6f",
+  "transformation": "ATOM records of chain A residues 377-385 (381 missing) of 1err_prot/1err_p.pdb (PDBbind v2020, zenodo 7014096, Schrodinger-prepared), END appended; zstd -19",
+  "sha256": "bc043dfeddf970cdad9a20e0f3007b406ded35a2e338d9f1944b149a329f4f43",
+  "bytes": 11344,
+  "compressed_sha256": "b448abbf65e9c0ab12a55240eae73ad14a6b749ab4895b136b6b9fc36313eb9d"
+ },
+ {
+  "fixture": "repeated_names_ligand_10gs.pdb.zst",
+  "source": "PDBbind v2013-core 10gs/10gs_complex.pdb (copy /mnt/data/kdidi/pdbbind/v2013-core/10gs/10gs_complex.pdb)",
+  "source_sha256": "19dfaa6ec42849b395f1770aa7efc12ac9df691745a98ae9f43066143b13b8d7",
+  "transformation": "HETATM records (the MOL ligand) of 10gs_complex.pdb (PDBbind v2013-core), END appended; zstd -19",
+  "sha256": "ac515c67f1903c1c491b28e78931345a901d8d00f899b780a895bd3d46e7c018",
+  "bytes": 4665,
+  "compressed_sha256": "458d944192a11ec660090c43bf2a988fcd1a1fe9decfd673f4729e1e378a32a9"
+ },
+ {
+  "fixture": "chloride_charge_column_6tw5.pdb.zst",
+  "source": "PoseBusters benchmark set (CC-BY 4.0) 6TW5_9M2/6TW5_9M2_protein.pdb (copy /mnt/data/kdidi/pdbbind/posebusters/posebusters_benchmark_set/6TW5_9M2/6TW5_9M2_protein.pdb)",
+  "source_sha256": "58103cb1cdd29cab8e80892d6800e8395268e33697ce9401342107e2220c1243",
+  "transformation": "the chain A CL HETATM record of 6TW5_9M2_protein.pdb (PoseBusters benchmark set), END appended; zstd -19",
+  "sha256": "b391b4c942c81d7c7c67a4babde1d3e299c63c78415eb0f750975ce7f1e7a06a",
+  "bytes": 85,
+  "compressed_sha256": "f2de6930986af7e70d487431b1cb7c3838ccb8e88b7da9daa59e78a44a24fe87"
+ },
+ {
+  "fixture": "heavy_atom_imidazole_6t88.sdf.zst",
+  "source": "PoseBusters benchmark set (CC-BY 4.0) 6T88_MWQ/6T88_MWQ_ligand.sdf (copy /mnt/data/kdidi/pdbbind/posebusters/posebusters_benchmark_set/6T88_MWQ/6T88_MWQ_ligand.sdf)",
+  "source_sha256": "42791e5be6dd6c60bc8e5a04af5ff1a6c3ef5938140497d72f05996cfdc94f15",
+  "transformation": "6T88_MWQ_ligand.sdf (PoseBusters benchmark set) unchanged; zstd -19",
+  "sha256": "42791e5be6dd6c60bc8e5a04af5ff1a6c3ef5938140497d72f05996cfdc94f15",
+  "bytes": 921,
+  "compressed_sha256": "1cdcf24a0c66ea7489fdd9712409982bdb3c40cd71744a853e5d7396b79cdcf8"
+ },
+ {
+  "fixture": "heavy_atom_indazole_6tw5.sdf.zst",
+  "source": "PoseBusters benchmark set (CC-BY 4.0) 6TW5_9M2/6TW5_9M2_ligand.sdf (copy /mnt/data/kdidi/pdbbind/posebusters/posebusters_benchmark_set/6TW5_9M2/6TW5_9M2_ligand.sdf)",
+  "source_sha256": "95eaaa7830c9eccd0a86d7631914cd332f89700c22079b48318db146c24514df",
+  "transformation": "6TW5_9M2_ligand.sdf (PoseBusters benchmark set) unchanged; zstd -19",
+  "sha256": "95eaaa7830c9eccd0a86d7631914cd332f89700c22079b48318db146c24514df",
+  "bytes": 2705,
+  "compressed_sha256": "db859ae3e08ea18ba0a76994e33d7d2abb9ee24fbd9f9342c18ff38c8880657b"
+ },
+ {
+  "fixture": "cyclic_acylguanidinium_3ge7.mol2.zst",
+  "source": "PDBbind v2013-core 3ge7/3ge7_ligand.mol2 (copy /mnt/data/kdidi/pdbbind/v2013-core/3ge7/3ge7_ligand.mol2)",
+  "source_sha256": "7c20af4017925861e0e48d3352fe1e7d89c54067d6313df5b638ec2bcbfe4e8d",
+  "transformation": "3ge7_ligand.mol2 (PDBbind v2013-core) unchanged; zstd -19",
+  "sha256": "7c20af4017925861e0e48d3352fe1e7d89c54067d6313df5b638ec2bcbfe4e8d",
+  "bytes": 5521,
+  "compressed_sha256": "dbb2846a389bfa8a3424fe8389d66b4f9d531f22aadcb655026272379269b86b"
+ },
+ {
+  "fixture": "iminohydantoin_4djv.mol2.zst",
+  "source": "PDBbind v2013-core 4djv/4djv_ligand.mol2 (copy /mnt/data/kdidi/pdbbind/v2013-core/4djv/4djv_ligand.mol2)",
+  "source_sha256": "e3fd4763e28ca9ae6aef9639c9fa57dd69facf76ae386c44ab3204524c6aaa1c",
+  "transformation": "4djv_ligand.mol2 (PDBbind v2013-core) unchanged; zstd -19",
+  "sha256": "e3fd4763e28ca9ae6aef9639c9fa57dd69facf76ae386c44ab3204524c6aaa1c",
+  "bytes": 5224,
+  "compressed_sha256": "d6dc67bc806a2aaf3310d0c988c709b2c2c65d77d4c00cf3a7bc0de77bc6812e"
+ },
+ {
+  "fixture": "cyclic_acylguanidinium_3ge7.sdf.zst",
+  "source": "PDBbind v2013-core 3ge7/3ge7_ligand.sdf (copy /mnt/data/kdidi/pdbbind/v2013-core/3ge7/3ge7_ligand.sdf)",
+  "source_sha256": "04bcb11e0e40d24585e32b24bf361b24d6d0316162aa71f5f2ca76ccf7b875ef",
+  "transformation": "3ge7_ligand.sdf (PDBbind v2013-core) unchanged; zstd -19",
+  "sha256": "04bcb11e0e40d24585e32b24bf361b24d6d0316162aa71f5f2ca76ccf7b875ef",
+  "bytes": 3743,
+  "compressed_sha256": "95d56e465a55802f10b79eadf52cf0013ce0c53c5fa0246369ee7fd8dbafdb68"
+ },
+ {
+  "fixture": "repeated_names_ligand_10gs.mol2.zst",
+  "source": "PDBbind v2013-core 10gs/10gs_ligand.mol2 (copy /mnt/data/kdidi/pdbbind/v2013-core/10gs/10gs_ligand.mol2)",
+  "source_sha256": "814a10dc0ece922d669bcbb8dfc1817d122ab4cbee0813ae37076635a8447f0b",
+  "transformation": "10gs_ligand.mol2 (PDBbind v2013-core) unchanged; zstd -19",
+  "sha256": "814a10dc0ece922d669bcbb8dfc1817d122ab4cbee0813ae37076635a8447f0b",
+  "bytes": 6073,
+  "compressed_sha256": "68c16f9130dd19e5d686825588b56cfd426d096edf037a241a2c44c737aeddff"
+ },
+ {
+  "fixture": "single_bonded_carboxyl_2xej.mol2.zst",
+  "source": "PDBbind v2020 prepared (zenodo 7014096) v2020-refined_4/2xej/2xej_prot/2xej_l.mol2 (copy /mnt/data/kdidi/pdbbind/v2020_partial/v2020-refined_4/2xej/2xej_prot/2xej_l.mol2)",
+  "source_sha256": "88e45f11528ff30da286297fb9e3eaf22f6db6e2450f7e84d598570b731aa6af",
+  "transformation": "whole file, unchanged; zstd -19",
+  "sha256": "88e45f11528ff30da286297fb9e3eaf22f6db6e2450f7e84d598570b731aa6af",
+  "bytes": 8589,
+  "compressed_sha256": "9fdffb42ad295cdd5df2a3ad85813cfbbec07204d082fa31799c269634f16755"
+ },
+ {
+  "fixture": "own_ligand_mol_3udh.pdb.zst",
+  "source": "PDBbind v2013-core 3udh/3udh_complex.pdb (copy /mnt/data/kdidi/pdbbind/v2013-core/3udh/3udh_complex.pdb)",
+  "source_sha256": "bb1e97aa0070cf9557d792be4840f1428e1e5d03091986eff7cb7c1a8b4b3943",
+  "transformation": "HETATM MOL records of 3udh_complex.pdb (PDBbind v2013-core) and their CONECT records among them, END appended; zstd -19",
+  "sha256": "5cd3a5ea09c7afbd908b976b8b5931a017f622a76aa76977fda175ea519bcbf1",
+  "bytes": 2751,
+  "compressed_sha256": "ac9a5e5cb0a22d0b212cb82f26e0f988854c3afcb2687fcbdd117f02ac875e85"
+ },
+ {
+  "fixture": "own_ligand_dgx_1igj.pdb.zst",
+  "source": "PDBbind v2013-core 1igj/1igj_complex.pdb (copy /mnt/data/kdidi/pdbbind/v2013-core/1igj/1igj_complex.pdb)",
+  "source_sha256": "8f3604b4515afd38ad4fd47149ab7ebc0439d3216035f613f07de73af9944287",
+  "transformation": "HETATM DGX records of 1igj_complex.pdb (PDBbind v2013-core) and their CONECT records among them, END appended; zstd -19",
+  "sha256": "11f8577d71ec9acce14909259edeb790c8e6ff4362fd566df97956310017945b",
+  "bytes": 8235,
+  "compressed_sha256": "57f1a2cfedd48b58bc9724db2a8e80175669ea1858e7ad957e8e74e8492c61a9"
+ },
+ {
+  "fixture": "hydrogens_named_apart_hux_1e66.pdb.zst",
+  "source": "PDBbind v2013-core 1e66/1e66_complex.pdb (copy /mnt/data/kdidi/pdbbind/v2013-core/1e66/1e66_complex.pdb)",
+  "source_sha256": "4e3fd930e17d18c2ff17256f0dbfc80e9474006023ae4b44eb2365e66b55fb6c",
+  "transformation": "HETATM HUX records of 1e66_complex.pdb (PDBbind v2013-core) and their CONECT records among them, END appended; zstd -19",
+  "sha256": "ebc11de3e4b8fbe65abb050e58196deca0b53b3c4924829de33a12cd990eccac",
+  "bytes": 4074,
+  "compressed_sha256": "903f4fa923ef834eadd62a10c864453069188be087250dcfe69af08d65bd58c9"
+ },
+ {
+  "fixture": "ligand_named_pro_3uri.pdb.zst",
+  "source": "PDBbind v2013-core 3uri/3uri_complex.pdb (copy /mnt/data/kdidi/pdbbind/v2013-core/3uri/3uri_complex.pdb)",
+  "source_sha256": "8838bc1b82df2c2a8a9ae9f882f0519df688d4b3e9d8e861be880bf3074c2e5c",
+  "transformation": "HETATM PRO records of 3uri_complex.pdb (PDBbind v2013-core) and their CONECT records among them, plus the ATOM records of chain A residue 9 (PRO), END appended; zstd -19",
+  "sha256": "1cdd43a959db96e69b9f655a5ded69dad2c49cd0839f1e853fbdae02e2aaddf0",
+  "bytes": 13717,
+  "compressed_sha256": "430667c0078c08066a2e1e174c3ea32c9c90c0168da36155b86748166ae70c5a"
+ },
+ {
+  "fixture": "ligand_named_pro_3uri.mol2.zst",
+  "source": "PDBbind v2013-core 3uri/3uri_ligand.mol2 (copy /mnt/data/kdidi/pdbbind/v2013-core/3uri/3uri_ligand.mol2)",
+  "source_sha256": "1788d7d8dedfc01117e9947c21c34391ee62ac2fb15632437aa8dccbc425abf4",
+  "transformation": "3uri_ligand.mol2 (PDBbind v2013-core) unchanged; zstd -19",
+  "sha256": "1788d7d8dedfc01117e9947c21c34391ee62ac2fb15632437aa8dccbc425abf4",
+  "bytes": 13144,
+  "compressed_sha256": "ee4f9f4a2f7e593c748f98fff811cf6fbe4f80d62c5808365e6037d9eda98409"
+ },
+ {
+  "fixture": "free_leucine_3b3s.pdb.zst",
+  "source": "PDBbind v2013-core 3b3s/3b3s_complex.pdb (copy /mnt/data/kdidi/pdbbind/v2013-core/3b3s/3b3s_complex.pdb)",
+  "source_sha256": "c6f70b3d3c5f5c1e29879e39864bd848f41adbc4203dbd44bd094f1ec57691ed",
+  "transformation": "HETATM LEU records of 3b3s_complex.pdb (PDBbind v2013-core) and their CONECT records among them, plus the ATOM records of chain A residue 14 (LEU), END appended; zstd -19",
+  "sha256": "435df7d5dce6222d27839bbfe448652dc1e684df5f1a2a71a32fca32f2dbc85c",
+  "bytes": 2927,
+  "compressed_sha256": "ea12dbfca9b15ff368b9defd7e9e93b37ca0a2c041cf2d760e8d26034fde7418"
+ }
+]

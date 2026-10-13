@@ -8,7 +8,7 @@ measured -- including which atom each is measured to, which fixes the value.
 """
 
 import itertools
-from typing import Mapping, Optional, Sequence
+from typing import Mapping, Optional
 
 import attr
 import cattr
@@ -465,43 +465,6 @@ def reference_cost(graph: SidechainGraph, reference: ReferenceProfile):
     if not scored:
         raise ReferenceRefused("every reading has the wrong handedness")
     return min(scored, key=lambda entry: (entry[0], entry[1]))
-
-
-@attr.s(auto_attribs=True, frozen=True)
-class ReferenceChoice:
-    """The reference chosen for one residue, and what it beat."""
-
-    name: Optional[str]
-    cost: Optional[float]
-    path: Optional[tuple]
-    runner_up: Optional[str]
-    gap: Optional[float]
-    refusals: Mapping[str, str]
-
-
-def choose_reference(
-    graph: SidechainGraph,
-    references: Sequence[ReferenceProfile],
-    *,
-    max_cost: float = MAX_COST,
-) -> ReferenceChoice:
-    """The cheapest usable reference for this residue, or none under max_cost."""
-    scored, refusals = [], {}
-    for candidate in references:
-        try:
-            cost, path = reference_cost(graph, candidate)
-        except ReferenceRefused as refused:
-            refusals[candidate.name] = str(refused)
-            continue
-        scored.append((cost, candidate.name, path))
-    scored.sort(key=lambda entry: (entry[0], entry[1]))
-    if not scored or scored[0][0] > max_cost:
-        best = scored[0] if scored else (None, None, None)
-        return ReferenceChoice(None, best[0], None, best[1], None, refusals)
-    cost, name, path = scored[0]
-    runner_up = scored[1][1] if len(scored) > 1 else None
-    gap = scored[1][0] - cost if len(scored) > 1 else None
-    return ReferenceChoice(name, cost, path, runner_up, gap, refusals)
 
 
 def _declared_chi(residue_type, element) -> tuple:

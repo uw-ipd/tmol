@@ -4,6 +4,7 @@ import torch
 import attr
 
 from tmol.types import Tensor
+from tmol.database.chemical import DEPROTONATED_STATE
 from tmol.pose import (
     PackedBlockTypes,
     PoseStack,
@@ -63,10 +64,16 @@ class PackerPalleteAnnotation:
 
 
 class PackerPalette:
-    """Define which residue types may replace each original residue type."""
+    """Define which residue types may replace each original residue type.
 
-    def __init__(self):
-        pass
+    Args:
+        noncanonical_design: Also offer noncanonical residue types (such as AIB)
+            as replacements for other residues. Off by default, so a
+            noncanonical type is considered only where the input already has it.
+    """
+
+    def __init__(self, noncanonical_design: bool = False):
+        self.noncanonical_design = noncanonical_design
 
     def block_types_from_original(
         self, pbt: PackedBlockTypes, orig: Tensor[torch.int64][:, :]
@@ -90,10 +97,11 @@ class PackerPalette:
         # the original block type is pre-computed and cached in the PackedBlockTypes
         # object, so all we will do is take the subset of real block types (ind >= 0)
         # and read from the cached logic
-        _annotate_packed_block_types_for_default_packer_palette(pbt)
+        dppann = _annotate_packed_block_types_for_default_packer_palette(
+            pbt, self.noncanonical_design
+        )
         assert orig.device == pbt.device
 
-        dppann = pbt.default_packer_palette_annotations
         allowed_block_types_for_block_type = torch.full(
             (orig.shape[0], orig.shape[1], dppann.max_n_allowed),
             -1,
@@ -135,8 +143,9 @@ class PackerPalette:
         # object and then looked up here. For the default PackerPalette, the logic is
         # simply to allow only those residue types with the same name3 as the original
         # residue type
-        _annotate_packed_block_types_for_default_packer_palette(pbt)
-        dppann = pbt.default_packer_palette_annotations
+        dppann = _annotate_packed_block_types_for_default_packer_palette(
+            pbt, self.noncanonical_design
+        )
         rtr_mask_for_orig = torch.zeros(
             (orig.shape[0], orig.shape[1], dppann.max_n_allowed),
             dtype=torch.bool,
@@ -181,41 +190,94 @@ def _mainchain_elements(block_type, element_for_atom_type):
     )
 
 
-def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockTypes):
-    # Annotate the PackedBlockTypes object with the block-type to block-type comparisons
-    if hasattr(pbt, "default_packer_palette_annotations"):
-        return
+def _backbone_signatures(pbt: PackedBlockTypes):
+    """Mainchain elements and applied terminal chemistry for each block type."""
     element_for_atom_type = {at.name: at.element for at in pbt.chem_db.atom_types}
-    mc_elements = [
-        _mainchain_elements(bt, element_for_atom_type) for bt in pbt.active_block_types
+    terminal_patches = {
+        patch.display_name
+        for patch in pbt.chem_db.variants
+        if {"<{down}>", "<{up}>"}.intersection(patch.remove_atoms)
+    }
+    return [
+        (
+            _mainchain_elements(bt, element_for_atom_type),
+            frozenset(bt.name.split(":")[1:]) & terminal_patches,
+        )
+        for bt in pbt.active_block_types
     ]
+
+
+def _exchangeable(orig_bt, alt_bt, orig_backbone, alt_backbone) -> bool:
+    """Whether block types can exchange, aside from side-chain protonation."""
+    return (
+        alt_bt.properties.polymer.is_polymer == orig_bt.properties.polymer.is_polymer
+        and alt_bt.properties.polymer.polymer_type
+        == orig_bt.properties.polymer.polymer_type
+        and alt_bt.properties.polymer.backbone_type
+        == orig_bt.properties.polymer.backbone_type
+        and alt_bt.connections == orig_bt.connections
+        and alt_bt.conjugation_context == orig_bt.conjugation_context
+        and orig_backbone == alt_backbone
+        and set_compare(
+            alt_bt.properties.chemical_modifications,
+            orig_bt.properties.chemical_modifications,
+        )
+        and set_compare(alt_bt.properties.connectivity, orig_bt.properties.connectivity)
+    )
+
+
+_PALETTE_ANNOTATION_ATTRS = {
+    False: "default_packer_palette_annotations",
+    True: "noncanonical_packer_palette_annotations",
+}
+
+
+def _annotate_packed_block_types_for_default_packer_palette(
+    pbt: PackedBlockTypes, noncanonical_design: bool = False
+) -> PackerPalleteAnnotation:
+    # Annotate the PackedBlockTypes object with the block-type to block-type comparisons
+    attr_name = _PALETTE_ANNOTATION_ATTRS[noncanonical_design]
+    if hasattr(pbt, attr_name):
+        return getattr(pbt, attr_name)
+    backbones = _backbone_signatures(pbt)
     allowed_block_types_for_block_type = [list() for _ in range(pbt.n_types)]
     allowed_block_is_orig = [list() for _ in range(pbt.n_types)]
     restrict_to_repacking_masks = [list() for _ in range(pbt.n_types)]
+    # types that only metal detection selects never trade places with another
+    selected_by_detection = [
+        bool(bt.metal_sites)
+        or bt.properties.protonation.protonation_state == DEPROTONATED_STATE
+        for bt in pbt.active_block_types
+    ]
+    # types can exchange only within a group that agrees on these fields; each
+    #    type's candidates keep the order of the full n^2 scan
+    groups = {}
+    for j, bt in enumerate(pbt.active_block_types):
+        polymer = bt.properties.polymer
+        key = (
+            polymer.is_polymer,
+            polymer.polymer_type,
+            polymer.backbone_type,
+            bt.properties.protonation.protonation_state,
+            len(bt.connections),
+            backbones[j],
+        )
+        groups.setdefault(key, []).append(j)
+    group_of = {j: members for members in groups.values() for j in members}
     for i, orig_bt in enumerate(pbt.active_block_types):
-        for j, alt_bt in enumerate(pbt.active_block_types):
-            j_allowed_for_restrict_to_repack = alt_bt.name3 == orig_bt.name3
+        for j in group_of[i]:
+            alt_bt = pbt.active_block_types[j]
+            if i != j and (selected_by_detection[i] or selected_by_detection[j]):
+                continue
+            # a noncanonical type replaces only its own kind unless asked for
             if (
-                alt_bt.properties.polymer.is_polymer
-                == orig_bt.properties.polymer.is_polymer
-                and alt_bt.properties.polymer.polymer_type
-                == orig_bt.properties.polymer.polymer_type
-                and alt_bt.properties.polymer.backbone_type
-                == orig_bt.properties.polymer.backbone_type
-                and alt_bt.connections
-                == orig_bt.connections  # fd  use this instead of terminal variant check
-                and alt_bt.conjugation_context == orig_bt.conjugation_context
-                and mc_elements[i] == mc_elements[j]
-                and set_compare(
-                    alt_bt.properties.chemical_modifications,
-                    orig_bt.properties.chemical_modifications,
-                )
-                and set_compare(
-                    alt_bt.properties.connectivity, orig_bt.properties.connectivity
-                )
-                and alt_bt.properties.protonation.protonation_state
-                == orig_bt.properties.protonation.protonation_state
+                not noncanonical_design
+                and not alt_bt.properties.is_canonical
+                and alt_bt.name3 != orig_bt.name3
             ):
+                continue
+            j_allowed_for_restrict_to_repack = alt_bt.name3 == orig_bt.name3
+            if _exchangeable(orig_bt, alt_bt, backbones[i], backbones[j]):
                 if (
                     alt_bt.properties.polymer.sidechain_chirality
                     == orig_bt.properties.polymer.sidechain_chirality
@@ -295,7 +357,8 @@ def _annotate_packed_block_types_for_default_packer_palette(pbt: PackedBlockType
         allowed_block_type_is_orig=allowed_block_type_is_orig,
         restrict_to_repacking_masks=restrict_to_repacking_masks,
     )
-    setattr(pbt, "default_packer_palette_annotations", annotation)
+    setattr(pbt, attr_name, annotation)
+    return annotation
 
 
 # Defaults carried over from ligand preparation, where this budget used to be
@@ -419,10 +482,16 @@ class PackerTask:
         If ``block_mask`` is omitted, restrict every block for backward compatibility.
         This operation only disables choices and may therefore be composed safely with
         other task restrictions.
+
+        Raises:
+            ValueError: A block selected by ``block_mask`` had allowed block types
+                and none of them has one of ``name3s`` (for example, a residue
+                bonded to a metal, which only its own variant can replace).
         """
         if block_mask is not None:
             assert block_mask.device == self.per_block_is_block_type_allowed.device
             assert block_mask.shape == self.per_block_is_block_type_allowed.shape[:2]
+            had_choice = self.per_block_is_block_type_allowed.any(dim=-1)
 
         bt_name3_matches = torch.tensor(
             [bt.name3 in name3s for bt in self.pbt.active_block_types],
@@ -435,9 +504,19 @@ class PackerTask:
         )
         if block_mask is not None:
             restriction = torch.logical_or(restriction, ~block_mask.unsqueeze(-1))
-        self.per_block_is_block_type_allowed = torch.logical_and(
-            self.per_block_is_block_type_allowed, restriction
-        )
+        allowed = torch.logical_and(self.per_block_is_block_type_allowed, restriction)
+        if block_mask is not None:
+            emptied = block_mask & had_choice & ~allowed.any(-1)
+            if bool(emptied.any()):
+                pose, block = (int(i) for i in torch.nonzero(emptied)[0])
+                orig = self.pbt.active_block_types[
+                    int(self.per_block_orig_block_type[pose, block])
+                ]
+                raise ValueError(
+                    f"pose {pose} block {block} ({orig.name}): no allowed block type "
+                    f"has a name3 in {sorted(name3s)}"
+                )
+        self.per_block_is_block_type_allowed = allowed
 
     def add_conformer_sampler(self, sampler) -> None:
         """Enable this sampler everywhere, registering its identity once.

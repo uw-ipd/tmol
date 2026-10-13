@@ -1,8 +1,4 @@
-#include <torch/script.h>
-#include <ATen/core/ivalue.h>
-#include <torch/csrc/autograd/function.h>        // ??
-#include <torch/csrc/autograd/saved_variable.h>  // ??
-#include <torch/types.h>
+#include <tmol/utility/tensor/native_library.hh>
 
 #include <tmol/utility/nvtx.hh>
 
@@ -21,7 +17,7 @@ namespace pack {
 namespace compiled {
 
 ContextManager mgr;
-using torch::Tensor;
+using tmol::native::Tensor;
 
 std::vector<Tensor> build_interaction_graph(
     int64_t const bump_check,
@@ -39,23 +35,23 @@ std::vector<Tensor> build_interaction_graph(
     int64_t const verbose) {
   nvtx_range_push("pack_build_ig");
 
-  at::Tensor max_n_bump_checked_rotamers_per_pose;
-  at::Tensor n_molten_blocks_per_pose;
-  at::Tensor n_bc_rots_per_pose;
-  at::Tensor bc_rot_offset_for_pose;
-  at::Tensor n_bc_rots_for_molten_block;
-  at::Tensor bc_rot_offset_for_molten_block;
-  at::Tensor molten_block_ind_for_bc_rot;
-  at::Tensor rotamer_for_nonmolten_block;
-  at::Tensor bc_rot_to_orig_rot;
+  tmol::native::Tensor max_n_bump_checked_rotamers_per_pose;
+  tmol::native::Tensor n_molten_blocks_per_pose;
+  tmol::native::Tensor n_bc_rots_per_pose;
+  tmol::native::Tensor bc_rot_offset_for_pose;
+  tmol::native::Tensor n_bc_rots_for_molten_block;
+  tmol::native::Tensor bc_rot_offset_for_molten_block;
+  tmol::native::Tensor molten_block_ind_for_bc_rot;
+  tmol::native::Tensor rotamer_for_nonmolten_block;
+  tmol::native::Tensor bc_rot_to_orig_rot;
 
-  at::Tensor bg_bg_energies;
-  at::Tensor energy1b;
-  at::Tensor neighbor_row_offsets;
-  at::Tensor neighbor_blocks;
-  at::Tensor neighbor_chunk_offset_offsets;
-  at::Tensor chunk_pair_offset;
-  at::Tensor energy2b;
+  tmol::native::Tensor bg_bg_energies;
+  tmol::native::Tensor energy1b;
+  tmol::native::Tensor neighbor_row_offsets;
+  tmol::native::Tensor neighbor_blocks;
+  tmol::native::Tensor neighbor_chunk_offset_offsets;
+  tmol::native::Tensor chunk_pair_offset;
+  tmol::native::Tensor energy2b;
 
   using Int = int64_t;
 
@@ -102,7 +98,7 @@ std::vector<Tensor> build_interaction_graph(
         chunk_pair_offset = std::get<14>(result).tensor;
         energy2b = std::get<15>(result).tensor;
       }));
-  std::vector<torch::Tensor> result(
+  std::vector<tmol::native::Tensor> result(
       {max_n_bump_checked_rotamers_per_pose,
        n_molten_blocks_per_pose,
        n_bc_rots_per_pose,
@@ -332,8 +328,8 @@ std::vector<Tensor> anneal(
     Tensor energy1b,
     Tensor energy2b) {
   nvtx_range_push("pack_anneal");
-  at::Tensor scores;
-  at::Tensor rotamer_assignments;
+  tmol::native::Tensor scores;
+  tmol::native::Tensor rotamer_assignments;
 
   TMOL_DISPATCH_FLOATING_DEVICE(energy1b.options(), "pack_anneal", ([&] {
                                   constexpr tmol::Device Dev = device_t;
@@ -359,7 +355,7 @@ std::vector<Tensor> anneal(
                                       std::get<1>(result).tensor;
                                 }));
 
-  std::vector<torch::Tensor> result({scores, rotamer_assignments});
+  std::vector<tmol::native::Tensor> result({scores, rotamer_assignments});
   return result;
 }
 
@@ -398,7 +394,7 @@ TPack<float, 2, tmol::Device::CPU> compute_energies_for_assignments(
   return scores_t;
 }
 
-torch::Tensor validate_energies(
+tmol::native::Tensor validate_energies(
     Tensor nrotamers_for_res,
     Tensor oneb_offsets,
     int64_t chunk_size,
@@ -424,26 +420,28 @@ torch::Tensor validate_energies(
 }
 
 // See https://stackoverflow.com/a/3221914
-TORCH_LIBRARY(tmol_pack, m) {
-  m.def("pack_anneal", &anneal);
-  m.def("validate_energies", &validate_energies);
-  m.def("build_interaction_graph", &build_interaction_graph);
+TMOL_LIBRARY(tmol_pack, m) {
+  m.def("pack_anneal", TMOL_FN(&anneal));
+  m.def("validate_energies", TMOL_FN(&validate_energies));
+  m.def("build_interaction_graph", TMOL_FN(&build_interaction_graph));
   m.def(
       "initialize_interaction_graph_topology",
-      &initialize_interaction_graph_topology);
-  m.def("note_interaction_graph_topology", &note_interaction_graph_topology);
+      TMOL_FN(&initialize_interaction_graph_topology));
+  m.def(
+      "note_interaction_graph_topology",
+      TMOL_FN(&note_interaction_graph_topology));
   m.def(
       "finalize_interaction_graph_topology",
-      &finalize_interaction_graph_topology);
+      TMOL_FN(&finalize_interaction_graph_topology));
   m.def(
       "note_interaction_graph_chunk_topology",
-      &note_interaction_graph_chunk_topology);
+      TMOL_FN(&note_interaction_graph_chunk_topology));
   m.def(
       "finalize_interaction_graph_chunk_topology",
-      &finalize_interaction_graph_chunk_topology);
+      TMOL_FN(&finalize_interaction_graph_chunk_topology));
   m.def(
       "accumulate_interaction_graph_entries",
-      &accumulate_interaction_graph_entries);
+      TMOL_FN(&accumulate_interaction_graph_entries));
 }
 
 }  // namespace compiled

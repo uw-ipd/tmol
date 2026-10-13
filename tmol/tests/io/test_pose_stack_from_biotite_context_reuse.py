@@ -15,11 +15,14 @@ import torch
 
 from tmol.database import ParameterDatabase
 from tmol.io import (
+    atom_array_from_cif,
     build_context_from_biotite,
     pose_stack_from_biotite,
 )
+from tmol.ligand import LigandPreparationError
 from tmol.pack import build_missing_sidechains
 from tmol.score import ScoreType
+from tmol.tests.data import data_path
 
 PLI_DATA_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"
 TARGET = "ace"
@@ -148,4 +151,23 @@ def test_context_and_prepare_ligands_mutually_exclusive(torch_device):
             torch_device,
             context=context,
             prepare_ligands=True,
+        )
+
+
+def test_a_database_that_defines_a_name_refuses_a_copy_with_more_atoms(torch_device):
+    """2yor's linked NAGs lack the leaving O1; its free NAG 511 keeps it."""
+    structure = atom_array_from_cif(
+        data_path("sweep_regressions", "glycan_o1_2yor.cif.zst")
+    )
+    free = (structure.res_name == "NAG") & (structure.res_id == 511)
+    linked = build_context_from_biotite(
+        structure[~free], torch_device, prepare_ligands=True, ligand_seed=0
+    )
+    with pytest.raises(LigandPreparationError, match=r"\(NAG: \['O1'\]\)"):
+        build_context_from_biotite(
+            structure[free],
+            torch_device,
+            param_db=linked.parameter_database,
+            prepare_ligands=True,
+            ligand_seed=0,
         )

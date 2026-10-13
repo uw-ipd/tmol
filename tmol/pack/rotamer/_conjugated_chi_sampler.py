@@ -48,7 +48,8 @@ def _heavy_chi(rt: RefinedResidueType):
 
 def _has_conjugation(rt):
     return any(
-        connection.name not in ("up", "down", "dslf") for connection in rt.connections
+        connection.kinematic and connection.name not in ("up", "down")
+        for connection in rt.connections
     )
 
 

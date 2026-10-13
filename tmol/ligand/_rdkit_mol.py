@@ -8,17 +8,21 @@ so this module does not protonate or recompute chemistry.
 """
 
 import logging
+from collections.abc import Collection, Mapping
 
 import biotite.structure as struc
+import networkx
+import numpy as np
 from atomworks.io.tools.rdkit import (
     BIOTITE_BOND_TYPE_TO_RDKIT,
     atom_array_to_rdkit,
-    assign_stereochemistry_from_3d,
     fix_charge_based_on_valence,
 )
+from atomworks.io.utils.ccd import get_custom_ccd_entries
 from rdkit import Chem
 
 from tmol.ligand._detect import NonStandardResidueInfo, _strip_metals
+from tmol.ligand._input_repair import localize_overvalent_centers
 
 logger = logging.getLogger(__name__)
 
@@ -47,53 +51,23 @@ def _apply_source_subtypes(mol: Chem.Mol, atom_array: struc.AtomArray) -> None:
             atom.SetProp(_SOURCE_SUBTYPE_PROP, sub)
 
 
-def _kekulize_non_ring_aromatic_bonds(mol: Chem.Mol) -> None:
-    """De-aromatize non-ring aromatic bonds to explicit singles.
-
-    Aromatic semantics are ring-based in RDKit/biotite. Non-ring aromatic
-    bonds are treated as delocalization placeholders and must be explicit
-    non-aromatic bonds for robust downstream handling.
-    """
-    changed = False
-    for bond in mol.GetBonds():
-        if bond.GetIsAromatic() and not bond.IsInRing():
-            bond.SetIsAromatic(False)
-            bond.SetBondType(Chem.BondType.SINGLE)
-            changed = True
-    if not changed:
-        return
-    for atom in mol.GetAtoms():
-        if atom.GetIsAromatic():
-            if not any(b.GetIsAromatic() for b in atom.GetBonds()):
-                atom.SetIsAromatic(False)
-
-
 def normalize_non_ring_aromatic_bonds(mol: Chem.Mol) -> None:
-    """Normalize non-ring aromatic placeholders before RDKit sanitize."""
-    _kekulize_non_ring_aromatic_bonds(mol)
+    """Make single each aromatic bond on no cycle of aromatic bonds.
 
-
-def normalize_cumulated_azide(mol: Chem.Mol) -> Chem.Mol:
-    """Strip a spurious H from a charge-separated azide/diazo terminus.
-
-    Convert N=N=N-H (which RDKit does not understand) to =[N+]=[N-]
-    Do nothing if this group is not found.
+    Aromaticity belongs to a ring; elsewhere the order only marks delocalization
+    (PDBbind 3GE7: an SDF's aromatic N-C in a ring of single bonds).
     """
-    h_idx = [
-        h.GetIdx()
-        for atom in mol.GetAtoms()
-        if atom.GetAtomicNum() == 7
-        and atom.GetFormalCharge() == -1
-        and any(b.GetBondType() == Chem.BondType.DOUBLE for b in atom.GetBonds())
-        for h in atom.GetNeighbors()
-        if h.GetAtomicNum() == 1
-    ]
-    if not h_idx:
-        return mol
-    rw = Chem.RWMol(mol)
-    for i in sorted(set(h_idx), reverse=True):
-        rw.RemoveAtom(i)
-    return rw.GetMol()
+    graph = networkx.Graph(
+        (b.GetBeginAtomIdx(), b.GetEndAtomIdx())
+        for b in mol.GetBonds()
+        if b.GetIsAromatic()
+    )
+    for i, j in networkx.bridges(graph):
+        bond = mol.GetBondBetweenAtoms(i, j)
+        bond.SetIsAromatic(False)
+        bond.SetBondType(Chem.BondType.SINGLE)
+    for atom in mol.GetAtoms():
+        atom.SetIsAromatic(any(b.GetIsAromatic() for b in atom.GetBonds()))
 
 
 def _apply_atom_array_annotations(
@@ -122,7 +96,12 @@ def _apply_atom_array_annotations(
     flags = atom_array.tmol_aromatic
     for mol_idx, arr_idx in enumerate(arr_indices):
         a = mol.GetAtomWithIdx(mol_idx)
-        a.SetIsAromatic(bool(flags[arr_idx]) and a.IsInRing())
+        # PoseBusters 6TW5: a flag adds aromaticity; an aromatic bond order is not
+        # overruled by a default False (6T88's FAD joined to an SDF ligand)
+        aromatic_bond = any(
+            b.GetBondType() == Chem.BondType.AROMATIC for b in a.GetBonds()
+        )
+        a.SetIsAromatic((bool(flags[arr_idx]) or aromatic_bond) and a.IsInRing())
     for bond in mol.GetBonds():
         bond.SetIsAromatic(
             bond.IsInRing()
@@ -179,57 +158,6 @@ def _remove_hs_tolerant(mol: Chem.Mol) -> Chem.Mol:
         Chem.rdchem.AtomValenceException,
     ):
         return Chem.RemoveHs(mol, options, sanitize=False)
-
-
-def _normalize_nitro(mol: Chem.Mol) -> None:
-    """Rewrite pentavalent nitro N(=O)=O to [N+](=O)[O-].
-
-    Some inputs draw nitro with two N=O double bonds (valence-5 neutral N), which
-    RDKit rejects. Demote one N=O to a single bond and set the charges that make
-    it valid. Runs before formal-charge inference and sanitize.
-    """
-    for atom in mol.GetAtoms():
-        if atom.GetAtomicNum() != 7:
-            continue
-        dbl_term_o = [
-            b
-            for b in atom.GetBonds()
-            if b.GetBondType() == Chem.BondType.DOUBLE
-            and b.GetOtherAtom(atom).GetAtomicNum() == 8
-            and b.GetOtherAtom(atom).GetDegree() == 1
-        ]
-        if len(dbl_term_o) < 2:
-            continue
-        for bond in dbl_term_o[1:]:
-            bond.SetBondType(Chem.BondType.SINGLE)
-            bond.GetOtherAtom(atom).SetFormalCharge(-1)
-        atom.SetFormalCharge(1)
-
-
-def _normalize_carboxylate_formal_charges(mol: Chem.Mol) -> None:
-    """Place a carboxylate charge on its singly bonded oxygen."""
-    for carbon in mol.GetAtoms():
-        if carbon.GetAtomicNum() != 6:
-            continue
-        oxygen_bonds = [
-            bond
-            for bond in carbon.GetBonds()
-            if bond.GetOtherAtom(carbon).GetAtomicNum() == 8
-            and bond.GetOtherAtom(carbon).GetDegree() == 1
-        ]
-        singles = [
-            bond for bond in oxygen_bonds if bond.GetBondType() == Chem.BondType.SINGLE
-        ]
-        doubles = [
-            bond for bond in oxygen_bonds if bond.GetBondType() == Chem.BondType.DOUBLE
-        ]
-        if len(singles) != 1 or len(doubles) != 1:
-            continue
-        single = singles[0].GetOtherAtom(carbon)
-        double = doubles[0].GetOtherAtom(carbon)
-        if double.GetFormalCharge() == -1 and single.GetFormalCharge() == 0:
-            double.SetFormalCharge(0)
-            single.SetFormalCharge(-1)
 
 
 def _normalize_exocyclic_aromatic_imine(mol: Chem.Mol) -> None:
@@ -361,14 +289,16 @@ def rdkit_mol_from_ligand_atom_array(
             atom_array,
             set_coord=True,
             hydrogen_policy="keep",
-            # Regeneration fills valence after covalent groups are separated;
-            # as-is preparation preserves the supplied hydrogen count exactly.
-            allow_implicit_hydrogens=not keep_hydrogens,
             annotations_to_keep=[],
             sanitize=False,
             attempt_fixing_corrupted_molecules=False,
             infer_bonds=False,
         )
+        if keep_hydrogens:
+            # Regeneration fills valence after covalent groups are separated;
+            # as-is preparation preserves the supplied hydrogen count exactly.
+            for atom in mol.GetAtoms():
+                atom.SetNoImplicit(True)
     except Exception as exc:
         raise ValueError(
             f"{res_name}: failed to read explicit ligand bond chemistry "
@@ -384,11 +314,9 @@ def rdkit_mol_from_ligand_atom_array(
         for t in raw_types
     ):
         mol.SetProp(_SOURCE_KEKULE_PROP, "1")
-    mol = normalize_cumulated_azide(mol)
     normalize_non_ring_aromatic_bonds(mol)
     _apply_source_subtypes(mol, atom_array)
-    _normalize_nitro(mol)
-    _normalize_carboxylate_formal_charges(mol)
+    localize_overvalent_centers(mol)
     if repair_chemistry:
         # Last-resort normalizations that rewrite source bond orders; only the
         # SMILES fallback path enables these (see docstring).
@@ -424,23 +352,195 @@ def ligand_atom_array_to_rdkit_mol(
 
     Thin wrapper over :func:`rdkit_mol_from_ligand_atom_array`.
     """
-    mol = rdkit_mol_from_ligand_atom_array(
+    return rdkit_mol_from_ligand_atom_array(
         ligand_info.atom_array,
         res_name=ligand_info.res_name,
         keep_hydrogens=keep_hydrogens,
     )
-    if ligand_info.skip_protonation and any(
-        source_subtype(atom) == "co2"
-        and atom.GetDegree() == 1
-        and all(
-            bond.GetBondType() == Chem.BondType.SINGLE
-            for bond in atom.GetNeighbors()[0].GetBonds()
-        )
-        for atom in mol.GetAtoms()
-    ):
-        # Tripos delocalized COO bonds become singles during normalization.
-        # Reuse the shared repair on the generated, finite mol2 geometry.
-        from atomworks.io.tools.protonation import correct_carboxylate_bond_orders
 
-        mol = correct_carboxylate_bond_orders(mol)
+
+def transfer_tetrahedral_stereochemistry(
+    mol: Chem.Mol,
+    reference: Chem.Mol,
+    atom_mapping: Mapping[int, int],
+    *,
+    replaced_atoms: Collection[int] = (),
+) -> int:
+    """Copy ``reference``'s tetrahedral centres to ``mol``'s undefined ones by neighbour
+    parity via ``atom_mapping`` (``replaced_atoms`` may differ); returns the count.
+    """
+    if (
+        not set(replaced_atoms) <= atom_mapping.keys()
+        or len(set(atom_mapping.values())) != len(atom_mapping)
+        or any(
+            not 0 <= source < reference.GetNumAtoms()
+            or not 0 <= target < mol.GetNumAtoms()
+            for source, target in atom_mapping.items()
+        )
+    ):
+        raise ValueError("Stereo correspondence requires valid, distinct atom indices")
+    pending = []
+    for source, target in atom_mapping.items():
+        if source in replaced_atoms:
+            continue
+        left, right = reference.GetAtomWithIdx(source), mol.GetAtomWithIdx(target)
+        if (left.GetAtomicNum(), left.GetIsotope()) != (
+            right.GetAtomicNum(),
+            right.GetIsotope(),
+        ):
+            raise ValueError(
+                f"Stereo correspondence maps different elements/isotopes: {source} -> {target}"
+            )
+        if left.GetChiralTag() not in (
+            Chem.ChiralType.CHI_TETRAHEDRAL_CW,
+            Chem.ChiralType.CHI_TETRAHEDRAL_CCW,
+        ):
+            continue
+        if right.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED:
+            continue
+        neighbors = [atom_mapping.get(atom.GetIdx()) for atom in left.GetNeighbors()]
+        target_neighbors = [atom.GetIdx() for atom in right.GetNeighbors()]
+        if (
+            len(neighbors) not in (3, 4)
+            or set(neighbors) != set(target_neighbors)
+            or left.GetTotalNumHs() != right.GetTotalNumHs()
+            or any(
+                bond.GetBondType()
+                != mol.GetBondBetweenAtoms(target, neighbor).GetBondType()
+                for bond, neighbor in zip(left.GetBonds(), neighbors, strict=True)
+            )
+        ):
+            continue
+        order = [target_neighbors.index(neighbor) for neighbor in neighbors]
+        invert = sum(a > b for i, a in enumerate(order) for b in order[i + 1 :]) % 2
+        pending.append((right, left.GetChiralTag(), invert))
+    for atom, tag, invert in pending:
+        atom.SetChiralTag(tag)
+        if invert:
+            atom.InvertChirality()
+    if pending:
+        Chem.AssignStereochemistry(mol, cleanIt=True, force=True)
+    return sum(
+        atom.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED for atom, _, _ in pending
+    )
+
+
+def _double_bond_ends(mol: Chem.Mol):
+    for bond in mol.GetBonds():
+        if bond.GetBondType() == Chem.BondType.DOUBLE and not bond.GetIsAromatic():
+            i, j = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+            yield bond, ((i, j), (j, i))
+
+
+def _clear_undetermined_double_bond_stereo(mol: Chem.Mol, finite) -> None:
+    """Drop cis/trans that rests on an unresolved atom, with its bond directions."""
+    for bond, ((i, j), _) in _double_bond_ends(mol):
+        if bond.GetStereo() == Chem.BondStereo.STEREONONE:
+            continue
+        if finite[[i, j, *bond.GetStereoAtoms()]].all():
+            continue
+        bond.SetStereo(Chem.BondStereo.STEREONONE)
+        for end in (i, j):
+            for adjacent in mol.GetAtomWithIdx(end).GetBonds():
+                adjacent.SetBondDir(Chem.BondDir.NONE)
+
+
+def assign_stereochemistry_from_3d(mol: Chem.Mol) -> None:
+    """Assign stereo from resolved geometry, leaving coordinates unchanged: three placed
+    neighbours fix a centre, placed stereo atoms fix a double bond."""
+    coords = mol.GetConformer().GetPositions()
+    finite = np.isfinite(coords).all(axis=1)
+    Chem.AssignStereochemistryFrom3D(mol)
+    if not finite.all():
+        _clear_undetermined_double_bond_stereo(mol, finite)
+    # Record chiral H as a count without adding atoms or changing coordinates.
+    # An implicit H on a ring root can otherwise reverse SMILES stereochemistry.
+    for atom in mol.GetAtoms():
+        if atom.GetChiralTag() != Chem.ChiralType.CHI_UNSPECIFIED and (
+            hydrogens := atom.GetNumImplicitHs()
+        ):
+            atom.SetNumExplicitHs(atom.GetNumExplicitHs() + hydrogens)
+            atom.SetNoImplicit(True)
+    if finite.all():
+        return
+    probe = None
+    for atom in mol.GetAtoms():
+        center = atom.GetIdx()
+        neighbors = np.array([n.GetIdx() for n in atom.GetNeighbors()], dtype=int)
+        known = finite[neighbors]
+        if finite[center] and known.all():
+            continue
+        atom.SetChiralTag(Chem.ChiralType.CHI_UNSPECIFIED)
+        if finite[center] and len(neighbors) == 4 and known.sum() == 3:
+            if probe is None:
+                probe = Chem.Mol(mol)
+            conf = probe.GetConformer()
+            conf.SetPositions(coords)
+            missing = int(neighbors[~known][0])
+            conf.SetAtomPosition(
+                missing, 2 * coords[center] - coords[neighbors[known]].mean(axis=0)
+            )
+            Chem.AssignStereochemistryFrom3D(probe)
+            atom.SetChiralTag(probe.GetAtomWithIdx(center).GetChiralTag())
+    Chem.AssignStereochemistry(mol, cleanIt=True, force=True)
+
+
+def ccd_template_to_rdkit(atom_array: struc.AtomArray) -> Chem.Mol:
+    """A complete component template, hydrogens removed, with stereo from its geometry
+    and then its declared R/S labels; raises if a declared label cannot be met."""
+    if len(atom_array) == 0:
+        raise ValueError("A CCD template must contain atoms")
+    ccd_code = str(atom_array.res_name[0])
+    mol = atom_array_to_rdkit(
+        atom_array,
+        set_coord=True,
+        hydrogen_policy="remove",
+    )
+
+    try:
+        assign_stereochemistry_from_3d(mol)
+    except (ValueError, RuntimeError):
+        logger.warning(
+            f"Failed to assign geometry-derived stereochemistry to {ccd_code}."
+        )
+    if "stereo" in atom_array.get_annotation_categories():
+        declared = dict(zip(atom_array.atom_name, atom_array.stereo, strict=True))
+        pending = [
+            (atom, declared[atom.GetProp("atom_name")])
+            for atom in mol.GetAtoms()
+            if atom.HasProp("atom_name")
+            and declared.get(atom.GetProp("atom_name")) in ("R", "S")
+            and atom.GetChiralTag() == Chem.ChiralType.CHI_UNSPECIFIED
+        ]
+        if pending:
+            for atom, _ in pending:
+                atom.SetChiralTag(Chem.ChiralType.CHI_TETRAHEDRAL_CW)
+            Chem.AssignStereochemistry(mol, cleanIt=True, force=True)
+            for atom, expected in pending:
+                if atom.HasProp("_CIPCode") and atom.GetProp("_CIPCode") != expected:
+                    atom.InvertChirality()
+            Chem.AssignStereochemistry(mol, cleanIt=True, force=True)
+            # An unmet R/S is an error, except the dictionary's on atoms RDKit never
+            # labels (porphyrin and corrin nitrogens), which are left with a warning.
+            is_registered = ccd_code.upper() in get_custom_ccd_entries()
+            unperceived = []
+            for atom, expected in pending:
+                if atom.HasProp("_CIPCode") and atom.GetProp("_CIPCode") == expected:
+                    continue
+                if atom.HasProp("_CIPCode") or is_registered:
+                    raise ValueError(
+                        f"Cannot assign declared {expected} configuration to {ccd_code}.{atom.GetProp('atom_name')}"
+                    )
+                # Never leave the speculative tag behind as invented chirality.
+                atom.SetChiralTag(Chem.ChiralType.CHI_UNSPECIFIED)
+                unperceived.append(atom.GetProp("atom_name"))
+            if unperceived:
+                logger.warning(
+                    "%s declares stereochemistry on %s, which RDKit does not perceive as stereocenters; "
+                    "leaving them unspecified.",
+                    ccd_code,
+                    ", ".join(unperceived),
+                )
+                Chem.AssignStereochemistry(mol, cleanIt=True, force=True)
+
     return mol

@@ -3,6 +3,8 @@ import numpy
 import torch
 
 from tmol.database.scoring import NaTorsionDatabase
+from tmol.utility import resolve_device
+from tmol.utility.weak_identity_cache import WeakIdentityLRU
 from tmol.types import (
     Tensor,
     ValidateAttrs,
@@ -150,6 +152,8 @@ def polymer_index(base):
 class NaTorsionParams(ValidateAttrs):
     """Device-resident nucleic-acid torsion distributions and well energies."""
 
+    _from_db_cache = WeakIdentityLRU()
+
     # means in degrees; 3 bins for alpha/gamma, 2 for beta/epsilon/zeta
     backbone_means: Tensor[torch.float32][2, 6, 3]
     backbone_n_bins: Tensor[torch.int32][2, 6]
@@ -178,7 +182,15 @@ class NaTorsionParams(ValidateAttrs):
     bin_blend_sdev: float
 
     @classmethod
-    def from_database(
+    def from_database(cls, database: NaTorsionDatabase, device: torch.device):
+        # score functions built from one database share its tables
+        device = resolve_device(device)
+        return cls._from_db_cache.get_or_create(
+            database, (cls, device), lambda: cls._from_database(database, device)
+        )
+
+    @classmethod
+    def _from_database(
         cls, database: NaTorsionDatabase, device: torch.device
     ):  # noqa: C901
         def t(v, dtype=torch.float32):

@@ -41,3 +41,6 @@ omega_bbdep_lookup:
   - { table_id: prepro ,res_middle: TRP, res_upper: PRO }
   - { table_id: prepro ,res_middle: TYR, res_upper: PRO }
   - { table_id: prepro ,res_middle: VAL, res_upper: PRO }
+  # AIB is achiral: the trans-only symmetric tables
+  - { table_id: gly_symm ,res_middle: AIB }
+  - { table_id: prepro_gly_symm ,res_middle: AIB, res_upper: PRO }

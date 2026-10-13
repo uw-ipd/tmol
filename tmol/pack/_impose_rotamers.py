@@ -1,9 +1,9 @@
+import attr
 import torch
 import numpy
 
 from tmol.types import Tensor
 from tmol.pose import (
-    PDBInfo,
     DEFAULT_ATOM_B_FACTOR,
     DEFAULT_ATOM_OCCUPANCY,
     PoseStack,
@@ -248,10 +248,8 @@ def impose_top_rotamer_assignments(
             nz_is_real_block_ind_new.cpu().numpy(),
             nz_is_real_atom_ind_new.cpu().numpy(),
         ]
-        new_pdb_info = PDBInfo(
-            residue_labels=orig_pose_stack.pdb_info.residue_labels,
-            residue_insertion_codes=orig_pose_stack.pdb_info.residue_insertion_codes,
-            chain_labels=orig_pose_stack.pdb_info.chain_labels,
+        new_pdb_info = attr.evolve(
+            orig_pose_stack.pdb_info,
             atom_occupancy=new_atom_occupancy,
             atom_b_factor=new_atom_b_factor,
         )
@@ -267,7 +265,6 @@ def impose_top_rotamer_assignments(
         inter_residue_connections=orig_pose_stack.inter_residue_connections,
         inter_residue_connections64=orig_pose_stack.inter_residue_connections64,
         inter_block_bondsep=orig_pose_stack.inter_block_bondsep,
-        inter_block_bondsep64=orig_pose_stack.inter_block_bondsep64,
         block_type_ind=new_block_type_ind64.to(torch.int32),
         block_type_ind64=new_block_type_ind64,
         chain_id=orig_pose_stack.chain_id,

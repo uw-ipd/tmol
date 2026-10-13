@@ -1,8 +1,8 @@
+#include <tmol/utility/tensor/native_pybind.hh>
+#include <tmol/utility/function_dispatch/aten.hh>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <tmol/utility/tensor/pybind.h>
-#include <ATen/Dispatch.h>
-#include <torch/torch.h>
 
 #include <tmol/numeric/bspline_compiled/bspline.hh>
 
@@ -11,8 +11,8 @@ namespace numeric {
 namespace bspline {
 
 template <std::size_t N>
-void compute_coeffs_batch(std::vector<at::Tensor> const& tensors) {
-  for (at::Tensor const& tensor : tensors) {
+void compute_coeffs_batch(std::vector<tmol::native::Tensor> const& tensors) {
+  for (tmol::native::Tensor const& tensor : tensors) {
     AT_DISPATCH_FLOATING_TYPES(
         tensor.scalar_type(), "compute_coeffs_batch", [&] {
           ndspline<N, 3, Device::CPU, scalar_t, int32_t>::computeCoeffs(

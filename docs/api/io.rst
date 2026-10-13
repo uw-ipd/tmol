@@ -21,11 +21,10 @@ by default. Generated ligand types may rebuild hydrogens unless
 
 Use :func:`tmol.io.atom_array_from_file` or
 :func:`tmol.io.pose_stack_from_file` for PDB, CIF, compressed CIF and binary CIF.
-The reader options are ``model``, ``assembly_id`` and ``use_ccd``. Reading preserves
+The reader options are ``model`` and ``assembly_id``. Reading preserves
 supplied names, coordinates, hydrogens and covalent bonds; declared unresolved
-heavy atoms carry NaN coordinates. ``use_ccd=False`` disables dictionary lookup,
-including for PDB and custom residue names. Missing chemistry is allowed at this
-stage.
+heavy atoms carry NaN coordinates. Chemistry the file leaves out is completed
+from the component dictionary. Missing chemistry is allowed at this stage.
 
 Known residues need only names and coordinates. Pass an existing ``param_db`` or
 load prepared ``ligand_params_files`` to reuse ligand parameters with a coordinate-only
@@ -38,8 +37,7 @@ and repeated construction. Direct AtomArray inputs follow the same contract.
 
    # Reuse known chemistry; the PDB needs only matching names and coordinates.
    pose = pose_stack_from_file(
-       "complex.pdb", device, use_ccd=False,
-       ligand_params_files=["ligand.tmol"],
+       "complex.pdb", device, ligand_params_files=["ligand.tmol"],
    )
    # Prepare missing chemistry once, then reuse context.parameter_database.
    pose, context = pose_stack_from_file(

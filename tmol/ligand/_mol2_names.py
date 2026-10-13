@@ -30,6 +30,23 @@ def _raw_tripos_atom_name(atom: Chem.Atom, fallback_index: int) -> str:
     return f"{atom.GetSymbol()}{fallback_index + 1}"
 
 
+def disambiguated_atom_names(raw_names: list[str]) -> list[str]:
+    """Unique names in order: a repeated name takes the mol2gen suffix."""
+    seen: dict[str, int] = {}
+    names: list[str] = []
+    reserved = set(raw_names)
+    used = set()
+    for raw in raw_names:
+        seen[raw] = seen.get(raw, 0) + 1
+        name = disambiguate_mol2_atom_name(raw, seen[raw])
+        while name in used or (seen[raw] > 1 and name in reserved):
+            seen[raw] += 1
+            name = disambiguate_mol2_atom_name(raw, seen[raw])
+        used.add(name)
+        names.append(name)
+    return names
+
+
 def apply_disambiguated_mol2_names(mol: Chem.Mol) -> list[str]:
     """Assign unique ``_TriposAtomName`` values on ``mol`` (mol2gen convention).
 
@@ -39,18 +56,8 @@ def apply_disambiguated_mol2_names(mol: Chem.Mol) -> list[str]:
     Returns:
         The disambiguated name for each atom index.
     """
-    seen: dict[str, int] = {}
-    names: list[str] = []
-    raw_names = [_raw_tripos_atom_name(a, a.GetIdx()) for a in mol.GetAtoms()]
-    reserved = set(raw_names)
-    used = set()
-    for atom, raw in zip(mol.GetAtoms(), raw_names):
-        seen[raw] = seen.get(raw, 0) + 1
-        name = disambiguate_mol2_atom_name(raw, seen[raw])
-        while name in used or (seen[raw] > 1 and name in reserved):
-            seen[raw] += 1
-            name = disambiguate_mol2_atom_name(raw, seen[raw])
-        used.add(name)
+    raw = [_raw_tripos_atom_name(a, a.GetIdx()) for a in mol.GetAtoms()]
+    names = disambiguated_atom_names(raw)
+    for atom, name in zip(mol.GetAtoms(), names):
         atom.SetProp("_TriposAtomName", name)
-        names.append(name)
     return names

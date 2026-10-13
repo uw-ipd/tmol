@@ -8,7 +8,7 @@ file. Real PLINDER ligands are vendored under
 * ``*.bonds_present.cif`` — carries an explicit ``_chem_comp_bond`` block
   (existing-bonds SMILES branch), and
 * ``*.bonds_absent.cif`` — atom-site records only; these real CCD components
-  require explicit ``use_ccd=True`` before parameters can be generated.
+  take their bonds from the CCD.
 
 Coverage here:
 
@@ -106,15 +106,11 @@ _GOLDEN_PARAMS: dict[str, dict] = {
 _PREPARABLE = ("vww", "sah")
 
 
-def _load_ligand_array(stem: str, variant: str, *, use_ccd=None):
+def _load_ligand_array(stem: str, variant: str):
     """Load a fixture ligand CIF into a single biotite ``AtomArray``."""
     from tmol.io import atom_array_from_cif
 
-    # Supplement only the recognized CCD fixtures lacking authored bond tables.
-    return atom_array_from_cif(
-        FIXTURE_DIR / f"{stem}.{variant}.cif",
-        use_ccd=variant == "bonds_absent" if use_ccd is None else use_ccd,
-    )
+    return atom_array_from_cif(FIXTURE_DIR / f"{stem}.{variant}.cif")
 
 
 def _canonical(smiles: str) -> str | None:
@@ -166,7 +162,6 @@ def test_prepare_ligand_from_cif_registers_residue(stem: str, variant: str) -> N
     param_db, _ = prepare_ligand_from_cif(
         str(FIXTURE_DIR / f"{stem}.{variant}.cif"),
         param_db=ParameterDatabase.get_default(),
-        use_ccd=variant == "bonds_absent",
     )
     residue = next((r for r in param_db.chemical.residues if r.name == code), None)
     assert residue is not None, f"{code} not registered from {variant}"
@@ -193,7 +188,6 @@ def test_cif_to_params_golden(stem: str, variant: str) -> None:
     param_db, _ = prepare_ligand_from_cif(
         str(FIXTURE_DIR / f"{stem}.{variant}.cif"),
         param_db=ParameterDatabase.get_default(),
-        use_ccd=variant == "bonds_absent",
     )
     residue = next((r for r in param_db.chemical.residues if r.name == code), None)
     assert residue is not None, f"{code} not registered from {variant}"
@@ -245,7 +239,6 @@ def test_fused_purine_ligand_uses_openbabel_charges(variant: str) -> None:
     param_db, _ = prepare_ligand_from_cif(
         str(FIXTURE_DIR / f"sah.{variant}.cif"),
         param_db=ParameterDatabase.get_default(),
-        use_ccd=variant == "bonds_absent",
     )
     residue = next((r for r in param_db.chemical.residues if r.name == "SAH"), None)
     assert residue is not None, f"SAH not registered from {variant}"
@@ -260,11 +253,13 @@ def test_smiles_hard_fail_without_bond_table() -> None:
     with no bond table (e.g. a plain PDB ligand) must raise rather than guess
     chemistry.
     """
+    import biotite.structure as struc
     import numpy as np
 
     from tmol.ligand import ligand_smiles_from_atom_array
 
-    arr = _load_ligand_array("vww", "bonds_absent", use_ccd=False)
+    arr = _load_ligand_array("vww", "bonds_absent")
+    arr.bonds = struc.BondList(len(arr))
     arr.res_name = np.array(["LIG"] * len(arr), dtype=arr.res_name.dtype)
     assert arr.bonds.get_bond_count() == 0
 

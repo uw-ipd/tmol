@@ -1,6 +1,7 @@
 import attr
 import cattr
 import numpy
+import pytest
 
 from tmol.chemical import (
     normalize,
@@ -130,6 +131,10 @@ def test_from_database_caching(default_database):
     s3 = ResidueTypeSet.from_database(extended)
     assert len(s3.residue_types) == len(chem.residues) + 1
     assert s3.residue_types[-1].ideal_coords is not s1.residue_types[0].ideal_coords
+    for residues in ((), chem.residues[:-1], chem.residues[::-1]):
+        with pytest.raises(ValueError, match="does not extend"):
+            s1.extended(attr.evolve(chem, residues=residues))
+    assert s1.extended(extended).residue_types[: len(chem.residues)] == s1.residue_types
 
 
 def test_build_ideal_coords_smoke(default_database):

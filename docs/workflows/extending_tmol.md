@@ -1,24 +1,10 @@
 # Extending TMol
 
-Use this page to choose the smallest extension surface for a custom modeling
-workflow. The linked advanced tutorials execute each extension, visualize its
-effect, and include checks that keep chemical, coordinate, and packing changes
-separate.
+Choose an API for the property you need to change.
 
-> - **Prerequisites:** Complete the relevant core tutorial before extending its
->   API.
-> - **Advanced tutorials:** {doc}`11 — Chemistry and scoring contexts
->   </tutorial/11_extending_chemistry_and_scoring>`, {doc}`12 — Explicit
->   FoldForests and coordinate control
->   </tutorial/12_explicit_foldforests_and_torsions>`, and {doc}`13 — Extending
->   the packer </tutorial/13_extending_the_packer>`.
-> - **API reference:** {doc}`Database </api/database>`, {doc}`Kinematics
->   </api/kinematics>`, {doc}`Packing </api/pack>`, and {doc}`Scoring
->   </api/score>`.
+## Extension APIs
 
-## Choose the extension surface
-
-| Goal | Extension surface | Important boundary |
+| Change | API | Requirement |
 | --- | --- | --- |
 | Restrict a known chemical alphabet | `ParameterDatabase.create_stable_subset()` | The subset must still contain every input block and required variant. |
 | Add a ligand or residue definition | Derive a new `ParameterDatabase` through the ligand or residue-injection API | Keep the process default immutable and build the score function from the derived database. |
@@ -30,8 +16,6 @@ separate.
 
 ## Validate an extension
 
-Use a layered validation strategy:
-
 1. Build the smallest system that contains the changed chemistry or topology.
 2. Compare a derived object with its unchanged parent rather than mutating
    global state.
@@ -41,6 +25,9 @@ Use a layered validation strategy:
 6. Repeat the complete scientific workflow on CPU and CUDA where both are
    supported.
 
-The advanced tutorials show these checks in executable form. They are extension
-recipes, not declarations that a modified parameter, topology, or design
-alphabet is scientifically validated.
+These checks establish implementation behavior. New parameters still need
+validation against suitable molecular data.
+
+## Examples and reference
+
+{doc}`Chemistry and scoring </tutorial/11_extending_chemistry_and_scoring>` · {doc}`Kinematics </tutorial/12_explicit_foldforests_and_torsions>` · {doc}`Packer extensions </tutorial/13_extending_the_packer>`

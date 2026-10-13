@@ -1,5 +1,4 @@
-#include <torch/torch.h>
-#include <torch/script.h>
+#include <tmol/utility/tensor/native_library.hh>
 
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/tensor/context_manager.hh>
@@ -24,16 +23,17 @@ ContextManager mgr;
 
 using namespace tmol::score::common;
 
-using torch::Tensor;
-using torch::autograd::AutogradContext;
-using torch::autograd::Function;
-using torch::autograd::tensor_list;
+using tmol::native::Tensor;
+using tmol::native::autograd::AutogradContext;
+using tmol::native::autograd::Function;
+using tmol::native::autograd::tensor_list;
 
 template <template <tmol::Device> class DispatchMethod>
 class BackboneTorsionPoseScoreOp
-    : public torch::autograd::Function<
+    : public tmol::native::autograd::Function<
           BackboneTorsionPoseScoreOp<DispatchMethod>> {
  public:
+  static constexpr bool capture_pose_gradient = true;
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
 
@@ -67,8 +67,8 @@ class BackboneTorsionPoseScoreOp
       Tensor omega_tables,
       Tensor omega_table_params,
       bool output_block_pair_energies) {
-    at::Tensor score;
-    at::Tensor dscore_dcoords;
+    tmol::native::Tensor score;
+    tmol::native::Tensor dscore_dcoords;
 
     using Int = int32_t;
 
@@ -148,23 +148,26 @@ class BackboneTorsionPoseScoreOp
            omega_tables,
            omega_table_params});
     } else {
-      score = score.squeeze(-1).squeeze(-1);
-      ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
+      score = score.reshape({score.size(0), score.size(1)});
+      ctx->save_for_backward({dscore_dcoords});
     }
 
     // Keep the convention that we return two tensors, with the understanding
     // that the second tensor should not be used
+    ctx->mark_non_differentiable({dscore_dcoords});
+    ctx->set_materialize_grads(false);
     return {score, dscore_dcoords};
   }
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    if (!grad_outputs[0].defined()) return tensor_list(27);
     auto saved = ctx->get_saved_variables();
 
-    at::Tensor dV_d_rot_coords;
+    tmol::native::Tensor dV_d_rot_coords;
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
-    if (saved.size() == 2) {
+    if (saved.size() == 1) {
       // single-score mode
       auto saved_grad = saved[0];
 
@@ -264,45 +267,47 @@ class BackboneTorsionPoseScoreOp
         // common: rot_coords + 12 more arguments
         dV_d_rot_coords,
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
         // 14 more arguments
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor()};
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor()};
   }
 };
 
-template <template <tmol::Device> class DispatchMethod>
+template <
+    template <tmol::Device> class DispatchMethod,
+    bool TopologyOnly = false>
 class BackboneTorsionRotamerScoreOp
-    : public torch::autograd::Function<
-          BackboneTorsionRotamerScoreOp<DispatchMethod>> {
+    : public tmol::native::autograd::Function<
+          BackboneTorsionRotamerScoreOp<DispatchMethod, TopologyOnly>> {
  public:
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
@@ -337,9 +342,9 @@ class BackboneTorsionRotamerScoreOp
       Tensor omega_tables,
       Tensor omega_table_params,
       bool output_block_pair_energies) {
-    at::Tensor score;
-    at::Tensor dscore_dcoords;
-    at::Tensor dispatch_indices;
+    tmol::native::Tensor score;
+    tmol::native::Tensor dscore_dcoords;
+    tmol::native::Tensor dispatch_indices;
 
     using Int = int32_t;
 
@@ -383,12 +388,18 @@ class BackboneTorsionRotamerScoreOp
                   TCAST(rama_table_params),
                   TCAST(omega_tables),
                   TCAST(omega_table_params),
-                  output_block_pair_energies);
+                  output_block_pair_energies,
+                  TopologyOnly);
 
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
           dispatch_indices = std::get<2>(result).tensor;
         }));
+
+    if constexpr (TopologyOnly) {
+      ctx->mark_non_differentiable({score, dispatch_indices});
+      return {score, dispatch_indices};
+    }
 
     if (output_block_pair_energies) {
       auto max_n_rots_per_pose_tp =
@@ -432,15 +443,14 @@ class BackboneTorsionRotamerScoreOp
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
     auto saved = ctx->get_saved_variables();
 
-    at::Tensor dV_d_rot_coords;
+    tmol::native::Tensor dV_d_rot_coords;
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
     if (saved.size() == 2) {
       // single-score mode
-      auto saved_grads = ctx->get_saved_variables();
-      auto saved_grad = saved_grads[0];
-      auto pose_ind_for_atom = saved_grads[1];
+      auto saved_grad = saved[0];
+      auto pose_ind_for_atom = saved[1];
 
       tensor_list result;
 
@@ -548,38 +558,38 @@ class BackboneTorsionRotamerScoreOp
         // common: rot_coords + 12 more arguments
         dV_d_rot_coords,
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
         // 14 more arguments
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor()};
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor(),
+        tmol::native::Tensor()};
   }
 };
 
@@ -647,7 +657,9 @@ std::vector<Tensor> backbone_torsion_pose_score_op(
       output_block_pair_energies);
 }
 
-template <template <tmol::Device> class DispatchMethod>
+template <
+    template <tmol::Device> class DispatchMethod,
+    bool TopologyOnly = false>
 std::vector<Tensor> backbone_torsion_rotamer_score_op(
     // common params
     Tensor rot_coords,
@@ -681,7 +693,7 @@ std::vector<Tensor> backbone_torsion_rotamer_score_op(
     Tensor omega_tables,
     Tensor omega_table_params,
     bool output_block_pair_energies) {
-  return BackboneTorsionRotamerScoreOp<DispatchMethod>::apply(
+  return BackboneTorsionRotamerScoreOp<DispatchMethod, TopologyOnly>::apply(
       // common params
       rot_coords,
       rot_coord_offset,
@@ -714,13 +726,16 @@ std::vector<Tensor> backbone_torsion_rotamer_score_op(
 }
 
 // See https://stackoverflow.com/a/3221914
-TORCH_LIBRARY(tmol_bb_torsion, m) {
+TMOL_LIBRARY(tmol_bb_torsion, m) {
   m.def(
       "backbone_torsion_pose_score",
-      &backbone_torsion_pose_score_op<DeviceOperations>);
+      TMOL_FN(&backbone_torsion_pose_score_op<DeviceOperations>));
   m.def(
       "backbone_torsion_rotamer_score",
-      &backbone_torsion_rotamer_score_op<DeviceOperations>);
+      TMOL_FN(&backbone_torsion_rotamer_score_op<DeviceOperations>));
+  m.def(
+      "backbone_torsion_rotamer_score_topology",
+      TMOL_FN(&backbone_torsion_rotamer_score_op<DeviceOperations, true>));
 }
 
 }  // namespace potentials

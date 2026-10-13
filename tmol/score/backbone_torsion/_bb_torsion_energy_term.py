@@ -267,6 +267,13 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
 
         return backbone_torsion_pose_score
 
+    def get_packing_rotamer_score_term_function(self):
+        from tmol.score.backbone_torsion.potentials._compiled import (
+            iter_packing_rotamer_scores,
+        )
+
+        return iter_packing_rotamer_scores
+
     def get_rotamer_score_term_function(self):
         from tmol.score.backbone_torsion.potentials import (
             backbone_torsion_rotamer_score,

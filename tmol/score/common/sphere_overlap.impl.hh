@@ -1,3 +1,4 @@
+#include <tmol/utility/tensor/native.hh>
 #pragma once
 
 #include <algorithm>
@@ -1185,7 +1186,8 @@ struct rot_neighbor_indices_from_block_neighbors {
           "dispatch limit (2147483647)");
     }
     int64_t const total_64 =
-        pair_counts_t.tensor.sum(at::ScalarType::Long).template item<int64_t>();
+        pair_counts_t.tensor.sum(tmol::native::ScalarType::Long)
+            .template item<int64_t>();
     int const total =
         common::checked_dispatch_size(total_64, "rotamer block-pair dispatch");
 

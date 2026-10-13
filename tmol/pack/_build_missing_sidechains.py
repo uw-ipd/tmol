@@ -23,6 +23,7 @@ def build_missing_sidechains(
     no_optH: bool = False,
     na_sampler: NaChiRotamerSampler = None,
     has_missing_atoms: bool | None = None,
+    seed: int | None = None,
 ) -> PoseStack:
     """Build missing sidechains and place hydrogens using per-block sampler assignment.
 
@@ -58,6 +59,7 @@ def build_missing_sidechains(
         no_optH: When True, skip OptH and preserve old Dunbrack-only behavior.
         has_missing_atoms: Cached value of ``block_has_missing_atoms.any()``.
             Supplying it avoids a device synchronization in repeated builds.
+        seed: Packer seed, as for :func:`~tmol.pack.pack_rotamers`.
 
     Returns:
         PoseStack with missing sidechains built and (by default) hydrogens
@@ -109,4 +111,4 @@ def build_missing_sidechains(
     else:
         task.disable_packing_by_block_mask(block_does_not_have_missing_atoms)
 
-    return pack_rotamers(pose_stack, sfxn, task, verbose=False)
+    return pack_rotamers(pose_stack, sfxn, task, verbose=False, seed=seed)

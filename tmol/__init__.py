@@ -2,7 +2,7 @@
 
 # flake8: noqa
 
-# Load pre-compiled C++/CUDA extensions (TORCH_LIBRARY ops).
+# Load precompiled native operators.
 # This must happen early so that torch.ops.tmol_* namespaces are available
 # before any compiled module is imported.
 import contextlib
@@ -22,6 +22,7 @@ def include_paths():
     return [os.path.abspath(os.path.dirname(__file__) + "/..")]
 
 
+from tmol._cpp_lib import has_cuda
 from tmol._load_ext import ensure_compiled_or_jit as _ensure_compiled_or_jit
 
 # Extensions may not be built yet (e.g. during sdist creation).
@@ -61,6 +62,7 @@ __all__ = [
     "get_named_torsions",
     "get_torsion_names",
     "include_paths",
+    "has_cuda",
     "one2three",
     "pose_stack_from_canonical_form",
     "pose_stack_from_pdb",

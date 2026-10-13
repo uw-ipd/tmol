@@ -1,5 +1,4 @@
-#include <torch/torch.h>
-#include <torch/script.h>
+#include <tmol/utility/tensor/native_library.hh>
 
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/tensor/context_manager.hh>
@@ -21,10 +20,10 @@ namespace potentials {
 
 ContextManager mgr;
 
-using torch::Tensor;
-using torch::autograd::AutogradContext;
-using torch::autograd::Function;
-using torch::autograd::tensor_list;
+using tmol::native::Tensor;
+using tmol::native::autograd::AutogradContext;
+using tmol::native::autograd::Function;
+using tmol::native::autograd::tensor_list;
 
 using namespace tmol::score::common;
 
@@ -32,9 +31,10 @@ using namespace tmol::score::common;
 // Pose-level scoring autograd op
 // ---------------------------------------------------------------------------
 template <template <tmol::Device> class DispatchMethod>
-class GenBondedPoseScoreOp
-    : public torch::autograd::Function<GenBondedPoseScoreOp<DispatchMethod>> {
+class GenBondedPoseScoreOp : public tmol::native::autograd::Function<
+                                 GenBondedPoseScoreOp<DispatchMethod>> {
  public:
+  static constexpr bool capture_pose_gradient = true;
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
       // Standard rotamer-layout params (common to all 2-body terms)
@@ -70,8 +70,8 @@ class GenBondedPoseScoreOp
       Tensor gen_inter_improper_hash_keys,
       Tensor gen_inter_improper_hash_values,
       bool output_block_pair_energies) {
-    at::Tensor score;
-    at::Tensor dscore_dcoords;
+    tmol::native::Tensor score;
+    tmol::native::Tensor dscore_dcoords;
 
     using Int = int32_t;
 
@@ -155,17 +155,20 @@ class GenBondedPoseScoreOp
            gen_inter_improper_hash_keys,
            gen_inter_improper_hash_values});
     } else {
-      score = score.squeeze(-1).squeeze(-1);
-      ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
+      score = score.reshape({score.size(0), score.size(1)});
+      ctx->save_for_backward({dscore_dcoords});
     }
+    ctx->mark_non_differentiable({dscore_dcoords});
+    ctx->set_materialize_grads(false);
     return {score, dscore_dcoords};
   }
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    if (!grad_outputs[0].defined()) return tensor_list(29);
     auto saved = ctx->get_saved_variables();
-    at::Tensor dV_d_pose_coords;
+    tmol::native::Tensor dV_d_pose_coords;
 
-    if (saved.size() == 2) {
+    if (saved.size() == 1) {
       // Single-score mode: reuse the pre-computed gradient
       auto saved_grad = saved[0];
       dV_d_pose_coords =
@@ -262,34 +265,34 @@ class GenBondedPoseScoreOp
     //   output_block_pair_energies (bool)
     return {
         dV_d_pose_coords,
-        torch::Tensor(),  // rot_coord_offset
-        torch::Tensor(),  // pose_ind_for_atom
-        torch::Tensor(),  // first_rot_for_block
-        torch::Tensor(),  // first_rot_block_type
-        torch::Tensor(),  // block_ind_for_rot
-        torch::Tensor(),  // pose_ind_for_rot
-        torch::Tensor(),  // block_type_ind_for_rot
-        torch::Tensor(),  // n_rots_for_pose
-        torch::Tensor(),  // rot_offset_for_pose
-        torch::Tensor(),  // n_rots_for_block
-        torch::Tensor(),  // rot_offset_for_block
-        torch::Tensor(),  // max_n_rots_per_pose (int)
-        torch::Tensor(),  // pose_stack_inter_block_connections
-        torch::Tensor(),  // atom_paths_from_conn
-        torch::Tensor(),  // gen_intra_subgraphs
-        torch::Tensor(),  // gen_intra_subgraph_offsets
-        torch::Tensor(),  // gen_intra_params
-        torch::Tensor(),  // gen_atom_type_hierarchy
-        torch::Tensor(),  // gen_atom_is_rosetta
-        torch::Tensor(),  // gen_connection_bond_bins
-        torch::Tensor(),  // gen_conn_scored_elsewhere
-        torch::Tensor(),  // gen_source_atom_index
-        torch::Tensor(),  // gen_source_block_type_index
-        torch::Tensor(),  // gen_inter_torsion_hash_keys
-        torch::Tensor(),  // gen_inter_torsion_hash_values
-        torch::Tensor(),  // gen_inter_improper_hash_keys
-        torch::Tensor(),  // gen_inter_improper_hash_values
-        torch::Tensor(),  // output_block_pair_energies (bool)
+        tmol::native::Tensor(),  // rot_coord_offset
+        tmol::native::Tensor(),  // pose_ind_for_atom
+        tmol::native::Tensor(),  // first_rot_for_block
+        tmol::native::Tensor(),  // first_rot_block_type
+        tmol::native::Tensor(),  // block_ind_for_rot
+        tmol::native::Tensor(),  // pose_ind_for_rot
+        tmol::native::Tensor(),  // block_type_ind_for_rot
+        tmol::native::Tensor(),  // n_rots_for_pose
+        tmol::native::Tensor(),  // rot_offset_for_pose
+        tmol::native::Tensor(),  // n_rots_for_block
+        tmol::native::Tensor(),  // rot_offset_for_block
+        tmol::native::Tensor(),  // max_n_rots_per_pose (int)
+        tmol::native::Tensor(),  // pose_stack_inter_block_connections
+        tmol::native::Tensor(),  // atom_paths_from_conn
+        tmol::native::Tensor(),  // gen_intra_subgraphs
+        tmol::native::Tensor(),  // gen_intra_subgraph_offsets
+        tmol::native::Tensor(),  // gen_intra_params
+        tmol::native::Tensor(),  // gen_atom_type_hierarchy
+        tmol::native::Tensor(),  // gen_atom_is_rosetta
+        tmol::native::Tensor(),  // gen_connection_bond_bins
+        tmol::native::Tensor(),  // gen_conn_scored_elsewhere
+        tmol::native::Tensor(),  // gen_source_atom_index
+        tmol::native::Tensor(),  // gen_source_block_type_index
+        tmol::native::Tensor(),  // gen_inter_torsion_hash_keys
+        tmol::native::Tensor(),  // gen_inter_torsion_hash_values
+        tmol::native::Tensor(),  // gen_inter_improper_hash_keys
+        tmol::native::Tensor(),  // gen_inter_improper_hash_values
+        tmol::native::Tensor(),  // output_block_pair_energies (bool)
     };
   }
 };
@@ -297,9 +300,12 @@ class GenBondedPoseScoreOp
 // ---------------------------------------------------------------------------
 // Rotamer-level scoring autograd op
 // ---------------------------------------------------------------------------
-template <template <tmol::Device> class DispatchMethod>
-class GenBondedRotamerScoreOp : public torch::autograd::Function<
-                                    GenBondedRotamerScoreOp<DispatchMethod>> {
+template <
+    template <tmol::Device> class DispatchMethod,
+    bool TopologyOnly = false>
+class GenBondedRotamerScoreOp
+    : public tmol::native::autograd::Function<
+          GenBondedRotamerScoreOp<DispatchMethod, TopologyOnly>> {
  public:
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
@@ -335,11 +341,11 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
       Tensor gen_inter_improper_hash_values,
 
       bool output_block_pair_energies) {
-    at::Tensor score;
-    at::Tensor dscore_dcoords;
-    at::Tensor dispatch_indices;
-    at::Tensor n_output_intxns;
-    at::Tensor rotconn_for_output;
+    tmol::native::Tensor score;
+    tmol::native::Tensor dscore_dcoords;
+    tmol::native::Tensor dispatch_indices;
+    tmol::native::Tensor n_output_intxns;
+    tmol::native::Tensor rotconn_for_output;
 
     using Int = int32_t;
 
@@ -384,7 +390,8 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
                       TCAST(gen_inter_improper_hash_values),
 
                       output_block_pair_energies,
-                      rot_coords.requires_grad());
+                      rot_coords.requires_grad(),
+                      TopologyOnly);
 
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
@@ -392,6 +399,11 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
           n_output_intxns = std::get<3>(result).tensor;
           rotconn_for_output = std::get<4>(result).tensor;
         }));
+
+    if constexpr (TopologyOnly) {
+      ctx->mark_non_differentiable({score, dispatch_indices});
+      return {score, dispatch_indices};
+    }
 
     auto max_n_rots_per_pose_tp =
         TPack<Int, 1, tmol::Device::CPU>::full(1, max_n_rots_per_pose);
@@ -435,7 +447,7 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
     auto saved = ctx->get_saved_variables();
-    at::Tensor dV_d_pose_coords;
+    tmol::native::Tensor dV_d_pose_coords;
     using Int = int32_t;
 
     int i = 0;
@@ -522,35 +534,35 @@ class GenBondedRotamerScoreOp : public torch::autograd::Function<
     // One None per forward() parameter.
     return {
         dV_d_pose_coords,
-        torch::Tensor(),  // rot_coord_offset
-        torch::Tensor(),  // pose_ind_for_atom
-        torch::Tensor(),  // first_rot_for_block
-        torch::Tensor(),  // first_rot_block_type
-        torch::Tensor(),  // block_ind_for_rot
-        torch::Tensor(),  // pose_ind_for_rot
-        torch::Tensor(),  // block_type_ind_for_rot
-        torch::Tensor(),  // n_rots_for_pose
-        torch::Tensor(),  // rot_offset_for_pose
-        torch::Tensor(),  // n_rots_for_block
-        torch::Tensor(),  // rot_offset_for_block
-        torch::Tensor(),  // lockstep_group_for_block
-        torch::Tensor(),  // max_n_rots_per_pose (int)
-        torch::Tensor(),  // pose_stack_inter_block_connections
-        torch::Tensor(),  // atom_paths_from_conn
-        torch::Tensor(),  // gen_intra_subgraphs
-        torch::Tensor(),  // gen_intra_subgraph_offsets
-        torch::Tensor(),  // gen_intra_params
-        torch::Tensor(),  // gen_atom_type_hierarchy
-        torch::Tensor(),  // gen_atom_is_rosetta
-        torch::Tensor(),  // gen_connection_bond_bins
-        torch::Tensor(),  // gen_conn_scored_elsewhere
-        torch::Tensor(),  // gen_source_atom_index
-        torch::Tensor(),  // gen_source_block_type_index
-        torch::Tensor(),  // gen_inter_torsion_hash_keys
-        torch::Tensor(),  // gen_inter_torsion_hash_values
-        torch::Tensor(),  // gen_inter_improper_hash_keys
-        torch::Tensor(),  // gen_inter_improper_hash_values
-        torch::Tensor(),  // output_block_pair_energies (bool)
+        tmol::native::Tensor(),  // rot_coord_offset
+        tmol::native::Tensor(),  // pose_ind_for_atom
+        tmol::native::Tensor(),  // first_rot_for_block
+        tmol::native::Tensor(),  // first_rot_block_type
+        tmol::native::Tensor(),  // block_ind_for_rot
+        tmol::native::Tensor(),  // pose_ind_for_rot
+        tmol::native::Tensor(),  // block_type_ind_for_rot
+        tmol::native::Tensor(),  // n_rots_for_pose
+        tmol::native::Tensor(),  // rot_offset_for_pose
+        tmol::native::Tensor(),  // n_rots_for_block
+        tmol::native::Tensor(),  // rot_offset_for_block
+        tmol::native::Tensor(),  // lockstep_group_for_block
+        tmol::native::Tensor(),  // max_n_rots_per_pose (int)
+        tmol::native::Tensor(),  // pose_stack_inter_block_connections
+        tmol::native::Tensor(),  // atom_paths_from_conn
+        tmol::native::Tensor(),  // gen_intra_subgraphs
+        tmol::native::Tensor(),  // gen_intra_subgraph_offsets
+        tmol::native::Tensor(),  // gen_intra_params
+        tmol::native::Tensor(),  // gen_atom_type_hierarchy
+        tmol::native::Tensor(),  // gen_atom_is_rosetta
+        tmol::native::Tensor(),  // gen_connection_bond_bins
+        tmol::native::Tensor(),  // gen_conn_scored_elsewhere
+        tmol::native::Tensor(),  // gen_source_atom_index
+        tmol::native::Tensor(),  // gen_source_block_type_index
+        tmol::native::Tensor(),  // gen_inter_torsion_hash_keys
+        tmol::native::Tensor(),  // gen_inter_torsion_hash_values
+        tmol::native::Tensor(),  // gen_inter_improper_hash_keys
+        tmol::native::Tensor(),  // gen_inter_improper_hash_values
+        tmol::native::Tensor(),  // output_block_pair_energies (bool)
     };
   }
 };
@@ -625,7 +637,9 @@ std::vector<Tensor> genbonded_pose_scores_op(
       output_block_pair_energies);
 }
 
-template <template <tmol::Device> class DispatchMethod>
+template <
+    template <tmol::Device> class DispatchMethod,
+    bool TopologyOnly = false>
 std::vector<Tensor> genbonded_rotamer_scores_op(
     Tensor rot_coords,
     Tensor rot_coord_offset,
@@ -659,7 +673,7 @@ std::vector<Tensor> genbonded_rotamer_scores_op(
     Tensor gen_inter_improper_hash_values,
 
     bool output_block_pair_energies) {
-  return GenBondedRotamerScoreOp<DispatchMethod>::apply(
+  return GenBondedRotamerScoreOp<DispatchMethod, TopologyOnly>::apply(
       rot_coords,
       rot_coord_offset,
       pose_ind_for_atom,
@@ -694,11 +708,16 @@ std::vector<Tensor> genbonded_rotamer_scores_op(
       output_block_pair_energies);
 }
 
-TORCH_LIBRARY(tmol_genbonded, m) {
-  m.def("genbonded_pose_scores", &genbonded_pose_scores_op<DeviceOperations>);
+TMOL_LIBRARY(tmol_genbonded, m) {
+  m.def(
+      "genbonded_pose_scores",
+      TMOL_FN(&genbonded_pose_scores_op<DeviceOperations>));
   m.def(
       "genbonded_rotamer_scores",
-      &genbonded_rotamer_scores_op<DeviceOperations>);
+      TMOL_FN(&genbonded_rotamer_scores_op<DeviceOperations>));
+  m.def(
+      "genbonded_rotamer_scores_topology",
+      TMOL_FN(&genbonded_rotamer_scores_op<DeviceOperations, true>));
 }
 
 }  // namespace potentials

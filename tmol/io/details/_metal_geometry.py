@@ -1,0 +1,144 @@
+"""Fit observed metal donor directions to coordination polyhedra, free to rotate.
+Structure input drops waters, so the donor count cannot pick a geometry; directions do.
+"""
+
+from functools import lru_cache
+from itertools import permutations
+from typing import Optional, Sequence, Tuple
+
+import attr
+import numpy
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class GeometryFit:
+    """How well one candidate geometry explains a set of donor directions."""
+
+    geometry: str
+    # root-mean-square angle, degrees, between each donor and the vertex it was
+    # matched to after the best rotation
+    rms_angle: float
+    # vertex index taken by each donor, in the order the donors were given
+    vertex_for_donor: Tuple[int, ...]
+    n_sites: int
+    # carries the polyhedron's vertices onto the donors: vertex @ rotation.T
+    rotation: Optional[numpy.ndarray] = attr.ib(default=None, eq=False)
+
+    @property
+    def n_open_sites(self) -> int:
+        return self.n_sites - len(self.vertex_for_donor)
+
+
+def unit(v: numpy.ndarray) -> numpy.ndarray:
+    norm = numpy.linalg.norm(v, axis=-1, keepdims=True)
+    return v / numpy.where(norm == 0, 1.0, norm)
+
+
+def best_rotation(donors: numpy.ndarray, targets: numpy.ndarray) -> numpy.ndarray:
+    """Rotation carrying ``donors`` onto ``targets``, both unit vectors (Kabsch)."""
+    return _best_rotations(donors, targets[numpy.newaxis])[0]
+
+
+# Wider than arccos amplification near cos=1, narrower than any angle that means
+# something: two assignments this close are the same fit, differently rounded.
+_FIT_TIE_DEG = 1e-4
+_GEOMETRY_TIE_DEG = 5.0
+
+
+def _best_rotations(donors: numpy.ndarray, targets: numpy.ndarray) -> numpy.ndarray:
+    """Kabsch for a stack of target sets at once, ``targets`` shaped (n, k, 3)."""
+    covariance = numpy.einsum("ki,nkj->nij", donors, targets)
+    u, _, vt = numpy.linalg.svd(covariance)
+    correction = numpy.zeros_like(u)
+    correction[:, 0, 0] = correction[:, 1, 1] = 1.0
+    correction[:, 2, 2] = numpy.sign(numpy.linalg.det(u @ vt))
+    return u @ correction @ vt
+
+
+def _rotation_group(verts: numpy.ndarray) -> numpy.ndarray:
+    """Vertex permutations a rotation of the polyhedron realises, identity included:
+    each is Kabsch-fitted and kept if exact to the vertices' six decimals.
+    """
+    group = []
+    for candidate in permutations(range(len(verts))):
+        image = verts[list(candidate)]
+        rotation = best_rotation(verts, image)
+        if numpy.allclose(verts @ rotation, image, atol=1e-6):
+            group.append(candidate)
+    return numpy.array(group, dtype=int)
+
+
+@lru_cache(maxsize=None)
+def _assignments(vertex_key: tuple, n_donors: int) -> numpy.ndarray:
+    """One injective donor-to-vertex map per orbit of the polyhedron's rotations, which
+    fit identically: 720 maps for an octahedron become 30.
+    """
+    verts = numpy.array(vertex_key, dtype=numpy.float64).reshape(-1, 3)
+    n_sites = len(verts)
+    group = _rotation_group(verts)
+    seen, keep = set(), []
+    for candidate in permutations(range(n_sites), n_donors):
+        if candidate in seen:
+            continue
+        keep.append(candidate)
+        for symmetry in group:
+            seen.add(tuple(int(symmetry[v]) for v in candidate))
+    return numpy.array(keep, dtype=int)
+
+
+def fit_geometry(
+    donor_directions: numpy.ndarray,
+    vertices: numpy.ndarray,
+) -> Optional[GeometryFit]:
+    """Best donor-to-vertex assignment over all rotations, found exhaustively (at most
+    six vertices); None when there are more donors than vertices.
+    """
+    donors = unit(numpy.asarray(donor_directions, dtype=numpy.float64))
+    verts = unit(numpy.asarray(vertices, dtype=numpy.float64))
+    n_donors, n_sites = len(donors), len(verts)
+    if n_donors == 0 or n_donors > n_sites:
+        return None
+
+    candidates = _assignments(tuple(verts.ravel()), n_donors)
+    targets = verts[candidates]
+    rotations = _best_rotations(donors, targets)
+    rotated = numpy.einsum("ki,nij->nkj", donors, rotations)
+    cosines = numpy.clip(numpy.sum(rotated * targets, axis=2), -1.0, 1.0)
+    rms = numpy.sqrt(numpy.mean(numpy.degrees(numpy.arccos(cosines)) ** 2, axis=1))
+    # Equal fits differ by ~1e-6 degrees of SVD and arccos rounding, so take the
+    # first assignment inside a window above that noise and below anything real.
+    best = int(numpy.flatnonzero(rms <= rms.min() + _FIT_TIE_DEG)[0])
+    return GeometryFit(
+        geometry="",
+        rms_angle=float(rms[best]),
+        vertex_for_donor=tuple(int(v) for v in candidates[best]),
+        n_sites=n_sites,
+        # A row of the batch, which would otherwise hold the whole stack alive.
+        rotation=rotations[best].copy(),
+    )
+
+
+def choose_geometry(
+    donor_directions: numpy.ndarray,
+    allowed: Sequence[str],
+    vertices_for: dict,
+) -> Tuple[Optional[GeometryFit], str]:
+    """The geometry best explaining the donors, and how it was picked: fits within
+    ``_GEOMETRY_TIE_DEG`` of the best go to the ion's most-common-first order.
+    """
+    fits = []
+    for name in allowed:
+        verts = vertices_for[name]
+        if not verts:  # untemplated: nothing to fit, and nothing to choose
+            return None, "untemplated"
+        fit = fit_geometry(donor_directions, numpy.asarray(verts))
+        if fit is not None:
+            fits.append(attr.evolve(fit, geometry=name))
+    if not fits:
+        if len(donor_directions) == 0:
+            return None, "no donors in range"
+        return None, "no candidate geometry can hold this many donors"
+
+    best_rms = min(f.rms_angle for f in fits)
+    tied = [f for f in fits if f.rms_angle <= best_rms + _GEOMETRY_TIE_DEG]
+    return tied[0], "directions" if len(tied) == 1 else "preference order"

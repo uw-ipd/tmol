@@ -1,26 +1,11 @@
 # Protein-interface analysis
 
-Use this recipe to score a declared protein–protein interface and prepare an
-explicit batch of local mutation experiments. The case study develops the full
-workflow on neighboring KcsA subunits and visualizes the native hotspots and
-packed variants.
-
-> - **Prerequisites:** A prepared multi-chain `PoseStack` and a score function
->   built from the same parameter database.
-> - **Deep example:** {doc}`09 — Map and Test a Protein Interface
->   </tutorial/09_protein_interface_hotspot_scan>`.
-> - **Related workflows:** {doc}`Scoring </user_guide/scoring>`,
->   {doc}`Packing </workflows/packing>`, and
->   {doc}`GPU batching </workflows/gpu_batching>`.
-> - **API reference:** {doc}`Scoring </api/score>`,
->   {doc}`Packing </api/pack>`, and {doc}`Analysis helpers </api/analysis>`.
-> - **Rosetta mapping:** {doc}`Packing, design, and mutation scans
->   </tutorial/rosetta_crosswalk>`.
+Calculate interface contributions and compare local mutations. Use a
+prepared multi-chain `PoseStack` and a score function from the same parameter database.
 
 ## Define partners from metadata
 
-Do not assume chain boundaries from block positions. Build masks from the
-author labels retained in `pdb_info`:
+Build partner masks from the author chain labels in `pdb_info`:
 
 ```python
 chain_labels = pose_stack.pdb_info.chain_labels
@@ -28,9 +13,8 @@ partner_a = torch.as_tensor(chain_labels == "A", device=pose_stack.device)
 partner_b = torch.as_tensor(chain_labels == "B", device=pose_stack.device)
 ```
 
-Each mask has shape `[n_poses, max_n_blocks]`. Verify the selected chains and
-block counts before scoring; author labels, insertion codes, missing regions,
-and model-specific preprocessing determine the actual layout.
+Masks have shape `[n_poses, max_n_blocks]`. Check the selected chain labels and
+block counts; file residue numbers need not match block indices.
 
 ## Score the interface
 
@@ -50,8 +34,8 @@ interface_by_term = calculate_block_pair_ddg(
 )
 ```
 
-Despite the helper's historical name, this is a weighted cross-mask score from
-one complex. It is not a binding free energy. For residue-pair analysis, render
+The result sums weighted interactions between the two masks. For residue-pair
+analysis, render
 a block-pair scorer and add `matrix[i, j] + matrix[j, i]`; one orientation alone
 can miss an interaction.
 
@@ -85,7 +69,9 @@ avoids a dense target-mask reduction.
 
 Report the exact computational experiment: score function and weights, input
 and preparation, partner masks, packing shell, allowed identities, samplers,
-device, number of outcomes, minimization settings, and comparison rule. A
-mutant-minus-repacked-WT value from one complex is a **score change**, not a
-thermodynamic ΔΔG. Binding claims require explicitly modeled states and a
-validated protocol beyond this lower-level recipe.
+device, number of outcomes, minimization settings, and comparison rule. Compare
+each mutant with its independently repacked WT control.
+
+## Examples and reference
+
+{doc}`Interface example </tutorial/09_protein_interface_hotspot_scan>` · {doc}`Analysis API </api/analysis>` · {doc}`Packing </workflows/packing>`

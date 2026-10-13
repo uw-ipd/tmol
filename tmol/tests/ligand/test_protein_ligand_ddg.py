@@ -77,12 +77,14 @@ def _rosetta_ddg(target: str) -> float:
 
 def _load_complex_cif(target: str):
     import biotite.structure as struc
-    import biotite.structure.io
+    from biotite.structure.io.pdbx import CIFFile, get_structure
+    from tmol.io._atomworks_reader import _mark_inferred_polymer_bonds
 
     cif_path = PLI_DATA_DIR / f"{target}.tmol.nomin.cif"
-    structure = biotite.structure.io.load_structure(
-        str(cif_path), model=1, include_bonds=True
-    )
+    file = CIFFile.read(cif_path)
+    # These exports contain coordinates only: every bond is loader-inferred.
+    assert set(file.block) == {"atom_site"}
+    structure = get_structure(file, model=1, include_bonds=True)
     if isinstance(structure, struc.AtomArrayStack):
         structure = structure[0]
     # These exported fixtures reuse blank chain labels when residue numbering
@@ -98,6 +100,7 @@ def _load_complex_cif(target: str):
             structure.atom_name[second],
         } == {"C", "N"}:
             structure.bonds.remove_bond(int(first), int(second))
+    _mark_inferred_polymer_bonds(structure, set())
     return structure
 
 

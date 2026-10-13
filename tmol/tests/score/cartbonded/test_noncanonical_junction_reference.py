@@ -128,11 +128,33 @@ def test_gamma_junction_length_angle_energy_and_gradient(
             device=torch_device,
             termini=False,
         )
+
+        def hydrogens_by_parent(bt):
+            """Hydrogen names keyed by (parent name, rank among its hydrogens)."""
+            names = {a.name for a in bt.atoms if elements[a.atom_type] == "H"}
+            parents = {}
+            for a, b, *_ in bt.bonds:
+                for h, heavy in ((a, b), (b, a)):
+                    if h in names:
+                        parents.setdefault(heavy, []).append(h)
+            return {
+                (heavy, rank): h
+                for heavy, hs in parents.items()
+                for rank, h in enumerate(sorted(hs))
+            }
+
+        heavy_name = {"N": nitrogen}
         indices = []
         for block, type_index in enumerate(reference.block_type_ind[0].tolist()):
             bt = reference.packed_block_types.active_block_types[type_index]
+            # hydrogens are named after their parent, so match them through it
+            renamed_h = hydrogens_by_parent(types[block])
+            name_for = {
+                h: renamed_h[(heavy_name.get(heavy, heavy), rank)]
+                for (heavy, rank), h in hydrogens_by_parent(bt).items()
+            }
             for atom in bt.atoms:
-                name = {"N": nitrogen, "H": hydrogen}.get(atom.name, atom.name)
+                name = name_for.get(atom.name, heavy_name.get(atom.name, atom.name))
                 indices.append(
                     int(pose.block_coord_offset[0, block])
                     + types[block].atom_to_idx[name]
@@ -260,7 +282,7 @@ def test_cap_junction_forces(torch_device, tmp_path, cap, connection, sequence):
     coords = coords.to(device=torch_device, dtype=torch.float64).requires_grad_(True)
     module = scoring_term(pose, database).render_block_pair_scoring_module(pose)
     terms = module(coords)[:, 0, 0, 1]
-    assert float(terms[3].detach()) > 1e-6  # Cross-junction planarity stays active.
+    assert float(terms[2].detach()) > 1e-6  # Cross-junction planarity stays active.
     actual = terms[:2]
     expected = harmonic_reference(pose, coords, record)
     assert bool((expected > 0.01).all())

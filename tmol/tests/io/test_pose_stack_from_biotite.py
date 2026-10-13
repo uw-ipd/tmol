@@ -1,3 +1,5 @@
+import warnings
+
 import numpy
 import biotite.structure
 from biotite.structure.io.pdbx import CIFFile, set_structure
@@ -11,8 +13,16 @@ from tmol.io import (
     pose_stack_from_biotite,
     pose_stack_from_cif,
     biotite_from_pose_stack,
+    pose_stack_from_canonical_form,
 )
-from tmol.tests.data import load_cif
+from tmol.io._pose_stack_from_biotite import (
+    RESIDUE_ANNOTATIONS,
+    _renumbered_for_cif,
+    canonical_ordering_for_biotite,
+    packed_block_types_for_biotite_with_metals,
+)
+from tmol.pose import PoseStackBuilder
+from tmol.tests.data import data_path, load_cif
 
 _CI_CIF_CODES = [
     "1UBQ",  # small, clean protein
@@ -228,6 +238,32 @@ def test_pose_stack_from_and_to_biotite_1ubq_no_opth_smoke(biotite_1ubq, torch_d
     biotite_from_pose_stack(pose_stack)
 
 
+def test_pose_stack_from_and_to_biotite_1ubq_defaults_absent_metadata(
+    biotite_1ubq, torch_device
+):
+    from tmol.pose import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+
+    biotite_1ubq.del_annotation("occupancy")
+    biotite_1ubq.del_annotation("b_factor")
+    pose_stack = pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
+    restored = biotite_from_pose_stack(pose_stack)
+    numpy.testing.assert_array_equal(restored.occupancy, DEFAULT_ATOM_OCCUPANCY)
+    numpy.testing.assert_array_equal(restored.b_factor, DEFAULT_ATOM_B_FACTOR)
+
+
+def test_pose_stack_from_and_to_biotite_1ubq_keeps_explicit_occupancy(
+    biotite_1ubq, torch_device
+):
+    biotite_1ubq.occupancy[:] = 0.5
+    biotite_1ubq.occupancy[biotite_1ubq.res_id == 1] = 0.0
+    pose_stack = pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
+    restored = biotite_from_pose_stack(pose_stack)
+    heavy = restored.element != "H"
+    first = restored.res_id == 1
+    numpy.testing.assert_array_equal(restored.occupancy[heavy & first], 0.0)
+    numpy.testing.assert_array_equal(restored.occupancy[heavy & ~first], 0.5)
+
+
 @pytest.mark.parametrize("n_models", [1, 3, 23])
 def test_pose_stack_from_and_to_biotite_multiple_poses(
     biotite_1r21, torch_device, n_models
@@ -352,7 +388,8 @@ def test_ligand_proton_chi_samples_build_finite_coords(torch_device):
     import pathlib
 
     import biotite.structure
-    import biotite.structure.io
+    import biotite.structure.io.pdbx
+    from atomworks.io.utils.io_utils import read_any
 
     from tmol.database import ParameterDatabase
 
@@ -361,10 +398,10 @@ def test_ligand_proton_chi_samples_build_finite_coords(torch_device):
         / "data"
         / "protein_ligand_test"
         / "cif_inputs"
-        / "ace.ligand.cif"
+        / "ace.ligand.cif.zst"
     )
-    bt_struct = biotite.structure.io.load_structure(
-        str(cif_path), model=1, include_bonds=True, extra_fields=["partial_charge"]
+    bt_struct = biotite.structure.io.pdbx.get_structure(
+        read_any(cif_path), model=1, include_bonds=True, extra_fields=["partial_charge"]
     )
     if isinstance(bt_struct, biotite.structure.AtomArrayStack):
         bt_struct = bt_struct[0]
@@ -375,15 +412,12 @@ def test_ligand_proton_chi_samples_build_finite_coords(torch_device):
     assert "QZ" not in bt_struct.atom_name
     bt_struct.atom_name[carbon] = "QZ"
 
-    # This file supplies the whole molecule under a code of its own, which the
-    # component dictionary defines as an unrelated one, so it is taken as given.
     pose_stack, context = pose_stack_from_biotite(
         bt_struct,
         torch_device,
         prepare_ligands=True,
         param_db=ParameterDatabase.get_default(),
         return_context=True,
-        use_ccd=False,
     )
     assert torch.isfinite(pose_stack.coords[pose_stack.real_atoms]).all()
     lg1 = next(
@@ -422,7 +456,7 @@ def test_ligand_proton_chi_samples_build_finite_coords(torch_device):
 def test_ligand_build_from_mol2_bond_orders(torch_device):
     # Parallel to the CIF-source test above, but sources LG1 from the Tripos
     # mol2 (ace.lig.mol2). The mol2 encodes the carboxylates correctly (O.co2 /
-    # C.2 sybyl types => C(=O)[O-]), whereas ace.ligand.cif declares those C-O
+    # C.2 sybyl types => C(=O)[O-]), whereas ace.ligand.cif.zst declares those C-O
     # bonds as SING/SING and over-protonates the carboxyls. Both go through the
     # same unified build; the mol2's correct bonds must not yield hydroxyl H on
     # the carboxylate oxygens.
@@ -449,9 +483,6 @@ def test_ligand_build_from_mol2_bond_orders(torch_device):
         prepare_ligands=True,
         param_db=ParameterDatabase.get_default(),
         return_context=True,
-        # a mol2 supplies the whole molecule; its residue code means nothing
-        # outside the file, so the component dictionary must not be consulted
-        use_ccd=False,
     )
     assert torch.isfinite(pose_on.coords[pose_on.real_atoms]).all()
 
@@ -602,3 +633,241 @@ def test_partly_absent_mainchain_triplets_are_still_missing():
     coords[0, 0, 0, 1] = torch.nan
     with pytest.raises(Atom37MappingError, match="pose=0 residue=A:1:N"):
         _validate_effective_mainchain_coords(coords, ((0, 0, "A:1:N"),))
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        ("metal_fixtures", "zn_tetrahedral_3ks3.cif.zst"),
+        ("atomworks_regressions", "plp_enzyme_7mkv.cif"),
+        ("atomworks_regressions", "isopeptide_2rm9.cif.zst"),
+        ("atomworks_regressions", "repeated_glycans_6mub.cif.zst"),
+    ],
+    ids=lambda p: p[1].split(".")[0],
+)
+def test_export_rebuilds_the_pose_exactly(path):
+    """An exported structure carries every bond its pose needs to be rebuilt."""
+    structure = atom_array_from_cif(data_path(*path))
+    structure = structure[structure.res_name != "HOH"]
+    device = torch.device("cpu")
+    pose_stack, context = pose_stack_from_biotite(
+        structure, device, prepare_ligands=True, no_optH=True, return_context=True
+    )
+    exported = biotite_from_pose_stack(pose_stack, context.canonical_ordering)
+    rebuilt = pose_stack_from_biotite(exported, device, context=context, no_optH=True)
+
+    torch.testing.assert_close(rebuilt.block_type_ind64, pose_stack.block_type_ind64)
+    torch.testing.assert_close(
+        rebuilt.inter_residue_connections64, pose_stack.inter_residue_connections64
+    )
+    torch.testing.assert_close(rebuilt.coords, pose_stack.coords, equal_nan=True)
+
+
+ANNOTATED_INPUTS = pytest.mark.parametrize(
+    "path",
+    [("cif", "1BL8.cif"), ("cif", "155c__1__1.A__1.B.cif")],
+    ids=["1bl8_ions", "155c_heme"],
+)
+
+
+def _residue_key(array, i):
+    return (array.chain_id[i], array.res_id[i], array.ins_code[i])
+
+
+@ANNOTATED_INPUTS
+def test_export_keeps_the_input_residue_annotations(path):
+    """Exported atoms carry their input residue's annotations through batching."""
+    structure = atom_array_from_cif(data_path(*path))
+    device = torch.device("cpu")
+    pose_stack, context = pose_stack_from_biotite(
+        structure, device, prepare_ligands=True, no_optH=True, return_context=True
+    )
+    batch = PoseStackBuilder.from_poses([pose_stack, pose_stack], device)
+    exported = biotite_from_pose_stack(batch, context.canonical_ordering)
+
+    expected = {
+        _residue_key(structure, i): tuple(
+            structure.get_annotation(name)[i] for name in RESIDUE_ANNOTATIONS
+        )
+        for i in range(structure.array_length())
+    }
+    for i in range(exported.array_length()):
+        assert expected[_residue_key(exported, i)] == tuple(
+            exported.get_annotation(name)[i] for name in RESIDUE_ANNOTATIONS
+        )
+    assert exported.is_polymer.any() and not exported.is_polymer.all()
+    assert (exported.hetero[~exported.is_polymer]).all()
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        ("metal_fixtures", "zn_tetrahedral_3ks3.cif.zst"),
+        ("cif", "155c__1__1.A__1.B.cif"),
+    ],
+    ids=["3ks3_zinc", "155c_heme"],
+)
+def test_an_excised_residue_leaves_the_others_their_residue_metadata(path):
+    """Residue annotations and metal origins shift left with their residues."""
+    structure = atom_array_from_cif(data_path(*path))
+    # without ligand preparation the bonded ACE cap can be neither built nor dropped
+    structure = structure[~numpy.isin(structure.res_name, ("HOH", "ACE"))]
+    device = torch.device("cpu")
+    co = canonical_ordering_for_biotite()
+    cf = canonical_form_from_biotite(structure, device, co=co)
+    labels = list(zip(cf.chain_labels[0], cf.res_labels[0]))
+    by_label = {
+        name: dict(zip(labels, getattr(cf, name)[0].tolist()))
+        for name in ("residue_annotations", "metal_origins")
+        if getattr(cf, name) is not None
+    }
+    cf.res_types[0, 5] = -1
+    cf.covalent_bonds = cf.covalent_bonds[(cf.covalent_bonds[:, [1, 3]] != 5).all(1)]
+    pbt = packed_block_types_for_biotite_with_metals(device)
+    info = pose_stack_from_canonical_form(co, pbt, *cf).pdb_info
+
+    n = len(labels) - 1
+    kept = list(zip(info.chain_labels[0, :n], info.residue_labels[0, :n]))
+    for name, expected in by_label.items():
+        assert getattr(info, name)[0, :n].tolist() == [expected[k] for k in kept]
+
+
+@ANNOTATED_INPUTS
+def test_export_without_is_polymer_takes_it_from_block_types(path):
+    """An input without is_polymer exports each atom's from its block type."""
+    structure = atom_array_from_cif(data_path(*path))
+
+    # a HETATM cap bonded into its chain, such as ACE, is a polymer block type
+    expected = {
+        _residue_key(structure, i): structure.is_polymer[i]
+        for i in range(structure.array_length())
+    }
+    structure.del_annotation("is_polymer")
+    structure.del_annotation("chain_type")
+    pose_stack, context = pose_stack_from_biotite(
+        structure,
+        torch.device("cpu"),
+        prepare_ligands=True,
+        no_optH=True,
+        return_context=True,
+    )
+    exported = biotite_from_pose_stack(pose_stack, context.canonical_ordering)
+
+    assert "chain_type" not in exported.get_annotation_categories()
+    for i in range(exported.array_length()):
+        assert exported.is_polymer[i] == expected[_residue_key(exported, i)]
+    assert exported.is_polymer.any() and not exported.is_polymer.all()
+
+
+def _residues(ids, chains, ins=None):
+    array = biotite.structure.AtomArray(len(ids))
+    array.res_id = numpy.array(ids)
+    array.chain_id = numpy.array(chains)
+    array.res_name = numpy.array(["ALA"] * len(ids))
+    array.atom_name = numpy.array(["CA"] * len(ids))
+    if ins is not None:
+        array.ins_code = numpy.array(ins)
+    return array
+
+
+def test_cif_export_keeps_numbering_it_can_carry():
+    array = _residues(
+        [-3, -2, 0, 5, 5, 6, 101], ["A"] * 7, ["", "", "", "", "A", "", ""]
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert _renumbered_for_cif(array) is array
+
+
+def test_cif_export_shifts_a_chain_numbered_through_minus_one():
+    array = _residues([-3, -1, 0, 1, 7], ["A", "A", "A", "A", "B"])
+    with pytest.warns(UserWarning, match="chain A .* residue id of -1"):
+        out = _renumbered_for_cif(array)
+    assert out.res_id.tolist() == [1, 3, 4, 5, 7]
+
+
+def test_cif_export_renumbers_a_chain_whose_numbering_decreases():
+    array = _residues([10, 11, 11, 5, 3], ["A"] * 5, ["", "", "B", "", ""])
+    with pytest.warns(UserWarning, match="chain A .* decreases"):
+        out = _renumbered_for_cif(array)
+    assert out.res_id.tolist() == [1, 2, 3, 4, 5]
+    assert out.ins_code.tolist() == [""] * 5
+
+
+def _heavy_atom_mask(pose_stack):
+    pbt = pose_stack.packed_block_types
+    element = {at.name: at.element for at in pbt.chem_db.atom_types}
+    mask = torch.zeros(pose_stack.coords.shape[:2], dtype=torch.bool)
+    for pose, block in zip(*torch.nonzero(pose_stack.block_type_ind64 >= 0).T.tolist()):
+        bt = pbt.active_block_types[pose_stack.block_type_ind64[pose, block]]
+        offset = int(pose_stack.block_coord_offset64[pose, block])
+        for i, atom in enumerate(bt.atoms):
+            mask[pose, offset + i] = element[atom.atom_type] not in ("H", "Vr")
+    return mask
+
+
+@pytest.mark.parametrize("route", ["memory", "cif"])
+@pytest.mark.parametrize(
+    "path",
+    [
+        ("atomworks_regressions", "isopeptide_2rm9.cif.zst"),
+        ("atomworks_regressions", "repeated_glycans_6mub.cif.zst"),
+        ("atomworks_regressions", "plp_enzyme_7mkv.cif"),
+        ("atomworks_regressions", "retinyl_lysine_4xxj.cif"),
+        ("metal_fixtures", "mg_rna_aptamer_7eoh.cif.zst"),
+        ("metal_fixtures", "fe_rubredoxin_30oh.cif.zst"),
+        ("metal_fixtures", "heme_myoglobin_5yce.cif.zst"),
+        ("metal_fixtures", "sf4_ferredoxin_2fdn.cif.zst"),
+        ("metal_fixtures", "sf4_ferredoxin_1fdn.cif.zst"),
+        ("covalent_fixtures", "lactam_cyclic_7ag5.cif.zst"),
+    ],
+    ids=lambda p: p[1].split(".")[0],
+)
+@pytest.mark.filterwarnings("ignore:Renumbering chain")
+def test_export_rebuilds_without_its_context(path, route, tmp_path):
+    """An exported structure alone carries the chemistry to rebuild its pose."""
+    structure = atom_array_from_cif(data_path(*path))
+    structure = structure[structure.res_name != "HOH"]
+    device = torch.device("cpu")
+    pose_stack, context = pose_stack_from_biotite(
+        structure, device, prepare_ligands=True, return_context=True
+    )
+    exported = biotite_from_pose_stack(pose_stack, context.canonical_ordering)
+    if route == "cif":
+        cif = CIFFile()
+        set_structure(cif, exported, include_bonds=True)
+        cif.write(str(tmp_path / "out.cif"))
+        exported = atom_array_from_cif(str(tmp_path / "out.cif"))
+    rebuilt = pose_stack_from_biotite(exported, device, prepare_ligands=True)
+
+    names = [bt.name for bt in pose_stack.packed_block_types.active_block_types]
+    rebuilt_names = [bt.name for bt in rebuilt.packed_block_types.active_block_types]
+    assert [
+        rebuilt_names[i] if i >= 0 else None for i in rebuilt.block_type_ind64[0]
+    ] == [names[i] if i >= 0 else None for i in pose_stack.block_type_ind64[0]]
+    torch.testing.assert_close(
+        rebuilt.inter_residue_connections64, pose_stack.inter_residue_connections64
+    )
+    heavy = _heavy_atom_mask(pose_stack)
+    torch.testing.assert_close(rebuilt.coords[heavy], pose_stack.coords[heavy])
+
+
+def test_nothing_buildable_is_refused_with_the_reason():
+    """A CA-only trace (1a1d) and an empty structure leave no residue to build."""
+    trace = atom_array_from_cif(data_path("sweep_regressions", "ca_trace_1a1d.cif.zst"))
+    with pytest.raises(ValueError, match="3 polymer residues lack mainchain atoms"):
+        pose_stack_from_biotite(trace, torch.device("cpu"))
+    with pytest.raises(ValueError, match="no recognized residues"):
+        pose_stack_from_biotite(trace[:0], torch.device("cpu"), prepare_ligands=True)
+
+
+def test_return_block_has_missing_atoms_is_honoured(biotite_1ubq, torch_device):
+    pose_stack, extra = pose_stack_from_biotite(
+        biotite_1ubq, torch_device, return_block_has_missing_atoms=True
+    )
+    assert list(extra) == ["block_has_missing_atoms"]
+    assert extra["block_has_missing_atoms"].shape == pose_stack.block_type_ind.shape
+    alone = pose_stack_from_biotite(
+        biotite_1ubq, torch_device, return_block_has_missing_atoms=False
+    )
+    assert isinstance(alone, type(pose_stack))

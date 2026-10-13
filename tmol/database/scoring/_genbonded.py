@@ -1,5 +1,5 @@
 import attr
-from tmol.database._yaml import safe_load
+from tmol.database._yaml import load_yaml
 
 from itertools import permutations
 from typing import Dict, FrozenSet, List, Optional, Tuple
@@ -162,8 +162,7 @@ class GenBondedDatabase:
 
     @classmethod
     def from_file(cls, path: str) -> "GenBondedDatabase":
-        with open(path, "r") as fh:
-            raw = safe_load(fh)
+        raw = load_yaml(path)
 
         # --- atom hierarchy -------------------------------------------
         atom_hierarchy: Dict[str, List[str]] = {}

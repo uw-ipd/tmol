@@ -34,7 +34,7 @@
 #include <type_traits>
 
 // The maximum number of inter-residue chemical bonds
-#define MAX_N_CONN 4
+#define MAX_N_CONN 12
 #define TILE_SIZE 32
 
 namespace tmol {
@@ -123,6 +123,14 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
         (donor_first ? inter_dat.r1 : inter_dat.r2).donH_tile_inds[don_ind]; \
     int acc_tile_ind =                                                       \
         (donor_first ? inter_dat.r2 : inter_dat.r1).acc_tile_inds[acc_ind];  \
+    auto const& don_dat = donor_first ? inter_dat.r1 : inter_dat.r2;         \
+    auto const& acc_dat = donor_first ? inter_dat.r2 : inter_dat.r1;         \
+    auto const Hxyz = coord_from_shared(don_dat.coords, don_tile_ind);       \
+    auto const Axyz = coord_from_shared(acc_dat.coords, acc_tile_ind);       \
+    Real const cutoff = inter_dat.pair_data.global_params.max_ha_dis;        \
+    if (!((Hxyz - Axyz).squaredNorm() < cutoff * cutoff)) {                  \
+      return {Real(0)};                                                      \
+    }                                                                        \
     int separation = interres_count_pair_separation<TILE_SIZE>(              \
         inter_dat,                                                           \
         (donor_first ? don_ind : acc_ind),                                   \
@@ -191,7 +199,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
     hbond_load_tile_invariant_interres_data<DeviceDispatch, Dev, nt>( \
         rot_coord_offset,                                             \
         pose_stack_inter_residue_connections,                         \
-        pose_stack_min_bond_separation,                               \
+        pose_stack_near_blocks,                                       \
         pose_stack_inter_block_bondsep,                               \
         block_type_n_interblock_bonds,                                \
         block_type_atoms_forming_chemical_bonds,                      \
@@ -441,20 +449,10 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     // are connected
     TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
 
-    // dims: n-poses x max-n-blocks x max-n-blocks
-    // Quick lookup: given the inds of two blocks, ask: what is the minimum
-    // number of chemical bonds that separate any pair of atoms in those
-    // blocks? If this minimum is greater than the crossover, then no further
-    // logic for deciding whether two atoms in those blocks should have their
-    // interaction energies calculated: all should. intentionally small to
-    // (possibly) fit in constant cache
-    TView<Int, 3, Dev>
-        pose_stack_min_bond_separation,  // ?? needed ?? I think so
-
-    // dims: n-poses x max-n-blocks x max-n-blocks x
-    // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, Dev>
-        pose_stack_inter_block_bondsep,  // ?? needed ?? I think so
+    // InterBlockBondsep: [pose, block1, slot, (block2, min separation)]
+    // and [pose, block1, slot, conn1, conn2]
+    TView<Int, 4, Dev> pose_stack_near_blocks,
+    TView<int8_t, 5, Dev> pose_stack_inter_block_bondsep,
 
     //////////////////////
     // Chemical properties
@@ -544,13 +542,14 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   assert(pose_stack_inter_residue_connections.size(0) == n_poses);
   assert(pose_stack_inter_residue_connections.size(1) == max_n_blocks);
 
-  assert(pose_stack_min_bond_separation.size(0) == n_poses);
-  assert(pose_stack_min_bond_separation.size(1) == max_n_blocks);
-  assert(pose_stack_min_bond_separation.size(2) == max_n_blocks);
+  assert(pose_stack_near_blocks.size(0) == n_poses);
+  assert(pose_stack_near_blocks.size(1) == max_n_blocks);
+  assert(pose_stack_near_blocks.size(3) == 2);
 
   assert(pose_stack_inter_block_bondsep.size(0) == n_poses);
   assert(pose_stack_inter_block_bondsep.size(1) == max_n_blocks);
-  assert(pose_stack_inter_block_bondsep.size(2) == max_n_blocks);
+  assert(
+      pose_stack_inter_block_bondsep.size(2) == pose_stack_near_blocks.size(2));
   assert(pose_stack_inter_block_bondsep.size(3) == max_n_interblock_bonds);
   assert(pose_stack_inter_block_bondsep.size(4) == max_n_interblock_bonds);
 
@@ -898,20 +897,10 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
     // are connected
     TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
 
-    // dims: n-poses x max-n-blocks x max-n-blocks
-    // Quick lookup: given the inds of two blocks, ask: what is the minimum
-    // number of chemical bonds that separate any pair of atoms in those
-    // blocks? If this minimum is greater than the crossover, then no further
-    // logic for deciding whether two atoms in those blocks should have their
-    // interaction energies calculated: all should. intentionally small to
-    // (possibly) fit in constant cache
-    TView<Int, 3, Dev>
-        pose_stack_min_bond_separation,  // ?? needed ?? I think so
-
-    // dims: n-poses x max-n-blocks x max-n-blocks x
-    // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, Dev>
-        pose_stack_inter_block_bondsep,  // ?? needed ?? I think so
+    // InterBlockBondsep: [pose, block1, slot, (block2, min separation)]
+    // and [pose, block1, slot, conn1, conn2]
+    TView<Int, 4, Dev> pose_stack_near_blocks,
+    TView<int8_t, 5, Dev> pose_stack_inter_block_bondsep,
 
     //////////////////////
     // Chemical properties
@@ -1085,8 +1074,8 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
 
     auto store_calculated_energies =
         ([=] TMOL_DEVICE_FUNC(
-             HBondScoringData<Dev, Real, Int> & score_dat,
-             shared_mem_union & shared) { ; });
+             HBondScoringData<Dev, Real, Int>& score_dat,
+             shared_mem_union& shared) { ; });
 
     auto load_tile_invariant_intrares_data =
         ([=] LOAD_TILE_INVARIANT_INTRARES_DATA);
@@ -1242,20 +1231,10 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     // are connected
     TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
 
-    // dims: n-poses x max-n-blocks x max-n-blocks
-    // Quick lookup: given the inds of two blocks, ask: what is the minimum
-    // number of chemical bonds that separate any pair of atoms in those
-    // blocks? If this minimum is greater than the crossover, then no further
-    // logic for deciding whether two atoms in those blocks should have their
-    // interaction energies calculated: all should. intentionally small to
-    // (possibly) fit in constant cache
-    TView<Int, 3, Dev>
-        pose_stack_min_bond_separation,  // ?? needed ?? I think so
-
-    // dims: n-poses x max-n-blocks x max-n-blocks x
-    // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, Dev>
-        pose_stack_inter_block_bondsep,  // ?? needed ?? I think so
+    // InterBlockBondsep: [pose, block1, slot, (block2, min separation)]
+    // and [pose, block1, slot, conn1, conn2]
+    TView<Int, 4, Dev> pose_stack_near_blocks,
+    TView<int8_t, 5, Dev> pose_stack_inter_block_bondsep,
 
     //////////////////////
     // Chemical properties
@@ -1344,13 +1323,14 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   assert(pose_stack_inter_residue_connections.size(0) == n_poses);
   assert(pose_stack_inter_residue_connections.size(1) == max_n_blocks);
 
-  assert(pose_stack_min_bond_separation.size(0) == n_poses);
-  assert(pose_stack_min_bond_separation.size(1) == max_n_blocks);
-  assert(pose_stack_min_bond_separation.size(2) == max_n_blocks);
+  assert(pose_stack_near_blocks.size(0) == n_poses);
+  assert(pose_stack_near_blocks.size(1) == max_n_blocks);
+  assert(pose_stack_near_blocks.size(3) == 2);
 
   assert(pose_stack_inter_block_bondsep.size(0) == n_poses);
   assert(pose_stack_inter_block_bondsep.size(1) == max_n_blocks);
-  assert(pose_stack_inter_block_bondsep.size(2) == max_n_blocks);
+  assert(
+      pose_stack_inter_block_bondsep.size(2) == pose_stack_near_blocks.size(2));
   assert(pose_stack_inter_block_bondsep.size(3) == max_n_interblock_bonds);
   assert(pose_stack_inter_block_bondsep.size(4) == max_n_interblock_bonds);
 
@@ -1599,20 +1579,10 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
     // are connected
     TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
 
-    // dims: n-poses x max-n-blocks x max-n-blocks
-    // Quick lookup: given the inds of two blocks, ask: what is the minimum
-    // number of chemical bonds that separate any pair of atoms in those
-    // blocks? If this minimum is greater than the crossover, then no further
-    // logic for deciding whether two atoms in those blocks should have their
-    // interaction energies calculated: all should. intentionally small to
-    // (possibly) fit in constant cache
-    TView<Int, 3, Dev>
-        pose_stack_min_bond_separation,  // ?? needed ?? I think so
-
-    // dims: n-poses x max-n-blocks x max-n-blocks x
-    // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, Dev>
-        pose_stack_inter_block_bondsep,  // ?? needed ?? I think so
+    // InterBlockBondsep: [pose, block1, slot, (block2, min separation)]
+    // and [pose, block1, slot, conn1, conn2]
+    TView<Int, 4, Dev> pose_stack_near_blocks,
+    TView<int8_t, 5, Dev> pose_stack_inter_block_bondsep,
 
     //////////////////////
     // Chemical properties
@@ -1763,8 +1733,8 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
 
     auto store_calculated_energies =
         ([=] TMOL_DEVICE_FUNC(
-             HBondScoringData<Dev, Real, Int> & score_dat,
-             shared_mem_union & shared) { ; });
+             HBondScoringData<Dev, Real, Int>& score_dat,
+             shared_mem_union& shared) { ; });
 
     auto load_tile_invariant_intrares_data =
         ([=] LOAD_TILE_INVARIANT_INTRARES_DATA);

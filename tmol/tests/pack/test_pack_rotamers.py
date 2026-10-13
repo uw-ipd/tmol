@@ -1,4 +1,5 @@
 import attrs
+import ctypes
 import pytest
 import torch
 import math
@@ -217,7 +218,7 @@ def get_packer_sfxn(default_database, torch_device):
     sfxn.set_weight(ScoreType.cart_impropers, 0.5)
     sfxn.set_weight(ScoreType.cart_hxltorsions, 0.5)
     sfxn.set_weight(ScoreType.omega, 0.48)
-    sfxn.set_weight(ScoreType.rama, 0.50)
+    sfxn.set_weight(ScoreType.rama, 1.0)
     sfxn.set_weight(ScoreType.ref, 1.0)
     sfxn.set_weight(ScoreType.disulfide, 1.0)
     sfxn.set_weight(ScoreType.constraint, 1.0)
@@ -352,6 +353,26 @@ def test_pack_rotamers_pose_chunks_preserve_pose_order_and_task(
     assert torch.equal(unchunked.block_type_ind, chunked.block_type_ind)
     assert unchunked.coords.shape == chunked.coords.shape
     assert torch.isfinite(chunked.coords).all()
+
+
+def test_seeded_packing_is_reproducible(
+    default_database, ubq_pdb, biotite_1ubq, dun_sampler, torch_device
+):
+    # Seeded packs agree whatever the C rand() state and the global torch state.
+    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=40)
+    pose_stack, task = setup_pose_stack_and_task([pose], torch_device, dun_sampler)
+    sfxn = get_packer_sfxn(default_database, torch_device)
+    packed = []
+    for c_seed in (1, 2):
+        ctypes.CDLL(None).srand(c_seed)
+        packed.append(pack_rotamers(pose_stack, sfxn, task, seed=11).coords)
+        pack_rotamers(pose_stack, sfxn, task)
+    torch.testing.assert_close(*packed, equal_nan=True)
+
+    state = torch.random.get_rng_state()
+    ubq = biotite_1ubq[~biotite_1ubq.hetero]
+    pose_stack_from_biotite(ubq, torch_device, no_optH=False, packer_seed=0)
+    assert torch.equal(torch.random.get_rng_state(), state)
 
 
 @pytest.mark.parametrize("n_blocks,expected", [(256, 25), (257, 10), (1025, 10)])
@@ -667,6 +688,54 @@ def test_weighted_fused_ljlk_elec_rotamer_scores_match_fallback(
     assert torch.count_nonzero(scorer.weights.grad[:4]) != 0
 
 
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_bonded_packing_topology_without_scores(
+    ubq_pdb, dun_sampler, torch_device, dtype
+):
+    short = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    long = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=7)
+    pose_stack, task = setup_pose_stack_and_task(
+        [short, long], torch_device, dun_sampler
+    )
+    pose_stack, rotamers = build_rotamers(
+        pose_stack,
+        SetPackerTask.from_packer_task(task),
+        pose_stack.packed_block_types.chem_db,
+    )
+    scorer = beta2016_score_function(torch_device).render_rotamer_scoring_module(
+        pose_stack, rotamers
+    )
+    tested = set()
+    for term in scorer.term_modules:
+        if term.classname not in {"CartBonded", "GenBonded", "BackboneTorsion"}:
+            continue
+        tested.add(term.classname)
+        coords = rotamers.coords.to(dtype).detach().requires_grad_(True)
+        expected_scores, expected_indices = term.forward(coords)
+        [(scores, indices)] = term.iter_packing_entries(coords, topology_only=False)
+        assert torch.equal(indices, expected_indices)
+        torch.testing.assert_close(scores, expected_scores)
+        expected_grad = torch.autograd.grad(expected_scores.sum(), coords)[0]
+        actual_grad = torch.autograd.grad(scores.sum(), coords)[0]
+        # CUDA atomics vary slightly even between calls to the same float32 op.
+        grad_tolerance = (
+            {"rtol": 1e-5, "atol": 1e-4}
+            if torch_device.type == "cuda" and dtype == torch.float32
+            else {}
+        )
+        torch.testing.assert_close(actual_grad, expected_grad, **grad_tolerance)
+
+        # Connectivity is coordinate-independent, even for tracked inputs.
+        invalid_coords = torch.full_like(coords, float("nan"), requires_grad=True)
+        [(empty, topology)] = term.iter_packing_entries(
+            invalid_coords, topology_only=True
+        )
+        assert empty.numel() == 0
+        assert not empty.requires_grad
+        assert torch.equal(topology, expected_indices)
+    assert tested == {"CartBonded", "GenBonded", "BackboneTorsion"}
+
+
 def test_packing_pages_shared_lk_ball_dispatch(
     default_database, ubq_pdb, dun_sampler, torch_device, monkeypatch
 ):
@@ -712,14 +781,18 @@ def test_packing_pages_shared_lk_ball_dispatch(
             )
             if term is lk_ball
         ]
+        monkeypatch.setattr(
+            lk_ball,
+            "forward",
+            lambda *_: pytest.fail("topology pass computed LK-ball energies"),
+        )
         topology_pages = [
-            (indices, values)
+            (term, indices, values)
             for term, indices, values in scorer._iter_weighted_sparse_entries(
                 rotamer_set.coords,
                 retain_shared_dispatch=False,
                 topology_only=True,
             )
-            if term is lk_ball
         ]
 
     assert len(pages) > 1
@@ -729,10 +802,14 @@ def test_packing_pages_shared_lk_ball_dispatch(
     torch.testing.assert_close(
         torch.cat([values for _, values in pages]), expected_values
     )
-    assert torch.equal(
-        torch.cat([indices for indices, _ in topology_pages], dim=1), full_indices
-    )
-    assert all(values.numel() == 0 for _, values in topology_pages)
+    assert all(term is not lk_ball for term, _, _ in topology_pages)
+    fused_indices = [
+        indices
+        for term, indices, _ in topology_pages
+        if term is scorer._fused_ljlk_elec
+    ]
+    assert torch.equal(torch.cat(fused_indices, dim=1), full_indices)
+    assert all(values.numel() == 0 for _, _, values in topology_pages)
 
 
 def test_fused_ljlk_elec_empty_table_gradient(monkeypatch):

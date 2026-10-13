@@ -15,9 +15,10 @@ from tmol.database import (
 from tmol.pose import PackedBlockTypes
 from tmol.chemical import ResidueTypeSet, l_base_name
 from tmol.utility import resolve_device
-from typing import List, Mapping, Optional, Tuple, Union
+from typing import FrozenSet, List, Mapping, Optional, Tuple, Union
 from ._canonical_form import CanonicalForm
 from ._pdb_parsing import parse_pdb
+from ._alternates import records_with_one_alternate
 import toolz.functoolz
 
 
@@ -210,6 +211,8 @@ class CanonicalOrdering:
 
     # input residue names read as another residue's, from the chemical database
     name3_aliases: Mapping[str, str] = attr.ib(factory=dict)
+    # atoms that are scoring scaffolding rather than structure, per class
+    restypes_virtual_atoms: Mapping[str, FrozenSet[str]] = attr.ib(factory=dict)
 
     @property
     def n_restype_io_equiv_classes(self):
@@ -360,6 +363,10 @@ class CanonicalOrdering:
             equiv: tuple(sorted(atoms)) for equiv, atoms in by_class.items()
         }
 
+        virtual_atoms = defaultdict(set)
+        for restype in chemdb.residues:
+            virtual_atoms[restype.io_equiv_class].update(restype.properties.virtual)
+
         return cls(
             max_n_canonical_atoms=max_n_canonical_atoms,
             restype_io_equiv_classes=ordered_restypes,
@@ -374,6 +381,11 @@ class CanonicalOrdering:
             termini_patch_added_atoms=termini_patch_added_atoms,
             termini_only_atoms=termini_only_atoms,
             termini_only_atoms_by_class=termini_only_atoms_by_class,
+            restypes_virtual_atoms={
+                equiv: frozenset(names)
+                for equiv, names in virtual_atoms.items()
+                if names
+            },
             name3_aliases={
                 alias.name3: alias.read_as
                 for alias in chemdb.name3_aliases
@@ -622,14 +634,31 @@ def default_packed_block_types(device: torch.device) -> PackedBlockTypes:
     return _memoized_packed_block_types(resolve_device(device))
 
 
+def _only_coordinates_a_metal(restype) -> bool:
+    """Whether this type is an ion or cluster: a non-polymer whose connections are all
+    non-kinematic (a capped cystine's disulfide is too, so polymers are kept)."""
+    if restype.properties.polymer.is_polymer:
+        return False
+    connections = restype.connections
+    return bool(connections) and not any(
+        connection.kinematic for connection in connections
+    )
+
+
 @toolz.functoolz.memoize
 def _memoized_packed_block_types(device: torch.device) -> PackedBlockTypes:
     restype_set = ResidueTypeSet.get_default()
 
+    # a cluster's twelve connections would widen every pose packed with it; ions and
+    #    clusters join the packed set only when a structure has a metal
+    active = [
+        rt for rt in restype_set.residue_types if not _only_coordinates_a_metal(rt)
+    ]
+
     return PackedBlockTypes.from_restype_list(
         chem_db=restype_set.chem_db,
         restype_set=restype_set,
-        active_block_types=restype_set.residue_types,
+        active_block_types=active,
         device=device,
     )
 
@@ -652,7 +681,7 @@ def canonical_form_from_pdb(
     a string representing a file
 
     """
-    atom_records = parse_pdb(pdb_lines_or_fname)
+    atom_records = records_with_one_alternate(parse_pdb(pdb_lines_or_fname))
     if residue_start is not None or residue_end is not None:
         atom_records = select_atom_records_res_subset(
             atom_records, residue_start, residue_end
@@ -702,67 +731,49 @@ def canonical_form_from_atom_records(  # noqa: C901
     device = resolve_device(device)
     max_n_canonical_atoms = canonical_ordering.max_n_canonical_atoms
 
-    uniq_res_ind = {}
-    uniq_res_list = []
-    count_uniq = -1
+    models = {key: i for i, key in enumerate(atom_records.modeli.unique())}
+    residues = [{} for _ in models]
+    chains = [{} for _ in models]
     for row in atom_records.itertuples(index=False):
-        resid = (row.chain, row.resi, row.insert)
-        if resid not in uniq_res_ind:
-            count_uniq += 1
-            uniq_res_ind[resid] = count_uniq
-            uniq_res_list.append(resid)
-    n_res = len(uniq_res_list)
+        model = models[row.modeli]
+        key = (row.chain, row.resi, row.insert)
+        residues[model].setdefault(key, len(residues[model]))
+        chains[model].setdefault(row.chaini, len(chains[model]))
+    n_models = len(models)
+    n_res = max(map(len, residues), default=0)
+    shape = (n_models, n_res)
+    atom_shape = (*shape, max_n_canonical_atoms)
+    chain_id = numpy.full(shape, -1, dtype=numpy.int32)
+    res_types = numpy.full(shape, -1, dtype=numpy.int32)
+    coords = numpy.full((*atom_shape, 3), numpy.nan, dtype=numpy.float32)
+    res_labels = numpy.zeros(shape, dtype=int)
+    res_ins_codes = numpy.full(shape, "", dtype=object)
+    chain_labels = numpy.full(shape, "", dtype=object)
+    atom_occupancy = numpy.ones(atom_shape, dtype=numpy.float32)
+    atom_b_factor = numpy.zeros(atom_shape, dtype=numpy.float32)
+    types = {
+        name: i for i, name in enumerate(canonical_ordering.restype_io_equiv_classes)
+    }
 
-    chain_id = numpy.zeros((1, n_res), dtype=numpy.int32)
-    res_types = numpy.full((1, n_res), -2, dtype=numpy.int32)
-    coords = numpy.full(
-        (1, n_res, max_n_canonical_atoms, 3), numpy.nan, dtype=numpy.float32
-    )
-    res_labels = numpy.zeros((1, n_res), dtype=int)
-    res_ins_codes = numpy.empty((1, n_res), dtype=object)
-    chain_labels = numpy.empty((1, n_res), dtype=object)
-    atom_occupancy = numpy.ones((1, n_res, max_n_canonical_atoms), dtype=numpy.float32)
-    atom_b_factor = numpy.zeros((1, n_res, max_n_canonical_atoms), dtype=numpy.float32)
-
-    chains_seen = {}
-    chain_id_to_label = {}
-    chain_id_counter = 0  # TO DO: determine if this is wholly redundant w/ "chaini"
     for row in atom_records.itertuples(index=False):
-        resid = (row.chain, row.resi, row.insert)
-        res_ind = uniq_res_ind[resid]
-        resn = canonical_ordering.resolve_name3(row.resn)
-        if row.chaini not in chains_seen:
-            chains_seen[row.chaini] = chain_id_counter
-            chain_id_to_label[chain_id_counter] = row.chain
-            chain_id_counter += 1
-        chain_id[0, res_ind] = chains_seen[row.chaini]
-        if res_types[0, res_ind] == -2:
-            try:
-                aa_ind = canonical_ordering.restype_io_equiv_classes.index(resn)
-                res_types[0, res_ind] = aa_ind
-                chain_labels[0, res_ind] = chain_id_to_label[chain_id[0, res_ind]]
-                res_labels[0, res_ind] = uniq_res_list[res_ind][1]
-                res_ins_codes[0, res_ind] = uniq_res_list[res_ind][2]
-            except KeyError:
-                res_types[0, res_ind] = -1
-                chain_labels[0, res_ind] = ""
-                res_labels[0, res_ind] = ""
-                res_ins_codes[0, res_ind] = ""
-        if res_types[0, res_ind] >= 0:
-            res_at_mapping = canonical_ordering.restypes_atom_index_mapping[resn]
-
-            atname = row.atomn.strip()
-            try:
-                atind = res_at_mapping[atname]
-                coords[0, res_ind, atind, 0] = row.x
-                coords[0, res_ind, atind, 1] = row.y
-                coords[0, res_ind, atind, 2] = row.z
-                atom_occupancy[0, res_ind, atind] = row.occupancy
-                atom_b_factor[0, res_ind, atind] = row.b
-            except KeyError:
-                # ignore atoms that are not in the canonical form
-                # TO DO: warn the user that some atoms are not being processed?
-                pass
+        model = models[row.modeli]
+        res = residues[model][row.chain, row.resi, row.insert]
+        pos = (model, res)
+        name = canonical_ordering.resolve_name3(row.resn)
+        res_types[pos] = types.get(name, -1)
+        chain_id[pos] = chains[model][row.chaini]
+        chain_labels[pos] = row.chain
+        res_labels[pos] = row.resi
+        res_ins_codes[pos] = row.insert
+        if res_types[pos] < 0:
+            continue
+        index = canonical_ordering.restypes_atom_index_mapping[name].get(
+            row.atomn.strip()
+        )
+        if index is not None:
+            coords[model, res, index] = (row.x, row.y, row.z)
+            atom_occupancy[model, res, index] = row.occupancy
+            atom_b_factor[model, res, index] = row.b
 
     def _ti32(x):
         return torch.tensor(x, dtype=torch.int32, device=device)
@@ -771,7 +782,7 @@ def canonical_form_from_atom_records(  # noqa: C901
         return torch.tensor(x, dtype=torch.float32, device=device)
 
     if res_not_connected is not None:
-        assert res_not_connected.shape == (1, n_res, 2)
+        assert res_not_connected.shape == (n_models, n_res, 2)
 
     return CanonicalForm(
         chain_id=_ti32(chain_id),

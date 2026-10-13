@@ -13,13 +13,15 @@ weights:
   lk_bridge: -0.33
   lk_bridge_uncpl: -0.33
   omega: 0.48
-  rama: 0.50
+  # rama tables already include the 0.5 rama_prepro and 0.61 p_aa_pp weights
+  rama: 1.0
   disulfide: 1.25
+  metal_coordination: 1.0
   cart_lengths: 0.5
   cart_angles: 0.5
   cart_torsions: 0.5
   cart_impropers: 0.5
-  cart_hxltorsions: 0.5
+  cart_hxltorsions: 1.0
   dunbrack_rot: 0.76
   dunbrack_rotdev: 0.69
   dunbrack_semirot: 0.78

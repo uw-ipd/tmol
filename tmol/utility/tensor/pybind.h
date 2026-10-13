@@ -1,3 +1,4 @@
+#include <tmol/utility/tensor/native_pybind.hh>
 #pragma once
 
 #include <pybind11/numpy.h>
@@ -5,8 +6,6 @@
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-
-#include <torch/csrc/utils/pybind.h>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorCollection.h>
@@ -75,7 +74,7 @@ struct type_caster<tmol::TView<T, N, D, P>> {
 
     using pybind11::print;
 
-    type_caster<at::Tensor> conv;
+    type_caster<tmol::native::Tensor> conv;
 
     if (!conv.load(src, convert)) {
 #ifdef DEBUG
@@ -87,7 +86,7 @@ struct type_caster<tmol::TView<T, N, D, P>> {
     try {
       value = tmol::view_tensor<T, N, D, P>(conv);
       return true;
-    } catch (at::Error err) {
+    } catch (tmol::native::Error err) {
 #ifdef DEBUG
 
       print(
@@ -97,7 +96,7 @@ struct type_caster<tmol::TView<T, N, D, P>> {
           "\nvalue:\n",
           src,
           "\nerror:\n",
-          err.what_without_backtrace());
+          err.what());
 #endif
       return false;
     }
@@ -117,7 +116,7 @@ struct type_caster<tmol::TPack<T, N, D, P>> {
 
     using pybind11::print;
 
-    type_caster<at::Tensor> conv;
+    type_caster<tmol::native::Tensor> conv;
 
     if (!conv.load(src, convert)) {
 #ifdef DEBUG
@@ -129,7 +128,7 @@ struct type_caster<tmol::TPack<T, N, D, P>> {
     try {
       value = tmol::TPack<T, N, D, P>(conv);
       return true;
-    } catch (at::Error err) {
+    } catch (tmol::native::Error err) {
 #ifdef DEBUG
       print("err.what()");
       print(err.what());
@@ -146,7 +145,7 @@ struct type_caster<tmol::TPack<T, N, D, P>> {
   static handle cast(PackType src, return_value_policy policy, handle parent) {
     nvtx_range_function();
 
-    return type_caster<at::Tensor>::cast(src.tensor, policy, parent);
+    return type_caster<tmol::native::Tensor>::cast(src.tensor, policy, parent);
   }
 
   // C++ -> Python cast operation not supported.
@@ -159,7 +158,7 @@ struct type_caster<tmol::TCollection<T, N, D, P>> {
   PYBIND11_TYPE_CASTER(ViewCollType, handle_type_name<ViewCollType>::name);
 
   bool load(handle src, bool convert) {
-    type_caster<std::vector<at::Tensor>> conv;
+    type_caster<std::vector<tmol::native::Tensor>> conv;
 
     if (conv.load(src, convert)) {
       value = tmol::TCollection<T, N, D, P>(conv);

@@ -29,7 +29,6 @@ from tmol.pack.rotamer import (
 from tmol.optimization import (
     CartesianMinimizer,
     run_cart_min,
-    run_kin_min,
 )
 from tmol.types import Tensor
 from tmol.utility._device import synchronize_device
@@ -119,25 +118,6 @@ def _normalize_schedule(
                 f" 'fa_rep_pack_frac', 'fa_rep_min_frac', and optionally 'cst_frac', got {type(entry)}"
             )
     return normalized
-
-
-def _default_kin_min_fn(
-    pose_stack: PoseStack,
-    sfxn: ScoreFunction,
-    *,
-    fold_forest: FoldForest,
-    move_map: MoveMap | CartesianMoveMap,
-    verbose: bool,
-) -> PoseStack:
-    """Default minimization function: kinematic (torsion-space) LBFGS."""
-    return run_kin_min(
-        pose_stack,
-        sfxn,
-        fold_forest,
-        move_map,
-        verbose=verbose,
-        optimizer_kwargs={"verbose": verbose},
-    )
 
 
 def _default_cart_min_fn(
@@ -476,10 +456,16 @@ def accept_best(
 
     def select_better(tensor_name: str) -> torch.Tensor:
         tensor = getattr(best_pose_stack, tensor_name)
+        candidate = getattr(candidate_pose_stack, tensor_name)
+        if tensor_name == "coords":
+            # A packed block type can change a pose's atom count.
+            width = max(tensor.shape[1], candidate.shape[1])
+            tensor = torch.nn.functional.pad(tensor, (0, 0, 0, width - tensor.shape[1]))
+            candidate = torch.nn.functional.pad(
+                candidate, (0, 0, 0, width - candidate.shape[1])
+            )
         new_tensor = tensor.detach().clone()
-        new_tensor[better_mask] = getattr(candidate_pose_stack, tensor_name)[
-            better_mask
-        ]
+        new_tensor[better_mask] = candidate[better_mask]
         return new_tensor
 
     if better_mask.any():

@@ -1,7 +1,4 @@
-#include <c10/core/DeviceType.h>
-#include <ATen/Context.h>
-#include <ATen/cuda/CUDAGeneratorImpl.h>
-#include <ATen/cuda/PhiloxUtils.cuh>
+#include <tmol/utility/tensor/native.hh>
 
 #include <tmol/score/common/device_operations.cuda.impl.cuh>
 #include <tmol/utility/tensor/TensorAccessor.h>
@@ -61,6 +58,7 @@ struct InteractionGraph {
   TView<int64_t, 1, D> neighbor_row_offsets_;
   TView<int32_t, 1, D> neighbor_blocks_;
   TView<int64_t, 1, D> neighbor_chunk_offset_offsets_;
+  TView<int64_t, 1, D> reverse_neighbor_chunk_offset_offsets_;
   TView<int64_t, 1, D> chunk_offsets_;
   TView<Real, 1, D> energy1b_;
   TView<Real, 1, D> energy2b_;
@@ -404,9 +402,8 @@ MGPU_DEVICE float warp_wide_sim_annealing(
         int const k_chunk = local_k_rot / chunk_size;
         int const k_in_chunk = local_k_rot - k_chunk * chunk_size;
 
-        int64_t const reverse_edge = ig.find_neighbor_edge(pose, k, ran_res);
         int64_t const k_offset_offset =
-            ig.neighbor_chunk_offset_offsets_[reverse_edge];
+            ig.reverse_neighbor_chunk_offset_offsets_[edge];
 
         int64_t const k_new_chunk_offset =
             ig.chunk_offsets_
@@ -519,8 +516,7 @@ MGPU_DEVICE float warp_wide_sim_annealing(
 
 template <tmol::Device D, class IG, int ChunkSize>
 struct Annealer {
-  static auto run_simulated_annealing(
-      ContextManager& mgr, IG ig, at::CUDAGeneratorImpl* gen)
+  static auto run_simulated_annealing(ContextManager& mgr, IG ig)
       -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D>> {
     int const n_poses = ig.n_poses_cpu();
     int const max_n_res = ig.max_n_res_cpu();
@@ -563,8 +559,6 @@ struct Annealer {
         TPack<int, 3, D>::zeros({n_poses, n_hitemp_simA_traj, max_n_res});
     auto best_rotamer_assignments_hitemp_t =
         TPack<int, 3, D>::zeros({n_poses, n_hitemp_simA_traj, max_n_res});
-    auto current_rotamer_assignments_hitemp_quenchlite_t =
-        TPack<int, 3, D>::zeros({n_poses, n_hitemp_simA_traj, max_n_res});
     auto sorted_hitemp_traj_t =
         TPack<int, 2, D>::zeros({n_poses, n_hitemp_simA_traj});
     auto segment_heads_hitemp_t = TPack<int, 1, D>::zeros({n_poses});
@@ -587,23 +581,30 @@ struct Annealer {
     auto sorted_fullquench_traj_t =
         TPack<int, 2, D>::zeros({n_poses, n_fullquench_traj});
 
-    auto scores_final_t =
-        TPack<float, 2, D>::zeros({n_poses, n_fullquench_traj});
     auto rotamer_assignments_final_t =
         TPack<int, 3, D>::zeros({n_poses, n_fullquench_traj, max_n_res});
 
-    auto quench_lite_order_t =
-        TPack<int, 3, D>::zeros({n_poses, max_traj, max_quench_lite_rots});
-    auto fullquench_order_t =
-        TPack<int, 3, D>::zeros({n_poses, n_fullquench_traj, max_n_rotamers});
+    // Both quench-lite phases finish before full quenching starts on the same
+    // stream. Their order tables can share storage: each trajectory initializes
+    // its complete permutation before reading it, including after reuse.
+    int64_t const quench_lite_entries =
+        int64_t(n_poses) * max_traj * max_quench_lite_rots;
+    int64_t const fullquench_entries =
+        int64_t(n_poses) * n_fullquench_traj * max_n_rotamers;
+    auto quench_order_t = TPack<int, 1, D>::empty(
+        {std::max(quench_lite_entries, fullquench_entries)});
+    auto quench_lite_order_t = TPack<int, 3, D>(
+        quench_order_t.tensor.narrow(0, 0, quench_lite_entries)
+            .reshape({n_poses, max_traj, max_quench_lite_rots}));
+    auto fullquench_order_t = TPack<int, 3, D>(
+        quench_order_t.tensor.narrow(0, 0, fullquench_entries)
+            .reshape({n_poses, n_fullquench_traj, max_n_rotamers}));
 
     auto scores_hitemp = scores_hitemp_t.view;
     auto current_rotamer_assignments_hitemp =
         current_rotamer_assignments_hitemp_t.view;
     auto best_rotamer_assignments_hitemp =
         best_rotamer_assignments_hitemp_t.view;
-    auto current_rotamer_assignments_hitemp_quenchlite =
-        current_rotamer_assignments_hitemp_quenchlite_t.view;
     auto sorted_hitemp_traj = sorted_hitemp_traj_t.view;
     auto segment_heads_hitemp = segment_heads_hitemp_t.view;
     auto segment_heads_lotemp = segment_heads_lotemp_t.view;
@@ -621,67 +622,23 @@ struct Annealer {
         current_rotamer_assignments_fullquench_t.view;
     auto sorted_fullquench_traj = sorted_fullquench_traj_t.view;
 
-    auto scores_final = scores_final_t.view;
     auto rotamer_assignments_final = rotamer_assignments_final_t.view;
 
     auto quench_lite_order = quench_lite_order_t.view;
     auto fullquench_order = fullquench_order_t.view;
 
-    // Increment the seed (and capture the current seed) for the
-    // cuda generator. The number of calls to curand per thread
-    // must be known. Most curand calls are handled by thread 0,
-    // so that's the one we'll count.
-    //
-    // We will overestimate the number of curand calls because
-    // each pose might have a different number of rotamers and will
-    // thus have a different number of curand calls.
-    //
-    // 1: initial random rotamer assignment:
-    // (nres-1)/32 + 1 curand calls per thread
-    //
-    // Warp wide simulated annealing:
-    //
-    // 2: the outeriterations * inner-iterations
-    // -- random rotamer picking
-    // -- MC accept-reject calls:
-    // n_poses * n_traj * n_outer * n_inner * 4, all performed by
-    // thread 0
-    //
-    // 3: quench ordering during last stage:
-    // 4 calls to curand per n-quench-iterations + possibly one
-    // extra call to curand per max_n_rotamers if full-quench
-    // or + possibly one extra call to curand per max_n_rotamers / 31
-    // if quench-lite, all performed by thread 0..
-
-    // Curand budget per thread-0 of each warp.
-    int const hitemp_cnt =
-        (max_n_res - 1) / 32 + 1 +  // initial random rotamer assignment
-        n_outer_iterations_hitemp * n_inner_iterations_hitemp * 4
-        + (max_n_rotamers * 4 + max_n_rotamers / 31);  // hitemp quench-lite
-
-    int const lotemp_cnt =
-        n_outer_iterations_lotemp * n_inner_iterations_lotemp * 4
-        + (max_n_rotamers * 4 + max_n_rotamers / 31);  // lotemp quench-lite
-
-    int const fullquench_cnt =
-        max_n_rotamers * 5;  // random permutation + 4 curands per iteration
-
-    at::PhiloxCudaState hitemp_philox_state;
-    at::PhiloxCudaState lotemp_philox_state;
-    at::PhiloxCudaState quench_philox_state;
-    {
-      std::lock_guard<std::mutex> lock(gen->mutex_);
-      hitemp_philox_state = gen->philox_cuda_state(hitemp_cnt);
-      lotemp_philox_state = gen->philox_cuda_state(lotemp_cnt);
-      quench_philox_state = gen->philox_cuda_state(fullquench_cnt);
-    }
+    // One device-resident seed per annealing phase. Torch owns RNG locking,
+    // state advancement and graph replay; kernels consume ordinary pointers.
+    auto phase_seeds =
+        native::random_seed_tensor({3}, native::Device(native::kCUDA));
+    auto seeds = reinterpret_cast<uint64_t const*>(phase_seeds.data_ptr());
 
     // Phase 1: run full SA, then score via quench-lite.
     auto hitemp_simulated_annealing = [=] MGPU_DEVICE(
                                           int thread_id, auto cache_tag) {
-      auto seeds = at::cuda::philox::unpack(hitemp_philox_state);
+      auto seed = seeds[0];
       curandStatePhilox4_32_10_t state;
-      curand_init(std::get<0>(seeds), thread_id, std::get<1>(seeds), &state);
+      curand_init(seed, thread_id, 0, &state);
 
       cooperative_groups::thread_block_tile<32> g =
           cooperative_groups::tiled_partition<32>(
@@ -740,12 +697,11 @@ struct Annealer {
           false,
           false);
 
-      // Copy best state into current and quench-lite buffer.
+      // Preserve the unquenched best state for the next phase; ranking can
+      // quench the best buffer in place because it is no longer needed.
       for (int i = g.thread_rank(); i < n_res; i += 32) {
         int i_assignment = best_rotamer_assignments_hitemp[pose][traj_id][i];
         current_rotamer_assignments_hitemp[pose][traj_id][i] = i_assignment;
-        current_rotamer_assignments_hitemp_quenchlite[pose][traj_id][i] =
-            i_assignment;
       }
 
       // Quench-lite to produce a score for ranking
@@ -755,7 +711,7 @@ struct Annealer {
               &state,
               g,
               ig,
-              current_rotamer_assignments_hitemp_quenchlite[pose][traj_id],
+              best_rotamer_assignments_hitemp[pose][traj_id],
               best_rotamer_assignments_hitemp[pose][traj_id],
               quench_lite_order[pose][traj_id],
               high_temp_initial,
@@ -778,8 +734,8 @@ struct Annealer {
               cooperative_groups::this_thread_block());
       curandStatePhilox4_32_10_t state;
       if (g.thread_rank() == 0) {
-        auto seeds = at::cuda::philox::unpack(lotemp_philox_state);
-        curand_init(std::get<0>(seeds), thread_id, std::get<1>(seeds), &state);
+        auto seed = seeds[1];
+        curand_init(seed, thread_id, 0, &state);
       }
 
       int const cta_id = thread_id / 32;
@@ -862,8 +818,8 @@ struct Annealer {
               cooperative_groups::this_thread_block());
       curandStatePhilox4_32_10_t state;
       if (g.thread_rank() == 0) {
-        auto seeds = at::cuda::philox::unpack(quench_philox_state);
-        curand_init(std::get<0>(seeds), thread_id, std::get<1>(seeds), &state);
+        auto seed = seeds[2];
+        curand_init(seed, thread_id, 0, &state);
       }
       int const cta_id = thread_id / 32;
       int const pose = cta_id / n_fullquench_traj;
@@ -919,9 +875,6 @@ struct Annealer {
       int const traj_id = cta_id % n_fullquench_traj;
       int const source_traj = sorted_fullquench_traj[pose][traj_id];
       int const n_res = ig.n_res(pose);
-      if (g.thread_rank() == 0) {
-        scores_final[pose][traj_id] = scores_fullquench[pose][traj_id];
-      }
       for (int i = g.thread_rank(); i < n_res; i += 32) {
         rotamer_assignments_final[pose][traj_id][i] =
             current_rotamer_assignments_fullquench[pose][source_traj][i];
@@ -1008,7 +961,7 @@ struct Annealer {
     mgpu::transform<annealer_cta_threads, 1>(
         final_reindexing, n_fullquench_threads, *context);
 
-    return {scores_final_t, rotamer_assignments_final_t};
+    return {scores_fullquench_t, rotamer_assignments_final_t};
   }
 };
 
@@ -1033,6 +986,7 @@ auto AnnealerDispatch<D>::forward(
   int const n_poses_cpu = pose_n_res.size(0);
   int const max_n_res_cpu = n_rotamers_for_res.size(1);
 
+  auto reverse_offsets = TPack<int64_t, 1, D>::empty({neighbor_blocks.size(0)});
   InteractionGraph<D, int, float> ig(
       {max_n_rotamers_per_pose,
        pose_n_res,
@@ -1045,26 +999,44 @@ auto AnnealerDispatch<D>::forward(
        neighbor_row_offsets,
        neighbor_blocks,
        neighbor_chunk_offset_offsets,
+       reverse_offsets.view,
        chunk_offsets,
        energy1b,
        energy2b});
 
-  auto gen = at::get_generator_or_default<at::CUDAGeneratorImpl>(
-      std::nullopt, at::cuda::detail::getDefaultCUDAGenerator());
+  // The graph is fixed throughout annealing. Resolve transposed chunk-table
+  // offsets once per edge instead of binary-searching each neighbor row for
+  // every proposal in every trajectory. Scratch scales with edges, not pairs.
+  auto cache_reverse_offsets = [=] MGPU_DEVICE(int row) {
+    int const pose = row / max_n_res_cpu;
+    int const block = row % max_n_res_cpu;
+    for (int64_t edge = neighbor_row_offsets[row];
+         edge < neighbor_row_offsets[row + 1];
+         ++edge) {
+      int64_t const reverse =
+          ig.find_neighbor_edge(pose, neighbor_blocks[edge], block);
+      ig.reverse_neighbor_chunk_offset_offsets_[edge] =
+          neighbor_chunk_offset_offsets[reverse];
+    }
+  };
+  mgpu::transform<128, 1>(
+      cache_reverse_offsets,
+      n_poses_cpu * max_n_res_cpu,
+      *current_context(mgr));
 
   std::tuple<TPack<float, 2, D>, TPack<int, 3, D>> result;
   switch (chunk_size) {
     case 16:
       result = Annealer<D, InteractionGraph<D, int, float>, 16>::
-          run_simulated_annealing(mgr, ig, gen);
+          run_simulated_annealing(mgr, ig);
       break;
     case 32:
       result = Annealer<D, InteractionGraph<D, int, float>, 32>::
-          run_simulated_annealing(mgr, ig, gen);
+          run_simulated_annealing(mgr, ig);
       break;
     default:
       result = Annealer<D, InteractionGraph<D, int, float>, 0>::
-          run_simulated_annealing(mgr, ig, gen);
+          run_simulated_annealing(mgr, ig);
   }
 
   return result;

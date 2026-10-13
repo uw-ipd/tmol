@@ -71,12 +71,6 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       n_sparse_entries, "interaction-graph construction");
   int const n_pose_block_cells = score::common::checked_dispatch_product(
       n_poses, max_n_blocks, "interaction-graph block dispatch");
-  int const n_block_pair_cells = score::common::checked_dispatch_product(
-      max_n_blocks,
-      max_n_blocks,
-      "interaction-graph block-pair dispatch per pose");
-  int const n_pose_block_pair_cells = score::common::checked_dispatch_product(
-      n_poses, n_block_pair_cells, "interaction-graph block-pair dispatch");
 
   assert(rot_offset_for_pose.size(0) == n_poses);
   assert(n_rots_for_block.size(0) == n_poses);
@@ -108,6 +102,14 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   // Only bump checking consumes the preliminary energy tables.
   // Fixed-block selection below depends solely on the retained rotamer mask.
   if (bump_check) {
+    // The bump check builds dense block-pair tables; only it needs their
+    // square dispatch. The no-bump path below is sparse in block pairs.
+    int const n_block_pair_cells = score::common::checked_dispatch_product(
+        max_n_blocks,
+        max_n_blocks,
+        "interaction-graph block-pair dispatch per pose");
+    int const n_pose_block_pair_cells = score::common::checked_dispatch_product(
+        n_poses, n_block_pair_cells, "interaction-graph block-pair dispatch");
     auto energy1b_tp = TPack<Real, 1, D>::zeros({n_rotamers});
     auto energy1b = energy1b_tp.view;
     auto n_chunks_for_block_tp =
@@ -637,6 +639,9 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   auto molten_block_offset_for_pose_tp = TPack<Int, 1, D>::zeros({n_poses});
   auto molten_block_offset_for_pose = molten_block_offset_for_pose_tp.view;
   auto record_molten_block_offset_per_pose = ([=] TMOL_DEVICE_FUNC(int index) {
+    if (max_n_blocks == 0) {
+      return;
+    }
     int const pose = index;
     int last_block_kept = keep_block[pose][max_n_blocks - 1];
     int last_offset_for_pose =
@@ -688,8 +693,12 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   auto fill_bc_rot_offsets_per_pose = ([=] TMOL_DEVICE_FUNC(int index) {
     int const pose = index;
     int orig_first_rotamer_for_pose = rot_offset_for_pose[pose];
+    // Trailing empty poses start one past the original rotamer array.
+    // Their compacted offset is the total number of retained rotamers.
     int new_first_rotamer_for_pose =
-        old_to_new_rotamer_index[orig_first_rotamer_for_pose];
+        orig_first_rotamer_for_pose < n_rotamers
+            ? old_to_new_rotamer_index[orig_first_rotamer_for_pose]
+            : n_kept_rotamers;
     // This will be the right offset whether or not the first rotamer
     // in this pose has been bump-checked away
     bc_rot_offset_for_pose[pose] = new_first_rotamer_for_pose;

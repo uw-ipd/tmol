@@ -55,13 +55,22 @@ jobs:
 
       - name: build CPU-only package
         env:
-          ATOMWORKS_DEPLOY_KEY: ${{ secrets.ATOMWORKS_DEPLOY_KEY }}
           MAX_JOBS: 4
           TMOL_INSTALL_EXTRAS: dev,docs
-        run: .github/ci/with_atomworks_access.sh .github/ci/build_cpu_package.sh
+        run: .github/ci/build_cpu_package.sh
 
       - name: execute tutorials and build docs
         run: .github/ci/run_docs_cpu_work.sh
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Check interactive documentation
+        run: |
+          npm install --prefix "$RUNNER_TEMP/tmol-docs-browser" --no-audit --no-fund playwright@1.62.1
+          "$RUNNER_TEMP/tmol-docs-browser/node_modules/.bin/playwright" install --with-deps chromium
+          NODE_PATH="$RUNNER_TEMP/tmol-docs-browser/node_modules" node .github/scripts/check_docs_explorers.cjs docs/_build/html
 
       - name: Upload rendered docs
         uses: actions/upload-artifact@v4

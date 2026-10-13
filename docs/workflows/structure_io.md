@@ -1,17 +1,6 @@
 # Structure I/O and visualization
 
-**Prerequisites:** {doc}`Installation </installation>` and a basic understanding
-of {doc}`PoseStack terminology </terminology>`.
-
-**Deep tutorial:** {doc}`Tutorial 01 — Working with TMol
-</tutorial/01_working_with_tmol>`.
-
-**API:** {doc}`I/O </api/io>`, {doc}`pose objects </api/pose>`, and
-{doc}`ligand preparation </api/ligand>`.
-
-**Related workflows:** {doc}`integrations </user_guide/integrations>`,
-{doc}`GPU batching <gpu_batching>`, and {doc}`ligands
-</user_guide/ligands>`.
+Read a structure, build a `PoseStack`, and export its coordinates.
 
 ## Choose an input path
 
@@ -43,14 +32,12 @@ pose_stack, context = pose_stack_from_biotite(
 )
 ```
 
-The returned context records the parameter database, canonical ordering, and
-packed block types selected during preparation. Reuse it for compatible
-structures to keep chemical interpretation stable and avoid rebuilding setup
-data.
+The context contains the parameter database, canonical ordering, and packed
+block types. Reuse it for structures with compatible chemistry.
 
 Set `prepare_ligands=False` when all required nonstandard chemistry has already
 been registered. See {doc}`Terminology and modeling choices </terminology>` for
-the deposited-versus-built atom distinction and the `no_optH` decision.
+how preparation changes atoms and how `no_optH` controls hydrogen optimization.
 
 ## Inspect deposited and built structures
 
@@ -72,9 +59,8 @@ selection_gallery(
 )
 ```
 
-The interactive gallery is intended for notebook output and rendered TMol
-Tutorials. For automated checks, inspect the `AtomArray`, build context, block
-types, and connectivity directly.
+`selection_gallery()` displays the built structure in a notebook. For automated
+checks, inspect its `AtomArray`, context, block types, and connectivity.
 
 ## Export
 
@@ -83,7 +69,7 @@ provides `write_pose_stack_pdb()` and `pose_stack_to_pdb_string()` for PDB
 compatibility. A PDB round trip is not lossless for every ligand bond,
 noncanonical residue, or preparation decision.
 
-## Common checks
+## Before scoring
 
 Before scoring or refinement, verify:
 
@@ -93,3 +79,7 @@ Before scoring or refinement, verify:
 4. histidine, disulfide, terminus, and missing-atom choices are expected;
 5. the pose, score function, and packed types use the same device; and
 6. a scorer is rerendered after any change to atom or block layout.
+
+## Examples and reference
+
+{doc}`Structure I/O tutorial </tutorial/01_working_with_tmol>` · {doc}`I/O API </api/io>` · {doc}`Ligand preparation </user_guide/ligands>`

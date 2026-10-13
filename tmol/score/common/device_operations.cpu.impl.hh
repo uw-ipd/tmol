@@ -1,3 +1,4 @@
+#include <tmol/utility/tensor/native.hh>
 #pragma once
 
 #ifdef __NVCC__
@@ -34,7 +35,7 @@ struct DeviceOperations<tmol::Device::CPU> {
       return;
     }
 
-    at::parallel_for(0, N, 1, [=](int64_t begin, int64_t end) {
+    tmol::native::parallel_for(0, N, 1, [=](int64_t begin, int64_t end) {
       for (int64_t i = begin; i < end; ++i) {
         f(int(i));
       }
@@ -51,7 +52,7 @@ struct DeviceOperations<tmol::Device::CPU> {
       return;
     }
 
-    at::parallel_for(0, n_groups, 1, [=](int64_t begin, int64_t end) {
+    tmol::native::parallel_for(0, n_groups, 1, [=](int64_t begin, int64_t end) {
       for (int64_t group = begin; group < end; ++group) {
         int const first_item = group * items_per_group;
         for (int item = 0; item < items_per_group; ++item) {
@@ -105,11 +106,12 @@ struct DeviceOperations<tmol::Device::CPU> {
       return;
     }
 
-    at::parallel_for(0, n_workgroups, 1, [=](int64_t begin, int64_t end) {
-      for (int64_t i = begin; i < end; ++i) {
-        f(int(i));
-      }
-    });
+    tmol::native::parallel_for(
+        0, n_workgroups, 1, [=](int64_t begin, int64_t end) {
+          for (int64_t i = begin; i < end; ++i) {
+            f(int(i));
+          }
+        });
   }
 
   template <typename launch_t, typename Func>
@@ -122,7 +124,7 @@ struct DeviceOperations<tmol::Device::CPU> {
       return;
     }
 
-    at::parallel_for(0, n_groups, 1, [=](int64_t begin, int64_t end) {
+    tmol::native::parallel_for(0, n_groups, 1, [=](int64_t begin, int64_t end) {
       for (int64_t group = begin; group < end; ++group) {
         int const first_workgroup = group * workgroups_per_group;
         for (int i = 0; i < workgroups_per_group; ++i) {

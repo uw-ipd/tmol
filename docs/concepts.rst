@@ -2,13 +2,11 @@
 Concepts
 ========
 
-These pages explain the representations and conventions shared across TMol
-workflows. Read them when you need the model behind an API rather than a
-step-by-step recipe.
+Molecular data, tensor layouts, and scoring conventions.
 
 .. toctree::
    :maxdepth: 1
 
-   Core architecture <architecture>
-   Data model and conventions <datatypes>
-   Terminology and modeling choices <terminology>
+   Architecture <architecture>
+   Tensors and data objects <datatypes>
+   Terminology <terminology>

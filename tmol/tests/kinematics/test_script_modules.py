@@ -301,7 +301,6 @@ def test_pose_stack_kinematics_op_device(pose_stack_system1, torch_device):
             cpu_pose_stack.inter_residue_connections64
         ),
         inter_block_bondsep=_to_cuda(cpu_pose_stack.inter_block_bondsep),
-        inter_block_bondsep64=_to_cuda(cpu_pose_stack.inter_block_bondsep64),
         block_type_ind=_to_cuda(cpu_pose_stack.block_type_ind),
         block_type_ind64=_to_cuda(cpu_pose_stack.block_type_ind64),
         chain_id=_to_cuda(cpu_pose_stack.chain_id),

@@ -275,6 +275,9 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
 
     def setup_poses(self, pose_stack: PoseStack):
         super(LKBallEnergyTerm, self).setup_poses(pose_stack)
+        # Whole-pose blocks move independently. Reuse this topology tensor
+        # instead of allocating and filling it on every scoring call.
+        pose_stack._lk_ball_no_lockstep = torch.full_like(pose_stack.block_type_ind, -1)
         # Plan once before graph capture; padding can greatly overstate the
         # useful work in the two specialized derivative kernels.
         blocks = pose_stack.max_n_blocks
@@ -285,33 +288,11 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             and int((pose_stack.block_type_ind >= 0).sum()) >= 512
         )
 
-    def pose_score_lk_ball(self, *args):
-        from tmol.score.lk_ball.potentials import (
-            lk_ball_pose_score,
-            gen_pose_waters,
-        )
-
-        common_args = args[:-5]
-        (
-            pose_stack,
-            hbond_params,
-            lk_ball_params,
-            block_pair_scoring,
-            shared_block_neighbors,
-        ) = args[-5:]
-
-        # each block appears once, so nothing moves in lockstep with anything
-        no_lockstep = torch.full(
-            pose_stack.block_type_ind.shape,
-            -1,
-            dtype=torch.int32,
-            device=pose_stack.block_type_ind.device,
-        )
+    def _gen_waters(self, common_args, pose_stack, hbond_params):
+        from tmol.score.lk_ball.potentials import gen_pose_waters
 
         args = [
-            *common_args[:12],
-            no_lockstep,
-            *common_args[12:],
+            *common_args,
             pose_stack.inter_residue_connections,
             pose_stack.packed_block_types.n_atoms,
             pose_stack.packed_block_types.n_conn,
@@ -336,13 +317,31 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         if common_args[0].dtype == torch.float64:
             convert_float64(args)
 
-        water_coords = gen_pose_waters(*args)
+        return gen_pose_waters(*args)
+
+    def pose_score_lk_ball(self, *args):
+        from tmol.score.lk_ball.potentials import lk_ball_pose_score
+
+        common_args = args[:-5]
+        (
+            pose_stack,
+            hbond_params,
+            lk_ball_params,
+            block_pair_scoring,
+            shared_block_neighbors,
+        ) = args[-5:]
+
+        water_coords = self._gen_waters(
+            (*common_args[:12], pose_stack._lk_ball_no_lockstep, *common_args[12:]),
+            pose_stack,
+            hbond_params,
+        )
 
         args = [
             *common_args,
             pose_stack.inter_residue_connections,
-            pose_stack.min_block_bondsep,
-            pose_stack.inter_block_bondsep,
+            pose_stack.inter_block_bondsep.near_blocks,
+            pose_stack.inter_block_bondsep.bondsep,
             pose_stack.packed_block_types.n_atoms,
             pose_stack.packed_block_types.n_conn,
             pose_stack.packed_block_types.conn_atom,
@@ -365,10 +364,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         return lk_ball_pose_score(*args)
 
     def rotamer_score_lk_ball(self, *args):
-        from tmol.score.lk_ball.potentials import (
-            lk_ball_rotamer_score_shared,
-            gen_pose_waters,
-        )
+        from tmol.score.lk_ball.potentials import lk_ball_rotamer_score_shared
 
         common_args = args[:-5]
         (
@@ -382,39 +378,13 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         # water generation takes the same common args as the scoring call: a
         #    water can reach into a bonded neighbour, and in a group that
         #    neighbour's atoms differ from one conformer to the next
-        args = [
-            *common_args,
-            pose_stack.inter_residue_connections,
-            pose_stack.packed_block_types.n_atoms,
-            pose_stack.packed_block_types.n_conn,
-            pose_stack.packed_block_types.conn_atom,
-            pose_stack.packed_block_types.n_all_bonds,
-            pose_stack.packed_block_types.all_bonds,
-            pose_stack.packed_block_types.atom_all_bond_ranges,
-            hbond_params.tile_n_donH,
-            hbond_params.tile_n_acc,
-            hbond_params.tile_donH_inds,
-            hbond_params.tile_donH_hvy_inds,
-            hbond_params.tile_which_donH_of_donH_hvy,
-            hbond_params.tile_acc_inds,
-            hbond_params.tile_acceptor_hybridization,
-            hbond_params.tile_acceptor_n_attached_H,
-            hbond_params.is_hydrogen,
-            self._lk_ball_water_gen_global_params,
-            self.ljlk_param_resolver.global_params.lkb_water_tors_sp2,
-            self.ljlk_param_resolver.global_params.lkb_water_tors_sp3,
-            self.ljlk_param_resolver.global_params.lkb_water_tors_ring,
-        ]
-        if common_args[0].dtype == torch.float64:
-            convert_float64(args)
-
-        water_coords = gen_pose_waters(*args)
+        water_coords = self._gen_waters(common_args, pose_stack, hbond_params)
 
         args = [
             *common_args,
             pose_stack.inter_residue_connections,
-            pose_stack.min_block_bondsep,
-            pose_stack.inter_block_bondsep,
+            pose_stack.inter_block_bondsep.near_blocks,
+            pose_stack.inter_block_bondsep.bondsep,
             pose_stack.packed_block_types.n_atoms,
             pose_stack.packed_block_types.n_conn,
             pose_stack.packed_block_types.conn_atom,

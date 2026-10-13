@@ -1,13 +1,36 @@
+import pytest
 import torch
 
 from tmol.pack import PackerPalette, PackerTask, SetPackerTask
 from tmol.pose import PoseStackBuilder
 from tmol.io import pose_stack_from_pdb
 
+# choices are padded to the largest palette: an AIB position offers the 21
+#    canonical choices and AIB itself
+PADDED = 22
+
 
 def test_packer_palette_smoke():
     pp = PackerPalette()
     assert pp
+
+
+def test_terminal_palette_keeps_glycine_and_proline_design_choices(
+    fresh_default_packed_block_types, torch_device
+):
+    """Terminal chemistry agrees despite Gly/Pro's different backbone H counts."""
+    pbt = fresh_default_packed_block_types
+    names = [bt.name for bt in pbt.active_block_types]
+    palette = PackerPalette()
+    for suffix in ("", ":nterm", ":cterm"):
+        expected = {f"{base}{suffix}" for base in ("ALA", "GLY", "PRO")}
+        for original in expected:
+            counts, choices, _ = palette.block_types_from_original(
+                pbt,
+                torch.tensor([[names.index(original)]], device=torch_device),
+            )
+            offered = {names[i] for i in choices[0, 0, : counts[0, 0]].tolist()}
+            assert expected <= offered
 
 
 def test_packer_palette_design_to_canonical_aas(
@@ -25,8 +48,8 @@ def test_packer_palette_design_to_canonical_aas(
         pbt, torch.tensor([[arg_index]], dtype=torch.int64, device=torch_device)
     )
     assert n_allowed[0, 0] == 21
-    assert allowed_bts.shape == (1, 1, 21)
-    assert allowed_is_orig.shape == (1, 1, 21)
+    assert allowed_bts.shape == (1, 1, PADDED)
+    assert allowed_is_orig.shape == (1, 1, PADDED)
 
 
 def test_packer_palette_design_to_canonical_aas2_backward_compat(
@@ -43,8 +66,8 @@ def test_packer_palette_design_to_canonical_aas2_backward_compat(
         pbt, torch.tensor([[gly_ind]], dtype=torch.int64, device=torch_device)
     )
     assert n_allowed[0, 0] == 21
-    assert allowed_bts.shape == (1, 1, 21)
-    assert allowed_is_orig.shape == (1, 1, 21)
+    assert allowed_bts.shape == (1, 1, PADDED)
+    assert allowed_is_orig.shape == (1, 1, PADDED)
 
 
 def test_packer_task_smoke(ubq_pdb, torch_device):
@@ -88,6 +111,12 @@ def test_residue_level_task_his_restrict_to_repacking_backward_compat(
     assert (
         torch.sum(
             task.per_block_is_block_type_allowed[one_his_pose_ind, one_his_block_ind, :]
+            & (
+                task.per_block_considered_block_types[
+                    one_his_pose_ind, one_his_block_ind, :
+                ]
+                != -1
+            )
         )
         == 21
     )
@@ -158,13 +187,13 @@ def test_packer_task_ctor(ubq_pdb, default_restype_set, torch_device):
     task = PackerTask(poses, palette)
     assert task.per_block_n_considered_block_types.shape == (2, 7)
     assert task.per_block_n_considered_block_types.device == torch_device
-    assert task.per_block_considered_block_types.shape == (2, 7, 21)
+    assert task.per_block_considered_block_types.shape == (2, 7, PADDED)
     assert task.per_block_considered_block_types.device == torch_device
-    assert task.per_block_is_block_type_allowed.shape == (2, 7, 21)
+    assert task.per_block_is_block_type_allowed.shape == (2, 7, PADDED)
     assert task.per_block_is_block_type_allowed.device == torch_device
     assert task.per_block_orig_block_type.shape == (2, 7)
     assert task.per_block_orig_block_type.device == torch_device
-    assert task.restrict_to_repacking_masks.shape == (2, 7, 21)
+    assert task.restrict_to_repacking_masks.shape == (2, 7, PADDED)
     assert task.restrict_to_repacking_masks.device == torch_device
     assert len(task.conformer_samplers) == len(palette.default_conformer_samplers())
     for sampler in task.conformer_samplers:
@@ -177,7 +206,7 @@ def test_packer_task_ctor(ubq_pdb, default_restype_set, torch_device):
         len(task.conformer_samplers),
     )
     assert task.per_block_conformer_sampler_allowed.device == torch_device
-    assert task.per_block_chi_expansion.shape == (2, 7, 21, 4)
+    assert task.per_block_chi_expansion.shape == (2, 7, PADDED, 4)
     assert task.per_block_chi_expansion.device == torch_device
 
 
@@ -193,13 +222,13 @@ def test_set_packer_task_ctor(ubq_pdb, torch_device):
 
     assert set_task.per_block_n_considered_block_types.shape == (2, 7)
     assert set_task.per_block_n_considered_block_types.device == torch_device
-    assert set_task.per_block_considered_block_types.shape == (2, 7, 21)
+    assert set_task.per_block_considered_block_types.shape == (2, 7, PADDED)
     assert set_task.per_block_considered_block_types.device == torch_device
-    assert set_task.per_block_is_block_type_allowed.shape == (2, 7, 21)
+    assert set_task.per_block_is_block_type_allowed.shape == (2, 7, PADDED)
     assert set_task.per_block_is_block_type_allowed.device == torch_device
     assert set_task.per_block_orig_block_type.shape == (2, 7)
     assert set_task.per_block_orig_block_type.device == torch_device
-    assert set_task.restrict_to_repacking_masks.shape == (2, 7, 21)
+    assert set_task.restrict_to_repacking_masks.shape == (2, 7, PADDED)
     assert set_task.restrict_to_repacking_masks.device == torch_device
     assert len(set_task.conformer_samplers) == len(palette.default_conformer_samplers())
     for sampler in set_task.conformer_samplers:
@@ -212,7 +241,7 @@ def test_set_packer_task_ctor(ubq_pdb, torch_device):
         len(set_task.conformer_samplers),
     )
     assert set_task.per_block_conformer_sampler_allowed.device == torch_device
-    assert set_task.per_block_chi_expansion.shape == (2, 7, 21, 4)
+    assert set_task.per_block_chi_expansion.shape == (2, 7, PADDED, 4)
     assert set_task.per_block_chi_expansion.device == torch_device
 
     assert set_task.cons_bt_pose.shape == (12 * 21,)
@@ -228,3 +257,72 @@ def test_set_packer_task_ctor(ubq_pdb, torch_device):
     assert set_task.allowed_bt_block_type.shape == (n_allowed,)
     assert set_task.is_cons_bt_allowed.shape == (12 * 21,)
     assert set_task.allowed_cons_bt.shape == (n_allowed,)
+
+
+def test_types_only_metal_detection_selects_keep_their_own_palette(
+    fresh_default_packed_block_types, torch_device
+):
+    # metals are never packed, and a deprotonated form belongs to the residue
+    # detection assigned it to; neither trades places with anything else
+    pp = PackerPalette()
+    pbt = fresh_default_packed_block_types
+    names = [bt.name for bt in pbt.active_block_types]
+    for name in ("ZN_tetrahedral", "CYS_DEP", "TYR_DEP"):
+        i = names.index(name)
+        n_allowed, allowed_bts, _ = pp.block_types_from_original(
+            pbt, torch.tensor([[i]], dtype=torch.int64, device=torch_device)
+        )
+        assert n_allowed[0, 0] == 1
+        assert allowed_bts[0, 0, 0] == i
+
+    # and no other type's palette offers them
+    hoh = names.index("HOH")
+    n_allowed, allowed_bts, _ = pp.block_types_from_original(
+        pbt, torch.tensor([[hoh]], dtype=torch.int64, device=torch_device)
+    )
+    offered = {names[j] for j in allowed_bts[0, 0, : n_allowed[0, 0]].tolist()}
+    assert not any(pbt.active_block_types[names.index(n)].metal_sites for n in offered)
+
+
+def test_masked_name3_restriction_that_empties_a_block_raises(ubq_pdb, torch_device):
+    """Restricting a selected block to name3s none of its choices has is an error.
+
+    Guards PackerTask.restrict_absent_name3s in pack/_packer_task.py, which left
+    such a block with no allowed block type and no error.
+    """
+    poses = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
+    task = PackerTask(poses, PackerPalette())
+    mask = torch.zeros(
+        task.per_block_n_considered_block_types.shape,
+        dtype=torch.bool,
+        device=torch_device,
+    )
+    mask[0, 2] = True
+    before = task.per_block_is_block_type_allowed.clone()
+    with pytest.raises(ValueError, match="pose 0 block 2"):
+        task.restrict_absent_name3s({"DA"}, mask)
+    torch.testing.assert_close(task.per_block_is_block_type_allowed, before)
+
+    task.restrict_absent_name3s({"ALA"}, mask)
+    allowed = task.per_block_is_block_type_allowed
+    torch.testing.assert_close(allowed[~mask], before[~mask])
+    choices = task.per_block_considered_block_types[0, 2, allowed[0, 2]]
+    assert len(choices) > 0
+    assert {task.pbt.active_block_types[i].name3 for i in choices.tolist()} == {"ALA"}
+
+
+def test_masked_name3_restriction_of_a_fixed_block_does_not_raise(
+    ubq_pdb, torch_device
+):
+    """A block that already had no allowed block type is not reported."""
+    poses = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
+    task = PackerTask(poses, PackerPalette())
+    mask = torch.zeros(
+        task.per_block_n_considered_block_types.shape,
+        dtype=torch.bool,
+        device=torch_device,
+    )
+    mask[0, 2] = True
+    task.disable_packing_by_block_mask(mask)
+    task.restrict_absent_name3s({"DA"}, mask)
+    assert not bool(task.per_block_is_block_type_allowed[0, 2].any())

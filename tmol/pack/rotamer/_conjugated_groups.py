@@ -19,7 +19,6 @@ import torch
 
 from tmol.pose._conjugated_groups import (  # noqa: F401
     ConjugatedGroup,
-    blocks_in_conjugated_groups,
     find_conjugated_groups,
     lockstep_group_for_block,
 )

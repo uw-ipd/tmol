@@ -15,20 +15,20 @@ Produce a verified TMol installation using the least expensive path compatible
 with the user's Python, PyTorch, platform, and device. Run commands from the TMol
 repository root only when building a checkout.
 
-This workflow requires Python 3.11+ and PyTorch 2.5+. Source or JIT builds need
+This workflow requires Python 3.11+ and PyTorch 2.11+. Source or JIT builds need
 a C++ compiler; only CUDA source or JIT builds need `nvcc`.
 
 ## Select the installation path
 
 1. Inspect `python`, `torch.__version__`, `torch.version.cuda`, the platform,
    and GPU availability before choosing a wheel.
-2. Prefer a matching wheel from the current GitHub release. Wheel tags must
-   match the Python ABI and PyTorch minor; CUDA wheels must also match the CUDA
-   lane.
+2. Prefer `tmol` from PyPI for CPU, or `tmol[cu12]`/`tmol[cu13]` with a
+   matching CUDA-enabled PyTorch major. Production wheels support PyTorch
+   2.11+ without minor-specific builds; Python/platform tags still apply.
 3. Use `pip install tmol` when source-distribution fallback behavior is
    acceptable.
 4. Use an editable source build for development or an unsupported wheel lane.
-   Request CPU-only explicitly when CUDA is not wanted.
+   CPU is the default; enable CUDA explicitly for development builds.
 
 Read `docs/installation.md` for current supported lanes and runtime notes before
 constructing a versioned wheel URL.
@@ -76,6 +76,7 @@ import tmol
 print("tmol", tmol.__version__)
 print("torch", torch.__version__)
 print("torch CUDA", torch.version.cuda)
+print("TMol CUDA kernels", tmol.has_cuda())
 print("CUDA available", torch.cuda.is_available())
 print("CPU threads", torch.get_num_threads())
 PY
@@ -90,7 +91,7 @@ pytest -q tmol/tests/score/test_score_function.py -k "not cuda"
 
 ## Failure routing
 
-- ABI, PyTorch-minor, or CUDA-lane mismatch: install a matching wheel rather
+- Python/platform or CUDA-major mismatch: install a matching wheel rather
   than debugging symbols in an incompatible binary.
 - `GLIBCXX_* not found`: use a newer runtime/compiler or build against the host;
   do not copy arbitrary C++ runtime libraries into the package.

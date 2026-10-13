@@ -189,7 +189,8 @@ struct CartBondedRotamerScoreDispatch {
       // int max_subgraphs_per_block,
       bool output_block_pair_energies,
 
-      bool compute_derivs
+      bool compute_derivs,
+      bool topology_only = false
 
       )
       -> std::tuple<

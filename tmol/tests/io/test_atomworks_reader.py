@@ -1,8 +1,8 @@
 """Exercise shared parsing through chemical preparation and minimization."""
 
-from contextlib import contextmanager, nullcontext
 from pathlib import Path
 
+import biotite.structure as struc
 import numpy as np
 import pytest
 import torch
@@ -13,24 +13,6 @@ from tmol.score import beta2016_score_function
 pytest.importorskip("atomworks")
 
 DATA = Path(__file__).parents[1] / "data"
-
-
-@pytest.fixture
-def forbid_ccd_access(monkeypatch):
-    """Return a guard that rejects CCD inventory and template access."""
-    import atomworks.io.utils.ccd as ccd
-
-    @contextmanager
-    def guard():
-        def unexpected(*args, **kwargs):
-            raise AssertionError("use_ccd=False must not access CCD data")
-
-        with monkeypatch.context() as patch:
-            patch.setattr(ccd, "get_available_ccd_codes", unexpected)
-            patch.setattr(ccd, "atom_array_from_ccd_code", unexpected)
-            yield
-
-    return guard
 
 
 def _write_halogen_cif(
@@ -133,6 +115,79 @@ def test_file_hydrogen_policy_through_scoring(tmp_path, ubq_pdb):
     assert torch.isfinite(coords.grad).all()
 
 
+def test_coincident_input_hydrogens_rebuilt_without_changing_state(
+    ubq_pdb, torch_device
+):
+    from tmol.io import (
+        biotite_from_pose_stack,
+        pose_stack_from_biotite,
+        pose_stack_from_pdb,
+    )
+
+    baseline = pose_stack_from_pdb(ubq_pdb, torch_device, no_optH=True)
+    source = biotite_from_pose_stack(baseline)
+    original = source.coord.copy()
+    first, second = source.bonds.as_array()[:, :2].T
+    hydrogen = source.element == "H"
+    parents = np.r_[first[hydrogen[second]], second[hydrogen[first]]]
+    children = np.r_[second[hydrogen[second]], first[hydrogen[first]]]
+    # Exercise carbon-bound H and the ring proton that determines histidine's state.
+    selected = [
+        *np.flatnonzero(
+            parents == parents[np.flatnonzero(source.atom_name[parents] == "CE")[0]]
+        ),
+        np.flatnonzero(
+            (source.res_name[children] == "HIS")
+            & np.isin(source.atom_name[children], ["HD1", "HE2"])
+        )[0],
+    ]
+    damaged = children[selected]
+    source.coord[damaged] = source.coord[parents[selected]]
+    corrupted = source.coord.copy()
+    with pytest.warns(UserWarning, match="Rebuilding hydrogens coincident"):
+        repaired = pose_stack_from_biotite(source, torch_device, no_optH=True)
+    torch.testing.assert_close(repaired.block_type_ind, baseline.block_type_ind)
+    exported = biotite_from_pose_stack(repaired)
+    np.testing.assert_array_equal(exported.atom_name, source.atom_name)
+    retained = ~np.isin(np.arange(len(source)), damaged)
+    np.testing.assert_array_equal(exported.coord[retained], original[retained])
+    assert np.all(
+        np.linalg.norm(exported.coord[damaged] - original[parents[selected]], axis=-1)
+        > 0.5
+    )
+    np.testing.assert_array_equal(source.coord, corrupted)
+    coords = repaired.coords.detach().clone().requires_grad_()
+    energy = beta2016_score_function(torch_device).render_whole_pose_scoring_module(
+        repaired
+    )(coords)
+    energy.sum().backward()
+    assert torch.isfinite(energy).all() and torch.isfinite(coords.grad).all()
+
+
+@pytest.mark.parametrize("inter_residue", [False, True])
+def test_coincident_bonded_heavy_atoms_rejected_with_identity(
+    ubq_pdb, torch_device, inter_residue
+):
+    from tmol.io import (
+        biotite_from_pose_stack,
+        pose_stack_from_biotite,
+        pose_stack_from_pdb,
+    )
+
+    source = biotite_from_pose_stack(
+        pose_stack_from_pdb(ubq_pdb, torch_device, no_optH=True)
+    )
+    carbon = np.flatnonzero(source.atom_name == "C")[0]
+    partner_name = "N" if inter_residue else "O"
+    partner = np.flatnonzero(source.atom_name == partner_name)[int(inter_residue)]
+    source.coord[partner] = source.coord[carbon]
+    with pytest.raises(
+        ValueError,
+        match=rf"Coincident bonded heavy atoms.*atom C.*chain A.*atom {partner_name}",
+    ):
+        pose_stack_from_biotite(source, torch_device, no_optH=True)
+
+
 @pytest.mark.parametrize(
     "source_charge,should_fail", [("0", True), ("-1", False), ("?", False)]
 )
@@ -191,6 +246,29 @@ def test_isolated_halogen_charge_provenance(
     np.testing.assert_array_equal(source.bonds.as_array(), bonds_before)
 
 
+@pytest.mark.parametrize("source_charge", ["?", "0"])
+def test_author_renumbering_preserves_component_chemistry(tmp_path, source_charge):
+    from atomworks.io.utils.io_utils import read_any
+
+    file = read_any(DATA / "sweep_regressions" / "renumbered_chloride_4eu8.cif.zst")
+    site = file.block["atom_site"]
+    chloride = site["label_comp_id"].as_array(str) == "CL"
+    charges = site["pdbx_formal_charge"].as_array(str)
+    charges[chloride] = source_charge
+    site["pdbx_formal_charge"] = charges
+    path = tmp_path / "renumbered.cif"
+    file.write(path)
+
+    with pytest.warns(UserWarning, match="Renumbering chain"):
+        source = atom_array_from_cif(path)
+    ions = source[source.res_name == "CL"]
+    assert len(ions) == 4
+    assert ions.charge.tolist() == ([0] * 4 if source_charge == "0" else [-1] * 4)
+    assert ions.tmol_source_formal_charge.tolist() == [source_charge] * 4
+    assert ions.tmol_formal_charge_specified.tolist() == [True] * 4
+    assert source._custom_ccd_registry["CL"].charge.tolist() == [-1]
+
+
 @pytest.mark.parametrize(
     "res_name,atom_name,element,expected_charge",
     [("XE", "XE", "Xe", 0), ("CL", "CL", "Cl", -1)],
@@ -220,83 +298,109 @@ def test_ccd_isolated_atom_charge_provenance(
 
 
 @pytest.mark.parametrize(
-    "source_charge,component_charge,expected_charge,expected_specified",
+    "fixture,atom",
     [
-        ("-1", None, -1, True),
-        ("0", None, 0, True),
-        ("?", "-1", -1, True),
-        ("?", "0", 0, True),
-        ("?", None, 0, False),
+        ("bonded_bromide_1mhk", ("BR", "BR")),
+        ("unsigned_carboxylate_charge_3zlp", ("GLU", "OE1")),
+        ("oxygen_charge_seven_7tjm", ("GLU", "OE2")),
     ],
 )
-def test_no_ccd_preserves_authored_charge_provenance(
-    tmp_path,
-    forbid_ccd_access,
-    source_charge: str,
-    component_charge: str | None,
-    expected_charge: int,
-    expected_specified: bool,
-) -> None:
-    """Read only authored charges and distinguish zero from unspecified."""
-    with forbid_ccd_access():
-        source = atom_array_from_cif(
-            _write_halogen_cif(tmp_path, source_charge, component_charge),
-            use_ccd=False,
+def test_deposited_charge_its_bonded_atom_cannot_carry_is_ignored(
+    fixture, atom, torch_device
+):
+    """1MHK states a bromide's -1 on a Br bonded to a uridine C5, 3ZLP a
+    carboxylate's -1 as +1 and 7TJM +7 on a carboxylate O; the pH decides them."""
+    path = DATA / "sweep_regressions" / f"{fixture}.cif.zst"
+    array = atom_array_from_cif(path)
+    site = (array.res_name == atom[0]) & (array.atom_name == atom[1])
+
+    assert array.charge[site].tolist() == [0]
+    assert array.tmol_formal_charge_specified[site].tolist() == [False]
+    pose = pose_stack_from_cif(path, torch_device, prepare_ligands=True, no_optH=True)
+    assert torch.isfinite(pose.coords).all()
+
+
+def test_declared_disulfides_sharing_a_sulfur_keep_the_nearest(torch_device, recwarn):
+    """6CNB declares CYS L:51 in disulfides to L:34 (2.90 A) and L:48 (2.48 A)."""
+    path = DATA / "sweep_regressions" / "shared_disulfide_sulfur_6cnb.cif.zst"
+    array = atom_array_from_cif(path)
+    sulfur = np.flatnonzero(array.atom_name == "SG")
+    pairs = {
+        tuple(sorted(int(array.res_id[a]) for a in bond[:2]))
+        for bond in array.bonds.as_array()
+        if bond[0] in sulfur and bond[1] in sulfur
+    }
+
+    assert pairs == {(48, 51)}
+    assert any("L:34-L:51" in str(w.message) for w in recwarn)
+    pose = pose_stack_from_cif(path, torch_device, no_optH=True)
+    assert torch.isfinite(pose.coords).all()
+
+
+@pytest.mark.parametrize(
+    "fixture, names, kept, dropped",
+    [
+        ("ion_alternates_8a7k", ["MN", "MG"], {501, 502, 503}, {504, 505, 506}),
+        ("ion_alternates_3f7l", ["CU", "CU1"], {201}, {202}),
+        ("glycerol_alternates_1p4k", ["GOL"], {296}, {297}),
+    ],
+)
+def test_residues_occupying_one_site_keep_one(
+    fixture, names, kept, dropped, torch_device
+):
+    """8A7K models Mn and Mg at half occupancy on each site, and 1P4K two
+    half-occupied GOL its struct_conn bonds to each other, without altloc ids;
+    3F7L writes the conformers of a Cu (0.8 and 0.2) in two chains."""
+    path = DATA / "sweep_regressions" / f"{fixture}.cif.zst"
+    with pytest.warns(UserWarning, match="one residue per site"):
+        array = atom_array_from_cif(path)
+    read = set(array.res_id[np.isin(array.res_name, names)].tolist())
+
+    assert kept <= read and not dropped & read
+    pose = pose_stack_from_cif(path, torch_device, prepare_ligands=True, no_optH=True)
+    assert torch.isfinite(pose.coords).all()
+
+
+def test_coincident_alternate_chains_require_an_assembly_choice(torch_device):
+    from tmol.tests.io.test_atomworks_corpus_regressions import _score_and_minimize
+
+    path = DATA / "sweep_regressions" / "alternate_polymer_chains_1gtv.cif.zst"
+    array = atom_array_from_cif(path)
+    assert set(array.chain_id[array.is_polymer]) == {"A", "B"}
+    with pytest.raises(ValueError, match="Coincident bonded heavy atoms"):
+        pose_stack_from_cif(path, torch_device, prepare_ligands=True, no_optH=True)
+    for assembly_id in ("1", "2"):
+        pose, context = pose_stack_from_cif(
+            path,
+            torch_device,
+            assembly_id=assembly_id,
+            prepare_ligands=True,
+            no_optH=True,
+            return_context=True,
         )
-
-    assert source.charge.tolist() == [expected_charge]
-    assert source.tmol_source_formal_charge.tolist() == [source_charge]
-    assert source.tmol_formal_charge_specified.tolist() == [expected_specified]
+        _score_and_minimize(pose, context)
 
 
-def test_no_ccd_missing_isolated_charge_fails_only_for_preparation(
-    tmp_path, forbid_ccd_access, torch_device
-) -> None:
-    """Require uninferable charge for generation but permit saved-parameter reuse."""
-    from tmol.io import pose_stack_from_biotite
-    from tmol.ligand import prepare_ligands
-    from tmol.ligand._preparation import LigandPreparationError
+def test_label_chains_sharing_an_author_site_keep_one_residue(torch_device):
+    path = DATA / "sweep_regressions" / "shared_author_site_3bln.cif.zst"
+    with pytest.warns(UserWarning, match="one residue per site"):
+        array = atom_array_from_cif(path)
+    site = (array.chain_id == "A") & (array.res_id == 147)
+    assert set(array.res_name[site]) == {"MPD"}
+    assert len(set(array.atom_name[site])) == site.sum() == 8
+    assert set(array.res_id[array.res_name == "MRD"]) == {145, 146}
 
-    with forbid_ccd_access():
-        missing = atom_array_from_cif(
-            _write_halogen_cif(tmp_path, "?", None), use_ccd=False
-        )
-    assert missing.coord.tolist() == [[1.0, 2.0, 3.0]]
-
-    expected = (
-        "QHX: formal charge is unspecified for isolated Cl atom X1; no bond or "
-        "hydrogen valence can establish its charge. Supply "
-        "_atom_site.pdbx_formal_charge or _chem_comp_atom.charge, enable use_ccd "
-        "for a CCD component, or load its prepared .tmol parameters. Pass "
-        "strict_ligands=False to skip it with a warning, or supply prebuilt params "
-        "via ligand_params_files."
+    pose, context = pose_stack_from_cif(
+        path, torch_device, prepare_ligands=True, no_optH=True, return_context=True
     )
-    with pytest.raises(LigandPreparationError) as error:
-        pose_stack_from_biotite(
-            missing, torch_device, prepare_ligands=True, use_ccd=False
-        )
-    assert str(error.value) == expected
-
-    with forbid_ccd_access():
-        charged = atom_array_from_cif(
-            _write_halogen_cif(tmp_path, "?", "-1"), use_ccd=False
-        )
-    params_path = tmp_path / "halide.tmol"
-    prepare_ligands(
-        charged,
-        params_output=str(params_path),
-        use_ccd=False,
-        seed=17,
-    )
-    pose = pose_stack_from_biotite(
-        missing,
-        torch_device,
-        prepare_ligands=True,
-        ligand_params_files=[str(params_path)],
-        use_ccd=False,
-        no_optH=True,
-    )
-    assert torch.isfinite(pose.coords[pose.real_atoms]).all()
+    coords = pose.coords.detach().clone().requires_grad_()
+    energy = beta2016_score_function(
+        torch_device, param_db=context.parameter_database
+    ).render_whole_pose_scoring_module(pose)(coords)
+    energy.sum().backward()
+    assert torch.isfinite(coords).all()
+    assert torch.isfinite(energy).all()
+    assert torch.isfinite(coords.grad).all()
 
 
 @pytest.mark.parametrize(
@@ -308,11 +412,11 @@ def test_no_ccd_missing_isolated_charge_fails_only_for_preparation(
         "ncaa_fixtures/na_dna_5mc_1d17.cif",
         "ncaa_fixtures/na_rna_2ome_310d.cif",
         "ncaa_fixtures/na_dna_ttd_1ttd.cif",
-        "atomworks_regressions/hydrolase_intermediate_1tqh.cif.gz",
-        "atomworks_regressions/phosphate_charge_4js1.cif.gz",
-        "atomworks_regressions/chloride_complex_4hbt.cif.gz",
+        "atomworks_regressions/hydrolase_intermediate_1tqh.cif.zst",
+        "atomworks_regressions/phosphate_charge_4js1.cif.zst",
+        "atomworks_regressions/chloride_complex_4hbt.cif.zst",
         "atomworks_regressions/triphosphate_rna_4gxy.cif",
-        "atomworks_regressions/unresolved_modified_polymer_1xj9.cif.gz",
+        "atomworks_regressions/unresolved_modified_polymer_1xj9.cif.zst",
         "atomworks_regressions/missing_phosphate_rna_5w1i.cif",
     ],
 )
@@ -434,8 +538,10 @@ def test_shared_parser_builds_and_scores_general_chemistry(fixture, torch_device
     if "4js1" in fixture or "4hbt" in fixture:
         from tmol.tests.ligand.test_local_conjugate_params import _charges
 
+        # charge is the input chemistry; names are the prepared type, and
+        #    phosphate is prepared at pH 7.4 as HPO4(2-)
         ion, names, charge = (
-            ("PO4", {"P", "O1", "O2", "O3", "O4"}, -3)
+            ("PO4", {"P", "O1", "O2", "O3", "O4", "HO2"}, -3)
             if "4js1" in fixture
             else ("CL", {"CL"}, -1)
         )
@@ -568,7 +674,7 @@ def test_pdb_modified_polymer_preserves_chain_and_scores(tmp_path, torch_device)
 
 
 def test_known_and_unknown_chemistry_share_file_contract(
-    tmp_path, monkeypatch, forbid_ccd_access, torch_device
+    tmp_path, monkeypatch, torch_device
 ):
     """MOL2 preparation makes atom-only PDB/CIF sufficient for scoring."""
     from biotite.structure.io import pdb, pdbx
@@ -592,9 +698,7 @@ def test_known_and_unknown_chemistry_share_file_contract(
     source.bonds = None
 
     def unexpected(*args, **kwargs):
-        raise AssertionError(
-            "Known chemistry must not regenerate or consult disabled CCD"
-        )
+        raise AssertionError("Known chemistry must not regenerate")
 
     for extension in ("pdb", "cif"):
         file = pdb.PDBFile() if extension == "pdb" else pdbx.CIFFile()
@@ -613,45 +717,172 @@ def test_known_and_unknown_chemistry_share_file_contract(
             file.set_structure(connected)
             connected_path = tmp_path / "connectivity.pdb"
             file.write(connected_path)
-            for use_ccd in (False, True):
-                untyped = atom_array_from_file(connected_path, use_ccd=use_ccd)
-                assert untyped.bonds.get_bond_count() > 0
-                assert np.all(untyped.bonds.as_array()[:, 2] == 0)
-                with pytest.raises(
-                    LigandPreparationError, match="ZZQ.*chemical bond orders"
-                ):
-                    pose_stack_from_biotite(
-                        untyped, torch_device, prepare_ligands=True, use_ccd=False
-                    )
-        for use_ccd in (False, True):
-            ccd_guard = nullcontext() if use_ccd else forbid_ccd_access()
-            with monkeypatch.context() as patch, ccd_guard:
-                patch.setattr(preparation, "_prepare_ligand_via_smiles", unexpected)
-                array = atom_array_from_file(path, use_ccd=use_ccd)
-                np.testing.assert_allclose(array.coord, source.coord, atol=0.001)
-                assert list(array.atom_name) == list(source.atom_name)
-                pose, context = pose_stack_from_file(
-                    path,
-                    torch_device,
-                    use_ccd=use_ccd,
-                    prepare_ligands=True,
-                    param_db=param_db,
-                    no_optH=True,
-                    return_context=True,
-                )
-                _score_and_minimize(pose, context, max_iter=10)
-                reloaded, reloaded_context = pose_stack_from_file(
-                    path,
-                    torch_device,
-                    use_ccd=use_ccd,
-                    ligand_params_files=[str(params_path)],
-                    no_optH=True,
-                    return_context=True,
-                )
-                _score_and_minimize(reloaded, reloaded_context, max_iter=1)
+            untyped = atom_array_from_file(connected_path)
+            assert untyped.bonds.get_bond_count() > 0
+            assert np.all(untyped.bonds.as_array()[:, 2] == 0)
             with pytest.raises(
                 LigandPreparationError, match="ZZQ.*chemical bond orders"
             ):
-                pose_stack_from_biotite(
-                    array, torch_device, prepare_ligands=True, use_ccd=False
-                )
+                pose_stack_from_biotite(untyped, torch_device, prepare_ligands=True)
+        with monkeypatch.context() as patch:
+            patch.setattr(preparation, "_prepare_ligand_via_smiles", unexpected)
+            array = atom_array_from_file(path)
+            np.testing.assert_allclose(array.coord, source.coord, atol=0.001)
+            assert list(array.atom_name) == list(source.atom_name)
+            pose, context = pose_stack_from_file(
+                path,
+                torch_device,
+                prepare_ligands=True,
+                param_db=param_db,
+                no_optH=True,
+                return_context=True,
+            )
+            _score_and_minimize(pose, context, max_iter=10)
+            reloaded, reloaded_context = pose_stack_from_file(
+                path,
+                torch_device,
+                ligand_params_files=[str(params_path)],
+                no_optH=True,
+                return_context=True,
+            )
+            _score_and_minimize(reloaded, reloaded_context, max_iter=1)
+        with pytest.raises(LigandPreparationError, match="ZZQ.*chemical bond orders"):
+            pose_stack_from_biotite(array, torch_device, prepare_ligands=True)
+
+
+def test_pdb_link_records_reach_the_pose(tmp_path, torch_device):
+    """A PDB's LINK records are bonds, and its HETATM residues keep their numbers.
+
+    1HZY cropped around the two Zn of chain A, with LINK and no CONECT records; its
+    HETATM records list ZN 401 and 402 before FMT 369, which carbamylates LYS 169.
+    """
+    import re
+
+    import biotite.structure as struc
+    import zstandard
+    from tmol.io import atom_array_from_file, pose_stack_from_file
+
+    fixture = DATA / "sweep_regressions" / "zn_link_records_1hzy.pdb.zst"
+    coordination, single = struc.BondType.COORDINATION, struc.BondType.SINGLE
+    links = {
+        ("HIS55.NE2", "ZN401.ZN"): coordination,
+        ("HIS57.NE2", "ZN401.ZN"): coordination,
+        ("ASP301.OD2", "ZN401.ZN"): coordination,
+        ("HIS201.ND1", "ZN402.ZN"): coordination,
+        ("HIS230.NE2", "ZN402.ZN"): coordination,
+        ("FMT369.O1", "ZN401.ZN"): coordination,
+        ("FMT369.O2", "ZN402.ZN"): coordination,
+        ("LYS169.NZ", "FMT369.C"): single,
+        ("HOH876.O", "ZN401.ZN"): coordination,
+        ("HOH876.O", "ZN402.ZN"): coordination,
+        ("HOH897.O", "ZN402.ZN"): coordination,
+    }
+
+    def read_links(path):
+        array = atom_array_from_file(path)
+        label = [
+            f"{r}{i}.{a}"
+            for r, i, a in zip(array.res_name, array.res_id, array.atom_name)
+        ]
+        residue = struc.get_all_residue_positions(array)
+        found = {
+            frozenset((label[i], label[j])): struc.BondType(t)
+            for i, j, t in array.bonds.as_array()
+            if residue[i] != residue[j]
+        }
+        return array, found
+
+    array, found = read_links(fixture)
+    assert found == {frozenset(pair): kind for pair, kind in links.items()}
+    hetero = array[array.hetero]
+    assert (np.diff(hetero.res_id) >= 0).all()
+    assert [
+        (int(i), str(n)) for i, n in zip(*struc.get_residues(hetero), strict=True)
+    ] == [
+        (369, "FMT"),
+        (401, "ZN"),
+        (402, "ZN"),
+        (408, "EDO"),
+        (425, "EDO"),
+        (876, "HOH"),
+        (897, "HOH"),
+    ]
+
+    # A LINK longer than a covalent bond, or to a symmetry mate, is no bond.
+    text = zstandard.decompress(fixture.read_bytes()).decode()
+    hydrogen_bond = (
+        "LINK         OD1 ASP A 301                 O   HOH A 876     1555   1555  2.60"
+    )
+    symmetry_mate = (
+        "LINK         OD1 ASP A 301                ZN    ZN A 402     1555   2555  2.30"
+    )
+    extra = tmp_path / "extra_links.pdb"
+    extra.write_text(text.replace("LINK", f"{hydrogen_bond}\n{symmetry_mate}\nLINK", 1))
+    assert read_links(extra)[1] == found
+
+    pose = pose_stack_from_file(
+        fixture, torch_device, prepare_ligands=True, ligand_seed=17, no_optH=True
+    )
+    labels = pose.pdb_info.residue_labels[0]
+    joined = set()
+    types = pose.packed_block_types.active_block_types
+    for block, index in enumerate(pose.block_type_ind[0].tolist()):
+        block_type = types[index]
+        backbone = {block_type.up_connection_ind, block_type.down_connection_ind}
+        for connection in range(len(block_type.connections)):
+            other = int(pose.inter_residue_connections[0, block, connection, 0])
+            if connection not in backbone and other >= 0:
+                joined.add(frozenset((int(labels[block]), int(labels[other]))))
+    # The pose drops the waters; every other link joins two blocks.
+    assert joined == {
+        frozenset(int(re.search(r"\d+", atom)[0]) for atom in pair)
+        for pair in links
+        if not pair[0].startswith("HOH")
+    }
+
+
+@pytest.mark.parametrize(
+    "fixture, res_ids, names",
+    [
+        # heme (altloc A) and Zn-porphyrin (B) as two residues on CYS A:14 and A:17
+        ("heme_alternates_1i54", [1104, 1105], {"HEC"}),
+        # KGQ A:201 (altloc A) over A:202 (altloc B)
+        ("kgq_alternates_4m8y", [201, 202], {"KGQ"}),
+    ],
+)
+def test_pdb_keeps_one_alternate_per_linked_group(
+    fixture, res_ids, names, torch_device
+):
+    """Alternates written as separate residues are read as one: no heavy atoms of
+    two residues overlap."""
+    from scipy.spatial import cKDTree
+
+    from tmol.io import atom_array_from_file, pose_stack_from_file
+
+    path = DATA / "sweep_regressions" / f"{fixture}.pdb.zst"
+    array = atom_array_from_file(path)
+    assert set(array.res_name[np.isin(array.res_id, res_ids)]) == names
+    heavy = ~np.isin(np.char.upper(array.element.astype(str)), ("H", "D"))
+    heavy = array[heavy & np.isfinite(array.coord).all(-1)]
+    residue = struc.get_all_residue_positions(heavy)
+    pairs = cKDTree(heavy.coord).query_pairs(1.2, output_type="ndarray")
+    assert (residue[pairs[:, 0]] == residue[pairs[:, 1]]).all()
+    pose = pose_stack_from_file(
+        path, torch_device, prepare_ligands=True, ligand_seed=0, no_optH=True
+    )
+    assert torch.isfinite(pose.coords).all()
+
+
+def test_coordinate_only_pdb_keeps_its_caps_in_the_chain(torch_device):
+    """1COI with its coordinates only, no LINK or CONECT records: the HETATM caps
+    ACE A:0 and NH2 A:30 bond to GLU A:1 N and GLY A:29 C, so they stay in chain A."""
+    from tmol.io import pose_stack_from_file
+
+    fixture = DATA / "sweep_regressions" / "capped_peptide_1coi.pdb.zst"
+    pose = pose_stack_from_file(
+        fixture, torch_device, prepare_ligands=True, ligand_seed=0, no_optH=True
+    )
+    types = pose.packed_block_types.active_block_types
+    names = [types[i].name for i in pose.block_type_ind64[0].tolist() if i >= 0]
+    assert names[:2] == ["ACE", "GLU"]
+    assert names[-3:] == ["GLY", "NH2", "SO4"]

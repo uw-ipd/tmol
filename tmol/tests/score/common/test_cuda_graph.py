@@ -163,3 +163,25 @@ def test_cuda_scoring_capture_preserves_uncached_autocast(torch_device, dtype):
         expected_grads = torch.autograd.grad(expected.sum(), (coords, module.weight))
         for actual_grad, expected_grad in zip(actual_grads, expected_grads):
             torch.testing.assert_close(actual_grad, expected_grad, atol=0, rtol=0)
+
+
+@pytest.mark.parametrize(
+    "misuse",
+    [
+        "forward_hook",
+        "forward_pre_hook",
+        "full_backward_hook",
+        "full_backward_pre_hook",
+        "trainable_buffer",
+    ],
+)
+def test_cuda_scoring_capture_rejects_hooks_and_trainable_buffers(torch_device, misuse):
+    inner = _ScoringExample(torch_device, torch.float32)
+    if misuse == "trainable_buffer":
+        inner.offset.requires_grad_(True)
+    else:
+        getattr(inner, f"register_{misuse}")(lambda *args: None)
+    sample = torch.zeros((3, 5), device=torch_device, requires_grad=True)
+    match = "requires_grad=False" if misuse == "trainable_buffer" else "have hooks"
+    with pytest.raises(AssertionError, match=match):
+        CapturedScoringGraph(torch.nn.Sequential(inner), sample)
