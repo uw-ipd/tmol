@@ -1,3 +1,4 @@
+import ctypes
 import importlib.util
 from pathlib import Path
 import subprocess
@@ -81,6 +82,11 @@ def main():
     common_path = Path(sys.argv[2])
     load_adapter(module_path)
 
+    common = ctypes.cdll.LoadLibrary(str(common_path))
+    common.tmol_disulfide_cpu_abi_version.argtypes = []
+    common.tmol_disulfide_cpu_abi_version.restype = ctypes.c_uint32
+    assert common.tmol_disulfide_cpu_abi_version() == 1
+
     coords, pairs, params = inputs(False)
     inference = torch.ops.tmol_disulfide_shared.prepared(coords, pairs, params, False)
     assert inference.shape == (1,)
@@ -128,6 +134,7 @@ def main():
     undefined = subprocess.check_output(
         ["nm", "-D", "--undefined-only", module_path], text=True
     )
+    assert "tmol_disulfide_cpu_abi_version" in undefined
     assert "_ZN2at" not in undefined
     assert "_ZN3c10" not in undefined
     linkage = subprocess.check_output(["ldd", common_path], text=True)

@@ -21,6 +21,22 @@ tmol_disulfide_cpu_executor torch_executor() {
   return {nullptr, torch_parallel_for};
 }
 
+uint32_t common_abi_version() {
+  static uint32_t const version = tmol_disulfide_cpu_abi_version();
+  return version;
+}
+
+void check_common_abi() {
+  uint32_t const actual = common_abi_version();
+  STD_TORCH_CHECK(
+      actual == TMOL_DISULFIDE_CPU_ABI_VERSION,
+      "shared disulfide CPU ABI mismatch: expected ",
+      TMOL_DISULFIDE_CPU_ABI_VERSION,
+      ", found ",
+      actual,
+      "; reinstall matching tmol native components");
+}
+
 void check_inputs(
     Tensor const& coords, Tensor const& pairs, Tensor const& params) {
   STD_TORCH_CHECK(
@@ -231,6 +247,7 @@ class PreparedDisulfideOp : public Function<PreparedDisulfideOp> {
       Tensor params,
       bool recompute_backward,
       bool needs_backward) {
+    check_common_abi();
     check_inputs(coords, pairs, params);
     auto energies = tmol::native::empty({pairs.size(0)}, coords.options());
     bool tracked = needs_backward && !recompute_backward;
@@ -273,6 +290,7 @@ class PreparedDisulfideOp : public Function<PreparedDisulfideOp> {
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
     tensor_list result(5);
     if (!grad_outputs[0].defined()) return result;
+    check_common_abi();
     auto saved = ctx->get_saved_variables();
     bool recompute = ctx->saved_data["recompute"].toBool();
     int64_t n_atoms = ctx->saved_data["n_atoms"].toInt();
