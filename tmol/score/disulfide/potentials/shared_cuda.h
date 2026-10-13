@@ -49,9 +49,12 @@ typedef struct tmol_disulfide_cuda_workspace {
 /*
  * Pointers address device memory. stream is the caller's cudaStream_t encoded
  * as uintptr_t; zero selects the legacy default stream. Calls enqueue work and
- * never synchronize. device_status is initialized asynchronously and receives
- * data-dependent errors such as invalid prepared indices; inspect it only
- * after the submitted stream completes.
+ * never synchronize. When non-null, device_status is initialized asynchronously
+ * and receives data-dependent errors such as invalid prepared indices. Inspect
+ * it only after the submitted stream completes. A caller may pass null only
+ * when its immutable prepared plan has already validated every atom and
+ * parameter index; kernels still skip invalid rows, but no asynchronous
+ * diagnostic is then available.
  *
  * Strides are measured in logical xyz, eight-int pair, or 33-scalar parameter
  * records. Every record itself is tightly packed. Every stride of a nonempty

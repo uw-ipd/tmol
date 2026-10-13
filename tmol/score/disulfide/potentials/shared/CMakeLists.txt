@@ -84,6 +84,11 @@ if(TMOL_BUILD_CUDA)
     POSITION_INDEPENDENT_CODE ON
   )
 
+  if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR
+     AND TMOL_OPS_CUDA)
+    install(TARGETS tmol_disulfide_shared_cuda LIBRARY DESTINATION "${_TMOL_NATIVE_PACKAGE}")
+  endif()
+
   if(TMOL_BUILD_TESTS)
     add_executable(test_disulfide_shared_cuda
       ${TMOL_SHARED_SOURCE_ROOT}/tmol/tests/score/disulfide/test_shared_cuda.cu

@@ -38,15 +38,14 @@ int32_t launch_status(cudaError_t status) {
                                : TMOL_DISULFIDE_CUDA_LAUNCH_ERROR;
 }
 
-int32_t reset_device_status(
-    cudaStream_t stream, int32_t* device_status, bool required) {
-  if (required && !device_status) return TMOL_DISULFIDE_CUDA_INVALID_SHAPE;
+int32_t reset_device_status(cudaStream_t stream, int32_t* device_status) {
   if (!device_status) return TMOL_DISULFIDE_CUDA_SUCCESS;
   return launch_status(
       cudaMemsetAsync(device_status, 0, sizeof(*device_status), stream));
 }
 
 __device__ void record_invalid_index(int32_t* status) {
+  if (!status) return;
   atomicCAS(
       status, TMOL_DISULFIDE_CUDA_SUCCESS, TMOL_DISULFIDE_CUDA_INVALID_INDEX);
 }
@@ -239,8 +238,7 @@ int32_t launch_forward(
     return TMOL_DISULFIDE_CUDA_MISSING_DERIVATIVE_OUTPUT;
   }
   if (reset_status) {
-    auto status =
-        reset_device_status(stream, device_status, inputs.n_pairs != 0);
+    auto status = reset_device_status(stream, device_status);
     if (status != TMOL_DISULFIDE_CUDA_SUCCESS) return status;
   }
   int blocks = launch_blocks(inputs.n_pairs);
@@ -283,12 +281,12 @@ int32_t launch_vjp(
       || (n_pairs
           && (pair_stride < 1 || derivative_pair_stride < 1
               || derivative_atom_stride < 1 || cotangent_stride < 1 || !pairs
-              || !derivatives || !cotangents || !device_status))
+              || !derivatives || !cotangents))
       || (n_atoms && (!gradient || gradient_stride < 1))) {
     return TMOL_DISULFIDE_CUDA_INVALID_SHAPE;
   }
   if (reset_status) {
-    auto status = reset_device_status(stream, device_status, n_pairs != 0);
+    auto status = reset_device_status(stream, device_status);
     if (status != TMOL_DISULFIDE_CUDA_SUCCESS) return status;
   }
   int gradient_blocks = launch_blocks(n_atoms);
@@ -335,7 +333,7 @@ int32_t launch_recompute_vjp(
           && reinterpret_cast<uintptr_t>(workspace) % required.alignment)) {
     return TMOL_DISULFIDE_CUDA_INSUFFICIENT_WORKSPACE;
   }
-  auto status = reset_device_status(stream, device_status, inputs.n_pairs != 0);
+  auto status = reset_device_status(stream, device_status);
   if (status != TMOL_DISULFIDE_CUDA_SUCCESS) return status;
   using Outputs = std::conditional_t<
       std::is_same_v<Real, float>,

@@ -149,7 +149,8 @@ def test_base_package_is_single_shared_library_owner():
         "install(TARGETS tmol_disulfide_shared_cpu LIBRARY DESTINATION tmol)"
         in shared_cmake
     )
-    assert "install(TARGETS tmol_disulfide_shared_cuda" not in shared_cmake
+    assert "install(TARGETS tmol_disulfide_shared_cuda" in shared_cmake
+    assert 'DESTINATION "${_TMOL_NATIVE_PACKAGE}"' in shared_cmake
     assert (
         "install(TARGETS tmol_disulfide_shared_torch LIBRARY DESTINATION tmol)"
         in root_cmake

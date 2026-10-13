@@ -180,6 +180,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 option(TMOL_BUILD_TESTS "Build test C++/CUDA extensions" OFF)
+set(TMOL_BUILD_CUDA "${TMOL_HAS_CUDA}")
 add_subdirectory(tmol/score/disulfide/potentials/shared)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   # LTO can resolve STL calls to Torch's unversioned template exports, even
@@ -494,7 +495,7 @@ if(NOT TMOL_OPS_CUDA)
   target_include_directories(tmol_disulfide_shared_torch BEFORE PRIVATE
     ${pybind11_INCLUDE_DIRS})
   target_link_libraries(tmol_disulfide_shared_torch PRIVATE
-    tmol_disulfide_shared_cpu
+    tmol_disulfide_shared_cpu ${CMAKE_DL_LIBS}
   )
   set_target_properties(tmol_disulfide_shared_torch PROPERTIES
     OUTPUT_NAME "_shared_disulfide_torch"
@@ -547,7 +548,7 @@ if(TMOL_BUILD_TESTS AND NOT TMOL_OPS_CUDA)
   target_include_directories(tmol_disulfide_shared_torch_test BEFORE PRIVATE
     ${pybind11_INCLUDE_DIRS})
   target_link_libraries(tmol_disulfide_shared_torch_test PRIVATE
-    tmol_disulfide_shared_cpu
+    tmol_disulfide_shared_cpu ${CMAKE_DL_LIBS}
   )
   set_target_properties(tmol_disulfide_shared_torch_test PROPERTIES
     OUTPUT_NAME "_shared_disulfide_test"
