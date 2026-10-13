@@ -103,12 +103,13 @@ def exported_symbols(path):
 def main():
     adapter_path = Path(sys.argv[1])
     common_path = Path(sys.argv[2])
+    platform = sys.argv[3] if len(sys.argv) > 3 else "cpu"
     library = ctypes.cdll.LoadLibrary(str(adapter_path))
     capsules = {
         role: jax.ffi.pycapsule(getattr(library, name))
         for role, name in TARGETS.items()
     }
-    disulfide.register_ffi_targets(capsules)
+    disulfide.register_ffi_targets(capsules, platform=platform)
 
     for dtype, tolerance in ((jnp.float32, 2e-5), (jnp.float64, 1e-12)):
         coords, pairs, params = inputs(dtype)
@@ -190,19 +191,23 @@ def main():
             assert value.shape == (0,)
             assert gradient.shape == (0, 3)
 
-    coords, pairs, params = inputs(jnp.float64)
-    invalid_pairs = pairs.at[0, 2].set(coords.shape[0])
-    try:
-        np.asarray(disulfide.score(coords, invalid_pairs, params))
-    except Exception as error:
-        assert "pair index out of bounds" in str(error).lower()
-    else:
-        raise AssertionError("invalid pair atom index unexpectedly succeeded")
+    if platform == "cpu":
+        coords, pairs, params = inputs(jnp.float64)
+        invalid_pairs = pairs.at[0, 2].set(coords.shape[0])
+        try:
+            np.asarray(disulfide.score(coords, invalid_pairs, params))
+        except Exception as error:
+            assert "pair index out of bounds" in str(error).lower()
+        else:
+            raise AssertionError("invalid pair atom index unexpectedly succeeded")
 
     assert exported_symbols(adapter_path) == set(TARGETS.values())
     common_symbols = exported_symbols(common_path)
     assert common_symbols
-    assert all(symbol.startswith("tmol_disulfide_cpu_") for symbol in common_symbols)
+    common_prefix = (
+        "tmol_disulfide_cpu_" if platform == "cpu" else "tmol_disulfide_cuda_"
+    )
+    assert all(symbol.startswith(common_prefix) for symbol in common_symbols)
     common_linkage = subprocess.check_output(["ldd", common_path], text=True)
     assert "libtorch" not in common_linkage
     assert "jax" not in common_linkage

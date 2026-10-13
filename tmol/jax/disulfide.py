@@ -1,7 +1,8 @@
-"""Explicit JAX contract for the framework-neutral CPU disulfide core.
+"""Explicit JAX contract for the framework-neutral disulfide core.
 
-The base wheel owns the native adapter, but callers must register its handlers
-explicitly before :func:`score` can dispatch them.
+The base wheel owns the CPU adapter and a matching CUDA companion may own the
+CUDA adapter. Callers register handlers explicitly before :func:`score` can
+dispatch them.
 """
 
 from __future__ import annotations
@@ -9,9 +10,11 @@ from __future__ import annotations
 import ctypes
 from functools import lru_cache
 from importlib import import_module
+from importlib.util import find_spec
 from pathlib import Path
 from types import MappingProxyType
 
+# Target names are intentionally identical across XLA platforms.
 DISULFIDE_CPU_FFI_TARGETS = MappingProxyType(
     {
         "forward": "tmol_disulfide_cpu_ffi_forward",
@@ -22,27 +25,7 @@ DISULFIDE_CPU_FFI_TARGETS = MappingProxyType(
 )
 
 _REGISTERED_TARGETS = {}
-_NATIVE_LIBRARY = None
-
-
-def _installed_capsules():
-    """Load the base-wheel-owned CPU adapter without importing Torch."""
-
-    global _NATIVE_LIBRARY
-    if _NATIVE_LIBRARY is None:
-        package_dir = Path(__file__).resolve().parent.parent
-        candidates = sorted(package_dir.glob("_shared_disulfide_ffi.*"))
-        if len(candidates) != 1:
-            raise RuntimeError(
-                "TMol JAX disulfide CPU adapter is missing or ambiguous; "
-                "reinstall the matching tmol wheel"
-            )
-        _NATIVE_LIBRARY = ctypes.CDLL(str(candidates[0]))
-    jax = _jax()
-    return {
-        role: jax.ffi.pycapsule(getattr(_NATIVE_LIBRARY, target))
-        for role, target in DISULFIDE_CPU_FFI_TARGETS.items()
-    }
+_NATIVE_LIBRARIES = {}
 
 
 def _jax():
@@ -55,51 +38,132 @@ def _jax():
         ) from error
 
 
-def register_ffi_targets(capsules=None):
-    """Register a complete or partial role-to-capsule mapping on CPU.
+@lru_cache(maxsize=1)
+def _installed_cpu_capsules():
+    """Load the base-wheel-owned CPU adapter without importing Torch."""
+
+    if "cpu" not in _NATIVE_LIBRARIES:
+        package_dir = Path(__file__).resolve().parent.parent
+        candidates = sorted(package_dir.glob("_shared_disulfide_ffi.*"))
+        if len(candidates) != 1:
+            raise RuntimeError(
+                "TMol JAX disulfide CPU adapter is missing or ambiguous; "
+                "reinstall the matching tmol wheel"
+            )
+        _NATIVE_LIBRARIES["cpu"] = ctypes.CDLL(str(candidates[0]))
+    jax = _jax()
+    return {
+        role: jax.ffi.pycapsule(getattr(_NATIVE_LIBRARIES["cpu"], target))
+        for role, target in DISULFIDE_CPU_FFI_TARGETS.items()
+    }
+
+
+def _cuda_adapter_candidates():
+    candidates = []
+    for package_name in ("tmol_ops_cu13", "tmol_ops_cu12"):
+        spec = find_spec(package_name)
+        if spec is None:
+            continue
+        for location in spec.submodule_search_locations or ():
+            candidates.extend(
+                sorted(Path(location).glob("_shared_disulfide_cuda_ffi.*"))
+            )
+    return tuple(dict.fromkeys(candidates))
+
+
+@lru_cache(maxsize=1)
+def _installed_cuda_capsules():
+    """Return a matching CUDA-companion adapter, or ``None`` when absent."""
+
+    candidates = _cuda_adapter_candidates()
+    if not candidates:
+        return None
+    if len(candidates) != 1:
+        paths = ", ".join(str(path) for path in candidates)
+        raise RuntimeError(
+            "TMol JAX disulfide CUDA adapter is ambiguous; uninstall the "
+            f"nonmatching CUDA companion and reinstall one version: {paths}"
+        )
+    try:
+        library = ctypes.CDLL(str(candidates[0]))
+    except OSError as error:
+        raise RuntimeError(
+            "TMol JAX disulfide CUDA adapter could not load; reinstall matching "
+            "tmol and tmol-ops-cu12/cu13 wheels"
+        ) from error
+    _NATIVE_LIBRARIES["CUDA"] = library
+    jax = _jax()
+    try:
+        return {
+            role: jax.ffi.pycapsule(getattr(library, target))
+            for role, target in DISULFIDE_CPU_FFI_TARGETS.items()
+        }
+    except AttributeError as error:
+        raise RuntimeError(
+            "TMol JAX disulfide CUDA adapter is incomplete; reinstall matching "
+            "tmol and CUDA companion wheels"
+        ) from error
+
+
+def register_ffi_targets(capsules=None, *, platform="cpu"):
+    """Register role-to-capsule mappings and discover an optional companion.
 
     Repeating a registration with the identical capsule object is a no-op.
     Reusing a role with a different capsule is rejected before any new target
-    is registered, so independently loaded adapters cannot silently replace an
-    existing handler.
+    is registered. Calling with no arguments registers CPU and, when exactly
+    one matching CUDA companion is installed, CUDA without importing Torch.
     """
 
+    discover_cuda = capsules is None and platform == "cpu"
     if capsules is None:
-        capsules = _installed_capsules()
+        capsules = _installed_cpu_capsules()
+    if platform not in {"cpu", "CUDA"}:
+        raise ValueError(f"unsupported disulfide FFI platform: {platform!r}")
     unknown = set(capsules) - set(DISULFIDE_CPU_FFI_TARGETS)
     if unknown:
-        raise ValueError(f"unknown disulfide CPU FFI roles: {sorted(unknown)}")
+        raise ValueError(f"unknown disulfide FFI roles: {sorted(unknown)}")
     conflicts = [
         role
         for role, capsule in capsules.items()
-        if role in _REGISTERED_TARGETS and _REGISTERED_TARGETS[role] is not capsule
+        if (platform, role) in _REGISTERED_TARGETS
+        and _REGISTERED_TARGETS[platform, role] is not capsule
     ]
     if conflicts:
         raise ValueError(
-            "conflicting disulfide CPU FFI capsules for roles: "
+            f"conflicting disulfide {platform} FFI capsules for roles: "
             + ", ".join(sorted(conflicts))
         )
 
     jax = _jax()
     for role, capsule in capsules.items():
-        if role in _REGISTERED_TARGETS:
+        key = (platform, role)
+        if key in _REGISTERED_TARGETS:
             continue
         jax.ffi.register_ffi_target(
-            DISULFIDE_CPU_FFI_TARGETS[role], capsule, platform="cpu"
+            DISULFIDE_CPU_FFI_TARGETS[role], capsule, platform=platform
         )
-        _REGISTERED_TARGETS[role] = capsule
+        _REGISTERED_TARGETS[key] = capsule
+    if discover_cuda:
+        cuda_capsules = _installed_cuda_capsules()
+        if cuda_capsules is not None:
+            register_ffi_targets(cuda_capsules, platform="CUDA")
 
 
 def _require_targets(recompute_backward):
     roles = {"forward", "recompute_vjp"}
     if not recompute_backward:
         roles = {"forward", "tracked_forward", "vjp"}
-    missing = roles - set(_REGISTERED_TARGETS)
+    missing = {
+        role
+        for role in roles
+        if not any(
+            (platform, role) in _REGISTERED_TARGETS for platform in ("cpu", "CUDA")
+        )
+    }
     if missing:
         names = ", ".join(DISULFIDE_CPU_FFI_TARGETS[role] for role in sorted(missing))
         raise RuntimeError(
-            "TMol JAX disulfide CPU FFI handlers are not installed/registered: "
-            f"{names}"
+            "TMol JAX disulfide FFI handlers are not installed/registered: " f"{names}"
         )
 
 
@@ -183,14 +247,14 @@ def _score_call(coord_shape, dtype_name, recompute_backward):
 
 
 def score(coords, pairs, params, *, recompute_backward=False):
-    """Return one CPU disulfide energy per pair through future XLA FFI handlers.
+    """Return one disulfide energy per pair through shared XLA FFI handlers.
 
     The static ``recompute_backward`` policy must be a concrete Python bool.
     The default differentiated forward retains pair derivatives; recompute mode
     instead retains the three inputs and delegates derivative scratch ownership
-    to the future XLA FFI handler. Autodiff is defined only for coordinates.
-    Pairs and parameters are nondifferentiable constants; the backward rule
-    returns ``None`` for both.
+    to the XLA FFI handler. Autodiff is defined only for coordinates. Pairs and
+    parameters are nondifferentiable constants. CUDA calls require immutable
+    pairs prepared and index-validated on the host before device upload.
     """
 
     _validate_inputs(coords, pairs, params, recompute_backward)

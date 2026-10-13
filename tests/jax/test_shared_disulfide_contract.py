@@ -76,6 +76,24 @@ def test_target_names_and_registration_are_stable(monkeypatch):
         disulfide.register_ffi_targets({"forward": object()})
     assert len(registered) == 4
 
+    cuda_capsules = {role: object() for role in TARGETS}
+    disulfide.register_ffi_targets(cuda_capsules, platform="CUDA")
+    assert [(name, platform) for name, _, platform in registered[4:]] == [
+        (name, "CUDA") for name in TARGETS.values()
+    ]
+    disulfide.register_ffi_targets(cuda_capsules, platform="CUDA")
+    assert len(registered) == 8
+    with pytest.raises(ValueError, match="conflicting disulfide CUDA.*forward"):
+        disulfide.register_ffi_targets({"forward": object()}, platform="CUDA")
+    with pytest.raises(ValueError, match="unsupported.*gpu"):
+        disulfide.register_ffi_targets({}, platform="gpu")
+
+
+def test_missing_cuda_companion_is_optional(monkeypatch):
+    monkeypatch.setattr(disulfide, "_cuda_adapter_candidates", lambda: ())
+    disulfide._installed_cuda_capsules.cache_clear()
+    assert disulfide._installed_cuda_capsules() is None
+
 
 def test_score_validates_static_mode_shapes_and_dtypes():
     coords, pairs, params = arrays()

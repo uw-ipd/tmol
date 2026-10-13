@@ -533,6 +533,46 @@ if(NOT TMOL_OPS_CUDA)
   )
   install(TARGETS tmol_disulfide_shared_jax LIBRARY DESTINATION tmol)
 endif()
+
+# CUDA companions own the stream-aware JAX adapter beside the CUDA common
+# library. It uses JAX's public FFI headers only at build time and has no
+# runtime linkage to either tensor framework.
+if(TMOL_OPS_CUDA)
+  set(TMOL_JAX_INCLUDE_DIR "" CACHE PATH "JAX FFI include directory")
+  if(NOT TMOL_JAX_INCLUDE_DIR)
+    execute_process(
+      COMMAND ${Python_EXECUTABLE} -c "import jax; print(jax.ffi.include_dir())"
+      OUTPUT_VARIABLE TMOL_JAX_INCLUDE_DIR
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      COMMAND_ERROR_IS_FATAL ANY
+    )
+  endif()
+  add_library(tmol_disulfide_shared_jax_cuda MODULE
+    tmol/score/disulfide/potentials/shared_cuda_ffi.cu
+  )
+  target_include_directories(tmol_disulfide_shared_jax_cuda PRIVATE
+    ${TMOL_JAX_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR}
+  )
+  target_link_libraries(tmol_disulfide_shared_jax_cuda PRIVATE
+    tmol_disulfide_shared_cuda
+  )
+  set_target_properties(tmol_disulfide_shared_jax_cuda PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "_shared_disulfide_cuda_ffi"
+    CUDA_STANDARD 17
+    CUDA_STANDARD_REQUIRED ON
+    CXX_VISIBILITY_PRESET hidden
+    CUDA_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN YES
+    BUILD_RPATH "$<TARGET_FILE_DIR:tmol_disulfide_shared_cuda>"
+    INSTALL_RPATH "$ORIGIN"
+  )
+  install(
+    TARGETS tmol_disulfide_shared_jax_cuda
+    LIBRARY DESTINATION "${_TMOL_NATIVE_PACKAGE}"
+  )
+endif()
 if(TMOL_BUILD_TESTS AND NOT TMOL_OPS_CUDA)
   enable_testing()
   pybind11_add_module(tmol_disulfide_shared_torch_test MODULE

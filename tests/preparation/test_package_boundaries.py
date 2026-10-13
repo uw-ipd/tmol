@@ -133,7 +133,9 @@ def test_optional_packages_preserve_disjoint_framework_ownership():
     for major in (12, 13):
         metadata = _project_metadata(REPOSITORY / f"packages/cu{major}/pyproject.toml")
         requirements = _requirement_names(metadata["project"]["dependencies"])
-        assert requirements == {"tmol", "torch"}
+        build_requirements = _requirement_names(metadata["build-system"]["requires"])
+        assert requirements == {"tmol"}
+        assert {"torch", "jax"} <= build_requirements
         assert metadata["tool"]["scikit-build"]["wheel"]["packages"] == []
 
 
@@ -159,6 +161,8 @@ def test_base_package_is_single_shared_library_owner():
         "install(TARGETS tmol_disulfide_shared_jax LIBRARY DESTINATION tmol)"
         in root_cmake
     )
+    assert "add_library(tmol_disulfide_shared_jax_cuda MODULE" in root_cmake
+    assert 'LIBRARY DESTINATION "${_TMOL_NATIVE_PACKAGE}"' in root_cmake
     for package in ("jax", "jax-cuda", "cu12", "cu13"):
         package_root = REPOSITORY / "packages" / package
         for cmake in package_root.rglob("CMakeLists.txt"):
