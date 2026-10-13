@@ -18,7 +18,6 @@ from urllib.parse import quote
 from packaging.requirements import Requirement
 from packaging.utils import parse_wheel_filename
 
-
 REQUIRED_NEUTRAL_MIGRATION_EVIDENCE = frozenset(
     {
         "neutral-wheel-contents",
