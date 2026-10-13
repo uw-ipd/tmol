@@ -468,9 +468,10 @@
                   
   <section id="jax-frontend-experimental">
 <h1>JAX frontend (experimental)<a class="headerlink" href="#jax-frontend-experimental" title="Link to this heading">#</a></h1>
-<p><code class="docutils literal notranslate"><span class="pre">tmol-jax</span></code> is an optional, pure JAX frontend maintained alongside TMol’s
+<p><code class="docutils literal notranslate"><span class="pre">tmol-jax</span></code> is a legacy development prototype maintained alongside TMol’s
 PyTorch implementation. Its runtime imports <code class="docutils literal notranslate"><span class="pre">tmol_jax</span></code> and does not require
-PyTorch. This implementation is under development: numerical parity,
+PyTorch, but that distribution and namespace are not the final product
+interface. This implementation is under development: numerical parity,
 performance, relaxation and repacking are not yet release validated.</p>
 <p>The initial score preset implements the protein beta2016 channels. Nucleic-acid
 torsion and metal-coordination terms are not implemented. Noncanonical residues,
@@ -483,23 +484,63 @@ implemented. Do not use this experimental frontend as a replacement for a
 validated production TMol calculation yet.</p>
 <section id="build-and-install">
 <h2>Build and install<a class="headerlink" href="#build-and-install" title="Link to this heading">#</a></h2>
-<p>The published <code class="docutils literal notranslate"><span class="pre">tmol</span></code> package is currently the PyTorch frontend. A typical
-unpinned CPU installation is <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">tmol</span></code>; its documented CUDA variants
-remain unchanged. <code class="docutils literal notranslate"><span class="pre">tmol-jax</span></code> and <code class="docutils literal notranslate"><span class="pre">tmol-jax-cuda</span></code> are proposed package names for
-this draft and are not published yet. Once published, the intended independent
-choices are:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># JAX only (choose the matching CUDA major, or omit the extra for CPU)</span>
-pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'tmol-jax[cu13]'</span><span class="w"> </span>tmol-jax-cuda
-
-<span class="c1"># Both independent frontends in one environment</span>
-pip<span class="w"> </span>install<span class="w"> </span>tmol<span class="w"> </span><span class="s1">'tmol-jax[cu13]'</span><span class="w"> </span>tmol-jax-cuda
-</pre></div>
+<p>The published <code class="docutils literal notranslate"><span class="pre">tmol</span></code> 0.1.64 package is currently the PyTorch frontend; its
+documented install commands remain unchanged. The planned next-release user
+interface is <code class="docutils literal notranslate"><span class="pre">tmol[jax]</span></code> for JAX only and <code class="docutils literal notranslate"><span class="pre">tmol[torch,jax]</span></code> for coexistence.
+Those extras are a staged dependency contract, not a working installation
+claim. The future JAX backend must be exposed under <code class="docutils literal notranslate"><span class="pre">tmol</span></code>; that namespace and
+adapter migration, neutral wheel contents, and clean-install validation are
+still incomplete.</p>
+<p>Installing the future bare <code class="docutils literal notranslate"><span class="pre">tmol</span></code> base will install neither framework. The
+<code class="docutils literal notranslate"><span class="pre">tmol[jax]</span></code> extra directly selects the supported JAX runtime and must not
+install or import PyTorch. The current disjoint <code class="docutils literal notranslate"><span class="pre">tmol_jax</span></code> and <code class="docutils literal notranslate"><span class="pre">tmol_jax_cuda</span></code>
+packages remain unpublished prototype artifacts used only for development
+validation; they do not satisfy the final namespace contract.</p>
+<section id="dormant-shared-cpu-disulfide-contract">
+<h3>Dormant shared CPU disulfide contract<a class="headerlink" href="#dormant-shared-cpu-disulfide-contract" title="Link to this heading">#</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">tmol.jax</span></code> namespace now reserves a Python-only wrapper contract for a
+future shared CPU disulfide implementation. No native XLA FFI handler is
+installed or registered yet, so calling this wrapper fails explicitly and
+executable energy or gradient parity has not been established. The static
+<code class="docutils literal notranslate"><span class="pre">recompute_backward</span></code> choice must be a concrete Python <code class="docutils literal notranslate"><span class="pre">bool</span></code>; its default keeps
+pair derivatives for the backward pass, while recompute mode keeps
+coordinates, pairs, and parameters.
+Autodiff is defined only for coordinates. Pairs and parameters are treated as
+nondifferentiable constants, and the backward rule returns <code class="docutils literal notranslate"><span class="pre">None</span></code> for both; this
+contract does not claim parameter differentiability.</p>
+<p>Native wiring must register these CPU targets with the following contracts:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>target</p></th>
+<th class="head"><p>inputs</p></th>
+<th class="head"><p>outputs</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tmol_disulfide_cpu_ffi_forward</span></code></p></td>
+<td><p>coordinates <code class="docutils literal notranslate"><span class="pre">[n_atoms,</span> <span class="pre">3]</span></code>, pairs <code class="docutils literal notranslate"><span class="pre">int32</span> <span class="pre">[n_pairs,</span> <span class="pre">8]</span></code>, parameters <code class="docutils literal notranslate"><span class="pre">[n_params,</span> <span class="pre">33]</span></code></p></td>
+<td><p>energies <code class="docutils literal notranslate"><span class="pre">[n_pairs]</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">tmol_disulfide_cpu_ffi_forward_tracked</span></code></p></td>
+<td><p>coordinates, pairs, parameters</p></td>
+<td><p>energies <code class="docutils literal notranslate"><span class="pre">[n_pairs]</span></code>, pair derivatives <code class="docutils literal notranslate"><span class="pre">[n_pairs,</span> <span class="pre">6,</span> <span class="pre">3]</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tmol_disulfide_cpu_ffi_vjp</span></code></p></td>
+<td><p>pairs, pair derivatives, cotangents <code class="docutils literal notranslate"><span class="pre">[n_pairs]</span></code></p></td>
+<td><p>coordinate gradient <code class="docutils literal notranslate"><span class="pre">[n_atoms,</span> <span class="pre">3]</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">tmol_disulfide_cpu_ffi_recompute_vjp</span></code></p></td>
+<td><p>coordinates, pairs, parameters, cotangents</p></td>
+<td><p>coordinate gradient <code class="docutils literal notranslate"><span class="pre">[n_atoms,</span> <span class="pre">3]</span></code></p></td>
+</tr>
+</tbody>
+</table>
 </div>
-<p>Installing <code class="docutils literal notranslate"><span class="pre">tmol</span></code> does not install JAX, and installing <code class="docutils literal notranslate"><span class="pre">tmol-jax</span></code> does not
-install or import PyTorch. The pure frontend and optional native adapter own
-the disjoint <code class="docutils literal notranslate"><span class="pre">tmol_jax</span></code> and <code class="docutils literal notranslate"><span class="pre">tmol_jax_cuda</span></code> packages so uninstalling either
-does not remove files from the other. CUDA selection is explicit; use <code class="docutils literal notranslate"><span class="pre">cu12</span></code>
-instead of <code class="docutils literal notranslate"><span class="pre">cu13</span></code> for a CUDA 12 JAX runtime.</p>
+<p>Coordinates and parameters must share <code class="docutils literal notranslate"><span class="pre">float32</span></code> or <code class="docutils literal notranslate"><span class="pre">float64</span></code> dtype. The wrapper
+dispatches only through <code class="docutils literal notranslate"><span class="pre">jax.ffi.ffi_call</span></code>; it does not copy coordinates to the
+host or use a Python callback. The future recompute handler must obtain
+temporary storage through XLA FFI caller/scratch allocation and must never call
+<code class="docutils literal notranslate"><span class="pre">malloc</span></code> or round-trip coordinates through the host in its hot path.</p>
 <p>From a TMol developer environment with <code class="docutils literal notranslate"><span class="pre">tmol</span></code>, <code class="docutils literal notranslate"><span class="pre">numpy</span></code> and <code class="docutils literal notranslate"><span class="pre">build</span></code> installed:</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>scripts/build_jax.py<span class="w"> </span>--outdir<span class="w"> </span>dist/jax
 pip<span class="w"> </span>install<span class="w"> </span>dist/jax/tmol_jax-*.whl
@@ -536,6 +577,7 @@ frozen coordinate state. LK-ball reevaluates its exact topology-selected polar x
 heavy-atom pairs, and hydrogen bonding reevaluates the rendered donor x acceptor
 pairs with their exact bond-separation rule and current distance cutoff. All use
 the current coordinates on every call, including during minimization.</p>
+</section>
 </section>
 <section id="score-and-differentiate">
 <h2>Score and differentiate<a class="headerlink" href="#score-and-differentiate" title="Link to this heading">#</a></h2>
@@ -799,7 +841,10 @@ create chain breaks. Prepare chain boundaries explicitly in the input.</p>
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#build-and-install">Build and install</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#build-and-install">Build and install</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#dormant-shared-cpu-disulfide-contract">Dormant shared CPU disulfide contract</a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#score-and-differentiate">Score and differentiate</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#minimize-cartesian-coordinates">Minimize Cartesian coordinates</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#current-validation-and-limitations">Current validation and limitations</a></li>

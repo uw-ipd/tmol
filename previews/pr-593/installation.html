@@ -493,6 +493,30 @@ backend matching your PyTorch installation:</p>
 <code class="docutils literal notranslate"><span class="pre">tmol-ops-cu12</span></code> or <code class="docutils literal notranslate"><span class="pre">tmol-ops-cu13</span></code> at the <strong>same version</strong> as the base package.
 GPU installations also support CPU execution. You do not need a separate TMol
 wheel for each PyTorch minor version or CUDA minor version.</p>
+<section id="planned-framework-neutral-install-contract">
+<h2>Planned framework-neutral install contract<a class="headerlink" href="#planned-framework-neutral-install-contract" title="Link to this heading">#</a></h2>
+<p>Published TMol 0.1.64 keeps the PyTorch installation behavior documented
+above; it will not be republished with different dependencies. A future release
+will make the base runtime tensor-framework-neutral and require an explicit
+frontend choice:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>tmol
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"tmol[torch]"</span>
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"tmol[jax]"</span>
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"tmol[torch,jax]"</span>
+</pre></div>
+</div>
+<p>Bare <code class="docutils literal notranslate"><span class="pre">tmol</span></code> will own shared chemistry and host-side preparation without
+installing either tensor framework. Existing PyTorch users will use the
+<code class="docutils literal notranslate"><span class="pre">torch</span></code> extra; the public PyTorch API remains under <code class="docutils literal notranslate"><span class="pre">tmol</span></code>. The <code class="docutils literal notranslate"><span class="pre">jax</span></code> extra
+will select JAX directly; the backend must ultimately be exposed under <code class="docutils literal notranslate"><span class="pre">tmol</span></code>,
+alongside the preserved PyTorch API. That namespace and adapter migration is
+not implemented yet.</p>
+<p>The repository metadata stages this runtime dependency contract while retaining
+the historical 0.1.64 version marker. This is not yet a working JAX install or
+clean-install proof: the namespace migration, adapters, build requirements, and
+native wheel contents must also become framework-neutral before these commands
+can describe a release artifact.</p>
+</section>
 <section id="requirements">
 <h2>Requirements<a class="headerlink" href="#requirements" title="Link to this heading">#</a></h2>
 <ul class="simple">
@@ -700,6 +724,7 @@ not repair an installed wheel.</p>
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#planned-framework-neutral-install-contract">Planned framework-neutral install contract</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#requirements">Requirements</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cpu-only-pytorch">CPU-only PyTorch</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#gpu-installation">GPU installation</a></li>

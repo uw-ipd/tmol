@@ -448,7 +448,7 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol</h1><div class="highlight"><pre>
-<span></span><span class="sd">"""TMol: GPU-accelerated molecular modeling with PyTorch."""</span>
+<span></span><span class="sd">"""TMol shared molecular-modeling runtime with optional tensor backends."""</span>
 
 <span class="c1"># flake8: noqa</span>
 
@@ -612,8 +612,8 @@
     <span class="k">except</span> <span class="ne">ModuleNotFoundError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">error</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">"torch"</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ModuleNotFoundError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"tmol.</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> requires the Torch frontend; install tmol with "</span>
-                <span class="s2">"its required Torch dependency"</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">"tmol.</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> requires the Torch frontend; install "</span>
+                <span class="s1">'tmol with the "torch" extra: pip install "tmol[torch]"'</span><span class="p">,</span>
                 <span class="n">name</span><span class="o">=</span><span class="s2">"torch"</span><span class="p">,</span>
             <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
         <span class="k">raise</span>
