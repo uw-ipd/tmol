@@ -19,8 +19,43 @@ from packaging.requirements import Requirement
 from packaging.utils import parse_wheel_filename
 
 
+REQUIRED_NEUTRAL_MIGRATION_EVIDENCE = frozenset(
+    {
+        "neutral-wheel-contents",
+        "torch-free-import",
+        "torch-only-install",
+        "jax-only-install",
+        "coexistence-install",
+        "uninstall-ownership",
+    }
+)
+# Publication remains fail-closed until every item above has retained evidence.
+DECLARED_NEUTRAL_MIGRATION_EVIDENCE = frozenset()
+
+
+def require_neutral_migration_ready(
+    evidence=DECLARED_NEUTRAL_MIGRATION_EVIDENCE,
+) -> None:
+    missing = REQUIRED_NEUTRAL_MIGRATION_EVIDENCE - frozenset(evidence)
+    if missing:
+        raise ValueError(
+            "framework-neutral package migration is not publication-ready; "
+            f"missing evidence: {', '.join(sorted(missing))}"
+        )
+
+
+def _only_for_extra(requirement: Requirement, extra: str) -> bool:
+    if requirement.marker is None or not requirement.marker.evaluate({"extra": extra}):
+        return False
+    return not any(
+        requirement.marker.evaluate({"extra": other})
+        for other in ("", "torch", "jax")
+        if other != extra
+    )
+
+
 def validate_wheel(source: Path) -> None:
-    """Check package identity, stable ABI requirements, and RECORD hashes."""
+    """Check package identity, dependency ownership, and RECORD hashes."""
     name, version, _, tags = parse_wheel_filename(source.name)
     if name not in {"tmol", "tmol-ops-cu12", "tmol-ops-cu13"} or version.local:
         raise ValueError(f"unexpected native package wheel: {source.name}")
@@ -37,12 +72,44 @@ def validate_wheel(source: Path) -> None:
         ):
             raise ValueError("wheel filename and metadata disagree")
         requirements = [Requirement(r) for r in metadata.get_all("Requires-Dist", [])]
-        if [str(r.specifier) for r in requirements if r.name == "torch"] != [">=2.11"]:
-            raise ValueError("wheel must target the stable PyTorch ABI (torch>=2.11)")
-        if name != "tmol":
-            if [str(r.specifier) for r in requirements if r.name == "tmol"] != [
-                f"=={version}"
-            ]:
+        if name == "tmol":
+            extras = set(metadata.get_all("Provides-Extra", []))
+            if not {"torch", "jax"}.issubset(extras):
+                raise ValueError("base wheel must declare torch and jax extras")
+            tensor_requirements = [
+                requirement
+                for requirement in requirements
+                if requirement.name in {"torch", "jax", "tmol-jax"}
+            ]
+            if {requirement.name for requirement in tensor_requirements} != {
+                "torch",
+                "jax",
+            }:
+                raise ValueError(
+                    "base wheel has unexpected tensor runtime dependencies"
+                )
+            torch = next(r for r in tensor_requirements if r.name == "torch")
+            if str(torch.specifier) != ">=2.11" or not _only_for_extra(torch, "torch"):
+                raise ValueError("torch extra must target the stable PyTorch ABI")
+            jax = next(r for r in tensor_requirements if r.name == "jax")
+            if str(jax.specifier) != ">=0.11.2" or not _only_for_extra(jax, "jax"):
+                raise ValueError("jax extra must require the supported JAX runtime")
+        else:
+            torch = [r for r in requirements if r.name == "torch"]
+            if (
+                len(torch) != 1
+                or str(torch[0].specifier) != ">=2.11"
+                or torch[0].marker is not None
+            ):
+                raise ValueError(
+                    "operator wheel must target the stable PyTorch ABI (torch>=2.11)"
+                )
+            tmol = [r for r in requirements if r.name == "tmol"]
+            if (
+                len(tmol) != 1
+                or str(tmol[0].specifier) != f"=={version}"
+                or tmol[0].marker is not None
+            ):
                 raise ValueError(
                     "operator package must require the matching TMol release"
                 )
@@ -92,6 +159,7 @@ def write_index(files: list[Path], target: Path, base_url: str) -> None:
 
 def prepare(wheels: Path, sdist: Path, destination: Path) -> None:
     """Prepare public distributions and versioned indexes from validated assets."""
+    require_neutral_migration_ready()
     paths = sorted(wheels.glob("*.whl"))
     versions = {parse_wheel_filename(p.name)[1].public for p in paths}
     if len(versions) != 1:

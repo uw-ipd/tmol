@@ -1,8 +1,9 @@
 # JAX frontend (experimental)
 
-`tmol-jax` is an optional, pure JAX frontend maintained alongside TMol's
+`tmol-jax` is a legacy development prototype maintained alongside TMol's
 PyTorch implementation. Its runtime imports `tmol_jax` and does not require
-PyTorch. This implementation is under development: numerical parity,
+PyTorch, but that distribution and namespace are not the final product
+interface. This implementation is under development: numerical parity,
 performance, relaxation and repacking are not yet release validated.
 
 The initial score preset implements the protein beta2016 channels. Nucleic-acid
@@ -17,25 +18,19 @@ validated production TMol calculation yet.
 
 ## Build and install
 
-The published `tmol` package is currently the PyTorch frontend. A typical
-unpinned CPU installation is `pip install tmol`; its documented CUDA variants
-remain unchanged. `tmol-jax` and `tmol-jax-cuda` are proposed package names for
-this draft and are not published yet. Once published, the intended independent
-choices are:
+The published `tmol` 0.1.64 package is currently the PyTorch frontend; its
+documented install commands remain unchanged. The planned next-release user
+interface is `tmol[jax]` for JAX only and `tmol[torch,jax]` for coexistence.
+Those extras are a staged dependency contract, not a working installation
+claim. The future JAX backend must be exposed under `tmol`; that namespace and
+adapter migration, neutral wheel contents, and clean-install validation are
+still incomplete.
 
-```sh
-# JAX only (choose the matching CUDA major, or omit the extra for CPU)
-pip install 'tmol-jax[cu13]' tmol-jax-cuda
-
-# Both independent frontends in one environment
-pip install tmol 'tmol-jax[cu13]' tmol-jax-cuda
-```
-
-Installing `tmol` does not install JAX, and installing `tmol-jax` does not
-install or import PyTorch. The pure frontend and optional native adapter own
-the disjoint `tmol_jax` and `tmol_jax_cuda` packages so uninstalling either
-does not remove files from the other. CUDA selection is explicit; use `cu12`
-instead of `cu13` for a CUDA 12 JAX runtime.
+Installing the future bare `tmol` base will install neither framework. The
+`tmol[jax]` extra directly selects the supported JAX runtime and must not
+install or import PyTorch. The current disjoint `tmol_jax` and `tmol_jax_cuda`
+packages remain unpublished prototype artifacts used only for development
+validation; they do not satisfy the final namespace contract.
 
 From a TMol developer environment with `tmol`, `numpy` and `build` installed:
 

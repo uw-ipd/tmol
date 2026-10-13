@@ -1,6 +1,6 @@
 [project]
 name = "tmol"
-description = "GPU-accelerated PyTorch reimplementation of the Rosetta energy function"
+description = "GPU-accelerated molecular modeling with optional tensor backends"
 readme = "README.md"
 license = {text = "BSD-3-Clause"}
 requires-python = ">=3.11"
@@ -24,10 +24,8 @@ classifiers = [
 version = "0.1.64"
 
 dependencies = [
-    # Current Torch-frontend contract; keep bare tmol behavior unchanged until
-    # a separately validated framework-neutral distribution owns shared files.
-    # Stable native C ABI; no PyTorch minor-specific wheels.
-    "torch>=2.11",
+    # Framework-neutral host/runtime dependencies. Tensor backends are explicit
+    # extras so shared chemistry and preparation have one package owner.
     "numpy>=1.25",
     "scipy>=1.13.1",
     # Data structures & serialization
@@ -65,9 +63,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+torch = ["torch>=2.11"]
+jax = ["jax>=0.11.2"]
 cu12 = ["tmol-ops-cu12==0.1.64"]
 cu13 = ["tmol-ops-cu13==0.1.64"]
 dev = [
+    # Development and the current canonical frontend exercise Torch APIs.
+    "torch>=2.11",
     # Linters & formatters
     # Keep formatter and linter pins in sync with .pre-commit-config.yaml.
     "black==26.10.0",

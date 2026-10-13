@@ -1,4 +1,4 @@
-"""TMol: GPU-accelerated molecular modeling with PyTorch."""
+"""TMol shared molecular-modeling runtime with optional tensor backends."""
 
 # flake8: noqa
 
@@ -159,8 +159,8 @@ def __getattr__(name):
     except ModuleNotFoundError as error:
         if error.name == "torch":
             raise ModuleNotFoundError(
-                f"tmol.{name} requires the Torch frontend; install tmol with "
-                "its required Torch dependency",
+                f"tmol.{name} requires the Torch frontend; install "
+                'tmol with the "torch" extra: pip install "tmol[torch]"',
                 name="torch",
             ) from error
         raise

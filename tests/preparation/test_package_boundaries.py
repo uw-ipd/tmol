@@ -63,6 +63,7 @@ try:
 except ModuleNotFoundError as error:
     assert error.name == "torch"
     assert "requires the Torch frontend" in str(error)
+    assert "tmol[torch]" in str(error)
 else:
     raise AssertionError("tmol.has_cuda unexpectedly loaded without Torch")
 """
@@ -81,11 +82,20 @@ def test_current_frontend_distributions_have_independent_dependencies():
     torch_project = torch_metadata["project"]
     jax_project = jax_metadata["project"]
     torch_requirements = _requirement_names(torch_project["dependencies"])
+    build_requirements = _requirement_names(torch_metadata["build-system"]["requires"])
+    torch_extra = _requirement_names(torch_project["optional-dependencies"]["torch"])
+    jax_extra = _requirement_names(torch_project["optional-dependencies"]["jax"])
     jax_requirements = _requirement_names(jax_project["dependencies"])
 
     assert torch_project["name"] == "tmol"
-    assert "torch" in torch_requirements
-    assert "jax" not in torch_requirements
+    assert torch_project["version"] == "0.1.64"
+    assert torch_project["optional-dependencies"]["torch"] == ["torch>=2.11"]
+    assert torch_project["optional-dependencies"]["jax"] == ["jax>=0.11.2"]
+    assert torch_requirements.isdisjoint({"torch", "jax", "tmol-jax"})
+    assert torch_extra == {"torch"}
+    assert jax_extra == {"jax"}
+    assert torch_extra | jax_extra == {"torch", "jax"}
+    assert "torch" in build_requirements  # Wheel neutrality remains a later gate.
 
     assert jax_project["name"] == "tmol-jax"
     assert "jax" in jax_requirements
@@ -109,9 +119,9 @@ def test_optional_packages_preserve_disjoint_framework_ownership():
     ]
     assert jax_cuda_metadata["project"]["name"] == "tmol-jax-cuda"
     assert jax_cuda_metadata["project"]["dynamic"] == ["version", "dependencies"]
-    assert jax_cuda_metadata["tool"]["setuptools"]["packages"]["find"][
-        "include"
-    ] == ["tmol_jax_cuda"]
+    assert jax_cuda_metadata["tool"]["setuptools"]["packages"]["find"]["include"] == [
+        "tmol_jax_cuda"
+    ]
 
     jax_cuda_setup = (REPOSITORY / "packages/jax-cuda/setup.py").read_text(
         encoding="utf-8"
@@ -121,9 +131,7 @@ def test_optional_packages_preserve_disjoint_framework_ownership():
     assert '"torch' not in jax_cuda_setup
 
     for major in (12, 13):
-        metadata = _project_metadata(
-            REPOSITORY / f"packages/cu{major}/pyproject.toml"
-        )
+        metadata = _project_metadata(REPOSITORY / f"packages/cu{major}/pyproject.toml")
         requirements = _requirement_names(metadata["project"]["dependencies"])
         assert requirements == {"tmol", "torch"}
         assert metadata["tool"]["scikit-build"]["wheel"]["packages"] == []
@@ -138,3 +146,17 @@ def test_shared_library_install_waits_for_single_neutral_owner():
     assert "add_library(tmol_disulfide_shared_cpu SHARED" in shared_cmake
     assert "install(TARGETS tmol_disulfide_shared_cpu" not in shared_cmake
     assert "install(TARGETS tmol_disulfide_shared_cuda" not in shared_cmake
+
+
+def test_future_install_migration_is_explicit_and_unreleased():
+    documentation = (REPOSITORY / "docs/installation.md").read_text(encoding="utf-8")
+    for command in (
+        'pip install "tmol[torch]"',
+        'pip install "tmol[jax]"',
+        'pip install "tmol[torch,jax]"',
+    ):
+        assert command in documentation
+    assert "will not be republished with different dependencies" in documentation
+    assert "not yet a working JAX install" in documentation
+    assert "namespace and adapter migration" in documentation
+    assert "not implemented yet" in documentation
