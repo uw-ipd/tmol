@@ -176,93 +176,92 @@ ffi::Error check_abi() {
 template <typename Real>
 struct Core;
 
-#define TMOL_DEFINE_CUDA_CORE(Real, Suffix)                                  \
-  template <>                                                                \
-  struct Core<Real> {                                                        \
-    using Inputs = tmol_disulfide_cuda_##Suffix##_inputs;                    \
-    using Outputs = tmol_disulfide_cuda_##Suffix##_forward_outputs;          \
-    static Inputs inputs(Buffer coords, Buffer pairs, Buffer params) {       \
-      return {                                                               \
-          static_cast<Real const*>(coords.untyped_data()),                   \
-          coords.dimensions()[0],                                            \
-          1,                                                                 \
-          static_cast<int32_t const*>(pairs.untyped_data()),                 \
-          pairs.dimensions()[0],                                             \
-          1,                                                                 \
-          static_cast<Real const*>(params.untyped_data()),                   \
-          params.dimensions()[0],                                            \
-          1};                                                                \
-    }                                                                        \
-    static int32_t forward(                                                  \
-        cudaStream_t stream,                                                 \
-        Buffer coords,                                                       \
-        Buffer pairs,                                                        \
-        Buffer params,                                                       \
-        int32_t mode,                                                        \
-        Result energies,                                                     \
-        Result* derivatives) {                                               \
-      Outputs outputs{                                                       \
-          static_cast<Real*>(energies->untyped_data()),                      \
-          1,                                                                 \
-          derivatives == nullptr                                             \
-              ? nullptr                                                      \
-              : static_cast<Real*>((*derivatives)->untyped_data()),          \
-          derivatives == nullptr ? 0 : 6,                                    \
-          derivatives == nullptr ? 0 : 1};                                   \
-      return tmol_disulfide_cuda_##Suffix##_forward(                         \
-          reinterpret_cast<uintptr_t>(stream),                               \
-          inputs(coords, pairs, params),                                     \
-          mode,                                                              \
-          outputs,                                                           \
-          nullptr);                                                          \
-    }                                                                        \
-    static int32_t vjp(                                                      \
-        cudaStream_t stream,                                                 \
-        Buffer pairs,                                                        \
-        Buffer derivatives,                                                  \
-        Buffer cotangents,                                                   \
-        Result gradient) {                                                   \
-      return tmol_disulfide_cuda_##Suffix##_vjp(                             \
-          reinterpret_cast<uintptr_t>(stream),                               \
-          TMOL_DISULFIDE_CUDA_MAY_OVERLAP,                                   \
-          static_cast<int32_t const*>(pairs.untyped_data()),                 \
-          pairs.dimensions()[0],                                             \
-          1,                                                                 \
-          static_cast<Real const*>(derivatives.untyped_data()),              \
-          6,                                                                 \
-          1,                                                                 \
-          static_cast<Real const*>(cotangents.untyped_data()),               \
-          1,                                                                 \
-          static_cast<Real*>(gradient->untyped_data()),                      \
-          gradient->dimensions()[0],                                         \
-          1,                                                                 \
-          nullptr);                                                          \
-    }                                                                        \
-    static tmol_disulfide_cuda_workspace workspace(int64_t n_pairs) {        \
-      return                                                                 \
-          tmol_disulfide_cuda_##Suffix##_recompute_vjp_workspace(n_pairs);   \
-    }                                                                        \
-    static int32_t recompute_vjp(                                            \
-        cudaStream_t stream,                                                 \
-        Buffer coords,                                                       \
-        Buffer pairs,                                                        \
-        Buffer params,                                                       \
-        Buffer cotangents,                                                   \
-        Result gradient,                                                     \
-        void* workspace,                                                     \
-        size_t workspace_bytes) {                                            \
-      return tmol_disulfide_cuda_##Suffix##_recompute_vjp(                   \
-          reinterpret_cast<uintptr_t>(stream),                               \
-          TMOL_DISULFIDE_CUDA_MAY_OVERLAP,                                   \
-          inputs(coords, pairs, params),                                     \
-          static_cast<Real const*>(cotangents.untyped_data()),               \
-          1,                                                                 \
-          static_cast<Real*>(gradient->untyped_data()),                      \
-          1,                                                                 \
-          workspace,                                                         \
-          workspace_bytes,                                                   \
-          nullptr);                                                          \
-    }                                                                        \
+#define TMOL_DEFINE_CUDA_CORE(Real, Suffix)                                   \
+  template <>                                                                 \
+  struct Core<Real> {                                                         \
+    using Inputs = tmol_disulfide_cuda_##Suffix##_inputs;                     \
+    using Outputs = tmol_disulfide_cuda_##Suffix##_forward_outputs;           \
+    static Inputs inputs(Buffer coords, Buffer pairs, Buffer params) {        \
+      return {                                                                \
+          static_cast<Real const*>(coords.untyped_data()),                    \
+          coords.dimensions()[0],                                             \
+          1,                                                                  \
+          static_cast<int32_t const*>(pairs.untyped_data()),                  \
+          pairs.dimensions()[0],                                              \
+          1,                                                                  \
+          static_cast<Real const*>(params.untyped_data()),                    \
+          params.dimensions()[0],                                             \
+          1};                                                                 \
+    }                                                                         \
+    static int32_t forward(                                                   \
+        cudaStream_t stream,                                                  \
+        Buffer coords,                                                        \
+        Buffer pairs,                                                         \
+        Buffer params,                                                        \
+        int32_t mode,                                                         \
+        Result energies,                                                      \
+        Result* derivatives) {                                                \
+      Outputs outputs{                                                        \
+          static_cast<Real*>(energies->untyped_data()),                       \
+          1,                                                                  \
+          derivatives == nullptr                                              \
+              ? nullptr                                                       \
+              : static_cast<Real*>((*derivatives)->untyped_data()),           \
+          derivatives == nullptr ? 0 : 6,                                     \
+          derivatives == nullptr ? 0 : 1};                                    \
+      return tmol_disulfide_cuda_##Suffix##_forward(                          \
+          reinterpret_cast<uintptr_t>(stream),                                \
+          inputs(coords, pairs, params),                                      \
+          mode,                                                               \
+          outputs,                                                            \
+          nullptr);                                                           \
+    }                                                                         \
+    static int32_t vjp(                                                       \
+        cudaStream_t stream,                                                  \
+        Buffer pairs,                                                         \
+        Buffer derivatives,                                                   \
+        Buffer cotangents,                                                    \
+        Result gradient) {                                                    \
+      return tmol_disulfide_cuda_##Suffix##_vjp(                              \
+          reinterpret_cast<uintptr_t>(stream),                                \
+          TMOL_DISULFIDE_CUDA_MAY_OVERLAP,                                    \
+          static_cast<int32_t const*>(pairs.untyped_data()),                  \
+          pairs.dimensions()[0],                                              \
+          1,                                                                  \
+          static_cast<Real const*>(derivatives.untyped_data()),               \
+          6,                                                                  \
+          1,                                                                  \
+          static_cast<Real const*>(cotangents.untyped_data()),                \
+          1,                                                                  \
+          static_cast<Real*>(gradient->untyped_data()),                       \
+          gradient->dimensions()[0],                                          \
+          1,                                                                  \
+          nullptr);                                                           \
+    }                                                                         \
+    static tmol_disulfide_cuda_workspace workspace(int64_t n_pairs) {         \
+      return tmol_disulfide_cuda_##Suffix##_recompute_vjp_workspace(n_pairs); \
+    }                                                                         \
+    static int32_t recompute_vjp(                                             \
+        cudaStream_t stream,                                                  \
+        Buffer coords,                                                        \
+        Buffer pairs,                                                         \
+        Buffer params,                                                        \
+        Buffer cotangents,                                                    \
+        Result gradient,                                                      \
+        void* workspace,                                                      \
+        size_t workspace_bytes) {                                             \
+      return tmol_disulfide_cuda_##Suffix##_recompute_vjp(                    \
+          reinterpret_cast<uintptr_t>(stream),                                \
+          TMOL_DISULFIDE_CUDA_MAY_OVERLAP,                                    \
+          inputs(coords, pairs, params),                                      \
+          static_cast<Real const*>(cotangents.untyped_data()),                \
+          1,                                                                  \
+          static_cast<Real*>(gradient->untyped_data()),                       \
+          1,                                                                  \
+          workspace,                                                          \
+          workspace_bytes,                                                    \
+          nullptr);                                                           \
+    }                                                                         \
   }
 
 TMOL_DEFINE_CUDA_CORE(float, f32);
@@ -284,22 +283,24 @@ ffi::Error forward(
     return error;
   }
   return coords.element_type() == ffi::DataType::F32
-             ? common_status(Core<float>::forward(
-                   stream,
-                   coords,
-                   pairs,
-                   params,
-                   TMOL_DISULFIDE_CUDA_INFERENCE,
-                   energies,
-                   nullptr))
-             : common_status(Core<double>::forward(
-                   stream,
-                   coords,
-                   pairs,
-                   params,
-                   TMOL_DISULFIDE_CUDA_INFERENCE,
-                   energies,
-                   nullptr));
+             ? common_status(
+                   Core<float>::forward(
+                       stream,
+                       coords,
+                       pairs,
+                       params,
+                       TMOL_DISULFIDE_CUDA_INFERENCE,
+                       energies,
+                       nullptr))
+             : common_status(
+                   Core<double>::forward(
+                       stream,
+                       coords,
+                       pairs,
+                       params,
+                       TMOL_DISULFIDE_CUDA_INFERENCE,
+                       energies,
+                       nullptr));
 }
 
 ffi::Error forward_tracked(
@@ -318,22 +319,24 @@ ffi::Error forward_tracked(
     return error;
   }
   return coords.element_type() == ffi::DataType::F32
-             ? common_status(Core<float>::forward(
-                   stream,
-                   coords,
-                   pairs,
-                   params,
-                   TMOL_DISULFIDE_CUDA_TRACKED,
-                   energies,
-                   &derivatives))
-             : common_status(Core<double>::forward(
-                   stream,
-                   coords,
-                   pairs,
-                   params,
-                   TMOL_DISULFIDE_CUDA_TRACKED,
-                   energies,
-                   &derivatives));
+             ? common_status(
+                   Core<float>::forward(
+                       stream,
+                       coords,
+                       pairs,
+                       params,
+                       TMOL_DISULFIDE_CUDA_TRACKED,
+                       energies,
+                       &derivatives))
+             : common_status(
+                   Core<double>::forward(
+                       stream,
+                       coords,
+                       pairs,
+                       params,
+                       TMOL_DISULFIDE_CUDA_TRACKED,
+                       energies,
+                       &derivatives));
 }
 
 ffi::Error vjp(
@@ -348,10 +351,12 @@ ffi::Error vjp(
     return error;
   }
   return derivatives.element_type() == ffi::DataType::F32
-             ? common_status(Core<float>::vjp(
-                   stream, pairs, derivatives, cotangents, gradient))
-             : common_status(Core<double>::vjp(
-                   stream, pairs, derivatives, cotangents, gradient));
+             ? common_status(
+                   Core<float>::vjp(
+                       stream, pairs, derivatives, cotangents, gradient))
+             : common_status(
+                   Core<double>::vjp(
+                       stream, pairs, derivatives, cotangents, gradient));
 }
 
 ffi::Error recompute_vjp(
@@ -371,15 +376,16 @@ ffi::Error recompute_vjp(
   auto invoke = [&](auto real_tag) -> ffi::Error {
     using Real = decltype(real_tag);
     auto required = Core<Real>::workspace(pairs.dimensions()[0]);
-    return common_status(Core<Real>::recompute_vjp(
-        stream,
-        coords,
-        pairs,
-        params,
-        cotangents,
-        gradient,
-        required.bytes == 0 ? nullptr : workspace->untyped_data(),
-        required.bytes));
+    return common_status(
+        Core<Real>::recompute_vjp(
+            stream,
+            coords,
+            pairs,
+            params,
+            cotangents,
+            gradient,
+            required.bytes == 0 ? nullptr : workspace->untyped_data(),
+            required.bytes));
   };
   return coords.element_type() == ffi::DataType::F32 ? invoke(float{})
                                                      : invoke(double{});

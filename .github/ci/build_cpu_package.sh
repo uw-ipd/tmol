@@ -39,3 +39,8 @@ fi
 extras="${TMOL_INSTALL_EXTRAS:-dev}"
 MAX_JOBS="${MAX_JOBS:-4}" uv pip install --no-build-isolation-package tmol -e ".[${extras}]" \
   "${cmake_args[@]}"
+
+# JAX supplies public FFI headers while building the base wheel, but the ordinary
+# CPU lane is a Torch-only runtime proof. The installed adapter must remain
+# loadable by Torch after those build-time packages are absent.
+uv pip uninstall jax jaxlib

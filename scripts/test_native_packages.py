@@ -28,10 +28,13 @@ def test_native_package_metadata():
         project = tomllib.loads(
             (root / f"packages/cu{major}/pyproject.toml").read_text()
         )["project"]
+        dependency_names = {
+            Requirement(value).name for value in project["dependencies"]
+        }
         assert project["name"] == f"tmol-ops-cu{major}"
         assert project["version"] == version
+        assert dependency_names == {"tmol"}
         assert str(requirement(project, "tmol").specifier) == f"=={version}"
-        assert str(requirement(project, "torch").specifier) == ">=2.11"
         assert base["optional-dependencies"][f"cu{major}"] == [
             f"{project['name']}=={version}"
         ]
