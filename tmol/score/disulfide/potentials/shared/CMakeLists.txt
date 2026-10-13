@@ -35,8 +35,10 @@ set_target_properties(tmol_disulfide_shared_cpu PROPERTIES
   POSITION_INDEPENDENT_CODE ON
 )
 
-# Installation is deliberately deferred until the framework-adapter/package
-# owner selects one wheel owner for this library and its transitive headers.
+# Installation is deliberately deferred until the base ``tmol`` distribution
+# is framework-neutral and can be the single owner of this library.  Do not
+# copy it into either framework adapter: that would give coexistence installs
+# two independently upgradeable copies of the same common ABI.
 
 if(TMOL_BUILD_TESTS)
   enable_testing()

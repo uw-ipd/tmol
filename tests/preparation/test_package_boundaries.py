@@ -96,3 +96,45 @@ def test_current_frontend_distributions_have_independent_dependencies():
     assert jax_metadata["tool"]["setuptools"]["packages"]["find"]["include"] == [
         "tmol_jax*"
     ]
+
+
+def test_optional_packages_preserve_disjoint_framework_ownership():
+    """Static ownership contract; this is not a built-wheel install proof."""
+    jax_metadata = _project_metadata(REPOSITORY / "packages/jax/pyproject.toml")
+    jax_cuda_metadata = _project_metadata(
+        REPOSITORY / "packages/jax-cuda/pyproject.toml"
+    )
+    assert jax_metadata["project"]["optional-dependencies"]["native-cuda"] == [
+        "tmol-jax-cuda"
+    ]
+    assert jax_cuda_metadata["project"]["name"] == "tmol-jax-cuda"
+    assert jax_cuda_metadata["project"]["dynamic"] == ["version", "dependencies"]
+    assert jax_cuda_metadata["tool"]["setuptools"]["packages"]["find"][
+        "include"
+    ] == ["tmol_jax_cuda"]
+
+    jax_cuda_setup = (REPOSITORY / "packages/jax-cuda/setup.py").read_text(
+        encoding="utf-8"
+    )
+    assert '"jax>=0.11.2"' in jax_cuda_setup
+    assert 'f"tmol-jax==' in jax_cuda_setup
+    assert '"torch' not in jax_cuda_setup
+
+    for major in (12, 13):
+        metadata = _project_metadata(
+            REPOSITORY / f"packages/cu{major}/pyproject.toml"
+        )
+        requirements = _requirement_names(metadata["project"]["dependencies"])
+        assert requirements == {"tmol", "torch"}
+        assert metadata["tool"]["scikit-build"]["wheel"]["packages"] == []
+
+
+def test_shared_library_install_waits_for_single_neutral_owner():
+    """Keep the common ABI out of both adapters until base tmol is neutral."""
+    shared_cmake = (
+        REPOSITORY / "tmol/score/disulfide/potentials/shared/CMakeLists.txt"
+    ).read_text(encoding="utf-8")
+
+    assert "add_library(tmol_disulfide_shared_cpu SHARED" in shared_cmake
+    assert "install(TARGETS tmol_disulfide_shared_cpu" not in shared_cmake
+    assert "install(TARGETS tmol_disulfide_shared_cuda" not in shared_cmake
