@@ -33,6 +33,23 @@ Sphinx consumes. CI performs the same two-step notebook-and-Sphinx build.
   checklists and descriptions of what the page is about to explain.
 - Keep notebook code, fixtures, outputs, and Colab setup consistent.
 
+For tutorials, keep the explanation next to the operation it explains:
+
+- Start with a concrete molecular question and the structure used to answer it.
+- Introduce each new object when it first appears. Distinguish residue labels
+  from zero-based block indices, and state what a mask selects.
+- Give each code cell one job: prepare inputs, calculate, or inspect a result.
+  Prefer public APIs over manual edits to internal tensors.
+- After a calculation, say what to look for in its table, plot, or viewer.
+  Explain the reference and sign of a score difference before interpreting it.
+- Keep modeling calls and movement controls visible. Tag lengthy plotting or
+  measurement helpers with `collapse-code`; their outputs should remain open.
+- Put advanced extensions after the first complete example. Keep necessary
+  scientific limits beside the result rather than repeating them in every cell.
+- Keep result tables focused on the comparison: use readable column labels and
+  separate score summaries from geometry checks. State what the reader should
+  compare before showing the table or plot.
+
 ## Pull requests
 
 Before opening a PR:
