@@ -114,7 +114,45 @@ void bind_potentials(pybind11::module& m) {
 
   m.def(
       "elec_V",
-      &tmol::score::elec::potentials::elec<Real>,
+      [](Real dist,
+         Real charge_i,
+         Real charge_j,
+         Real bonded_path_length,
+         float D,
+         float D0,
+         float S,
+         float min_dis,
+         float max_dis) {
+        using tmol::score::elec::potentials::deps_ddist;
+        using tmol::score::elec::potentials::ElecGlobalParams;
+        using tmol::score::elec::potentials::eps;
+
+        Real cutoff_offset =
+            Real(322.0637) / (max_dis * eps<Real>(max_dis, D, D0, S));
+        Real low_end = min_dis + Real(0.25);
+        Real low_eps = eps<Real>(low_end, D, D0, S);
+        Real high_start = max_dis - Real(1);
+        Real high_eps = eps<Real>(high_start, D, D0, S);
+        ElecGlobalParams<Real> params{
+            D,
+            D0,
+            S,
+            min_dis,
+            max_dis,
+            cutoff_offset,
+            Real(322.0637) / (min_dis * eps<Real>(min_dis, D, D0, S))
+                - cutoff_offset,
+            Real(322.0637) / (low_end * low_eps) - cutoff_offset,
+            -Real(322.0637)
+                * (low_eps + low_end * deps_ddist<Real>(low_end, D, D0, S))
+                / (low_end * low_end * low_eps * low_eps),
+            Real(322.0637) / (high_start * high_eps) - cutoff_offset,
+            -Real(322.0637)
+                * (high_eps + high_start * deps_ddist<Real>(high_start, D, D0, S))
+                / (high_start * high_start * high_eps * high_eps)};
+        return tmol::score::elec::potentials::elec<Real>(
+            dist, charge_i, charge_j, bonded_path_length, params);
+      },
       "dist"_a,
       "charge_i"_a,
       "charge_j"_a,
