@@ -19,6 +19,7 @@ from tmol.kinematics.datatypes import BondDOFTypes, JumpDOFTypes, NodeType
 from tmol.kinematics.move_map import MinimizerMap
 from tmol.kinematics.script_modules import PoseStackKinematicsModule
 from tmol.pose.constraint_set import ConstraintSet
+from tmol.pose import InterBlockBondsep
 from tmol.pose.pdb_info import PDBInfo
 from tmol.pose.pose_stack import PoseStack
 
@@ -133,8 +134,10 @@ def _repeat_pose_stack(pose_stack: PoseStack, n_poses: int) -> PoseStack:
         inter_residue_connections64=repeat_tensor(
             pose_stack.inter_residue_connections64
         ),
-        inter_block_bondsep=repeat_tensor(pose_stack.inter_block_bondsep),
-        inter_block_bondsep64=repeat_tensor(pose_stack.inter_block_bondsep64),
+        inter_block_bondsep=InterBlockBondsep(
+            near_blocks=repeat_tensor(pose_stack.inter_block_bondsep.near_blocks),
+            bondsep=repeat_tensor(pose_stack.inter_block_bondsep.bondsep),
+        ),
         block_type_ind=repeat_tensor(pose_stack.block_type_ind),
         block_type_ind64=repeat_tensor(pose_stack.block_type_ind64),
         chain_id=repeat_tensor(pose_stack.chain_id),

@@ -15,6 +15,7 @@ from tmol.dock.ga import (
     _ligand_only_pose_stack,
     _movable_block_mapping,
     _place_ligand_in_reference,
+    _select_inter_block_bondsep,
     _sidechain_context_blocks,
 )
 from tmol.dock.ligand_dofs import build_ligand_docking_dofs
@@ -415,9 +416,7 @@ def _receptor_only_pose_stack(pose_stack: PoseStack, ligand_block: int) -> PoseS
         atom_occupancy=pose_stack.pdb_info.atom_occupancy[:, source_host].copy(),
         atom_b_factor=pose_stack.pdb_info.atom_b_factor[:, source_host].copy(),
     )
-    inter_block_bondsep64 = pose_stack.inter_block_bondsep64[
-        :, keep_blocks[:, None], keep_blocks[None, :]
-    ].clone()
+    inter_block_bondsep = _select_inter_block_bondsep(pose_stack, keep_blocks)
     chain_id64 = pose_stack.chain_id64[:, keep_blocks].clone()
 
     return PoseStack(
@@ -427,8 +426,7 @@ def _receptor_only_pose_stack(pose_stack: PoseStack, ligand_block: int) -> PoseS
         block_coord_offset64=offsets64,
         inter_residue_connections=connections64.to(torch.int32),
         inter_residue_connections64=connections64,
-        inter_block_bondsep=inter_block_bondsep64.to(torch.int32),
-        inter_block_bondsep64=inter_block_bondsep64,
+        inter_block_bondsep=inter_block_bondsep,
         block_type_ind=block_type_ind64.to(torch.int32),
         block_type_ind64=block_type_ind64,
         chain_id=chain_id64.to(torch.int32),
