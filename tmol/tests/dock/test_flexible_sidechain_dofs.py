@@ -263,14 +263,25 @@ def test_movable_pose_preserves_retained_polymer_connections_and_k0_bytes(
         "block_coord_offset64",
         "inter_residue_connections",
         "inter_residue_connections64",
-        "inter_block_bondsep",
-        "inter_block_bondsep64",
         "block_type_ind",
         "block_type_ind64",
         "chain_id",
         "chain_id64",
     ):
         assert torch.equal(getattr(ligand_only, field), getattr(zero_pocket, field))
+    for field in ("near_blocks", "bondsep"):
+        assert torch.equal(
+            getattr(ligand_only.inter_block_bondsep, field),
+            getattr(zero_pocket.inter_block_bondsep, field),
+        )
+    keep = torch.tensor(
+        [ligand_block, *sorted(set(connected_pair) | set(context_blocks))],
+        dtype=torch.int64,
+    )
+    assert torch.equal(
+        movable.inter_block_bondsep.to_dense(),
+        pose_stack.inter_block_bondsep.to_dense()[:, keep[:, None], keep[None, :]],
+    )
     for field in (
         "residue_labels",
         "residue_insertion_codes",
