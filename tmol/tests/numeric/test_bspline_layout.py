@@ -5,7 +5,7 @@ import math
 import pytest
 import torch
 
-from tmol.numeric import BSplineInterpolation
+from tmol.numeric._bspline import BSplineInterpolation
 from tmol.numeric.bspline_compiled import _compiled
 from tmol.tests._torch import requires_cuda
 

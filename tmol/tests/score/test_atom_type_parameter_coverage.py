@@ -4,11 +4,12 @@ import attr
 import numpy
 import pytest
 
-from tmol.pose import PackedBlockTypes
-from tmol.score import AtomTypeDependentTerm
-from tmol.score.hbond import HBondEnergyTerm
-from tmol.score.ljlk import LJLKEnergyTerm, LJLKParamResolver
-from tmol.score.lk_ball import LKBallEnergyTerm
+from tmol import PackedBlockTypes
+from tmol.score._atom_type_dependent_term import AtomTypeDependentTerm
+from tmol.score import HBondEnergyTerm
+from tmol.score import LJLKEnergyTerm
+from tmol.score.ljlk._params import LJLKParamResolver
+from tmol.score import LKBallEnergyTerm
 
 
 @pytest.fixture

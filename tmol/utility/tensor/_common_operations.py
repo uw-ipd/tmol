@@ -3,10 +3,8 @@ from collections.abc import Sequence
 import torch
 from torch.nn.utils.rnn import pad_sequence
 
-from tmol.types import (
-    Tensor,
-    validate_args,
-)
+from tmol.types._torch import Tensor
+from tmol.types._functional import validate_args
 
 IntTensor1D = Tensor[torch.int32][:] | Tensor[torch.int64][:]
 IntTensor2D = Tensor[torch.int32][:, :] | Tensor[torch.int64][:, :]

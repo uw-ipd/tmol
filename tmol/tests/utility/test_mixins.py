@@ -2,10 +2,8 @@ import pytest
 import attr
 
 from functools import singledispatch
-from tmol.utility import (
-    cooperative_superclass_factory,
-    AttrMapping,
-)
+from tmol.utility._mixins import cooperative_superclass_factory
+from tmol.utility._attr import AttrMapping
 
 
 class Setup:

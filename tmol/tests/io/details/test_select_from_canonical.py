@@ -8,18 +8,20 @@ from attrs import evolve
 from functools import partial
 from toolz.curried import groupby
 from tmol.database.chemical import ChemicalDatabase, VariantType, normalize_bond_tuples
-from tmol.chemical import RefinedResidueType, ResidueTypeSet
-from tmol.database import PatchedChemicalDatabase
-from tmol.io import (
-    canonical_form_from_pdb,
-    default_canonical_ordering,
-    default_packed_block_types,
+from tmol.chemical import ResidueTypeSet
+from tmol.chemical import RefinedResidueType
+from tmol import (
     CanonicalOrdering,
+    PackedBlockTypes,
+    PatchedChemicalDatabase,
+    PoseStackBuilder,
 )
-from tmol.io.details import (
-    left_justify_canonical_form,
-    find_disulfides,
-    resolve_his_tautomerization,
+from tmol.io._canonical_ordering import canonical_form_from_pdb
+from tmol.io import default_canonical_ordering, default_packed_block_types
+from tmol.io.details._left_justify_canonical_form import left_justify_canonical_form
+from tmol.io.details._disulfide_search import find_disulfides
+from tmol.io.details._his_taut_resolution import resolve_his_tautomerization
+from tmol.io.details._select_from_canonical import (
     assign_block_types,
     take_block_type_atoms_from_canonical,
     _annotate_packed_block_types_w_canonical_res_order,
@@ -27,10 +29,6 @@ from tmol.io.details import (
 )
 from tmol.io.details._select_from_canonical import (
     _assert_connections_are_well_formed,
-)
-from tmol.pose import (
-    PoseStackBuilder,
-    PackedBlockTypes,
 )
 from tmol.tests.io.details.test_left_justify_canonical_form import add_two_res_at_gap
 

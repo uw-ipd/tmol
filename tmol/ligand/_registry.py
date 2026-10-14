@@ -10,21 +10,19 @@ from dataclasses import dataclass, replace
 from itertools import chain
 from typing import Optional
 
-from tmol.database import (
-    PatchedChemicalDatabase,
-    ParameterDatabase,
-)
+from tmol.database import ParameterDatabase
+from tmol.database._patched_chemdb import PatchedChemicalDatabase
 from tmol.database.chemical import (
     AtomType,
     RawResidueType,
 )
-from tmol.database.scoring import (
+from tmol.database.scoring._cartbonded import (
     AngleGroup,
     CartRes,
     ConnectionCartRes,
     LengthGroup,
 )
-from tmol.io import CanonicalOrdering
+from tmol.io._canonical_ordering import CanonicalOrdering
 from tmol.ligand._chemistry_tables import get_hbond_properties
 
 logger = logging.getLogger(__name__)

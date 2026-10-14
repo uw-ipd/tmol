@@ -3,8 +3,8 @@
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_cif
-from tmol.score.ljlk import LJLKEnergyTerm
+from tmol.io._cif import pose_stack_from_cif
+from tmol.score import LJLKEnergyTerm
 from tmol.tests.data import data_path
 
 

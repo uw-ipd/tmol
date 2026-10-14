@@ -5,8 +5,8 @@ import torch
 
 from ._rosetta import requires_rosetta_database
 
-from tmol.support.scoring import (
-    RosettaHBParams,
+from tmol.support.scoring._hbond_param_import import RosettaHBParams
+from tmol.support.scoring._rewrite_dunbrack_binary import (
     create_dunbrack_rotamer_library,
 )
 import tmol.support.scoring._rewrite_rama_binary as rewrite_rama_binary

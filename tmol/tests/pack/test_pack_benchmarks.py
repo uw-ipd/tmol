@@ -3,10 +3,9 @@
 import pytest
 import torch
 
-from tmol.pack import build_missing_sidechains
-from tmol.pose import PoseStackBuilder
-from tmol.score import beta2016_score_function
-from tmol.tests.score.common import pose_stack_from_pdb_and_resnums
+from tmol.pack._build_missing_sidechains import build_missing_sidechains
+from tmol import beta2016_score_function, PoseStackBuilder
+from tmol.tests.score.common.test_energy_term import pose_stack_from_pdb_and_resnums
 
 
 @pytest.mark.parametrize("n_poses", [1, 3, 10])

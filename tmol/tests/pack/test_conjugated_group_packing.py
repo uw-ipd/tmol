@@ -12,24 +12,28 @@ import numpy
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_biotite
-from tmol.io._cif import atom_array_from_cif
-from tmol.pack import PackerTask, PackerPalette, pack_rotamers
+from tmol import (
+    atom_array_from_cif,
+    beta2016_score_function,
+    pack_rotamers,
+    PackerPalette,
+    PackerTask,
+    pose_stack_from_biotite,
+)
 from tmol.pack._impose_rotamers import (
     chosen_rotamer_for_block,
     impose_top_rotamer_assignments,
 )
 from tmol.pack._pack_rotamers import _calculate_packer_energies
-from tmol.pack._packer_task import SetPackerTask
-from tmol.pack import run_simulated_annealing
-from tmol.pack.rotamer import FixedAAChiSampler, build_rotamers
-from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
+from tmol.pack import SetPackerTask
+from tmol.pack._simulated_annealing import run_simulated_annealing
+from tmol.pack import FixedAAChiSampler, build_rotamers
+from tmol.pack import create_dunbrack_sampler_from_database
 from tmol.pack.rotamer._conjugated_groups import (
     add_conjugated_group_sampler,
-    find_conjugated_groups,
     write_group_members,
 )
-from tmol.score import beta2016_score_function
+from tmol.pose._conjugated_groups import find_conjugated_groups
 from tmol.tests.data import data_path
 
 FIXTURES = {
@@ -265,9 +269,9 @@ def test_default_relax_samples_general_chemistry(
 ):
     """Default FastRelax samples attached groups and nucleic acids coherently."""
     import tmol.pack._pack_rotamers as packing
-    from tmol.kinematics import CartesianMoveMap, FoldForest
-    from tmol.optimization import run_cart_min
-    from tmol.relax import fast_relax
+    from tmol import CartesianMoveMap, FoldForest
+    from tmol import run_cart_min
+    from tmol import fast_relax
 
     if chemistry != "dna":
         pose, context = _pose(FIXTURES.get(chemistry, chemistry), torch_device)

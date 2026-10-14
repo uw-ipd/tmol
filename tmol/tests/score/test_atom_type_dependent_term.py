@@ -2,8 +2,8 @@ import torch
 import attr
 import numpy
 
-from tmol.pose import PackedBlockTypes
-from tmol.score import AtomTypeDependentTerm
+from tmol import PackedBlockTypes
+from tmol.score._atom_type_dependent_term import AtomTypeDependentTerm
 from tmol.score._chemical_database import AtomTypeParamResolver
 
 

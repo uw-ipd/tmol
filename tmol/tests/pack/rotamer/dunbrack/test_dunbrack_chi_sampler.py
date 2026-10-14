@@ -4,19 +4,15 @@ import pytest
 import torch
 
 import tmol.pack.rotamer.dunbrack._compiled  # noqa F401
-from tmol.chemical import RefinedResidueType, ResidueTypeSet
+from tmol.chemical import ResidueTypeSet
+from tmol.chemical import RefinedResidueType
 from tmol.io import pose_stack_from_pdb
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStackBuilder,
-)
-from tmol.score.dunbrack import DunbrackParamResolver
-from tmol.pack.rotamer.dunbrack import (
-    create_dunbrack_sampler_from_database,
-)
+from tmol.pack import SetPackerTask
+from tmol import PackedBlockTypes, PackerPalette, PackerTask, PoseStackBuilder
+from tmol.score.dunbrack._params import DunbrackParamResolver
+from tmol.pack import create_dunbrack_sampler_from_database
 from tmol.tests.data import no_termini_pose_stack_from_pdb
-from tmol.utility.tensor import exclusive_cumsum1d
+from tmol.utility.tensor._common_operations import exclusive_cumsum1d
 
 
 def get_compiled():

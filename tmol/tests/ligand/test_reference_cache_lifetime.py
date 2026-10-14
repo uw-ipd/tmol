@@ -50,7 +50,7 @@ def test_cache_is_bounded_and_evicts_least_recently_used(monkeypatch):
 
 def test_polymer_profiles_release_real_database_and_remain_bounded(monkeypatch):
     import attr
-    from tmol.database import ParameterDatabase
+    from tmol import ParameterDatabase
     from tmol.ligand import _polymer_profile as polymer
 
     cache = reference.WeakIdentityLRU(3)

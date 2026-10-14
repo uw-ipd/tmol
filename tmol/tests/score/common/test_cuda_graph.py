@@ -5,7 +5,7 @@ import pytest
 import torch
 
 from tmol.score.common._cuda_graph import CapturedScoringGraph
-from tmol.tests import requires_cuda
+from tmol.tests._torch import requires_cuda
 
 pytestmark = [
     requires_cuda,

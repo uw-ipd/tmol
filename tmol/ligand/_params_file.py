@@ -53,11 +53,8 @@ from tmol.database.chemical import (
     VariantType,
     normalize_bond_tuples,
 )
-from tmol.database.scoring import (
-    CartRes,
-    ConnectionCartRes,
-    PartialCharges,
-)
+from tmol.database.scoring._cartbonded import CartRes, ConnectionCartRes
+from tmol.database.scoring._elec import PartialCharges
 
 logger = logging.getLogger(__name__)
 

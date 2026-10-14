@@ -46,8 +46,8 @@ DUD_CASES = [
 
 def _param_db_with_ligand_prep(prep):
     """Return the default parameter database with ``prep`` injected."""
-    from tmol.database import ParameterDatabase
-    from tmol.ligand import inject_ligand_preparations
+    from tmol import ParameterDatabase
+    from tmol.ligand._registry import inject_ligand_preparations
 
     return inject_ligand_preparations(ParameterDatabase.get_default(), [prep])
 
@@ -113,8 +113,8 @@ class TestDUDScoring:
         import biotite.structure
         import biotite.structure.io
 
-        from tmol.io import pose_stack_from_biotite
-        from tmol.score import beta2016_score_function
+        from tmol import pose_stack_from_biotite
+        from tmol import beta2016_score_function
 
         bt_struct = biotite.structure.io.load_structure(str(dud_scoring_data["in_pdb"]))
         if isinstance(bt_struct, biotite.structure.AtomArrayStack):

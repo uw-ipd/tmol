@@ -5,8 +5,8 @@ import pytest
 import torch
 
 from tmol.database import inject_residue_params
-from tmol.score.cartbonded import CartBondedEnergyTerm
-from tmol.tests.score.common import pose_stack_from_pdb_and_resnums
+from tmol.score import CartBondedEnergyTerm
+from tmol.tests.score.common.test_energy_term import pose_stack_from_pdb_and_resnums
 
 
 @pytest.mark.parametrize("block_pairs", [False, True])

@@ -6,18 +6,17 @@ import time
 import attr
 import torch
 
-from tmol.pose import PoseStack, PoseStackBuilder
-from tmol.score import ScoreFunction
+from tmol.pose._pose_stack_builder import PoseStackBuilder
+from tmol.pose._pose_stack import PoseStack
+from tmol.score._score_function import ScoreFunction
 
-from tmol.pack import (
-    PackerTask,
-    SetPackerTask,
-    PackerEnergyTables,
-    run_simulated_annealing,
-    impose_top_rotamer_assignments,
-)
+from tmol.pack._packer_task import SetPackerTask
+from tmol.pack._packer_task import PackerTask
+from tmol.pack._datatypes import PackerEnergyTables
+from tmol.pack._simulated_annealing import run_simulated_annealing
+from tmol.pack._impose_rotamers import impose_top_rotamer_assignments
 from tmol.pack._impose_rotamers import chosen_rotamer_for_block
-from tmol.pack.rotamer import build_rotamers
+from tmol.pack.rotamer._build_rotamers import build_rotamers
 from tmol.utility._device import synchronize_device
 from tmol.pack.rotamer._conjugated_groups import write_group_members
 
@@ -313,7 +312,7 @@ def _should_stream_interaction_graph(pose_stack, rotamer_set, task) -> bool:
 
 
 def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=False):
-    from tmol.pack.compiled import build_interaction_graph
+    from tmol.pack.compiled._compiled import build_interaction_graph
     from tmol.pack.rotamer._conjugated_groups import (
         collapse_group_energies,
         collapse_group_rotamers,
@@ -482,7 +481,7 @@ def _build_streaming_interaction_graph(
     each bounded page from retaining autograd state for the whole candidate
     set, which otherwise accumulates across FastRelax packing stages.
     """
-    from tmol.pack.compiled import (
+    from tmol.pack.compiled._compiled import (
         accumulate_interaction_graph_entries,
         build_interaction_graph,
         finalize_interaction_graph_chunk_topology,

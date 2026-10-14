@@ -13,10 +13,10 @@ from biotite.structure import AtomArray, BondList
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
-from tmol.io import pose_stack_from_biotite
+from tmol import pose_stack_from_biotite
 from tmol.pack import SetPackerTask
-from tmol.pack.rotamer import build_rotamers
-from tmol.pack.rotamer._conjugated_groups import find_conjugated_groups
+from tmol.pack import build_rotamers
+from tmol.pose._conjugated_groups import find_conjugated_groups
 from tmol.numeric import coord_dihedrals
 from tmol.pose._util import _resolve_uaid
 from tmol.tests.pack.test_conjugated_group_packing import _task, _pack_and_check_score

@@ -7,13 +7,11 @@ from collections import defaultdict
 import scipy.sparse as sparse
 import scipy.sparse.csgraph as csgraph
 
-from tmol.types import (
-    NDArray,
-    Tensor,
-    ValidateAttrs,
-    validate_args,
-)
-from tmol.pose import PoseStack
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
+from tmol.types._attrs import ValidateAttrs
+from tmol.types._functional import validate_args
+from tmol.pose._pose_stack import PoseStack
 
 from ._datatypes import (
     NodeType,
@@ -343,7 +341,7 @@ def construct_kin_module_data_for_pose(
     Returns:
         Immutable topology and traversal data for forward and backward scans.
     """
-    from tmol.kinematics.compiled import (
+    from tmol.kinematics.compiled._compiled_ops import (
         calculate_ff_edge_delays,
         get_children,
         get_block_parent_connectivity_from_toposort,

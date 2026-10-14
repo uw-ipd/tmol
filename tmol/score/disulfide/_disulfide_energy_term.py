@@ -7,12 +7,10 @@ from .._energy_term import EnergyTerm
 from .._annotation_cache import AnnotationKey, cached_annotation, store_annotation
 
 from tmol.database import ParameterDatabase
-from tmol.score.disulfide import DisulfideGlobalParams
+from tmol.score.disulfide._params import DisulfideGlobalParams
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 
 
 class _DisulfideParameter(Enum):
@@ -174,12 +172,12 @@ class DisulfideEnergyTerm(EnergyTerm):
         return self.device.type == "cuda"
 
     def get_pose_score_term_function(self):
-        from tmol.score.disulfide.potentials import disulfide_pose_scores
+        from tmol.score.disulfide.potentials._compiled import disulfide_pose_scores
 
         return disulfide_pose_scores
 
     def get_rotamer_score_term_function(self):
-        from tmol.score.disulfide.potentials import disulfide_rotamer_scores
+        from tmol.score.disulfide.potentials._compiled import disulfide_rotamer_scores
 
         return disulfide_rotamer_scores
 

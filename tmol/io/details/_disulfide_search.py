@@ -2,12 +2,10 @@ import numpy
 import torch
 
 from typing import Optional
-from tmol.types import (
-    NDArray,
-    Tensor,
-    validate_args,
-)
-from tmol.io import CanonicalOrdering
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
+from tmol.types._functional import validate_args
+from tmol.io._canonical_ordering import CanonicalOrdering
 
 
 @validate_args

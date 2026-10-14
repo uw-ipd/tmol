@@ -1,6 +1,6 @@
 import torch
 
-from tmol.score.terms import ScoreTermFactory
+from tmol.score.terms._score_term_factory import ScoreTermFactory
 from tmol.database import ParameterDatabase
 
 

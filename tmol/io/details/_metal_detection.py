@@ -27,7 +27,7 @@ from tmol.io.details._metal_geometry import (
     fit_geometry,
     unit,
 )
-from tmol.pose import PackedBlockTypes
+from tmol.pose._packed_block_types import PackedBlockTypes
 
 logger = logging.getLogger(__name__)
 

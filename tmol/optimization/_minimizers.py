@@ -5,21 +5,22 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from tmol.pose import PoseStack
-from tmol.types import Tensor
+from tmol.pose._pose_stack import PoseStack
+from tmol.types._torch import Tensor
 
-from tmol.kinematics import (
-    FoldForest,
-    MoveMap,
-    MinimizerMap,
-)
-from tmol.score import ScoreFunction
+from tmol.kinematics._fold_forest import FoldForest
+from tmol.kinematics._move_map import MoveMap
+from tmol.kinematics._move_map import MinimizerMap
+from tmol.score._score_function import ScoreFunction
 
-from tmol.optimization import LBFGS_Armijo
+from tmol.optimization._lbfgs_armijo import LBFGS_Armijo
 from tmol.utility._device import synchronize_device
 
 if TYPE_CHECKING:
-    from tmol.optimization import CartesianSfxnNetwork, KinForestSfxnNetwork
+    from tmol.optimization._sfxn_modules import (
+        CartesianSfxnNetwork,
+        KinForestSfxnNetwork,
+    )
 
 
 def build_kinforest_network(
@@ -44,7 +45,7 @@ def build_kinforest_network(
         A network mapping movable kinematic degrees of freedom to pose energies.
     """
     from tmol.kinematics import PoseStackKinematicsModule
-    from tmol.optimization import KinForestSfxnNetwork
+    from tmol.optimization._sfxn_modules import KinForestSfxnNetwork
 
     if verbose:
         synchronize_device(pose_stack.device)
@@ -291,7 +292,7 @@ class CartesianMinimizer:
         verbose: bool = False,
     ) -> PoseStack:
         """Minimize one pose stack, reusing compatible rendered state."""
-        from tmol.optimization import CartesianSfxnNetwork
+        from tmol.optimization._sfxn_modules import CartesianSfxnNetwork
 
         if self.network is None or not self.network._reset(
             sfxn, pose_stack, coord_mask

@@ -4,7 +4,7 @@ import numpy
 import pytest
 import torch
 
-from tmol.kinematics.compiled import forward_only_op, inverse_kin
+from tmol.kinematics.compiled._compiled_ops import forward_only_op, inverse_kin
 from tmol.pack.rotamer._conjugated_chi_sampler import (
     ConjugatedChiSampler,
     _fold_group_conformers,
@@ -105,11 +105,12 @@ def test_group_and_member_batches_match_scalar_calls(fixture, dtype, torch_devic
 
 @pytest.mark.parametrize("fixture", ["biotin", "free", "cycle", "external"])
 def test_reused_sampler_keeps_real_pose_groups_independent(torch_device, fixture):
-    from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-    from tmol.pack.rotamer import FixedAAChiSampler, build_rotamers
+    from tmol.pack import SetPackerTask
+    from tmol import PackerPalette, PackerTask
+    from tmol.pack import FixedAAChiSampler, build_rotamers
     from tmol.pack.rotamer._conjugated_groups import add_conjugated_group_sampler
-    from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
-    from tmol.pose import PoseStackBuilder
+    from tmol.pack import create_dunbrack_sampler_from_database
+    from tmol import PoseStackBuilder
     from tmol.pose._conjugated_groups import (
         find_conjugated_groups,
         lockstep_group_for_block,
@@ -118,7 +119,7 @@ def test_reused_sampler_keeps_real_pose_groups_independent(torch_device, fixture
     if fixture == "biotin":
         first, context = _pose(FIXTURES["biotin"], torch_device)
     else:
-        from tmol.io import pose_stack_from_biotite
+        from tmol import pose_stack_from_biotite
         from tmol.tests.pack.rotamer.test_group_constraints import crosslinked_lysines
 
         first, context = pose_stack_from_biotite(

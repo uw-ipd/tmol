@@ -4,14 +4,15 @@ import pytest
 import torch
 import biotite.structure as struc
 
-from tmol.ops import build_coord_mask_for_mask_and_nearby_blocks
-from tmol.io import (
-    pose_stack_from_biotite,
-    pose_stack_from_pdb,
+from tmol.ops._score_utils import build_coord_mask_for_mask_and_nearby_blocks
+from tmol.io import pose_stack_from_pdb
+from tmol import (
+    beta2016_score_function,
     biotite_from_pose_stack,
+    pose_stack_from_biotite,
+    PoseStackBuilder,
+    run_cart_min,
 )
-from tmol.pose import PoseStackBuilder
-from tmol import run_cart_min, beta2016_score_function
 import tmol.ops._score_utils as score_utils
 
 

@@ -5,25 +5,19 @@ import numpy
 import torch
 
 from tmol import (
-    PoseStack,
-    PackedBlockTypes,
-    canonical_form_from_pdb,
-    pose_stack_from_canonical_form,
-)
-from tmol.io import (
-    default_canonical_ordering,
-    default_packed_block_types,
-)
-from tmol.types import Tensor
-
-from tmol.kinematics import (
-    FoldForest,
     EdgeType,
-    PoseStackKinematicsModule,
-    inverseKin,
+    FoldForest,
+    PackedBlockTypes,
+    pose_stack_from_canonical_form,
+    PoseStack,
 )
+from tmol.io._canonical_ordering import canonical_form_from_pdb
+from tmol.io import default_canonical_ordering, default_packed_block_types
+from tmol.types._torch import Tensor
 
-from tmol.tests import requires_cuda
+from tmol.kinematics import PoseStackKinematicsModule, inverseKin
+
+from tmol.tests._torch import requires_cuda
 
 
 def kop_gradcheck_report(kop, start_dofs, eps=2e-3, atol=1e-5, rtol=1e-3):

@@ -12,9 +12,8 @@ import pytest
 import torch
 import yaml
 
-from tmol.io import atom_array_from_cif, pose_stack_from_biotite
-from tmol.ligand import prepare_ligands
-from tmol.score import beta2016_score_function
+from tmol import atom_array_from_cif, beta2016_score_function, pose_stack_from_biotite
+from tmol.ligand._preparation import prepare_ligands
 from tmol.tests.data import data_path
 from tmol.tests.io.test_atomworks_corpus_regressions import _score_and_minimize
 

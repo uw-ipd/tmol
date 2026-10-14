@@ -16,11 +16,8 @@ from dataclasses import replace
 
 import pytest
 
-from tmol.tests.ligand import (
-    compare_semantic,
-    parse_reference_params,
-    load_parity_manifest,
-)
+from tmol.tests.ligand._params_reference import compare_semantic, parse_reference_params
+from tmol.tests.ligand._parity_manifest import load_parity_manifest
 from tmol.tests.ligand._parity_helpers import (
     chi_axes_equivalent,
     prepare_seed_entry,
@@ -48,14 +45,14 @@ def test_mol2_roundtrip_preserves_delocalized_chemistry_and_scores(
 ):
     import torch
     from rdkit import Chem
-    from tmol.database import ParameterDatabase
-    from tmol.io import pose_stack_from_biotite
+    from tmol import ParameterDatabase
+    from tmol import pose_stack_from_biotite
     from tmol.ligand._detect import nonstandard_residue_info_from_mol2_block
     from tmol.ligand._openbabel_compat import _build_charged_3d_mol2_mol
     from tmol.ligand._rdkit_mol import ligand_atom_array_to_rdkit_mol
-    from tmol.ligand._preparation import prepare_single_ligand
+    from tmol.ligand import prepare_single_ligand
     from tmol.ligand._registry import inject_ligand_preparations
-    from tmol.score import beta2016_score_function
+    from tmol import beta2016_score_function
 
     generated = _build_charged_3d_mol2_mol(smiles, seed=20250828)
     info = nonstandard_residue_info_from_mol2_block(

@@ -5,37 +5,31 @@ import torch
 import math
 from types import SimpleNamespace
 
-from tmol.pose import (
+from tmol import (
+    atom_array_from_cif,
+    beta2016_score_function,
     ConstraintSet,
+    pack_rotamers,
+    PackerPalette,
+    PackerTask,
+    ParameterDatabase,
+    pose_stack_from_biotite,
     PoseStackBuilder,
-)
-from tmol.score import (
     ScoreFunction,
     ScoreType,
 )
-from tmol.pack.compiled import build_interaction_graph
-from tmol.pack import (
-    PackerTask,
-    PackerPalette,
-    SetPackerTask,
-    PackerEnergyTables,
-    run_simulated_annealing,
-    impose_top_rotamer_assignments,
-    pack_rotamers,
-)
-from tmol.pack.rotamer import (
-    build_rotamers,
-    FixedAAChiSampler,
-    IncludeCurrentSampler,
-    OptHSampler,
-)
-from tmol.io import atom_array_from_cif, pose_stack_from_biotite, pose_stack_from_pdb
-from tmol.database import ParameterDatabase
-from tmol.score import beta2016_score_function
-from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
+from tmol.pack.compiled._compiled import build_interaction_graph
+from tmol.pack import SetPackerTask
+from tmol.pack._datatypes import PackerEnergyTables
+from tmol.pack._simulated_annealing import run_simulated_annealing
+from tmol.pack._impose_rotamers import impose_top_rotamer_assignments
+from tmol.pack import build_rotamers, FixedAAChiSampler, IncludeCurrentSampler
+from tmol.pack import OptHSampler
+from tmol.io import pose_stack_from_pdb
+from tmol.pack import create_dunbrack_sampler_from_database
 from tmol.tests.data import data_path
 
-from tmol.score.constraint import ConstraintEnergyTerm
+from tmol.score import ConstraintEnergyTerm
 from tmol.pack._pack_rotamers import (
     _PACKER_TASK_POSE_TENSORS,
     _interaction_graph_chunk_size,
@@ -814,7 +808,7 @@ def test_packing_pages_shared_lk_ball_dispatch(
 
 def test_fused_ljlk_elec_empty_table_gradient(monkeypatch):
     from tmol.score import _score_function
-    from tmol.score.ljlk import potentials
+    from tmol.score.ljlk.potentials import _compiled as potentials
 
     calls = []
 

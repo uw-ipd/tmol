@@ -4,17 +4,19 @@ from types import SimpleNamespace
 
 import numpy
 import torch
-from tmol.pose import PoseStackBuilder
+from tmol import (
+    atom_array_from_cif,
+    PackerPalette,
+    PackerTask,
+    pose_stack_from_biotite,
+    PoseStackBuilder,
+)
 
 # from tmol.score import ScoreFunction
-from tmol.pack import PackerTask, PackerPalette, SetPackerTask
-from tmol.pack.rotamer import (
-    build_rotamers,
-    FixedAAChiSampler,
-    IncludeCurrentSampler,
-    OptHSampler,
-)
-from tmol.io import atom_array_from_cif, pose_stack_from_biotite, pose_stack_from_pdb
+from tmol.pack import SetPackerTask
+from tmol.pack import build_rotamers, FixedAAChiSampler, IncludeCurrentSampler
+from tmol.pack import OptHSampler
+from tmol.io import pose_stack_from_pdb
 from tmol.tests.data import data_path
 
 

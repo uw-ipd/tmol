@@ -15,7 +15,7 @@ import numpy as np
 from rdkit import Chem, rdBase
 from rdkit.Chem import AllChem
 
-from tmol.database.scoring import ConnectionCartRes, LengthGroup, AngleGroup
+from tmol.database.scoring._cartbonded import ConnectionCartRes, LengthGroup, AngleGroup
 from tmol.database.scoring._content_hash import content_hash
 from tmol.ligand._conjugate_model import iter_capped_conjugate_models
 from tmol.ligand._conjugation_patches import CONNECTION_PREFIX

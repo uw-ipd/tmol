@@ -11,7 +11,7 @@ import numpy
 import torch
 
 from tmol.numeric import coord_dihedrals
-from tmol.pose import PoseStack
+from tmol.pose._pose_stack import PoseStack
 
 
 def get_torsion_names(pose_stack: PoseStack, pose: int, block: int) -> List[str]:

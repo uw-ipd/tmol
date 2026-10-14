@@ -4,7 +4,7 @@ import torch
 
 from tmol.numeric import coord_dihedrals
 from tmol.numeric._dihedrals import _numpy_coord_dihedrals
-from tmol.utility import parse_angle
+from tmol.utility._units import parse_angle
 
 
 def test_coord_dihedrals():

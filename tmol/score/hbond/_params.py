@@ -7,16 +7,13 @@ import torch
 
 import toolz
 
-from tmol.types import (
-    Tensor,
-    TensorGroup,
-    ValidateAttrs,
-    ConvertAttrs,
-    validate_args,
-)
+from tmol.types._torch import Tensor
+from tmol.types._tensor import TensorGroup
+from tmol.types._attrs import ValidateAttrs, ConvertAttrs
+from tmol.types._functional import validate_args
 from tmol.database.scoring import HBondDatabase
 from tmol.database.chemical import ChemicalDatabase
-from tmol.database import PatchedChemicalDatabase
+from tmol.database._patched_chemdb import PatchedChemicalDatabase
 
 from .._chemical_database import AcceptorHybridization
 from tmol.utility import resolve_device

@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from tmol.tests.ligand import EquivalenceResult
+    from tmol.tests.ligand._equivalence import EquivalenceResult
 
 
 # Rosetta ``.params`` BOND_TYPE tokens. These describe the reference-file format
@@ -405,6 +405,6 @@ def compare_semantic(
     so the parity harness has a single import surface for all comparison modes;
     no new isomorphism logic is introduced here.
     """
-    from tmol.tests.ligand import compare_ligand_preparations
+    from tmol.tests.ligand._equivalence import compare_ligand_preparations
 
     return compare_ligand_preparations(generated, reference, **kwargs)  # type: ignore[arg-type]

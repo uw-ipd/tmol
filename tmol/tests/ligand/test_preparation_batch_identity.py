@@ -6,8 +6,9 @@ import attr
 import pytest
 import yaml
 
-from tmol.database import ParameterDatabase
-from tmol.ligand import inject_params_files, load_params_file, write_params_file
+from tmol import ParameterDatabase
+from tmol.ligand import load_params_file, write_params_file
+from tmol.ligand._params_file import inject_params_files
 from tmol.ligand._registry import inject_ligand_preparations, rebuild_canonical_ordering
 from tmol.tests.ligand.test_ligand_entry_paths import _single_prep
 

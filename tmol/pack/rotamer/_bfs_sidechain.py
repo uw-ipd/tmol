@@ -2,7 +2,7 @@ import numpy
 
 from typing import List
 
-from tmol.types import validate_args
+from tmol.types._functional import validate_args
 from tmol.chemical import RefinedResidueType
 
 

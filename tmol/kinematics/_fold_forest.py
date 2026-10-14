@@ -2,8 +2,9 @@ import numpy
 import attr
 import enum
 
-from tmol.types import NDArray
-from tmol.pose import PoseStack, annotate_packed_block_types_w_kinematic_conns
+from tmol.types._array import NDArray
+from tmol.pose._pose_stack import PoseStack
+from tmol.pose._packed_block_types import annotate_packed_block_types_w_kinematic_conns
 
 
 class EdgeType(enum.IntEnum):

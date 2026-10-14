@@ -1,13 +1,9 @@
 import torch
 import numpy
 
-from tmol.io import (
-    canonical_form_from_pose_stack,
-    default_canonical_ordering,
-    default_packed_block_types,
-    canonical_form_from_pdb,
-    pose_stack_from_canonical_form,
-)
+from tmol import canonical_form_from_pose_stack, pose_stack_from_canonical_form
+from tmol.io._canonical_ordering import canonical_form_from_pdb
+from tmol.io import default_canonical_ordering, default_packed_block_types
 
 
 def not_any_nancoord(coords):

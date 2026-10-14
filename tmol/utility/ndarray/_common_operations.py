@@ -1,9 +1,7 @@
 import numpy
 from typing import Optional, Union
-from tmol.types import (
-    NDArray,
-    validate_args,
-)
+from tmol.types._array import NDArray
+from tmol.types._functional import validate_args
 
 
 @validate_args

@@ -10,11 +10,9 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from tmol.tests.ligand._params_reference import BOND_TOKEN_TO_TYPE
-from tmol.ligand import (
-    prepare_single_ligand,
-    nonstandard_residue_info_from_smiles_via_mol2,
-    LigandPreparation,
-)
+from tmol.ligand import prepare_single_ligand
+from tmol.ligand._detect import nonstandard_residue_info_from_smiles_via_mol2
+from tmol.ligand._registry import LigandPreparation
 
 
 def prepare_seed_entry(entry) -> LigandPreparation:
@@ -53,7 +51,7 @@ def chi_axes_equivalent(prep, ref, *, view=None) -> bool:
     :func:`compare_semantic`, then compare the resulting axis sets. Returns
     ``False`` if no isomorphism exists (e.g. a mutated reference graph).
     """
-    from tmol.tests.ligand import _heavy_atom_name_mapping
+    from tmol.tests.ligand._equivalence import _heavy_atom_name_mapping
 
     if view is None:
         view = reference_view_from_params(ref)

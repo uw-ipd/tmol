@@ -11,16 +11,16 @@ from tmol.database.chemical import (
     metal_table,
     special_case_variant_index,
 )
-from tmol.io import CanonicalOrdering
+from tmol import CanonicalOrdering
 from tmol.io.details._metal_detection import (
     MetalSiteAssignment,
     assign_one,
     build_canonical_metal_tables,
     find_metal_geometries,
     gather_candidates,
-    ideal_distances,
     place_site_virtuals,
 )
+from tmol.database.chemical import ideal_distances
 from tmol.io.details._protonation_variants import select_protonation_variants
 
 

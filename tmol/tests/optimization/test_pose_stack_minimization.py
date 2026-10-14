@@ -5,16 +5,17 @@ import pytest
 import torch
 
 from tmol import (
-    PoseStack,
+    atom_array_from_cif,
     beta2016_score_function,
-    run_cart_min,
-    run_kin_min,
     FoldForest,
     MoveMap,
+    pose_stack_from_biotite,
+    PoseStack,
+    PoseStackBuilder,
+    run_cart_min,
+    run_kin_min,
 )
-from tmol.io import atom_array_from_cif, pose_stack_from_biotite
-from tmol.pose import PoseStackBuilder
-from tmol.optimization import CartesianSfxnNetwork, KinForestSfxnNetwork
+from tmol.optimization._sfxn_modules import CartesianSfxnNetwork, KinForestSfxnNetwork
 from tmol.kinematics import PoseStackKinematicsModule
 from tmol.tests.data import data_path
 

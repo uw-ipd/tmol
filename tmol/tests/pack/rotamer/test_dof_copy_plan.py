@@ -5,7 +5,9 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from tmol.pack.rotamer import create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler
+from tmol.pack.rotamer._chi_sampler import (
+    create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler,
+)
 from tmol.pack.rotamer._build_rotamers import (
     _chi4_and_kfo_device_tables,
     _kinforest_device_indices,

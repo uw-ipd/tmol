@@ -1,7 +1,7 @@
 import numpy
 
 from typing import Tuple
-from tmol.types import NDArray
+from tmol.types._array import NDArray
 
 
 def bonds_and_bond_ranges(

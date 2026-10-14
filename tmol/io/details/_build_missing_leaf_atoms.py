@@ -2,12 +2,10 @@ import numpy
 import torch
 import attr
 
-from tmol.types import (
-    Tensor,
-    NDArray,
-    validate_args,
-)
-from tmol.pose import PackedBlockTypes
+from tmol.types._torch import Tensor
+from tmol.types._array import NDArray
+from tmol.types._functional import validate_args
+from tmol.pose._packed_block_types import PackedBlockTypes
 from tmol.chemical import RefinedResidueType
 
 from ._build_missing_context import build_missing_by_context
@@ -294,7 +292,7 @@ def _build_coords_from_icoors(
     block_types,
     connections,
 ):
-    from tmol.io.details.compiled import gen_pose_leaf_atoms
+    from tmol.io.details.compiled._compiled import gen_pose_leaf_atoms
 
     return gen_pose_leaf_atoms(
         coords,

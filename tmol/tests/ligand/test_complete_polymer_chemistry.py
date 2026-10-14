@@ -4,7 +4,7 @@ import biotite.structure.info as info
 import numpy as np
 import pytest
 
-from tmol.database import ParameterDatabase
+from tmol import ParameterDatabase
 from tmol.ligand._polymer_profile import (
     cap_residue,
     complete_backbone_from_reference,

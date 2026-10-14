@@ -6,8 +6,8 @@ import pytest
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
-from tmol.io import atom_array_from_cif
-from tmol.ligand import prepare_ligands
+from tmol import atom_array_from_cif
+from tmol.ligand._preparation import prepare_ligands
 from tmol.ligand._conjugate_model import (
     capped_conjugate_models,
     without_cross_bonds_to,
@@ -311,7 +311,7 @@ def test_unprepared_covalent_partner_is_refused_or_cut_but_never_a_crash():
     strict preparation has to own that refusal and ``strict_ligands=False`` has
     to honour its own contract and drop the link.
     """
-    from tmol.database import ParameterDatabase
+    from tmol import ParameterDatabase
     from tmol.ligand._preparation import (
         LigandPreparationError,
         _prepare_conjugate_params,
@@ -366,7 +366,7 @@ def test_a_polymer_port_links_only_to_the_complementary_port(
     A bond links two residues only from one's up port to the other's down port;
     anywhere else both ends are conjugation sites, in every copy.
     """
-    from tmol.io import pose_stack_from_biotite
+    from tmol import pose_stack_from_biotite
 
     array = atom_array_from_cif(data_path("sweep_regressions", stem + ".cif.zst"))
     pose = pose_stack_from_biotite(
@@ -395,7 +395,7 @@ def test_a_ligand_holding_mercury_is_refused_as_a_metal_ligand():
     import torch
     from atomworks.io.utils.ccd import atom_array_from_ccd_code
 
-    from tmol.io import pose_stack_from_biotite
+    from tmol import pose_stack_from_biotite
     from tmol.ligand._preparation import LigandPreparationError
 
     ligand = atom_array_from_ccd_code("EMC")

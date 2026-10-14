@@ -3,7 +3,7 @@ import torch
 
 from typing import Tuple
 
-from tmol.types import Tensor
+from tmol.types._torch import Tensor
 
 from ._content_hash import content_hash
 

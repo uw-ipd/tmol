@@ -3,9 +3,10 @@ from pytest import approx
 
 import numpy
 import torch
-from tmol.tests import gradcheck, VectorizedOp
+from torch.autograd import gradcheck
+from tmol.tests._autograd import VectorizedOp
 
-from tmol.score import AcceptorHybridization
+from tmol.score._chemical_database import AcceptorHybridization
 
 _hbond_global_param_dict = dict(
     hb_sp2_range_span=1.6,
@@ -408,7 +409,7 @@ def test_BAH_angle_gradcheck(compiled, sp2_params, sp3_params, ring_params):
 
 
 def test_sp2_chi_energy_gradcheck(compiled, sp2_params):
-    from tmol.tests.score.common.geom import dihedral_angle_V
+    from tmol.tests.score.common.geom._geom import dihedral_angle_V
 
     def _t(t):
         return torch.tensor(t).to(dtype=torch.double)

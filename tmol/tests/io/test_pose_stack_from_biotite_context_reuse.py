@@ -13,15 +13,15 @@ import biotite.structure.io
 import pytest
 import torch
 
-from tmol.database import ParameterDatabase
-from tmol.io import (
+from tmol import (
     atom_array_from_cif,
     build_context_from_biotite,
+    ParameterDatabase,
     pose_stack_from_biotite,
+    ScoreType,
 )
-from tmol.ligand import LigandPreparationError
-from tmol.pack import build_missing_sidechains
-from tmol.score import ScoreType
+from tmol.ligand._preparation import LigandPreparationError
+from tmol.pack._build_missing_sidechains import build_missing_sidechains
 from tmol.tests.data import data_path
 
 PLI_DATA_DIR = Path(__file__).parent.parent / "data" / "protein_ligand_test"

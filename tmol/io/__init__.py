@@ -4,161 +4,36 @@ import torch
 from pathlib import Path
 from typing import Optional, Union
 
-from tmol.types import (
-    validate_args,
-    Tensor,
-)
-from tmol.pose import PoseStack
-from tmol.io._visualize import (
-    pose_stack_to_pdb_string,
-    selection_gallery,
-    switchable_view,
-    view,
-)
+from tmol.types._functional import validate_args
+from tmol.types._torch import Tensor
+from tmol.pose._pose_stack import PoseStack
 
-from ._build_context import PoseBuildContext  # noqa: F401
-from ._canonical_form import CanonicalForm  # noqa: F401
-from ._canonical_ordering import (  # noqa: F401
-    ordered_set,
-    CysSpecialCaseIndices,
-    HisSpecialCaseIndices,
-    CanonicalOrdering,
-    default_canonical_ordering,
-    default_packed_block_types,
-    canonical_form_from_pdb,
-    select_atom_records_res_subset,
-    canonical_form_from_atom_records,
-)
-from ._chain_deduction import (  # noqa: F401
-    chain_inds_for_pose_stack,
-    annotate_pbt_w_valid_connection_masks,
-)  # noqa: F401
-from ._pose_stack_from_sequence import (  # noqa: F401
-    create_pose_stack_from_sequences,
-    extended_pose_stack_from_sequences,
-    EXTENDED_BACKBONE_TORSIONS,
-)
-from ._extern import fetch_pdb  # noqa: F401
-from ._pdb_parsing import (  # noqa: F401
-    atom_record_dtype,
-    parse_pdb,
-    parse_atom_lines,
-    format_atomn,
-    to_pdb,
-    to_pdb_lines,
-    to_atom_lines,
-)
-from ._pose_stack_construction import pose_stack_from_canonical_form  # noqa: F401
-from ._pose_stack_deconstruction import (  # noqa: F401
-    canonical_form_from_pose_stack,
-    determine_res_not_connected_from_pose_stack,
-)
-from ._pose_stack_from_atom37 import (  # noqa: F401
-    atom37_slot_map_for_ordering,
-    canonical_form_from_atom37,
-    pose_stack_from_atom37,
-)
-from ._pose_stack_from_atomworks import (  # noqa: F401
-    ATOMWORKS_NAME3S,
-    ATOMWORKS_ATOM37_NAMES,
-    pose_stack_from_canonical_aa_atom37,
-    pose_stack_from_atom37_and_topology,
-    canonical_form_from_atomworks,
-    atomworks_from_pose_stack,
-    canonical_ordering_for_atomworks,
-    packed_block_types_for_atomworks,
-    _ATOMWORKS_MAX_PROTEIN_IDX,
-    _ATOMWORKS_MIN_PROTEIN_IDX,
-    _paramdb_for_atomworks,
-)
-from tmol.chemical import get_element_from_atom_name  # noqa: F401
-from tmol.io._cif import (  # noqa: F401
-    atom_array_from_cif,
-    atom_array_from_file,
-    component_chemistry_from_cif,
-    pose_stack_from_cif,
-    pose_stack_from_file,
-)
-from ._pose_stack_from_biotite import (  # noqa: F401
-    Atom37MappingError,
-    PreparedAtom37PoseBuilder,
-    build_context_from_biotite,
-    pose_stack_from_biotite,
-    biotite_from_pose_stack,
-    canonical_form_from_biotite,
-    canonical_ordering_for_biotite,
-    packed_block_types_for_biotite,
-    pose_stack_from_canonical_form_and_context,
-    prepare_atom37_pose_builder,
-    biotite_from_canonical_form,
-)
-from ._assemble import (  # noqa: F401
-    assemble_input,
-    atom_array_from_mol2,
-    cif_from_atom_array,
-)
-from ._write_pose_stack_pdb import (  # noqa: F401
-    write_pose_stack_pdb,
+from ._build_context import PoseBuildContext
+from ._canonical_ordering import HisSpecialCaseIndices
+from ._cif import pose_stack_from_file
+from ._write_pose_stack_pdb import (
     atom_records_from_pose_stack,
-    atom_records_from_coords,
+    write_pose_stack_pdb,
 )
-from ._metal_coordination import (  # noqa: F401
-    add_metal_coordination,
-    remove_metal_coordination,
+from ._canonical_ordering import default_packed_block_types, default_canonical_ordering
+from .details._his_taut_resolution import (
+    his_taut_variant_NE2_protonated,
+    his_taut_variant_ND1_protonated,
+    his_taut_variant_both_ND1_and_NE2_protonated,
 )
 
 __all__ = [
-    "add_metal_coordination",
-    "assemble_input",
-    "atom_array_from_file",
-    "atom_array_from_mol2",
-    "cif_from_atom_array",
-    "Atom37MappingError",
-    "CanonicalForm",
-    "CanonicalOrdering",
     "PoseBuildContext",
-    "PreparedAtom37PoseBuilder",
-    "atom_records_from_coords",
     "atom_records_from_pose_stack",
-    "atomworks_from_pose_stack",
-    "biotite_from_canonical_form",
-    "biotite_from_pose_stack",
-    "build_context_from_biotite",
-    "canonical_form_from_atomworks",
-    "canonical_form_from_biotite",
-    "canonical_form_from_pdb",
-    "canonical_form_from_pose_stack",
-    "canonical_ordering_for_atomworks",
-    "canonical_ordering_for_biotite",
-    "create_pose_stack_from_sequences",
-    "default_canonical_ordering",
-    "default_packed_block_types",
-    "extended_pose_stack_from_sequences",
-    "fetch_pdb",
-    "packed_block_types_for_atomworks",
-    "packed_block_types_for_biotite",
-    "atom37_slot_map_for_ordering",
-    "canonical_form_from_atom37",
-    "pose_stack_from_atom37",
-    "pose_stack_from_canonical_aa_atom37",
     "pose_stack_from_file",
-    "pose_stack_from_canonical_form_and_context",
-    "prepare_atom37_pose_builder",
-    "remove_metal_coordination",
-    "pose_stack_from_atom37_and_topology",
-    "pose_stack_from_biotite",
-    "pose_stack_from_cif",
-    "atom_array_from_cif",
-    "component_chemistry_from_cif",
     "pose_stack_from_pdb",
-    "pose_stack_to_pdb_string",
-    "selection_gallery",
-    "switchable_view",
-    "to_atom_lines",
-    "to_pdb",
-    "to_pdb_lines",
-    "view",
     "write_pose_stack_pdb",
+    "HisSpecialCaseIndices",
+    "default_packed_block_types",
+    "default_canonical_ordering",
+    "his_taut_variant_NE2_protonated",
+    "his_taut_variant_ND1_protonated",
+    "his_taut_variant_both_ND1_and_NE2_protonated",
 ]
 
 

@@ -5,10 +5,8 @@ import torch
 from tmol.database.scoring import NaTorsionDatabase
 from tmol.utility import resolve_device
 from tmol.utility.weak_identity_cache import WeakIdentityLRU
-from tmol.types import (
-    Tensor,
-    ValidateAttrs,
-)
+from tmol.types._torch import Tensor
+from tmol.types._attrs import ValidateAttrs
 
 # torsions this term reads, by chemical-layer name; order fixes tensor layout
 BACKBONE_TORSIONS = ("alpha", "beta", "gamma", "delta", "epsilon", "zeta")

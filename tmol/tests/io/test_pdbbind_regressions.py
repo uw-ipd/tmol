@@ -5,12 +5,8 @@ import pytest
 import torch
 import zstandard
 
-from tmol.io import (
-    atom_array_from_file,
-    atom_array_from_mol2,
-    cif_from_atom_array,
-    pose_stack_from_biotite,
-)
+from tmol import atom_array_from_file, pose_stack_from_biotite
+from tmol.io._assemble import atom_array_from_mol2, cif_from_atom_array
 from tmol.tests.data import data_path
 
 
@@ -51,7 +47,7 @@ def test_sdf_ligand_writes_params_like_its_mol2(tmp_path):
     """Parameters are written from 3GE7's SDF as from its MOL2: one residue with
     the MOL2's heavy atoms and net charge."""
     from tmol.ligand._detect import nonstandard_residue_info_from_file
-    from tmol.ligand import write_params_from_mol2
+    from tmol.ligand._params_io import write_params_from_mol2
 
     infos = []
     for ext in ("mol2", "sdf"):

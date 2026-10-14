@@ -17,10 +17,8 @@ import biotite.structure.io as struc_io
 import numpy as np
 
 from tmol.tests.data import data_path
-from tmol.ligand import (
-    disambiguate_mol2_atom_name,
-    load_params_file,
-)
+from tmol.ligand import load_params_file
+from tmol.ligand._mol2_names import disambiguate_mol2_atom_name
 
 PLI_DIR = data_path("protein_ligand_test")
 CIF_OUT_DIR = PLI_DIR / "cif_inputs"

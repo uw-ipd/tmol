@@ -22,19 +22,21 @@ import torch
 
 from typing import Tuple
 
-from tmol.types import Tensor, validate_args
+from tmol.types._torch import Tensor
+from tmol.types._functional import validate_args
 from tmol.chemical import RefinedResidueType
-from tmol.pose import PackedBlockTypes, PoseStack
-from tmol.pose._util import get_named_torsions
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.pose import get_named_torsions
 from tmol.pack.rotamer._chi_sampler import ChiSampler
 from tmol.pack.rotamer._conformer_sampler import sc_roots_for_chis
 from tmol.pack.rotamer._conjugated_groups import (
-    find_conjugated_groups,
     group_sampled_chi,
     group_sampling_topology,
     resolve_group_atom,
     GroupSamplingPlan,
 )
+from tmol.pose._conjugated_groups import find_conjugated_groups
 from tmol.pack._packer_task import (
     DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT,
     DEFAULT_CHI_SAMPLE_LIMIT,
@@ -85,7 +87,7 @@ def _repeated_kinforest(rot_kf, count, device):
 
 def _fold_group_conformers(rot_kf, dofs):
     """Fold conformers in bounded scans; return original atom order."""
-    from tmol.kinematics.compiled import forward_only_op
+    from tmol.kinematics.compiled._compiled_ops import forward_only_op
 
     count, n_nodes = dofs.shape[:2]
     n_atoms = n_nodes - 1
@@ -125,7 +127,7 @@ def _fold_group_conformers(rot_kf, dofs):
 
 def _measure_member_dofs(rot_kf, coords):
     """Measure copies of one member in bounded inverse-kinematics batches."""
-    from tmol.kinematics.compiled import inverse_kin
+    from tmol.kinematics.compiled._compiled_ops import inverse_kin
 
     count, n_atoms = coords.shape[:2]
     if count == 0:
@@ -361,8 +363,8 @@ class ConjugatedChiSampler(ChiSampler):
         beyond it: that is the whole point of building here rather than a block
         at a time. Returns conformers x group-atoms x 3.
         """
-        from tmol.kinematics.compiled import inverse_kin
-        from tmol.kinematics import KinForest
+        from tmol.kinematics.compiled._compiled_ops import inverse_kin
+        from tmol.kinematics._datatypes import KinForest
 
         rot_kf, offsets = self._group_kinforest(pose_stack, group)
         device = pose_stack.device

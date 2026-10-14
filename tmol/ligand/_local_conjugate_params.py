@@ -19,7 +19,12 @@ import numpy as np
 from rdkit import Chem
 
 from tmol.database.chemical import RawResidueType
-from tmol.database.scoring import AngleGroup, CartRes, ConnectionCartRes, LengthGroup
+from tmol.database.scoring._cartbonded import (
+    AngleGroup,
+    CartRes,
+    ConnectionCartRes,
+    LengthGroup,
+)
 from tmol.ligand import _connection_params as connection
 from tmol.ligand._atom_typing import assign_tmol_atom_types
 from tmol.ligand._conjugation_patches import CONNECTION_PREFIX

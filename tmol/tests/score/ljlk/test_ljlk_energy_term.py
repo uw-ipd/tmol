@@ -1,11 +1,14 @@
 import pytest
 import torch
 
-from tmol.score.ljlk import LJLKEnergyTerm
-from tmol.score.elec import ElecEnergyTerm
-from tmol.pose import PackedBlockTypes
+from tmol.score import LJLKEnergyTerm
+from tmol.score import ElecEnergyTerm
+from tmol import PackedBlockTypes
 
-from tmol.tests.score.common import EnergyTermTestBase, pose_stack_from_pdb_and_resnums
+from tmol.tests.score.common.test_energy_term import (
+    EnergyTermTestBase,
+    pose_stack_from_pdb_and_resnums,
+)
 
 
 def test_smoke(default_database, torch_device):

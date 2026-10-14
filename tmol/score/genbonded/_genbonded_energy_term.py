@@ -25,7 +25,7 @@ import numpy
 
 from typing import List
 
-from tmol.score import AtomTypeDependentTerm
+from tmol.score._atom_type_dependent_term import AtomTypeDependentTerm
 from tmol.score._annotation_cache import (
     AnnotationKey,
     cached_annotation,
@@ -35,23 +35,19 @@ from tmol.score._annotation_cache import (
 from tmol.database import ParameterDatabase
 from tmol.database.scoring._genbonded import _bond_btidx
 
-from tmol.score.genbonded.potentials import (
+from tmol.score.genbonded.potentials._compiled import (
     genbonded_pose_scores,
     genbonded_rotamer_scores,
 )
 
-from tmol.chemical import BondType, RefinedResidueType
-from tmol.chemical import MAX_PATHS_FROM_CONNECTION
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
-from tmol.score.common import (
-    make_hashtable_keys_values,
-    add_to_hashtable,
-)
-from tmol.score.na_torsion import scored_torsion_bonds
-from tmol.score.backbone_torsion import omega_connection
+from tmol.chemical._restypes import BondType
+from tmol.chemical import RefinedResidueType
+from tmol.chemical._constants import MAX_PATHS_FROM_CONNECTION
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.score.common._hash_util import make_hashtable_keys_values, add_to_hashtable
+from tmol.score.na_torsion._params import scored_torsion_bonds
+from tmol.score.backbone_torsion._params import omega_connection
 from tmol.utility.weak_identity_cache import WeakIdentityLRU
 
 # Maximum hierarchy depth for any atom type (concrete -> class -> X).

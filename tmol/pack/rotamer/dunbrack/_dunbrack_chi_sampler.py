@@ -4,21 +4,19 @@ import numpy
 
 from typing import Tuple
 
-from tmol.types import (
-    Tensor,
-    NDArray,
-    validate_args,
-)
-from tmol.score.dunbrack import DunbrackParamResolver
+from tmol.types._torch import Tensor
+from tmol.types._array import NDArray
+from tmol.types._functional import validate_args
+from tmol.score.dunbrack._params import DunbrackParamResolver
 from tmol.score._annotation_cache import (
     AnnotationKey,
     cached_annotation,
     store_annotation,
 )
 
-from tmol.pack.rotamer import (
-    ChiSampler,
-    sc_roots_for_chis,
+from tmol.pack.rotamer._chi_sampler import ChiSampler
+from tmol.pack.rotamer._conformer_sampler import sc_roots_for_chis
+from tmol.pack.rotamer._single_residue_kinforest import (
     construct_single_residue_kinforest,
 )
 from tmol.pack._packer_task import DEFAULT_CHI_SAMPLE_LIMIT
@@ -31,12 +29,10 @@ from tmol.pack.rotamer._chi_budget import (
 from tmol.database import ParameterDatabase
 
 # from tmol.pack.rotamer.dunbrack import _compiled  # noqa F401
-from tmol.pack import SetPackerTask
+from tmol.pack._packer_task import SetPackerTask
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)

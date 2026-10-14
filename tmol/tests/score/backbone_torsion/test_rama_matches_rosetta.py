@@ -3,7 +3,7 @@ import os
 import pytest
 import torch
 
-from tmol.score import ScoreFunction, ScoreType
+from tmol import ScoreFunction, ScoreType
 
 # Rosetta beta_nov16 weighted energy at table grid nodes:
 # 0.5 * RamaPrePro::eval_rpp_rama_score + 0.61 * P_AA::P_AA_pp_energy

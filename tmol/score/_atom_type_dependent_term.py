@@ -7,13 +7,11 @@ from ._annotation_cache import AnnotationKey, cached_annotation, store_annotatio
 from tmol.database import ParameterDatabase
 from ._chemical_database import AtomTypeParamResolver
 from tmol.chemical import RefinedResidueType
-from tmol.score import EnergyTerm
+from tmol.score._energy_term import EnergyTerm
 
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
-from tmol.types import NDArray
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.types._array import NDArray
 from tmol.utility import resolve_device
 
 from collections import OrderedDict

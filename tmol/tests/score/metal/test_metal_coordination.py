@@ -7,17 +7,21 @@ import torch
 from yaml import safe_load
 
 from tmol.database.chemical import is_metal_cluster, site_connections
-from tmol.database.scoring import MetalWellDepth
-from tmol.io import (
-    add_metal_coordination,
+from tmol.database.scoring._metal_coordination import MetalWellDepth
+from tmol.io import pose_stack_from_pdb
+from tmol import (
     atom_array_from_cif,
+    PackerPalette,
+    PackerTask,
     pose_stack_from_biotite,
-    pose_stack_from_pdb,
+    ScoreType,
+)
+from tmol.io._metal_coordination import (
+    add_metal_coordination,
     remove_metal_coordination,
 )
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pack.rotamer import build_rotamers
-from tmol.score import ScoreType
+from tmol.pack import SetPackerTask
+from tmol.pack import build_rotamers
 from tmol.score.metal._metal_coordination_term import MetalCoordinationEnergyTerm
 from tmol.tests.data import data_path
 from tmol.tests.score.metal import metal_oracle
@@ -547,7 +551,7 @@ def test_pose_without_metals_is_zero(ubq_pdb, default_database, torch_device):
 
 
 def test_beta2016_includes_metal_coordination(torch_device):
-    from tmol.score import beta2016_score_function
+    from tmol import beta2016_score_function
 
     sfxn = beta2016_score_function(torch_device)
     assert float(sfxn.get_weight(ScoreType.metal_coordination)) == 1.0

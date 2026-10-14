@@ -9,31 +9,23 @@ import pandas
 
 from typing import List, Tuple, Optional
 
-from tmol.types import (
-    NDArray,
-    Tensor,
-    validate_args,
-)
-from tmol.chemical import (
-    RefinedResidueType,
-    three2one,
-)
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
+from tmol.types._functional import validate_args
+from tmol.chemical._restypes import three2one
+from tmol.chemical import RefinedResidueType
 
-from tmol.pose import (
-    InterBlockBondsep,
-    PackedBlockTypes,
-    PDBInfo,
-    DEFAULT_ATOM_B_FACTOR,
-    DEFAULT_ATOM_OCCUPANCY,
-    PoseStack,
-    ConstraintSet,
-    SplitBlockMapping,
-)
-from tmol.utility.tensor import (
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._constraint_set import ConstraintSet
+from tmol.pose._inter_block_bondsep import InterBlockBondsep
+from tmol.pose._pdb_info import PDBInfo, DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+from tmol.pose._pose_stack import PoseStack
+from tmol.pose._split_block_mapping import SplitBlockMapping
+from tmol.utility.tensor._common_operations import (
     exclusive_cumsum1d,
     exclusive_cumsum2d,
 )
-from tmol.utility._device import resolve_device
+from tmol.utility import resolve_device
 
 
 def _is_leading_run(items, of) -> bool:

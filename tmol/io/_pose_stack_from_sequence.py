@@ -60,7 +60,7 @@ def create_pose_stack_from_sequences(
     else:
         smiles = smiles_in_tokens(tokens)
         if smiles:
-            from tmol.ligand import prepare_ligands_from_smiles
+            from tmol.ligand._preparation import prepare_ligands_from_smiles
 
             param_db, ligand_names = prepare_ligands_from_smiles(
                 smiles, param_db=param_db

@@ -1,8 +1,8 @@
 import numpy
 
 from tmol.chemical import ResidueTypeSet
-from tmol.pack.rotamer import (
-    bfs_sidechain_atoms,
+from tmol.pack.rotamer._bfs_sidechain import bfs_sidechain_atoms
+from tmol.pack.rotamer._single_residue_kinforest import (
     construct_single_residue_kinforest,
 )
 

@@ -4,7 +4,7 @@ import math
 
 from rdkit import Chem
 
-from tmol.ligand import (
+from tmol.ligand._atom_typing import (
     AtomTypeAssignment,
     HYB_AROMATIC,
     HYB_SP2,
@@ -21,8 +21,8 @@ from tmol.ligand import (
     _modify_polar_c,
     _get_hyb,
     sanitize_tolerant,
-    build_residue_type,
 )
+from tmol.ligand._residue_builder import build_residue_type
 
 
 def test_get_hyb_distinguishes_ar_vs_aro_subtypes() -> None:

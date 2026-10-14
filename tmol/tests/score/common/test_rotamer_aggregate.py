@@ -2,13 +2,13 @@
 
 import torch
 
-from tmol import pose_stack_from_pdb
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pack.rotamer import FixedAAChiSampler, IncludeCurrentSampler, build_rotamers
-from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
-from tmol.pose import PoseStackBuilder
-from tmol.score.cartbonded import CartBondedEnergyTerm
-from tmol.score.cartbonded.potentials import cartbonded_rotamer_scores
+from tmol.io import pose_stack_from_pdb
+from tmol.pack import SetPackerTask
+from tmol import PackerPalette, PackerTask, PoseStackBuilder
+from tmol.pack import FixedAAChiSampler, IncludeCurrentSampler, build_rotamers
+from tmol.pack import create_dunbrack_sampler_from_database
+from tmol.score import CartBondedEnergyTerm
+from tmol.score.cartbonded.potentials._compiled import cartbonded_rotamer_scores
 
 
 def test_cpu_aggregate_rotamer_scores_match_serial(ubq_pdb, default_database):

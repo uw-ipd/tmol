@@ -24,8 +24,8 @@ import biotite.structure.info as info
 import numpy as np
 import pytest
 
-from tmol.database import ParameterDatabase
-from tmol.ligand import prepare_ligands
+from tmol import ParameterDatabase
+from tmol.ligand._preparation import prepare_ligands
 from tmol.ligand._polymer_profile import (
     glycosidic_torsion_atoms,
     na_backbone_kind,
@@ -51,7 +51,7 @@ _FIXTURES: dict[str, dict[str, tuple[str, str | None]]] = {
 
 
 def _structure(stem: str):
-    from tmol.io import atom_array_from_cif
+    from tmol import atom_array_from_cif
 
     return atom_array_from_cif(FIXTURE_DIR / f"{stem}.cif")
 
@@ -327,8 +327,8 @@ def test_a_nucleotide_seen_only_at_a_terminus_gets_its_phosphate_back() -> None:
 @pytest.mark.parametrize("stem", sorted(_FIXTURES))
 def test_a_nucleotide_scores(stem: str, torch_device) -> None:
     """Smoke test: preparation has to survive into a pose and a number."""
-    from tmol.io import pose_stack_from_biotite
-    from tmol.score import beta2016_score_function
+    from tmol import pose_stack_from_biotite
+    from tmol import beta2016_score_function
 
     structure = _structure(stem)
     prepared, _known, _co = _prepared(structure)
@@ -378,7 +378,7 @@ def test_every_variant_builds_finite_ideal_coordinates(stem: str) -> None:
     """
     import cattr
 
-    from tmol.chemical._restypes import RefinedResidueType
+    from tmol.chemical import RefinedResidueType
 
     prepared, known, _co = _prepared(_structure(stem))
     bad = []
@@ -392,13 +392,13 @@ def test_every_variant_builds_finite_ideal_coordinates(stem: str) -> None:
 
 
 def _sweep_structure(stem: str):
-    from tmol.io import atom_array_from_cif
+    from tmol import atom_array_from_cif
 
     return atom_array_from_cif(data_path("sweep_regressions", f"{stem}.cif.zst"))
 
 
 def _block_type_names(structure, device):
-    from tmol.io import pose_stack_from_biotite
+    from tmol import pose_stack_from_biotite
 
     pose = pose_stack_from_biotite(
         structure, device, prepare_ligands=True, ligand_seed=0, no_optH=True

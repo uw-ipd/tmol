@@ -6,7 +6,7 @@ import attrs
 
 from itertools import permutations, product
 
-from tmol.score import AtomTypeDependentTerm
+from tmol.score._atom_type_dependent_term import AtomTypeDependentTerm
 from tmol.score._annotation_cache import (
     AnnotationKey,
     cached_annotation,
@@ -16,11 +16,9 @@ from tmol.score._annotation_cache import (
 from tmol.database import ParameterDatabase
 
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
-from tmol.score.common import make_hashtable_keys_values, add_to_hashtable
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.score.common._hash_util import make_hashtable_keys_values, add_to_hashtable
 
 logger = logging.getLogger(__name__)
 
@@ -642,7 +640,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         super(CartBondedEnergyTerm, self).setup_poses(poses)
 
     def get_pose_score_term_function(self):
-        from tmol.score.cartbonded.potentials import cartbonded_pose_scores
+        from tmol.score.cartbonded.potentials._compiled import cartbonded_pose_scores
 
         return cartbonded_pose_scores
 
@@ -654,7 +652,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         return iter_packing_rotamer_scores
 
     def get_rotamer_score_term_function(self):
-        from tmol.score.cartbonded.potentials import cartbonded_rotamer_scores
+        from tmol.score.cartbonded.potentials._compiled import cartbonded_rotamer_scores
 
         return cartbonded_rotamer_scores
 

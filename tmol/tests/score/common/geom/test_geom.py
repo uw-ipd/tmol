@@ -8,7 +8,8 @@ import torch
 from numpy import array, cos, sin, linspace, pi, nan
 from scipy.stats import special_ortho_group
 
-from tmol.tests import gradcheck, VectorizedOp
+from torch.autograd import gradcheck
+from tmol.tests._autograd import VectorizedOp
 
 
 @pytest.fixture(scope="session")
@@ -167,7 +168,7 @@ class DihedralDat:
 
 @pytest.fixture
 def dihedral_test_data():
-    from tmol.utility import parse_angle
+    from tmol.utility._units import parse_angle
 
     coords = array(
         [

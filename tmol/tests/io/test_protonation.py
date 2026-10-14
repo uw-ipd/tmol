@@ -5,9 +5,8 @@ import numpy
 import pytest
 from atomworks.io.utils.ccd import atom_array_from_ccd_code
 
-from tmol.database import ParameterDatabase
+from tmol import atom_array_from_cif, ParameterDatabase
 from tmol.database.chemical import DEPROTONATED_VAR_IND
-from tmol.io import atom_array_from_cif
 from tmol.io import _protonation as protonation
 from tmol.tests.data import data_path
 
@@ -160,7 +159,8 @@ def test_residue_types_take_the_atomworks_state(
     AtomWorks is asked about the whole input once, with the bonds and drawn
     hydrogens tmol hands it; a histidine tautomer it leaves free is summed.
     """
-    from tmol.io import atom_array_from_file, pose_stack_from_biotite
+    from tmol import pose_stack_from_biotite
+    from tmol import atom_array_from_file
 
     placed, reference = protonation._placed_hydrogens, []
 
@@ -207,7 +207,8 @@ def test_residues_without_a_free_resolved_state_keep_their_type(
     only free ligand copies get state types (8TRB prepared unused PLM_ types)."""
     import re
 
-    from tmol.io import atom_array_from_file, pose_stack_from_biotite
+    from tmol import pose_stack_from_biotite
+    from tmol import atom_array_from_file
 
     structure = atom_array_from_file(data_path("sweep_regressions", fixture))
     pose, context = pose_stack_from_biotite(
@@ -228,7 +229,8 @@ def test_a_capped_peptide_after_an_on_demand_terminus_builds(torch_device):
     in that database, must not take it as a terminus template for its ACE cap."""
     import attr
 
-    from tmol.io import atom_array_from_file, pose_stack_from_biotite
+    from tmol import pose_stack_from_biotite
+    from tmol import atom_array_from_file
 
     database = None
     for fixture in ("metal_amine_terminus_3ppd.cif.zst", "capped_peptide_1j8z.cif.zst"):

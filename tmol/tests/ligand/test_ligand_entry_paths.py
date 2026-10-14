@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 from tmol.tests.data import data_path
-from tmol.database import ParameterDatabase
+from tmol import ParameterDatabase
 
 DATA = data_path()
 MOL2_DIR = DATA / "ligand_test" / "ligand_ground_truth" / "mol2"
@@ -23,7 +23,7 @@ MOL2_DIR = DATA / "ligand_test" / "ligand_ground_truth" / "mol2"
 
 def _score_and_minimize_ligand(pose, database):
     import torch
-    from tmol.score import beta2016_score_function
+    from tmol import beta2016_score_function
 
     coords = pose.coords.detach().clone().requires_grad_()
     module = beta2016_score_function(
@@ -57,8 +57,8 @@ def _smallest_mol2() -> Path:
 )
 def test_seeded_preparation_owns_its_molecule(smiles, torch_device):
     import numpy as np
-    from tmol.io import pose_stack_from_biotite
-    from tmol.ligand import prepare_ligand_from_smiles
+    from tmol import pose_stack_from_biotite
+    from tmol.ligand._preparation import prepare_ligand_from_smiles
     from tmol.ligand._conformer_generation import generate_conformer
     from tmol.ligand._detect import nonstandard_residue_info_from_smiles_via_mol2
 
@@ -92,9 +92,10 @@ def test_seeded_preparation_owns_its_molecule(smiles, torch_device):
 )
 def test_prepare_ligand_from_mol2_registers_residue(fixture, torch_device, tmp_path):
     import torch
-    from tmol.io import pose_stack_from_biotite
-    from tmol.ligand import prepare_ligand_from_mol2, write_params_from_mol2
-    from tmol.ligand._detect import nonstandard_residue_info_from_mol2
+    from tmol import pose_stack_from_biotite
+    from tmol.ligand._preparation import prepare_ligand_from_mol2
+    from tmol.ligand._params_io import write_params_from_mol2
+    from tmol.ligand import nonstandard_residue_info_from_mol2
 
     path = DATA / "protein_ligand_test" / f"{fixture}.lig.mol2"
     if fixture == "ammonia":
@@ -203,8 +204,8 @@ def test_partially_protonated_atom_array_builds_complete_ligand(torch_device):
     import numpy as np
     import torch
 
-    from tmol.io import pose_stack_from_biotite
-    from tmol.ligand._detect import nonstandard_residue_info_from_mol2
+    from tmol import pose_stack_from_biotite
+    from tmol.ligand import nonstandard_residue_info_from_mol2
 
     source = nonstandard_residue_info_from_mol2(
         DATA / "protein_ligand_test" / "ace.lig.mol2", res_name="LG1"
@@ -250,14 +251,14 @@ def test_neutralized_mol2_protonation_workflow(
 ):
     import torch
     from atomworks.io.utils.io_utils import to_cif_file
-    from tmol.io import pose_stack_from_biotite
-    from tmol.ligand import (
-        load_params_file,
+    from tmol import pose_stack_from_biotite
+    from tmol.ligand import load_params_file
+    from tmol.ligand._preparation import (
         prepare_ligand_from_cif,
         prepare_ligand_from_mol2,
-        write_params_from_mol2,
     )
-    from tmol.ligand._detect import nonstandard_residue_info_from_mol2
+    from tmol.ligand._params_io import write_params_from_mol2
+    from tmol.ligand import nonstandard_residue_info_from_mol2
     from tmol.ligand._openbabel_compat import _build_charged_3d_mol2_mol
 
     # Reproduce neutralized phosphate inputs, including the EOP chemistry in
@@ -344,7 +345,8 @@ def test_neutralized_mol2_protonation_workflow(
 
 
 def test_mol2_rejects_undefined_bonds_and_unparameterized_chemistry(tmp_path):
-    from tmol.ligand import prepare_ligand_from_mol2, write_params_from_mol2
+    from tmol.ligand._preparation import prepare_ligand_from_mol2
+    from tmol.ligand._params_io import write_params_from_mol2
 
     methane = tmp_path / "methane.mol2"
     methane.write_text(
@@ -374,8 +376,8 @@ def test_prepare_ligand_from_cif_preserves_selected_model(torch_device, tmp_path
     import biotite.structure.io.pdbx as pdbx
     import numpy as np
     import torch
-    from tmol.io import pose_stack_from_biotite
-    from tmol.ligand import _ligand_info_from_cif, prepare_ligand_from_cif
+    from tmol import pose_stack_from_biotite
+    from tmol.ligand._preparation import _ligand_info_from_cif, prepare_ligand_from_cif
 
     cif = pdbx.CIFFile.read(DATA / "ligand_cif_fixtures" / "vww.bonds_present.cif")
     original = pdbx.get_structure(cif, model=1, include_bonds=True)
@@ -411,10 +413,8 @@ def test_prepare_ligand_from_cif_preserves_selected_model(torch_device, tmp_path
 
 
 def test_nonstandard_residue_info_from_mol2_block_roundtrips() -> None:
-    from tmol.ligand import (
-        nonstandard_residue_info_from_mol2,
-        nonstandard_residue_info_from_mol2_block,
-    )
+    from tmol.ligand import nonstandard_residue_info_from_mol2
+    from tmol.ligand._detect import nonstandard_residue_info_from_mol2_block
 
     mol2_path = _smallest_mol2()
     from_file = nonstandard_residue_info_from_mol2(mol2_path, res_name="LG1")
@@ -437,7 +437,7 @@ def _single_prep():
 
 
 def test_write_params_from_mol2_both_formats(tmp_path) -> None:
-    from tmol.ligand import write_params_from_mol2
+    from tmol.ligand._params_io import write_params_from_mol2
 
     rosetta = tmp_path / "lig.params"
     write_params_from_mol2(str(_smallest_mol2()), str(rosetta), res_name="LG1")
@@ -449,11 +449,8 @@ def test_write_params_from_mol2_both_formats(tmp_path) -> None:
 
 
 def test_tmol_params_roundtrip_and_inject(tmp_path) -> None:
-    from tmol.ligand import (
-        inject_params_file,
-        inject_params_files,
-        load_params_file,
-    )
+    from tmol.ligand import inject_params_file, load_params_file
+    from tmol.ligand._params_file import inject_params_files
     from tmol.ligand import write_params_file
 
     prep = _single_prep()
@@ -558,7 +555,7 @@ _DIVERSE_SMILES = {
 @pytest.mark.parametrize("name", sorted(_DIVERSE_SMILES))
 def test_prepare_ligand_from_smiles_registers(name: str) -> None:
     """Each diverse ligand prepares and registers via the SMILES path."""
-    from tmol.ligand import prepare_ligand_from_smiles
+    from tmol.ligand._preparation import prepare_ligand_from_smiles
 
     smiles = _DIVERSE_SMILES[name]
     param_db, _ = prepare_ligand_from_smiles(
@@ -584,7 +581,7 @@ _CIF_LIGANDS = ["ada", "cdk2", "cox2", "hivrt", "src", "egfr"]
 
 
 def _load_full_array(cif_path: Path):
-    from tmol.io import atom_array_from_cif
+    from tmol import atom_array_from_cif
 
     return atom_array_from_cif(cif_path)
 
@@ -592,7 +589,7 @@ def _load_full_array(cif_path: Path):
 @pytest.mark.parametrize("name", _CIF_LIGANDS)
 def test_prepare_ligand_from_cif_inputs(name: str) -> None:
     """Diverse real ligand CIFs prepare end-to-end via the unified path."""
-    from tmol.ligand import prepare_ligand_from_cif
+    from tmol.ligand._preparation import prepare_ligand_from_cif
 
     cif = CIF_INPUTS / f"{name}.ligand.cif"
     param_db, _ = prepare_ligand_from_cif(
@@ -608,7 +605,7 @@ def test_prepare_ligand_from_cif_inputs(name: str) -> None:
 
 def test_prepare_ligands_writes_params_output(tmp_path) -> None:
     """prepare_ligands over a ligand AtomArray writes a reusable .tmol file."""
-    from tmol.ligand import prepare_ligands
+    from tmol.ligand._preparation import prepare_ligands
 
     arr = _load_full_array(CIF_INPUTS / "ada.ligand.cif")
     out = tmp_path / "out.tmol"
@@ -626,7 +623,7 @@ def test_prepare_ligands_accepts_single_model_stack() -> None:
     import biotite.structure as struc
     import biotite.structure.io.pdbx as pdbx
 
-    from tmol.ligand import prepare_ligands
+    from tmol.ligand._preparation import prepare_ligands
 
     cif = pdbx.CIFFile.read(str(CIF_INPUTS / "ada.ligand.cif"))
     stack = pdbx.get_structure(cif, include_bonds=True, extra_fields=["charge"])
@@ -642,7 +639,7 @@ def test_prepare_ligands_rejects_multi_model_stack() -> None:
     """An AtomArrayStack with multiple models is rejected with a clear error."""
     import biotite.structure as struc
 
-    from tmol.ligand import prepare_ligands
+    from tmol.ligand._preparation import prepare_ligands
 
     arr = _load_full_array(CIF_INPUTS / "ada.ligand.cif")
     stack = struc.stack([arr, arr])
@@ -652,8 +649,8 @@ def test_prepare_ligands_rejects_multi_model_stack() -> None:
 
 def test_prepare_ligands_strict_raises_on_unpreparable_ligand() -> None:
     """A ligand that cannot yield a SMILES raises under strict_ligands=True."""
-    from tmol.ligand import LigandPreparationError
-    from tmol.ligand import prepare_ligands
+    from tmol.ligand._preparation import LigandPreparationError
+    from tmol.ligand._preparation import prepare_ligands
 
     # The parp ligand CIF has bond orders the unified SMILES path can't use, so
     # on-the-fly preparation fails -- strict mode must surface that loudly.
@@ -666,7 +663,7 @@ def test_prepare_ligands_strict_raises_on_unpreparable_ligand() -> None:
 
 def test_prepare_ligands_lenient_skips_unpreparable_ligand() -> None:
     """The same ligand is skipped with a warning under strict_ligands=False."""
-    from tmol.ligand import prepare_ligands
+    from tmol.ligand._preparation import prepare_ligands
 
     arr = _load_full_array(CIF_INPUTS / "parp.ligand.cif")
     param_db, ordering = prepare_ligands(
@@ -687,7 +684,7 @@ def test_prepare_ligands_honors_lenient_mode_for_ligand_preparation_errors(
     tmol does not support. Lenient mode must drop it like any other unknown
     rather than crash.
     """
-    from tmol.ligand import LigandPreparationError, prepare_ligands
+    from tmol.ligand._preparation import LigandPreparationError, prepare_ligands
     from tmol.ligand import _preparation
 
     def fail(*args, **kwargs):
@@ -720,7 +717,7 @@ def test_prepare_ligands_rejects_incomplete_generated_chemistry(
 
     import attr
 
-    from tmol.ligand import LigandPreparationError, prepare_ligands
+    from tmol.ligand._preparation import LigandPreparationError, prepare_ligands
     from tmol.ligand import _preparation
 
     arr = _load_full_array(CIF_INPUTS / "ada.ligand.cif")
@@ -758,7 +755,8 @@ def test_prepare_ligands_with_params_files_skips_reprep(tmp_path) -> None:
     """A residue supplied via params_files is already known, so no re-prep."""
     from tmol.ligand import nonstandard_residue_info_from_mol2
     from tmol.ligand import write_params_file
-    from tmol.ligand import prepare_ligands, prepare_single_ligand
+    from tmol.ligand import prepare_single_ligand
+    from tmol.ligand._preparation import prepare_ligands
 
     # Build a .tmol for the mol2 ligand named LG1.
     info = nonstandard_residue_info_from_mol2(_smallest_mol2(), res_name="LG1")
@@ -781,8 +779,11 @@ def test_a_component_of_unbonded_fragments_builds_scores_packs_and_minimizes(
     import biotite.structure as struc
     import numpy as np
     import torch
-    from tmol import FoldForest, MoveMap, beta2016_score_function, run_kin_min
-    from tmol.io import pose_stack_from_biotite
+    from tmol import run_kin_min
+    from tmol import FoldForest
+    from tmol import MoveMap
+    from tmol import beta2016_score_function
+    from tmol import pose_stack_from_biotite
 
     # ethanol and a hydroxide that is not bonded to it, both in residue ZZF
     names = ["C1", "C2", "O1", "O2", "H1", "H2", "H3", "H4", "H5", "H6", "H7"]
@@ -859,8 +860,8 @@ def test_a_component_of_unbonded_fragments_builds_scores_packs_and_minimizes(
 def test_localized_mol2_oxyanions_survive_fallback_reader(torch_device):
     """PDBbind 1AKW's FMN needs both the correct ring and its stated O.co2 charges."""
     import numpy as np
-    from tmol.io import pose_stack_from_biotite
-    from tmol.ligand._detect import nonstandard_residue_info_from_mol2
+    from tmol import pose_stack_from_biotite
+    from tmol.ligand import nonstandard_residue_info_from_mol2
 
     path = DATA / "sweep_regressions" / "localized_oxyacid_1akw.mol2"
     source = nonstandard_residue_info_from_mol2(path, res_name="FMN").atom_array

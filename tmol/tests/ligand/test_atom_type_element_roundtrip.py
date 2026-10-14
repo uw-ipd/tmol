@@ -7,8 +7,9 @@ import attr
 import pytest
 import yaml
 
-from tmol.database import ParameterDatabase
-from tmol.ligand import collect_new_atom_types, load_params_file, write_params_file
+from tmol import ParameterDatabase
+from tmol.ligand import load_params_file, write_params_file
+from tmol.ligand._registry import collect_new_atom_types
 from tmol.ligand._registry import inject_ligand_preparations
 from tmol.tests.ligand.test_ligand_entry_paths import _single_prep
 from tmol.ligand._params_file import TMOL_FORMAT_VERSION

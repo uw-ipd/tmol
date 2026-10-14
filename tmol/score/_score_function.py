@@ -9,19 +9,36 @@ import warnings
 
 import torch
 
-from tmol.types import Tensor
+from tmol.types._torch import Tensor
 
 from tmol.database import ParameterDatabase
 from tmol.database._yaml import safe_load
-from tmol.score import ScoreType
-from tmol.score.common import ZeroTermPoseScoringModule, TermWholePoseScoringModule
-from tmol.score.hbond import HBondEnergyTerm
-from tmol.utility._device import resolve_device
+from tmol.score._score_types import ScoreType
+from tmol.score.common._scoring_module import (
+    ZeroTermPoseScoringModule,
+    TermWholePoseScoringModule,
+)
+from tmol.score.hbond._hbond_energy_term import HBondEnergyTerm
+from tmol.utility import resolve_device
 
 # force registration of the terms with the ScoreTermFactory
-from tmol.score.terms import *  # noqa: F401, F403
-from tmol.score.terms import ScoreTermFactory
-from tmol.pose import PoseStack
+from tmol.score.terms import (  # noqa: F401
+    _backbone_torsion_creator,
+    _cartbonded_creator,
+    _constraint_creator,
+    _disulfide_creator,
+    _dunbrack_creator,
+    _elec_creator,
+    _genbonded_creator,
+    _hbond_creator,
+    _ljlk_creator,
+    _lk_ball_creator,
+    _metal_coordination_creator,
+    _na_torsion_creator,
+    _ref_creator,
+)
+from tmol.score.terms._score_term_factory import ScoreTermFactory
+from tmol.pose._pose_stack import PoseStack
 
 logger = logging.getLogger(__name__)
 
@@ -576,7 +593,7 @@ class ScoreFunction:
     def render_rotamer_scoring_module(
         self,
         pose_stack: PoseStack,
-        rotamer_set: "RotamerSet",  # noqa: F405
+        rotamer_set: "RotamerSet",  # noqa: F821
     ) -> "RotamerScoringModule":
         """Render a weighted sparse scorer for one rotamer set.
 
@@ -850,7 +867,7 @@ class _FusedLJLKAndElecWholePoseModule(torch.nn.Module):
             return torch.cat(
                 (self.ljlk_module(coords), self.elec_module(coords)), dim=0
             )
-        from tmol.score.ljlk.potentials import ljlk_elec_pose_scores
+        from tmol.score.ljlk.potentials._compiled import ljlk_elec_pose_scores
 
         # Preserve the normal term wrapper's lazy float64 support.  The
         # composite selects arguments from each child's dtype-adjusted static
@@ -865,7 +882,7 @@ class _FusedLJLKAndElecWholePoseModule(torch.nn.Module):
         self, coords, shared_block_neighbors, score_weights, *, flat_coords=None
     ):
         """Return one weighted lane while retaining the decomposed fallback."""
-        from tmol.score.ljlk.potentials import ljlk_elec_weighted_pose_scores
+        from tmol.score.ljlk.potentials._compiled import ljlk_elec_weighted_pose_scores
 
         if score_weights.dtype != coords.dtype:
             score_weights = score_weights.to(dtype=coords.dtype)
@@ -890,8 +907,8 @@ def _whole_pose_execution_modules(term_modules, device):
                 getattr(first, "classname", None) == "LJLK"
                 and getattr(second, "classname", None) == "Elec"
             ):
-                from tmol.score.elec.potentials import elec_pose_scores
-                from tmol.score.ljlk.potentials import ljlk_pose_scores
+                from tmol.score.elec.potentials._compiled import elec_pose_scores
+                from tmol.score.ljlk.potentials._compiled import ljlk_pose_scores
 
                 is_builtin_pair = (
                     getattr(first, "term_score_poses", None) is ljlk_pose_scores
@@ -1174,7 +1191,7 @@ class WholePoseScoringModule:
 
     def _reduce_weighted_fused_lanes(self, score_lanes: torch.Tensor) -> torch.Tensor:
         """Combine one already-weighted fused lane in one native reduction."""
-        from tmol.score.ljlk.potentials import weighted_fused_score_sum
+        from tmol.score.ljlk.potentials._compiled import weighted_fused_score_sum
 
         weight_begin, weight_end = self._fused_ljlk_elec_weight_range
         score_weights = self.weights
@@ -1652,7 +1669,7 @@ class _DefaultWholePoseScoringModule(torch.nn.Module):
         if not use_weighted_fusion:
             return torch.sum(self.weights * score_lanes, dim=0)
 
-        from tmol.score.ljlk.potentials import weighted_fused_score_sum
+        from tmol.score.ljlk.potentials._compiled import weighted_fused_score_sum
 
         weight_begin, weight_end = self._fused_weight_range
         score_weights = self.weights
@@ -1850,7 +1867,9 @@ class _FusedLJLKAndElecRotamerFunction(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, *args):
-        from tmol.score.ljlk.potentials import ljlk_elec_weighted_rotamer_scores
+        from tmol.score.ljlk.potentials._compiled import (
+            ljlk_elec_weighted_rotamer_scores,
+        )
 
         tensor_args = args[:-3]
         max_dis, score_weights, empty_dispatch = args[-3:]
@@ -1876,7 +1895,9 @@ class _FusedLJLKAndElecRotamerFunction(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, score_gradients, _):
-        from tmol.score.ljlk.potentials import ljlk_elec_weighted_rotamer_scores
+        from tmol.score.ljlk.potentials._compiled import (
+            ljlk_elec_weighted_rotamer_scores,
+        )
 
         saved_tensors = iter(ctx.saved_tensors[:-1])
         dispatch_indices = ctx.saved_tensors[-1]
@@ -1927,7 +1948,9 @@ class _FusedLJLKAndElecRotamerModule(torch.nn.Module):
         )
 
     def forward(self, coords, score_weights):
-        from tmol.score.ljlk.potentials import ljlk_elec_weighted_rotamer_scores
+        from tmol.score.ljlk.potentials._compiled import (
+            ljlk_elec_weighted_rotamer_scores,
+        )
 
         if score_weights.dtype != coords.dtype:
             score_weights = score_weights.to(dtype=coords.dtype)
@@ -1945,7 +1968,7 @@ class _FusedLJLKAndElecRotamerModule(torch.nn.Module):
 
     def iter_packing_dispatches(self, coords):
         """Yield canonical maximum-cutoff dispatches by block-pair window."""
-        from tmol.score.ljlk.potentials import ljlk_elec_rotamer_dispatch
+        from tmol.score.ljlk.potentials._compiled import ljlk_elec_rotamer_dispatch
 
         native_args = self._native_arguments(coords)
         n_poses, max_n_blocks = native_args[3].shape
@@ -1967,7 +1990,9 @@ class _FusedLJLKAndElecRotamerModule(torch.nn.Module):
 
     def iter_packing_entries(self, coords, score_weights, *, topology_only):
         """Yield bounded canonical dispatch windows for packing."""
-        from tmol.score.ljlk.potentials import ljlk_elec_weighted_rotamer_scores
+        from tmol.score.ljlk.potentials._compiled import (
+            ljlk_elec_weighted_rotamer_scores,
+        )
 
         if score_weights.dtype != coords.dtype:
             score_weights = score_weights.to(dtype=coords.dtype)
@@ -2009,8 +2034,8 @@ def _fused_ljlk_elec_rotamer_module(term_modules):
             getattr(first, "classname", None) == "LJLK"
             and getattr(second, "classname", None) == "Elec"
         ):
-            from tmol.score.elec.potentials import elec_rotamer_scores_shared
-            from tmol.score.ljlk.potentials import ljlk_rotamer_scores
+            from tmol.score.elec.potentials._compiled import elec_rotamer_scores_shared
+            from tmol.score.ljlk.potentials._compiled import ljlk_rotamer_scores
 
             is_builtin_pair = (
                 getattr(first, "term_score_poses", None) is ljlk_rotamer_scores

@@ -4,8 +4,8 @@ import attr
 import pytest
 import torch
 
-from tmol.io import extended_pose_stack_from_sequences
-from tmol.score.genbonded import GenBondedEnergyTerm
+from tmol import extended_pose_stack_from_sequences
+from tmol.score import GenBondedEnergyTerm
 
 
 def _database(default_database, factor):
@@ -102,9 +102,10 @@ def test_database_tables_are_shared_bounded_and_do_not_retain_owner(
 
 
 def test_rotamer_database_scaling_and_module_snapshot(default_database, torch_device):
-    from tmol.pack import PackerTask, PackerPalette, SetPackerTask
-    from tmol.pack.rotamer import build_rotamers
-    from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
+    from tmol.pack import SetPackerTask
+    from tmol import PackerTask, PackerPalette
+    from tmol.pack import build_rotamers
+    from tmol.pack import create_dunbrack_sampler_from_database
 
     pose = extended_pose_stack_from_sequences(["KK"], device=torch_device)
     task = PackerTask(pose, PackerPalette())

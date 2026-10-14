@@ -32,8 +32,8 @@ import pytest
 import biotite.structure as struc
 import biotite.structure.info as info
 
-from tmol.database import ParameterDatabase
-from tmol.ligand import LigandPreparationError, prepare_polymer_residue
+from tmol import ParameterDatabase
+from tmol.ligand._preparation import LigandPreparationError, prepare_polymer_residue
 from tmol.ligand._polymer_profile import alpha_profile, profile_for_atom_array
 from tmol.ligand._preparation import _ideal_coords_by_name
 from tmol.ligand._registry import rebuild_canonical_ordering
@@ -390,7 +390,7 @@ def _hyp_structure(renames: dict):
 
     from tmol.tests.data import data_path
 
-    from tmol.io import atom_array_from_cif
+    from tmol import atom_array_from_cif
 
     atom_array = atom_array_from_cif(
         data_path("ncaa_fixtures") / "collagen_hyp_1bkv.cif"
@@ -448,9 +448,9 @@ def test_a_ring_atom_named_otherwise_scores_the_same(torch_device) -> None:
     row; called anything else, from the copy the residue carries. The two paths
     have to arrive at the same number.
     """
-    from tmol.io import pose_stack_from_biotite
+    from tmol import pose_stack_from_biotite
     from tmol.ligand._registry import inject_ligand_preparations
-    from tmol.score import beta2016_score_function
+    from tmol import beta2016_score_function
 
     param_db = ParameterDatabase.get_default()
 
@@ -743,7 +743,7 @@ _PIPELINE_FIXTURES: dict[str, dict[str, int]] = {
 
 def _structure(stem: str):
     """A fixture as tmol reads it: bonded, and complete where the density was not."""
-    from tmol.io import atom_array_from_cif
+    from tmol import atom_array_from_cif
     from tmol.tests.data import data_path
 
     return atom_array_from_cif(data_path("ncaa_fixtures") / f"{stem}.cif")
@@ -803,7 +803,7 @@ def test_b3k_endpoint_inference_uses_complete_template_before_restoration(
 
 def _prepared_beta_peptide(structure):
     """``{name: (n_atoms, n_chi)}`` for the residue types 3C3G adds."""
-    from tmol.ligand import prepare_ligands
+    from tmol.ligand._preparation import prepare_ligands
     from tmol.chemical import ResidueTypeSet
 
     param_db = ParameterDatabase.get_default()
@@ -824,7 +824,7 @@ def test_declared_chemistry_completes_an_unresolved_sidechain() -> None:
     """The file declares the whole component, whatever the density resolved."""
     import numpy as np
 
-    from tmol.io import component_chemistry_from_cif
+    from tmol.io._cif import component_chemistry_from_cif
     from tmol.tests.data import data_path
 
     code, n_atoms, n_chi = _TRUNCATED
@@ -873,7 +873,7 @@ def test_the_component_dictionary_completes_what_the_file_does_not_declare(
     """A file with no chem_comp_atom reaches the same residue via the dictionary."""
     import biotite.structure.io.pdbx as pdbx
 
-    from tmol.io import atom_array_from_cif
+    from tmol import atom_array_from_cif
     from tmol.tests.data import data_path
 
     code, n_atoms, n_chi = _TRUNCATED
@@ -914,7 +914,7 @@ def test_a_dictionary_entry_for_a_different_molecule_is_not_used(caplog) -> None
 def test_a_residue_nothing_describes_is_assumed_complete() -> None:
     """Preserve supplied chemistry for preparation when CCD has no definition."""
     from tmol.io._cif import with_unresolved_atoms
-    from tmol.ligand import prepare_ligands
+    from tmol.ligand._preparation import prepare_ligands
 
     structure = _structure("nmethyl_peptide_6mvz")
     # a code the component dictionary does not define
@@ -939,7 +939,7 @@ def test_a_nonstandard_backbone_is_found_and_prepared_from_a_structure(
     stem: str,
 ) -> None:
     """Nothing tells the pipeline where the chain runs; it works it out."""
-    from tmol.ligand import prepare_ligands
+    from tmol.ligand._preparation import prepare_ligands
 
     param_db = ParameterDatabase.get_default()
     known = {r.name for r in param_db.chemical.residues}
@@ -983,9 +983,9 @@ def test_a_nonstandard_backbone_is_found_and_prepared_from_a_structure(
 @pytest.mark.parametrize("stem", sorted(_PIPELINE_FIXTURES))
 def test_a_nonstandard_backbone_scores(stem: str, torch_device) -> None:
     """Smoke test: preparation has to survive into a pose and a number."""
-    from tmol.io import pose_stack_from_biotite
-    from tmol.ligand import prepare_ligands
-    from tmol.score import beta2016_score_function
+    from tmol import pose_stack_from_biotite
+    from tmol.ligand._preparation import prepare_ligands
+    from tmol import beta2016_score_function
 
     structure = _structure(stem)
     prepared, _canonical_ordering = prepare_ligands(
@@ -1009,7 +1009,7 @@ def test_a_nonstandard_backbone_scores(stem: str, torch_device) -> None:
 
 
 def _prepared(stem: str):
-    from tmol.ligand import prepare_ligands
+    from tmol.ligand._preparation import prepare_ligands
 
     param_db = ParameterDatabase.get_default()
     known = {r.name for r in param_db.chemical.residues}

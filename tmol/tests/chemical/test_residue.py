@@ -3,12 +3,9 @@ import cattr
 import numpy
 import pytest
 
-from tmol.chemical import (
-    normalize,
-    build_ideal_coords,
-    RefinedResidueType,
-    ResidueTypeSet,
-)
+from tmol.chemical import ResidueTypeSet
+from tmol.chemical._ideal_coords import normalize, build_ideal_coords
+from tmol.chemical import RefinedResidueType
 from tmol.database.chemical import RawResidueType
 
 

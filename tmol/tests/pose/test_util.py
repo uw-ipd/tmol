@@ -5,8 +5,10 @@ from __future__ import annotations
 import numpy
 import pytest
 
-from tmol.io import EXTENDED_BACKBONE_TORSIONS, extended_pose_stack_from_sequences
-from tmol.pose import get_named_torsions, get_torsion_names
+from tmol.io._pose_stack_from_sequence import EXTENDED_BACKBONE_TORSIONS
+from tmol import extended_pose_stack_from_sequences
+from tmol.pose._util import get_torsion_names
+from tmol.pose import get_named_torsions
 
 # ── get_torsion_names ─────────────────────────────────────────────────────────
 

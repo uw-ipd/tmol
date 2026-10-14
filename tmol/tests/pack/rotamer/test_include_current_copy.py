@@ -3,7 +3,8 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from tmol.pack.rotamer import IncludeCurrentSampler, FallbackSampler
+from tmol.pack import IncludeCurrentSampler
+from tmol.pack import FallbackSampler
 from tmol.pack.rotamer._include_current_sampler import (
     create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampler as plan,
 )
@@ -117,9 +118,10 @@ def test_current_conformers_reconstruct_ragged_pose_coordinates(
     ubq_pdb, torch_device, monkeypatch, sampler_class
 ):
     from tmol.io import pose_stack_from_pdb
-    from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-    from tmol.pack.rotamer import build_rotamers
-    from tmol.pose import PoseStackBuilder
+    from tmol.pack import SetPackerTask
+    from tmol import PackerPalette, PackerTask
+    from tmol.pack import build_rotamers
+    from tmol import PoseStackBuilder
 
     poses = PoseStackBuilder.from_poses(
         [

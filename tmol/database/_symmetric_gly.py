@@ -2,7 +2,7 @@
 
 import attr
 
-from .scoring._cartbonded import CartBondedDatabase
+from tmol.database.scoring import CartBondedDatabase
 
 
 def symmetric_gly_geometry(chemical, cartbonded):

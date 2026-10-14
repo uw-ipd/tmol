@@ -18,8 +18,8 @@ import biotite.structure.info as info
 import numpy
 import pytest
 
-from tmol.database import ParameterDatabase
-from tmol.ligand import prepare_ligands, prepare_polymer_residue
+from tmol import ParameterDatabase
+from tmol.ligand._preparation import prepare_ligands, prepare_polymer_residue
 from tmol.ligand._registry import rebuild_canonical_ordering
 from tmol.tests.data import data_path
 
@@ -129,7 +129,7 @@ def test_a_modified_nucleotide_borrows_the_base_it_resembles() -> None:
     Pseudouridine is joined to the sugar through C5 rather than N1, so a chi
     read off the canonical uracil's atom names would turn the wrong bond.
     """
-    from tmol.io import atom_array_from_cif
+    from tmol import atom_array_from_cif
 
     param_db = ParameterDatabase.get_default()
     structure = atom_array_from_cif(FIXTURE_DIR / "na_rna_psu_1bzt.cif")
@@ -179,7 +179,8 @@ _EXPECTED_ROTAMERS = {
 
 def _pose_with(code: str, torch_device):
     """A pose built from the fixture, and the block index of ``code``."""
-    from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+    from tmol import pose_stack_from_biotite
+    from tmol import atom_array_from_cif
 
     param_db = ParameterDatabase.get_default()
     structure = atom_array_from_cif(FIXTURE_DIR / f"{_STRUCTURES[code]}.cif")
@@ -205,8 +206,9 @@ def _pose_with(code: str, torch_device):
 
 
 def _rotamers(poses, samplers, chemical_db):
-    from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-    from tmol.pack.rotamer import build_rotamers
+    from tmol.pack import SetPackerTask
+    from tmol import PackerPalette, PackerTask
+    from tmol.pack import build_rotamers
 
     task = PackerTask(poses, PackerPalette())
     task.restrict_to_repacking()
@@ -229,11 +231,7 @@ def test_the_packer_builds_rotamers_for_a_noncanonical(
     Uses the sampler set a packing run assembles, IncludeCurrentSampler among
     them, so the input conformation is one of the rotamers offered.
     """
-    from tmol.pack.rotamer import (
-        FixedAAChiSampler,
-        IncludeCurrentSampler,
-        NaChiRotamerSampler,
-    )
+    from tmol.pack import FixedAAChiSampler, IncludeCurrentSampler, NaChiRotamerSampler
 
     poses, context, (pose, block) = _pose_with(code, torch_device)
     samplers = [dun_sampler, FixedAAChiSampler(), IncludeCurrentSampler()]
@@ -256,7 +254,7 @@ def test_a_borrowed_library_yields_its_own_number_of_rotamers(
     code: str, torch_device, dun_sampler
 ) -> None:
     """Borrowing a library means sampling every rotamer that library defines."""
-    from tmol.pack.rotamer import FixedAAChiSampler
+    from tmol.pack import FixedAAChiSampler
 
     poses, context, (pose, block) = _pose_with(code, torch_device)
     _poses, rotamer_set = _rotamers(
@@ -286,7 +284,7 @@ def test_a_built_rotamer_keeps_its_sidechain_on_the_same_side(
     Chirality is read as a signed volume rather than by naming atoms, so this
     holds for a backbone the canonical residues do not have.
     """
-    from tmol.pack.rotamer import FixedAAChiSampler
+    from tmol.pack import FixedAAChiSampler
 
     poses, context, (pose, block) = _pose_with(code, torch_device)
     _poses, rotamer_set = _rotamers(
@@ -322,7 +320,8 @@ def test_hyp_count_contains_two_library_states_and_nine_hydroxyl_angles(
     torch_device, dun_sampler
 ):
     import torch
-    from tmol.pack import PackerPalette, PackerTask, SetPackerTask
+    from tmol.pack import SetPackerTask
+    from tmol import PackerPalette, PackerTask
 
     poses, context, (pose, block) = _pose_with("HYP", torch_device)
     task = PackerTask(poses, PackerPalette())

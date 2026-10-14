@@ -10,12 +10,10 @@ import pandas
 import pytest
 import torch
 
-from tmol.chemical._restypes import RefinedResidueType
-from tmol.database import ParameterDatabase
-from tmol.score.backbone_torsion._bb_torsion_energy_term import (
-    BackboneTorsionEnergyTerm,
-    _invert_flag,
-)
+from tmol.chemical import RefinedResidueType
+from tmol import ParameterDatabase
+from tmol.score.backbone_torsion._bb_torsion_energy_term import _invert_flag
+from tmol.score import BackboneTorsionEnergyTerm
 from tmol.score.backbone_torsion._params import (
     BackboneTorsionParamResolver,
     mirror_grid,

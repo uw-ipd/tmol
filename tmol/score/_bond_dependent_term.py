@@ -4,15 +4,11 @@ import torch
 from ._annotation_cache import AnnotationKey, cached_annotation, store_annotation
 
 from tmol.database import ParameterDatabase
-from tmol.chemical import (
-    MAX_SIG_BOND_SEPARATION,
-    RefinedResidueType,
-)
-from tmol.pose import PackedBlockTypes
-from tmol.score import (
-    EnergyTerm,
-    IndexedBonds,
-)
+from tmol.chemical._constants import MAX_SIG_BOND_SEPARATION
+from tmol.chemical import RefinedResidueType
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.score._energy_term import EnergyTerm
+from tmol.score._bonded_atom import IndexedBonds
 
 
 # @attr.s(auto_attribs=True)

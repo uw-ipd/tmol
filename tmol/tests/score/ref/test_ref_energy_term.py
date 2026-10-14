@@ -1,8 +1,8 @@
 import torch
 
-from tmol.score.ref import RefEnergyTerm
+from tmol.score import RefEnergyTerm
 
-from tmol.tests.score.common import EnergyTermTestBase
+from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 
 
 def test_smoke(default_database, torch_device: torch.device):

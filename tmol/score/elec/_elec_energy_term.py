@@ -14,12 +14,10 @@ from .._annotation_cache import (
 )
 
 from tmol.database import ParameterDatabase
-from tmol.score.elec import ElecParamResolver, ElecGlobalParams
+from tmol.score.elec._params import ElecParamResolver, ElecGlobalParams
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 
 
 @dataclass(frozen=True)
@@ -259,12 +257,12 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
     score_only_in_no_grad = True
 
     def get_pose_score_term_function(self):
-        from tmol.score.elec.potentials import elec_pose_scores
+        from tmol.score.elec.potentials._compiled import elec_pose_scores
 
         return elec_pose_scores
 
     def get_rotamer_score_term_function(self):
-        from tmol.score.elec.potentials import elec_rotamer_scores_shared
+        from tmol.score.elec.potentials._compiled import elec_rotamer_scores_shared
 
         return elec_rotamer_scores_shared
 

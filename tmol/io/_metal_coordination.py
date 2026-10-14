@@ -7,11 +7,11 @@ import numpy
 import torch
 
 from tmol.database.chemical import site_connections, site_metal
-from tmol.io import CanonicalOrdering
+from tmol.io._canonical_ordering import CanonicalOrdering
 from tmol.io._pose_stack_construction import pose_stack_from_canonical_form
 from tmol.io._pose_stack_deconstruction import canonical_form_from_pose_stack
 from tmol.io.details._metal_geometry import unit
-from tmol.pose import PoseStack
+from tmol.pose._pose_stack import PoseStack
 
 
 def add_metal_coordination(

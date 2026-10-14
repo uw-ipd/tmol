@@ -100,7 +100,7 @@ def group_sampling_topology(group, pose_stack, fixed_owners=()):
 
 
 def _group_sampling_topology(group, pose_stack, fixed_owners=()):
-    from tmol.kinematics import block_group_kinforest_data
+    from tmol.kinematics._scan_ordering import block_group_kinforest_data
 
     types, offsets, partners = group_atom_context(group, pose_stack)
     rkd, offsets = block_group_kinforest_data(types, group.links, anchor=0)

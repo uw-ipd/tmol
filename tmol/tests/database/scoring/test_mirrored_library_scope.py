@@ -134,8 +134,8 @@ def test_selective_libraries_preserve_native_sampling(
     original_libraries, default_database, torch_device
 ):
     import torch
-    from tmol.pack.rotamer.dunbrack import DunbrackChiSampler
-    from tmol.score.dunbrack import DunbrackParamResolver
+    from tmol.pack import DunbrackChiSampler
+    from tmol.score.dunbrack._params import DunbrackParamResolver
     from tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler import (
         _table_indices,
     )

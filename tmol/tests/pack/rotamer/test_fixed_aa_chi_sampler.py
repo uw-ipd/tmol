@@ -2,13 +2,11 @@ import torch
 import numpy
 import cattr
 
-from tmol.chemical import RefinedResidueType, ResidueTypeSet
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStackBuilder,
-)
-from tmol.pack import PackerTask, SetPackerTask, PackerPalette
-from tmol.pack.rotamer import FixedAAChiSampler
+from tmol.chemical import ResidueTypeSet
+from tmol.chemical import RefinedResidueType
+from tmol import PackedBlockTypes, PackerPalette, PackerTask, PoseStackBuilder
+from tmol.pack import SetPackerTask
+from tmol.pack import FixedAAChiSampler
 
 from tmol.tests.data import no_termini_pose_stack_from_pdb
 

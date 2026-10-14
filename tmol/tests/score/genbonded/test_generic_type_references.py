@@ -6,7 +6,8 @@ import torch
 import yaml
 
 from tmol.chemical import ResidueTypeSet
-from tmol.score.genbonded import GenBondedEnergyTerm, MAX_HIER_DEPTH
+from tmol.score.genbonded._genbonded_energy_term import MAX_HIER_DEPTH
+from tmol.score import GenBondedEnergyTerm
 from tmol.ligand._params_file import TMOL_FORMAT_VERSION
 
 GLOBAL_HIERARCHY_HOPS = {
@@ -126,8 +127,9 @@ def test_invalid_reference_is_rejected(default_database, reference):
 
 
 def _attached_amide(default_database, torch_device, generic_center, references):
-    from tmol.io import atom_array_from_cif, pose_stack_from_biotite
-    from tmol.ligand import prepare_ligands
+    from tmol import pose_stack_from_biotite
+    from tmol import atom_array_from_cif
+    from tmol.ligand._preparation import prepare_ligands
     from tmol.tests.data import data_path
     from tmol.tests.pack.test_conjugated_group_packing import FIXTURES
 
@@ -260,7 +262,7 @@ def test_rotamer_attachment_improper_reference(
     default_database, torch_device, generic_center
 ):
     from tmol.pack import SetPackerTask
-    from tmol.pack.rotamer import build_rotamers
+    from tmol.pack import build_rotamers
     from tmol.tests.pack.test_conjugated_group_packing import _task
 
     pose, database = _attached_amide(

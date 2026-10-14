@@ -9,9 +9,9 @@ import cattr
 import numpy
 import pytest
 
-from tmol.chemical import l_base_name
-from tmol.chemical._restypes import RefinedResidueType
-from tmol.database import ParameterDatabase
+from tmol.database.chemical import l_base_name
+from tmol.chemical import RefinedResidueType
+from tmol import ParameterDatabase
 
 
 def residues(param_db):

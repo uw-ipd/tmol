@@ -6,10 +6,10 @@ import pytest
 import sys
 import types
 
-from tmol.pose import ConstraintSet
-from tmol.score.constraint import ConstraintEnergyTerm
-from tmol.tests.score.common import EnergyTermTestBase
-from tmol import pose_stack_from_pdb, ScoreFunction, ScoreType
+from tmol import ConstraintSet, ScoreFunction, ScoreType
+from tmol.score import ConstraintEnergyTerm
+from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
+from tmol.io import pose_stack_from_pdb
 
 
 def add_test_constraints_to_pose_stack(pose_stack):

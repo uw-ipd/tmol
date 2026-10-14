@@ -2,19 +2,15 @@ import torch
 import toolz
 import biotite.structure
 
-from tmol.types import validate_args
+from tmol.types._functional import validate_args
 from tmol.chemical import ResidueTypeSet
 from tmol.database import ParameterDatabase
 from tmol.io._build_context import PoseBuildContext
 from tmol.io._pose_stack_from_atom37 import canonical_form_from_atom37
-from tmol.io import (
-    CanonicalForm,
-    CanonicalOrdering,
-)
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.io._canonical_form import CanonicalForm
+from tmol.io._canonical_ordering import CanonicalOrdering
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 
 # Use AtomWorks' protein token order and atom slots as the source of truth.
 # This module therefore has a runtime AtomWorks dependency. Copy the public
@@ -80,7 +76,7 @@ def pose_stack_from_canonical_aa_atom37(
     ValueError
         If any ``residue_type`` value is outside 1..20 (protein-only).
     """
-    from tmol.io import pose_stack_from_canonical_form
+    from tmol.io._pose_stack_construction import pose_stack_from_canonical_form
 
     cf = canonical_form_from_atomworks(coords, residue_type, chain_iid)
 
@@ -154,7 +150,7 @@ def pose_stack_from_atom37_and_topology(
     PoseStack
         Whose ``coords`` carry gradients back to ``atom37_coords``.
     """
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io._pose_stack_from_biotite import pose_stack_from_biotite
 
     return pose_stack_from_biotite(
         biotite_structure,
@@ -245,7 +241,7 @@ def atomworks_from_pose_stack(
     chain_iid : Tensor[int64], shape [n_poses, max_n_res]
         Chain identifiers.
     """
-    from tmol.io import canonical_form_from_pose_stack
+    from tmol.io._pose_stack_deconstruction import canonical_form_from_pose_stack
 
     co = canonical_ordering_for_atomworks()
     cf = canonical_form_from_pose_stack(co, pose_stack)

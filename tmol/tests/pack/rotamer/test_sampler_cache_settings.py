@@ -5,7 +5,8 @@ import pytest
 import torch
 
 from tmol.io import default_packed_block_types
-from tmol.pack.rotamer import NaChiRotamerSampler, OptHSampler
+from tmol.pack import NaChiRotamerSampler
+from tmol.pack import OptHSampler
 
 
 @pytest.mark.parametrize("kind", ["na", "opth"])

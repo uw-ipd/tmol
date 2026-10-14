@@ -6,15 +6,13 @@ import pandas
 
 from typing import Sequence
 
-from tmol.types import Tensor
+from tmol.types._torch import Tensor
 
-from tmol.chemical import (
-    MAX_PATHS_FROM_CONNECTION,
-    RefinedResidueType,
-    ResidueTypeSet,
-)
-from tmol.database import PatchedChemicalDatabase
-from tmol.utility._device import resolve_device
+from tmol.chemical import ResidueTypeSet
+from tmol.chemical._constants import MAX_PATHS_FROM_CONNECTION
+from tmol.chemical import RefinedResidueType
+from tmol.database._patched_chemdb import PatchedChemicalDatabase
+from tmol.utility import resolve_device
 
 # The per-block connection capacity of the ljlk, elec, hbond and lk_ball
 # kernels' shared-memory tiles (MAX_N_CONN in their .hh files).

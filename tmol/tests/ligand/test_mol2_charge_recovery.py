@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 from rdkit import Chem
 
-from tmol.io import pose_stack_from_biotite
-from tmol.ligand import prepare_ligand_from_mol2
+from tmol import pose_stack_from_biotite
+from tmol.ligand._preparation import prepare_ligand_from_mol2
 from tmol.ligand._detect import nonstandard_residue_info_from_mol2_block
 from tmol.ligand._rdkit_mol import ligand_atom_array_to_rdkit_mol
 from tmol.tests.data import data_path

@@ -8,7 +8,7 @@ import pytest
 from atomworks.constants import STANDARD_AA
 from atomworks.experimental.protonation import add_hydrogens, assign_hydrogens
 
-from tmol.io import biotite_from_pose_stack, pose_stack_from_biotite
+from tmol import biotite_from_pose_stack, pose_stack_from_biotite
 
 
 def _tripeptide(middle):

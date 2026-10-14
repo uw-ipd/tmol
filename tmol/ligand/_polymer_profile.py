@@ -2194,7 +2194,7 @@ def na_base_reference(residue_type, profile, chemdb, minimum=0.5):
     or none at all, as at an abasic site -- falls back to the polymer's
     averaged base, so the residue is still scored rather than dropped.
     """
-    from tmol.score.na_torsion import BASE_FOR_NAME3, UNKNOWN_BASE_REFERENCE
+    from tmol.score.na_torsion._params import BASE_FOR_NAME3, UNKNOWN_BASE_REFERENCE
 
     kind = profile.backbone_type
     fallback = UNKNOWN_BASE_REFERENCE[kind]

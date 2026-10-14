@@ -11,9 +11,9 @@ import biotite.structure
 import logging
 import warnings
 
-from tmol.types import validate_args
+from tmol.types._functional import validate_args
 from tmol.chemical import ResidueTypeSet
-from tmol.chemical import BondType as ChemBondType
+from tmol.chemical._restypes import BondType as ChemBondType
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import metal_table, site_connections
 from tmol.io._atomworks_reader import (
@@ -33,27 +33,20 @@ from tmol.io._protonation import (
     residues_lacking_hydrogens,
     with_atomworks_hydrogens,
 )
-from tmol.io import (
-    CanonicalForm,
-    CanonicalOrdering,
-    canonical_form_from_pose_stack,
-    PoseBuildContext,
-)
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-    DEFAULT_ATOM_B_FACTOR,
-    DEFAULT_ATOM_OCCUPANCY,
-)
-from tmol.utility import (
-    get_all_residue_positions,
-    resolve_device,
-)
+from tmol.io._canonical_form import CanonicalForm
+from tmol.io._canonical_ordering import CanonicalOrdering
+from tmol.io._pose_stack_deconstruction import canonical_form_from_pose_stack
+from tmol.io._build_context import PoseBuildContext
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.pose._pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+from tmol.utility._biotite_util import get_all_residue_positions
+from tmol.utility import resolve_device
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from tmol.ligand import FragmentedLigandPoseMapping
+    from tmol.ligand._fragmentation import FragmentedLigandPoseMapping
 
 _MAX_PREPARED_BATCH_SIZES = 4
 
@@ -141,7 +134,7 @@ class _PreparedAtom37PoseTopology:
         from tmol.io.details._build_missing_leaf_atoms import (
             _apply_h_geometric_completion,
         )
-        from tmol.io.details.compiled import gen_pose_leaf_atoms
+        from tmol.io.details.compiled._compiled import gen_pose_leaf_atoms
 
         coords = gen_pose_leaf_atoms(
             coords,
@@ -293,7 +286,7 @@ class PreparedAtom37PoseBuilder:
         self._pose_topologies[n_poses] = topology
 
         if opt_h:
-            from tmol.pack import build_missing_sidechains
+            from tmol.pack._build_missing_sidechains import build_missing_sidechains
 
             pose_stack = build_missing_sidechains(
                 pose_stack,
@@ -409,7 +402,7 @@ def prepare_atom37_pose_builder(
     device = context.packed_block_types.device
     fragment_mapping = None
     if context.fragment_definitions:
-        from tmol.ligand import expand_fragmented_ligands
+        from tmol.ligand._fragmentation import expand_fragmented_ligands
 
         biotite_structure, fragment_mapping = expand_fragmented_ligands(
             biotite_structure, context.fragment_definitions
@@ -566,7 +559,7 @@ def build_context_from_biotite(
         biotite_structure
     )
     if prepare_ligands:
-        from tmol.ligand import prepare_ligands as _prepare_ligands
+        from tmol.ligand._preparation import prepare_ligands as _prepare_ligands
 
         using_default_database = param_db is None
         if param_db is None:
@@ -781,7 +774,7 @@ def pose_stack_from_biotite(  # noqa: C901
 
     fragment_mapping = None
     if context.fragment_definitions:
-        from tmol.ligand import expand_fragmented_ligands
+        from tmol.ligand._fragmentation import expand_fragmented_ligands
 
         biotite_structure, fragment_mapping = expand_fragmented_ligands(
             biotite_structure, context.fragment_definitions
@@ -880,11 +873,11 @@ def pose_stack_from_canonical_form_and_context(
     Returns:
       The constructed pose, optionally with atom mappings or the context.
     """
-    from tmol.io import pose_stack_from_canonical_form
-    from tmol.pack import build_missing_sidechains
-    from tmol.pack.rotamer import (
-        FixedAAChiSampler,
-        bfs_sidechain_atoms,
+    from tmol.io._pose_stack_construction import pose_stack_from_canonical_form
+    from tmol.pack._build_missing_sidechains import build_missing_sidechains
+    from tmol.pack import FixedAAChiSampler
+    from tmol.pack.rotamer._bfs_sidechain import bfs_sidechain_atoms
+    from tmol.pack.rotamer._single_residue_kinforest import (
         construct_single_residue_kinforest,
     )
 
@@ -930,7 +923,7 @@ def pose_stack_from_canonical_form_and_context(
     if atom37_coords is None:
         pose_stack = rebuild_coincident_hydrogens(pose_stack)
     if fragment_mapping is not None:
-        from tmol.ligand import apply_fragment_connections
+        from tmol.ligand._fragmentation import apply_fragment_connections
 
         pose_stack = apply_fragment_connections(pose_stack, fragment_mapping)
         fragment_mapping = pose_stack.split_block_mapping
@@ -1184,7 +1177,7 @@ def biotite_from_pose_stack(
         )
     sbm = getattr(pose_stack, "split_block_mapping", None)
     if merge_fragments and sbm is not None and sbm.entries:
-        from tmol.ligand import recombine_fragmented_ligands
+        from tmol.ligand._fragmentation import recombine_fragmented_ligands
 
         structure = recombine_fragmented_ligands(structure, pose_stack)
     return _renumbered_for_cif(structure)
@@ -2550,7 +2543,7 @@ def _with_input_hydrogens(biotite_structure, ph, co, chemdb, find_metal_coordina
 def _detected_metal_bonds(biotite_structure, co, chemdb):
     """(metal atom, donor atom) index pairs metal detection bonds in the input."""
     from tmol.io._pose_stack_construction import _declared_metal_sites
-    from tmol.io.details import find_disulfides
+    from tmol.io.details._disulfide_search import find_disulfides
     from tmol.io.details._metal_detection import find_metal_geometries
 
     template = _template_array(biotite_structure)

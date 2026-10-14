@@ -1,5 +1,5 @@
 import numpy
-from tmol.utility.ndarray import (
+from tmol.utility.ndarray._common_operations import (
     exclusive_cumsum1d,
     exclusive_cumsum2d,
     invert_mapping,

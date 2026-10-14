@@ -2,20 +2,18 @@ import attr
 import numpy
 import torch
 
-from tmol.types import (
-    validate_args,
-    NDArray,
-    Tensor,
-)
-from tmol.kinematics import (
-    NodeType,
-    KinForest,
+from tmol.types._functional import validate_args
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
+from tmol.kinematics import NodeType
+from tmol.kinematics._datatypes import KinForest
+from tmol.kinematics._scan_ordering import (
     KinForestScanOrdering,
     annotate_block_type_with_residue_kinforest_data,
     block_group_kinforest_data,
 )
 from tmol.chemical import RefinedResidueType
-from tmol.pose import PackedBlockTypes
+from tmol.pose._packed_block_types import PackedBlockTypes
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -71,8 +69,8 @@ def _rotamer_kinforest_from_data(rkd, n_atoms, atom_names, mainchain_atoms, idea
     preferred as reference-frame atoms (they hold still across rotamers); for a
     group it is the anchor block's.
     """
-    from tmol.kinematics.compiled import inverse_kin
-    from tmol.utility.ndarray import invert_mapping
+    from tmol.kinematics.compiled._compiled_ops import inverse_kin
+    from tmol.utility.ndarray._common_operations import invert_mapping
 
     kfo_2_to = rkd.bfto_2_orig.astype(numpy.int64)  # KFO → TO (0-indexed)
     preds = rkd.preds.astype(numpy.int64)  # BFS predecessors in TO; -9999 for root

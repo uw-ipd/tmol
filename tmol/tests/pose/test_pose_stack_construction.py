@@ -1,11 +1,12 @@
 import pytest
 import torch
 
-from tmol.chemical import MAX_SIG_BOND_SEPARATION
+from tmol.chemical._constants import MAX_SIG_BOND_SEPARATION
 from tmol.io import pose_stack_from_pdb
 
-from tmol.pose import ConstraintSet, InterBlockBondsep, PoseStackBuilder
-from tmol.score.constraint import ConstraintEnergyTerm
+from tmol import ConstraintSet, PoseStackBuilder
+from tmol.pose._inter_block_bondsep import InterBlockBondsep
+from tmol.score import ConstraintEnergyTerm
 
 
 @pytest.mark.parametrize("target_on_cpu", [False, True])

@@ -18,7 +18,7 @@ import torch
 from tmol.io._build_context import PoseBuildContext
 from tmol.io._canonical_form import CanonicalForm
 from tmol.io._canonical_ordering import CanonicalOrdering
-from tmol.pose import PoseStack
+from tmol.pose._pose_stack import PoseStack
 
 
 def atom37_slot_map_for_ordering(

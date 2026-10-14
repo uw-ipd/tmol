@@ -4,12 +4,10 @@ import cattr
 import numpy
 import torch
 
-from tmol.types import (
-    Tensor,
-    TensorGroup,
-    ValidateAttrs,
-    validate_args,
-)
+from tmol.types._torch import Tensor
+from tmol.types._tensor import TensorGroup
+from tmol.types._attrs import ValidateAttrs
+from tmol.types._functional import validate_args
 from tmol.database.scoring import ElecDatabase
 
 from tmol.chemical import RefinedResidueType

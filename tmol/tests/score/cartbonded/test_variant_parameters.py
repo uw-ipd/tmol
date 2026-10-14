@@ -5,8 +5,8 @@ import pytest
 import torch
 
 from tmol.database import inject_residue_params
-from tmol.io import extended_pose_stack_from_sequences
-from tmol.score import AtomTypeDependentTerm
+from tmol import extended_pose_stack_from_sequences
+from tmol.score._atom_type_dependent_term import AtomTypeDependentTerm
 from tmol.tests.score.cartbonded.test_explicit_connection_parameters import scoring_term
 
 
@@ -106,8 +106,9 @@ def test_exact_variant_parameters_are_isolated(
 def test_variant_rotamer_energies_and_gradients(
     default_database, torch_device, dun_sampler
 ):
-    from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-    from tmol.pack.rotamer import build_rotamers
+    from tmol.pack import SetPackerTask
+    from tmol import PackerPalette, PackerTask
+    from tmol.pack import build_rotamers
 
     pose = extended_pose_stack_from_sequences(["KKK", "KKKK"], device=torch_device)
     task = PackerTask(pose, PackerPalette())
@@ -204,9 +205,11 @@ def test_contradictory_bonded_bundle_rejected(
 
 def test_biotin_variant_params_survive_bundle_reload(tmp_path, torch_device):
     from dataclasses import replace
-    from tmol.database import ParameterDatabase
-    from tmol.io import atom_array_from_cif, pose_stack_from_biotite
-    from tmol.ligand import prepare_ligands, load_params_file, write_params_file
+    from tmol import ParameterDatabase
+    from tmol import pose_stack_from_biotite
+    from tmol import atom_array_from_cif
+    from tmol.ligand import load_params_file, write_params_file
+    from tmol.ligand._preparation import prepare_ligands
     from tmol.ligand._registry import inject_ligand_preparations
     from tmol.ligand._parameter_replacements import _local_identity
     from tmol.tests.data import data_path

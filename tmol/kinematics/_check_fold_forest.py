@@ -1,8 +1,8 @@
 import numpy
 import numba
 
-from tmol.types import NDArray
-from tmol.kinematics import EdgeType
+from tmol.types._array import NDArray
+from tmol.kinematics._fold_forest import EdgeType
 
 
 @numba.jit(nopython=True)

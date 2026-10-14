@@ -11,13 +11,15 @@ import biotite.structure.io.pdbx as pdbx
 import pytest
 import torch
 
-from tmol.io import atom_array_from_cif, pose_stack_from_biotite, pose_stack_from_cif
-from tmol.io._pose_stack_from_biotite import (
-    _map_atoms_to_canonical,
+from tmol import (
+    atom_array_from_cif,
+    beta2016_score_function,
     canonical_form_from_biotite,
     canonical_ordering_for_biotite,
+    pose_stack_from_biotite,
 )
-from tmol.score import beta2016_score_function
+from tmol.io._cif import pose_stack_from_cif
+from tmol.io._pose_stack_from_biotite import _map_atoms_to_canonical
 
 DATA = Path(__file__).parents[1] / "data" / "atomworks_regressions"
 
@@ -30,7 +32,7 @@ def assert_metal_bonds_are_coordination(array, metal):
 
 
 def test_partial_sugar_rings_construct_score_and_minimize(torch_device, monkeypatch):
-    from tmol.io import build_context_from_biotite
+    from tmol import build_context_from_biotite
     from tmol.io.details import _build_missing_leaf_atoms as leaf
     from rdkit import Chem
     from tmol.ligand._conjugate_model import capped_conjugate_models
@@ -193,7 +195,7 @@ def _blocks_with(atoms, offsets, types, pbt):
 def test_terminal_and_linked_glycans_construct_score_and_minimize(
     torch_device, pdb, sugar, count
 ):
-    from tmol.io import build_context_from_biotite
+    from tmol import build_context_from_biotite
     from tmol.tests.ligand.test_local_conjugate_params import _charges
 
     array = atom_array_from_cif(DATA / f"terminal_and_linked_glycans_{pdb}.cif.zst")
@@ -309,7 +311,7 @@ def test_terminal_and_linked_glycans_construct_score_and_minimize(
 
 
 def test_decreasing_water_author_ids_preserve_full_input(torch_device):
-    from tmol.io import build_context_from_biotite
+    from tmol import build_context_from_biotite
 
     array = atom_array_from_cif(DATA / "decreasing_water_author_ids_5xnl.cif.zst")
     assert int(np.isfinite(array.coord).all(axis=-1).sum()) == 98986
@@ -328,7 +330,7 @@ def test_a_ligand_whose_only_hydrogens_a_metal_displaces_is_prepared_without_the
     torch_device,
 ):
     """5XNL's BCT D 401 binds the non-heme Fe through O2 and O3: a carbonate."""
-    from tmol.io import build_context_from_biotite
+    from tmol import build_context_from_biotite
 
     array = atom_array_from_cif(DATA / "decreasing_water_author_ids_5xnl.cif.zst")
     iron = np.flatnonzero((array.res_name == "FE2") & (array.chain_id == "A"))
@@ -348,7 +350,7 @@ def test_a_ligand_whose_only_hydrogens_a_metal_displaces_is_prepared_without_the
 
 
 def test_af3_cyclic_peptide_resolves_leaving_atoms_and_minimizes(torch_device):
-    from tmol.io import build_context_from_biotite
+    from tmol import build_context_from_biotite
 
     path = DATA / "af3_cyclic_peptide_7ubd.cif"
     array = atom_array_from_cif(path)
@@ -489,7 +491,8 @@ def test_terminal_nucleoside_keeps_its_backbone_and_minimizes(
 
 
 def _score_and_minimize(pose, context, max_iter=10, fixed_iterations=False):
-    from tmol.optimization import CartesianSfxnNetwork, LBFGS_Armijo
+    from tmol.optimization._sfxn_modules import CartesianSfxnNetwork
+    from tmol.optimization._lbfgs_armijo import LBFGS_Armijo
 
     assert torch.isfinite(pose.coords[pose.real_atoms]).all()
     score = beta2016_score_function(pose.device, param_db=context.parameter_database)
@@ -516,7 +519,7 @@ def _score_and_minimize(pose, context, max_iter=10, fixed_iterations=False):
 
 
 def test_macrocycle_preserves_every_bond_across_residue_order(torch_device):
-    from tmol.io import build_context_from_biotite, pose_stack_from_biotite
+    from tmol import build_context_from_biotite, pose_stack_from_biotite
 
     array = atom_array_from_cif(DATA / "macrocycle_1xvk.cif")
     # Free magnesium is deferred; waters follow the constructor's usual policy.
@@ -588,7 +591,7 @@ def _assert_all_source_connections(pose, array):
 def test_repeated_glycans_share_transferable_attachment_targets(
     torch_device, fixture, shared_type
 ):
-    from tmol.io import build_context_from_biotite
+    from tmol import build_context_from_biotite
     from tmol.ligand._connection_params import generate_conjugate_connection_params
 
     array = atom_array_from_cif(DATA / f"{fixture}.cif.zst")
@@ -763,7 +766,7 @@ def test_unrecognized_hydrogen_names_can_be_rebuilt(element):
 def test_generated_amine_attachment_uses_bonded_hydrogen_count(
     torch_device, kind, n_hydrogens, bond_type
 ):
-    from tmol.io import build_context_from_biotite
+    from tmol import build_context_from_biotite
     from tmol.ligand._conjugation_patches import _hydrogens_on
     from tmol.tests.ligand.test_local_conjugate_params import _charges
 
@@ -868,7 +871,7 @@ def test_a_thioglycine_link_is_a_backbone_bond_not_a_conjugation(torch_device):
 
 def test_an_ester_oxygen_and_a_metal_bound_oxygen_keep_their_own_forms(torch_device):
     """In each of three chains PLM esterifies SER 360 OG and SER 342 OG binds Na."""
-    from tmol.io import build_context_from_biotite
+    from tmol import build_context_from_biotite
 
     array = atom_array_from_cif(DATA / "attachment_contexts_8trb.cif.zst")
     array = array[np.char.upper(array.element) != "H"]
@@ -988,7 +991,7 @@ def test_a_retinal_conformer_keeps_its_trans_double_bonds(monkeypatch):
     from rdkit import Chem
 
     import tmol.ligand._conformer_generation as conformers
-    from tmol.io import build_context_from_biotite
+    from tmol import build_context_from_biotite
 
     generated = []
     generate = conformers._generate_conformer
@@ -1032,11 +1035,11 @@ def test_a_retinal_conformer_keeps_its_trans_double_bonds(monkeypatch):
     ],
 )
 def test_random_cif_completion_and_relax(fixture, blocks, missing, torch_device):
-    from tmol.io import build_context_from_biotite
-    from tmol.kinematics import CartesianMoveMap, FoldForest
-    from tmol.optimization import run_cart_min
-    from tmol.pack import PackerPalette
-    from tmol.relax import fast_relax
+    from tmol import build_context_from_biotite
+    from tmol import CartesianMoveMap, FoldForest
+    from tmol import run_cart_min
+    from tmol import PackerPalette
+    from tmol import fast_relax
 
     array = atom_array_from_cif(DATA / f"{fixture}.cif")
     if fixture == "orphan_hydrogen_9ewf":
@@ -1130,8 +1133,8 @@ def test_random_cif_completion_and_relax(fixture, blocks, missing, torch_device)
 
 def test_full_9ewf_conjugate_survives_export_and_minimization(torch_device, tmp_path):
     """Exercise the complete 9EWF adduct containing the orphan-H ligand."""
-    from tmol.io import build_context_from_biotite
-    from tmol.ligand import prepare_ligands
+    from tmol import build_context_from_biotite
+    from tmol.ligand._preparation import prepare_ligands
 
     array = atom_array_from_cif(DATA / "full_conjugate_9ewf.cif.zst")
     array = array[array.res_name != "HOH"]
@@ -1202,7 +1205,7 @@ def test_full_9ewf_conjugate_survives_export_and_minimization(torch_device, tmp_
     ],
 )
 def test_small_attachment_frames_and_minimization(fixture, components, torch_device):
-    from tmol.io import build_context_from_biotite
+    from tmol import build_context_from_biotite
     from tmol.ligand._fragmentation import _full_ideal_coords
 
     array = atom_array_from_cif(DATA / f"{fixture}.cif.zst")
@@ -1275,8 +1278,8 @@ def test_small_attachment_frames_and_minimization(fixture, components, torch_dev
 def test_sidechain_substitutions_retain_chemistry(
     code, acyl, carbon, oxygen, departed, links, torch_device, tmp_path
 ):
-    from tmol.io import build_context_from_biotite
-    from tmol.ligand import prepare_ligands
+    from tmol import build_context_from_biotite
+    from tmol.ligand._preparation import prepare_ligands
     from tmol.ligand._conjugation_patches import _hydrogens_on
     from tmol.tests.ligand.test_local_conjugate_params import _charges
 
@@ -1346,9 +1349,9 @@ def test_sidechain_substitutions_retain_chemistry(
 
 
 def test_ester_and_thioester_contexts_survive_reuse_and_export(torch_device, tmp_path):
-    from tmol.io import build_context_from_biotite
-    from tmol.ligand import prepare_ligands
-    from tmol.pack._packer_task import PackerPalette
+    from tmol import build_context_from_biotite
+    from tmol.ligand._preparation import prepare_ligands
+    from tmol import PackerPalette
 
     array = atom_array_from_cif(DATA / "attachment_contexts_8trb.cif.zst")
     metals = np.isin(np.char.upper(array.element), ("NA", "ZN"))

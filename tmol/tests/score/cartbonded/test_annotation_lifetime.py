@@ -5,9 +5,9 @@ import pytest
 import torch
 
 from tmol.database import inject_residue_params
-from tmol.io import extended_pose_stack_from_sequences
+from tmol import extended_pose_stack_from_sequences
 from tmol.score._annotation_cache import cached_annotation
-from tmol.score.cartbonded import CartBondedEnergyTerm
+from tmol.score import CartBondedEnergyTerm
 
 
 def setup(term, pose):

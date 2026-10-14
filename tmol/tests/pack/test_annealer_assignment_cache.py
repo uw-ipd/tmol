@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from tmol.tests import requires_cuda
+from tmol.tests._torch import requires_cuda
 
 
 def independent_minimum_tables(counts, chunk_size, device):
@@ -59,7 +59,7 @@ def independent_minimum_tables(counts, chunk_size, device):
     [(7, 3), (16, 1), (16, 2), (16, 128), (16, 129), (32, 3)],
 )
 def test_cuda_annealer_assignment_cache_boundaries(chunk_size, n_res):
-    from tmol.pack.compiled import pack_anneal
+    from tmol.pack.compiled._compiled import pack_anneal
 
     counts = [2] * n_res
     if n_res <= 2:
@@ -82,7 +82,7 @@ def test_cuda_annealer_assignment_cache_boundaries(chunk_size, n_res):
 @pytest.mark.parametrize("n_res", [128, 129])
 def test_cuda_annealer_fixed_seed_is_repeatedly_exact(n_res):
     """Preserve assignments and generator advancement across the cache boundary."""
-    from tmol.pack.compiled import pack_anneal
+    from tmol.pack.compiled._compiled import pack_anneal
 
     inputs = independent_minimum_tables([2] * n_res, 16, torch.device("cuda"))
     expected_scores = None

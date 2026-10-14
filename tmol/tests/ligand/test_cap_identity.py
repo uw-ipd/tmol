@@ -12,7 +12,7 @@ from tmol.tests.ligand.test_nonstandard_backbones import _residue, _connection_a
 def test_caps_preserve_retained_annotations_and_topology(code):
     if code == "5CM":
         import biotite.structure as struc
-        from tmol.io import atom_array_from_cif
+        from tmol import atom_array_from_cif
         from tmol.tests.data import data_path
 
         array = atom_array_from_cif(data_path("ncaa_fixtures", "na_dna_5mc_1d17.cif"))

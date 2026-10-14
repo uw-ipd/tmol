@@ -10,14 +10,12 @@ import torch
 import numpy
 
 from tmol.database.chemical import ChemicalDatabase
-from tmol.utility._device import resolve_device
+from tmol.utility import resolve_device
 
-from tmol.types import (
-    Tensor,
-    TensorGroup,
-    NDArray,
-    ValidateAttrs,
-)
+from tmol.types._torch import Tensor
+from tmol.types._tensor import TensorGroup
+from tmol.types._array import NDArray
+from tmol.types._attrs import ValidateAttrs
 
 from enum import IntEnum
 

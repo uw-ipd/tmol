@@ -109,7 +109,7 @@ def _embed_3d(smiles: str) -> Chem.Mol:
 @pytest.mark.parametrize("name", sorted(_MOLECULES))
 def test_assign_tmol_atom_types_is_robust(name: str) -> None:
     """Every atom of a diverse molecule receives exactly one non-empty type."""
-    from tmol.ligand import assign_tmol_atom_types
+    from tmol.ligand._atom_typing import assign_tmol_atom_types
 
     mol = _embed_3d(_MOLECULES[name])
     assignments = assign_tmol_atom_types(mol)
@@ -128,7 +128,7 @@ def test_assign_tmol_atom_types_refuses_an_unsupported_element() -> None:
     Typing it as anything else would give every one of its atoms another
     element's radius, charge and hydrogen bonding for the whole run.
     """
-    from tmol.ligand import assign_tmol_atom_types
+    from tmol.ligand._atom_typing import assign_tmol_atom_types
 
     with pytest.raises(ValueError, match="element B"):
         assign_tmol_atom_types(_embed_3d("OB(O)O"))
@@ -136,7 +136,7 @@ def test_assign_tmol_atom_types_refuses_an_unsupported_element() -> None:
 
 def test_assign_tmol_atom_types_spot_checks() -> None:
     """A few canonical functional groups map to their expected element types."""
-    from tmol.ligand import assign_tmol_atom_types
+    from tmol.ligand._atom_typing import assign_tmol_atom_types
 
     def types_for(smiles: str, element: str) -> set[str]:
         mol = _embed_3d(smiles)
@@ -155,11 +155,7 @@ def test_assign_tmol_atom_types_spot_checks() -> None:
 
 def test_assign_missing_hybridization_geometry_and_aromatic() -> None:
     """Hybridization back-fill covers the geometry and aromatic-N branches."""
-    from tmol.ligand import (
-        HYB_SP2,
-        HYB_SP3,
-        _assign_missing_hybridization,
-    )
+    from tmol.ligand._atom_typing import HYB_SP2, HYB_SP3, _assign_missing_hybridization
 
     # Neopentane: central carbon has degree 4 -> improper dihedral (sp3) path,
     # terminal carbons/hydrogens exercise the degree<3 fast path.
@@ -199,7 +195,7 @@ class TestClassifierHelpers:
         return Chem.AddHs(mol)
 
     def test_neighbor_counts_state_none(self) -> None:
-        from tmol.ligand import _neighbor_counts
+        from tmol.ligand._atom_typing import _neighbor_counts
 
         # Atoms collectively bonded to C, H, O, N and S exercise every branch.
         mol = self._mol("CC(=O)NCS")
@@ -209,14 +205,14 @@ class TestClassifierHelpers:
             assert nC + nH + nO + nN + nS <= ntot
 
     def test_get_hyb_state_none(self) -> None:
-        from tmol.ligand import _get_hyb
+        from tmol.ligand._atom_typing import _get_hyb
 
         for smiles in ("c1ccccc1", "CCO", "CC#N"):
             for atom in self._mol(smiles).GetAtoms():
                 assert _get_hyb(atom) in (1, 2, 3, 5, 9)
 
     def test_has_sp2_oxygen_neighbor_state_none(self) -> None:
-        from tmol.ligand import _has_sp2_oxygen_neighbor
+        from tmol.ligand._atom_typing import _has_sp2_oxygen_neighbor
 
         ketone = self._mol("CC(=O)C")
         carbonyl_c = next(
@@ -241,21 +237,21 @@ class TestClassifierHelpers:
         assert _has_sp2_oxygen_neighbor(methyl) is False
 
     def test_classify_h_on_phosphorus_is_hg(self) -> None:
-        from tmol.ligand import _classify_H
+        from tmol.ligand._atom_typing import _classify_H
 
         ph3 = self._mol("P")
         h = next(a for a in ph3.GetAtoms() if a.GetAtomicNum() == 1)
         assert _classify_H(h, ph3) == "HG"
 
     def test_classify_s_terminal_thione(self) -> None:
-        from tmol.ligand import _classify_S
+        from tmol.ligand._atom_typing import _classify_S
 
         thione = self._mol("CC(=S)C")
         s = next(a for a in thione.GetAtoms() if a.GetAtomicNum() == 16)
         assert _classify_S(s, thione) == "SG2"
 
     def test_classify_o_no_carbon_branches(self) -> None:
-        from tmol.ligand import _classify_O_no_carbon
+        from tmol.ligand._atom_typing import _classify_O_no_carbon
 
         # Phosphate -OH: sp3 O with an H and a P neighbor -> Ohx.
         po4 = self._mol("OP(=O)(O)O")
@@ -284,7 +280,7 @@ class TestClassifierHelpers:
         assert _classify_O_no_carbon(no_o, 1, 0, 1, 1) == "OG2"
 
     def test_classify_n_sp2_carbon_only_branches(self) -> None:
-        from tmol.ligand import _classify_N_sp2
+        from tmol.ligand._atom_typing import _classify_N_sp2
 
         # Tertiary amide N (3 carbons incl. carbonyl) -> Nad3.
         tert_amide = self._mol("CC(=O)N(C)C")
@@ -302,7 +298,7 @@ class TestClassifierHelpers:
         assert _classify_N_sp2(n, 2, 1) == "Nin"
 
     def test_classify_o_carbon_branches(self) -> None:
-        from tmol.ligand import _classify_O, _classify_O_sp2
+        from tmol.ligand._atom_typing import _classify_O, _classify_O_sp2
 
         # Dialkyl ether: sp3 O bonded to two carbons, non-aromatic -> Oet.
         ether = _embed_3d("COC")
@@ -318,10 +314,7 @@ class TestClassifierHelpers:
 
 def test_assign_tmol_atom_types_returns_state() -> None:
     """The ``return_state`` flag exposes the shared Rosetta typing perception."""
-    from tmol.ligand import (
-        RosettaTypingState,
-        assign_tmol_atom_types,
-    )
+    from tmol.ligand._atom_typing import RosettaTypingState, assign_tmol_atom_types
 
     mol = _embed_3d("c1ccncc1")
     assignments, state = assign_tmol_atom_types(mol, return_state=True)

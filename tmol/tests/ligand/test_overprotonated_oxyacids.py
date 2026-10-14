@@ -2,8 +2,8 @@
 
 import pytest
 
-from tmol.ligand import prepare_ligand_from_mol2
-from tmol.ligand._detect import nonstandard_residue_info_from_mol2
+from tmol.ligand._preparation import prepare_ligand_from_mol2
+from tmol.ligand import nonstandard_residue_info_from_mol2
 from tmol.ligand._input_repair import deprotonate_overprotonated_oxyacids
 from tmol.ligand._openbabel_compat import _build_charged_3d_mol2_mol
 from tmol.tests.data import data_path

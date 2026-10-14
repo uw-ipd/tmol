@@ -5,10 +5,8 @@ import numpy as np
 import pytest
 import torch
 
-from tmol.io._pose_stack_from_biotite import (
-    _filter_supported_atoms_and_connectivity,
-    canonical_ordering_for_biotite,
-)
+from tmol.io._pose_stack_from_biotite import _filter_supported_atoms_and_connectivity
+from tmol import canonical_ordering_for_biotite
 
 
 @pytest.mark.parametrize(
@@ -16,8 +14,8 @@ from tmol.io._pose_stack_from_biotite import (
 )
 def test_disulfide_input_authority_through_scoring(source, torch_device):
     from biotite.structure.info import residue
-    from tmol.io import pose_stack_from_biotite
-    from tmol.score import beta2016_score_function
+    from tmol import pose_stack_from_biotite
+    from tmol import beta2016_score_function
 
     first = residue("CYS")
     first = first[first.element != "H"]

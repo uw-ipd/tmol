@@ -2,11 +2,11 @@ import pytest
 import math
 import torch
 import torch.autograd
-from tmol.utility import parse_angle
+from tmol.utility._units import parse_angle
 import numpy
-from tmol.tests import gradcheck
-from tmol.score.ljlk import LJLKParamResolver
-from tmol.score import AtomTypeParamResolver
+from torch.autograd import gradcheck
+from tmol.score.ljlk._params import LJLKParamResolver
+from tmol.score._chemical_database import AtomTypeParamResolver
 
 
 @pytest.fixture

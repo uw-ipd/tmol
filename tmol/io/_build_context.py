@@ -7,13 +7,13 @@ from typing import TYPE_CHECKING
 from tmol.chemical import ResidueTypeSet
 from tmol.database import ParameterDatabase
 from tmol.io._canonical_ordering import CanonicalOrdering
-from tmol.pose import PackedBlockTypes
+from tmol.pose._packed_block_types import PackedBlockTypes
 
 if TYPE_CHECKING:
-    from tmol.ligand import LigandFragmentDefinition
-    from tmol.pack.rotamer import NaChiRotamerSampler
-    from tmol.pack.rotamer.dunbrack import DunbrackChiSampler
-    from tmol.score import ScoreFunction
+    from tmol.ligand._fragmentation import LigandFragmentDefinition
+    from tmol.pack import NaChiRotamerSampler
+    from tmol.pack import DunbrackChiSampler
+    from tmol.score._score_function import ScoreFunction
 
 
 @dataclass(frozen=True)
@@ -53,7 +53,8 @@ class PoseBuildContext:
     @cached_property
     def _opth_score_function(self) -> ScoreFunction:
         """Return beta2016 without terms invariant under OptH sampling."""
-        from tmol.score import ScoreType, beta2016_score_function
+        from tmol.score import beta2016_score_function
+        from tmol.score._score_types import ScoreType
 
         score_function = beta2016_score_function(
             self.packed_block_types.device,
@@ -77,9 +78,7 @@ class PoseBuildContext:
     @cached_property
     def _dunbrack_sampler(self) -> DunbrackChiSampler:
         """Return the Dunbrack sampler shared by repeated pose builds."""
-        from tmol.pack.rotamer.dunbrack import (
-            create_dunbrack_sampler_from_database,
-        )
+        from tmol.pack import create_dunbrack_sampler_from_database
 
         return create_dunbrack_sampler_from_database(
             self.parameter_database,
@@ -89,7 +88,7 @@ class PoseBuildContext:
     @cached_property
     def _na_sampler(self) -> NaChiRotamerSampler:
         """Return the nucleic-acid sampler shared by repeated pose builds."""
-        from tmol.pack.rotamer import NaChiRotamerSampler
+        from tmol.pack import NaChiRotamerSampler
 
         return NaChiRotamerSampler.from_database(
             self.parameter_database,

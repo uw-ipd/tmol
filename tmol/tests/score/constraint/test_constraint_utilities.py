@@ -1,17 +1,8 @@
 import torch
-from tmol import (
-    pose_stack_from_pdb,
-    # beta2016_score_function,
-    # canonical_form_from_pdb,
-    # default_canonical_ordering,
-    # default_packed_block_types,
-    # pose_stack_from_canonical_form,
-)
-from tmol.score.constraint import (
-    constrain_all_ca,
-    create_mainchain_coordinate_constraints,
-)
-from tmol.pose import PoseStackBuilder
+from tmol.io import pose_stack_from_pdb
+from tmol.score import create_mainchain_coordinate_constraints
+from tmol.score.constraint._utility import constrain_all_ca
+from tmol import PoseStackBuilder
 
 
 def test_create_mainchain_coordinate_constraints(

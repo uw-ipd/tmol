@@ -1,7 +1,7 @@
 import torch
 import attrs
 
-from tmol.types import Tensor
+from tmol.types._torch import Tensor
 from tmol.pose._packed_block_types import PackedBlockTypes
 from tmol.pose._pose_stack import PoseStack
 from tmol.score._annotation_cache import (

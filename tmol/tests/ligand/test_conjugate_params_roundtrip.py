@@ -6,12 +6,16 @@ import pytest
 import torch
 import yaml
 
-from tmol.database import ParameterDatabase
-from tmol.io import atom_array_from_cif, pose_stack_from_biotite
-from tmol.ligand import prepare_ligands, load_params_file, write_params_file
+from tmol import (
+    atom_array_from_cif,
+    beta2016_score_function,
+    ParameterDatabase,
+    pose_stack_from_biotite,
+)
+from tmol.ligand import load_params_file, write_params_file
+from tmol.ligand._preparation import prepare_ligands
 from tmol.ligand._params_file import TMOL_FORMAT_VERSION
 from tmol.ligand._registry import inject_ligand_preparations
-from tmol.score import beta2016_score_function
 from tmol.tests.data import data_path
 from tmol.tests.pack.test_conjugated_group_packing import FIXTURES
 
@@ -119,7 +123,7 @@ def test_connection_params_bundle_scores_after_reload(
     tmp_path, ubq_pdb, default_database, torch_device, preinstalled
 ):
     from tmol.tests.ligand.test_ligand_entry_paths import _single_prep
-    from tmol.tests.score.common import pose_stack_from_pdb_and_resnums
+    from tmol.tests.score.common.test_energy_term import pose_stack_from_pdb_and_resnums
     from tmol.tests.score.cartbonded.test_explicit_connection_parameters import (
         peptide_record,
         scoring_term,
@@ -171,7 +175,7 @@ def test_repeated_exports_do_not_retain_per_record_classes(tmp_path):
 def test_shared_metadata_without_residue_is_not_silently_dropped(tmp_path, section):
     import cattr
     import yaml
-    from tmol.database.scoring import ConnectionCartRes
+    from tmol.database.scoring._cartbonded import ConnectionCartRes
 
     payload = {"version": "1.0", "chemical": {"residues": []}}
     if section == "patches":

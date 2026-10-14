@@ -6,10 +6,8 @@ from .._annotation_cache import AnnotationKey, cached_annotation, store_annotati
 
 from tmol.database import ParameterDatabase
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 from ._params import (
     NaTorsionParams,
     block_type_params,
@@ -368,7 +366,7 @@ def eval_na_torsion_for_pose(
         return _finish((zero, zero), output_block_pair_energies)
 
     if rot_coords.is_cuda and not output_block_pair_energies:
-        from .potentials import na_torsion_pose_score
+        from tmol.score.na_torsion.potentials._compiled import na_torsion_pose_score
 
         return na_torsion_pose_score(
             rot_coords,
@@ -920,7 +918,7 @@ def eval_na_torsion_for_rotamers(
         base = rotamer_base
         is_na = rotamer_is_na
         if rot_coords.is_cuda and not rot_coords.requires_grad:
-            from .potentials import na_torsion_pose_score
+            from tmol.score.na_torsion.potentials._compiled import na_torsion_pose_score
 
             score = na_torsion_pose_score(
                 rot_coords,

@@ -7,15 +7,13 @@ from .._energy_term import EnergyTerm
 from .._annotation_cache import AnnotationKey, cached_annotation, store_annotation
 
 from tmol.database import ParameterDatabase
-from tmol.score.dunbrack import (
+from tmol.score.dunbrack._params import (
     DunbrackParamResolver,
     ScoringDunbrackDatabaseView,
 )
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 from itertools import count
 from dataclasses import dataclass
 import dataclasses
@@ -254,14 +252,14 @@ class DunbrackEnergyTerm(EnergyTerm):
         super(DunbrackEnergyTerm, self).setup_poses(poses)
 
     def get_pose_score_term_function(self):
-        from tmol.score.dunbrack.potentials import dunbrack_pose_scores
+        from tmol.score.dunbrack.potentials._compiled import dunbrack_pose_scores
 
         return dunbrack_pose_scores
 
     score_only_in_no_grad = True
 
     def get_rotamer_score_term_function(self):
-        from tmol.score.dunbrack.potentials import dunbrack_rotamer_scores
+        from tmol.score.dunbrack.potentials._compiled import dunbrack_rotamer_scores
 
         return dunbrack_rotamer_scores
 

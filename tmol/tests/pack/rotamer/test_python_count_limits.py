@@ -41,8 +41,9 @@ def test_per_type_budget_remains_separate_from_total(torch_device):
 def test_nucleotide_counts_checked_before_cast_and_row_allocation(
     combos, rna_pdb, default_database, torch_device, monkeypatch
 ):
-    from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-    from tmol.pack.rotamer import NaChiRotamerSampler
+    from tmol.pack import SetPackerTask
+    from tmol import PackerPalette, PackerTask
+    from tmol.pack import NaChiRotamerSampler
     from tmol.tests.pack.rotamer.test_na_chi_sampler import _pose_stack
 
     pose = _pose_stack(rna_pdb, torch_device)

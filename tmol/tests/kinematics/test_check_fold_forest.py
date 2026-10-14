@@ -1,10 +1,10 @@
 import numpy
 
-from tmol.kinematics import (
+from tmol import EdgeType
+from tmol.kinematics._check_fold_forest import (
     mark_polymeric_bonds_in_foldforest_edges,
     bfs_proper_forest,
     validate_fold_forest,
-    EdgeType,
 )
 
 

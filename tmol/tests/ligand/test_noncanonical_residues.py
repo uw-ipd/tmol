@@ -21,13 +21,15 @@ import biotite.structure.io.pdbx as pdbx
 import numpy as np
 import pytest
 
-from tmol.database import ParameterDatabase
-from tmol.ligand import (
+from tmol import ParameterDatabase
+from tmol.ligand._preparation import (
     LigandPreparationError,
-    chem_comp_types_from_cif,
-    is_polymer_linking_component_type,
     prepare_ligands,
     prepare_polymer_residue,
+)
+from tmol.ligand._detect import (
+    chem_comp_types_from_cif,
+    is_polymer_linking_component_type,
 )
 from tmol.ligand._preparation import _ideal_coords_by_name
 from tmol.ligand._polymer_profile import alpha_profile
@@ -55,7 +57,7 @@ def _alpha():
 
 def _load(stem: str) -> struc.AtomArray:
     """A fixture as tmol reads it: bonded, and complete where the density was not."""
-    from tmol.io import atom_array_from_cif
+    from tmol import atom_array_from_cif
 
     return atom_array_from_cif(FIXTURE_DIR / f"{stem}.cif")
 
@@ -314,7 +316,7 @@ def test_chem_comp_types_from_cif(tmp_path) -> None:
 
 def test_declared_type_routes_an_unrecognized_residue() -> None:
     """An unrecognized residue name declared as polymer-linking is routed."""
-    from tmol.ligand import get_chem_comp_type
+    from tmol.ligand._detect import get_chem_comp_type
 
     # nothing is declared for it unless the input file says so
     assert get_chem_comp_type(UNDEFINED_CODE) is None
@@ -341,7 +343,7 @@ def test_smiles_path_is_not_routed_to_the_polymer_path() -> None:
     the SMILES entry point takes an explicit polymer argument, it must keep
     producing a connection-free ligand.
     """
-    from tmol.ligand import prepare_ligand_from_smiles
+    from tmol.ligand._preparation import prepare_ligand_from_smiles
 
     param_db, _ordering = prepare_ligand_from_smiles(
         "N[C@@H](COP(=O)([O-])[O-])C(=O)[O-]",

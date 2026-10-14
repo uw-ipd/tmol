@@ -4,8 +4,7 @@ import numpy as np
 import pytest
 import torch
 
-from tmol.database import ParameterDatabase
-from tmol.io import atom_array_from_file, pose_stack_from_biotite
+from tmol import atom_array_from_file, ParameterDatabase, pose_stack_from_biotite
 from tmol.io._input_termini import (
     EXPLICIT_TERMINI,
     validate_connection_hydrogens,
@@ -214,7 +213,7 @@ def test_terminal_name_requires_chemical_identity(renamed):
 
 
 def test_generated_polymer_terminal_names_respect_supplied_parents(torch_device):
-    from tmol.io import biotite_from_pose_stack
+    from tmol import biotite_from_pose_stack
 
     structure = atom_array_from_file(
         data_path("sweep_regressions", "terminal_name_collision_1a8i.pdb")

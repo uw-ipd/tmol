@@ -3,20 +3,20 @@ import torch
 
 from tmol.chemical import ResidueTypeSet
 
-from tmol.pose import PackedBlockTypes
-from tmol.pack.rotamer import (
+from tmol import PackedBlockTypes
+from tmol.pack import FixedAAChiSampler
+from tmol.pack.rotamer._single_residue_kinforest import (
     construct_single_residue_kinforest,
+)
+from tmol.pack.rotamer._mainchain_fingerprint import (
     create_non_sidechain_fingerprint,
     create_mainchain_fingerprint,
     AtomFingerprint,
     annotate_residue_type_with_sampler_fingerprints,
     find_unique_fingerprints,
-    bfs_sidechain_atoms,
-    FixedAAChiSampler,
 )
-from tmol.pack.rotamer.dunbrack import (
-    create_dunbrack_sampler_from_database,
-)
+from tmol.pack.rotamer._bfs_sidechain import bfs_sidechain_atoms
+from tmol.pack import create_dunbrack_sampler_from_database
 
 
 def test_create_non_sidechain_fingerprint(default_database):

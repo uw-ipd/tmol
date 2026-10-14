@@ -6,7 +6,7 @@ import torch
 
 from tmol.database.scoring._mirrored_dunbrack import mirror_semi_rotameric_library
 from tmol.io import pose_stack_from_pdb
-from tmol.score.dunbrack import DunbrackEnergyTerm
+from tmol.score import DunbrackEnergyTerm
 from tmol.tests.score.dunbrack.test_parameter_identity import setup, render
 from tmol.tests.score.test_mirror_image_scoring import _pose, MIRROR_PAIR
 

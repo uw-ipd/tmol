@@ -7,15 +7,15 @@ import pytest
 import torch
 import yaml
 
-from tmol.database import ParameterDatabase, inject_residue_params
-from tmol.io import pose_stack_from_biotite
-from tmol.ligand import load_params_file, prepare_ligands, write_params_file
+from tmol.database import inject_residue_params
+from tmol import beta2016_score_function, ParameterDatabase, pose_stack_from_biotite
+from tmol.ligand import load_params_file, write_params_file
+from tmol.ligand._preparation import prepare_ligands
 from tmol.ligand._local_conjugate_params import (
     generate_conjugate_parameters,
     install_conjugate_parameters,
 )
 from tmol.ligand._registry import LigandPreparation, inject_ligand_preparations
-from tmol.score import beta2016_score_function
 from tmol.tests.ligand import test_conjugate_model
 from tmol.ligand._params_file import TMOL_FORMAT_VERSION
 

@@ -6,11 +6,11 @@ import attr
 import pytest
 import torch
 
-from tmol.pose import PackedBlockTypes
-from tmol.score.hbond import HBondEnergyTerm
-from tmol.score.lk_ball import LKBallEnergyTerm
-from tmol.score.ljlk import LJLKEnergyTerm
-from tmol.tests.score.common import pose_stack_from_pdb_and_resnums
+from tmol import PackedBlockTypes
+from tmol.score import HBondEnergyTerm
+from tmol.score import LKBallEnergyTerm
+from tmol.score import LJLKEnergyTerm
+from tmol.tests.score.common.test_energy_term import pose_stack_from_pdb_and_resnums
 
 
 def fresh_annotations(pose):
@@ -202,9 +202,10 @@ def test_reused_rotamer_pose_retains_each_database(
     change,
     changed_first,
 ):
-    from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-    from tmol.pack.rotamer import build_rotamers
-    from tmol.pose import PoseStackBuilder
+    from tmol.pack import SetPackerTask
+    from tmol import PackerPalette, PackerTask
+    from tmol.pack import build_rotamers
+    from tmol import PoseStackBuilder
 
     pose = PoseStackBuilder.from_poses(
         [

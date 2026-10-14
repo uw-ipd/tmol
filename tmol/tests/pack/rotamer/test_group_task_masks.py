@@ -3,9 +3,9 @@
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_biotite
+from tmol import pose_stack_from_biotite
 from tmol.pack import SetPackerTask
-from tmol.pack.rotamer import build_rotamers
+from tmol.pack import build_rotamers
 from tmol.pose._conjugated_groups import find_conjugated_groups
 from tmol.tests.pack.rotamer.test_group_constraints import (
     assert_geometry,
@@ -105,9 +105,9 @@ def test_masked_group_packing_preserves_geometry_and_energy(group_pose, fixed_ow
 
 
 def test_reused_sampler_and_batched_masks_are_pose_local(group_pose):
-    from tmol.pack import PackerPalette, PackerTask
+    from tmol import PackerPalette, PackerTask
     from tmol.pack.rotamer._conjugated_groups import add_conjugated_group_sampler
-    from tmol.pose import PoseStackBuilder
+    from tmol import PoseStackBuilder
 
     pose, context = group_pose
     _, sampler = _task(pose, context.parameter_database, pose.device)
@@ -153,7 +153,7 @@ def test_reused_sampler_and_batched_masks_are_pose_local(group_pose):
 def test_member_without_its_own_chi_does_not_add_independent_fallback(group_pose):
     import attr
     from tmol.chemical import ResidueTypeSet
-    from tmol.pose import PackedBlockTypes
+    from tmol import PackedBlockTypes
 
     pose, context = group_pose
     group = find_conjugated_groups(pose)[0]
@@ -180,7 +180,7 @@ def test_member_without_its_own_chi_does_not_add_independent_fallback(group_pose
 
 
 def test_library_free_group_preserves_entire_anchor(group_pose):
-    from tmol.pack import PackerPalette, PackerTask
+    from tmol import PackerPalette, PackerTask
     from tmol.pack.rotamer._conjugated_chi_sampler import ConjugatedChiSampler
     from tmol.pack.rotamer._conjugated_groups import add_conjugated_group_sampler
 

@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from tmol.tests.data import data_path
-from tmol.tests.ligand import (
+from tmol.tests.ligand._parity_manifest import (
     LigandParityEntry,
     default_dataset_manifest,
     load_parity_manifest,

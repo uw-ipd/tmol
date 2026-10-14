@@ -15,7 +15,7 @@ from typing import Mapping, Sequence
 import biotite.structure as struc
 import numpy as np
 
-from tmol.chemical import build_coords_from_icoors
+from tmol.chemical._ideal_coords import build_coords_from_icoors
 from tmol.database.chemical import Connection, Icoor, RawResidueType
 from tmol.ligand._icoor_tree import signed_dihedral_angle, vertex_angle
 from tmol.ligand._registry import LigandPreparation
@@ -824,7 +824,7 @@ def apply_fragment_connections(pose_stack, mapping: FragmentedLigandPoseMapping)
     import attr
     import torch
 
-    from tmol.pose import PoseStackBuilder
+    from tmol.pose._pose_stack_builder import PoseStackBuilder
 
     pbt = pose_stack.packed_block_types
     inter_residue_connections64 = pose_stack.inter_residue_connections64.clone()
@@ -1121,11 +1121,8 @@ def _unsplit_chain_and_pdb(
 ):
     """Build new chain_id tensor and PDBInfo for the unsplit pose."""
     import torch
-    from tmol.pose._pdb_info import (
-        PDBInfo,
-        DEFAULT_ATOM_OCCUPANCY,
-        DEFAULT_ATOM_B_FACTOR,
-    )
+    from tmol.pose._pdb_info import DEFAULT_ATOM_OCCUPANCY, DEFAULT_ATOM_B_FACTOR
+    from tmol.pose._pdb_info import PDBInfo
 
     old_pdb = pose_stack.pdb_info
     old_bco = pose_stack.block_coord_offset.cpu().numpy()
@@ -1202,8 +1199,8 @@ def unsplit_pose_stack(pose_stack):
     """
     import attr
     import torch
-    from tmol.pose import PoseStackBuilder
-    from tmol.utility.tensor import exclusive_cumsum2d
+    from tmol.pose._pose_stack_builder import PoseStackBuilder
+    from tmol.utility.tensor._common_operations import exclusive_cumsum2d
 
     sbm = pose_stack.split_block_mapping
     if sbm is None or not sbm.entries:

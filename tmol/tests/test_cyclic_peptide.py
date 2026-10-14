@@ -14,16 +14,12 @@ import numpy
 import torch
 import pytest
 
-from tmol.io import pose_stack_from_cif, pose_stack_from_pdb
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pack.rotamer import (
-    build_rotamers,
-    FixedAAChiSampler,
-    IncludeCurrentSampler,
-)
-from tmol.score.backbone_torsion import BackboneTorsionEnergyTerm
-from tmol.kinematics import FoldForest, MoveMap
-from tmol.relax import fast_relax
+from tmol.io import pose_stack_from_pdb
+from tmol.io._cif import pose_stack_from_cif
+from tmol.pack import SetPackerTask
+from tmol import fast_relax, FoldForest, MoveMap, PackerPalette, PackerTask
+from tmol.pack import build_rotamers, FixedAAChiSampler, IncludeCurrentSampler
+from tmol.score import BackboneTorsionEnergyTerm
 from tmol.tests.data import data_path
 from tmol.tests.relax.test_fast_relax import get_relax_sfxn
 

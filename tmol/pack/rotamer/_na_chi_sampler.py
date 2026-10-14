@@ -6,19 +6,15 @@ import attr
 
 from typing import Tuple
 
-from tmol.types import (
-    Tensor,
-    validate_args,
-)
-from tmol.utility.tensor import exclusive_cumsum1d
+from tmol.types._torch import Tensor
+from tmol.types._functional import validate_args
+from tmol.utility.tensor._common_operations import exclusive_cumsum1d
 
 from tmol.database import ParameterDatabase
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
-from tmol.pack import SetPackerTask
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.pack._packer_task import SetPackerTask
 from tmol.pack._packer_task import (
     DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT,
     DEFAULT_CHI_SAMPLE_LIMIT,
@@ -31,17 +27,18 @@ from tmol.pack.rotamer._chi_budget import (
 from tmol.pack.rotamer._single_residue_kinforest import (
     construct_single_residue_kinforest,
 )
-from tmol.pack.rotamer import ChiSampler, sc_roots_for_chis
-from tmol.score.na_torsion import (
+from tmol.pack.rotamer._chi_sampler import ChiSampler
+from tmol.pack.rotamer._conformer_sampler import sc_roots_for_chis
+from tmol.score.na_torsion import pucker_weights
+from tmol.score.na_torsion._params import (
     NaTorsionParams,
     N_PUCKER,
     POLYMER_IND,
     SYN_MEAN,
     block_type_params,
     polymer_index,
-    pucker_weights,
 )
-from tmol.utility._device import resolve_device
+from tmol.utility import resolve_device
 
 # k in chi = mean + k * sdev_chi, by extra-chi sample level, mirroring Rosetta's
 # expansion of its fitted chi gaussians

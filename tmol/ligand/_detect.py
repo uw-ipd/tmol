@@ -21,7 +21,7 @@ import numpy as np
 from rdkit import Chem
 from rdkit.Chem import RWMol
 
-from tmol.io import CanonicalOrdering
+from tmol.io._canonical_ordering import CanonicalOrdering
 from tmol.ligand._input_repair import _infer_oxyacid_bonds, normalize_radical_oxygens
 from tmol.ligand._mol2_names import apply_disambiguated_mol2_names
 

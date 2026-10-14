@@ -1,10 +1,10 @@
 import numpy
-from tmol.database.scoring._genbonded import GenBondedDatabase
+from tmol.database.scoring import GenBondedDatabase
 import pytest
 import torch
 
-from tmol.database import ParameterDatabase
-from tmol.score.genbonded import GenBondedEnergyTerm
+from tmol import ParameterDatabase
+from tmol.score import GenBondedEnergyTerm
 
 # one fixture per way a noncanonical residue reaches the scoring path; ubq and
 #    friends score no gen_torsions at all, so they pin nothing here
@@ -57,8 +57,8 @@ def test_canonical_protein_scores_no_gen_torsions(
     partition has sprung a leak rather than that a parameter changed.
     """
     from tmol.io import pose_stack_from_pdb
-    from tmol.score import ScoreFunction
-    from tmol.score._score_types import ScoreType
+    from tmol import ScoreFunction
+    from tmol import ScoreType
 
     pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device)
     sfxn = ScoreFunction(default_database, torch_device)
@@ -76,10 +76,11 @@ def test_gradcheck_on_noncanonical_backbones(backbone_class, torch_device):
     a torsion in the forward pass while its derivative still contributes shows
     up here and nowhere else.
     """
-    from tmol.io import atom_array_from_cif, pose_stack_from_biotite
-    from tmol.ligand import prepare_ligands
-    from tmol.score import ScoreFunction
-    from tmol.score._score_types import ScoreType
+    from tmol import pose_stack_from_biotite
+    from tmol import atom_array_from_cif
+    from tmol.ligand._preparation import prepare_ligands
+    from tmol import ScoreFunction
+    from tmol import ScoreType
     from tmol.tests.data import data_path
 
     stem = NCAA_FIXTURES[backbone_class]
@@ -181,9 +182,10 @@ def test_genbonded_parameter_lookups_are_reused(default_database, monkeypatch):
 def test_gen_torsions_gradient_is_consistent_through_an_sp_centre(torch_device):
     """7E9I J0C ends in a terminal alkyne. A torsion through its linear sp centre
     has a singular derivative, which stalls line searches in minimization."""
-    from tmol.io import atom_array_from_cif, pose_stack_from_biotite
-    from tmol.score import ScoreFunction
-    from tmol.score._score_types import ScoreType
+    from tmol import pose_stack_from_biotite
+    from tmol import atom_array_from_cif
+    from tmol import ScoreFunction
+    from tmol import ScoreType
     from tmol.tests.data import data_path
 
     structure = atom_array_from_cif(

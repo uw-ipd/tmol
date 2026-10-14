@@ -1,10 +1,11 @@
 import torch
 import torch.autograd
-from tmol.tests import gradcheck, VectorizedOp
+from torch.autograd import gradcheck
+from tmol.tests._autograd import VectorizedOp
 
 
 def test_polynomial_gradcheck():
-    from tmol.tests.score.common.polynomial import poly_v_d
+    from tmol.tests.score.common.polynomial._polynomial import poly_v_d
 
     ds = torch.linspace(0, 3.5, 100).to(dtype=torch.double)
     coeff = torch.tensor(

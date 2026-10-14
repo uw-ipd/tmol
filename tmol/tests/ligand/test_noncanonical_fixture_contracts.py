@@ -19,13 +19,12 @@ import pytest
 import torch
 from biotite.structure.io import pdb
 
-from tmol.io import (
+from tmol import (
     atom_array_from_cif,
     canonical_ordering_for_biotite,
     pose_stack_from_biotite,
-    pose_stack_from_cif,
-    pose_stack_from_file,
 )
+from tmol.io._cif import pose_stack_from_cif, pose_stack_from_file
 from tmol.tests.data import data_path
 
 SEED = 20260915

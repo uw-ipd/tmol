@@ -3,28 +3,26 @@ import torch
 
 from typing import Any
 
-from tmol.types import (
-    NDArray,
-    Tensor,
-    validate_args,
-)
-from tmol.utility.tensor import exclusive_cumsum1d
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
+from tmol.types._functional import validate_args
+from tmol.utility.tensor._common_operations import exclusive_cumsum1d
 from tmol.database.chemical import ChemicalDatabase
-from tmol.kinematics import KinForest
+from tmol.kinematics._datatypes import KinForest
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
-from tmol.pack.rotamer import (
-    RotamerSet,
-    ChiSampler,
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.pack.rotamer._rotamer_set import RotamerSet
+from tmol.pack.rotamer._chi_sampler import ChiSampler
+from tmol.pack.rotamer._single_residue_kinforest import (
     construct_single_residue_kinforest,
     coalesce_single_residue_kinforests,
+)
+from tmol.pack.rotamer._mainchain_fingerprint import (
     annotate_residue_type_with_sampler_fingerprints,
     find_unique_fingerprints,
 )
-from tmol.pack import SetPackerTask
+from tmol.pack._packer_task import SetPackerTask
 from tmol.numeric import coord_dihedrals
 from tmol.numeric._dihedrals import _numpy_coord_dihedrals
 
@@ -485,7 +483,7 @@ def construct_kinforest_for_conformers(
 def measure_dofs_from_orig_coords(
     coords: Tensor[torch.float32][:, :, :], kinforest: KinForest
 ) -> Tensor[torch.float32][:, 9]:
-    from tmol.kinematics.compiled import inverse_kin
+    from tmol.kinematics.compiled._compiled_ops import inverse_kin
 
     kinforest_coords = coords.view(-1, 3)[kinforest.id.to(torch.int64)]
     kinforest_coords[0, :] = 0  # reset root
@@ -670,7 +668,7 @@ def calculate_rotamer_coords(
     Returns:
         Rotamer coordinates shaped ``[n_atoms_total, 3]`` in residue-type order.
     """
-    from tmol.kinematics.compiled import forward_only_op
+    from tmol.kinematics.compiled._compiled_ops import forward_only_op
 
     def _p(t):
         return torch.nn.Parameter(t, requires_grad=False)

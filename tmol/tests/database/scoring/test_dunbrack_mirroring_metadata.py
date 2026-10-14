@@ -6,12 +6,10 @@ import attr
 import pytest
 import torch
 
-from tmol.database.scoring._dunbrack_libraries import (
-    DunbrackRotamerLibrary,
-    DunMappingParams,
-)
+from tmol.database.scoring._dunbrack_libraries import DunMappingParams
+from tmol.database.scoring import DunbrackRotamerLibrary
 from tmol.database.scoring._mirrored_dunbrack import mirror_rotameric_data
-from tmol.score.dunbrack import DunbrackParamResolver
+from tmol.score.dunbrack._params import DunbrackParamResolver
 
 LEGACY_BINARY = Path(__file__).parents[3] / "database/default/scoring/dunbrack.bin"
 

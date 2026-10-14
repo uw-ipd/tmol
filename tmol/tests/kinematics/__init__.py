@@ -1,6 +1,6 @@
 import pytest
 import numpy
-from tmol.kinematics import EdgeType
+from tmol import EdgeType
 
 
 @pytest.fixture

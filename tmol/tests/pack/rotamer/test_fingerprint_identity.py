@@ -4,10 +4,11 @@ import attr
 import pytest
 import torch
 
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pack.rotamer import FixedAAChiSampler, build_rotamers
-from tmol.pack.rotamer.dunbrack import DunbrackChiSampler
-from tmol.score.dunbrack import DunbrackParamResolver
+from tmol.pack import SetPackerTask
+from tmol import PackerPalette, PackerTask
+from tmol.pack import FixedAAChiSampler, build_rotamers
+from tmol.pack import DunbrackChiSampler
+from tmol.score.dunbrack._params import DunbrackParamResolver
 from tmol.tests.pack.rotamer.dunbrack.test_libraryless_polymers import (
     own_chi_pose,
     target_types,
@@ -161,7 +162,9 @@ def test_fingerprint_chemical_identity_and_source_expiry(
     import gc
     import weakref
     import numpy
-    from tmol.pack.rotamer import construct_single_residue_kinforest
+    from tmol.pack.rotamer._single_residue_kinforest import (
+        construct_single_residue_kinforest,
+    )
     from tmol.pack.rotamer._mainchain_fingerprint import (
         annotate_residue_type_with_sampler_fingerprints,
         create_mainchain_fingerprint,

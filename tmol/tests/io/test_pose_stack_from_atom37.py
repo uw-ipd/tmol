@@ -5,7 +5,7 @@ import biotite.structure.io
 import pytest
 import torch
 
-from tmol.io import (
+from tmol import (
     atom37_slot_map_for_ordering,
     build_context_from_biotite,
     canonical_form_from_biotite,
@@ -229,8 +229,8 @@ def test_tensor_path_refuses_a_residue_type_the_slot_map_cannot_route(torch_devi
     import pytest
     import torch
 
-    from tmol.io import build_context_from_biotite
-    from tmol.io._pose_stack_from_atom37 import canonical_form_from_atom37
+    from tmol import build_context_from_biotite
+    from tmol import canonical_form_from_atom37
     from tmol.tests.data import data_path
 
     structure = _load(data_path("pdb", "1ubq.pdb"))

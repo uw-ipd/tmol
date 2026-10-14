@@ -3,10 +3,8 @@ import os
 import torch
 import pytest
 
-from tmol.io import (
-    pose_stack_from_canonical_aa_atom37,
+from tmol.io._pose_stack_from_atomworks import (
     canonical_form_from_atomworks,
-    atomworks_from_pose_stack,
     canonical_ordering_for_atomworks,
     packed_block_types_for_atomworks,
     _paramdb_for_atomworks,
@@ -15,6 +13,7 @@ from tmol.io import (
     _ATOMWORKS_MIN_PROTEIN_IDX,
     _ATOMWORKS_MAX_PROTEIN_IDX,
 )
+from tmol import pose_stack_from_canonical_aa_atom37, atomworks_from_pose_stack
 
 _FIXTURE_PATH = os.path.join(
     os.path.dirname(__file__), "..", "data", "atomworks", "ubq_atomworks.pt"

@@ -98,7 +98,7 @@ def _completion_templates(entries):
 
 def _element_from_name(name: str) -> str:
     """Element from a PDB atom name, for a file that declares no type_symbol."""
-    from tmol.chemical import get_element_from_atom_name
+    from tmol.chemical._restypes import get_element_from_atom_name
 
     return get_element_from_atom_name(name)
 

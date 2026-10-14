@@ -2,11 +2,9 @@ import numpy
 import torch
 
 from typing import Union, Tuple
-from tmol.types import (
-    validate_args,
-    NDArray,
-    Tensor,
-)
+from tmol.types._functional import validate_args
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
 
 
 @validate_args

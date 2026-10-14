@@ -3,10 +3,11 @@
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_cif
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask, pack_rotamers
-from tmol.pack.rotamer import OptHSampler, build_rotamers
-from tmol.score import beta2016_score_function
+from tmol.io._cif import pose_stack_from_cif
+from tmol.pack import SetPackerTask
+from tmol import beta2016_score_function, pack_rotamers, PackerPalette, PackerTask
+from tmol.pack import build_rotamers
+from tmol.pack import OptHSampler
 from tmol.tests.data import data_path
 
 

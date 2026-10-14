@@ -12,13 +12,11 @@ import attr
 import numpy as np
 import torch
 
-from tmol.kinematics.compiled import inverse_kin
-from tmol.kinematics import (
-    BondDOFTypes,
-    NodeType,
-    FoldForest,
-    PoseStackKinematicsModule,
-)
+from tmol.kinematics.compiled._compiled_ops import inverse_kin
+from tmol.kinematics._datatypes import NodeType
+from tmol.kinematics._script_modules import PoseStackKinematicsModule
+from tmol.kinematics._fold_forest import FoldForest
+from tmol.kinematics._datatypes import BondDOFTypes
 from tmol.pose._pose_stack import PoseStack
 from tmol.pose._util import _measure_torsions, _resolve_uaid, _torsion_requests
 

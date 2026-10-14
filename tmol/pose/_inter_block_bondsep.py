@@ -3,8 +3,8 @@ from typing import Sequence
 import attr
 import torch
 
-from tmol.chemical import MAX_SIG_BOND_SEPARATION
-from tmol.types import Tensor
+from tmol.chemical._constants import MAX_SIG_BOND_SEPARATION
+from tmol.types._torch import Tensor
 
 
 @attr.s(auto_attribs=True, frozen=True)

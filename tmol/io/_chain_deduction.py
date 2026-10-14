@@ -1,15 +1,11 @@
 import numpy
 import torch
 import scipy
-from tmol.pose import (
-    PoseStack,
-    PackedBlockTypes,
-)
-from tmol.types import (
-    validate_args,
-    NDArray,
-)
-from tmol.utility.ndarray import exclusive_cumsum1d
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.types._functional import validate_args
+from tmol.types._array import NDArray
+from tmol.utility.ndarray._common_operations import exclusive_cumsum1d
 
 
 @validate_args

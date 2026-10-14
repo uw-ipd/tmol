@@ -4,7 +4,7 @@ import math
 
 import numpy
 
-from tmol.score.common import add_to_hashtable
+from tmol.score.common._hash_util import add_to_hashtable
 
 
 def _canonical_path(path):

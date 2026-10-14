@@ -1,10 +1,7 @@
 """Tests that ligand chemistry tables are derived from the chemical database."""
 
-from tmol.database import ParameterDatabase
-from tmol.ligand import (
-    get_hbond_properties,
-    get_polar_classes,
-)
+from tmol import ParameterDatabase
+from tmol.ligand._chemistry_tables import get_hbond_properties, get_polar_classes
 
 
 def test_hbond_properties_derived_from_chemical_db() -> None:

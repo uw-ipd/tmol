@@ -1,13 +1,9 @@
 import numpy
 import pytest
-from tmol.tests import zero_padded_counts
-from tmol.io import (
-    default_canonical_ordering,
-    default_packed_block_types,
-    canonical_form_from_pdb,
-    pose_stack_from_canonical_form,
-)
-from tmol.score import beta2016_score_function
+from tmol.tests._torch import zero_padded_counts
+from tmol.io._canonical_ordering import canonical_form_from_pdb
+from tmol.io import default_canonical_ordering, default_packed_block_types
+from tmol import beta2016_score_function, pose_stack_from_canonical_form
 
 
 @pytest.mark.benchmark(group="setup_pose_stack_from_canonical_form")

@@ -7,8 +7,7 @@ import numpy as np
 import pytest
 import torch
 
-from tmol.io import (
-    Atom37MappingError,
+from tmol import (
     build_context_from_biotite,
     canonical_form_from_biotite,
     canonical_ordering_for_biotite,
@@ -16,6 +15,7 @@ from tmol.io import (
     pose_stack_from_biotite,
     prepare_atom37_pose_builder,
 )
+from tmol.io._pose_stack_from_biotite import Atom37MappingError
 from tmol.tests.data import data_path
 
 
@@ -451,7 +451,7 @@ def test_prepared_atom37_builder_falls_back_for_ambiguous_histidine_hydrogen(
 def test_atom37_pose_uses_ligand_context(torch_device, prebuilt):
     cif_path = data_path("protein_ligand_test", "cif_inputs", "ace.ligand.cif.zst")
     params_path = data_path("protein_ligand_test", "ace.xtal-lig.mmff94.tmol")
-    from tmol.io import atom_array_from_cif
+    from tmol import atom_array_from_cif
 
     structure = atom_array_from_cif(cif_path)
     structure, atom37 = _atomized_atom37(structure, torch_device)
@@ -620,7 +620,7 @@ def test_geometric_gap_drops_bond_inferred_from_consecutive_numbering(
     _break_connections_for_missing_density flagged the gap but covalent_bonds_np
     kept the bond inferred from numbering.
     """
-    from tmol.io import atom_array_from_cif
+    from tmol import atom_array_from_cif
 
     lines = []
     for line in data_path("pdb", "1ubq.pdb").read_text().splitlines():

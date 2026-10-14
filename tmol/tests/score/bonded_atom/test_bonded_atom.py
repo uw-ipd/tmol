@@ -1,7 +1,7 @@
 import torch
 
 from tmol.io import pose_stack_from_pdb
-from tmol.score import BondDependentTerm
+from tmol.score._bond_dependent_term import BondDependentTerm
 
 
 def test_bonded_atom_two_iterations(ubq_pdb, default_database, torch_device):

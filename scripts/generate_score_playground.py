@@ -16,8 +16,9 @@ import tomllib
 import numpy as np
 import torch
 import tmol
-from tmol.io import pose_stack_from_pdb, pose_stack_to_pdb_string
-from tmol.score import beta2016_score_function
+from tmol.io import pose_stack_from_pdb
+from tmol.io._visualize import pose_stack_to_pdb_string
+from tmol import beta2016_score_function
 
 ROOT = Path(__file__).resolve().parents[1]
 

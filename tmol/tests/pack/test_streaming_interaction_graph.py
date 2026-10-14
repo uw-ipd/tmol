@@ -3,7 +3,7 @@ import itertools
 import pytest
 import torch
 
-from tmol.pack.compiled import (
+from tmol.pack.compiled._compiled import (
     accumulate_interaction_graph_entries,
     build_interaction_graph,
     finalize_interaction_graph_chunk_topology,
@@ -14,7 +14,7 @@ from tmol.pack.compiled import (
     pack_anneal,
 )
 from tmol.pack._pack_rotamers import _build_streaming_interaction_graph
-from tmol.tests import requires_cuda
+from tmol.tests._torch import requires_cuda
 
 
 def graph_metadata(counts, device):

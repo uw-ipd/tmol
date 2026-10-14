@@ -2,14 +2,11 @@ import attr
 import torch
 import numpy
 
-from tmol.types import Tensor
-from tmol.pose import (
-    DEFAULT_ATOM_B_FACTOR,
-    DEFAULT_ATOM_OCCUPANCY,
-    PoseStack,
-)
-from tmol.pack.rotamer import RotamerSet
-from tmol.utility import exclusive_cumsum2d_w_totals
+from tmol.types._torch import Tensor
+from tmol.pose._pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+from tmol.pose._pose_stack import PoseStack
+from tmol.pack.rotamer._rotamer_set import RotamerSet
+from tmol.utility._cumsum import exclusive_cumsum2d_w_totals
 
 
 def chosen_rotamer_for_block(

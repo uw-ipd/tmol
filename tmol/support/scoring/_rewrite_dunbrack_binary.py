@@ -7,12 +7,12 @@ import torch
 import yaml
 import attr
 import cattr
-from tmol.database.scoring import (
-    DunbrackRotamerLibrary,
+from tmol.database.scoring._dunbrack_libraries import (
     RotamericDataForAA,
     RotamericAADunbrackLibrary,
     SemiRotamericAADunbrackLibrary,
 )
+from tmol.database.scoring import DunbrackRotamerLibrary
 
 rotamer_aliases = {
     "pro": numpy.array([[1, 3, 1, 1, 1, 1], [3, 1, 3, 2, 1, 1]], dtype=int)

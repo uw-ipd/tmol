@@ -11,10 +11,10 @@ import torch
 from tmol.database.chemical import ChiSamples
 from tmol.io import pose_stack_from_pdb
 from tmol.numeric import coord_dihedrals
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pack.rotamer import FixedAAChiSampler, build_rotamers
-from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
-from tmol.pose import PackedBlockTypes, PoseStackBuilder
+from tmol.pack import SetPackerTask
+from tmol import PackedBlockTypes, PackerPalette, PackerTask, PoseStackBuilder
+from tmol.pack import FixedAAChiSampler, build_rotamers
+from tmol.pack import create_dunbrack_sampler_from_database
 from tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity import fresh_pose
 
 

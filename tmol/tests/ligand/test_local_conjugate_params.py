@@ -7,7 +7,7 @@ import pytest
 import torch
 
 from tmol.database import inject_residue_params
-from tmol.io import pose_stack_from_biotite
+from tmol import pose_stack_from_biotite
 from tmol.ligand import _connection_params
 from tmol.ligand._local_conjugate_params import (
     generate_conjugate_parameters,
@@ -42,7 +42,8 @@ def _charges(database, rt):
 
 
 def test_install_checks_baseline_and_does_not_apply_twice(conjugate_input, tmp_path):
-    from tmol.ligand import load_params_file, prepare_ligands
+    from tmol.ligand import load_params_file
+    from tmol.ligand._preparation import prepare_ligands
     from tmol.ligand._registry import inject_ligand_preparations
 
     _, array, database = conjugate_input
@@ -249,7 +250,7 @@ def test_attached_asparagine_is_not_flipped_independently(conjugate_input):
     if fixture != "nglycan":
         pytest.skip("ASN glycan fixture exercises the terminal amide flip")
     from tmol.chemical import ResidueTypeSet
-    from tmol.pack.rotamer import OptHSampler
+    from tmol.pack import OptHSampler
 
     sampler = OptHSampler()
     base = next(r for r in database.chemical.residues if r.name == "ASN")
@@ -350,7 +351,7 @@ def test_corrected_attachment_pose_charge_geometry_and_gradient(
         normal = torch.linalg.cross(ce - n, c - n)
         distance = ((h - n) * normal).sum().abs() / normal.norm()
         assert distance.item() < 1e-4
-    from tmol.score import beta2016_score_function
+    from tmol import beta2016_score_function
 
     scorer = beta2016_score_function(
         torch_device, param_db=corrected
@@ -360,7 +361,7 @@ def test_corrected_attachment_pose_charge_geometry_and_gradient(
     gradient = torch.autograd.grad(values.sum(), coords)[0]
     assert torch.isfinite(values).all() and torch.isfinite(gradient).all()
     if parameter_source == "generator-ideals":
-        from tmol.io import build_context_from_biotite
+        from tmol import build_context_from_biotite
         from tmol.tests.io.test_atomworks_corpus_regressions import _score_and_minimize
 
         context = build_context_from_biotite(array, torch_device, param_db=corrected)
@@ -371,16 +372,18 @@ def test_terminal_and_internal_n_alkylation_workflow(torch_device, tmp_path):
     """Preserve terminal-amine and internal-amide chemistry through a workflow."""
     import biotite.structure as struc
 
-    from tmol.database import ParameterDatabase
-    from tmol.io import atom_array_from_cif, build_context_from_biotite
-    from tmol.ligand import load_params_file, prepare_ligands
+    from tmol import ParameterDatabase
+    from tmol import build_context_from_biotite
+    from tmol import atom_array_from_cif
+    from tmol.ligand import load_params_file
+    from tmol.ligand._preparation import prepare_ligands
     from tmol.ligand._conjugate_model import (
         attachment_connection_name,
         capped_conjugate_models,
     )
     from tmol.ligand._connection_params import _protonated_model
     from tmol.ligand._registry import inject_ligand_preparations
-    from tmol.score import beta2016_score_function
+    from tmol import beta2016_score_function
     from tmol.score.elec._params import ElecParamResolver
     from tmol.tests.data import data_path
 

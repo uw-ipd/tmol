@@ -7,7 +7,7 @@ import torch
 
 from tmol.numeric import coord_dihedrals
 from tmol.pack import SetPackerTask
-from tmol.pack.rotamer import build_rotamers
+from tmol.pack import build_rotamers
 from tmol.pose._conjugated_groups import find_conjugated_groups
 from tmol.pose._util import _resolve_uaid
 from tmol.tests.pack.test_conjugated_group_packing import FIXTURES, _pose, _task

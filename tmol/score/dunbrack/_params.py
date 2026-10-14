@@ -6,23 +6,19 @@ import numpy
 import pandas
 import torch
 
-from tmol.types import (
-    NDArray,
-    Tensor,
-    TensorGroup,
-    ValidateAttrs,
-    ConvertAttrs,
-    validate_args,
-)
-from tmol.numeric import BSplineInterpolation
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
+from tmol.types._tensor import TensorGroup
+from tmol.types._attrs import ValidateAttrs, ConvertAttrs
+from tmol.types._functional import validate_args
+from tmol.numeric._bspline import BSplineInterpolation
 from tmol.utility import resolve_device
 from tmol.utility.weak_identity_cache import WeakIdentityLRU
 
 from tmol.database.scoring import DunbrackRotamerLibrary
 
-from tmol.utility.tensor import (
+from tmol.utility.tensor._common_operations import (
     exclusive_cumsum1d,
-    # print_row_numbered_tensor,
     nplus1d_tensor_from_list,
     cat_differently_sized_tensors,
 )

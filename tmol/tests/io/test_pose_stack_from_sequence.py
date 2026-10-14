@@ -7,12 +7,10 @@ import pytest
 import torch
 
 from tmol.chemical import ResidueTypeSet
-from tmol.io import (
-    EXTENDED_BACKBONE_TORSIONS,
-    create_pose_stack_from_sequences,
-    extended_pose_stack_from_sequences,
-)
-from tmol.pose import get_named_torsions, get_torsion_names
+from tmol.io._pose_stack_from_sequence import EXTENDED_BACKBONE_TORSIONS
+from tmol import create_pose_stack_from_sequences, extended_pose_stack_from_sequences
+from tmol.pose._util import get_torsion_names
+from tmol.pose import get_named_torsions
 
 LIGAND_SMILES = "CCO"
 

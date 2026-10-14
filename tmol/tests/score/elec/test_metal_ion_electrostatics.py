@@ -4,13 +4,10 @@ import attr
 import pytest
 import torch
 
-from tmol.io import (
-    atom_array_from_cif,
-    default_canonical_ordering,
-    pose_stack_from_biotite,
-    pose_stack_from_pdb,
-    remove_metal_coordination,
-)
+from tmol.io import pose_stack_from_pdb
+from tmol import atom_array_from_cif, pose_stack_from_biotite
+from tmol.io import default_canonical_ordering
+from tmol.io._metal_coordination import remove_metal_coordination
 from tmol.tests.data import data_path
 from tmol.tests.score.elec.test_parameter_identity import coulomb_reference, setup_term
 

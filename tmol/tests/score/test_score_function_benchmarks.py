@@ -1,30 +1,27 @@
 import pytest
 import torch
-from tmol.tests import zero_padded_counts
+from tmol.tests._torch import zero_padded_counts
 
-from tmol.score import (
-    ScoreFunction,
+from tmol import (
     beta2016_score_function,
-)
-
-from tmol.pose import PoseStackBuilder
-from tmol.io import (
-    pose_stack_from_pdb,
-    default_canonical_ordering,
-    default_packed_block_types,
-    canonical_form_from_pdb,
     pose_stack_from_canonical_form,
+    PoseStackBuilder,
+    ScoreFunction,
 )
 
-from tmol.score.cartbonded import CartBondedEnergyTerm
-from tmol.score.disulfide import DisulfideEnergyTerm
-from tmol.score.dunbrack import DunbrackEnergyTerm
-from tmol.score.elec import ElecEnergyTerm
-from tmol.score.hbond import HBondEnergyTerm
-from tmol.score.ljlk import LJLKEnergyTerm
-from tmol.score.lk_ball import LKBallEnergyTerm
-from tmol.score.backbone_torsion import BackboneTorsionEnergyTerm
-from tmol.score.ref import RefEnergyTerm
+from tmol.io import pose_stack_from_pdb
+from tmol.io._canonical_ordering import canonical_form_from_pdb
+from tmol.io import default_canonical_ordering, default_packed_block_types
+
+from tmol.score import CartBondedEnergyTerm
+from tmol.score import DisulfideEnergyTerm
+from tmol.score import DunbrackEnergyTerm
+from tmol.score import ElecEnergyTerm
+from tmol.score import HBondEnergyTerm
+from tmol.score import LJLKEnergyTerm
+from tmol.score import LKBallEnergyTerm
+from tmol.score import BackboneTorsionEnergyTerm
+from tmol.score import RefEnergyTerm
 
 
 @pytest.mark.parametrize("energy_term", [LJLKEnergyTerm], ids=["ljlk"])

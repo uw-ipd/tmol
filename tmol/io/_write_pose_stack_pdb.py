@@ -1,16 +1,12 @@
 import numpy
 import torch
 
-from tmol.io import atom_record_dtype
-from tmol.pose import (
-    PoseStack,
-    PackedBlockTypes,
-)
-from tmol.types import (
-    NDArray,
-    Tensor,
-    validate_args,
-)
+from tmol.io._pdb_parsing import atom_record_dtype
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
+from tmol.types._functional import validate_args
 from typing import Optional
 
 
@@ -27,7 +23,7 @@ def write_pose_stack_pdb(
     residue identity by default; pass ``merge_fragments=False`` to keep
     fragment residues separate.
     """
-    from tmol.io import to_pdb
+    from tmol.io._pdb_parsing import to_pdb
 
     atom_records = atom_records_from_pose_stack(
         pose_stack, merge_fragments=merge_fragments, **kwargs
@@ -97,8 +93,8 @@ def atom_records_from_coords(
     laid out in pose-stack form.
     """
 
-    from tmol.io import atom_record_dtype
-    from tmol.utility.tensor import exclusive_cumsum1d
+    from tmol.io._pdb_parsing import atom_record_dtype
+    from tmol.utility.tensor._common_operations import exclusive_cumsum1d
 
     assert pose_like_coords.shape[0] == chain_ind_for_block.shape[0]
     assert pose_like_coords.shape[0] == block_types64.shape[0]

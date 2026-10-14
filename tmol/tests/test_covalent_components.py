@@ -10,18 +10,18 @@ import pytest
 import torch
 import biotite.structure as struc
 
-from tmol.database import ParameterDatabase
-from tmol.io import (
+from tmol import (
     atom_array_from_cif,
-    default_canonical_ordering,
+    beta2016_score_function,
+    canonical_form_from_biotite,
+    ParameterDatabase,
     pose_stack_from_biotite,
 )
-from tmol.io._pose_stack_from_biotite import canonical_form_from_biotite
-from tmol.ligand import prepare_ligands
+from tmol.io import default_canonical_ordering
+from tmol.ligand._preparation import prepare_ligands
 from tmol.ligand._conjugation_patches import _hydrogens_on
 from tmol.chemical import ResidueTypeSet
 from tmol.ligand._detect import detect_nonstandard_residues
-from tmol.score import beta2016_score_function
 from tmol.score.elec._params import ElecParamResolver
 from tmol.tests.data import data_path
 

@@ -1,9 +1,7 @@
 import torch
 
-from tmol.types import (
-    validate_args,
-    Tensor,
-)
+from tmol.types._functional import validate_args
+from tmol.types._torch import Tensor
 from ._datatypes import KinForest, KinDOF
 
 CoordArray = Tensor[torch.double][:, 3]
@@ -14,7 +12,7 @@ def inverseKin(kinforest: KinForest, coords: CoordArray, requires_grad=False) ->
     """xyzs -> HTs, dofs
     - "backward" kinematics
     """
-    from tmol.kinematics.compiled import inverse_kin
+    from tmol.kinematics.compiled._compiled_ops import inverse_kin
 
     raw_dofs = inverse_kin(
         coords,

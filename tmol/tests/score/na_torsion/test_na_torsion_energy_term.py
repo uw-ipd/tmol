@@ -2,16 +2,14 @@ import numpy
 import pytest
 import torch
 
-from tmol.database import ParameterDatabase
+from tmol import ParameterDatabase
 from tmol.io import pose_stack_from_pdb
-from tmol.score.na_torsion import (
-    NaTorsionEnergyTerm,
-    na_torsion_subterms,
-    polymer_index,
-    wrap_degrees,
-)
+from tmol.score.na_torsion._na_torsion_energy_term import na_torsion_subterms
+from tmol.score import NaTorsionEnergyTerm
+from tmol.score.na_torsion._params import polymer_index
+from tmol.score.na_torsion._potentials import wrap_degrees
 from tmol.score.na_torsion._na_torsion_energy_term import _pose_subterms
-from tmol.score.common import ZeroTermPoseScoringModule
+from tmol.score.common._scoring_module import ZeroTermPoseScoringModule
 
 
 def _term_and_pose(pdb, torch_device):
@@ -93,7 +91,7 @@ def test_stacked_poses_scale_linearly(n_poses, fixture, request, torch_device):
     Guards the uaid resolution, whose reshapes have to keep pose and block as
     separate dimensions; collapsing them still broadcasts at a single pose.
     """
-    from tmol.pose import PoseStackBuilder
+    from tmol import PoseStackBuilder
 
     term, ps1 = _term_and_pose(request.getfixturevalue(fixture), torch_device)
     one = term.render_whole_pose_scoring_module(ps1)(ps1.coords)
@@ -118,7 +116,7 @@ def _subterms(term, ps):
 
 
 def _native_pose_scores(term, ps, coords):
-    from tmol.score.na_torsion.potentials import na_torsion_pose_score
+    from tmol.score.na_torsion.potentials._compiled import na_torsion_pose_score
 
     p = term.params
     return na_torsion_pose_score(
@@ -185,7 +183,7 @@ def test_native_cuda_pose_scores_match_reference(
     if torch_device.type != "cuda":
         pytest.skip("native NA torsion scoring is CUDA-only")
 
-    from tmol.pose import PoseStackBuilder
+    from tmol import PoseStackBuilder
 
     term, ps1 = _term_and_pose(request.getfixturevalue(fixture), torch_device)
     ps = PoseStackBuilder.from_poses([ps1] * n_poses, torch_device)
@@ -205,7 +203,7 @@ def test_native_cuda_pose_gradients_match_reference(
     if torch_device.type != "cuda":
         pytest.skip("native NA torsion scoring is CUDA-only")
 
-    from tmol.pose import PoseStackBuilder
+    from tmol import PoseStackBuilder
 
     term, ps1 = _term_and_pose(request.getfixturevalue(fixture), torch_device)
     ps = PoseStackBuilder.from_poses([ps1] * n_poses, torch_device)
@@ -262,8 +260,8 @@ def test_native_cuda_pose_scoring_is_graph_capture_safe(
     if torch_device.type != "cuda":
         pytest.skip("CUDA graph capture requires CUDA")
 
-    from tmol.pose import PoseStackBuilder
-    from tmol.score import ScoreFunction
+    from tmol import PoseStackBuilder
+    from tmol import ScoreFunction
 
     ps1 = pose_stack_from_pdb(request.getfixturevalue(fixture), torch_device)
     ps = PoseStackBuilder.from_poses([ps1] * 3, torch_device)
@@ -309,11 +307,12 @@ def test_rotamer_energies_match_the_pose_energies(protein_dna_pdb, torch_device)
     """The include-current rotamer of each DNA block must reproduce that
     block's pose energy, including the backbone torsions that reach into the
     neighboring nucleotide's background coordinates."""
-    from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-    from tmol.pack.rotamer import build_rotamers
-    from tmol.pack.rotamer import IncludeCurrentSampler
-    from tmol.score import ScoreFunction
-    from tmol.score import ScoreType
+    from tmol.pack import SetPackerTask
+    from tmol import PackerPalette, PackerTask
+    from tmol.pack import build_rotamers
+    from tmol.pack import IncludeCurrentSampler
+    from tmol import ScoreFunction
+    from tmol import ScoreType
 
     ps = pose_stack_from_pdb(protein_dna_pdb, torch_device)
     sfxn = ScoreFunction(ParameterDatabase.get_default(), torch_device)

@@ -1,15 +1,14 @@
 import torch
 
 from tmol import (
-    CartesianMinimizer,
-    PoseStack,
-    run_cart_min,
-    run_kin_min,
-    build_kinforest_network,
     beta2016_score_function,
     FoldForest,
     MoveMap,
+    PoseStack,
+    run_cart_min,
+    run_kin_min,
 )
+from tmol.optimization._minimizers import CartesianMinimizer, build_kinforest_network
 import attrs
 
 

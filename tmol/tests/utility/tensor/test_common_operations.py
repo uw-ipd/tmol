@@ -2,8 +2,8 @@ import torch
 import numpy
 import pytest
 
-from tmol.tests import requires_cuda
-from tmol.utility.tensor import (
+from tmol.tests._torch import requires_cuda
+from tmol.utility.tensor._common_operations import (
     stretch,
     stretch2,
     exclusive_cumsum1d,

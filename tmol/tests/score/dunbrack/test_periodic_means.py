@@ -7,7 +7,8 @@ import pytest
 import torch
 
 from tmol.io import pose_stack_from_pdb
-from tmol.score.dunbrack import DunbrackEnergyTerm, ScoringDunbrackDatabaseView
+from tmol.score import DunbrackEnergyTerm
+from tmol.score.dunbrack._params import ScoringDunbrackDatabaseView
 from tmol.tests.score.dunbrack.test_parameter_identity import setup, render
 
 

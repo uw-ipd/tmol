@@ -1,9 +1,23 @@
-from tmol.score.terms import *  # noqa: F401, F403
-from tmol.score.terms import ScoreTermFactory
+from tmol.score.terms import (  # noqa: F401
+    _backbone_torsion_creator,
+    _cartbonded_creator,
+    _constraint_creator,
+    _disulfide_creator,
+    _dunbrack_creator,
+    _elec_creator,
+    _genbonded_creator,
+    _hbond_creator,
+    _ljlk_creator,
+    _lk_ball_creator,
+    _metal_coordination_creator,
+    _na_torsion_creator,
+    _ref_creator,
+)
+from tmol.score import ScoreTermFactory
 
 import pytest
 
-from tmol.score import ScoreType
+from tmol import ScoreType
 
 
 @pytest.mark.parametrize("score_type", [ScoreType.fa_ljrep, ScoreType.omega])

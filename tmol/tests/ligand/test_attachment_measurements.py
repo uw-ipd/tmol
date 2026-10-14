@@ -7,11 +7,11 @@ import numpy as np
 import pytest
 import torch
 
-from tmol.io import atom_array_from_cif, pose_stack_from_biotite
-from tmol.ligand import prepare_ligands, load_params_file
+from tmol import atom_array_from_cif, ParameterDatabase, pose_stack_from_biotite
+from tmol.ligand import load_params_file
+from tmol.ligand._preparation import prepare_ligands
 from tmol.ligand._preparation import _bond_lengths_by_site
 from tmol.ligand._registry import inject_ligand_preparations
-from tmol.database import ParameterDatabase
 from tmol.tests.data import data_path
 
 
@@ -85,7 +85,7 @@ def test_unresolved_biotin_attachment_has_finite_exported_geometry(
         ]
         assert any("conj_NZ" in name for name in active)
         assert any("BTN:conj_C11" == name for name in active)
-        from tmol.score import beta2016_score_function
+        from tmol import beta2016_score_function
 
         coords = pose.coords.detach().clone().requires_grad_()
         score = beta2016_score_function(torch_device, param_db=db)

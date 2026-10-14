@@ -3,7 +3,7 @@ import math
 import pytest
 import torch
 
-from tmol.tests import requires_cuda
+from tmol.tests._torch import requires_cuda
 
 
 @pytest.fixture(scope="session")

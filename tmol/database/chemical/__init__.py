@@ -1,7 +1,7 @@
 """Typed schemas for TMol chemical parameter data."""
 
 from typing import Any, NewType, Optional, Tuple
-from tmol.utility import BondAngle, DihedralAngle
+from tmol.utility._units import BondAngle, DihedralAngle
 
 import attr
 import cattr

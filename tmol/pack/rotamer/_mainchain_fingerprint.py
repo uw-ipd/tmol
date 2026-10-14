@@ -6,25 +6,21 @@ import torch
 
 from typing import Tuple, Mapping, Union
 
-from tmol.types import (
-    NDArray,
-    Tensor,
-    validate_args,
-)
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
+from tmol.types._functional import validate_args
 from tmol.numeric._dihedrals import _numpy_coord_dihedrals
-from tmol.database import PatchedChemicalDatabase
+from tmol.database._patched_chemdb import PatchedChemicalDatabase
 from tmol.chemical import RefinedResidueType
-from tmol.pose import PackedBlockTypes
+from tmol.pose._packed_block_types import PackedBlockTypes
 from tmol.score._annotation_cache import (
     AnnotationKey,
     cached_annotation,
     store_annotation,
 )
 
-from tmol.pack.rotamer import (
-    ChiSampler,
-    bfs_sidechain_atoms_jit,
-)
+from tmol.pack.rotamer._chi_sampler import ChiSampler
+from tmol.pack.rotamer._bfs_sidechain import bfs_sidechain_atoms_jit
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

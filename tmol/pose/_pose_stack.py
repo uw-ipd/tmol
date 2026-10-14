@@ -3,14 +3,12 @@ from typing import TYPE_CHECKING
 import attr
 import torch
 
-from tmol.types import Tensor
+from tmol.types._torch import Tensor
 from tmol.chemical import RefinedResidueType
-from tmol.pose import (
-    PDBInfo,
-    PackedBlockTypes,
-    ConstraintSet,
-    InterBlockBondsep,
-)
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._constraint_set import ConstraintSet
+from tmol.pose._pdb_info import PDBInfo
+from tmol.pose._inter_block_bondsep import InterBlockBondsep
 
 if TYPE_CHECKING:
     from tmol.pose._split_block_mapping import SplitBlockMapping

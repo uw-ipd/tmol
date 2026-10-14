@@ -9,7 +9,7 @@ import torch
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
 
-from tmol.score import beta2016_score_function
+from tmol import beta2016_score_function
 from tmol.tests.pack.rotamer.dunbrack.test_mirror_sampling import build_mirror_rotamers
 
 
@@ -149,9 +149,10 @@ def test_single_position_mirror_packing_reaches_the_enumerated_minimum(
 ):
     if torch_device.type != "cuda":
         pytest.skip("Simulated annealing is a CUDA implementation")
-    from tmol.pack import PackerPalette, PackerTask, SetPackerTask, pack_rotamers
-    from tmol.pack.rotamer import IncludeCurrentSampler, build_rotamers
-    from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
+    from tmol.pack import SetPackerTask
+    from tmol import PackerPalette, PackerTask, pack_rotamers
+    from tmol.pack import IncludeCurrentSampler, build_rotamers
+    from tmol.pack import create_dunbrack_sampler_from_database
     from tmol.tests.score.test_mirror_image_scoring import _pose, MIRROR_PAIR
 
     database = default_database.with_symmetric_gly()

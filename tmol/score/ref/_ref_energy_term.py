@@ -6,11 +6,10 @@ from .._annotation_cache import AnnotationKey, cached_annotation, store_annotati
 from tmol.database import ParameterDatabase
 from tmol.score.common._scoring_module import _coordinate_independent_score
 
-from tmol.chemical import RefinedResidueType, l_base_name
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.chemical import RefinedResidueType
+from tmol.database.chemical import l_base_name
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 
 
 class _RefAnnotationSource:

@@ -4,11 +4,9 @@ import yaml
 from attrs import evolve
 
 from tmol.io import pose_stack_from_pdb
-from tmol.chemical import (
-    normalize,
-    RefinedResidueType,
-)
-from tmol.database import PatchedChemicalDatabase
+from tmol.chemical._ideal_coords import normalize
+from tmol.chemical import RefinedResidueType
+from tmol import PatchedChemicalDatabase
 
 from tmol.database.chemical import VariantType, RawResidueType, normalize_bond_tuples
 
@@ -766,7 +764,7 @@ def test_validate_restype_bad_icoor(default_unpatched_chemical_database):
 
 def test_terminal_and_conjugation_patches_preserve_torsion_support_in_either_order():
     from pathlib import Path
-    from tmol.database import ParameterDatabase
+    from tmol import ParameterDatabase
     from tmol.database.chemical import ChemicalDatabase
     from tmol.database._patched_chemdb import validate_raw_residue
     from tmol.ligand._conjugation_patches import conjugation_patch

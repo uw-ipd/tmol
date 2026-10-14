@@ -2,18 +2,22 @@ import numpy
 import pytest
 import torch
 
-from tmol.io import atom_array_from_cif, pose_stack_from_biotite, pose_stack_from_pdb
-from tmol.optimization import run_cart_min
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pack.rotamer import IncludeCurrentSampler, build_rotamers
-from tmol.pose import PoseStackBuilder
-from tmol.score.hbond import HBondEnergyTerm
-from tmol.score import (
+from tmol.io import pose_stack_from_pdb
+from tmol import (
+    atom_array_from_cif,
+    PackerPalette,
+    PackerTask,
+    pose_stack_from_biotite,
+    PoseStackBuilder,
+    run_cart_min,
     ScoreFunction,
     ScoreType,
 )
+from tmol.pack import SetPackerTask
+from tmol.pack import IncludeCurrentSampler, build_rotamers
+from tmol.score import HBondEnergyTerm
 from tmol.tests.data import data_path
-from tmol.tests.score.common import EnergyTermTestBase
+from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 
 
 def test_smoke(default_database, torch_device):

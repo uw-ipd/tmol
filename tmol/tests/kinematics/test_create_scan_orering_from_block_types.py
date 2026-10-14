@@ -1,21 +1,17 @@
 import pytest
 import torch
 
-from tmol.io import (
-    default_canonical_ordering,
-    default_packed_block_types,
-    canonical_form_from_pdb,
-    pose_stack_from_canonical_form,
-)
+from tmol.io._canonical_ordering import canonical_form_from_pdb
+from tmol.io import default_canonical_ordering, default_packed_block_types
+from tmol import EdgeType, pose_stack_from_canonical_form
 
-from tmol.kinematics import (
-    EdgeType,
-    NodeType,
+from tmol.kinematics import NodeType
+from tmol.kinematics._scan_ordering import (
     construct_kin_module_data_for_pose,
     _annotate_block_type_with_gen_scan_path_segs,
     _annotate_packed_block_type_with_gen_scan_path_segs,
 )
-from tmol.kinematics.compiled import inverse_kin, forward_kin_op
+from tmol.kinematics.compiled._compiled_ops import inverse_kin, forward_kin_op
 
 
 def test_gen_seg_scan_paths_block_type_annotation_smoke(fresh_default_restype_set):
@@ -26,7 +22,7 @@ def test_gen_seg_scan_paths_block_type_annotation_smoke(fresh_default_restype_se
 
 
 def test_calculate_ff_edge_delays_for_two_res_ubq(ubq_pdb, torch_device):
-    from tmol.kinematics.compiled import calculate_ff_edge_delays
+    from tmol.kinematics.compiled._compiled_ops import calculate_ff_edge_delays
 
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
@@ -72,7 +68,7 @@ def test_calculate_ff_edge_delays_for_two_res_ubq(ubq_pdb, torch_device):
 
 
 def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
-    from tmol.kinematics.compiled import calculate_ff_edge_delays
+    from tmol.kinematics.compiled._compiled_ops import calculate_ff_edge_delays
 
     torch_device = torch.device("cpu")
     # device = torch_device
@@ -164,7 +160,7 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
 def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_H(
     stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H
 ):
-    from tmol.kinematics.compiled import calculate_ff_edge_delays
+    from tmol.kinematics.compiled._compiled_ops import calculate_ff_edge_delays
 
     pose_stack = stack_of_two_six_res_ubqs_no_term
     pbt = pose_stack.packed_block_types
@@ -240,7 +236,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_H(
 def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_U(
     stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_U
 ):
-    from tmol.kinematics.compiled import calculate_ff_edge_delays
+    from tmol.kinematics.compiled._compiled_ops import calculate_ff_edge_delays
 
     pose_stack = stack_of_two_six_res_ubqs_no_term
     pbt = pose_stack.packed_block_types
@@ -313,7 +309,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_U(
 def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_K(
     stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_K
 ):
-    from tmol.kinematics.compiled import calculate_ff_edge_delays
+    from tmol.kinematics.compiled._compiled_ops import calculate_ff_edge_delays
 
     pose_stack = stack_of_two_six_res_ubqs_no_term
     pbt = pose_stack.packed_block_types
@@ -390,7 +386,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_K(
 def test_calculate_parent_block_conn_in_and_out_for_two_copies_of_6_res_ubq(
     stack_of_two_six_res_ubqs_no_term, torch_device, ff_2ubq_6res_H
 ):
-    from tmol.kinematics.compiled import (
+    from tmol.kinematics.compiled._compiled_ops import (
         calculate_ff_edge_delays,
         get_block_parent_connectivity_from_toposort,
     )
@@ -452,7 +448,7 @@ def test_calculate_parent_block_conn_in_and_out_for_two_copies_of_6_res_ubq(
 
 
 def test_get_kfo_indices_for_atoms(ubq_pdb):
-    from tmol.kinematics.compiled import (
+    from tmol.kinematics.compiled._compiled_ops import (
         get_kfo_indices_for_atoms,
         get_kfo_atom_parents,
         get_children,
@@ -955,7 +951,8 @@ def test_kin_module_for_lone_ion_chain(torch_device):
     parent, it asserted, or looped forever with asserts compiled out.
     """
     from tmol.io import pose_stack_from_pdb
-    from tmol.kinematics import FoldForest, PoseStackKinematicsModule
+    from tmol.kinematics import PoseStackKinematicsModule
+    from tmol import FoldForest
     from tmol.tests.data import data_path
 
     lines = [
@@ -994,8 +991,9 @@ def test_roundtrip_without_jump_stub(parent_list, jump_list, torch_device):
     """Jump stubs with fewer than three atoms still preserve all coordinates."""
     from types import SimpleNamespace
 
-    from tmol.kinematics import KinForest, KinForestScanOrdering
-    from tmol.kinematics.compiled import get_id_and_frame_xyz
+    from tmol.kinematics._datatypes import KinForest
+    from tmol.kinematics._scan_ordering import KinForestScanOrdering
+    from tmol.kinematics.compiled._compiled_ops import get_id_and_frame_xyz
 
     def ints(values):
         return torch.tensor(values, dtype=torch.int32, device=torch_device)

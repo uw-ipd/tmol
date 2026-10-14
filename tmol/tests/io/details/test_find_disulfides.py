@@ -1,13 +1,10 @@
 import numpy
 import torch
 import attr
-from tmol.io import (
-    CanonicalOrdering,
-    canonical_form_from_pdb,
-    default_canonical_ordering,
-)
-from tmol.io.details import find_disulfides
-from tmol.database import PatchedChemicalDatabase
+from tmol.io._canonical_ordering import canonical_form_from_pdb
+from tmol import CanonicalOrdering, PatchedChemicalDatabase
+from tmol.io import default_canonical_ordering
+from tmol.io.details._disulfide_search import find_disulfides
 
 # ATOM    160  N   CYS L  23     -60.489 -22.492  -9.505  1.00 63.92           N
 # ATOM    161  CA  CYS L  23     -60.175 -22.416  -8.082  1.00 64.85           C

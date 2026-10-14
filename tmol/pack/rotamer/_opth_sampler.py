@@ -5,21 +5,17 @@ import attr
 
 from typing import Tuple
 
-from tmol.types import (
-    Tensor,
-    NDArray,
-    validate_args,
-)
-from tmol.chemical import RefinedResidueType, l_base_name
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
-from tmol.kinematics import KinForest
-from tmol.pack.rotamer import (
-    ConformerSampler,
+from tmol.types._torch import Tensor
+from tmol.types._array import NDArray
+from tmol.types._functional import validate_args
+from tmol.chemical import RefinedResidueType
+from tmol.database.chemical import l_base_name
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
+from tmol.kinematics._datatypes import KinForest
+from tmol.pack.rotamer._conformer_sampler import ConformerSampler, sc_roots_for_chis
+from tmol.pack.rotamer._single_residue_kinforest import (
     construct_single_residue_kinforest,
-    sc_roots_for_chis,
 )
 from tmol.pack._packer_task import (
     DEFAULT_CHI_SAMPLE_EXPANDED_LIMIT,
@@ -27,7 +23,7 @@ from tmol.pack._packer_task import (
 )
 from tmol.pack.rotamer._chi_budget import apply_chi_sample_budget, chi_depths
 from tmol.numeric import coord_dihedrals
-from tmol.utility.tensor import exclusive_cumsum1d
+from tmol.utility.tensor._common_operations import exclusive_cumsum1d
 
 # Residue categories that get NHQ flip treatment (requires flip_NHQ=True)
 _HIS_FLIP_BASES = frozenset(("HIS", "HIS_D"))

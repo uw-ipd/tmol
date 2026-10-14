@@ -4,7 +4,7 @@ import pytest
 import torch
 import torch.testing
 
-from tmol.tests import requires_cuda
+from tmol.tests._torch import requires_cuda
 
 
 @pytest.fixture

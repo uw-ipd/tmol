@@ -1,9 +1,8 @@
 import numpy
 
 from tmol.chemical import ResidueTypeSet
-from tmol.pack.rotamer import (
+from tmol.pack.rotamer._single_residue_kinforest import (
     construct_single_residue_kinforest,
-    # coalesce_single_residue_kinforests,
 )
 
 

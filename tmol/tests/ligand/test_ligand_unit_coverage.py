@@ -68,7 +68,7 @@ def delocalized_center(neighbors, center, substituents):
 
 class TestDetectHelpers:
     def test_strip_metals_removes_metal_atoms(self) -> None:
-        from tmol.ligand import _strip_metals
+        from tmol.ligand._detect import _strip_metals
 
         mol = Chem.MolFromSmiles("[Fe]")
         assert mol.GetNumAtoms() == 1
@@ -76,13 +76,13 @@ class TestDetectHelpers:
         assert stripped.GetNumAtoms() == 0
 
     def test_strip_metals_no_op_without_metals(self) -> None:
-        from tmol.ligand import _strip_metals
+        from tmol.ligand._detect import _strip_metals
 
         mol = Chem.MolFromSmiles("CCO")
         assert _strip_metals(mol).GetNumAtoms() == mol.GetNumAtoms()
 
     def test_rdkit_bond_to_biotite_type_orders(self) -> None:
-        from tmol.ligand import _rdkit_bond_to_biotite_type
+        from tmol.ligand._detect import _rdkit_bond_to_biotite_type
 
         benzene = Chem.MolFromSmiles("c1ccccc1")
         aromatic_bond = benzene.GetBondWithIdx(0)
@@ -100,7 +100,7 @@ class TestDetectHelpers:
         assert _rdkit_bond_to_biotite_type(triple) == int(struc.BondType.TRIPLE)
 
     def test_rdkit_bond_to_biotite_type_quadruple_and_fallback(self) -> None:
-        from tmol.ligand import _rdkit_bond_to_biotite_type
+        from tmol.ligand._detect import _rdkit_bond_to_biotite_type
 
         rw = Chem.RWMol()
         rw.AddAtom(Chem.Atom(6))
@@ -117,7 +117,7 @@ class TestDetectHelpers:
         assert _rdkit_bond_to_biotite_type(dative) == int(struc.BondType.ANY)
 
     def test_infer_res_name_from_mol2(self) -> None:
-        from tmol.ligand import _infer_res_name_from_mol2
+        from tmol.ligand._detect import _infer_res_name_from_mol2
 
         mol = Chem.MolFromSmiles("CC")
         # No Tripos substructure name -> fallback used.
@@ -126,14 +126,14 @@ class TestDetectHelpers:
         assert _infer_res_name_from_mol2(mol, "FALL") == "LIG"
 
     def test_source_subtype_from_mol2_atom_type(self) -> None:
-        from tmol.ligand import _source_subtype_from_mol2_atom_type
+        from tmol.ligand._detect import _source_subtype_from_mol2_atom_type
 
         assert _source_subtype_from_mol2_atom_type("C.ar") == "ar"
         assert _source_subtype_from_mol2_atom_type("C") == "?"
         assert _source_subtype_from_mol2_atom_type("") == "?"
 
     def test_mol2_charge_model_from_text(self) -> None:
-        from tmol.ligand import _mol2_charge_model_from_text
+        from tmol.ligand._detect import _mol2_charge_model_from_text
 
         good = (
             "@<TRIPOS>MOLECULE\n"
@@ -153,7 +153,7 @@ class TestDetectHelpers:
         assert _mol2_charge_model_from_text("nothing here\n") == ""
 
     def test_mol2_single_bond_ids(self) -> None:
-        from tmol.ligand import _mol2_single_bond_ids
+        from tmol.ligand._detect import _mol2_single_bond_ids
 
         text = (
             "@<TRIPOS>BOND\n"
@@ -187,7 +187,7 @@ class TestDetectHelpers:
         ],
     )
     def test_charge_model_is_authoritative(self, model, expected) -> None:
-        from tmol.ligand import _charge_model_is_authoritative
+        from tmol.ligand._detect import _charge_model_is_authoritative
 
         assert _charge_model_is_authoritative(model) is expected
 
@@ -199,7 +199,7 @@ class TestDetectHelpers:
     def test_infer_oxyacid_bonds_is_generic(
         self, center_atomic_number, n_substituents
     ) -> None:
-        from tmol.ligand._detect import _infer_oxyacid_bonds
+        from tmol.ligand._input_repair import _infer_oxyacid_bonds
 
         mol = Chem.RWMol()
         center = mol.AddAtom(Chem.Atom(center_atomic_number))
@@ -266,7 +266,7 @@ class TestDetectHelpers:
         Kekule form -- and refusing it there left the center a bond short: a
         carbanion whose nitrogens come back with an extra hydrogen each.
         """
-        from tmol.ligand._detect import _infer_oxyacid_bonds
+        from tmol.ligand._input_repair import _infer_oxyacid_bonds
 
         molecule, delocalized_bonds = delocalized_center(
             neighbors, center, substituents
@@ -298,7 +298,7 @@ class TestDetectHelpers:
         second cation -- a net the caller could not catch, since it compares
         against the declared charges plus the ones localization invented.
         """
-        from tmol.ligand._detect import _infer_oxyacid_bonds
+        from tmol.ligand._input_repair import _infer_oxyacid_bonds
 
         molecule, delocalized_bonds = delocalized_center(
             neighbors, center, substituents
@@ -323,7 +323,7 @@ class TestDetectHelpers:
         recorded, moving the expected net with it so nothing downstream noticed.
         Leaving it unsanitizable routes the molecule to the fallback reader.
         """
-        from tmol.ligand._detect import _infer_oxyacid_bonds
+        from tmol.ligand._input_repair import _infer_oxyacid_bonds
 
         molecule, delocalized_bonds = delocalized_center(((8, 0, 0), (8, 0, 0)), 6, 1)
         declared = {1: -1, 2: -1}
@@ -342,7 +342,7 @@ class TestDetectHelpers:
     def test_authoritative_neutralized_charges_need_not_match_formal_charge(
         self,
     ) -> None:
-        from tmol.ligand import nonstandard_residue_info_from_mol2_block
+        from tmol.ligand._detect import nonstandard_residue_info_from_mol2_block
 
         mol2 = NEUTRALIZED_AMMONIUM_MOL2.format(charge_model="USER_CHARGES")
         info = nonstandard_residue_info_from_mol2_block(mol2)
@@ -493,7 +493,7 @@ class TestDetectHelpers:
         assert preparation._prepare_mol2("lig.mol2", mode=mode) == expected
 
     def test_normalize_radical_oxygens(self) -> None:
-        from tmol.ligand import _normalize_radical_oxygens
+        from tmol.ligand._detect import _normalize_radical_oxygens
 
         # Bare radical oxygen on a carboxyl carbon -> becomes [O-].
         fixed = _normalize_radical_oxygens("CC(=O)[O]")
@@ -507,7 +507,7 @@ class TestDetectHelpers:
         assert _normalize_radical_oxygens("not a smiles!!!") == "not a smiles!!!"
 
     def test_dimorphite_protonate_smiles(self) -> None:
-        from tmol.ligand import _dimorphite_protonate_smiles
+        from tmol.ligand._detect import _dimorphite_protonate_smiles
 
         # Carboxylic acid deprotonates near physiological pH.
         out = _dimorphite_protonate_smiles("CC(=O)O", ph=7.4)
@@ -521,7 +521,7 @@ class TestDetectHelpers:
 # --------------------------------------------------------------------------- #
 class TestStructureToSmiles:
     def _array(self):
-        from tmol.io import atom_array_from_cif
+        from tmol import atom_array_from_cif
 
         fixture = DATA / "ligand_cif_fixtures" / "vww.bonds_present.cif"
         return atom_array_from_cif(fixture)
@@ -549,7 +549,7 @@ class TestStructureToSmiles:
 # --------------------------------------------------------------------------- #
 class TestAuthoritativeCharges:
     def test_maps_by_index(self) -> None:
-        from tmol.ligand import authoritative_charges_by_index
+        from tmol.ligand._mol3d import authoritative_charges_by_index
 
         mol = Chem.MolFromSmiles("CCO")
         names = ["C1", "C2", "O1"]
@@ -558,21 +558,21 @@ class TestAuthoritativeCharges:
         assert by_index == {0: 0.1, 1: -0.1, 2: -0.3}
 
     def test_raises_without_charges(self) -> None:
-        from tmol.ligand import authoritative_charges_by_index
+        from tmol.ligand._mol3d import authoritative_charges_by_index
 
         mol = Chem.MolFromSmiles("CCO")
         with pytest.raises(ValueError, match="no authoritative partial charges"):
             authoritative_charges_by_index(["C1", "C2", "O1"], None, mol)
 
     def test_raises_on_count_mismatch(self) -> None:
-        from tmol.ligand import authoritative_charges_by_index
+        from tmol.ligand._mol3d import authoritative_charges_by_index
 
         mol = Chem.MolFromSmiles("CCO")
         with pytest.raises(ValueError, match="atom-count mismatch"):
             authoritative_charges_by_index(["C1", "C2"], {"C1": 0.0}, mol)
 
     def test_raises_on_missing_atom(self) -> None:
-        from tmol.ligand import authoritative_charges_by_index
+        from tmol.ligand._mol3d import authoritative_charges_by_index
 
         mol = Chem.MolFromSmiles("CCO")
         with pytest.raises(ValueError, match="missing for atoms"):
@@ -586,7 +586,7 @@ class TestAuthoritativeCharges:
 # --------------------------------------------------------------------------- #
 class TestEquivalenceElementFromName:
     def test_infer_element_from_name(self) -> None:
-        from tmol.tests.ligand import _infer_element_from_name
+        from tmol.tests.ligand._equivalence import _infer_element_from_name
 
         assert _infer_element_from_name("CB") == "C"
         assert _infer_element_from_name("CA") == "Ca"
@@ -601,7 +601,7 @@ class TestEquivalenceElementFromName:
 # --------------------------------------------------------------------------- #
 class TestLigandAtomArrayToRdkitMol:
     def _info(self, arr):
-        from tmol.ligand import NonStandardResidueInfo
+        from tmol.ligand._detect import NonStandardResidueInfo
 
         return NonStandardResidueInfo(
             res_name="LG1",
@@ -620,7 +620,7 @@ class TestLigandAtomArrayToRdkitMol:
         return arr
 
     def test_empty_array_raises(self) -> None:
-        from tmol.ligand import ligand_atom_array_to_rdkit_mol
+        from tmol.ligand._rdkit_mol import ligand_atom_array_to_rdkit_mol
 
         arr = struc.AtomArray(0)
         arr.coord = np.zeros((0, 3), dtype=np.float32)
@@ -630,14 +630,14 @@ class TestLigandAtomArrayToRdkitMol:
             ligand_atom_array_to_rdkit_mol(self._info(arr))
 
     def test_no_bonds_raises(self) -> None:
-        from tmol.ligand import ligand_atom_array_to_rdkit_mol
+        from tmol.ligand._rdkit_mol import ligand_atom_array_to_rdkit_mol
 
         arr = self._carbon_array(2)
         with pytest.raises(ValueError, match="bond inference is unsupported"):
             ligand_atom_array_to_rdkit_mol(self._info(arr))
 
     def test_topology_only_any_bonds_raises(self) -> None:
-        from tmol.ligand import ligand_atom_array_to_rdkit_mol
+        from tmol.ligand._rdkit_mol import ligand_atom_array_to_rdkit_mol
 
         arr = self._carbon_array(2)
         # BondType.ANY marks bonds whose order was perceived from geometry
@@ -654,10 +654,8 @@ class TestLigandAtomArrayToRdkitMol:
 # --------------------------------------------------------------------------- #
 class TestPreparationHelpers:
     def test_prepare_single_ligand_requires_protonation_and_charges(self) -> None:
-        from tmol.ligand import (
-            _ligand_info_from_cif,
-            prepare_single_ligand,
-        )
+        from tmol.ligand import prepare_single_ligand
+        from tmol.ligand._preparation import _ligand_info_from_cif
 
         cif = DATA / "ligand_cif_fixtures" / "vww.bonds_present.cif"
         info = _ligand_info_from_cif(str(cif), None)

@@ -3,9 +3,9 @@ from collections.abc import Callable, Sequence
 import attr
 import torch
 
-from tmol.types import Tensor
-from tmol.utility._device import resolve_device
-from tmol.utility.tensor import exclusive_cumsum1d
+from tmol.types._torch import Tensor
+from tmol.utility import resolve_device
+from tmol.utility.tensor._common_operations import exclusive_cumsum1d
 
 ConstraintFunction = Callable[
     [Tensor[torch.float32][:, :, 3], Tensor[torch.float32][:, :]],

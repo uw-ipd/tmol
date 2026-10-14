@@ -3,7 +3,12 @@ import torch
 from tmol._load_ext import ensure_compiled_or_jit
 
 if ensure_compiled_or_jit():
-    from tmol.utility import load, relpaths, modulename, cuda_if_available
+    from tmol.utility._cpp_extension import (
+        load,
+        relpaths,
+        modulename,
+        cuda_if_available,
+    )
 
     load(
         modulename(__name__),

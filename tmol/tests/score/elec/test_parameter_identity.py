@@ -8,9 +8,10 @@ import pytest
 import torch
 
 from tmol.database import inject_residue_params
-from tmol.io import extended_pose_stack_from_sequences
-from tmol.score.elec import ElecEnergyTerm, ElecParamResolver
-from tmol.database.scoring import PartialCharges, CountPairReps
+from tmol import extended_pose_stack_from_sequences
+from tmol.score import ElecEnergyTerm
+from tmol.score.elec._params import ElecParamResolver
+from tmol.database.scoring._elec import PartialCharges, CountPairReps
 
 
 def isolated_charge_database(database, first_charge, residue="ALA", atom="CB"):
@@ -188,8 +189,9 @@ def test_charge_database_reuse_energy_and_gradient(
 def test_charge_reuse_rotamer_energies_and_gradients(
     default_database, torch_device, dun_sampler, changed_first
 ):
-    from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-    from tmol.pack.rotamer import build_rotamers
+    from tmol.pack import SetPackerTask
+    from tmol import PackerPalette, PackerTask
+    from tmol.pack import build_rotamers
 
     pose = extended_pose_stack_from_sequences(["KK", "KKK"], device=torch_device)
     task = PackerTask(pose, PackerPalette())
@@ -340,9 +342,11 @@ def test_terminal_conjugate_charge_bundle_energy_gradient(tmp_path, torch_device
     from dataclasses import replace
     import biotite.structure as struc
     import networkx as nx
-    from tmol.database import ParameterDatabase
-    from tmol.io import atom_array_from_cif, pose_stack_from_biotite
-    from tmol.ligand import prepare_ligands, load_params_file, write_params_file
+    from tmol import ParameterDatabase
+    from tmol import pose_stack_from_biotite
+    from tmol import atom_array_from_cif
+    from tmol.ligand import load_params_file, write_params_file
+    from tmol.ligand._preparation import prepare_ligands
     from tmol.ligand._registry import inject_ligand_preparations
     from tmol.tests.data import data_path
     from tmol.tests.pack.rotamer.test_group_constraints import pose_bonds

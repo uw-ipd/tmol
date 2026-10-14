@@ -5,17 +5,18 @@ import gc
 import pytest
 import torch
 
-from tmol import pose_stack_from_pdb
-from tmol.tests import requires_cuda
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pack.rotamer import IncludeCurrentSampler, build_rotamers
-from tmol.score.cartbonded import CartBondedEnergyTerm
-from tmol.score.genbonded import GenBondedEnergyTerm
-from tmol.score.backbone_torsion import BackboneTorsionEnergyTerm
-from tmol.score.dunbrack import DunbrackEnergyTerm
-from tmol.score.elec import ElecEnergyTerm
-from tmol.score.hbond import HBondEnergyTerm
-from tmol.score.ljlk import LJLKEnergyTerm
+from tmol.io import pose_stack_from_pdb
+from tmol.tests._torch import requires_cuda
+from tmol.pack import SetPackerTask
+from tmol import PackerPalette, PackerTask
+from tmol.pack import IncludeCurrentSampler, build_rotamers
+from tmol.score import CartBondedEnergyTerm
+from tmol.score import GenBondedEnergyTerm
+from tmol.score import BackboneTorsionEnergyTerm
+from tmol.score import DunbrackEnergyTerm
+from tmol.score import ElecEnergyTerm
+from tmol.score import HBondEnergyTerm
+from tmol.score import LJLKEnergyTerm
 
 pytestmark = requires_cuda
 

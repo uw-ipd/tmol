@@ -2,18 +2,14 @@ import numpy
 import torch
 import attr
 
-from tmol.io import (
-    default_canonical_ordering,
-    CanonicalOrdering,
-    canonical_form_from_pdb,
-)
-from tmol.io.details import (
+from tmol.io._canonical_ordering import canonical_form_from_pdb
+from tmol.io import default_canonical_ordering
+from tmol import CanonicalOrdering, PatchedChemicalDatabase
+from tmol.io.details._his_taut_resolution import (
     HisTautomerResolution,
     resolve_his_tautomerization,
-    his_taut_variant_NE2_protonated,
-    his_taut_variant_ND1_protonated,
 )
-from tmol.database import PatchedChemicalDatabase
+from tmol.io import his_taut_variant_NE2_protonated, his_taut_variant_ND1_protonated
 
 
 def test_resolve_his_HD1_provided():

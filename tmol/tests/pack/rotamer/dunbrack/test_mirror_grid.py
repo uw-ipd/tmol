@@ -5,7 +5,7 @@ import pytest
 import torch
 
 from tmol.database.scoring._mirrored_dunbrack import with_mirrored_libraries
-from tmol.score.dunbrack import DunbrackParamResolver
+from tmol.score.dunbrack._params import DunbrackParamResolver
 from tmol.tests.pack.rotamer.dunbrack.test_dunbrack_chi_sampler import get_compiled
 
 

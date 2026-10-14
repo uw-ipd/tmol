@@ -3,12 +3,8 @@
 import numpy as np
 import pytest
 
-from tmol.io import (
-    assemble_input,
-    atom_array_from_file,
-    atom_array_from_mol2,
-    cif_from_atom_array,
-)
+from tmol.io._assemble import assemble_input, atom_array_from_mol2, cif_from_atom_array
+from tmol import atom_array_from_file
 from tmol.tests.data import data_path
 
 LIGAND_RES_NAME = "LG1"

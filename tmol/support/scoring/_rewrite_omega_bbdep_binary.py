@@ -7,7 +7,8 @@ import yaml
 import attr
 import cattr
 
-from tmol.database.scoring import OmegaBBDepDatabase, OmegaBBDepTables
+from tmol.database.scoring._omega_bbdep import OmegaBBDepTables
+from tmol.database.scoring import OmegaBBDepDatabase
 
 # A conversion script from rosetta omega bbdep tables to
 # tmol probability tables.  For each of five classes

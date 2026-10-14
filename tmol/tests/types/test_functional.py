@@ -8,11 +8,8 @@ import pytest
 import typing
 from typing import Union, Tuple, List
 
-from tmol.types import (
-    validate_args,
-    convert_args,
-    NDArray,
-)
+from tmol.types._functional import validate_args, convert_args
+from tmol.types._array import NDArray
 from tmol.types._validators import get_validator
 from tmol.types._converters import get_converter
 

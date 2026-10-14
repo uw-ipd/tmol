@@ -5,30 +5,23 @@ import numpy
 import pytest
 import torch
 
-from tmol.relax import fast_relax
-import tmol.relax._fast_relax as fast_relax_module
-from tmol.relax._fast_relax import _resolve_cuda_graph_mode
-from tmol.optimization import CartesianMinimizer
-
-from tmol.pose import (
+from tmol import (
+    CartesianMoveMap,
+    EdgeType,
+    fast_relax,
+    FoldForest,
+    MoveMap,
+    PackerPalette,
     PoseStack,
     PoseStackBuilder,
-)
-from tmol.score import (
     ScoreFunction,
     ScoreType,
 )
-from tmol.pack import PackerPalette
-from tmol.pack.rotamer import (
-    FixedAAChiSampler,
-    IncludeCurrentSampler,
-)
-from tmol.kinematics import (
-    CartesianMoveMap,
-    MoveMap,
-    EdgeType,
-    FoldForest,
-)
+import tmol.relax._fast_relax as fast_relax_module
+from tmol.relax._fast_relax import _resolve_cuda_graph_mode
+from tmol.optimization._minimizers import CartesianMinimizer
+
+from tmol.pack import FixedAAChiSampler, IncludeCurrentSampler
 from tmol.io import pose_stack_from_pdb
 
 
@@ -37,8 +30,8 @@ def test_accept_best_with_different_atom_counts(
     default_database, torch_device, monkeypatch, grow
 ):
     """Packing can change atom counts without changing every pose's winner."""
-    from tmol.io import extended_pose_stack_from_sequences
-    from tmol.relax import accept_best
+    from tmol import extended_pose_stack_from_sequences
+    from tmol.relax._fast_relax import accept_best
 
     small = extended_pose_stack_from_sequences(["AGA", "AGA"], device=torch_device)
     large = extended_pose_stack_from_sequences(["AKA", "AKA"], device=torch_device)

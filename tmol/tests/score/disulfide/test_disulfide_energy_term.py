@@ -1,10 +1,10 @@
 import torch
 
 from tmol.io import pose_stack_from_pdb
-from tmol.score.disulfide import DisulfideEnergyTerm
-from tmol.score.common import ZeroTermPoseScoringModule
+from tmol.score import DisulfideEnergyTerm
+from tmol.score.common._scoring_module import ZeroTermPoseScoringModule
 
-from tmol.tests.score.common import EnergyTermTestBase
+from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 
 
 def test_smoke(default_database, torch_device: torch.device):

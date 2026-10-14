@@ -60,7 +60,7 @@ def test_native_boundary_saved_input_version(ubq_pdb, torch_device):
     import pytest
     import torch
     from tmol.io import pose_stack_from_pdb
-    from tmol.score import beta2016_score_function
+    from tmol import beta2016_score_function
 
     pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
     scorer = beta2016_score_function(torch_device).render_whole_pose_scoring_module(

@@ -1,6 +1,4 @@
-from tmol.io import (
-    default_packed_block_types,
-)
+from tmol.io import default_packed_block_types
 
 
 def test_default_packed_block_types(torch_device):

@@ -1,5 +1,5 @@
 def test_flatten():
-    from tmol.utility import flat_items, unflatten
+    from tmol.utility._dicttoolz import flat_items, unflatten
 
     examples = [
         ({"a": 1, "b": 2, "c": 3}, {("a",): 1, ("b",): 2, ("c",): 3}),

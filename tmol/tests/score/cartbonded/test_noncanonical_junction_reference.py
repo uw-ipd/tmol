@@ -4,7 +4,7 @@ import attr
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_cif
+from tmol.io._cif import pose_stack_from_cif
 from tmol.tests.data import data_path
 from tmol.tests.score.cartbonded.test_explicit_connection_parameters import scoring_term
 
@@ -13,10 +13,12 @@ from tmol.tests.score.cartbonded.test_explicit_connection_parameters import scor
 def test_gamma_junction_length_angle_energy_and_gradient(
     torch_device, tmp_path, junction
 ):
-    from tmol.database import ParameterDatabase, inject_residue_params
-    from tmol.database.scoring import LengthGroup
-    from tmol.io import create_pose_stack_from_sequences
-    from tmol.ligand import prepare_polymer_residue, write_params_file, load_params_file
+    from tmol.database import inject_residue_params
+    from tmol import ParameterDatabase
+    from tmol.database.scoring._cartbonded import LengthGroup
+    from tmol import create_pose_stack_from_sequences
+    from tmol.ligand import write_params_file, load_params_file
+    from tmol.ligand._preparation import prepare_polymer_residue
     from tmol.ligand._registry import (
         inject_ligand_preparations,
         rebuild_canonical_ordering,
@@ -207,10 +209,15 @@ def test_gamma_junction_length_angle_energy_and_gradient(
 )
 def test_cap_junction_forces(torch_device, tmp_path, cap, connection, sequence):
     """Common caps and caps in 3EPC/1A1E/6Q9T retain peptide restoring forces."""
-    from tmol.database import ParameterDatabase
-    from tmol.database.scoring import AngleGroup, ConnectionCartRes, LengthGroup
-    from tmol.io import create_pose_stack_from_sequences
-    from tmol.ligand import prepare_polymer_residue, write_params_file, load_params_file
+    from tmol import ParameterDatabase
+    from tmol.database.scoring._cartbonded import (
+        AngleGroup,
+        ConnectionCartRes,
+        LengthGroup,
+    )
+    from tmol import create_pose_stack_from_sequences
+    from tmol.ligand import write_params_file, load_params_file
+    from tmol.ligand._preparation import prepare_polymer_residue
     from tmol.ligand._registry import (
         inject_ligand_preparations,
         rebuild_canonical_ordering,

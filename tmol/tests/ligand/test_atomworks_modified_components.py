@@ -7,12 +7,12 @@ import numpy as np
 import pytest
 import torch
 
-from tmol.io import (
+from tmol import (
     atom_array_from_cif,
     build_context_from_biotite,
     pose_stack_from_biotite,
 )
-from tmol.ligand import chem_comp_types_from_cif
+from tmol.ligand._detect import chem_comp_types_from_cif
 from tmol.ligand._registry import _applied_patch
 from tmol.score.elec._params import ElecParamResolver
 from tmol.tests.io.test_atomworks_corpus_regressions import (
@@ -99,7 +99,8 @@ def test_free_and_attached_solutes_keep_distinct_chemistry(torch_device):
 
 
 def test_missing_ligand_carbon_reconstructs_and_backpropagates(torch_device):
-    from tmol.io import canonical_form_from_biotite, pose_stack_from_canonical_form
+    from tmol import canonical_form_from_biotite
+    from tmol import pose_stack_from_canonical_form
 
     array = atom_array_from_cif(DATA / "missing_ligand_carbon_5hs6.cif.zst")
     array = array[(np.char.upper(array.element) != "NA") & (array.res_name != "HOH")]
@@ -306,17 +307,17 @@ def test_single_atom_plp_backbone_preserves_chirality(monkeypatch):
     gives the CH2 mainchain the packer fingerprints.
     """
     from tmol.chemical import ResidueTypeSet
-    from tmol.database import ParameterDatabase
-    from tmol.ligand import prepare_polymer_residue
+    from tmol import ParameterDatabase
+    from tmol.ligand._preparation import prepare_polymer_residue
     from tmol.ligand._polymer_profile import cap_polymer_profile
     from tmol.ligand._registry import (
         inject_ligand_preparations,
         rebuild_canonical_ordering,
     )
-    from tmol.pack.rotamer import (
+    from tmol.pack.rotamer._single_residue_kinforest import (
         construct_single_residue_kinforest,
-        create_mainchain_fingerprint,
     )
+    from tmol.pack.rotamer._mainchain_fingerprint import create_mainchain_fingerprint
 
     array = atom_array_from_cif(DATA / "plp_cap_5t4j.cif.zst")
     source = array[array.res_name == "PLP"]
@@ -575,12 +576,12 @@ def test_plp_enzyme_completion_preserves_residues_and_terminal_chemistry(
     pose = pose_stack_from_biotite(array, torch_device, context=context, no_optH=True)
     _score_and_minimize(pose, context)
 
-    from tmol.kinematics import CartesianMoveMap, FoldForest
-    from tmol.optimization import run_cart_min
-    from tmol.pack import PackerPalette
+    from tmol import CartesianMoveMap, FoldForest
+    from tmol import run_cart_min
+    from tmol import PackerPalette
     import tmol.pack._pack_rotamers as packing
-    from tmol.relax import fast_relax
-    from tmol.score import beta2016_score_function
+    from tmol import fast_relax
+    from tmol import beta2016_score_function
 
     build = packing.build_rotamers
     counts = []

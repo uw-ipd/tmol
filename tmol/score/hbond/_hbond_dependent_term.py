@@ -9,19 +9,15 @@ from tmol.database import ParameterDatabase
 from tmol.database.scoring import HBondDatabase
 
 from tmol.chemical import RefinedResidueType
-from tmol.pose import PackedBlockTypes
+from tmol.pose._packed_block_types import PackedBlockTypes
 
-from tmol.score.hbond import HBondParamResolver
-from tmol.score.common import arg_tile_subset_indices
-from tmol.score import (
-    AtomTypeParamResolver,
-    BondDependentTerm,
-)
-from tmol.types import (
-    ValidateAttrs,
-    NDArray,
-    Tensor,
-)
+from tmol.score.hbond._params import HBondParamResolver
+from tmol.score.common._stack_condense import arg_tile_subset_indices
+from tmol.score._chemical_database import AtomTypeParamResolver
+from tmol.score._bond_dependent_term import BondDependentTerm
+from tmol.types._attrs import ValidateAttrs
+from tmol.types._array import NDArray
+from tmol.types._torch import Tensor
 
 
 def _map_hbond_types(mapper, column, type_index, atom_types):

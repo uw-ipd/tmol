@@ -3,11 +3,11 @@ import pytest
 import torch
 from types import SimpleNamespace
 
-from tmol.pack.rotamer import (
+from tmol.pack import build_rotamers, FixedAAChiSampler
+from tmol.pack.rotamer._build_rotamers import (
     _build_chi4_by_defining_atom,
     annotate_restype,
     annotate_packed_block_types,
-    build_rotamers,
     construct_kinforest_for_conformers,
     construct_scans_for_conformers,
     exc_cumsum_from_inc_cumsum,
@@ -18,27 +18,23 @@ from tmol.pack.rotamer import (
     calculate_rotamer_coords,
     get_rotamer_origin_data,
     load_rotamer_parents,
+)
+from tmol.pack.rotamer._chi_sampler import (
     create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler,
-    FixedAAChiSampler,
 )
 
 from tmol.io import pose_stack_from_pdb
 
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStackBuilder,
-)
-from tmol.pack import PackerTask, PackerPalette, SetPackerTask
+from tmol import PackedBlockTypes, PackerPalette, PackerTask, PoseStackBuilder
+from tmol.pack import SetPackerTask
 
-from tmol.kinematics.compiled import forward_only_op
+from tmol.kinematics.compiled._compiled_ops import forward_only_op
 
-from tmol.utility.tensor import exclusive_cumsum1d, stretch
+from tmol.utility.tensor._common_operations import exclusive_cumsum1d, stretch
 
 from tmol.tests.data import no_termini_pose_stack_from_pdb
 
-from tmol.score.hbond import (
-    HBondEnergyTerm,
-)
+from tmol.score import HBondEnergyTerm
 
 
 def test_chi_atom_table_is_keyed_by_the_atom_each_chi_turns():
@@ -406,7 +402,7 @@ def test_inv_kin_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
     met_kt_frame_y = it(0, met_rt.rotamer_kinforest.frame_y + 1)
     met_kt_frame_z = it(0, met_rt.rotamer_kinforest.frame_z + 1)
 
-    from tmol.kinematics.compiled import inverse_kin
+    from tmol.kinematics.compiled._compiled_ops import inverse_kin
 
     coords = torch.cat(
         (

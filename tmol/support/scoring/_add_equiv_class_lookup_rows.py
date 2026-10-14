@@ -20,11 +20,10 @@ import os
 import attr
 
 from tmol.database.chemical import ChemicalDatabase
-from tmol.database.scoring._omega_bbdep import (
-    OmegaBBDepDatabase,
-    OmegaBBDepMappingParams,
-)
-from tmol.database.scoring._rama import RamaDatabase, RamaMappingParams
+from tmol.database.scoring._omega_bbdep import OmegaBBDepMappingParams
+from tmol.database.scoring import OmegaBBDepDatabase
+from tmol.database.scoring._rama import RamaMappingParams
+from tmol.database.scoring import RamaDatabase
 from tmol.support.scoring._add_symmetric_gly_tables import detach, save
 
 

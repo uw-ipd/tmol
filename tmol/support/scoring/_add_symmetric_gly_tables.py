@@ -22,8 +22,8 @@ import attr
 import numpy
 import torch
 
-from tmol.database.scoring._omega_bbdep import OmegaBBDepDatabase
-from tmol.database.scoring._rama import RamaDatabase
+from tmol.database.scoring import OmegaBBDepDatabase
+from tmol.database.scoring import RamaDatabase
 
 # tables to symmetrize -> name of the symmetric copy
 RAMA_TABLES = {"GLY": "GLY_symm", "GLY_prepro": "GLY_prepro_symm"}

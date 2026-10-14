@@ -1,15 +1,11 @@
 import torch
 import attrs
 
-from tmol.pose import PoseStack
-from tmol.score import ScoreFunction
-from tmol.kinematics import (
-    NodeType,
-    BondDOFTypes,
-    JumpDOFTypes,
-    PoseStackKinematicsModule,
-)
-from tmol.kinematics.compiled import inverse_kin
+from tmol.pose._pose_stack import PoseStack
+from tmol.score._score_function import ScoreFunction
+from tmol.kinematics import NodeType, JumpDOFTypes, PoseStackKinematicsModule
+from tmol.kinematics._datatypes import BondDOFTypes
+from tmol.kinematics.compiled._compiled_ops import inverse_kin
 
 
 class CartesianSfxnNetwork(torch.nn.Module):

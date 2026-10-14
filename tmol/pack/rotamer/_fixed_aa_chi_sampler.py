@@ -5,17 +5,14 @@ import attr
 
 from typing import Tuple
 
-from tmol.types import (
-    Tensor,
-    validate_args,
-)
-from tmol.chemical import RefinedResidueType, l_base_name
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.types._torch import Tensor
+from tmol.types._functional import validate_args
+from tmol.chemical import RefinedResidueType
+from tmol.database.chemical import l_base_name
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 
-from tmol.pack.rotamer import ChiSampler
+from tmol.pack.rotamer._chi_sampler import ChiSampler
 
 
 @attr.s(auto_attribs=True, frozen=True)

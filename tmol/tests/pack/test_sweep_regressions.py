@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+from tmol import atom_array_from_cif, pose_stack_from_biotite
 from tmol.tests.data import data_path
 
 

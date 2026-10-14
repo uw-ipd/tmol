@@ -4,14 +4,14 @@ import torch
 from ._fold_forest import FoldForest
 from ._check_fold_forest import validate_fold_forest
 
-from tmol.pose import PoseStack
+from tmol.pose._pose_stack import PoseStack
 
-from tmol.kinematics import (
+from tmol.kinematics._scan_ordering import (
     construct_kin_module_data_for_pose,
     _annotate_packed_block_type_with_gen_scan_path_segs,
 )
 
-from tmol.kinematics.compiled import forward_kin_op
+from tmol.kinematics.compiled._compiled_ops import forward_kin_op
 
 # Workaround for https://github.com/pytorch/pytorch/pull/15340
 # on torch<1.0.1

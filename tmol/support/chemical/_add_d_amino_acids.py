@@ -23,8 +23,8 @@ import yaml
 from yaml import safe_load
 
 from tmol.database.chemical import ChemicalDatabase
-from tmol.database.scoring._cartbonded import CartBondedDatabase
-from tmol.database.scoring._elec import ElecDatabase
+from tmol.database.scoring import CartBondedDatabase
+from tmol.database.scoring import ElecDatabase
 
 # three-letter code the PDB uses for each D-amino acid; these are the codes a
 #    deposited structure carries, so they drive residue-type matching on input

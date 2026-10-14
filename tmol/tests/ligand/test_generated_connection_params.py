@@ -13,14 +13,14 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 
 from tmol.database.scoring import CartBondedDatabase
-from tmol.database import ParameterDatabase
-from tmol.io import pose_stack_from_biotite
+from tmol import ParameterDatabase, pose_stack_from_biotite
 from tmol.ligand._connection_params import (
     MMFF_HARMONIC_CONVERSION,
     generate_conjugate_connection_params,
 )
 from tmol.ligand import _connection_params
-from tmol.ligand import prepare_ligands, load_params_file, write_params_file
+from tmol.ligand import load_params_file, write_params_file
+from tmol.ligand._preparation import prepare_ligands
 from tmol.ligand._registry import inject_ligand_preparations
 from tmol.tests.ligand import test_conjugate_model
 from tmol.tests.score.cartbonded.test_explicit_connection_parameters import (

@@ -6,31 +6,17 @@ from typing import Protocol
 import attr
 import torch
 
-from tmol.pose import PoseStack
-from tmol.score import (
-    ScoreFunction,
-    ScoreType,
-)
-from tmol.kinematics import (
-    CartesianMoveMap,
-    MoveMap,
-    FoldForest,
-)
-from tmol.pack import (
-    pack_rotamers,
-    PackerPalette,
-    PackerTask,
-)
-from tmol.pack.rotamer import (
-    FixedAAChiSampler,
-    IncludeCurrentSampler,
-    NaChiRotamerSampler,
-)
-from tmol.optimization import (
-    CartesianMinimizer,
-    run_cart_min,
-)
-from tmol.types import Tensor
+from tmol.pose._pose_stack import PoseStack
+from tmol.score._score_function import ScoreFunction
+from tmol.score._score_types import ScoreType
+from tmol.kinematics._move_map import CartesianMoveMap, MoveMap
+from tmol.kinematics._fold_forest import FoldForest
+from tmol.pack._pack_rotamers import pack_rotamers
+from tmol.pack._packer_task import PackerPalette, PackerTask
+from tmol.pack import FixedAAChiSampler, IncludeCurrentSampler, NaChiRotamerSampler
+from tmol.optimization._minimizers import run_cart_min
+from tmol.optimization._minimizers import CartesianMinimizer
+from tmol.types._torch import Tensor
 from tmol.utility._device import synchronize_device
 
 RelaxScheduleEntry = float | int | dict[str, float]
@@ -280,9 +266,7 @@ def fast_relax(  # noqa: C901
 
     if task_operations is None:
         torch_device = pose_stack.device
-        from tmol.pack.rotamer.dunbrack import (
-            create_dunbrack_sampler_from_database,
-        )
+        from tmol.pack import create_dunbrack_sampler_from_database
         from tmol.pack.rotamer._conjugated_groups import add_conjugated_group_sampler
 
         samplers = [

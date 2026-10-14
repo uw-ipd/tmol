@@ -4,13 +4,13 @@ import numpy
 import pytest
 import torch
 
-from tmol.pack.rotamer import (
-    assign_chi_dofs_from_samples,
+from tmol.pack.rotamer._chi_sampler import assign_chi_dofs_from_samples
+from tmol.pack.rotamer._single_residue_kinforest import (
     coalesce_single_residue_kinforests,
     construct_single_residue_kinforest,
 )
 from tmol.pack.rotamer._build_rotamers import _build_ring_chi_phi_c_corrections
-from tmol.pose import PackedBlockTypes
+from tmol import PackedBlockTypes
 
 
 def chi_assignment_inputs(database, restypes, device):

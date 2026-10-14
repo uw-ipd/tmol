@@ -1,21 +1,16 @@
 import torch
 import numpy
 
-from tmol.types import (
-    Tensor,
-    NDArray,
-    validate_args,
-)
+from tmol.types._torch import Tensor
+from tmol.types._array import NDArray
+from tmol.types._functional import validate_args
 from typing import Optional
 from tmol.database.chemical import GEOMETRY_NAMES
-from tmol.pose import (
-    PDBInfo,
-    DEFAULT_ATOM_OCCUPANCY,
-    DEFAULT_ATOM_B_FACTOR,
-    PoseStack,
-    PackedBlockTypes,
-)
-from tmol.io import CanonicalOrdering
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pdb_info import DEFAULT_ATOM_OCCUPANCY, DEFAULT_ATOM_B_FACTOR
+from tmol.pose._pdb_info import PDBInfo
+from tmol.pose._pose_stack import PoseStack
+from tmol.io._canonical_ordering import CanonicalOrdering
 
 
 @validate_args
@@ -108,8 +103,9 @@ def pose_stack_from_canonical_form(  # noqa: C901
         metadata)`` with the requested tensors in ``metadata``.
     """
 
-    from tmol.io.details import left_justify_canonical_form
-    from tmol.io.details import find_cyclic_closures, find_disulfides
+    from tmol.io.details._left_justify_canonical_form import left_justify_canonical_form
+    from tmol.io.details._cyclic_search import find_cyclic_closures
+    from tmol.io.details._disulfide_search import find_disulfides
     from tmol.io.details._metal_detection import (
         donor_patches,
         find_metal_geometries,
@@ -121,12 +117,12 @@ def pose_stack_from_canonical_form(  # noqa: C901
         neutral_terminus_patches,
         select_protonation_variants,
     )
-    from tmol.io.details import resolve_his_tautomerization
-    from tmol.io.details import (
+    from tmol.io.details._his_taut_resolution import resolve_his_tautomerization
+    from tmol.io.details._select_from_canonical import (
         assign_block_types,
         take_block_type_atoms_from_canonical,
     )
-    from tmol.io.details import build_missing_leaf_atoms
+    from tmol.io.details._build_missing_leaf_atoms import build_missing_leaf_atoms
 
     assert chain_id.device == res_types.device
     assert chain_id.device == coords.device
@@ -479,7 +475,9 @@ def _declared_metal_sites(res_types, metal_sites, metal_coordination):
     """Left-justified {(pose, metal): (geometry, ((site, donor, atom), ...))}, and
     {(pose, metal): {(donor, atom)}} for bonds whose metal has no declared geometry."""
     # tmol.io.details imports this module's package, as the builder above does
-    from tmol.io.details import left_justify_residue_indices
+    from tmol.io.details._left_justify_canonical_form import (
+        left_justify_residue_indices,
+    )
 
     if res_types.shape[1] != 1:
         if metal_sites is not None:

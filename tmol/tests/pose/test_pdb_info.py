@@ -2,7 +2,7 @@ import numpy
 
 # from tmol.pose import PDBInfo
 from tmol.io import pose_stack_from_pdb
-from tmol.pose import PoseStackBuilder
+from tmol import PoseStackBuilder
 
 
 def test_pdb_info_split(ubq_pdb, torch_device):

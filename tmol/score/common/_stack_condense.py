@@ -1,10 +1,8 @@
 import torch
 import numpy
-from tmol.types import (
-    Tensor,
-    NDArray,
-    validate_args,
-)
+from tmol.types._torch import Tensor
+from tmol.types._array import NDArray
+from tmol.types._functional import validate_args
 from typing import Union, Optional
 
 ##################################################################

@@ -1,16 +1,15 @@
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.pose import PoseStack
-from tmol.score import ScoreFunction, beta2016_score_function
-from tmol.pack import pack_rotamers, PackerTask, PackerPalette
-from tmol.pack.rotamer import (
-    ConjugatedSCSampler,
-    IncludeCurrentSampler,
-    SidechainSampler,
-)
-from tmol.optimization import run_cart_min
-from tmol.types import Tensor
+from tmol.pose._pose_stack import PoseStack
+from tmol.score import beta2016_score_function
+from tmol.score._score_function import ScoreFunction
+from tmol.pack._pack_rotamers import pack_rotamers
+from tmol.pack._packer_task import PackerTask, PackerPalette
+from tmol.pack import IncludeCurrentSampler
+from tmol.pack import ConjugatedSCSampler, SidechainSampler
+from tmol.optimization._minimizers import run_cart_min
+from tmol.types._torch import Tensor
 
 _EINSUM_MIN_BYTES = 512 * 1024 * 1024
 _DEFAULT_INTERACTION_DISTANCE_WORKSPACE_BYTES = 256 * 1024 * 1024

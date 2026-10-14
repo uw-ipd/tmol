@@ -3,12 +3,10 @@ from __future__ import annotations
 import torch
 import attr
 
-from tmol.types import Tensor
+from tmol.types._torch import Tensor
 from tmol.database.chemical import DEPROTONATED_STATE
-from tmol.pose import (
-    PackedBlockTypes,
-    PoseStack,
-)
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack import PoseStack
 from typing import Collection, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -168,7 +166,7 @@ class PackerPalette:
         other sampler are left to that sampler exclusively.
         Future versions of PackerPalette have the option to override this method.
         """
-        from tmol.pack.rotamer import FallbackSampler
+        from tmol.pack.rotamer._fallback_sampler import FallbackSampler
 
         return [FallbackSampler()]
 

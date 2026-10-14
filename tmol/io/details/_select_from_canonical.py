@@ -5,24 +5,20 @@ import logging
 
 from collections import defaultdict
 from typing import Optional, Tuple
-from tmol.types import (
-    Tensor,
-    NDArray,
-    validate_args,
-)
+from tmol.types._torch import Tensor
+from tmol.types._array import NDArray
+from tmol.types._functional import validate_args
 from tmol.database.chemical import (
     N_VARIANT_INDICES,
     NEUTRAL_TERMINUS_VAR_BASE,
     site_connections,
     special_case_variant_index,
 )
-from tmol.io import CanonicalOrdering
-from tmol.pose import (
-    InterBlockBondsep,
-    PackedBlockTypes,
-    PoseStackBuilder,
-    annotate_packed_block_types_w_dslf_conn_inds,
-)
+from tmol.io._canonical_ordering import CanonicalOrdering
+from tmol.pose._packed_block_types import PackedBlockTypes
+from tmol.pose._pose_stack_builder import PoseStackBuilder
+from tmol.pose._inter_block_bondsep import InterBlockBondsep
+from tmol.pose._packed_block_types import annotate_packed_block_types_w_dslf_conn_inds
 
 logger = logging.getLogger(__name__)
 

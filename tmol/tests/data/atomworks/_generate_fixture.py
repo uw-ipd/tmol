@@ -15,8 +15,8 @@ import torch
 
 os.environ.setdefault("TORCH_CUDA_ARCH_LIST", "7.0 8.0 9.0+PTX")
 
-import tmol  # noqa: E402
-from tmol.io import atomworks_from_pose_stack  # noqa: E402
+from tmol import atomworks_from_pose_stack  # noqa: E402
+from tmol.io import pose_stack_from_pdb  # noqa: E402
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PDB_DIR = os.path.join(SCRIPT_DIR, "..", "pdb")
@@ -29,7 +29,7 @@ def main():
         pdb_string = f.read()
 
     print("Loading 1UBQ...")
-    pose_stack = tmol.pose_stack_from_pdb(pdb_string, torch.device("cpu"))
+    pose_stack = pose_stack_from_pdb(pdb_string, torch.device("cpu"))
     print(f"  PoseStack: {pose_stack.n_poses} poses, {pose_stack.max_n_blocks} blocks")
 
     print("Converting to atomworks format...")

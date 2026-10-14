@@ -3,8 +3,8 @@
 import pytest
 import torch
 
-from tmol import pose_stack_from_pdb
-from tmol.score.lk_ball import LKBallEnergyTerm
+from tmol.io import pose_stack_from_pdb
+from tmol.score import LKBallEnergyTerm
 
 
 def test_lk_ball_backward_does_not_materialize_neighbor_gradient(

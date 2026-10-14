@@ -7,17 +7,15 @@ import pandas
 import torch
 import yaml
 
-from tmol.io import (
-    pose_stack_from_pdb,
+from tmol.io import pose_stack_from_pdb
+from tmol.io._canonical_ordering import (
     canonical_form_from_atom_records,
-    default_canonical_ordering,
-    default_packed_block_types,
     select_atom_records_res_subset,
-    parse_pdb,
-    pose_stack_from_canonical_form,
 )
-from tmol.pose import PoseStackBuilder
-from tmol.score.ref import RefEnergyTerm
+from tmol.io import default_canonical_ordering, default_packed_block_types
+from tmol.io._pdb_parsing import parse_pdb
+from tmol import pose_stack_from_canonical_form, PoseStackBuilder
+from tmol.score import RefEnergyTerm
 
 
 # monkeypatch function to give more sane output from torch gradcheck

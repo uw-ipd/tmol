@@ -6,18 +6,13 @@ import torch
 
 import toolz.functoolz
 
-from tmol.types import (
-    Tensor,
-    ValidateAttrs,
-    ConvertAttrs,
-    validate_args,
-)
-from tmol.numeric import BSplineInterpolation
+from tmol.types._torch import Tensor
+from tmol.types._attrs import ValidateAttrs, ConvertAttrs
+from tmol.types._functional import validate_args
+from tmol.numeric._bspline import BSplineInterpolation
 
-from tmol.database.scoring import (
-    RamaDatabase,
-    OmegaBBDepDatabase,
-)
+from tmol.database.scoring import RamaDatabase
+from tmol.database.scoring import OmegaBBDepDatabase
 
 
 def mirror_grid(table, bbstart, bbstep):

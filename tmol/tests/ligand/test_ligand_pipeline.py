@@ -15,16 +15,15 @@ import pytest
 import torch
 
 from tmol.tests.data import data_path
-from tmol.io import canonical_ordering_for_biotite
-from tmol.ligand import (
+from tmol import canonical_ordering_for_biotite
+from tmol.ligand._detect import (
     chem_comp_types_from_cif,
-    prepare_ligands,
     _dimorphite_protonate_smiles,
-    _prepare_ligand_via_smiles,
     _residue_names_with_cross_residue_bonds,
     detect_nonstandard_residues,
-    inject_ligand_preparations,
 )
+from tmol.ligand._preparation import prepare_ligands, _prepare_ligand_via_smiles
+from tmol.ligand._registry import inject_ligand_preparations
 
 PLI_CIF_INPUT_DIR = data_path("protein_ligand_test", "cif_inputs")
 PLI_DATA_DIR = data_path("protein_ligand_test")
@@ -32,8 +31,9 @@ PLI_DATA_DIR = data_path("protein_ligand_test")
 
 def test_nitric_oxide_is_not_converted_to_nitroxyl(torch_device):
     """1KOI NO has no hydrogen; its radical cannot be filled with an H to prepare it."""
-    from tmol.io import atom_array_from_file, pose_stack_from_biotite
-    from tmol.ligand import LigandPreparationError
+    from tmol import pose_stack_from_biotite
+    from tmol import atom_array_from_file
+    from tmol.ligand._preparation import LigandPreparationError
 
     array = atom_array_from_file(
         data_path("sweep_regressions", "nitric_oxide_1koi.cif.zst")
@@ -87,7 +87,7 @@ class TestFullPipeline:
 
     @pytest.fixture
     def param_db(self):
-        from tmol.database import ParameterDatabase
+        from tmol import ParameterDatabase
 
         return ParameterDatabase.get_default()
 
@@ -108,7 +108,7 @@ class TestFullPipeline:
         polymer-linking residue covalently attached to the chain), so strict
         mode raises on the first one encountered instead of dropping it.
         """
-        from tmol.ligand import LigandPreparationError
+        from tmol.ligand._preparation import LigandPreparationError
 
         with pytest.raises(LigandPreparationError, match="not supported"):
             prepare_ligands(cif_155c_with_hem, param_db=param_db)
@@ -151,7 +151,7 @@ class TestLigandScoringData:
 
     def test_ljlk_halogen_params_exist(self) -> None:
         """All halogen types (aromatic and non-aromatic) have LJLK params."""
-        from tmol.database import ParameterDatabase
+        from tmol import ParameterDatabase
 
         param_db = ParameterDatabase.get_default()
         ljlk_names = {p.name for p in param_db.scoring.ljlk.atom_type_parameters}
@@ -165,9 +165,9 @@ def test_prepare_ligands_missing_ligand_atom_fails(
     """Ligands with missing atoms are unsupported; loading must fail."""
     import numpy
 
-    from tmol.database import ParameterDatabase
-    from tmol.io import pose_stack_from_biotite
-    from tmol.ligand import LigandPreparationError
+    from tmol import ParameterDatabase
+    from tmol import pose_stack_from_biotite
+    from tmol.ligand._preparation import LigandPreparationError
 
     bt = cif_184l_with_i4b.copy()
     ligand_atoms = numpy.nonzero(bt.res_name == "I4B")[0]
@@ -203,8 +203,8 @@ def test_ddg_from_cif_complex_with_onthefly_ligand_prep(
     ligand-extended parameter database returned in the build context, otherwise
     the freshly minted ligand block type has no scoring parameters.
     """
-    from tmol.io import pose_stack_from_biotite
-    from tmol.score import beta2016_score_function
+    from tmol import pose_stack_from_biotite
+    from tmol import beta2016_score_function
     from tmol.ops import calculate_block_pair_ddg
 
     pose_stack, context = pose_stack_from_biotite(
@@ -256,7 +256,7 @@ class TestParamsRoundtrip:
 
 def test_collect_new_atom_types_strict_mode_errors(default_database) -> None:
     """Strict atom typing raises on an unknown element mapping."""
-    from tmol.ligand import collect_new_atom_types
+    from tmol.ligand._registry import collect_new_atom_types
 
     residue = SimpleNamespace(
         name="UNK",
@@ -289,8 +289,8 @@ def test_ligand_smiles_are_protonated_at_ph_7_4(smiles, expected) -> None:
 
 def test_prepare_ligand_from_cif_helper_loads_reference_fixture() -> None:
     """The CIF helper prepares a ligand and registers it under its CIF name, L_1."""
-    from tmol.database import ParameterDatabase
-    from tmol.ligand import prepare_ligand_from_cif
+    from tmol import ParameterDatabase
+    from tmol.ligand._preparation import prepare_ligand_from_cif
 
     cif_path = PLI_CIF_INPUT_DIR / "ada.ligand.cif"
     param_db, _ = prepare_ligand_from_cif(
@@ -420,7 +420,7 @@ def test_btn_close_contact_ligand_not_dropped_as_covalent(filename) -> None:
     if not cif_path.exists():
         pytest.skip(f"Yanjing dataset not available: {cif_path}")
 
-    from tmol.io import atom_array_from_cif
+    from tmol import atom_array_from_cif
 
     arr = atom_array_from_cif(cif_path)
 

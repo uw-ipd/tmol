@@ -1,14 +1,10 @@
 import torch
 import numpy
-from tmol.types import (
-    Tensor,
-    NDArray,
-)
+from tmol.types._torch import Tensor
+from tmol.types._array import NDArray
 from typing import Optional
-from tmol.score.common import (
-    condense_torch_inds,
-)
-from tmol.pose import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+from tmol.score.common._stack_condense import condense_torch_inds
+from tmol.pose._pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 
 
 def left_justify_residue_indices(res_types, rows, res_columns):

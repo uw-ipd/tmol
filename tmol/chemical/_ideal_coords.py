@@ -2,10 +2,10 @@ from typing import TYPE_CHECKING
 
 import numpy
 
-from tmol.types import NDArray
+from tmol.types._array import NDArray
 
 if TYPE_CHECKING:
-    from tmol.chemical import RefinedResidueType
+    from tmol.chemical._restypes import RefinedResidueType
 
 
 def eye4() -> NDArray[numpy.float32][4, 4]:

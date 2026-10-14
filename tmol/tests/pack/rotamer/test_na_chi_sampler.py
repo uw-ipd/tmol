@@ -5,18 +5,13 @@ import pytest
 
 import tmol.pack.rotamer._na_chi_sampler as na_chi_sampler_module
 
-from tmol.io import (
-    default_canonical_ordering,
-    default_packed_block_types,
-    canonical_form_from_pdb,
-    pose_stack_from_canonical_form,
-)
-from tmol.pack import PackerTask, SetPackerTask, PackerPalette
-from tmol.pack.rotamer import (
-    build_rotamers,
-    NaChiRotamerSampler,
-)
-from tmol.score.na_torsion import BASE_FOR_NAME3, SYN_MEAN, SYN_RANGE
+from tmol.io._canonical_ordering import canonical_form_from_pdb
+from tmol.io import default_canonical_ordering, default_packed_block_types
+from tmol import PackerPalette, PackerTask, pose_stack_from_canonical_form
+from tmol.pack import SetPackerTask
+from tmol.pack import build_rotamers, NaChiRotamerSampler
+from tmol.score.na_torsion import SYN_RANGE
+from tmol.score.na_torsion._params import BASE_FOR_NAME3, SYN_MEAN
 
 
 def _pose_stack(pdb_lines, torch_device):

@@ -27,7 +27,9 @@ class SidechainSampler:
     @classmethod
     def from_database(cls, database, device) -> "SidechainSampler":
         """Bundle the rotamer-library and fixed-chi samplers for ``database``."""
-        from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
+        from tmol.pack.rotamer.dunbrack._dunbrack_chi_sampler import (
+            create_dunbrack_sampler_from_database,
+        )
 
         return cls(
             (

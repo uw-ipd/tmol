@@ -10,19 +10,22 @@ import torch
 from yaml import safe_load
 
 import tmol.io.details._metal_detection as metal_detection
-from tmol.io import (
-    add_metal_coordination,
+from tmol.io import write_pose_stack_pdb
+from tmol import (
     atom_array_from_cif,
     biotite_from_pose_stack,
     canonical_form_from_pose_stack,
+    EdgeType,
+    FoldForest,
     pose_stack_from_biotite,
     pose_stack_from_canonical_form,
+    PoseStackBuilder,
+)
+from tmol.io._metal_coordination import (
+    add_metal_coordination,
     remove_metal_coordination,
-    write_pose_stack_pdb,
 )
 from tmol.database.chemical import site_connections
-from tmol.kinematics import EdgeType, FoldForest
-from tmol.pose import PoseStackBuilder
 from tmol.tests.data import data_path
 
 FIXTURE_DIR = data_path("metal_fixtures")

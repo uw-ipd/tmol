@@ -19,7 +19,7 @@ from rdkit import Chem
 
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import AtomAlias
-from tmol.io import CanonicalOrdering
+from tmol.io._canonical_ordering import CanonicalOrdering
 from tmol.io._protonation import (
     PROTONATION_VARIANT,
     _bonded_out,
@@ -919,7 +919,7 @@ def _patches_with_charges(residue_type, generated, variant_charges, patched):
 def _ideal_coords_by_name(residue_type) -> dict:
     """Conformer positions by atom name, rebuilt from the residue's icoors."""
     import cattr
-    from tmol.chemical._restypes import RefinedResidueType
+    from tmol.chemical import RefinedResidueType
 
     refined = cattr.structure(cattr.unstructure(residue_type), RefinedResidueType)
     xyz = refined.compute_ideal_coords()
@@ -2347,7 +2347,7 @@ def _ligand_info_from_cif(
     cif_path: str, res_name: str | None
 ) -> NonStandardResidueInfo:
     """Read one ligand through the shared format, identity and completion path."""
-    from tmol.io import atom_array_from_cif
+    from tmol.io._cif import atom_array_from_cif
 
     arr = atom_array_from_cif(cif_path)
     if struc.get_residue_count(arr) != 1:

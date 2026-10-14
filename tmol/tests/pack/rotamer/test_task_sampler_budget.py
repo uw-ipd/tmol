@@ -3,9 +3,11 @@
 import pytest
 
 from tmol.io import pose_stack_from_pdb
-from tmol.pack import PackerPalette, PackerTask, SetPackerTask
-from tmol.pack.rotamer import NaChiRotamerSampler, OptHSampler
-from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
+from tmol.pack import SetPackerTask
+from tmol import PackerPalette, PackerTask
+from tmol.pack import NaChiRotamerSampler
+from tmol.pack import OptHSampler
+from tmol.pack import create_dunbrack_sampler_from_database
 from tmol.tests.pack.rotamer.test_na_chi_sampler import _pose_stack
 
 
@@ -83,7 +85,7 @@ def test_combined_task_limit_is_checked_before_merging(
     kind, ubq_pdb, default_database, torch_device, monkeypatch
 ):
     import importlib
-    from tmol.pack.rotamer import IncludeCurrentSampler, FixedAAChiSampler
+    from tmol.pack import IncludeCurrentSampler, FixedAAChiSampler
 
     builder = importlib.import_module("tmol.pack.rotamer._build_rotamers")
     pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=2)
