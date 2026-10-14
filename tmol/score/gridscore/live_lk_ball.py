@@ -307,6 +307,7 @@ def _generate_reference_waters(
         pose_stack.rot_offset_for_pose,
         pose_stack.n_rots_for_block,
         pose_stack.rot_offset_for_block,
+        torch.full_like(pose_stack.block_type_ind, -1),
         pose_stack.max_n_rots_per_pose,
         pose_stack.inter_residue_connections,
         pbt.n_atoms,
