@@ -58,6 +58,7 @@ _TERM_ORDER = (
     "gen_torsions",
     "na_torsion",
     "na_torsion_well",
+    "metal_coordination",
 )
 
 # Weighted per-term energies captured on CPU with float64 scoring arithmetic.
