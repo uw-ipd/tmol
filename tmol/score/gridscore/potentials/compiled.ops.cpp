@@ -1,6 +1,4 @@
-#include <ATen/Parallel.h>
-#include <torch/script.h>
-#include <torch/torch.h>
+#include <tmol/utility/tensor/native_library.hh>
 
 #include <algorithm>
 #include <array>
@@ -21,14 +19,18 @@
 #include <tmol/score/ljlk/potentials/lk_isotropic.hh>
 #include <tmol/utility/function_dispatch/aten.hh>
 #include <tmol/utility/tensor/TensorCast.h>
+#include <tmol/utility/tensor/context_manager.hh>
 
 namespace tmol {
 namespace score {
 namespace gridscore {
 namespace potentials {
 
-using torch::Tensor;
+using tmol::native::Tensor;
+using tmol::score::elec::potentials::deps_ddist;
 using tmol::score::elec::potentials::elec;
+using tmol::score::elec::potentials::ElecGlobalParams;
+using tmol::score::elec::potentials::eps;
 using tmol::score::ljlk::potentials::LJGlobalParams;
 using tmol::score::ljlk::potentials::LJLKTypeParams;
 using tmol::score::ljlk::potentials::lj_score;
@@ -66,21 +68,35 @@ using ReceptorBins =
 
 void check_double_cpu_contiguous(Tensor const& tensor, char const* name) {
   TORCH_CHECK(tensor.device().is_cpu(), name, " must be on CPU");
-  TORCH_CHECK(tensor.scalar_type() == torch::kFloat64, name, " must be float64");
+  TORCH_CHECK(tensor.scalar_type() == tmol::native::kFloat64, name, " must be float64");
   TORCH_CHECK(tensor.is_contiguous(), name, " must be contiguous");
 }
 
 void check_int64_cpu_contiguous(Tensor const& tensor, char const* name) {
   TORCH_CHECK(tensor.device().is_cpu(), name, " must be on CPU");
-  TORCH_CHECK(tensor.scalar_type() == torch::kInt64, name, " must be int64");
+  TORCH_CHECK(tensor.scalar_type() == tmol::native::ScalarType::Long, name, " must be int64");
   TORCH_CHECK(tensor.is_contiguous(), name, " must be contiguous");
 }
 
-LJLKTypeParams<double> load_type_params(double const* type_params, int64_t type) {
+LJLKTypeParams<double> load_type_params(
+    double const* type_params, int64_t type) {
   double const* row = type_params + type * 10;
+  // The grid API still supplies raw well depths and LK parameters; the shared
+  // potentials now consume square-root well depths and precomputed LK factors.
   return LJLKTypeParams<double>{
-      row[0], row[1], row[2], row[3], row[4],
-      row[5], row[6], row[7], row[8], row[9]};
+      row[0],
+      std::sqrt(row[1]),
+      row[2],
+      row[3],
+      row[4],
+      row[5],
+      row[6],
+      row[7],
+      row[8],
+      row[9],
+      0.0,  // is_hydrogen is unused by the grid pair potentials.
+      -row[2] / (2.0 * 5.56832799683 * row[3]),
+      1.0 / (row[3] * row[3])};
 }
 
 LJGlobalParams<double> load_global_params(double const* global_params) {
@@ -90,6 +106,36 @@ LJGlobalParams<double> load_global_params(double const* global_params) {
       global_params[2],
       global_params[3],
       global_params[4]};
+}
+
+ElecGlobalParams<double> load_elec_global_params(double const* global_params) {
+  double const D = global_params[0];
+  double const D0 = global_params[1];
+  double const S = global_params[2];
+  double const min_dis = global_params[3];
+  double const max_dis = global_params[4];
+  double const cutoff_offset =
+      322.0637 / (max_dis * eps<double>(max_dis, D, D0, S));
+  double const low_end = min_dis + 0.25;
+  double const low_eps = eps<double>(low_end, D, D0, S);
+  double const high_start = max_dis - 1.0;
+  double const high_eps = eps<double>(high_start, D, D0, S);
+  return ElecGlobalParams<double>{
+      D,
+      D0,
+      S,
+      min_dis,
+      max_dis,
+      cutoff_offset,
+      322.0637 / (min_dis * eps<double>(min_dis, D, D0, S)) - cutoff_offset,
+      322.0637 / (low_end * low_eps) - cutoff_offset,
+      -322.0637
+          * (low_eps + low_end * deps_ddist<double>(low_end, D, D0, S))
+          / (low_end * low_end * low_eps * low_eps),
+      322.0637 / (high_start * high_eps) - cutoff_offset,
+      -322.0637
+          * (high_eps + high_start * deps_ddist<double>(high_start, D, D0, S))
+          / (high_start * high_start * high_eps * high_eps)};
 }
 
 bool finite_water(double const* waters, int64_t atom, int water) {
@@ -188,9 +234,9 @@ double directional_lk(
       5.0,
       sigma,
       desolvated.lj_radius,
-      desolvated.lk_dgfree,
-      desolvated.lk_lambda,
       occluding.lk_volume,
+      desolvated.lk_coeff,
+      desolvated.lk_inv_lambda2,
       global.max_dis,
       desolvated.is_carbon_lk && occluding.is_carbon_lk);
 }
@@ -232,10 +278,10 @@ void validate_common_inputs(
       elec_global_params.dim() == 1 && elec_global_params.size(0) == 5,
       "elec_global_params must have shape [5]");
 
-  auto receptor_types = receptor_atom_types.accessor<int64_t, 1>();
-  auto probe_types = probe_atom_types.accessor<int64_t, 1>();
+  TView<int64_t, 1, tmol::Device::CPU> receptor_types = TCAST(receptor_atom_types);
+  TView<int64_t, 1, tmol::Device::CPU> probe_types = TCAST(probe_atom_types);
   int64_t const n_types = ljlk_type_params.size(0);
-  auto type_params = ljlk_type_params.accessor<double, 2>();
+  TView<double, 2, tmol::Device::CPU> type_params = TCAST(ljlk_type_params);
   auto check_type = [&](int64_t type, char const* kind, int64_t index) {
     TORCH_CHECK(
         type >= 0 && type < n_types,
@@ -256,8 +302,8 @@ void validate_common_inputs(
   for (int64_t i = 0; i < probe_atom_types.size(0); ++i) {
     check_type(probe_types[i], "probe", i);
   }
-  auto lj_global = ljlk_global_params.accessor<double, 2>();
-  auto elec_global = elec_global_params.accessor<double, 1>();
+  TView<double, 2, tmol::Device::CPU> lj_global = TCAST(ljlk_global_params);
+  TView<double, 1, tmol::Device::CPU> elec_global = TCAST(elec_global_params);
   for (int64_t parameter = 0; parameter < 5; ++parameter) {
     TORCH_CHECK(
         std::isfinite(lj_global[0][parameter]),
@@ -337,7 +383,7 @@ std::vector<Tensor> build_grid_impl(
       std::isfinite(voxel_spacing) && voxel_spacing > 0,
       "voxel_spacing must be finite and positive");
 
-  auto dims_a = dims.accessor<int64_t, 1>();
+  TView<int64_t, 1, tmol::Device::CPU> dims_a = TCAST(dims);
   int64_t const nx = dims_a[0];
   int64_t const ny = dims_a[1];
   int64_t const nz = dims_a[2];
@@ -357,8 +403,9 @@ std::vector<Tensor> build_grid_impl(
 
   double const* lj_global_ptr = ljlk_global_params.data_ptr<double>();
   LJGlobalParams<double> const lj_global = load_global_params(lj_global_ptr);
-  double const* elec_global = elec_global_params.data_ptr<double>();
-  double const elec_max_dis = elec_global[4];
+  ElecGlobalParams<double> const elec_global =
+      load_elec_global_params(elec_global_params.data_ptr<double>());
+  double const elec_max_dis = elec_global.max_dis;
   double const max_dis = std::max(lj_global.max_dis, elec_max_dis);
   TORCH_CHECK(
       std::isfinite(max_dis) && max_dis > 0,
@@ -367,8 +414,8 @@ std::vector<Tensor> build_grid_impl(
   double const lj_max_dis2 = lj_global.max_dis * lj_global.max_dis;
   double const elec_max_dis2 = elec_max_dis * elec_max_dis;
 
-  auto coords = receptor_coords.accessor<double, 2>();
-  auto charges = receptor_charges.accessor<double, 1>();
+  TView<double, 2, tmol::Device::CPU> coords = TCAST(receptor_coords);
+  TView<double, 1, tmol::Device::CPU> charges = TCAST(receptor_charges);
   ReceptorBins bins;
   bins.reserve(static_cast<std::size_t>(n_receptor));
   for (int64_t atom = 0; atom < n_receptor; ++atom) {
@@ -382,7 +429,7 @@ std::vector<Tensor> build_grid_impl(
     bins[bin_for_point(coords[atom][0], coords[atom][1], coords[atom][2], max_dis)]
         .push_back(atom);
   }
-  auto origin_a = origin.accessor<double, 1>();
+  TView<double, 1, tmol::Device::CPU> origin_a = TCAST(origin);
   TORCH_CHECK(
       std::isfinite(origin_a[0]) && std::isfinite(origin_a[1])
           && std::isfinite(origin_a[2]),
@@ -391,18 +438,18 @@ std::vector<Tensor> build_grid_impl(
 
   std::vector<int64_t> typed_shape{n_probes, nx, ny, nz};
   std::vector<int64_t> shared_shape{nx, ny, nz};
-  auto options = receptor_coords.options().requires_grad(false);
-  Tensor fa_atr = torch::empty(typed_shape, options);
-  Tensor fa_rep = torch::empty(typed_shape, options);
-  Tensor fa_sol = torch::empty(typed_shape, options);
-  Tensor fa_elec = torch::empty(shared_shape, options);
+  auto options = receptor_coords.options();
+  Tensor fa_atr = tmol::native::empty(typed_shape, options);
+  Tensor fa_rep = tmol::native::empty(typed_shape, options);
+  Tensor fa_sol = tmol::native::empty(typed_shape, options);
+  Tensor fa_elec = tmol::native::empty(shared_shape, options);
   Tensor lk_ball;
   Tensor lk_ball_water;
   Tensor lk_bridge;
   if (build_lk_ball) {
-    lk_ball = torch::zeros(typed_shape, options);
-    lk_ball_water = torch::zeros(typed_shape, options);
-    lk_bridge = torch::zeros(typed_shape, options);
+    lk_ball = tmol::native::zeros(typed_shape, options);
+    lk_ball_water = tmol::native::zeros(typed_shape, options);
+    lk_bridge = tmol::native::zeros(typed_shape, options);
   }
 
   double const* coord_ptr = receptor_coords.data_ptr<double>();
@@ -424,7 +471,7 @@ std::vector<Tensor> build_grid_impl(
   double const* lk_weight_ptr =
       build_lk_ball ? lk_ball_weights.data_ptr<double>() : nullptr;
 
-  at::parallel_for(0, n_voxels, 64, [&](int64_t begin, int64_t end) {
+  tmol::native::parallel_for(0, n_voxels, 64, [&](int64_t begin, int64_t end) {
     std::vector<double> atr_sum(static_cast<std::size_t>(n_probes));
     std::vector<double> rep_sum(static_cast<std::size_t>(n_probes));
     std::vector<double> sol_sum(static_cast<std::size_t>(n_probes));
@@ -470,11 +517,7 @@ std::vector<Tensor> build_grid_impl(
                     1.0,
                     charge_ptr[atom],
                     5.0,
-                    elec_global[0],
-                    elec_global[1],
-                    elec_global[2],
-                    elec_global[3],
-                    elec_global[4]);
+                    elec_global);
               }
               if (dist2 > lj_max_dis2) continue;
 
@@ -670,8 +713,8 @@ Tensor evaluate_pairs(
     Tensor ljlk_global_params,
     Tensor elec_global_params) {
   check_double_cpu_contiguous(distances, "distances");
-  Tensor probe_types = torch::tensor(
-      {probe_atom_type}, torch::TensorOptions().dtype(torch::kInt64));
+  Tensor probe_types =
+      TPack<int64_t, 1, tmol::Device::CPU>::full({1}, probe_atom_type).tensor;
   validate_common_inputs(
       receptor_atom_types,
       receptor_charges,
@@ -685,23 +728,24 @@ Tensor evaluate_pairs(
       "distances and receptor arrays must have matching lengths");
 
   int64_t const n_pairs = distances.size(0);
-  auto distances_a = distances.accessor<double, 1>();
+  TView<double, 1, tmol::Device::CPU> distances_a = TCAST(distances);
   for (int64_t pair = 0; pair < n_pairs; ++pair) {
     TORCH_CHECK(
         std::isfinite(distances_a[pair]) && distances_a[pair] >= 0,
         "distances must be finite and nonnegative");
   }
-  Tensor result = torch::empty({n_pairs, 4}, distances.options());
-  auto receptor_types_a = receptor_atom_types.accessor<int64_t, 1>();
-  auto charges_a = receptor_charges.accessor<double, 1>();
-  auto result_a = result.accessor<double, 2>();
+  Tensor result = tmol::native::empty({n_pairs, 4}, distances.options());
+  TView<int64_t, 1, tmol::Device::CPU> receptor_types_a = TCAST(receptor_atom_types);
+  TView<double, 1, tmol::Device::CPU> charges_a = TCAST(receptor_charges);
+  TView<double, 2, tmol::Device::CPU> result_a = TCAST(result);
   double const* type_param_ptr = ljlk_type_params.data_ptr<double>();
   auto probe_params = load_type_params(type_param_ptr, probe_atom_type);
   LJGlobalParams<double> const lj_global =
       load_global_params(ljlk_global_params.data_ptr<double>());
-  double const* elec_global = elec_global_params.data_ptr<double>();
+  ElecGlobalParams<double> const elec_global =
+      load_elec_global_params(elec_global_params.data_ptr<double>());
 
-  at::parallel_for(0, n_pairs, 256, [&](int64_t begin, int64_t end) {
+  tmol::native::parallel_for(0, n_pairs, 256, [&](int64_t begin, int64_t end) {
     for (int64_t pair = begin; pair < end; ++pair) {
       double const dist = distances_a[pair];
       auto receptor_params =
@@ -725,11 +769,7 @@ Tensor evaluate_pairs(
           1.0,
           charges_a[pair],
           5.0,
-          elec_global[0],
-          elec_global[1],
-          elec_global[2],
-          elec_global[3],
-          elec_global[4]);
+          elec_global);
     }
   });
   return result;
@@ -753,7 +793,7 @@ Tensor interpolate(Tensor coefficients, Tensor indices, Tensor grid_indices) {
       coefficients.scalar_type() == indices.scalar_type(),
       "coefficients and indices must have the same dtype");
   TORCH_CHECK(
-      grid_indices.scalar_type() == torch::kInt64,
+      grid_indices.scalar_type() == tmol::native::ScalarType::Long,
       "grid_indices must be int64");
   TORCH_CHECK(
       coefficients.device() == indices.device()
@@ -808,7 +848,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor> interpolate_with_derivatives(
       coefficients.scalar_type() == indices.scalar_type(),
       "coefficients and indices must have the same dtype");
   TORCH_CHECK(
-      grid_indices.scalar_type() == torch::kInt64,
+      grid_indices.scalar_type() == tmol::native::ScalarType::Long,
       "grid_indices must be int64");
   TORCH_CHECK(
       coefficients.device() == indices.device()
@@ -881,7 +921,7 @@ std::tuple<Tensor, Tensor> live_hbond(
   };
   auto check_int = [&](Tensor const& value, char const* name) {
     TORCH_CHECK(value.device() == device, name, " must match coordinate device");
-    TORCH_CHECK(value.scalar_type() == torch::kInt64, name, " must be int64");
+    TORCH_CHECK(value.scalar_type() == tmol::native::ScalarType::Long, name, " must be int64");
     TORCH_CHECK(value.is_contiguous(), name, " must be contiguous");
   };
   check_real(ligand_coords, "ligand_coords");
@@ -892,7 +932,7 @@ std::tuple<Tensor, Tensor> live_hbond(
   check_real(global_params, "global_params");
   TORCH_CHECK(
       pair_polynomials.device() == device
-          && pair_polynomials.scalar_type() == torch::kFloat64
+          && pair_polynomials.scalar_type() == tmol::native::kFloat64
           && pair_polynomials.is_contiguous(),
       "pair_polynomials must be contiguous float64 on the coordinate device");
   check_int(ligand_donor_atoms, "ligand_donor_atoms");
@@ -1031,7 +1071,7 @@ std::tuple<Tensor, Tensor> live_lk_ball(
   };
   auto check_int = [&](Tensor const& value, char const* name) {
     TORCH_CHECK(value.device() == device, name, " must match coordinate device");
-    TORCH_CHECK(value.scalar_type() == torch::kInt64, name, " must be int64");
+    TORCH_CHECK(value.scalar_type() == tmol::native::ScalarType::Long, name, " must be int64");
     TORCH_CHECK(value.is_contiguous(), name, " must be contiguous");
   };
   check_real(ligand_coords, "ligand_coords");
@@ -1176,7 +1216,7 @@ void validate_grid_lk_ball_water_inputs(
   };
   auto check_int = [&](Tensor const& value, char const* name) {
     TORCH_CHECK(value.device() == device, name, " must match coordinate device");
-    TORCH_CHECK(value.scalar_type() == torch::kInt64, name, " must be int64");
+    TORCH_CHECK(value.scalar_type() == tmol::native::ScalarType::Long, name, " must be int64");
     TORCH_CHECK(value.is_contiguous(), name, " must be contiguous");
   };
   check_real(ligand_coords, "ligand_coords");
@@ -1302,18 +1342,18 @@ Tensor propagate_lk_ball_water_gradients(
   return gradients;
 }
 
-TORCH_LIBRARY(tmol_gridscore, m) {
-  m.def("build_grid", &build_grid);
-  m.def("build_grid_lk_ball", &build_grid_lk_ball);
-  m.def("evaluate_pairs", &evaluate_pairs);
-  m.def("interpolate", &interpolate);
-  m.def("interpolate_with_derivatives", &interpolate_with_derivatives);
-  m.def("live_hbond", &live_hbond);
-  m.def("live_lk_ball", &live_lk_ball);
-  m.def("build_lk_ball_waters", &build_lk_ball_waters);
+TMOL_LIBRARY(tmol_gridscore, m) {
+  m.def("build_grid", TMOL_FN(&build_grid));
+  m.def("build_grid_lk_ball", TMOL_FN(&build_grid_lk_ball));
+  m.def("evaluate_pairs", TMOL_FN(&evaluate_pairs));
+  m.def("interpolate", TMOL_FN(&interpolate));
+  m.def("interpolate_with_derivatives", TMOL_FN(&interpolate_with_derivatives));
+  m.def("live_hbond", TMOL_FN(&live_hbond));
+  m.def("live_lk_ball", TMOL_FN(&live_lk_ball));
+  m.def("build_lk_ball_waters", TMOL_FN(&build_lk_ball_waters));
   m.def(
       "propagate_lk_ball_water_gradients",
-      &propagate_lk_ball_water_gradients);
+      TMOL_FN(&propagate_lk_ball_water_gradients));
 }
 
 }  // namespace potentials
