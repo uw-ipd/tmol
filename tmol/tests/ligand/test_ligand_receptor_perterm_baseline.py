@@ -400,7 +400,6 @@ def _weighted_perterm_from_fixtures(
         prepare_ligands=True,
         ligand_params_files=[str(PLI_DATA_DIR / f"{target}.xtal-lig.mmff94.tmol")],
         no_optH=True,
-        sample_proton_chi=False,
         param_db=ParameterDatabase.get_default(),
         return_context=True,
     )

@@ -346,7 +346,6 @@ def _load_target_pose(target):
         prepare_ligands=True,
         ligand_params_files=[str(PLI_DATA_DIR / f"{target}.xtal-lig.mmff94.tmol")],
         no_optH=True,
-        sample_proton_chi=False,
         param_db=param_db,
         return_context=True,
     )

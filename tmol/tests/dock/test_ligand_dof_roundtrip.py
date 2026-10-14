@@ -44,7 +44,6 @@ def _load_cdk2_pose():
             str(PLI_DATA_DIR / "cdk2.xtal-lig.mmff94.tmol")
         ],
         no_optH=True,
-        sample_proton_chi=False,
         param_db=param_db,
         return_context=True,
     )

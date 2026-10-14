@@ -54,7 +54,6 @@ def _load_cdk2_pose_on_device(device: torch.device):
             str(PLI_DATA_DIR / "cdk2.xtal-lig.mmff94.tmol")
         ],
         no_optH=True,
-        sample_proton_chi=False,
         param_db=ParameterDatabase.get_default(),
         return_context=True,
     )
