@@ -113,6 +113,17 @@ def _ligand_pose_to(
     def moved(value: torch.Tensor) -> torch.Tensor:
         return value.to(device=device).contiguous()
 
+    def moved_connections(value: torch.Tensor) -> torch.Tensor:
+        if value.shape[2] > pbt.max_n_conn:
+            # Compacting the PBT may remove padding, but never topology.
+            if bool((value[:, :, pbt.max_n_conn :, :] != -1).any()):
+                raise ValueError(
+                    "_ligand_pose_to cannot truncate inter_residue_connections "
+                    f"to max_n_conn={pbt.max_n_conn}: dropped slots must all be -1"
+                )
+            value = value[:, :, : pbt.max_n_conn, :]
+        return moved(value)
+
     type_mapping = {
         source_type_index: target_type_index
         for target_type_index, source_type_index in enumerate(source_type_indices)
@@ -128,8 +139,10 @@ def _ligand_pose_to(
         coords=pose_stack.coords.to(device=device, dtype=dtype).contiguous(),
         block_coord_offset=moved(pose_stack.block_coord_offset),
         block_coord_offset64=moved(pose_stack.block_coord_offset64),
-        inter_residue_connections=moved(pose_stack.inter_residue_connections),
-        inter_residue_connections64=moved(
+        inter_residue_connections=moved_connections(
+            pose_stack.inter_residue_connections
+        ),
+        inter_residue_connections64=moved_connections(
             pose_stack.inter_residue_connections64
         ),
         inter_block_bondsep=moved(pose_stack.inter_block_bondsep),
