@@ -6,7 +6,6 @@ error_this_should_not_be_compiled();  // nvcc should not include this file
 #endif
 
 #include <algorithm>
-#include <ATen/Parallel.h>
 
 #include "device_operations.hh"
 #include "counting.hh"

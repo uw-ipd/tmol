@@ -155,8 +155,8 @@ std::tuple<Tensor, Tensor> forward_with_ht_op(
     Tensor scans_f,
     Tensor gens_f,
     Tensor kintree) {
-  at::Tensor coords;
-  at::Tensor HTs;
+  Tensor coords;
+  Tensor HTs;
 
   using Int = int32_t;
 
@@ -188,7 +188,7 @@ Tensor kin_deriv_op(
     Tensor scans_b,
     Tensor gens_b,
     Tensor kintree) {
-  at::Tensor dV_ddof;
+  Tensor dV_ddof;
 
   using Int = int32_t;
 
