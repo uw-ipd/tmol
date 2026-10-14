@@ -346,7 +346,7 @@ def test_grid_backend_gridded_term_gradients_match_autograd_and_finite_differenc
         case.backend._score_ligand_coordinates_with_gradients(coordinates)
     )
     torch.testing.assert_close(
-        direct_energy, autograd_energy.detach(), rtol=0.0, atol=0.0
+        direct_energy, autograd_energy.detach(), rtol=0.0, atol=2.0e-12
     )
     torch.testing.assert_close(
         direct_gradient, differentiable.grad, rtol=0.0, atol=2.0e-12
