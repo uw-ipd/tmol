@@ -256,13 +256,17 @@ def _build_cell_list(
 
 def _pack_type_params(term: LKBallEnergyTerm) -> torch.Tensor:
     params = term.ljlk_param_resolver.type_params
+    # Match LKBallTypeParams: these columns hold precomputed factors, not the
+    # raw dgfree/lambda values. Compute in the live scorer's float64 precision.
+    lk_dgfree = params.lk_dgfree.to(dtype=torch.float64)
+    lk_lambda = params.lk_lambda.to(dtype=torch.float64)
     return torch.stack(
         tuple(
             value.to(dtype=torch.float64)
             for value in (
                 params.lj_radius,
-                params.lk_dgfree,
-                params.lk_lambda,
+                -lk_dgfree / (2 * 5.56832799683 * lk_lambda),
+                1 / (lk_lambda * lk_lambda),
                 params.lk_volume,
                 params.is_donor,
                 params.is_hydroxyl,
