@@ -402,7 +402,7 @@ def _sample_voxel_indices(geometry, receptor_coords):
 
 
 def test_cdk2_grid_matches_independent_pair_sums(tmp_path):
-    from tmol.tests.score.ljlk.potentials.compiled import (
+    from tmol.tests.score.ljlk.potentials._compiled import (
         elec_V,
         lj_score_V,
         lk_isotropic_score_V,
@@ -679,7 +679,7 @@ def _build_single_voxel_grid(
 
 
 def test_grid_electrostatic_sign_for_isolated_signed_charge():
-    from tmol.tests.score.ljlk.potentials.compiled import elec_V
+    from tmol.tests.score.ljlk.potentials._compiled import elec_V
 
     param_db = ParameterDatabase.get_default()
     packed_type, ljlk_global, elec_global, _, _ = _direct_grid_inputs(param_db, "CH1")
@@ -702,7 +702,7 @@ def test_grid_electrostatic_sign_for_isolated_signed_charge():
 
 
 def test_grid_cutoff_and_negative_bin_boundary():
-    from tmol.tests.score.ljlk.potentials.compiled import (
+    from tmol.tests.score.ljlk.potentials import (
         lj_score_V,
         lk_isotropic_score_V,
     )
