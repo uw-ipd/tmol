@@ -129,6 +129,10 @@ def _assert_counted_runs_equal(actual, expected):
     for key in actual[-1]:
         actual_value = actual[-1][key]
         expected_value = expected[-1][key]
+        if key in ("old_dirs_mat", "old_stps_mat"):
+            # Only populated history slots are initialized and consumed.
+            actual_value = actual_value[: actual[-1]["history_count"]]
+            expected_value = expected_value[: expected[-1]["history_count"]]
         if torch.is_tensor(actual_value):
             assert torch.equal(actual_value, expected_value), key
         else:
