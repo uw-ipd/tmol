@@ -589,7 +589,7 @@ def _ligand_only_pose_stack(pose_stack: PoseStack, ligand_block: int) -> PoseSta
         raise TypeError("ligand_block must be an integer")
     if ligand_block < 0 or ligand_block >= pose_stack.max_n_blocks:
         raise ValueError("ligand_block is out of range")
-    if pose_stack.fragmented_ligand_mapping is not None:
+    if getattr(pose_stack, "fragmented_ligand_mapping", None) is not None:
         raise ValueError(
             "ligand-only docking does not support fragmented-ligand metadata"
         )
@@ -690,7 +690,7 @@ def _movable_pose_stack(
     )
     if not sidechain_blocks:
         return _ligand_only_pose_stack(pose_stack, ligand_block)
-    if pose_stack.fragmented_ligand_mapping is not None:
+    if getattr(pose_stack, "fragmented_ligand_mapping", None) is not None:
         raise ValueError(
             "movable grid docking does not support fragmented-ligand metadata"
         )

@@ -345,7 +345,7 @@ def _mapped_atom_indices(
 def _receptor_only_pose_stack(pose_stack: PoseStack, ligand_block: int) -> PoseStack:
     """Delete one disconnected ligand block while preserving receptor topology."""
 
-    if pose_stack.fragmented_ligand_mapping is not None:
+    if getattr(pose_stack, "fragmented_ligand_mapping", None) is not None:
         raise ValueError("finalization does not support fragmented ligand metadata")
     if ligand_block < 0 or ligand_block >= pose_stack.max_n_blocks:
         raise ValueError("ligand_block is out of range")

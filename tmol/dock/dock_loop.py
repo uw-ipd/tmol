@@ -66,7 +66,7 @@ def _repeat_pose_stack(pose_stack: PoseStack, n_poses: int) -> PoseStack:
         raise ValueError("only a single reference pose can be replicated")
     if not isinstance(n_poses, int) or isinstance(n_poses, bool) or n_poses < 1:
         raise ValueError("n_poses must be a positive integer")
-    if pose_stack.fragmented_ligand_mapping is not None:
+    if getattr(pose_stack, "fragmented_ligand_mapping", None) is not None:
         raise ValueError(
             "replicating fragmented-ligand metadata is not supported by docking"
         )
