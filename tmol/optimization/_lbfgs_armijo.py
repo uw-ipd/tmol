@@ -354,10 +354,10 @@ class LBFGS_Armijo(Optimizer):
         minstep=1e-12,
         verbose=False,
         segment_ids=None,
-        value_only_line_search: bool = False,
         fixed_iterations=False,
         *,
         patience=5,
+        value_only_line_search: bool = False,
     ):
         defaults = dict(
             lr=lr,
