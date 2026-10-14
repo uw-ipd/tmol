@@ -12,7 +12,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.ML.Cluster import Butina
 
-from tmol.ligand.detect import nonstandard_residue_info_from_mol2
+from tmol.ligand import nonstandard_residue_info_from_mol2
 
 
 DEFAULT_CONFORMER_RANDOM_SEED = 20260826

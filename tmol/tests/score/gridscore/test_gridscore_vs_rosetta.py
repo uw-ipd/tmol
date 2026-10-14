@@ -12,9 +12,9 @@ import pytest
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
+from tmol.io import pose_stack_from_biotite
 from tmol.score.gridscore import build_grid
-from tmol.score.ljlk.params import LJLKParamResolver
+from tmol.score.ljlk import LJLKParamResolver
 from tmol.tests.data import data_path
 from tmol.tests.ligand.test_protein_ligand_ddg import (
     LIGAND_RES_NAME,

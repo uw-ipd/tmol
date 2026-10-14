@@ -7,9 +7,9 @@ from dataclasses import dataclass, fields
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.pose.pose_stack import PoseStack
-from tmol.score.common.convert_float64 import convert_float64
-from tmol.score.lk_ball.lk_ball_energy_term import LKBallEnergyTerm
+from tmol.pose import PoseStack
+from tmol.score.common import convert_float64
+from tmol.score.lk_ball import LKBallEnergyTerm
 
 MAX_N_WATER = 4
 
@@ -285,7 +285,7 @@ def _generate_reference_waters(
     *,
     water_distance: float | None = None,
 ) -> torch.Tensor:
-    from tmol.score.lk_ball.potentials.compiled import gen_pose_waters
+    from tmol.score.lk_ball.potentials import gen_pose_waters
 
     pbt = pose_stack.packed_block_types
     water_gen_global_params = term._lk_ball_water_gen_global_params
@@ -336,7 +336,7 @@ def _generate_reference_waters(
 
 
 def _derived_atom_indices(pose_stack: PoseStack) -> torch.Tensor:
-    from tmol.score.hbond.potentials.compiled import gen_hbond_bases
+    from tmol.score.hbond.potentials import gen_hbond_bases
 
     pbt = pose_stack.packed_block_types
     with torch.no_grad():
@@ -500,7 +500,7 @@ def build_live_lk_ball_data(
             _validated_sidechain_blocks,
             build_ligand_docking_dofs,
         )
-        from tmol.kinematics.script_modules import PoseStackKinematicsModule
+        from tmol.kinematics import PoseStackKinematicsModule
 
         sidechain_blocks = _validated_sidechain_blocks(
             pose_stack, ligand_block, sidechain_blocks

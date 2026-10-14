@@ -18,11 +18,11 @@ import numpy
 import torch
 
 from tmol.kinematics.compiled import inverse_kin
-from tmol.kinematics.datatypes import BondDOFTypes, NodeType
-from tmol.kinematics.fold_forest import EdgeType, FoldForest
-from tmol.kinematics.move_map import MinimizerMap, MoveMap
-from tmol.kinematics.script_modules import PoseStackKinematicsModule
-from tmol.pose.pose_stack import PoseStack
+from tmol.kinematics import BondDOFTypes, NodeType
+from tmol.kinematics import EdgeType, FoldForest
+from tmol.kinematics import MinimizerMap, MoveMap
+from tmol.kinematics import PoseStackKinematicsModule
+from tmol.pose import PoseStack
 
 
 def _wrap_angle(angle: torch.Tensor) -> torch.Tensor:

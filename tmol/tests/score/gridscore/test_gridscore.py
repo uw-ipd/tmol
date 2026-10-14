@@ -6,8 +6,8 @@ import pytest
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
-from tmol.score.elec.params import ElecParamResolver
+from tmol.io import pose_stack_from_biotite
+from tmol.score.elec import ElecParamResolver
 from tmol.score.gridscore import (
     GridGeometry,
     GridSet,
@@ -21,7 +21,7 @@ from tmol.score.gridscore import (
     xform_rep,
 )
 from tmol.score.gridscore.grid import _smooth_fa_rep_grid
-from tmol.score.ljlk.params import LJLKParamResolver
+from tmol.score.ljlk import LJLKParamResolver
 from tmol.tests.data import data_path
 from tmol.tests.ligand.test_protein_ligand_ddg import (
     LIGAND_RES_NAME,

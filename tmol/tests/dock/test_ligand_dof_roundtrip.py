@@ -14,14 +14,14 @@ from frozendict import frozendict
 import tmol.dock.ligand_dofs as ligand_dofs_module
 from tmol.database import ParameterDatabase
 from tmol.dock import build_ligand_docking_dofs
-from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
-from tmol.kinematics.fold_forest import FoldForest
-from tmol.kinematics.move_map import MinimizerMap, MoveMap
-from tmol.kinematics.script_modules import PoseStackKinematicsModule
+from tmol.io import pose_stack_from_biotite
+from tmol.kinematics import FoldForest
+from tmol.kinematics import MinimizerMap, MoveMap
+from tmol.kinematics import PoseStackKinematicsModule
 from tmol.optimization import build_kinforest_network
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.score.score_function import ScoreFunction
+from tmol.pose import PackedBlockTypes
+from tmol.pose import PoseStackBuilder
+from tmol.score import ScoreFunction
 from tmol.tests.data import data_path
 from tmol.tests.ligand.test_protein_ligand_ddg import (
     LIGAND_RES_NAME,

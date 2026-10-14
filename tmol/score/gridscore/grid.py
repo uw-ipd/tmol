@@ -16,14 +16,14 @@ from typing import TYPE_CHECKING, Sequence
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.pose.pose_stack import PoseStack
-from tmol.score.elec.elec_energy_term import ElecEnergyTerm
-from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
-from tmol.score.lk_ball.lk_ball_energy_term import LKBallEnergyTerm
-from tmol.score.score_types import ScoreType
+from tmol.pose import PoseStack
+from tmol.score.elec import ElecEnergyTerm
+from tmol.score.ljlk import LJLKEnergyTerm
+from tmol.score.lk_ball import LKBallEnergyTerm
+from tmol.score import ScoreType
 
 if TYPE_CHECKING:
-    from tmol.score.score_function import ScoreFunction
+    from tmol.score import ScoreFunction
     from .live_hbond import LiveHBondData
     from .live_ligand_intra import LiveLigandIntraData
     from .live_lk_ball import LiveLKBallData

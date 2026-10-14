@@ -15,13 +15,13 @@ from tmol.dock.ligand_dofs import (
 )
 from tmol.dock.scoring_backend import MinimizationResult, ScoringBackend
 from tmol.kinematics.compiled import inverse_kin
-from tmol.kinematics.datatypes import BondDOFTypes, JumpDOFTypes, NodeType
-from tmol.kinematics.move_map import MinimizerMap
-from tmol.kinematics.script_modules import PoseStackKinematicsModule
-from tmol.pose.constraint_set import ConstraintSet
+from tmol.kinematics import BondDOFTypes, JumpDOFTypes, NodeType
+from tmol.kinematics import MinimizerMap
+from tmol.kinematics import PoseStackKinematicsModule
+from tmol.pose import ConstraintSet
 from tmol.pose import InterBlockBondsep
-from tmol.pose.pdb_info import PDBInfo
-from tmol.pose.pose_stack import PoseStack
+from tmol.pose import PDBInfo
+from tmol.pose import PoseStack
 
 
 @dataclass(frozen=True)

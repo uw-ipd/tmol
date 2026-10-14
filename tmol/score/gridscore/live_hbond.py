@@ -7,8 +7,8 @@ from dataclasses import dataclass, fields
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.pose.pose_stack import PoseStack
-from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
+from tmol.pose import PoseStack
+from tmol.score.hbond import HBondEnergyTerm
 
 
 @dataclass(frozen=True)
@@ -348,7 +348,7 @@ def build_live_hbond_data(
         term.setup_block_type(block_type)
     term.setup_packed_block_types(pose_stack.packed_block_types)
 
-    from tmol.score.hbond.potentials.compiled import gen_hbond_bases
+    from tmol.score.hbond.potentials import gen_hbond_bases
 
     pbt = pose_stack.packed_block_types
     with torch.no_grad():
@@ -401,7 +401,7 @@ def build_live_hbond_data(
             _validated_sidechain_blocks,
             build_ligand_docking_dofs,
         )
-        from tmol.kinematics.script_modules import PoseStackKinematicsModule
+        from tmol.kinematics import PoseStackKinematicsModule
 
         sidechain_blocks = _validated_sidechain_blocks(
             pose_stack, ligand_block, sidechain_blocks

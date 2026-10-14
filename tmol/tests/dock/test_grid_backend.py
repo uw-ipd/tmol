@@ -29,7 +29,7 @@ from tmol.score.gridscore import (
     score_ligand_grid,
     score_ligand_grid_batched,
 )
-from tmol.score.score_types import ScoreType
+from tmol.score import ScoreType
 from tmol.tests.dock.test_dock_loop import _load_cdk2_pose_on_device
 from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _ligand_block,

@@ -16,7 +16,7 @@ from tmol.score.gridscore import (
     score_ligand_intra,
     score_ligand_intra_with_gradients,
 )
-from tmol.score.score_types import ScoreType
+from tmol.score import ScoreType
 from tmol.tests.ligand.test_ligand_receptor_perterm_baseline import (
     _GOLDEN_PER_TERM,
     _TARGETS,

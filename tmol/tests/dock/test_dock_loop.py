@@ -17,11 +17,11 @@ from tmol.dock import (
     run_one_generation,
 )
 from tmol.dock.dock_loop import _inverse_dofs
-from tmol.io.pose_stack_from_biotite import pose_stack_from_biotite
-from tmol.kinematics.datatypes import BondDOFTypes, JumpDOFTypes, NodeType
-from tmol.kinematics.move_map import MinimizerMap
-from tmol.kinematics.script_modules import PoseStackKinematicsModule
-from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.io import pose_stack_from_biotite
+from tmol.kinematics import BondDOFTypes, JumpDOFTypes, NodeType
+from tmol.kinematics import MinimizerMap
+from tmol.kinematics import PoseStackKinematicsModule
+from tmol.pose import PoseStackBuilder
 from tmol.score import beta2016_score_function
 from tmol.tests.dock.test_ligand_dof_roundtrip import (
     PLI_DATA_DIR,

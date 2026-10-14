@@ -20,17 +20,17 @@ from tmol.dock.ligand_dofs import (
     _wrap_angle,
     build_ligand_docking_dofs,
 )
-from tmol.kinematics.datatypes import KinForest, JumpDOFTypes, NodeType
+from tmol.kinematics import KinForest, JumpDOFTypes, NodeType
 from tmol.kinematics.compiled import (
     forward_only_op,
     forward_with_ht_op,
     inverse_kin,
     kin_deriv_op,
 )
-from tmol.kinematics.move_map import MinimizerMap
-from tmol.kinematics.script_modules import PoseStackKinematicsModule
+from tmol.kinematics import MinimizerMap
+from tmol.kinematics import PoseStackKinematicsModule
 from tmol.optimization import LBFGS_Armijo, build_kinforest_network, run_min
-from tmol.pose.pose_stack import PoseStack
+from tmol.pose import PoseStack
 from tmol.score import beta2016_score_function
 from tmol.score.gridscore import (
     GridSet,
@@ -45,7 +45,7 @@ from tmol.score.gridscore import (
     score_ligand_grid_batched,
     score_ligand_grid_batched_with_gradients,
 )
-from tmol.score.score_function import ScoreFunction
+from tmol.score import ScoreFunction
 
 
 @dataclass(frozen=True)

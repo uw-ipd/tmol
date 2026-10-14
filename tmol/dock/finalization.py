@@ -20,13 +20,13 @@ from tmol.dock.ga import (
 )
 from tmol.dock.ligand_dofs import build_ligand_docking_dofs
 from tmol.optimization import run_cart_min, run_kin_min
-from tmol.pose.constraint_set import ConstraintSet
-from tmol.pose.pdb_info import PDBInfo
-from tmol.pose.pose_stack import PoseStack
+from tmol.pose import ConstraintSet
+from tmol.pose import PDBInfo
+from tmol.pose import PoseStack
 from tmol.database import ParameterDatabase
 from tmol.score import beta2016_score_function
-from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
-from tmol.score.score_types import ScoreType
+from tmol.score.constraint import ConstraintEnergyTerm
+from tmol.score import ScoreType
 
 
 # Rosetta dockflex "bbsc1" final refinement: one hard-rep Cartesian minimization

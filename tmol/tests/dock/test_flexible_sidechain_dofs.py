@@ -36,9 +36,9 @@ from tmol.dock.scoring_backend import (
     _LightweightGridObjective,
     _genes_from_raw_kinforest_dofs,
 )
-from tmol.kinematics.move_map import MinimizerMap
-from tmol.kinematics.fold_forest import EdgeType
-from tmol.kinematics.script_modules import PoseStackKinematicsModule
+from tmol.kinematics import MinimizerMap
+from tmol.kinematics import EdgeType
+from tmol.kinematics import PoseStackKinematicsModule
 from tmol.tests.dock.test_ligand_dof_roundtrip import (
     _ligand_block,
     cdk2_pose_and_db,

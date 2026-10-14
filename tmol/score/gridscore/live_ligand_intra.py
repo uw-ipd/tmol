@@ -8,11 +8,11 @@ from typing import Literal
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
+from tmol.pose import PackedBlockTypes
+from tmol.pose import PoseStack
 from tmol.score import beta2016_score_function
-from tmol.score.score_function import ScoreFunction
-from tmol.score.score_types import ScoreType
+from tmol.score import ScoreFunction
+from tmol.score import ScoreType
 
 
 LigandIntraWeightProfile = Literal["search", "full"]

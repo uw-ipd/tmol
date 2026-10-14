@@ -40,7 +40,7 @@ from tmol.score.gridscore import (
 from tmol.score.gridscore.live_ligand_intra import (
     _weighted_movable_block_pairs,
 )
-from tmol.score.score_types import ScoreType
+from tmol.score import ScoreType
 from tmol.tests.dock.test_dock_loop import _load_cdk2_pose_on_device
 from tmol.tests.dock.test_flexible_sidechain_dofs import (
     _connected_chi_blocks,

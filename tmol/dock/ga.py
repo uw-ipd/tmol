@@ -45,13 +45,13 @@ from tmol.dock.scoring_backend import (
     MinimizationResult,
     ScoringBackend,
 )
-from tmol.kinematics.datatypes import JumpDOFTypes, NodeType
-from tmol.kinematics.move_map import MinimizerMap
-from tmol.kinematics.script_modules import PoseStackKinematicsModule
+from tmol.kinematics import JumpDOFTypes, NodeType
+from tmol.kinematics import MinimizerMap
+from tmol.kinematics import PoseStackKinematicsModule
 from tmol.chemical import MAX_SIG_BOND_SEPARATION
 from tmol.pose import InterBlockBondsep
-from tmol.pose.pdb_info import PDBInfo
-from tmol.pose.pose_stack import PoseStack
+from tmol.pose import PDBInfo
+from tmol.pose import PoseStack
 
 if TYPE_CHECKING:
     from tmol.dock.finalization import DockingFinalization
