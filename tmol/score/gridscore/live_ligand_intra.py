@@ -145,8 +145,7 @@ def _ligand_pose_to(
         inter_residue_connections64=moved_connections(
             pose_stack.inter_residue_connections64
         ),
-        inter_block_bondsep=moved(pose_stack.inter_block_bondsep),
-        inter_block_bondsep64=moved(pose_stack.inter_block_bondsep64),
+        inter_block_bondsep=pose_stack.inter_block_bondsep.to(device),
         block_type_ind=block_type_ind64.to(torch.int32),
         block_type_ind64=block_type_ind64,
         chain_id=moved(pose_stack.chain_id),
