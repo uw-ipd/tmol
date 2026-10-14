@@ -123,7 +123,7 @@ def test_live_hbond_analytic_and_autograd_gradients_match_finite_difference(
 
 
 def _brute_force_reference(data, coords):
-    from tmol.tests.score.hbond.potentials.compiled import hbond_score_V_dV
+    from tmol.tests.score.hbond.potentials import hbond_score_V_dV
 
     cutoff = float(data.global_params[0, 5])
     total = 0.0
@@ -132,7 +132,7 @@ def _brute_force_reference(data, coords):
     receptor_acceptors = data.receptor_acceptors.numpy()
     pair_params = data.pair_params.numpy()
     pair_polynomials = data.pair_polynomials.numpy()
-    global_params = data.global_params[0, :5].numpy()
+    global_params = data.global_params[0].numpy()
     for ligand_site, donor_type in enumerate(data.ligand_donor_types.tolist()):
         donor_atom, hydrogen_atom = data.ligand_donor_atoms[ligand_site].tolist()
         donor = coords[donor_atom]
@@ -178,11 +178,11 @@ def _brute_force_reference(data, coords):
 
 
 def _active_ligand_anchor(data, coords):
-    from tmol.tests.score.hbond.potentials.compiled import hbond_score_V_dV
+    from tmol.tests.score.hbond.potentials import hbond_score_V_dV
 
     cutoff = float(data.global_params[0, 5])
     xyz = coords.detach().cpu().numpy()
-    globals_ = data.global_params[0, :5].numpy()
+    globals_ = data.global_params[0].numpy()
     for ligand_site, donor_type in enumerate(data.ligand_donor_types.tolist()):
         donor_atom, hydrogen_atom = data.ligand_donor_atoms[ligand_site].tolist()
         donor = xyz[donor_atom]
