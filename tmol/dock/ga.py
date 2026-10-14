@@ -48,6 +48,8 @@ from tmol.dock.scoring_backend import (
 from tmol.kinematics.datatypes import JumpDOFTypes, NodeType
 from tmol.kinematics.move_map import MinimizerMap
 from tmol.kinematics.script_modules import PoseStackKinematicsModule
+from tmol.chemical import MAX_SIG_BOND_SEPARATION
+from tmol.pose import InterBlockBondsep
 from tmol.pose.pdb_info import PDBInfo
 from tmol.pose.pose_stack import PoseStack
 
@@ -544,6 +546,35 @@ class DockingResult:
         return None if self.finalization is None else self.finalization.dG
 
 
+def _select_inter_block_bondsep(pose_stack: PoseStack, blocks) -> InterBlockBondsep:
+    """Preserve the dense block-pair slice in master's sparse representation."""
+    blocks = torch.as_tensor(blocks, dtype=torch.int64, device=pose_stack.device)
+    dense = pose_stack.inter_block_bondsep.to_dense()[
+        :, blocks[:, None], blocks[None, :]
+    ]
+    n_poses, n_blocks, _, n_conn, _ = dense.shape
+    if dense.numel() == 0:
+        return InterBlockBondsep.empty(n_poses, n_blocks, n_conn, pose_stack.device, 1)
+    minimum = dense.amin(dim=(-2, -1))
+    nearby = minimum < MAX_SIG_BOND_SEPARATION
+    slots = nearby.cumsum(dim=2) - 1
+    result = InterBlockBondsep.empty(
+        n_poses,
+        n_blocks,
+        n_conn,
+        pose_stack.device,
+        int(nearby.sum(dim=2).max()) + 1,
+    )
+    pose, block1, block2 = torch.nonzero(nearby, as_tuple=True)
+    slot = slots[pose, block1, block2]
+    result.near_blocks[pose, block1, slot, 0] = block2.to(torch.int32)
+    result.near_blocks[pose, block1, slot, 1] = minimum[pose, block1, block2].to(
+        torch.int32
+    )
+    result.bondsep[pose, block1, slot] = dense[pose, block1, block2]
+    return result
+
+
 def _ligand_only_pose_stack(pose_stack: PoseStack, ligand_block: int) -> PoseStack:
     """Select a disconnected ligand block into a single-block PoseStack.
 
@@ -592,11 +623,7 @@ def _ligand_only_pose_stack(pose_stack: PoseStack, ligand_block: int) -> PoseSta
         (pose_stack.n_poses, 1), dtype=torch.int32, device=pose_stack.device
     )
     inter_residue_connections64 = torch.full_like(source_connections, -1)
-    inter_block_bondsep64 = pose_stack.inter_block_bondsep64[
-        :,
-        ligand_block : ligand_block + 1,
-        ligand_block : ligand_block + 1,
-    ].clone()
+    inter_block_bondsep = _select_inter_block_bondsep(pose_stack, [ligand_block])
     block_type_ind64 = block_type_indices[:, None].clone()
     chain_id64 = torch.zeros_like(block_type_ind64)
 
@@ -630,8 +657,7 @@ def _ligand_only_pose_stack(pose_stack: PoseStack, ligand_block: int) -> PoseSta
         block_coord_offset64=block_coord_offset.to(torch.int64),
         inter_residue_connections=inter_residue_connections64.to(torch.int32),
         inter_residue_connections64=inter_residue_connections64,
-        inter_block_bondsep=inter_block_bondsep64.to(torch.int32),
-        inter_block_bondsep64=inter_block_bondsep64,
+        inter_block_bondsep=inter_block_bondsep,
         block_type_ind=block_type_ind64.to(torch.int32),
         block_type_ind64=block_type_ind64,
         chain_id=chain_id64.to(torch.int32),
@@ -734,9 +760,7 @@ def _movable_pose_stack(
         atom_occupancy=pose_stack.pdb_info.atom_occupancy[:, source_host].copy(),
         atom_b_factor=pose_stack.pdb_info.atom_b_factor[:, source_host].copy(),
     )
-    inter_block_bondsep64 = pose_stack.inter_block_bondsep64[
-        :, keep_blocks[:, None], keep_blocks[None, :]
-    ].clone()
+    inter_block_bondsep = _select_inter_block_bondsep(pose_stack, keep_blocks)
     chain_id64 = pose_stack.chain_id64[:, keep_blocks].clone()
     # Source chain ids are compact indices. One past the retained receptor
     # maximum preserves all receptor relationships and cannot collide with any.
@@ -749,8 +773,7 @@ def _movable_pose_stack(
         block_coord_offset64=offsets64,
         inter_residue_connections=connections64.to(torch.int32),
         inter_residue_connections64=connections64,
-        inter_block_bondsep=inter_block_bondsep64.to(torch.int32),
-        inter_block_bondsep64=inter_block_bondsep64,
+        inter_block_bondsep=inter_block_bondsep,
         block_type_ind=block_type_ind64.to(torch.int32),
         block_type_ind64=block_type_ind64,
         chain_id=chain_id64.to(torch.int32),
