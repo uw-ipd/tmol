@@ -1,9 +1,13 @@
 import torch
 import attrs
 
+from copy import deepcopy
+
 from tmol.pose import PoseStack
 from tmol.score import ScoreFunction
 from tmol.kinematics import (
+    FoldForest,
+    MoveMap,
     NodeType,
     BondDOFTypes,
     JumpDOFTypes,
@@ -162,18 +166,34 @@ class KinForestSfxnNetwork(torch.nn.Module):
         self,
         score_function: ScoreFunction,
         pose_stack: PoseStack,
+        ff: FoldForest,
+        mm: MoveMap,
         kin_module: PoseStackKinematicsModule,
         dof_mask=None,
+        cuda_graph: bool | str = False,
         kin_dtype=torch.float32,
     ):
         super(KinForestSfxnNetwork, self).__init__()
 
         torch_device = pose_stack.device
         self.pose_stack = pose_stack
-        wpsm = score_function.render_whole_pose_scoring_module(pose_stack)
+        wpsm = score_function.render_whole_pose_scoring_module(
+            pose_stack, cuda_graph=cuda_graph
+        )
         kmd = kin_module.kmd
+        self.ff = ff
+        self.ff_copy = deepcopy(ff)
+        self.mm = mm
+        self.mm_copy = deepcopy(mm)
         self.kin_module = kin_module
         self.whole_pose_scoring_module = wpsm
+
+        self._score_function = score_function
+        self._score_function_versions = (
+            score_function._terms_version,
+            score_function._options_version,
+        )
+
         self.full_coords = pose_stack.coords.clone().detach()
         self.flat_coords = self.full_coords.view(-1, 3)
         self.orig_coords_shape = pose_stack.coords.shape
@@ -227,6 +247,112 @@ class KinForestSfxnNetwork(torch.nn.Module):
         pose_for_dof = pose_for_node.unsqueeze(1).expand(raw_dofs.shape).reshape(-1)
         self.segment_ids = pose_for_dof[self._dof_flat_idx].to(torch.int64)
         assert bool((self.segment_ids >= 0).all()), "root node dofs cannot be minimized"
+
+    def _reusable_for(
+        self,
+        score_function: ScoreFunction,
+        pose_stack: PoseStack,
+        fold_forest: FoldForest,
+        move_map: MoveMap,
+    ) -> bool:
+        """Return whether this network can score another pose without rendering."""
+        # Check cheap Python identity and shape predicates before any tensor
+        # comparison. The normal repeated-topology path shares these tensors,
+        # so it avoids both rebuilding ``real_atoms`` and synchronizing CUDA.
+        if not (
+            score_function is self._score_function
+            and self._score_function_versions
+            == (
+                self._score_function._terms_version,
+                self._score_function._options_version,
+            )
+            and pose_stack.packed_block_types is self.pose_stack.packed_block_types
+            and pose_stack.constraint_set is self.pose_stack.constraint_set
+            and pose_stack.coords.shape == self.pose_stack.coords.shape
+            and pose_stack.inter_residue_connections
+            is self.pose_stack.inter_residue_connections
+            and pose_stack.inter_block_bondsep is self.pose_stack.inter_block_bondsep
+            and fold_forest is self.ff
+            and move_map is self.mm
+        ):
+            return False
+
+        if (
+            fold_forest.max_n_edges != self.ff_copy.max_n_edges
+            or fold_forest.n_edges != self.ff_copy.n_edges
+            or fold_forest.edges != self.ff_copy.edges
+        ):
+            return False
+
+        # oof: compare all the data members of the move map
+        if (
+            move_map.move_all_jumps != self.mm_copy.move_all_jumps
+            or move_map.move_all_root_jumps != self.mm_copy.move_all_root_jumps
+            or move_map.move_all_mc != self.mm_copy.move_all_mc
+            or move_map.move_all_sc != self.mm_copy.move_all_sc
+            or move_map.move_all_named_torsions != self.mm_copy.move_all_named_torsions
+            or move_map.non_ideal != self.mm_copy.non_ideal
+            or move_map.move_jumps != self.mm_copy.move_jumps
+            or move_map.move_jumps_mask != self.mm_copy.move_jumps_mask
+            or move_map.move_root_jumps != self.mm_copy.move_root_jumps
+            or move_map.move_root_jumps_mask != self.mm_copy.move_root_jumps_mask
+            or move_map.move_mcs != self.mm_copy.move_mcs
+            or move_map.move_mcs_mask != self.mm_copy.move_mcs_mask
+            or move_map.move_scs != self.mm_copy.move_scs
+            or move_map.move_scs_mask != self.mm_copy.move_scs_mask
+            or move_map.move_named_torsions != self.mm_copy.move_named_torsions
+            or move_map.move_named_torsions_mask
+            != self.mm_copy.move_named_torsions_mask
+            or move_map.move_mc != self.mm_copy.move_mc
+            or move_map.move_mc_mask != self.mm_copy.move_mc_mask
+            or move_map.move_sc != self.mm_copy.move_sc
+            or move_map.move_sc_mask != self.mm_copy.move_sc_mask
+            or move_map.move_named_torsion != self.mm_copy.move_named_torsion
+            or move_map.move_named_torsion_mask != self.mm_copy.move_named_torsion_mask
+            or move_map.move_jump_dof != self.mm_copy.move_jump_dof
+            or move_map.move_jump_dof_mask != self.mm_copy.move_jump_dof_mask
+            or move_map.move_root_jump_dof != self.mm_copy.move_root_jump_dof
+            or move_map.move_root_jump_dof_mask != self.mm_copy.move_root_jump_dof_mask
+            or move_map.move_atom_dof != self.mm_copy.move_atom_dof
+            or move_map.move_atom_dof_mask != self.mm_copy.move_atom_dof_mask
+        ):
+            return False
+
+        return (
+            pose_stack.block_type_ind is self.pose_stack.block_type_ind
+            or torch.equal(pose_stack.block_type_ind, self.pose_stack.block_type_ind)
+        ) and (
+            pose_stack.block_coord_offset is self.pose_stack.block_coord_offset
+            or torch.equal(
+                pose_stack.block_coord_offset, self.pose_stack.block_coord_offset
+            )
+        )
+
+    def _reset(
+        self,
+        score_function: ScoreFunction,
+        pose_stack: PoseStack,
+        kin_module: PoseStackKinematicsModule,
+        dof_mask=None,
+    ) -> bool:
+        """Reset for a compatible pose topology; report whether it was reused."""
+        if not self._reusable_for(score_function, pose_stack, kin_module, dof_mask):
+            return False
+
+        self.pose_stack = pose_stack
+        with torch.no_grad():
+            self.whole_pose_scoring_module.weights.copy_(
+                score_function.weights_tensor().unsqueeze(1)
+            )
+            if self._all_coords_movable:
+                self.masked_coords.copy_(pose_stack.coords.reshape(-1, 3))
+            else:
+                self.full_coords.copy_(pose_stack.coords)
+                self.masked_coords.copy_(
+                    pose_stack.coords.reshape(-1, 3)[self._coord_flat_idx]
+                )
+        self.masked_coords.grad = None
+        return True
 
     def forward(self) -> torch.Tensor:
         # get rid of any gradients from the previous iteration

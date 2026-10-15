@@ -28,7 +28,9 @@ from tmol.pack.rotamer import (
 )
 from tmol.optimization import (
     CartesianMinimizer,
+    KinematicMinimizer,
     run_cart_min,
+    run_kin_min,
 )
 from tmol.types import Tensor
 from tmol.utility._device import synchronize_device
@@ -141,7 +143,7 @@ def _default_cart_min_fn(
     )
 
 
-class _DefaultCartesianMinimizer:
+class DefaultCartesianMinimizer:
     """Cartesian minimizer that reuses rendering for unchanged pose topology."""
 
     def __init__(self, cuda_graph: bool):
@@ -168,6 +170,58 @@ class _DefaultCartesianMinimizer:
             pose_stack,
             sfxn,
             coord_mask=coord_mask,
+            verbose=verbose,
+            optimizer_kwargs={"verbose": verbose},
+        )
+
+
+def _default_kin_min_fn(
+    pose_stack: PoseStack,
+    sfxn: ScoreFunction,
+    *,
+    fold_forest: FoldForest,
+    move_map: MoveMap | CartesianMoveMap,
+    verbose: bool,
+    cuda_graph: bool = False,
+) -> PoseStack:
+    """Default minimization function: kinematic (torsion-space) LBFGS."""
+    return run_kin_min(
+        pose_stack,
+        sfxn,
+        fold_forest,
+        move_map,
+        verbose=verbose,
+        cuda_graph=cuda_graph,
+        optimizer_kwargs={"verbose": verbose},
+    )
+
+
+class DefaultKinematicMinimizer:
+    """Kinematic minimizer that reuses rendering for unchanged pose topology."""
+
+    def __init__(self, cuda_graph: bool | str = False):
+        self.cuda_graph = cuda_graph
+        self.minimizer = KinematicMinimizer(cuda_graph=cuda_graph)
+
+    def release_retained_state(self) -> None:
+        """Release scorer and optimizer storage between relax stages."""
+        self.minimizer.release_retained_state()
+
+    def __call__(
+        self,
+        pose_stack: PoseStack,
+        sfxn: ScoreFunction,
+        *,
+        fold_forest: FoldForest,
+        move_map: MoveMap | CartesianMoveMap,
+        verbose: bool,
+    ) -> PoseStack:
+
+        return self.minimizer(
+            pose_stack,
+            sfxn,
+            fold_forest,
+            move_map,
             verbose=verbose,
             optimizer_kwargs={"verbose": verbose},
         )
@@ -314,7 +368,7 @@ def fast_relax(  # noqa: C901
     best_ps = pose_stack.clone_sharing_topology()
 
     if min_fn is None:
-        min_fn = _DefaultCartesianMinimizer(
+        min_fn = DefaultCartesianMinimizer(
             _resolve_cuda_graph_mode(pose_stack, cuda_graph)
         )
 
