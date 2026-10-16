@@ -28,7 +28,7 @@ def build_kinforest_network(
     ff: FoldForest,
     mm: MoveMap,
     verbose: bool = False,
-    cuda_graph: bool = False,
+    cuda_graph: bool | str = False,
     kin_dtype: torch.dtype = torch.float32,
 ) -> KinForestSfxnNetwork:
     """Build a differentiable kinematic scoring network for a pose stack.
@@ -39,6 +39,8 @@ def build_kinforest_network(
         ff: Fold forest defining the kinematic tree.
         mm: Internal-coordinate degrees of freedom allowed to move.
         verbose: Print synchronized setup timings.
+        cuda_graph: Capture the fixed-shape CUDA DOF-to-score path; see
+            :class:`KinForestSfxnNetwork`.
         kin_dtype: Floating-point dtype for kinematic degrees of freedom.
 
     Returns:
@@ -64,12 +66,12 @@ def build_kinforest_network(
     kf_network = KinForestSfxnNetwork(
         sfxn,
         pose_stack,
-        ff,
-        mm,
         kin_module,
         minimizer_map.dof_mask,
-        cuda_graph=cuda_graph,
         kin_dtype=kin_dtype,
+        cuda_graph=cuda_graph,
+        fold_forest=ff,
+        move_map=mm,
     )
     if verbose:
         synchronize_device(pose_stack.device)
@@ -185,18 +187,18 @@ def run_kin_min(
         optimizer_cls: Closure-based PyTorch optimizer class.
         optimizer_kwargs: Optional optimizer constructor arguments.
         verbose: Print synchronized setup and minimization timings.
+        cuda_graph: Capture the fixed-shape CUDA DOF-to-score forward/backward
+            path.
         kin_dtype: Floating-point dtype for kinematic degrees of freedom.
 
     Returns:
         A new pose stack containing the minimized coordinates.
     """
-    kf_network = build_kinforest_network(
-        pose_stack, sfxn, ff, mm, verbose, kin_dtype=kin_dtype, cuda_graph=cuda_graph
-    )
-    return KinematicMinimizer(cuda_graph=cuda_graph)(
+    return KinematicMinimizer(cuda_graph=cuda_graph, kin_dtype=kin_dtype)(
         pose_stack,
         sfxn,
-        kf_network,
+        ff,
+        mm,
         optimizer_cls=optimizer_cls,
         optimizer_kwargs=optimizer_kwargs,
         verbose=verbose,
@@ -217,12 +219,16 @@ class KinematicMinimizer:
 
     Args:
         cuda_graph: Capture and replay the fixed-shape CUDA forward/backward
-            score path.  This has a one-time setup and memory cost and requires
-            CUDA, so it is most useful when the instance will be reused.
+            DOF-to-score path.  This has a one-time setup and memory cost and
+            requires CUDA, so it is most useful when the instance will be reused.
+        kin_dtype: Floating-point dtype for kinematic degrees of freedom.
     """
 
-    def __init__(self, cuda_graph: bool | str = False):
+    def __init__(
+        self, cuda_graph: bool | str = False, kin_dtype: torch.dtype = torch.float32
+    ):
         self.cuda_graph = cuda_graph
+        self.kin_dtype = kin_dtype
         self.network: KinForestSfxnNetwork | None = None
         self.optimizer: LBFGS_Armijo | None = None
         self.last_optimizer_reused = False
@@ -264,7 +270,8 @@ class KinematicMinimizer:
                 fold_forest,
                 move_map,
                 verbose=verbose,
-                cuda_graph=self.cuda_graph,
+                cuda_graph="forward_backward" if self.cuda_graph else False,
+                kin_dtype=self.kin_dtype,
             )
 
         selected_optimizer = (

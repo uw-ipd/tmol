@@ -8,6 +8,7 @@ from tmol.optimization import (
     LBFGS_Armijo,
     CartesianSfxnNetwork,
     KinForestSfxnNetwork,
+    build_kinforest_network,
 )
 from tmol.score import (
     ScoreFunction,
@@ -16,6 +17,7 @@ from tmol.score import (
 )
 from tmol.kinematics import (
     FoldForest,
+    MoveMap,
     PoseStackKinematicsModule,
 )
 
@@ -85,6 +87,84 @@ def test_cart_network_reset_reuses_topology_and_updates_weights(
     # force the caller to build a fresh network.
     sfxn.set_weight(ScoreType.fa_ljatr, 0.0)
     assert not network._reset(sfxn, updated_pose)
+
+
+def _kin_network_inputs(ubq_pdb, default_database, torch_device):
+    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=6)
+    sfxn = ScoreFunction(default_database, torch_device)
+    sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
+    sfxn.set_weight(ScoreType.fa_ljrep, 0.55)
+    sfxn.set_weight(ScoreType.fa_lk, 0.8)
+    ff = FoldForest.reasonable_fold_forest(pose_stack)
+    mm = MoveMap.from_pose_stack(pose_stack)
+    mm.move_all_jumps = True
+    mm.move_all_named_torsions = True
+    return pose_stack, sfxn, ff, mm
+
+
+def _score_and_gradient(network):
+    network.masked_dofs.grad = None
+    scores = network()
+    scores.sum().backward()
+    return scores.detach(), network.masked_dofs.grad.clone()
+
+
+def test_kin_network_reset_reuses_topology_and_updates_weights(
+    ubq_pdb, default_database, torch_device
+):
+    pose_stack, sfxn, ff, mm = _kin_network_inputs(
+        ubq_pdb, default_database, torch_device
+    )
+    network = build_kinforest_network(
+        pose_stack, sfxn, ff, mm, cuda_graph=torch_device.type == "cuda"
+    )
+    assert [p for p in network.parameters()] == [network.masked_dofs]
+
+    updated_pose = attr.evolve(pose_stack, coords=pose_stack.coords + 0.01)
+    assert network._reusable_for(sfxn, updated_pose, ff, mm)
+
+    sfxn.set_weight(ScoreType.fa_ljatr, 0.5)
+    assert network._reset(sfxn, updated_pose, ff, mm)
+    actual = _score_and_gradient(network)
+    expected = _score_and_gradient(build_kinforest_network(updated_pose, sfxn, ff, mm))
+
+    torch.testing.assert_close(network.full_coords, updated_pose.coords)
+    torch.testing.assert_close(actual[0], expected[0])
+    torch.testing.assert_close(actual[1], expected[1])
+
+    # A move-map edit changes the DOF mask and must force a rebuild.
+    changed_mm = MoveMap.from_pose_stack(pose_stack)
+    changed_mm.move_all_named_torsions = True
+    assert not network._reset(sfxn, updated_pose, ff, changed_mm)
+
+
+def test_kin_network_cuda_graph_matches_eager(ubq_pdb, default_database, torch_device):
+    if torch_device.type != "cuda":
+        pytest.skip("CUDA graph test")
+
+    device = torch_device
+    pose_stack, sfxn, ff, mm = _kin_network_inputs(ubq_pdb, default_database, device)
+    graphed = build_kinforest_network(pose_stack, sfxn, ff, mm, cuda_graph="both")
+    eager = build_kinforest_network(pose_stack, sfxn, ff, mm)
+    assert set(graphed._cuda_graphs) == {"forward", "autograd"}
+
+    generator = torch.Generator(device=device).manual_seed(0)
+    for _ in range(3):
+        step = 0.02 * torch.randn(
+            graphed.masked_dofs.shape, device=device, generator=generator
+        )
+        with torch.no_grad():
+            graphed.masked_dofs.add_(step)
+            eager.masked_dofs.add_(step)
+            # The graph always takes the weighted fused reduction, which
+            # small eager calls skip; allow for its summation order.
+            torch.testing.assert_close(graphed(), eager(), rtol=1e-5, atol=1e-3)
+
+        graphed_scores, graphed_grad = _score_and_gradient(graphed)
+        eager_scores, eager_grad = _score_and_gradient(eager)
+        torch.testing.assert_close(graphed_scores, eager_scores, rtol=1e-5, atol=1e-3)
+        torch.testing.assert_close(graphed_grad, eager_grad, rtol=1e-4, atol=1e-3)
+        torch.testing.assert_close(graphed.full_coords, eager.full_coords)
 
 
 def test_kin_minimize_w_pose_and_sfxn_smoke(ubq_pdb, default_database, torch_device):

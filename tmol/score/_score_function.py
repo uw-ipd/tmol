@@ -1553,11 +1553,7 @@ class WholePoseScoringModule:
         ):
             from tmol.score.common._cuda_graph import CapturedScoringGraph
 
-            graph_module = _DefaultWholePoseScoringModule(
-                self.weights,
-                self._execution_modules,
-                force_weighted_fusion_for_cuda_graph=True,
-            )
+            graph_module = self._graph_capturable_module()
             sample = example_coords.detach().clone().requires_grad_(True)
             with (
                 torch.cuda.device(example_coords.device),
@@ -1572,6 +1568,18 @@ class WholePoseScoringModule:
                 )
                 self._cuda_graphed_autograd = CapturedScoringGraph(graph_module, sample)
         return self
+
+    def _graph_capturable_module(self) -> "_DefaultWholePoseScoringModule":
+        """Return the serial default weighted reduction used for graph capture.
+
+        The module shares this scorer's weight buffer and term modules, so
+        in-place weight updates are visible to any graph that captures it.
+        """
+        return _DefaultWholePoseScoringModule(
+            self.weights,
+            self._execution_modules,
+            force_weighted_fusion_for_cuda_graph=True,
+        )
 
 
 class _DefaultWholePoseScoringModule(torch.nn.Module):
