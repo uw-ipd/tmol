@@ -223,6 +223,32 @@ def calculate_block_pair_ddg(
     return ddg_scores
 
 
+def per_residue_block_pair_energies(block_pair_scores: torch.Tensor) -> torch.Tensor:
+    """Reduce block-pair scores to one energy per residue.
+
+    Each off-diagonal block-pair entry is split evenly between its two
+    partner residues, so the per-residue sum reconciles exactly with the
+    pairwise total. The reduction only touches the trailing two (block)
+    dimensions, so a leading score-type dimension -- present when the
+    block-pair scores came from a scoring module called with
+    ``sum_terms=False`` -- passes through unsummed.
+
+    Args:
+        block_pair_scores: Block-pair scores shaped
+            ``[n_poses, n_blocks, n_blocks]``, or ``[n_terms, n_poses,
+            n_blocks, n_blocks]`` if the score-type dimension has not been
+            summed.
+
+    Returns:
+        Per-residue energies with the same leading dimension(s) as the
+        input: ``[n_poses, n_blocks]`` or ``[n_terms, n_poses, n_blocks]``.
+    """
+    diag = torch.diagonal(block_pair_scores, dim1=-2, dim2=-1).clone()
+    symmetrized = block_pair_scores + block_pair_scores.transpose(-2, -1)
+    torch.diagonal(symmetrized, dim1=-2, dim2=-1).zero_()
+    return diag + 0.5 * symmetrized.sum(dim=-1)
+
+
 def res_mask_to_coord_mask(
     pose_stack: PoseStack, mask: Tensor[torch.bool][:, :]
 ) -> Tensor[torch.bool][:, :]:

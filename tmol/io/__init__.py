@@ -38,7 +38,7 @@ from ._pose_stack_from_sequence import (  # noqa: F401
     extended_pose_stack_from_sequences,
     EXTENDED_BACKBONE_TORSIONS,
 )
-from ._extern import fetch_pdb  # noqa: F401
+from ._extern import fetch_pdb, fetch_cif  # noqa: F401
 from ._pdb_parsing import (  # noqa: F401
     atom_record_dtype,
     parse_pdb,
@@ -135,6 +135,7 @@ __all__ = [
     "default_packed_block_types",
     "extended_pose_stack_from_sequences",
     "fetch_pdb",
+    "fetch_cif",
     "packed_block_types_for_atomworks",
     "packed_block_types_for_biotite",
     "atom37_slot_map_for_ordering",

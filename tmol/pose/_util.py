@@ -1,4 +1,4 @@
-"""Measuring named torsions on a PoseStack.
+"""Read-only queries on a PoseStack: sequence and named torsions.
 
 Setting torsions (which requires inverse kinematics) lives in
 ``tmol.kinematics._pose_stack_kinematics`` so that this module carries no
@@ -10,8 +10,22 @@ from typing import List
 import numpy
 import torch
 
+from tmol.chemical import three2one
 from tmol.numeric import coord_dihedrals
 from tmol.pose import PoseStack
+
+
+def get_sequence(pose_stack: PoseStack, pose: int = 0) -> str:
+    """One-letter sequence of one pose's real (non-padding) blocks.
+
+    Blocks whose three-letter code has no one-letter equivalent (ligands,
+    ions, and other non-canonical residues) appear as ``"X"``.
+    """
+    pbt = pose_stack.packed_block_types
+    real = pose_stack.block_type_ind64[pose] >= 0
+    type_inds = pose_stack.block_type_ind64[pose, real].tolist()
+    block_types = [pbt.active_block_types[i] for i in type_inds]
+    return "".join(three2one(bt.name3) or "X" for bt in block_types)
 
 
 def get_torsion_names(pose_stack: PoseStack, pose: int, block: int) -> List[str]:
