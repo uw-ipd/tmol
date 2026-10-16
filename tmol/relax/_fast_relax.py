@@ -29,6 +29,7 @@ from tmol.pack.rotamer import (
 from tmol.optimization import (
     CartesianMinimizer,
     run_cart_min,
+    run_kin_min,
 )
 from tmol.types import Tensor
 from tmol.utility._device import synchronize_device
@@ -118,6 +119,25 @@ def _normalize_schedule(
                 f" 'fa_rep_pack_frac', 'fa_rep_min_frac', and optionally 'cst_frac', got {type(entry)}"
             )
     return normalized
+
+
+def _default_kin_min_fn(
+    pose_stack: PoseStack,
+    sfxn: ScoreFunction,
+    *,
+    fold_forest: FoldForest,
+    move_map: MoveMap | CartesianMoveMap,
+    verbose: bool,
+) -> PoseStack:
+    """Kinematic (torsion-space) LBFGS; pass as ``min_fn`` to ``fast_relax``."""
+    return run_kin_min(
+        pose_stack,
+        sfxn,
+        fold_forest,
+        move_map,
+        verbose=verbose,
+        optimizer_kwargs={"verbose": verbose},
+    )
 
 
 def _default_cart_min_fn(
@@ -231,7 +251,9 @@ def fast_relax(  # noqa: C901
             move map, and verbosity. If it provides ``release_retained_state()``,
             FastRelax calls that hook after extracting each minimized pose so
             packing does not overlap retained scorer or optimizer storage.
-            Defaults to Cartesian minimization.
+            Defaults to Cartesian minimization, which ignores ``fold_forest``.
+            Pass ``_default_kin_min_fn`` for kinematic (atom-tree) minimization
+            over ``move_map`` and ``fold_forest``.
         release_between_stages: Drop the rendered scorer, CUDA graph and L-BFGS
             history after each stage's minimization. On by default: a large
             system is bound by that retained state through the next packing

@@ -7,7 +7,7 @@ import torch
 
 from tmol.relax import fast_relax
 import tmol.relax._fast_relax as fast_relax_module
-from tmol.relax._fast_relax import _resolve_cuda_graph_mode
+from tmol.relax._fast_relax import _default_kin_min_fn, _resolve_cuda_graph_mode
 from tmol.optimization import CartesianMinimizer
 
 from tmol.pose import (
@@ -184,6 +184,39 @@ def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
     elapsed_time = stop_time - start_time
 
     print(f"1ubq {n_poses} FastRelax Execution time: {elapsed_time:.6f} seconds")
+
+
+def test_kin_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device):
+    """fast_relax with the kinematic min_fn lowers the energy."""
+    pose_stack = pose_stack_from_pdb(
+        ubq_pdb, torch_device, residue_start=0, residue_end=76
+    )
+    sfxn = get_relax_sfxn(default_database, torch_device)
+    mm = MoveMap.from_pose_stack(pose_stack)
+    mm.move_all_jumps = True
+    mm.move_all_named_torsions = True
+
+    def task_op(task):
+        task.restrict_to_repacking()
+        task.add_conformer_sampler(dun_sampler)
+        task.add_conformer_sampler(FixedAAChiSampler())
+        task.add_conformer_sampler(IncludeCurrentSampler())
+
+    relaxed = fast_relax(
+        pose_stack,
+        sfxn,
+        PackerPalette(),
+        mm,
+        FoldForest.reasonable_fold_forest(pose_stack),
+        task_operations=[task_op],
+        num_repeats=1,
+        min_fn=_default_kin_min_fn,
+    )
+
+    def score(ps):
+        return sfxn.render_whole_pose_scoring_module(ps)(ps.coords)
+
+    assert torch.all(score(relaxed) <= score(pose_stack))
 
 
 @pytest.mark.parametrize("n_poses", [1])
