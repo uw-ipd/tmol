@@ -251,7 +251,9 @@ def fast_relax(  # noqa: C901
             move map, and verbosity. If it provides ``release_retained_state()``,
             FastRelax calls that hook after extracting each minimized pose so
             packing does not overlap retained scorer or optimizer storage.
-            Defaults to Cartesian minimization.
+            Defaults to Cartesian minimization, which ignores ``fold_forest``.
+            Pass ``_default_kin_min_fn`` for kinematic (atom-tree) minimization
+            over ``move_map`` and ``fold_forest``.
         release_between_stages: Drop the rendered scorer, CUDA graph and L-BFGS
             history after each stage's minimization. On by default: a large
             system is bound by that retained state through the next packing
