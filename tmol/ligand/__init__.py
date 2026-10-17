@@ -31,6 +31,10 @@ from ._atom_typing import (  # noqa: F401
     sanitize_tolerant,
     should_kekulize_for_typing,
 )  # noqa: F401
+from ._block_type_smiles import (  # noqa: F401
+    smiles_from_block_type,
+    smiles_from_pose_stack,
+)  # noqa: F401
 from ._chemistry_tables import (  # noqa: F401
     get_hbond_properties,
     get_polar_classes,
@@ -180,6 +184,8 @@ __all__ = [
     "prepare_ligands_from_smiles",
     "prepare_single_ligand",
     "recombine_fragmented_ligands",
+    "smiles_from_block_type",
+    "smiles_from_pose_stack",
     "unsplit_pose_stack",
     "write_params_file",
     "write_params_from_mol2",
