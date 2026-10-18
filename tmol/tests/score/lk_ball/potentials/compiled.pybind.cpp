@@ -1,3 +1,4 @@
+#include <tmol/utility/portable/matrix.hh>
 #include <pybind11/eigen.h>
 #include <tmol/utility/tensor/pybind.h>
 #include <torch/extension.h>
@@ -17,7 +18,7 @@ template <typename Real>
 void bind_build_waters(pybind11::module& m) {
   using namespace pybind11::literals;
   using namespace pybind11;
-  typedef Eigen::Matrix<Real, 3, 1> Real3;
+  typedef tmol::portable::Vec<Real, 3> Real3;
 
   m.def("build_don_water_V", &build_don_water<Real>::V, "D"_a, "H"_a, "dist"_a);
   m.def(
@@ -59,8 +60,8 @@ void bind_potentials(pybind11::module& m) {
   using namespace pybind11::literals;
   using namespace pybind11;
 
-  typedef Eigen::Matrix<Real, 3, 1> Real3;
-  typedef Eigen::Matrix<Real, MAX_WATER, 3> WatersMat;
+  typedef tmol::portable::Vec<Real, 3> Real3;
+  typedef tmol::portable::Mat<Real, MAX_WATER, 3> WatersMat;
 
   m.def(
       "lk_fraction_V",

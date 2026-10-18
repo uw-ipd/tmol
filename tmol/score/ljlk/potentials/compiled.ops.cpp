@@ -72,7 +72,10 @@ class LJLKPoseScoreOp
 
     using Int = int32_t;
 
-    TMOL_DISPATCH_FLOATING_DEVICE(
+    // The whole-pose forward is the path with a Metal backend; see
+    // ljlk_pose_score.mps.cpp. The other dispatch sites in this file stay
+    // CPU/CUDA-only until their kernels are ported.
+    TMOL_DISPATCH_FLOATING_DEVICE_MPS(
         rot_coords.options(), "ljlk_pose_score_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
@@ -520,7 +523,7 @@ class LJLKRotamerScoreOp : public tmol::native::autograd::Function<
 
     using Int = int32_t;
 
-    TMOL_DISPATCH_FLOATING_DEVICE(
+    TMOL_DISPATCH_FLOATING_DEVICE_MPS(
         rot_coords.options(), "ljlk_rotamer_score_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;

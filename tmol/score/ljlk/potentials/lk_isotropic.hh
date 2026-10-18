@@ -1,8 +1,6 @@
 #pragma once
 
-#include <cmath>
-
-#include <Eigen/Core>
+#include <tmol/utility/portable/math.hh>
 
 #include <tmol/score/common/cubic_hermite_polynomial.hh>
 #include <tmol/score/common/tuple.hh>
@@ -15,7 +13,7 @@ namespace score {
 namespace ljlk {
 namespace potentials {
 
-#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+#define def auto TMOL_HD
 
 using namespace tmol::score::common;
 
@@ -25,7 +23,7 @@ struct f_desolv {
     Real V;
     Real dV_ddist;
 
-    def astuple() { return tmol::score::common::make_tuple(V, dV_ddist); }
+    def astuple() { return make_tuple(V, dV_ddist); }
   };
 
   static def V_precomputed(
@@ -37,7 +35,7 @@ struct f_desolv {
     Real const delta = dist - lj_radius_i;
     Real const inv_dist = 1 / dist;
     return lk_volume_j * lk_coeff_i * inv_dist * inv_dist
-           * std::exp(-delta * delta * lk_inv_lambda2_i);
+           * tmol::portable::math::fast_exp(-delta * delta * lk_inv_lambda2_i);
   }
 
   static def V_dV_precomputed(
@@ -48,8 +46,9 @@ struct f_desolv {
       Real lk_volume_j) -> V_dV_t {
     Real const delta = dist - lj_radius_i;
     Real const inv_dist = 1 / dist;
-    Real const desolv = lk_volume_j * lk_coeff_i * inv_dist * inv_dist
-                        * std::exp(-delta * delta * lk_inv_lambda2_i);
+    Real const desolv =
+        lk_volume_j * lk_coeff_i * inv_dist * inv_dist
+        * tmol::portable::math::fast_exp(-delta * delta * lk_inv_lambda2_i);
     Real const d_desolv_d_dist =
         desolv * (-2 * inv_dist - 2 * delta * lk_inv_lambda2_i);
     return {desolv, d_desolv_d_dist};
@@ -61,7 +60,7 @@ struct f_desolv {
       Real lk_dgfree_i,
       Real lk_lambda_i,
       Real lk_volume_j) -> Real {
-    static const Real pi_pow1p5 = 5.56832799683f;
+    const Real pi_pow1p5 = 5.56832799683f;
     return V_precomputed(
         dist,
         lj_radius_i,
@@ -76,7 +75,7 @@ struct f_desolv {
       Real lk_dgfree_i,
       Real lk_lambda_i,
       Real lk_volume_j) -> V_dV_t {
-    static const Real pi_pow1p5 = 5.56832799683f;
+    const Real pi_pow1p5 = 5.56832799683f;
     return V_dV_precomputed(
         dist,
         lj_radius_i,
@@ -92,7 +91,7 @@ struct lk_isotropic_pair {
     Real V;
     Real dV_ddist;
 
-    def astuple() { return tmol::score::common::make_tuple(V, dV_ddist); }
+    def astuple() { return make_tuple(V, dV_ddist); }
   };
 
   static def V(
@@ -137,12 +136,14 @@ struct lk_isotropic_pair {
 
     Real d_min = lj_sigma_ij * .89;
     if (is_cc_pair)
-      d_min = std::max(d_min, Real(4.2));  // C-C modifypot flatten
+      d_min = tmol::portable::math::fmax(d_min, Real(4.2));  // C-C modifypot flatten
 
     // close-spline knots lie on etable bins spaced 1/20 A^2 apart
-    Real const n = std::floor(Real(20) * d_min * d_min);
-    Real cpoly_close_dmin = std::sqrt(std::max(Real(0), n - 29) / 20);
-    Real cpoly_close_dmax = std::sqrt(std::min(n + 21, Real(405)) / 20);
+    Real const n = tmol::portable::math::floor(Real(20) * d_min * d_min);
+    Real cpoly_close_dmin =
+        tmol::portable::math::sqrt(tmol::portable::math::fmax(Real(0), n - 29) / 20);
+    Real cpoly_close_dmax =
+        tmol::portable::math::sqrt(tmol::portable::math::fmin(n + 21, Real(405)) / 20);
 
     if (dist > cpoly_close_dmax) {
       lk = f_desolv<Real>::V_precomputed(
@@ -187,12 +188,14 @@ struct lk_isotropic_pair {
     }
     Real d_min = lj_sigma_ij * .89;
     if (is_cc_pair)
-      d_min = std::max(d_min, Real(4.2));  // C-C modifypot flatten
+      d_min = tmol::portable::math::fmax(d_min, Real(4.2));  // C-C modifypot flatten
 
     // close-spline knots lie on etable bins spaced 1/20 A^2 apart
-    Real const n = std::floor(Real(20) * d_min * d_min);
-    Real cpoly_close_dmin = std::sqrt(std::max(Real(0), n - 29) / 20);
-    Real cpoly_close_dmax = std::sqrt(std::min(n + 21, Real(405)) / 20);
+    Real const n = tmol::portable::math::floor(Real(20) * d_min * d_min);
+    Real cpoly_close_dmin =
+        tmol::portable::math::sqrt(tmol::portable::math::fmax(Real(0), n - 29) / 20);
+    Real cpoly_close_dmax =
+        tmol::portable::math::sqrt(tmol::portable::math::fmin(n + 21, Real(405)) / 20);
 
     Real cpoly_far_dmax = max_dis;
     Real cpoly_far_dmin = max_dis - Real(1.5);
@@ -260,7 +263,7 @@ struct lk_isotropic_score {
     Real V;
     Real dV_ddist;
 
-    def astuple() { return tmol::score::common::make_tuple(V, dV_ddist); }
+    def astuple() { return make_tuple(V, dV_ddist); }
   };
 
   static def V(
@@ -315,12 +318,14 @@ struct lk_isotropic_score {
     bool is_cc_pair = i.is_carbon_lk && j.is_carbon_lk;
     Real d_min = lj_sigma_ij * .89;
     if (is_cc_pair)
-      d_min = std::max(d_min, Real(4.2));  // C-C modifypot flatten
+      d_min = tmol::portable::math::fmax(d_min, Real(4.2));  // C-C modifypot flatten
 
     // close-spline knots lie on etable bins spaced 1/20 A^2 apart
-    Real const n = std::floor(Real(20) * d_min * d_min);
-    Real cpoly_close_dmin = std::sqrt(std::max(Real(0), n - 29) / 20);
-    Real cpoly_close_dmax = std::sqrt(std::min(n + 21, Real(405)) / 20);
+    Real const n = tmol::portable::math::floor(Real(20) * d_min * d_min);
+    Real cpoly_close_dmin =
+        tmol::portable::math::sqrt(tmol::portable::math::fmax(Real(0), n - 29) / 20);
+    Real cpoly_close_dmax =
+        tmol::portable::math::sqrt(tmol::portable::math::fmin(n + 21, Real(405)) / 20);
 
     if (dist > cpoly_close_dmax) {
       lk = f_desolv<Real>::V_precomputed(

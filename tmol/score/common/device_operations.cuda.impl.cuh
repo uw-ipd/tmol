@@ -4,6 +4,7 @@
 error_this_should_not_be_compiled();  // gcc should not include this file
 #endif
 
+#include <tmol/utility/portable/reduce_ops.hh>
 #include <moderngpu/transform.hxx>
 #include <moderngpu/loadstore.hxx>
 #include <moderngpu/kernel_load_balance.hxx>
@@ -12,6 +13,7 @@ error_this_should_not_be_compiled();  // gcc should not include this file
 #include <moderngpu/cta_reduce.hxx>
 
 #include "device_operations.hh"
+#include "workgroup_lane.hh"
 #include "counting.hh"
 
 #include <tmol/score/common/accumulate.hh>
@@ -32,6 +34,14 @@ namespace common {
       std::exit(EXIT_FAILURE);                                         \
     }                                                                  \
   } while (0)
+
+// tmol's scan tag is backend-neutral; moderngpu needs its own. Translate at
+// the boundary so kernel bodies and the DeviceOperations interface never name
+// a moderngpu type.
+constexpr mgpu::scan_type_t mgpu_scan_type(tmol::portable::scan_type t) {
+  return t == tmol::portable::scan_type::inclusive ? mgpu::scan_type_inc
+                                                   : mgpu::scan_type_exc;
+}
 
 template <>
 struct DeviceOperations<tmol::Device::CUDA> {
@@ -125,21 +135,22 @@ struct DeviceOperations<tmol::Device::CUDA> {
     foreach_grouped_workgroup<launch_t>(mgr, n_poses, workgroups_per_pose, f);
   }
 
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  template <tmol::portable::scan_type scan_type, typename T, typename OP>
   static void scan(ContextManager& mgr, T* src, T* dst, int n, OP op) {
     // mgpu::standard_context_t context;
     std::shared_ptr<mgpu::standard_context_t> context = _get_context(mgr);
-    mgpu::scan<scan_type>(
+    mgpu::scan<mgpu_scan_type(scan_type)>(
         src, n, dst, op, mgpu::discard_iterator_t<T>(), *context);
   }
 
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  template <tmol::portable::scan_type scan_type, typename T, typename OP>
   static T scan_and_return_total(
       ContextManager& mgr, T* src, T* dst, int n, OP op) {
     // mgpu::standard_context_t context;
     std::shared_ptr<mgpu::standard_context_t> context = _get_context(mgr);
     mgpu::mem_t<T> total(1, *context, mgpu::memory_space_host);
-    mgpu::scan<scan_type>(src, n, dst, op, total.data(), *context);
+    mgpu::scan<mgpu_scan_type(scan_type)>(
+        src, n, dst, op, total.data(), *context);
     CUDA_CHECK(cudaStreamSynchronize(context->stream()));
     return total.data()[0];
   }
@@ -188,7 +199,11 @@ struct DeviceOperations<tmol::Device::CUDA> {
   // than, e.g., a boolean tensor indicating the start of each segment.
   // The identity value (e.g. 0) must be given because pre-initialization is not
   // always possible. seg_starts_inds must be sorted in ascending order.
-  template <mgpu::scan_type_t scan_type, typename T, typename Int, typename OP>
+  template <
+      tmol::portable::scan_type scan_type,
+      typename T,
+      typename Int,
+      typename OP>
   static auto segmented_scan(
       ContextManager& mgr,
       T* src,
@@ -232,7 +247,7 @@ struct DeviceOperations<tmol::Device::CUDA> {
     auto dst_scan_t = TPack<T, 1, tmol::Device::CUDA>::empty({n});
     auto dst_scan = dst_scan_t.view;
 
-    tmol::kinematics::kernel_segscan<launch_t, scan_type>(
+    tmol::kinematics::kernel_segscan<launch_t, mgpu_scan_type(scan_type)>(
         src_indexing,
         n,
         &seg_start_inds[0],
@@ -247,15 +262,26 @@ struct DeviceOperations<tmol::Device::CUDA> {
     return dst_scan_t;
   }
 
-  template <int N_T, int WIDTH, typename T>
+  template <int N_T, int WIDTH, typename T, tmol::Device LaneD = tmol::Device::CUDA>
   __device__ static void copy_contiguous_data(
-      T* __restrict__ dst, T* __restrict__ src, int n) {
+      T* __restrict__ dst,
+      T* __restrict__ src,
+      int n,
+      WorkgroupLane<LaneD> = {}) {
     mgpu::mem_to_shared<N_T, WIDTH>(src, threadIdx.x, n, dst, false);
   }
 
-  template <int N_T, int WIDTH, typename TD, typename TS>
+  template <
+      int N_T,
+      int WIDTH,
+      typename TD,
+      typename TS,
+      tmol::Device LaneD = tmol::Device::CUDA>
   __device__ static void copy_contiguous_data_and_cast(
-      TD* __restrict__ dst, TS* __restrict__ src, int n) {
+      TD* __restrict__ dst,
+      TS* __restrict__ src,
+      int n,
+      WorkgroupLane<LaneD> = {}) {
     // taken from mgpu::mem_to_shared w/ static cast to TD inserted
 
     mgpu::array_t<TS, WIDTH> x =
@@ -265,12 +291,21 @@ struct DeviceOperations<tmol::Device::CUDA> {
   }
 
   template <int N_T, typename Func>
-  __device__ static void for_each_in_workgroup(Func f) {
+  // The trailing lane handle is empty here -- threadIdx supplies the lane --
+  // and so may be omitted. See workgroup_lane.hh.
+  __device__ static void for_each_in_workgroup(
+      Func f, WorkgroupLane<LaneD> = {}) {
     f(threadIdx.x);
   }
 
-  template <int N_T, typename T, typename S, typename OP>
-  __device__ static T reduce_in_workgroup(T val, S& shared, OP op) {
+  template <
+      int N_T,
+      typename T,
+      typename S,
+      typename OP,
+      tmol::Device LaneD = tmol::Device::CUDA>
+  __device__ static T reduce_in_workgroup(
+      T val, S& shared, OP op, WorkgroupLane<LaneD> = {}) {
     typedef mgpu::cta_reduce_t<N_T, T> reduce_t;
     return reduce_t().reduce(threadIdx.x, val, shared.reduce, N_T, op);
   }
@@ -281,8 +316,13 @@ struct DeviceOperations<tmol::Device::CUDA> {
   // that the whole work group reside in a single warp's width. It can work
   // with NT < 32, but I don't believe it is possible to launch a kernel with
   // NT < 32, so, NT == 32 is the most reasonable use case.
-  template <int N_T, typename T, typename OP>
-  __device__ static T shuffle_reduce_in_workgroup(T val, OP op) {
+  template <
+      int N_T,
+      typename T,
+      typename OP,
+      tmol::Device LaneD = tmol::Device::CUDA>
+  __device__ static T shuffle_reduce_in_workgroup(T val, OP op,
+      WorkgroupLane<LaneD> = {}) {
     assert(N_T <= 32);
     auto g = cooperative_groups::coalesced_threads();
     return tmol::score::common::reduce<tmol::Device::CUDA, T>::reduce_to_head(
@@ -290,15 +330,23 @@ struct DeviceOperations<tmol::Device::CUDA> {
   }
 
   // See comments for shuffle_reduce_in_workgroup above
-  template <int N_T, typename T, typename OP>
-  __device__ static T shuffle_reduce_and_broadcast_in_workgroup(T val, OP op) {
+  template <
+      int N_T,
+      typename T,
+      typename OP,
+      tmol::Device LaneD = tmol::Device::CUDA>
+  __device__ static T shuffle_reduce_and_broadcast_in_workgroup(T val, OP op,
+      WorkgroupLane<LaneD> = {}) {
     assert(N_T <= 32);
     auto g = cooperative_groups::coalesced_threads();
     return tmol::score::common::reduce<tmol::Device::CUDA, T>::reduce_to_all(
         g, val, op);
   }
 
-  __device__ static void synchronize_workgroup() { __syncthreads(); }
+  __device__ template <tmol::Device LaneD = tmol::Device::CUDA>
+  static void synchronize_workgroup(WorkgroupLane<LaneD> = {}) {
+    __syncthreads();
+  }
 
   // No op on 1-core CPU
   static void synchronize_device() { CUDA_CHECK(cudaStreamSynchronize(0)); }

@@ -1,18 +1,19 @@
 #pragma once
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
-#include <cmath>
-#include <cppitertools/range.hpp>
+#include <tmol/utility/portable/math.hh>
+#include <tmol/utility/portable/matrix.hh>
+#include <tmol/utility/portable/metal_view.hh>
+#include <tmol/utility/portable/qualifiers.hh>
 
-#include <tmol/utility/tensor/TensorPack.h>
+#include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/diamond_macros.hh>
+#include <tmol/score/common/workgroup_lane.hh>
 #include <tmol/score/common/data_loading.hh>
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/common/gen_coord.hh>
 #include <tmol/score/hbond/identification.hh>
 
-#include "params.hh"
+#include "params_types.hh"
 
 #undef B0
 
@@ -21,21 +22,22 @@ namespace score {
 namespace lk_ball {
 namespace potentials {
 
-#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+using tmol::score::common::WorkgroupLane;
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+#define def auto TMOL_HD
+
+using tmol::portable::Vec;
 
 template <typename Real>
 struct build_don_water {
   typedef Vec<Real, 3> Real3;
-  typedef Eigen::Matrix<Real, 3, 3> RealMat;
+  typedef tmol::portable::Mat<Real, 3, 3> RealMat;
 
   struct dV_t {
     RealMat dD;
     RealMat dH;
 
-    def astuple() { return tmol::score::common::make_tuple(dD, dH); }
+    def astuple() { return make_tuple(dD, dH); }
 
     static def Zero() -> dV_t { return {RealMat::Zero(), RealMat::Zero()}; }
   };
@@ -54,10 +56,10 @@ struct build_don_water {
     Real dhz = -D[2] + H[2];
     Real dhz2 = dhz * dhz;
     Real dh2 = dhx2 + dhy2 + dhz2;
-    Real dist_norm = dist / std::sqrt(dh2);
+    Real dist_norm = dist / tmol::portable::math::sqrt(dh2);
     Real dist_norm_deriv = dist_norm / dh2;
 
-    Eigen::Matrix<Real, 3, 3> dW_dD;
+    tmol::portable::Mat<Real, 3, 3> dW_dD;
     dW_dD(0, 0) = dhx2 * dist_norm / dh2 + (1 - dist_norm);
     dW_dD(0, 1) = dhy * dhx * dist_norm_deriv;
     dW_dD(0, 2) = dhz * dhx * dist_norm_deriv;
@@ -68,7 +70,7 @@ struct build_don_water {
     dW_dD(2, 1) = dhz * dhy * dist_norm_deriv;
     dW_dD(2, 2) = dhz2 * dist_norm_deriv + (1 - dist_norm);
 
-    Eigen::Matrix<Real, 3, 3> dW_dH;
+    tmol::portable::Mat<Real, 3, 3> dW_dH;
     dW_dH(0, 0) = dist_norm - dhx * dist_norm_deriv * dhx;
     dW_dH(0, 1) = -dhy * dist_norm_deriv * dhx;
     dW_dH(0, 2) = -dhx * dhz * dist_norm_deriv;
@@ -94,23 +96,30 @@ class WaterGenSingleResData {
   int rot_coord_offset;
   int n_atoms;
   int n_conn;
-  Real* coords;
+  // These point into the workgroup's shared tile buffer (and, on the CPU,
+  // straight at the immutable source tensors). Metal makes the address space
+  // part of the pointer type, so it has to be spelled; see metal_view.hh.
+  TMOL_SHARED_PTR(Real) coords;
   unsigned char n_donH;
   unsigned char n_acc;
-  unsigned char* donH_tile_inds;
-  unsigned char* don_hvy_inds;  // block-type index of heavy atom to which a
+  TMOL_SHARED_PTR(unsigned char) donH_tile_inds;
+  TMOL_SHARED_PTR(unsigned char) don_hvy_inds;  // block-type index of heavy atom to which a
                                 // given donH binds; this is not the tile index.
                                 // The donor heavy atom may be in a different
                                 // tile NOTE: limit of 256 atoms per block.
-  unsigned char*
+  TMOL_SHARED_PTR(unsigned char)
       which_donH_for_hvy;  // for the given donH, what's its index in
                            // the list of H's bound to its heavy atom?
-  unsigned char* acc_tile_inds;
-  unsigned char* acc_hybridization;
-  unsigned char* acc_n_attached_H;  // for the given acc, how many H's it have?
+  TMOL_SHARED_PTR(unsigned char) acc_tile_inds;
+  TMOL_SHARED_PTR(unsigned char) acc_hybridization;
+  TMOL_SHARED_PTR(unsigned char) acc_n_attached_H;  // for the given acc, how many H's it have?
 };
 
-template <tmol::Device Dev, typename Real, typename Int>
+// Templated on the view so the field list is declared exactly once: the host
+// and CUDA builds instantiate it with TView, and a Metal translation unit --
+// which cannot include the torch tensor layer at all -- instantiates it with
+// tmol::portable::MetalView. See gen_pose_waters_ctx.hh.
+template <template <typename, int> class View, typename Real, typename Int>
 class WaterGenPoseContextData {
  public:
   int pose_ind;
@@ -120,39 +129,39 @@ class WaterGenPoseContextData {
   // block
   // If the water's geometry depends on atoms from other blocks,
   // we need to be able to retrieve their coordinates
-  TView<Vec<Real, 3>, 1, Dev> rot_coords;
-  TView<Int, 1, Dev> rot_coord_offset;
-  TView<Int, 1, Dev> block_type_ind_for_rot;
+  View<Vec<Real, 3>, 1> rot_coords;
+  View<Int, 1> rot_coord_offset;
+  View<Int, 1> block_type_ind_for_rot;
 
-  TView<Int, 2, Dev> first_rot_for_block;
-  TView<Int, 2, Dev> first_rot_block_type;
+  View<Int, 2> first_rot_for_block;
+  View<Int, 2> first_rot_block_type;
 
   // Blocks sharing a lockstep id move together: rotamer k of one is only ever
   // present alongside rotamer k of the others. Their atoms are therefore not
   // the same in every rotamer the way a neighbouring backbone's are, so a
   // water whose geometry reaches into one has to reach into the matching copy.
-  TView<Int, 2, Dev> lockstep_group_for_block;
-  TView<Int, 2, Dev> rot_offset_for_block;
+  View<Int, 2> lockstep_group_for_block;
+  View<Int, 2> rot_offset_for_block;
 
   // For determining which atoms to retrieve from neighboring
   // residues we have to know how the blocks in the Pose
   // are connected to each other...
-  TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections;
+  View<Vec<Int, 2>, 3> pose_stack_inter_residue_connections;
 
   // ... and we need to know the properties of the block types
   // that we are working with to iterate across chemical bonds
-  TView<Int, 1, Dev> block_type_n_all_bonds;
-  TView<Vec<Int, 3>, 2, Dev> block_type_all_bonds;
-  TView<Vec<Int, 2>, 2, Dev> block_type_atom_all_bond_ranges;
-  TView<Int, 2, Dev> block_type_atoms_forming_chemical_bonds;
-  TView<Int, 2, Dev> block_type_atom_is_hydrogen;
+  View<Int, 1> block_type_n_all_bonds;
+  View<Vec<Int, 3>, 2> block_type_all_bonds;
+  View<Vec<Int, 2>, 2> block_type_atom_all_bond_ranges;
+  View<Int, 2> block_type_atoms_forming_chemical_bonds;
+  View<Int, 2> block_type_atom_is_hydrogen;
 };
 
-template <tmol::Device Dev, typename Real, typename Int>
+template <template <typename, int> class View, typename Real, typename Int>
 class WaterGenData {
  public:
   WaterGenSingleResData<Real> r_dat;
-  WaterGenPoseContextData<Dev, Real, Int> pose_context;
+  WaterGenPoseContextData<View, Real, Int> pose_context;
 };
 
 template <typename Real, int TILE_SIZE>
@@ -172,23 +181,35 @@ template <
     template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
+    typename Int,
     typename Real,
-    typename Int>
+    typename RotCoordsView,
+    typename BlockTypeTileNDonhView,
+    typename BlockTypeTileNAccView,
+    typename BlockTypeTileDonhIndsView,
+    typename BlockTypeTileDonHvyIndsView,
+    typename BlockTypeTileWhichDonhForHhvyView,
+    typename BlockTypeTileAccIndsView,
+    typename BlockTypeTileHybridizationView,
+    typename BlockTypeTileAccNAttachedHView>
 void TMOL_DEVICE_FUNC water_gen_load_block_coords_and_params_into_shared(
-    TView<Vec<Real, 3>, 1, Dev> rot_coords,
-    TView<Int, 2, Dev> block_type_tile_n_donH,
-    TView<Int, 2, Dev> block_type_tile_n_acc,
-    TView<Int, 3, Dev> block_type_tile_donH_inds,
-    TView<Int, 3, Dev> block_type_tile_don_hvy_inds,
-    TView<Int, 3, Dev> block_type_tile_which_donH_for_hhvy,
-    TView<Int, 3, Dev> block_type_tile_acc_inds,
-    TView<Int, 3, Dev> block_type_tile_hybridization,
-    TView<Int, 3, Dev> block_type_tile_acc_n_attached_H,
+    RotCoordsView rot_coords,
+    BlockTypeTileNDonhView block_type_tile_n_donH,
+    BlockTypeTileNAccView block_type_tile_n_acc,
+    BlockTypeTileDonhIndsView block_type_tile_donH_inds,
+    BlockTypeTileDonHvyIndsView block_type_tile_don_hvy_inds,
+    BlockTypeTileWhichDonhForHhvyView block_type_tile_which_donH_for_hhvy,
+    BlockTypeTileAccIndsView block_type_tile_acc_inds,
+    BlockTypeTileHybridizationView block_type_tile_hybridization,
+    BlockTypeTileAccNAttachedHView block_type_tile_acc_n_attached_H,
     int pose_ind,
     int tile_ind,
-    WaterGenSingleResData<Real>& r_dat,
+    TMOL_THREAD WaterGenSingleResData<Real>& r_dat,
     int n_atoms_to_load,
-    int start_atom) {
+    int start_atom,
+    // Trailing lane handle: empty and omissible on CPU and CUDA, required
+    // by the Metal backend. See workgroup_lane.hh.
+    WorkgroupLane<Dev> lane = {}) {
   // pre-condition: n_atoms_to_load < TILE_SIZE
   // Note that TILE_SIZE is not explicitly passed in, but is "present"
   // in r_dat.coords allocation
@@ -198,33 +219,41 @@ void TMOL_DEVICE_FUNC water_gen_load_block_coords_and_params_into_shared(
 
   DeviceDispatch<Dev>::template copy_contiguous_data<nt, 3>(
       r_dat.coords,
-      reinterpret_cast<Real*>(&rot_coords[r_dat.rot_coord_offset + start_atom]),
-      n_atoms_to_load * 3);
+      reinterpret_cast<TMOL_DEVICE_PTR(Real)>(
+          &rot_coords[r_dat.rot_coord_offset + start_atom]),
+      n_atoms_to_load * 3,
+      lane);
   DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
       r_dat.donH_tile_inds,
       &block_type_tile_donH_inds[r_dat.block_type][tile_ind][0],
-      r_dat.n_donH);
+      r_dat.n_donH,
+      lane);
   DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
       r_dat.don_hvy_inds,
       &block_type_tile_don_hvy_inds[r_dat.block_type][tile_ind][0],
-      r_dat.n_donH);
+      r_dat.n_donH,
+      lane);
   DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
       r_dat.which_donH_for_hvy,
       &block_type_tile_which_donH_for_hhvy[r_dat.block_type][tile_ind][0],
-      r_dat.n_donH);
+      r_dat.n_donH,
+      lane);
 
   DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
       r_dat.acc_tile_inds,
       &block_type_tile_acc_inds[r_dat.block_type][tile_ind][0],
-      r_dat.n_acc);
+      r_dat.n_acc,
+      lane);
   DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
       r_dat.acc_hybridization,
       &block_type_tile_hybridization[r_dat.block_type][tile_ind][0],
-      r_dat.n_acc);
+      r_dat.n_acc,
+      lane);
   DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
       r_dat.acc_n_attached_H,
       &block_type_tile_acc_n_attached_H[r_dat.block_type][tile_ind][0],
-      r_dat.n_acc);
+      r_dat.n_acc,
+      lane);
 }
 
 template <
@@ -233,24 +262,40 @@ template <
     int nt,
     typename Int,
     typename Real,
-    int TILE_SIZE>
+    int TILE_SIZE,
+    typename RotCoordsView,
+    typename FirstRotForBlockView,
+    typename FirstRotBlockTypeView,
+    typename LockstepGroupForBlockView,
+    typename RotOffsetForBlockView,
+    typename RotCoordOffsetView,
+    typename BlockTypeIndForRotView,
+    typename PoseStackInterResidueConnectionsView,
+    typename BlockTypeNAllBondsView,
+    typename BlockTypeAllBondsView,
+    typename BlockTypeAtomAllBondRangesView,
+    typename BlockTypeNInterblockBondsView,
+    typename BlockTypeAtomsFormingChemicalBondsView,
+    typename BlockTypeAtomIsHydrogenView,
+    typename GlobalParamsView,
+    template <typename, int> class View>
 void TMOL_DEVICE_FUNC water_gen_load_tile_invariant_data(
-    TView<Vec<Real, 3>, 1, Dev> rot_coords,
-    TView<Int, 2, Dev> first_rot_for_block,
-    TView<Int, 2, Dev> first_rot_block_type,
-    TView<Int, 2, Dev> lockstep_group_for_block,
-    TView<Int, 2, Dev> rot_offset_for_block,
-    TView<Int, 1, Dev> rot_coord_offset,
-    TView<Int, 1, Dev> block_type_ind_for_rot,
-    TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
+    RotCoordsView rot_coords,
+    FirstRotForBlockView first_rot_for_block,
+    FirstRotBlockTypeView first_rot_block_type,
+    LockstepGroupForBlockView lockstep_group_for_block,
+    RotOffsetForBlockView rot_offset_for_block,
+    RotCoordOffsetView rot_coord_offset,
+    BlockTypeIndForRotView block_type_ind_for_rot,
+    PoseStackInterResidueConnectionsView pose_stack_inter_residue_connections,
 
-    TView<Int, 1, Dev> block_type_n_all_bonds,
-    TView<Vec<Int, 3>, 2, Dev> block_type_all_bonds,
-    TView<Vec<Int, 2>, 2, Dev> block_type_atom_all_bond_ranges,
-    TView<Int, 1, Dev> block_type_n_interblock_bonds,
-    TView<Int, 2, Dev> block_type_atoms_forming_chemical_bonds,
-    TView<Int, 2, Dev> block_type_atom_is_hydrogen,
-    TView<LKBallWaterGenGlobalParams<Real>, 1, Dev> global_params,
+    BlockTypeNAllBondsView block_type_n_all_bonds,
+    BlockTypeAllBondsView block_type_all_bonds,
+    BlockTypeAtomAllBondRangesView block_type_atom_all_bond_ranges,
+    BlockTypeNInterblockBondsView block_type_n_interblock_bonds,
+    BlockTypeAtomsFormingChemicalBondsView block_type_atoms_forming_chemical_bonds,
+    BlockTypeAtomIsHydrogenView block_type_atom_is_hydrogen,
+    GlobalParamsView global_params,
 
     int pose_ind,
     int rot_ind,
@@ -258,8 +303,11 @@ void TMOL_DEVICE_FUNC water_gen_load_tile_invariant_data(
     int block_type,
     int n_atoms,
 
-    WaterGenData<Dev, Real, Int>& water_gen_dat,
-    WaterGenSharedData<Real, TILE_SIZE>& shared_m) {
+    TMOL_THREAD WaterGenData<View, Real, Int>& water_gen_dat,
+    TMOL_SHARED_REF(WaterGenSharedData<Real, TILE_SIZE>) shared_m,
+    // Unused here -- this loader reaches no workgroup primitive -- but taken
+    // for uniformity with its sibling, which the same kernel body calls.
+    WorkgroupLane<Dev> lane = {}) {
   water_gen_dat.pose_context.pose_ind = pose_ind;
   water_gen_dat.pose_context.global_params = global_params[0];
   water_gen_dat.r_dat.rot_ind = rot_ind;
@@ -306,11 +354,14 @@ void TMOL_DEVICE_FUNC water_gen_load_tile_invariant_data(
 // The rot_coords offset of the copy of bcat's block that goes with this
 // rotamer: its own, the matching conformer of a lockstep group, or else the
 // block's first rotamer in this pose. Coordinates and derivatives both use it.
-template <tmol::Device Dev, typename Real, typename Int>
+template <
+    template <typename, int> class View,
+    typename Real,
+    typename Int>
 TMOL_DEVICE_FUNC int rot_coord_offset_for(
     bonded_atom::BlockCentricAtom<Int> bcat,
-    WaterGenSingleResData<Real> const& single_res_dat,
-    WaterGenPoseContextData<Dev, Real, Int> const& context_dat) {
+    TMOL_THREAD WaterGenSingleResData<Real> const& single_res_dat,
+    TMOL_THREAD WaterGenPoseContextData<View, Real, Int> const& context_dat) {
   if (bcat.block == single_res_dat.block_ind) {
     return single_res_dat.rot_coord_offset;
   }
@@ -337,19 +388,28 @@ TMOL_DEVICE_FUNC int rot_coord_offset_for(
 
 // Some coordinates are available in shared memory, some we will
 // have to go out to global memory for.
-template <int TILE_SIZE, typename Real, typename Int, tmol::Device Dev>
-TMOL_DEVICE_FUNC Eigen::Matrix<Real, 3, 1> load_coord(
+template <
+    int TILE_SIZE,
+    template <typename, int> class View,
+    typename Real,
+    typename Int>
+TMOL_DEVICE_FUNC tmol::portable::Vec<Real, 3> load_coord(
     bonded_atom::BlockCentricAtom<Int> bcat,
-    WaterGenSingleResData<Real> const& single_res_dat,
-    WaterGenPoseContextData<Dev, Real, Int> const& context_dat,
+    TMOL_THREAD WaterGenSingleResData<Real> const& single_res_dat,
+    TMOL_THREAD WaterGenPoseContextData<View, Real, Int> const& context_dat,
     int tile_start) {
-  Eigen::Matrix<Real, 3, 1> xyz{Real(0), Real(0), Real(0)};
+  tmol::portable::Vec<Real, 3> xyz{Real(0), Real(0), Real(0)};
   bool atom_exists = bcat.atom != -1;
+  // Metal has no printf and no assert; the coordinate returned for a missing
+  // atom is the zero vector either way, which is what the CPU path produces
+  // after its assert in a release build.
+#if !TMOL_PORTABLE_METAL
   if (!atom_exists)
     printf(
         "Error: tried to load coordinate data from non-existent atom. This can "
         "happen in situations such as an SP3 without any bonded hydrogens.\n");
   assert(atom_exists);
+#endif
 
   bool in_smem = false;
   if (bcat.block == single_res_dat.block_ind) {
@@ -368,10 +428,16 @@ TMOL_DEVICE_FUNC Eigen::Matrix<Real, 3, 1> load_coord(
   return xyz;
 }
 
-template <int TILE_SIZE, tmol::Device Dev, typename Real, typename Int>
+template <
+    int TILE_SIZE,
+    tmol::Device Dev,
+    template <typename, int> class View,
+    typename Real,
+    typename Int,
+    typename WaterCoordsView>
 void TMOL_DEVICE_FUNC build_water_for_don(
-    TView<Vec<Real, 3>, 2, Dev> water_coords,
-    WaterGenData<Dev, Real, Int> wat_gen_dat,
+    WaterCoordsView water_coords,
+    WaterGenData<View, Real, Int> wat_gen_dat,
     int tile_start,
     int don_h_ind  // [0..n_donH)
 ) {
@@ -396,13 +462,22 @@ void TMOL_DEVICE_FUNC build_water_for_don(
   water_coords[res_dat.rot_coord_offset + Dind][which_water] = Wxyz;
 }
 
-template <int TILE_SIZE, tmol::Device Dev, typename Real, typename Int>
+template <
+    int TILE_SIZE,
+    tmol::Device Dev,
+    template <typename, int> class View,
+    typename Real,
+    typename Int,
+    typename Sp2WaterTorsView,
+    typename Sp3WaterTorsView,
+    typename RingWaterTorsView,
+    typename WaterCoordsView>
 void TMOL_DEVICE_FUNC build_water_for_acc(
-    TView<Real, 1, Dev> sp2_water_tors,
-    TView<Real, 1, Dev> sp3_water_tors,
-    TView<Real, 1, Dev> ring_water_tors,
-    TView<Vec<Real, 3>, 2, Dev> water_coords,
-    WaterGenData<Dev, Real, Int> wat_gen_dat,
+    Sp2WaterTorsView sp2_water_tors,
+    Sp3WaterTorsView sp3_water_tors,
+    RingWaterTorsView ring_water_tors,
+    WaterCoordsView water_coords,
+    WaterGenData<View, Real, Int> wat_gen_dat,
     int tile_start,
     int acc_ind,   // [0..n_acc)
     int water_ind  // [0..MAX_N_WATER)
@@ -440,11 +515,12 @@ void TMOL_DEVICE_FUNC build_water_for_acc(
   unsigned char acc_atom_tile_ind = res_dat.acc_tile_inds[acc_ind];
 
   Real3 Axyz = common::coord_from_shared(res_dat.coords, acc_atom_tile_ind);
-  bonded_atom::RotamerCentricIndexedBonds<Int, Dev> bonds{
+  bonded_atom::RotamerCentricIndexedBonds<Int, View> bonds{
       res_dat.block_ind,
       res_dat.block_type,
-      context_dat.pose_stack_inter_residue_connections[context_dat.pose_ind],
-      context_dat.first_rot_block_type[context_dat.pose_ind],
+      context_dat.pose_ind,
+      context_dat.pose_stack_inter_residue_connections,
+      context_dat.first_rot_block_type,
       context_dat.block_type_n_all_bonds,
       context_dat.block_type_all_bonds,
       context_dat.block_type_atom_all_bond_ranges,
@@ -482,11 +558,18 @@ void TMOL_DEVICE_FUNC build_water_for_acc(
       Wxyz;
 }
 
-template <int TILE_SIZE, tmol::Device Dev, typename Real, typename Int>
+template <
+    int TILE_SIZE,
+    tmol::Device Dev,
+    template <typename, int> class View,
+    typename Real,
+    typename Int,
+    typename DeDwxyzView,
+    typename DeDPoseCoordsView>
 void TMOL_DEVICE_FUNC d_build_water_for_don(
-    TView<Vec<Real, 3>, 2, Dev> dE_dWxyz,
-    TView<Vec<Real, 3>, 1, Dev> dE_d_pose_coords,
-    WaterGenData<Dev, Real, Int> wat_gen_dat,
+    DeDwxyzView dE_dWxyz,
+    DeDPoseCoordsView dE_d_pose_coords,
+    WaterGenData<View, Real, Int> wat_gen_dat,
     int tile_start,
     int don_h_ind  // [0..n_donH)
 ) {
@@ -518,14 +601,24 @@ void TMOL_DEVICE_FUNC d_build_water_for_don(
       dE_d_pose_coords[H_atom_pose_ind], dW.dH * dE_dW);
 }
 
-template <int TILE_SIZE, tmol::Device Dev, typename Real, typename Int>
+template <
+    int TILE_SIZE,
+    tmol::Device Dev,
+    template <typename, int> class View,
+    typename Real,
+    typename Int,
+    typename Sp2WaterTorsView,
+    typename Sp3WaterTorsView,
+    typename RingWaterTorsView,
+    typename DeDwxyzView,
+    typename DeDPoseCoordsView>
 void TMOL_DEVICE_FUNC d_build_water_for_acc(
-    TView<Real, 1, Dev> sp2_water_tors,
-    TView<Real, 1, Dev> sp3_water_tors,
-    TView<Real, 1, Dev> ring_water_tors,
-    TView<Vec<Real, 3>, 2, Dev> dE_dWxyz,
-    TView<Vec<Real, 3>, 1, Dev> dE_d_pose_coords,
-    WaterGenData<Dev, Real, Int> wat_gen_dat,
+    Sp2WaterTorsView sp2_water_tors,
+    Sp3WaterTorsView sp3_water_tors,
+    RingWaterTorsView ring_water_tors,
+    DeDwxyzView dE_dWxyz,
+    DeDPoseCoordsView dE_d_pose_coords,
+    WaterGenData<View, Real, Int> wat_gen_dat,
     int tile_start,
     int acc_ind,   // [0..n_acc)
     int water_ind  // [0..MAX_N_WATER)
@@ -562,11 +655,12 @@ void TMOL_DEVICE_FUNC d_build_water_for_acc(
   unsigned char acc_atom_tile_ind = res_dat.acc_tile_inds[acc_ind];
 
   Real3 Axyz = common::coord_from_shared(res_dat.coords, acc_atom_tile_ind);
-  bonded_atom::RotamerCentricIndexedBonds<Int, Dev> bonds{
+  bonded_atom::RotamerCentricIndexedBonds<Int, View> bonds{
       res_dat.block_ind,
       res_dat.block_type,
-      context_dat.pose_stack_inter_residue_connections[context_dat.pose_ind],
-      context_dat.first_rot_block_type[context_dat.pose_ind],
+      context_dat.pose_ind,
+      context_dat.pose_stack_inter_residue_connections,
+      context_dat.first_rot_block_type,
       context_dat.block_type_n_all_bonds,
       context_dat.block_type_all_bonds,
       context_dat.block_type_atom_all_bond_ranges,

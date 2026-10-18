@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tmol/utility/portable/reduce_ops.hh>
 #include <tmol/score/common/device_operations.hh>
 #include <tmol/score/common/launch_box_macros.hh>
 #include <tmol/score/common/sphere_overlap.impl.hh>
@@ -128,8 +129,8 @@ auto DevOpsTests<D>::test_scan_inclusive(TView<int32_t, 1, D> src)
   int n = src.size(0);
   auto dst_t = TPack<int32_t, 1, D>::empty({n});
   auto dst = dst_t.view;
-  DO<D>::template scan<mgpu::scan_type_inc>(
-      mgr, src.data(), dst.data(), n, mgpu::plus_t<int32_t>());
+  DO<D>::template scan<tmol::portable::scan_type::inclusive>(
+      mgr, src.data(), dst.data(), n, tmol::portable::plus_t<int32_t>());
   return dst_t;
 }
 
@@ -140,8 +141,8 @@ auto DevOpsTests<D>::test_scan_exclusive(TView<int32_t, 1, D> src)
   int n = src.size(0);
   auto dst_t = TPack<int32_t, 1, D>::zeros({n});  // dst[0] = 0 (identity)
   auto dst = dst_t.view;
-  DO<D>::template scan<mgpu::scan_type_exc>(
-      mgr, src.data(), dst.data(), n, mgpu::plus_t<int32_t>());
+  DO<D>::template scan<tmol::portable::scan_type::exclusive>(
+      mgr, src.data(), dst.data(), n, tmol::portable::plus_t<int32_t>());
   return dst_t;
 }
 
@@ -152,8 +153,9 @@ auto DevOpsTests<D>::test_scan_and_return_total_inclusive(
   int n = src.size(0);
   auto dst_t = TPack<int32_t, 1, D>::empty({n});
   auto dst = dst_t.view;
-  int32_t total = DO<D>::template scan_and_return_total<mgpu::scan_type_inc>(
-      mgr, src.data(), dst.data(), n, mgpu::plus_t<int32_t>());
+  int32_t total = DO<D>::template scan_and_return_total<
+      tmol::portable::scan_type::inclusive>(
+      mgr, src.data(), dst.data(), n, tmol::portable::plus_t<int32_t>());
   return {dst_t, total};
 }
 
@@ -164,8 +166,9 @@ auto DevOpsTests<D>::test_scan_and_return_total_exclusive(
   int n = src.size(0);
   auto dst_t = TPack<int32_t, 1, D>::zeros({n});  // dst[0] = 0 (identity)
   auto dst = dst_t.view;
-  int32_t total = DO<D>::template scan_and_return_total<mgpu::scan_type_exc>(
-      mgr, src.data(), dst.data(), n, mgpu::plus_t<int32_t>());
+  int32_t total = DO<D>::template scan_and_return_total<
+      tmol::portable::scan_type::exclusive>(
+      mgr, src.data(), dst.data(), n, tmol::portable::plus_t<int32_t>());
   return {dst_t, total};
 }
 
@@ -173,7 +176,7 @@ template <tmol::Device D>
 auto DevOpsTests<D>::test_reduce(TView<int32_t, 1, D> src) -> int32_t {
   ContextManager mgr;
   return DO<D>::template reduce<int32_t>(
-      mgr, src.data(), src.size(0), mgpu::plus_t<int32_t>());
+      mgr, src.data(), src.size(0), tmol::portable::plus_t<int32_t>());
 }
 
 template <tmol::Device D>
@@ -193,13 +196,13 @@ auto DevOpsTests<D>::test_segmented_scan_inclusive(
     TView<int32_t, 1, D> src, TView<int32_t, 1, D> seg_starts)
     -> TPack<int32_t, 1, D> {
   ContextManager mgr;
-  return DO<D>::template segmented_scan<mgpu::scan_type_inc>(
+  return DO<D>::template segmented_scan<tmol::portable::scan_type::inclusive>(
       mgr,
       src.data(),
       seg_starts.data(),
       src.size(0),
       seg_starts.size(0),
-      mgpu::plus_t<int32_t>(),
+      tmol::portable::plus_t<int32_t>(),
       0);
 }
 
@@ -208,13 +211,13 @@ auto DevOpsTests<D>::test_segmented_scan_exclusive(
     TView<int32_t, 1, D> src, TView<int32_t, 1, D> seg_starts)
     -> TPack<int32_t, 1, D> {
   ContextManager mgr;
-  return DO<D>::template segmented_scan<mgpu::scan_type_exc>(
+  return DO<D>::template segmented_scan<tmol::portable::scan_type::exclusive>(
       mgr,
       src.data(),
       seg_starts.data(),
       src.size(0),
       seg_starts.size(0),
-      mgpu::plus_t<int32_t>(),
+      tmol::portable::plus_t<int32_t>(),
       0);
 }
 

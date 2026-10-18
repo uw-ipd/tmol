@@ -1,7 +1,7 @@
 #pragma once
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
+#include <tmol/utility/portable/reduce_ops.hh>
+#include <tmol/utility/portable/matrix.hh>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
@@ -27,7 +27,6 @@
 #include <tmol/score/cartbonded/potentials/cartbonded_pose_score.hh>
 
 // Operator definitions; safe for CPU compilation
-#include <moderngpu/operators.hxx>
 
 #include <chrono>
 
@@ -38,10 +37,38 @@ namespace score {
 namespace cartbonded {
 namespace potentials {
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
+
+// Replaces Eigen's `(v.array() != -1).count()`.
+template <typename Int, int N>
+TMOL_DEVICE_FUNC Int count_real_atoms(Vec<Int, N> const& v) {
+  Int n = 0;
+  for (int i = 0; i < N; ++i) {
+    if (v[i] != -1) {
+      ++n;
+    }
+  }
+  return n;
+}
+
+// Replaces Eigen's runtime-sized comma-initializer
+// `dst.head(na + nb) << a.tail(na), b.head(nb);`.
+template <typename Int, int ND, int NA, int NB>
+TMOL_DEVICE_FUNC void join_tail_head(
+    Vec<Int, ND>& dst,
+    Vec<Int, NA> const& a,
+    Int na,
+    Vec<Int, NB> const& b,
+    Int nb) {
+  for (Int i = 0; i < na; ++i) {
+    dst[i] = a[NA - na + i];
+  }
+  for (Int i = 0; i < nb; ++i) {
+    dst[na + i] = b[i];
+  }
+}
 template <typename Real>
-using CoordQuad = Eigen::Matrix<Real, 4, 3>;
+using CoordQuad = tmol::portable::Mat<Real, 4, 3>;
 #define Real3 Vec<Real, 3>
 
 enum class subgraph_type { length, angle, torsion };
@@ -299,8 +326,8 @@ TMOL_DEVICE_FUNC void evaluate_connection_paths(
     Vec<Int, 3> resB_atom_indices =
         atom_local_to_global_indices(resB_path, rot_coord_offsetB);
     // Calculate the size of each path
-    Int resA_size = (resA_atom_indices.array() != -1).count();
-    Int resB_size = (resB_atom_indices.array() != -1).count();
+    Int resA_size = count_real_atoms(resA_atom_indices);
+    Int resB_size = count_real_atoms(resB_atom_indices);
 
     if (resA_size + resB_size == 4) {
       // genbonded scores a torsion unless both central atoms are Rosetta-typed
@@ -342,19 +369,24 @@ TMOL_DEVICE_FUNC void evaluate_connection_paths(
       Vec<Int, 4> subgraph_atom_ids;
 
       // Init with -1s
-      path << -1, -1, -1, -1;
-      atom_indices << -1, -1, -1, -1;
-      subgraph_atom_ids << -1, -1, -1, -1;
+      path = Vec<Int, 4>::Constant(-1);
+      atom_indices = Vec<Int, 4>::Constant(-1);
+      subgraph_atom_ids = Vec<Int, 4>::Constant(-1);
 
       // Join the paths into 1
-      path.head(resA_size + resB_size) << resA_path.tail(resA_size),
-          resB_path.head(resB_size);
-      atom_indices.head(resA_size + resB_size)
-          << resA_atom_indices.tail(resA_size),
-          resB_atom_indices.head(resB_size);
-      subgraph_atom_ids.head(resA_size + resB_size)
-          << resA_subgraph_atom_ids.tail(resA_size),
-          resB_subgraph_atom_ids.head(resB_size);
+      join_tail_head(path, resA_path, resA_size, resB_path, resB_size);
+      join_tail_head(
+          atom_indices,
+          resA_atom_indices,
+          resA_size,
+          resB_atom_indices,
+          resB_size);
+      join_tail_head(
+          subgraph_atom_ids,
+          resA_subgraph_atom_ids,
+          resA_size,
+          resB_subgraph_atom_ids,
+          resB_size);
 
       // Do the lookup
       param_index = hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
@@ -559,7 +591,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
             accumulate_result<Real, Int, 2, D>(
                 length_score,
                 eval,
-                atoms.head(2),
+                atoms.template head<2>(),
                 true,
                 dV_dx[score_type],
                 1.0);
@@ -574,7 +606,12 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           if (accumulate_derivs) {
             auto eval = cbangle_V_dV(atom1, atom2, atom3, params[2], params[1]);
             accumulate_result<Real, Int, 3, D>(
-                angle_score, eval, atoms.head(3), true, dV_dx[score_type], 1.0);
+                angle_score,
+                eval,
+                atoms.template head<3>(),
+                true,
+                dV_dx[score_type],
+                1.0);
           } else {
             angle_score += cbangle_V(atom1, atom2, atom3, params[2], params[1]);
           }
@@ -600,7 +637,12 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
                 params[5],
                 params[6]);
             accumulate_result<Real, Int, 4, D>(
-                tor_score, eval, atoms.head(4), true, dV_dx[score_type], 1.0);
+                tor_score,
+                eval,
+                atoms.template head<4>(),
+                true,
+                dV_dx[score_type],
+                1.0);
           } else {
             tor_score += cbtorsion_V(
                 atom1,
@@ -716,19 +758,19 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     auto reduce_energies = ([&] TMOL_DEVICE_FUNC(int tid) {
       Real const cta_length_score =
           DeviceDispatch<D>::template reduce_in_workgroup<nt>(
-              length_score, shared, mgpu::plus_t<Real>());
+              length_score, shared, tmol::portable::plus_t<Real>());
       Real const cta_angle_score =
           DeviceDispatch<D>::template reduce_in_workgroup<nt>(
-              angle_score, shared, mgpu::plus_t<Real>());
+              angle_score, shared, tmol::portable::plus_t<Real>());
       Real const cta_torsion_score =
           DeviceDispatch<D>::template reduce_in_workgroup<nt>(
-              torsion_score, shared, mgpu::plus_t<Real>());
+              torsion_score, shared, tmol::portable::plus_t<Real>());
       Real const cta_improper_torsion_score =
           DeviceDispatch<D>::template reduce_in_workgroup<nt>(
-              improper_torsion_score, shared, mgpu::plus_t<Real>());
+              improper_torsion_score, shared, tmol::portable::plus_t<Real>());
       Real const cta_hxyl_torsion_score =
           DeviceDispatch<D>::template reduce_in_workgroup<nt>(
-              hxyl_torsion_score, shared, mgpu::plus_t<Real>());
+              hxyl_torsion_score, shared, tmol::portable::plus_t<Real>());
 
       if (tid == 0) {
         // straight assignment in the block-pair scoring case; atomic add
@@ -940,7 +982,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
           accumulate_result<Real, Int, 2, D>(
               length_score,
               eval,
-              atoms.head(2),
+              atoms.template head<2>(),
               true,
               dV_dx[score_type],
               block_weight);
@@ -953,7 +995,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
           accumulate_result<Real, Int, 3, D>(
               angle_score,
               eval,
-              atoms.head(3),
+              atoms.template head<3>(),
               true,
               dV_dx[score_type],
               block_weight);
@@ -980,7 +1022,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
           accumulate_result<Real, Int, 4, D>(
               tor_score,
               eval,
-              atoms.head(4),
+              atoms.template head<4>(),
               true,
               dV_dx[score_type],
               block_weight);
@@ -1281,12 +1323,13 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // Scan and LBS on n output intxns: figure out how many rotamer pair
   // interactions there are and which pair each work unit should be assigned to.
   int64_t const n_output_intxns_total_64 =
-      DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+      DeviceDispatch<D>::template scan_and_return_total<
+          tmol::portable::scan_type::exclusive>(
           mgr,
           n_output_intxns_for_rot_conn.data(),
           n_output_intxns_for_rot_conn_offset.data(),
           max_n_interactions,
-          mgpu::plus_t<int64_t>());
+          tmol::portable::plus_t<int64_t>());
   int const n_output_intxns_total = score::common::checked_dispatch_size(
       n_output_intxns_total_64, "Cartesian-bonded output dispatch");
   TPack<Int, 1, D> rotconn_for_output_intxn_t =
@@ -1405,7 +1448,7 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
             accumulate_result<Real, Int, 2, D>(
                 length_score,
                 eval,
-                atoms.head(2),
+                atoms.template head<2>(),
                 accumulate_derivs,
                 dV_dx[score_type],
                 1.0);
@@ -1422,7 +1465,7 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
             accumulate_result<Real, Int, 3, D>(
                 angle_score,
                 eval,
-                atoms.head(3),
+                atoms.template head<3>(),
                 accumulate_derivs,
                 dV_dx[score_type],
                 1.0);
@@ -1453,7 +1496,7 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
             accumulate_result<Real, Int, 4, D>(
                 tor_score,
                 eval,
-                atoms.head(4),
+                atoms.template head<4>(),
                 accumulate_derivs,
                 dV_dx[score_type],
                 1.0);
@@ -1563,19 +1606,19 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     auto reduce_energies = ([&] TMOL_DEVICE_FUNC(int tid) {
       Real const cta_length_score =
           DeviceDispatch<D>::template reduce_in_workgroup<nt>(
-              length_score, shared, mgpu::plus_t<Real>());
+              length_score, shared, tmol::portable::plus_t<Real>());
       Real const cta_angle_score =
           DeviceDispatch<D>::template reduce_in_workgroup<nt>(
-              angle_score, shared, mgpu::plus_t<Real>());
+              angle_score, shared, tmol::portable::plus_t<Real>());
       Real const cta_torsion_score =
           DeviceDispatch<D>::template reduce_in_workgroup<nt>(
-              torsion_score, shared, mgpu::plus_t<Real>());
+              torsion_score, shared, tmol::portable::plus_t<Real>());
       Real const cta_improper_torsion_score =
           DeviceDispatch<D>::template reduce_in_workgroup<nt>(
-              improper_torsion_score, shared, mgpu::plus_t<Real>());
+              improper_torsion_score, shared, tmol::portable::plus_t<Real>());
       Real const cta_hxyl_torsion_score =
           DeviceDispatch<D>::template reduce_in_workgroup<nt>(
-              hxyl_torsion_score, shared, mgpu::plus_t<Real>());
+              hxyl_torsion_score, shared, tmol::portable::plus_t<Real>());
 
       if (tid == 0) {
         int const output_index = (output_block_pair_energies) ? cta : pose_ind;
@@ -1763,7 +1806,7 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
               accumulate_result<Real, Int, 2, D>(
                   length_score,
                   eval,
-                  atoms.head(2),
+                  atoms.template head<2>(),
                   true,
                   dV_dx[score_type],
                   block_weight);
@@ -1777,7 +1820,7 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
               accumulate_result<Real, Int, 3, D>(
                   angle_score,
                   eval,
-                  atoms.head(3),
+                  atoms.template head<3>(),
                   true,
                   dV_dx[score_type],
                   block_weight);
@@ -1804,7 +1847,7 @@ auto CartBondedRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
               accumulate_result<Real, Int, 4, D>(
                   tor_score,
                   eval,
-                  atoms.head(4),
+                  atoms.template head<4>(),
                   true,
                   dV_dx[score_type],
                   block_weight);

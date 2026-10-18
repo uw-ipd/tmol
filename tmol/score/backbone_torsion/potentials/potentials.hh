@@ -1,11 +1,7 @@
 #pragma once
 
-#include <cmath>
-
-#include <Eigen/Core>
-#include <Eigen/Geometry>
-
-#include <pybind11/pybind11.h>
+#include <tmol/utility/portable/math.hh>
+#include <tmol/utility/portable/matrix.hh>
 
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
@@ -21,13 +17,11 @@ namespace potentials {
 
 using namespace tmol::score::common;
 
-#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+#define def auto TMOL_HD
 
-template <typename Real, int N>
+using tmol::portable::Vec;
 
-using Vec = Eigen::Matrix<Real, N, 1>;
-
-#define CoordQuad Eigen::Matrix<Real, 4, 3>
+#define CoordQuad tmol::portable::Mat<Real, 4, 3>
 #define Real2 Vec<Real, 2>
 
 template <tmol::Device D, typename Real, typename Int>
@@ -54,15 +48,23 @@ def rama_V_dV(
       tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
           coeffs, phipsi_idx);
 
-  dV_dphiatm.row(0) = dVdphipsi[0] * phiang.dV_dI / bbstep[0];
-  dV_dphiatm.row(1) = dVdphipsi[0] * phiang.dV_dJ / bbstep[0];
-  dV_dphiatm.row(2) = dVdphipsi[0] * phiang.dV_dK / bbstep[0];
-  dV_dphiatm.row(3) = dVdphipsi[0] * phiang.dV_dL / bbstep[0];
+  tmol::portable::row_ref(dV_dphiatm, 0) =
+      dVdphipsi[0] * phiang.dV_dI / bbstep[0];
+  tmol::portable::row_ref(dV_dphiatm, 1) =
+      dVdphipsi[0] * phiang.dV_dJ / bbstep[0];
+  tmol::portable::row_ref(dV_dphiatm, 2) =
+      dVdphipsi[0] * phiang.dV_dK / bbstep[0];
+  tmol::portable::row_ref(dV_dphiatm, 3) =
+      dVdphipsi[0] * phiang.dV_dL / bbstep[0];
 
-  dV_dpsiatm.row(0) = dVdphipsi[1] * psiang.dV_dI / bbstep[1];
-  dV_dpsiatm.row(1) = dVdphipsi[1] * psiang.dV_dJ / bbstep[1];
-  dV_dpsiatm.row(2) = dVdphipsi[1] * psiang.dV_dK / bbstep[1];
-  dV_dpsiatm.row(3) = dVdphipsi[1] * psiang.dV_dL / bbstep[1];
+  tmol::portable::row_ref(dV_dpsiatm, 0) =
+      dVdphipsi[1] * psiang.dV_dI / bbstep[1];
+  tmol::portable::row_ref(dV_dpsiatm, 1) =
+      dVdphipsi[1] * psiang.dV_dJ / bbstep[1];
+  tmol::portable::row_ref(dV_dpsiatm, 2) =
+      dVdphipsi[1] * psiang.dV_dK / bbstep[1];
+  tmol::portable::row_ref(dV_dpsiatm, 3) =
+      dVdphipsi[1] * psiang.dV_dL / bbstep[1];
   return {V, dV_dphiatm, dV_dpsiatm};
 }
 
@@ -97,19 +99,19 @@ def omega_V_dV(CoordQuad omega, Real K) -> tuple<Real, CoordQuad> {
 
   // note: the angle returned by dihedral_angle is in [-pi,pi]
   Real omega_offset = omegaang.V;
-  if (omega_offset > 0.5 * EIGEN_PI) {
-    omega_offset -= EIGEN_PI;
-  } else if (omega_offset < -0.5 * EIGEN_PI) {
-    omega_offset += EIGEN_PI;
+  if (omega_offset > 0.5 * tmol::portable::math::pi<Real>()) {
+    omega_offset -= tmol::portable::math::pi<Real>();
+  } else if (omega_offset < -0.5 * tmol::portable::math::pi<Real>()) {
+    omega_offset += tmol::portable::math::pi<Real>();
   }
 
   V = K * omega_offset * omega_offset;
   dVdomega = 2 * K * omega_offset;
 
-  dV_domegaatm.row(0) = omegaang.dV_dI;
-  dV_domegaatm.row(1) = omegaang.dV_dJ;
-  dV_domegaatm.row(2) = omegaang.dV_dK;
-  dV_domegaatm.row(3) = omegaang.dV_dL;
+  tmol::portable::row_ref(dV_domegaatm, 0) = omegaang.dV_dI;
+  tmol::portable::row_ref(dV_domegaatm, 1) = omegaang.dV_dJ;
+  tmol::portable::row_ref(dV_domegaatm, 2) = omegaang.dV_dK;
+  tmol::portable::row_ref(dV_domegaatm, 3) = omegaang.dV_dL;
 
   return {V, dVdomega * dV_domegaatm};
 }
@@ -118,10 +120,10 @@ template <typename Real>
 def omega_V(CoordQuad omega, Real K) -> Real {
   Real omega_offset = dihedral_angle<Real>::V(
       omega.row(0), omega.row(1), omega.row(2), omega.row(3));
-  if (omega_offset > 0.5 * EIGEN_PI) {
-    omega_offset -= EIGEN_PI;
-  } else if (omega_offset < -0.5 * EIGEN_PI) {
-    omega_offset += EIGEN_PI;
+  if (omega_offset > 0.5 * tmol::portable::math::pi<Real>()) {
+    omega_offset -= tmol::portable::math::pi<Real>();
+  } else if (omega_offset < -0.5 * tmol::portable::math::pi<Real>()) {
+    omega_offset += tmol::portable::math::pi<Real>();
   }
   return K * omega_offset * omega_offset;
 }
@@ -137,7 +139,7 @@ def omega_bbdep_V_dV(
     Real2 bbstart,
     Real2 bbstep,
     Real K) -> tuple<Real, CoordQuad, CoordQuad, CoordQuad> {
-  const Real pi = EIGEN_PI;
+  const Real pi = tmol::portable::math::pi<Real>();
   Real V;
   Real dVdomega, dVdphi = 0.0, dVdpsi = 0.0;
   CoordQuad dV_domegaatm, dV_dphiatm, dV_dpsiatm;
@@ -146,7 +148,8 @@ def omega_bbdep_V_dV(
       omega.row(0), omega.row(1), omega.row(2), omega.row(3));
 
   // note: the angle returned by dihedral_angle is in [-pi,pi]
-  if (omegaang.V > -0.5 * EIGEN_PI && omegaang.V < 0.5 * EIGEN_PI) {
+  if (omegaang.V > -0.5 * tmol::portable::math::pi<Real>()
+      && omegaang.V < 0.5 * tmol::portable::math::pi<Real>()) {
     // cis omega, use simple version
     tie(V, dV_domegaatm) = omega_V_dV<D, Real, Int>(omega, K);
     dV_dphiatm.setZero();
@@ -172,8 +175,8 @@ def omega_bbdep_V_dV(
             coeffs_sig, phipsi_idx);
 
     // energy
-    Real baseline = std::log(1. / (6. * sqrt(2. * pi)))
-                    - std::log(1. / (sig * sqrt(2. * pi)));
+    Real baseline = tmol::portable::math::log(1. / (6. * sqrt(2. * pi)))
+                    - tmol::portable::math::log(1. / (sig * sqrt(2. * pi)));
     Real offset = omegaang.V * 180.0 / pi - mu;
     if (offset < -180.0) {
       offset += 360.0;
@@ -190,20 +193,20 @@ def omega_bbdep_V_dV(
     dVdphi = dVdmu * dmudphipsi[0] + dVdsig * dsigdphipsi[0];
     dVdpsi = dVdmu * dmudphipsi[1] + dVdsig * dsigdphipsi[1];
 
-    dV_dphiatm.row(0) = dVdphi * phiang.dV_dI / bbstep[0];
-    dV_dphiatm.row(1) = dVdphi * phiang.dV_dJ / bbstep[0];
-    dV_dphiatm.row(2) = dVdphi * phiang.dV_dK / bbstep[0];
-    dV_dphiatm.row(3) = dVdphi * phiang.dV_dL / bbstep[0];
+    tmol::portable::row_ref(dV_dphiatm, 0) = dVdphi * phiang.dV_dI / bbstep[0];
+    tmol::portable::row_ref(dV_dphiatm, 1) = dVdphi * phiang.dV_dJ / bbstep[0];
+    tmol::portable::row_ref(dV_dphiatm, 2) = dVdphi * phiang.dV_dK / bbstep[0];
+    tmol::portable::row_ref(dV_dphiatm, 3) = dVdphi * phiang.dV_dL / bbstep[0];
 
-    dV_dpsiatm.row(0) = dVdpsi * psiang.dV_dI / bbstep[1];
-    dV_dpsiatm.row(1) = dVdpsi * psiang.dV_dJ / bbstep[1];
-    dV_dpsiatm.row(2) = dVdpsi * psiang.dV_dK / bbstep[1];
-    dV_dpsiatm.row(3) = dVdpsi * psiang.dV_dL / bbstep[1];
+    tmol::portable::row_ref(dV_dpsiatm, 0) = dVdpsi * psiang.dV_dI / bbstep[1];
+    tmol::portable::row_ref(dV_dpsiatm, 1) = dVdpsi * psiang.dV_dJ / bbstep[1];
+    tmol::portable::row_ref(dV_dpsiatm, 2) = dVdpsi * psiang.dV_dK / bbstep[1];
+    tmol::portable::row_ref(dV_dpsiatm, 3) = dVdpsi * psiang.dV_dL / bbstep[1];
 
-    dV_domegaatm.row(0) = dVdomega * omegaang.dV_dI;
-    dV_domegaatm.row(1) = dVdomega * omegaang.dV_dJ;
-    dV_domegaatm.row(2) = dVdomega * omegaang.dV_dK;
-    dV_domegaatm.row(3) = dVdomega * omegaang.dV_dL;
+    tmol::portable::row_ref(dV_domegaatm, 0) = dVdomega * omegaang.dV_dI;
+    tmol::portable::row_ref(dV_domegaatm, 1) = dVdomega * omegaang.dV_dJ;
+    tmol::portable::row_ref(dV_domegaatm, 2) = dVdomega * omegaang.dV_dK;
+    tmol::portable::row_ref(dV_domegaatm, 3) = dVdomega * omegaang.dV_dL;
   }
 
   return {V, dV_dphiatm, dV_dpsiatm, dV_domegaatm};
@@ -219,10 +222,11 @@ def omega_bbdep_V(
     Real2 bbstart,
     Real2 bbstep,
     Real K) -> Real {
-  const Real pi = EIGEN_PI;
+  const Real pi = tmol::portable::math::pi<Real>();
   Real omegaang = dihedral_angle<Real>::V(
       omega.row(0), omega.row(1), omega.row(2), omega.row(3));
-  if (omegaang > -0.5 * EIGEN_PI && omegaang < 0.5 * EIGEN_PI) {
+  if (omegaang > -0.5 * tmol::portable::math::pi<Real>()
+      && omegaang < 0.5 * tmol::portable::math::pi<Real>()) {
     return omega_V(omega, K);
   }
 
@@ -241,8 +245,8 @@ def omega_bbdep_V(
   Real sig =
       tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate_V(
           coeffs_sig, phipsi_idx);
-  Real baseline = std::log(1. / (6. * sqrt(2. * pi)))
-                  - std::log(1. / (sig * sqrt(2. * pi)));
+  Real baseline = tmol::portable::math::log(1. / (6. * sqrt(2. * pi)))
+                  - tmol::portable::math::log(1. / (sig * sqrt(2. * pi)));
   Real offset = omegaang * 180.0 / pi - mu;
   if (offset < -180.0) {
     offset += 360.0;

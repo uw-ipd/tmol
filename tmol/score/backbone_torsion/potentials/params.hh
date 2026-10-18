@@ -1,29 +1,10 @@
-#include <tmol/utility/tensor/native.hh>
 #pragma once
 
-#include <Eigen/Core>
-
+#include <tmol/utility/portable/matrix.hh>
+#include <tmol/utility/tensor/native.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorUtil.h>
-
-namespace tmol {
-namespace score {
-namespace backbone_torsion {
-namespace potentials {
-
-template <typename T, int N>
-using Vec = Eigen::Matrix<T, N, 1>;
-
-template <typename Real>
-struct RamaTableParams {
-  Real bbstarts[2];
-  Real bbsteps[2];
-};
-
-}  // namespace potentials
-}  // namespace backbone_torsion
-}  // namespace score
-}  // namespace tmol
+#include "params_types.hh"
 
 namespace tmol {
 

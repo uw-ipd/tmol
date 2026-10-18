@@ -1,7 +1,7 @@
 #pragma once
 
-#include <Eigen/Core>
-#include <cmath>
+#include <tmol/utility/portable/array.hh>
+#include <tmol/utility/portable/math.hh>
 
 #include <tmol/score/common/cubic_hermite_polynomial.hh>
 #include <tmol/score/common/tuple.hh>
@@ -13,7 +13,7 @@ namespace score {
 namespace ljlk {
 namespace potentials {
 
-#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+#define def auto TMOL_HD
 
 using namespace tmol::score::common;
 
@@ -24,7 +24,7 @@ struct vdw {
     Real V;
     Real dV_ddist;
 
-    def astuple() { return tmol::score::common::make_tuple(V, dV_ddist); }
+    def astuple() { return make_tuple(V, dV_ddist); }
   };
 
   static def V(Real dist, Real sigma, Real epsilon) -> Real {
@@ -68,7 +68,7 @@ struct lj_score {
       Real bonded_path_length,
       LJTypeParams<Real> i,
       LJTypeParams<Real> j,
-      LJGlobalParams<Real> global) -> std::array<Real, 2> {
+      LJGlobalParams<Real> global) -> tmol::portable::array<Real, 2> {
     if (bonded_path_length < Real(4)) {
       return {0.0, 0.0};
     }

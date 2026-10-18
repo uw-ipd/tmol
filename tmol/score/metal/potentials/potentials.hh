@@ -1,14 +1,13 @@
 #pragma once
 
-#include <cmath>
-
-#include <Eigen/Core>
+#include <tmol/utility/portable/math.hh>
+#include <tmol/utility/portable/matrix.hh>
 
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 
-#include "params.hh"
+#include "params_types.hh"
 
 namespace tmol {
 namespace score {
@@ -17,8 +16,7 @@ namespace potentials {
 
 using namespace tmol::score::common;
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 
 // Radial and lateral harmonic on one occupied site, plus its well depth.
 // virt_ind < 0 marks an untemplated site, which has no lateral term.
@@ -116,12 +114,14 @@ TMOL_DEVICE_FUNC void accumulate_metal_bridge(
   if (p.floor <= 0) {
     return;  // a donor with no floor puts no wall on its metals
   }
-  Real const floor_sq = d1 * d1 + d2 * d2 - 2 * d1 * d2 * std::cos(p.floor);
+  Real const floor_sq =
+      d1 * d1 + d2 * d2 - 2 * d1 * d2 * tmol::portable::math::cos(p.floor);
   if (floor_sq <= 0) {
     return;
   }
-  Real const floor = std::sqrt(floor_sq);
-  Real const sd = d1 * d2 * std::sin(p.floor) / floor * p.width;
+  Real const floor = tmol::portable::math::sqrt(floor_sq);
+  Real const sd =
+      d1 * d2 * tmol::portable::math::sin(p.floor) / floor * p.width;
   Vec<Real, 3> const sep = coords[a_ind] - coords[b_ind];
   Real const dist = sep.norm();
   if (dist >= floor) {

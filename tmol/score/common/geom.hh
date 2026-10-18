@@ -1,7 +1,7 @@
 #pragma once
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
+#include <tmol/utility/portable/math.hh>
+#include <tmol/utility/portable/matrix.hh>
 
 #include <tmol/score/common/tuple.hh>
 
@@ -9,34 +9,48 @@ namespace tmol {
 namespace score {
 namespace common {
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 
-#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+#define def auto TMOL_HD
 
 #define Real3 Vec<Real, 3>
 
+// Generic over the 3-vector type so that terms can move from Eigen to
+// tmol::portable::Vec one at a time: both spellings supply the operators used
+// here, and each caller gets back whichever type it passed in.
 template <typename Real>
 struct distance {
-  struct V_dV_T {
+  template <typename V3>
+  struct V_dV_T_of {
     Real V;
-    Vec<Real, 3> dV_dA;
-    Vec<Real, 3> dV_dB;
+    V3 dV_dA;
+    V3 dV_dB;
 
     def astuple() -> auto { return make_tuple(V, dV_dA, dV_dB); }
   };
 
-  static def V(Real3 A, Real3 B) -> Real { return (A - B).norm(); }
+  typedef V_dV_T_of<Vec<Real, 3>> V_dV_T;
 
-  static def V_dV(Real3 A, Real3 B) -> V_dV_T {
-    Real3 delta = (A - B);
+  template <typename V3>
+  static def V(V3 A, V3 B) -> Real {
+    return (A - B).norm();
+  }
+
+  template <typename V3>
+  static def V_dV(V3 A, V3 B) -> V_dV_T_of<V3> {
+    V3 delta = (A - B);
     Real V = delta.norm();
 
     if (V != 0) {
-      return {V, delta / V, -delta / V};
+      // One reciprocal rather than six divisions. A division on Metal is an
+      // IEEE-correct multi-instruction sequence under MTLMathModeSafe, and
+      // this runs per atom pair in the derivative kernels; see
+      // MPS_PORT_NOTES.md.
+      Real const inv_V = Real(1) / V;
+      return {V, delta * inv_V, -delta * inv_V};
     } else {
       // Correct for nan, gradient is discontinuous across dist = 0
-      return {V, Real3({0.0, 0.0, 0.0}), Real3({0.0, 0.0, 0.0})};
+      return {V, V3({0.0, 0.0, 0.0}), V3({0.0, 0.0, 0.0})};
     }
   }
 };
@@ -58,7 +72,9 @@ struct interior_angle {
     auto A_norm = A.norm();
     auto B_norm = B.norm();
 
-    return 2 * std::atan2(CR.dot(z_unit), A_norm * B_norm + A.dot(B));
+    return 2
+           * tmol::portable::math::atan2(
+               CR.dot(z_unit), A_norm * B_norm + A.dot(B));
   }
 
   static def V_dV(Real3 A, Real3 B) -> V_dV_T {
@@ -67,11 +83,16 @@ struct interior_angle {
 
     auto A_norm = A.norm();
     auto B_norm = B.norm();
+    // Two reciprocals rather than twelve divisions; see distance::V_dV.
+    Real const inv_A_norm = Real(1) / A_norm;
+    Real const inv_B_norm = Real(1) / B_norm;
 
     return {
-        2 * std::atan2(CR.dot(z_unit), A_norm * B_norm + A.dot(B)),
-        (A / A_norm).cross(z_unit) / A_norm,
-        -(B / B_norm).cross(z_unit) / B_norm};
+        2
+            * tmol::portable::math::atan2(
+                CR.dot(z_unit), A_norm * B_norm + A.dot(B)),
+        (A * inv_A_norm).cross(z_unit) * inv_A_norm,
+        -(B * inv_B_norm).cross(z_unit) * inv_B_norm};
   }
 };
 
@@ -185,10 +206,11 @@ struct dihedral_angle {
     Real sign = G.dot(A.cross(B)) >= 0 ? -1.0 : 1.0;
 
     return sign
-           * std::acos(
-               std::fmax(
+           * tmol::portable::math::acos(
+               tmol::portable::math::fmax(
                    (Real)-1.0,
-                   std::fmin(A.dot(B) / (A.norm() * B.norm()), (Real)1.0)));
+                   tmol::portable::math::fmin(
+                       A.dot(B) / (A.norm() * B.norm()), (Real)1.0)));
   }
 
   static def V_dV(Real3 I, Real3 J, Real3 K, Real3 L) -> V_dV_T {
@@ -204,10 +226,11 @@ struct dihedral_angle {
 
     Real sign = G.dot(A.cross(B)) >= 0 ? -1.0 : 1.0;
     auto V = sign
-             * std::acos(
-                 std::fmax(
+             * tmol::portable::math::acos(
+                 tmol::portable::math::fmax(
                      (Real)-1.0,
-                     std::fmin(A.dot(B) / (A.norm() * B.norm()), (Real)1.0)));
+                     tmol::portable::math::fmin(
+                         A.dot(B) / (A.norm() * B.norm()), (Real)1.0)));
 
     return {
         V,

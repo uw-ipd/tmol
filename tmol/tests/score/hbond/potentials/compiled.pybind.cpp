@@ -120,11 +120,11 @@ template <typename Real>
 void bind_potentials(pybind11::module& m) {
   using namespace pybind11::literals;
 
-  m.def("AH_dist_V_dV", &AH_dist_V_dV<Real>, "A"_a, "H"_a, "AHdist_poly"_a);
+  m.def("AH_dist_V_dV", &AH_dist_V_dV<Real, Real>, "A"_a, "H"_a, "AHdist_poly"_a);
 
   m.def(
       "AHD_angle_V_dV",
-      &AHD_angle_V_dV<Real>,
+      &AHD_angle_V_dV<Real, Real>,
       "A"_a,
       "H"_a,
       "D"_a,
@@ -132,7 +132,7 @@ void bind_potentials(pybind11::module& m) {
 
   m.def(
       "BAH_angle_V_dV",
-      &BAH_angle_V_dV<Real, int>,
+      &BAH_angle_V_dV<Real, int, Real>,
       "B"_a,
       "B0"_a,
       "A"_a,
@@ -152,7 +152,7 @@ void bind_potentials(pybind11::module& m) {
 
   m.def(
       "hbond_score_V_dV",
-      &hbond_score<Real, int>::V_dV,
+      &hbond_score<Real, int>::template V_dV<Real>,
       "HBond donor-acceptor geometry score.",
 
       "D"_a,

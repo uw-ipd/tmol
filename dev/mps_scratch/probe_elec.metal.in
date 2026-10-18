@@ -1,0 +1,2 @@
+#include <tmol/score/common/device_operations.mps.impl.hh>
+#include <tmol/score/elec/potentials/elec_kernels.hh>

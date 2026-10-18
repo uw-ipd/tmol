@@ -1,10 +1,12 @@
 #pragma once
 
+#include <tmol/utility/portable/array.hh>
+#include <tmol/utility/portable/reduce_ops.hh>
+#include <tmol/utility/portable/math.hh>
+#include <tmol/utility/portable/matrix.hh>
 #include <cmath>
 #include <type_traits>
 #include <vector>
-
-#include <moderngpu/operators.hxx>
 
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/count_pair.hh>
@@ -116,24 +118,24 @@ template <
     bool compute_scores,
     typename Real,
     tmol::Device D>
-TMOL_DEVICE_FUNC std::array<Real, compute_scores ? 4 : 0> score_atom_pair(
+TMOL_DEVICE_FUNC tmol::portable::array<Real, compute_scores ? 4 : 0> score_atom_pair(
     int atom1,
     int atom2,
     int start1,
     int start2,
     ScoringData<Real> const& data,
-    Eigen::Matrix<Real, 3, 1> const& delta,
+    tmol::portable::Vec<Real, 3> const& delta,
     Real dist2,
     int ljlk_separation,
     int elec_separation,
-    TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords,
+    TView<tmol::portable::Vec<Real, 3>, 2, D> dV_dcoords,
     TView<Real, 1, D> score_weights,
     Real derivative_scale) {
   if (ljlk_separation < 4 && elec_separation < 4) {
     return {};
   }
-  using Real3 = Eigen::Matrix<Real, 3, 1>;
-  Real const dist = std::sqrt(dist2);
+  using Real3 = tmol::portable::Vec<Real, 3>;
+  Real const dist = tmol::portable::math::sqrt(dist2);
   auto const& p1 = data.r1.ljlk_params[atom1];
   auto const& p2 = data.r2.ljlk_params[atom2];
 
@@ -273,7 +275,7 @@ TMOL_DEVICE_FUNC void store_score_totals(
   // round once on output. Atom-pair arithmetic and derivatives retain Real.
   if constexpr (weighted) {
     Real const total = DeviceOperations<D>::template reduce_in_workgroup<nt>(
-        data.total_weighted, shared, mgpu::plus_t<Real>());
+        data.total_weighted, shared, tmol::portable::plus_t<Real>());
     if (tid == 0) {
       if constexpr (rotamer_pairs) {
         output[0][0][0][data.output_ind] = total;
@@ -284,13 +286,13 @@ TMOL_DEVICE_FUNC void store_score_totals(
   } else {
     Real const totals[4] = {
         DeviceOperations<D>::template reduce_in_workgroup<nt>(
-            data.total_ljatr, shared, mgpu::plus_t<Real>()),
+            data.total_ljatr, shared, tmol::portable::plus_t<Real>()),
         DeviceOperations<D>::template reduce_in_workgroup<nt>(
-            data.total_ljrep, shared, mgpu::plus_t<Real>()),
+            data.total_ljrep, shared, tmol::portable::plus_t<Real>()),
         DeviceOperations<D>::template reduce_in_workgroup<nt>(
-            data.total_lk, shared, mgpu::plus_t<Real>()),
+            data.total_lk, shared, tmol::portable::plus_t<Real>()),
         DeviceOperations<D>::template reduce_in_workgroup<nt>(
-            data.total_elec, shared, mgpu::plus_t<Real>())};
+            data.total_elec, shared, tmol::portable::plus_t<Real>())};
     if (tid == 0) {
       for (int score_type = 0; score_type < 4; ++score_type) {
         accumulate<D, double>::add(
@@ -348,12 +350,12 @@ auto ljlk_elec_forward_impl(
     Int n_valid_rots = -1)
     -> std::tuple<TPack<Real, 4, D>, TPack<LJLKExternalVec<Real, 3>, 2, D>> {
   using namespace ljlk_elec_detail;
-  using Real3 = Eigen::Matrix<Real, 3, 1>;
+  using Real3 = tmol::portable::Vec<Real, 3>;
   static_assert(!require_gradient || !rotamer_pairs || weighted);
   // Rotamer backward only needs coordinate derivatives; its score table is
   // discarded by autograd.
   constexpr bool compute_scores = !require_gradient || !rotamer_pairs;
-  using PairScores = std::array<Real, compute_scores ? 4 : 0>;
+  using PairScores = tmol::portable::array<Real, compute_scores ? 4 : 0>;
 
   int const n_atoms = rot_coords.size(0);
   int const n_poses = first_rot_for_block.size(0);
@@ -713,7 +715,7 @@ auto ljlk_elec_forward_impl(
             int const first_atom2 = same_tile ? atom1 + 1 : 0;
             for (int atom2 = first_atom2; atom2 < n_atoms2; ++atom2) {
               auto pair_scores = pair_score(start1, start2, atom1, atom2, data);
-              common::for_<std::tuple_size_v<PairScores>>([&](auto term) {
+              common::for_<PairScores::size()>([&](auto term) {
                 scores[term.value] += pair_scores[term.value];
               });
             }
@@ -726,7 +728,7 @@ auto ljlk_elec_forward_impl(
                 D,
                 tile_size,
                 score_nt,
-                std::tuple_size_v<PairScores>,
+                PairScores::size(),
                 Real,
                 Int>::
                 eval_intrares_atom_pairs(tid, start1, start2, pair_score, data);
@@ -737,7 +739,7 @@ auto ljlk_elec_forward_impl(
                 D,
                 tile_size,
                 score_nt,
-                std::tuple_size_v<PairScores>,
+                PairScores::size(),
                 Real,
                 Int>::
                 eval_interres_atom_pair(tid, start1, start2, pair_score, data);

@@ -1,9 +1,9 @@
+#include <tmol/utility/portable/matrix.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <Eigen/Core>
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 
 tmol::TPack<float, 1, tmol::Device::CUDA> gpu_warp_segreduce_full(
     tmol::TView<float, 1, tmol::Device::CUDA> values,

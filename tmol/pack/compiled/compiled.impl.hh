@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tmol/utility/portable/reduce_ops.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/context_manager.hh>
@@ -9,8 +10,6 @@
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/counting.hh>
-
-#include <moderngpu/operators.hxx>
 
 #include "annealer.hh"
 
@@ -191,12 +190,13 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
         chunk_pair_offset_for_block_pair_tp.view;
 
     int64_t const n_adjacent_chunk_pairs_total_64 =
-        DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+        DeviceDispatch<D>::template scan_and_return_total<
+            tmol::portable::scan_type::exclusive>(
             mgr,
             n_chunks_for_block_pair.data(),
             chunk_pair_offset_for_block_pair.data(),
             n_pose_block_pair_cells,
-            mgpu::plus_t<int64_t>());
+            tmol::portable::plus_t<int64_t>());
     int const n_adjacent_chunk_pairs_total =
         score::common::checked_dispatch_size(
             n_adjacent_chunk_pairs_total_64,
@@ -257,12 +257,13 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     auto chunk_pair_offsets = chunk_pair_offsets_tp.view;
 
     int64_t const n_two_body_energies =
-        DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+        DeviceDispatch<D>::template scan_and_return_total<
+            tmol::portable::scan_type::exclusive>(
             mgr,
             chunk_pair_adjacency.data(),
             chunk_pair_offsets.data(),
             n_adjacent_chunk_pairs_total,
-            mgpu::plus_t<int64_t>());
+            tmol::portable::plus_t<int64_t>());
 
     auto energy2b_tp = TPack<Real, 1, D>::zeros({n_two_body_energies});
     auto energy2b = energy2b_tp.view;
@@ -434,10 +435,11 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
 
             bool all_first_rotamer =
                 DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
-                    first_rotamer, mgpu::minimum_t<bool>());
+                    first_rotamer, tmol::portable::minimum_t<bool>());
             Real best_energy =
                 DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
-                    best_energy_for_rot1_w_block2, mgpu::minimum_t<Real>());
+                    best_energy_for_rot1_w_block2,
+                    tmol::portable::minimum_t<Real>());
 
             if (!all_first_rotamer && tid == 0) {
               if (best_energy != 0.0) {
@@ -481,10 +483,10 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
         }
         bool none_found =
             DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
-                first_rotamer, mgpu::minimum_t<bool>());
+                first_rotamer, tmol::portable::minimum_t<bool>());
         Real block_best_energy =
             DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
-                best_energy, mgpu::minimum_t<Real>());
+                best_energy, tmol::portable::minimum_t<Real>());
         if (!none_found && tid == 0) {
           best_energy_per_block[pose][block] = block_best_energy;
         }
@@ -545,10 +547,10 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       }
       int n_kept_rotamers_for_block =
           DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
-              tid_n_kept_rotamers_for_block, mgpu::plus_t<int>());
+              tid_n_kept_rotamers_for_block, tmol::portable::plus_t<int>());
       int biggest_kept_rotamer =
           DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
-              tid_biggest_kept_rotamer, mgpu::maximum_t<int>());
+              tid_biggest_kept_rotamer, tmol::portable::maximum_t<int>());
 
       if (tid == 0) {
         if (n_kept_rotamers_for_block > 1) {
@@ -583,12 +585,13 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   auto old_to_new_rotamer_index = old_to_new_rotamer_index_tp.view;
 
   int64_t const n_kept_rotamers =
-      DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+      DeviceDispatch<D>::template scan_and_return_total<
+          tmol::portable::scan_type::exclusive>(
           mgr,
           keep_rotamer.data(),
           old_to_new_rotamer_index.data(),
           n_rotamers,
-          mgpu::plus_t<int64_t>());
+          tmol::portable::plus_t<int64_t>());
 
   auto new_to_old_rotamer_index_tp =
       TPack<int64_t, 1, D>::zeros({n_kept_rotamers});
@@ -613,12 +616,13 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   auto block_to_molten_block_inds = block_to_molten_block_inds_tp.view;
 
   int64_t const n_molten_blocks_64 =
-      DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+      DeviceDispatch<D>::template scan_and_return_total<
+          tmol::portable::scan_type::exclusive>(
           mgr,
           keep_block.data(),
           block_to_molten_block_inds.data(),
           n_pose_block_cells,
-          mgpu::plus_t<int64_t>());
+          tmol::portable::plus_t<int64_t>());
   int const n_molten_blocks = score::common::checked_dispatch_size(
       n_molten_blocks_64, "interaction-graph molten-block dispatch");
   auto molten_block_to_block_inds_tp =
@@ -670,7 +674,10 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
 
   // get maximum number of molten blocks per pose.
   int const max_n_molten_blocks = DeviceDispatch<D>::reduce(
-      mgr, n_molten_blocks_per_pose.data(), n_poses, mgpu::maximum_t<Int>());
+      mgr,
+      n_molten_blocks_per_pose.data(),
+      n_poses,
+      tmol::portable::maximum_t<Int>());
   int const n_pose_molten_block_cells = score::common::checked_dispatch_product(
       n_poses, max_n_molten_blocks, "interaction-graph molten-block dispatch");
   auto n_bc_rots_per_pose_tp = TPack<Int, 1, D>::zeros({n_poses});
@@ -718,7 +725,10 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   DeviceDispatch<D>::template forall<launch_t>(
       mgr, n_poses, fill_n_bc_rots_per_pose);
   int const max_n_bc_rots_per_pose = DeviceDispatch<D>::reduce(
-      mgr, n_bc_rots_per_pose.data(), n_poses, mgpu::maximum_t<Int>());
+      mgr,
+      n_bc_rots_per_pose.data(),
+      n_poses,
+      tmol::portable::maximum_t<Int>());
   auto max_n_bump_checked_rotamers_per_pose_tp =
       TPack<int64_t, 1, tmol::Device::CPU>::full({1}, max_n_bc_rots_per_pose);
 
@@ -864,12 +874,13 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       TPack<int64_t, 1, D>::zeros({n_pose_molten_block_cells + 1});
   auto neighbor_row_offsets = neighbor_row_offsets_tp.view;
   int64_t const n_directed_block_pairs =
-      DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+      DeviceDispatch<D>::template scan_and_return_total<
+          tmol::portable::scan_type::exclusive>(
           mgr,
           n_neighbors_for_block.data(),
           neighbor_row_offsets.data(),
           n_pose_molten_block_cells + 1,
-          mgpu::plus_t<int64_t>());
+          tmol::portable::plus_t<int64_t>());
   int const n_directed_block_pairs_dispatch =
       score::common::checked_dispatch_size(
           n_directed_block_pairs,
@@ -904,12 +915,13 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   auto chunk_pair_offset_for_neighbor_pair =
       chunk_pair_offset_for_neighbor_pair_tp.view;
   int64_t const n_adjacent_chunk_pairs_total_64 =
-      DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+      DeviceDispatch<D>::template scan_and_return_total<
+          tmol::portable::scan_type::exclusive>(
           mgr,
           n_chunks_for_neighbor_pair.data(),
           chunk_pair_offset_for_neighbor_pair.data(),
           n_directed_block_pairs_dispatch,
-          mgpu::plus_t<int64_t>());
+          tmol::portable::plus_t<int64_t>());
   int const n_adjacent_chunk_pairs_total = score::common::checked_dispatch_size(
       n_adjacent_chunk_pairs_total_64,
       "interaction-graph retained chunk-pair dispatch");
@@ -1000,12 +1012,13 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   auto chunk_pair_offsets = chunk_pair_offsets_tp.view;
 
   int64_t const n_two_body_energies =
-      DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+      DeviceDispatch<D>::template scan_and_return_total<
+          tmol::portable::scan_type::exclusive>(
           mgr,
           chunk_pair_adjacency.data(),
           chunk_pair_offsets.data(),
           n_adjacent_chunk_pairs_total,
-          mgpu::plus_t<int64_t>());
+          tmol::portable::plus_t<int64_t>());
   auto energy2b_tp = TPack<Real, 1, D>::zeros({n_two_body_energies});
   auto energy2b = energy2b_tp.view;
 
@@ -1015,146 +1028,166 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   auto bg_bg_energies_tp = TPack<Real, 1, D>::zeros({n_poses});
   auto bg_bg_energies = bg_bg_energies_tp.view;
 
-  auto record_energies_in_energy1b_and_energy2b = ([=] TMOL_DEVICE_FUNC(
-                                                       int64_t index) {
+  // Entries whose destination cell no other entry writes. See the two-pass
+  // note at the dispatch below.
+  auto record_energies_into_disjoint_cells =
+      ([=] TMOL_DEVICE_FUNC(int64_t index) {
     int const pose = sparse_inds[0][index];
     int const rot1 = sparse_inds[1][index];
     int const rot2 = sparse_inds[2][index];
-    int const bc_rot1 = old_to_new_rotamer_index[rot1];
-    int const bc_rot2 = old_to_new_rotamer_index[rot2];
     int const kept_rot1 = keep_rotamer[rot1];
     int const kept_rot2 = keep_rotamer[rot2];
-    Real const energy = sparse_energies[index];
     int const block1 = block_ind_for_rot[rot1];
     int const block2 = block_ind_for_rot[rot2];
+    int const kept_block1 = keep_block[pose][block1];
+    int const kept_block2 = keep_block[pose][block2];
+
+    if (!kept_block1 || !kept_block2 || !kept_rot1 || !kept_rot2) {
+      return;
+    }
+
+    Real const energy = sparse_energies[index];
+    int const bc_rot1 = old_to_new_rotamer_index[rot1];
+    int const bc_rot2 = old_to_new_rotamer_index[rot2];
+
+    if (block1 == block2) {
+      // The diagonal carries self-pairs only, so this is the one entry
+      // writing this rotamer's one-body cell.
+      score::common::accumulate<D, Real>::add(energy1b[bc_rot1], energy);
+      return;
+    }
+
     int const molten_block1 =
         block_to_molten_block_inds[pose * max_n_blocks + block1]
         - molten_block_offset_for_pose[pose];
     int const molten_block2 =
         block_to_molten_block_inds[pose * max_n_blocks + block2]
         - molten_block_offset_for_pose[pose];
+
+    int const block1_rot_offset =
+        bc_rot_offset_for_molten_block[pose][molten_block1];
+    int const block2_rot_offset =
+        bc_rot_offset_for_molten_block[pose][molten_block2];
+    int const local_rot1 = bc_rot1 - block1_rot_offset;
+    int const local_rot2 = bc_rot2 - block2_rot_offset;
+
+    int const chunk1 = local_rot1 / chunk_size;
+    int const chunk2 = local_rot2 / chunk_size;
+    int const n_rots_block1 = n_bc_rots_for_molten_block[pose][molten_block1];
+    int const n_rots_block2 = n_bc_rots_for_molten_block[pose][molten_block2];
+    int const n_chunks1 = (n_rots_block1 - 1) / chunk_size + 1;
+    int const n_chunks2 = (n_rots_block2 - 1) / chunk_size + 1;
+
+    int const overhang1 = n_rots_block1 - chunk1 * chunk_size;
+    int const overhang2 = n_rots_block2 - chunk2 * chunk_size;
+    int const chunk1_size = (overhang1 > chunk_size ? chunk_size : overhang1);
+    int const chunk2_size = (overhang2 > chunk_size ? chunk_size : overhang2);
+
+    int const rot_ind_wi_chunk1 = local_rot1 - chunk1 * chunk_size;
+    int const rot_ind_wi_chunk2 = local_rot2 - chunk2 * chunk_size;
+
+    int64_t const neighbor_pair_ij =
+        find_neighbor_pair(pose, molten_block1, molten_block2);
+    int64_t const neighbor_pair_ji =
+        find_neighbor_pair(pose, molten_block2, molten_block1);
+    int64_t const block_pair_chunk_offset_ij =
+        chunk_pair_offset_for_neighbor_pair[neighbor_pair_ij];
+    int64_t const block_pair_chunk_offset_ji =
+        chunk_pair_offset_for_neighbor_pair[neighbor_pair_ji];
+
+    int64_t const chunk_offset_ij = chunk_pair_offsets
+        [block_pair_chunk_offset_ij + chunk1 * n_chunks2 + chunk2];
+    int64_t const chunk_offset_ji = chunk_pair_offsets
+        [block_pair_chunk_offset_ji + chunk2 * n_chunks1 + chunk1];
+
+    score::common::accumulate<D, Real>::add(
+        energy2b
+            [chunk_offset_ij + rot_ind_wi_chunk1 * chunk2_size
+             + rot_ind_wi_chunk2],
+        energy);
+    score::common::accumulate<D, Real>::add(
+        energy2b
+            [chunk_offset_ji + rot_ind_wi_chunk2 * chunk1_size
+             + rot_ind_wi_chunk1],
+        energy);
+  });
+
+  // Entries that fold into a cell other entries also write: the
+  // background/background total, and the one-body cell of a surviving rotamer
+  // whose partner's block went to the background. Serial by necessity.
+  auto record_energies_into_shared_cells =
+      ([=] TMOL_DEVICE_FUNC(int64_t index) {
+    int const pose = sparse_inds[0][index];
+    int const rot1 = sparse_inds[1][index];
+    int const rot2 = sparse_inds[2][index];
+    int const kept_rot1 = keep_rotamer[rot1];
+    int const kept_rot2 = keep_rotamer[rot2];
+    int const block1 = block_ind_for_rot[rot1];
+    int const block2 = block_ind_for_rot[rot2];
     int const kept_block1 = keep_block[pose][block1];
     int const kept_block2 = keep_block[pose][block2];
+
+    if (kept_block1 && kept_block2) {
+      // Handled by the disjoint pass, whichever branch it took.
+      return;
+    }
+
+    Real const energy = sparse_energies[index];
 
     if (!kept_block1 && !kept_block2) {
       if (rot1 == rotamer_for_nonmolten_block[pose][block1]
           && rot2 == rotamer_for_nonmolten_block[pose][block2]) {
-        // then this is a background / background interaction that we are not
-        // keeping in the interaction graph, but we will save it in the
-        // bg_bg_energies table so that we can keep track of the total energy of
-        // the pose
+        // A background/background interaction. It stays out of the
+        // interaction graph, but the pose's total energy still needs it.
         score::common::accumulate<D, Real>::add(bg_bg_energies[pose], energy);
       }
       return;
     }
-    // otherwise, if both rotamers have been eliminated, then we do not need
-    // to do anything with their interaction energy
+
     if (!kept_rot1 && !kept_rot2) {
       return;
     }
 
     if (!kept_block1) {
-      // if we did not keep block 1,
-      // and if this rotamer is the one
-      // we will assign to this position
-      // then we should put this two body energy
-      // into the one-body energy for the
-      // other rotamer.
+      // Block 1 is background. If this is the rotamer it was assigned, the
+      // interaction becomes part of the other rotamer's one-body energy.
       if (rot1 == rotamer_for_nonmolten_block[pose][block1]) {
-        // then we should put this two body energy into the one-body energy for
-        // the other rotamer
-        score::common::accumulate<D, Real>::add(energy1b[bc_rot2], energy);
-      }
-      return;
-    } else if (!kept_block2) {
-      // if we did not keep block 2,
-      // and if this rotamer is the one
-      // we will assign to this position
-      // then we should put this two body energy
-      // into the one-body energy for the
-      // other rotamer.
-      if (rot2 == rotamer_for_nonmolten_block[pose][block2]) {
-        // then we should put this two body energy into the one-body energy for
-        // the other rotamer
-        score::common::accumulate<D, Real>::add(energy1b[bc_rot1], energy);
+        score::common::accumulate<D, Real>::add(
+            energy1b[old_to_new_rotamer_index[rot2]], energy);
       }
       return;
     }
 
-    if (!kept_rot1 || !kept_rot2) {
-      // We will not save this interaction energy;
-      // neither of these rotmaers are the
-      // sole remaining rotamer of a block that has
-      // been relegated to the background, and
-      // so we are looking at an interaction that
-      // is not going to end up in the final
-      // interaction graph.
-      return;
-    }
-
-    if (block1 == block2) {
-      score::common::accumulate<D, Real>::add(energy1b[bc_rot1], energy);
-    } else {
-      int const block1_rot_offset =
-          bc_rot_offset_for_molten_block[pose][molten_block1];
-      int const block2_rot_offset =
-          bc_rot_offset_for_molten_block[pose][molten_block2];
-      int const local_rot1 = bc_rot1 - block1_rot_offset;
-      int const local_rot2 = bc_rot2 - block2_rot_offset;
-
-      int const chunk1 = local_rot1 / chunk_size;
-      int const chunk2 = local_rot2 / chunk_size;
-      int const n_rots_block1 = n_bc_rots_for_molten_block[pose][molten_block1];
-      int const n_rots_block2 = n_bc_rots_for_molten_block[pose][molten_block2];
-      int const n_chunks1 = (n_rots_block1 - 1) / chunk_size + 1;
-      int const n_chunks2 = (n_rots_block2 - 1) / chunk_size + 1;
-
-      int const overhang1 = n_rots_block1 - chunk1 * chunk_size;
-      int const overhang2 = n_rots_block2 - chunk2 * chunk_size;
-      int const chunk1_size = (overhang1 > chunk_size ? chunk_size : overhang1);
-      int const chunk2_size = (overhang2 > chunk_size ? chunk_size : overhang2);
-
-      int const rot_ind_wi_chunk1 = local_rot1 - chunk1 * chunk_size;
-      int const rot_ind_wi_chunk2 = local_rot2 - chunk2 * chunk_size;
-
-      int64_t const neighbor_pair_ij =
-          find_neighbor_pair(pose, molten_block1, molten_block2);
-      int64_t const neighbor_pair_ji =
-          find_neighbor_pair(pose, molten_block2, molten_block1);
-      int64_t const block_pair_chunk_offset_ij =
-          chunk_pair_offset_for_neighbor_pair[neighbor_pair_ij];
-      int64_t const block_pair_chunk_offset_ji =
-          chunk_pair_offset_for_neighbor_pair[neighbor_pair_ji];
-
-      int64_t const chunk_pair_offset_ij_ind =
-          block_pair_chunk_offset_ij + chunk1 * n_chunks2 + chunk2;
-      int64_t const chunk_pair_offset_ji_ind =
-          block_pair_chunk_offset_ji + chunk2 * n_chunks1 + chunk1;
-
-      int64_t const chunk_offset_ij = chunk_pair_offsets
-          [block_pair_chunk_offset_ij + chunk1 * n_chunks2 + chunk2];
-      int64_t const chunk_offset_ji = chunk_pair_offsets
-          [block_pair_chunk_offset_ji + chunk2 * n_chunks1 + chunk1];
-
-      int64_t e2b_ind_ij =
-          chunk_offset_ij + rot_ind_wi_chunk1 * chunk2_size + rot_ind_wi_chunk2;
-      int64_t e2b_ind_ji =
-          chunk_offset_ji + rot_ind_wi_chunk2 * chunk1_size + rot_ind_wi_chunk1;
-
+    // Block 2 is background, by the same argument.
+    if (rot2 == rotamer_for_nonmolten_block[pose][block2]) {
       score::common::accumulate<D, Real>::add(
-          energy2b
-              [chunk_offset_ij + rot_ind_wi_chunk1 * chunk2_size
-               + rot_ind_wi_chunk2],
-          energy);
-      score::common::accumulate<D, Real>::add(
-          energy2b
-              [chunk_offset_ji + rot_ind_wi_chunk2 * chunk1_size
-               + rot_ind_wi_chunk1],
-          energy);
+          energy1b[old_to_new_rotamer_index[rot1]], energy);
     }
   });
+
+  // Two passes, because the write set is only partly disjoint.
+  //
+  // When both blocks are molten and both rotamers survive the bump check, an
+  // entry lands in a cell no other entry touches: the diagonal writes one
+  // energy1b cell per rotamer (the diagonal carries self-pairs only), and the
+  // off-diagonal writes the two chunk cells belonging to its rotamer pair.
+  // That is the bulk of the table and the same disjoint scatter the
+  // bump-check branch above already runs through forall_independent.
+  //
+  // The remaining cases fold a two-body energy into a cell shared with other
+  // entries -- bg_bg_energies[pose], or energy1b of the surviving partner when
+  // a block has been relegated to the background, which every neighbouring
+  // background block contributes to. CPU accumulation is deliberately
+  // non-atomic (see accumulate.hh), so those have to stay serial; running
+  // them in parallel would race, and making them atomic would make the sum
+  // order-dependent and the packing nondeterministic.
+  //
+  // The serial pass still walks every entry, but exits after a handful of
+  // loads for the entries the parallel pass handled.
+  DeviceDispatch<D>::template forall_independent<launch_t>(
+      mgr, n_sparse_entries_dispatch, record_energies_into_disjoint_cells);
   DeviceDispatch<D>::template forall<launch_t>(
-      mgr, n_sparse_entries_dispatch, record_energies_in_energy1b_and_energy2b);
+      mgr, n_sparse_entries_dispatch, record_energies_into_shared_cells);
 
   auto sentinel_out_non_adjacent_chunk_pairs =
       ([=] TMOL_DEVICE_FUNC(int index) {

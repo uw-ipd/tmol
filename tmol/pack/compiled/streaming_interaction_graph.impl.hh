@@ -1,6 +1,6 @@
 #pragma once
 
-#include <moderngpu/operators.hxx>
+#include <tmol/utility/portable/reduce_ops.hh>
 
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/counting.hh>
@@ -137,12 +137,13 @@ auto StreamingInteractionGraph<DeviceDispatch, D, Real, Int>::finalize(
       TPack<int64_t, 1, D>::zeros({int64_t(n_rows) + 1});
   auto neighbor_row_offsets = neighbor_row_offsets_tp.view;
   int64_t const n_directed_edges =
-      DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+      DeviceDispatch<D>::template scan_and_return_total<
+          tmol::portable::scan_type::exclusive>(
           mgr,
           n_neighbors_for_block.data(),
           neighbor_row_offsets.data(),
           n_rows + 1,
-          mgpu::plus_t<int64_t>());
+          tmol::portable::plus_t<int64_t>());
   int const n_directed_edges_dispatch = score::common::checked_dispatch_size(
       n_directed_edges, "streaming interaction-graph edge dispatch");
 
@@ -174,12 +175,13 @@ auto StreamingInteractionGraph<DeviceDispatch, D, Real, Int>::finalize(
       TPack<int64_t, 1, D>::zeros({n_directed_edges});
   auto neighbor_chunk_offset_offsets = neighbor_chunk_offset_offsets_tp.view;
   int64_t const n_chunk_pairs =
-      DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+      DeviceDispatch<D>::template scan_and_return_total<
+          tmol::portable::scan_type::exclusive>(
           mgr,
           n_chunks_for_neighbor_pair.data(),
           neighbor_chunk_offset_offsets.data(),
           n_directed_edges_dispatch,
-          mgpu::plus_t<int64_t>());
+          tmol::portable::plus_t<int64_t>());
 
   auto n_chunk_words_for_neighbor_pair_tp =
       TPack<int64_t, 1, D>::zeros({n_directed_edges});
@@ -195,12 +197,13 @@ auto StreamingInteractionGraph<DeviceDispatch, D, Real, Int>::finalize(
       TPack<int64_t, 1, D>::zeros({n_directed_edges});
   auto neighbor_chunk_bitset_offsets = neighbor_chunk_bitset_offsets_tp.view;
   int64_t const n_chunk_words =
-      DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+      DeviceDispatch<D>::template scan_and_return_total<
+          tmol::portable::scan_type::exclusive>(
           mgr,
           n_chunk_words_for_neighbor_pair.data(),
           neighbor_chunk_bitset_offsets.data(),
           n_directed_edges_dispatch,
-          mgpu::plus_t<int64_t>());
+          tmol::portable::plus_t<int64_t>());
   auto chunk_adjacency_tp = TPack<int32_t, 1, D>::zeros({n_chunk_words});
 
   return {
@@ -333,12 +336,13 @@ auto StreamingInteractionGraph<DeviceDispatch, D, Real, Int>::finalize_chunks(
   DeviceDispatch<D>::template forall<launch_t>(
       mgr, n_directed_edges, count_chunk_pairs);
   int64_t const n_chunk_pairs =
-      DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+      DeviceDispatch<D>::template scan_and_return_total<
+          tmol::portable::scan_type::exclusive>(
           mgr,
           n_chunks_for_neighbor_pair.data(),
           neighbor_chunk_offset_offsets.data(),
           n_directed_edges,
-          mgpu::plus_t<int64_t>());
+          tmol::portable::plus_t<int64_t>());
 
   auto chunk_pair_sizes_tp = TPack<int64_t, 1, D>::zeros({n_chunk_pairs});
   auto chunk_pair_sizes = chunk_pair_sizes_tp.view;
@@ -383,12 +387,13 @@ auto StreamingInteractionGraph<DeviceDispatch, D, Real, Int>::finalize_chunks(
   auto chunk_offsets_tp = TPack<int64_t, 1, D>::zeros({n_chunk_pairs});
   auto chunk_offsets = chunk_offsets_tp.view;
   int64_t const n_two_body_energies =
-      DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+      DeviceDispatch<D>::template scan_and_return_total<
+          tmol::portable::scan_type::exclusive>(
           mgr,
           chunk_pair_sizes.data(),
           chunk_offsets.data(),
           n_chunk_pairs,
-          mgpu::plus_t<int64_t>());
+          tmol::portable::plus_t<int64_t>());
   auto energy2b_tp = TPack<Real, 1, D>::zeros({n_two_body_energies});
   auto sentinel_empty_chunks = ([=] TMOL_DEVICE_FUNC(int index) {
     if (chunk_pair_sizes[index] == 0) {

@@ -1,0 +1,64 @@
+#pragma once
+
+// Plain parameter structs, free of the torch tensor layer.
+//
+// Split out of params.hh so that device-side scalar math can include the
+// struct definitions without dragging in TensorUtil.h (and through it Eigen
+// and torch), which exist only for the enable_tensor_view specializations.
+// A Metal kernel receives these as bound buffers and needs the layout, not
+// the tensor machinery. See tmol/tests/utility/portable/.
+
+namespace tmol {
+namespace kinematics {
+
+enum BondDOFTypes {
+  // Indices of bond dof types within KinDOF.raw
+
+  bond_dof_phi_p = 0,
+  bond_dof_theta,
+  bond_dof_d,
+  bond_dof_phi_c,
+  bond_dof_n_movable_dofs
+};
+
+enum JumpDOFTypes {
+  // Indices of jump dof types within KinDOF.raw
+
+  jump_dof_RBx = 0,
+  jump_dof_RBy,
+  jump_dof_RBz,
+  jump_dof_RBdel_alpha,
+  jump_dof_RBdel_beta,
+  jump_dof_RBdel_gamma,
+  jump_dof_RBalpha,
+  jump_dof_RBbeta,
+  jump_dof_RBgamma,
+};
+
+enum EdgeTypes {
+  ff_polymer_edge = 0,
+  ff_jump_edge,
+  ff_root_jump_edge,
+  // a single non-polymeric bond; slot 3 of the edge holds the index of the
+  // connection on the start block that leads to the end block
+  ff_chemical_edge,
+};
+
+template <typename Int>
+struct KinForestParams {
+  Int id;
+  Int doftype;
+  Int parent;
+  Int frame_x;
+  Int frame_y;
+  Int frame_z;
+};
+
+template <typename Int>
+struct KinForestGenData {
+  Int node_start;
+  Int scan_start;
+};
+
+}  // namespace kinematics
+}  // namespace tmol

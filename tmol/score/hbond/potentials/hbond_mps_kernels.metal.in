@@ -1,0 +1,182 @@
+// Metal entry points for the hbond term.
+//
+// Runtime shader compilation cannot resolve filesystem includes, so this file
+// is pre-expanded by the C preprocessor at build time and the flattened text
+// is handed to torch's MPS shader-library API. That is also why it is named
+// `.metal.in` rather than `.metal`: it is not a standalone shader until the
+// includes have been inlined.
+//
+// Everything below the includes is a thin shell. The scoring itself lives in
+// hbond_kernels.hh, compiled here from exactly the same source the CPU and
+// CUDA backends use. All this file does is what Metal demands a kernel entry
+// do and a called function cannot: declare the threadgroup storage, read the
+// thread's position from entry attributes, and name the address space of the
+// bound buffers.
+
+#include <tmol/score/common/device_operations.mps.impl.hh>
+#include <tmol/score/common/launch_box_macros.hh>
+#include <tmol/score/hbond/potentials/hbond_ctx_metal.hh>
+#include <tmol/score/hbond/potentials/hbond_kernels.hh>
+
+using tmol::score::common::DeviceOperations;
+using tmol::score::common::TilePairMode;
+using tmol::score::common::WorkgroupLane;
+using namespace tmol::score::hbond::potentials;
+
+LAUNCH_BOX_32
+
+typedef WorkgroupLane<tmol::Device::MPS> Lane;
+
+// Whole-pose scoring: output is [term, pose, block, block], dispatch is the
+// block-neighbor table [pose, block, block]. The forward pass accumulates
+// derivatives into a rank-2 tensor, the backward into a rank-1 one.
+typedef HBondCtxMetal<float, int32_t, 4, 3, 2> PoseCtx;
+typedef HBondCtxMetal<float, int32_t, 4, 3, 1> PoseDerivCtx;
+// Rotamer scoring: output is [term, rot_pair], dispatch is [3, rot_pair].
+typedef HBondCtxMetal<float, int32_t, 2, 2, 2> RotCtx;
+
+typedef HBondSharedMem<float, TILE_SIZE, MAX_N_CONN, launch_t> HBondShared;
+
+// One float per simdgroup in the threadgroup. nt is 32 and the simdgroup
+// width on Apple silicon is also 32, so this is a single slot -- but sizing
+// it from the launch width keeps it correct if nt grows.
+#define TMOL_N_SIMDS ((launch_t::sm_ptx::nt + 31) / 32)
+
+// The view buffers are declared positionally and immediately collected into an
+// array: HBondCtxT::visit_views assigns them to fields in this order, and the
+// host binds them in that same order, so neither side repeats the field list.
+// The count is checked against the context below.
+//
+// BODY_CALL is spelled per entry because the whole-pose forward takes two
+// extra template arguments the other two do not.
+#define TMOL_HBOND_ENTRY(ENTRY_NAME, CTX_T, BODY_CALL)                       \
+  kernel void ENTRY_NAME(                                                    \
+      device const int64_t* meta [[buffer(0)]],                              \
+      device void* b1 [[buffer(1)]],                                  \
+      device void* b2 [[buffer(2)]],                                  \
+      device void* b3 [[buffer(3)]],                                  \
+      device void* b4 [[buffer(4)]],                                  \
+      device void* b5 [[buffer(5)]],                                  \
+      device void* b6 [[buffer(6)]],                                  \
+      device void* b7 [[buffer(7)]],                                  \
+      device void* b8 [[buffer(8)]],                                  \
+      device void* b9 [[buffer(9)]],                                  \
+      device void* b10 [[buffer(10)]],                                  \
+      device void* b11 [[buffer(11)]],                                  \
+      device void* b12 [[buffer(12)]],                                  \
+      device void* b13 [[buffer(13)]],                                  \
+      device void* b14 [[buffer(14)]],                                  \
+      device void* b15 [[buffer(15)]],                                  \
+      device void* b16 [[buffer(16)]],                                  \
+      device void* b17 [[buffer(17)]],                                  \
+      device void* b18 [[buffer(18)]],                                  \
+      device void* b19 [[buffer(19)]],                                  \
+      device void* b20 [[buffer(20)]],                                  \
+      device void* b21 [[buffer(21)]],                                  \
+      device void* b22 [[buffer(22)]],                                  \
+      device void* b23 [[buffer(23)]],                                  \
+      device void* b24 [[buffer(24)]],                                  \
+      device void* b25 [[buffer(25)]],                                  \
+      device void* b26 [[buffer(26)]],                                  \
+      device void* b27 [[buffer(27)]],                                  \
+      uint cta [[threadgroup_position_in_grid]],                            \
+      uint tid [[thread_position_in_threadgroup]],                           \
+      uint n_threads [[threads_per_threadgroup]]) {                          \
+    static_assert(                                                           \
+        CTX_T::n_views == 27,                                                \
+        "buffer bindings here must cover every view visit_views enumerates");\
+    device void* ptrs[27] = {                                                \
+        b1,                       \
+        b2,                       \
+        b3,                       \
+        b4,                       \
+        b5,                       \
+        b6,                       \
+        b7,                       \
+        b8,                       \
+        b9,                       \
+        b10,                       \
+        b11,                       \
+        b12,                       \
+        b13,                       \
+        b14,                       \
+        b15,                       \
+        b16,                       \
+        b17,                       \
+        b18,                       \
+        b19,                       \
+        b20,                       \
+        b21,                       \
+        b22,                       \
+        b23,                       \
+        b24,                       \
+        b25,                       \
+        b26,                       \
+        b27};                                                                \
+    threadgroup HBondShared shared;                                          \
+    threadgroup float reduce_scratch[TMOL_N_SIMDS];                          \
+    CTX_T ctx = tmol_build_metal_ctx<CTX_T>(ptrs, meta);                     \
+    Lane lane(tid, n_threads, reduce_scratch);                               \
+    BODY_CALL;                                                               \
+  }
+
+// As with the rotamer entries: two instantiations of one body, so that
+// whichever is launched carries only the half of HBOND_ATOM_ENERGY it needs.
+TMOL_HBOND_ENTRY(
+    hbond_pose_eval_energies_f32,
+    PoseCtx,
+    (hbond_pose_eval_energies<
+        DeviceOperations,
+        tmol::Device::MPS,
+        float,
+        int32_t,
+        launch_t,
+        TilePairMode::InterAndIntra>(
+        ctx, shared, int(cta), deriv_tag<false>{}, lane)))
+
+TMOL_HBOND_ENTRY(
+    hbond_pose_eval_energies_derivs_f32,
+    PoseCtx,
+    (hbond_pose_eval_energies<
+        DeviceOperations,
+        tmol::Device::MPS,
+        float,
+        int32_t,
+        launch_t,
+        TilePairMode::InterAndIntra>(
+        ctx, shared, int(cta), deriv_tag<true>{}, lane)))
+
+TMOL_HBOND_ENTRY(
+    hbond_pose_eval_derivs_f32,
+    PoseDerivCtx,
+    (hbond_pose_eval_derivs<
+        DeviceOperations,
+        tmol::Device::MPS,
+        float,
+        int32_t,
+        launch_t>(ctx, shared, int(cta), lane)))
+
+// Two instantiations of one body. Packing never wants derivatives, and
+// dropping that branch is worth 17% of this entry's occupancy, so the common
+// path gets its own entry rather than a runtime flag.
+TMOL_HBOND_ENTRY(
+    hbond_rotamer_eval_energies_f32,
+    RotCtx,
+    (hbond_rotamer_eval_energies<
+        DeviceOperations,
+        tmol::Device::MPS,
+        float,
+        int32_t,
+        launch_t,
+        false>(ctx, shared, int(cta), lane)))
+
+TMOL_HBOND_ENTRY(
+    hbond_rotamer_eval_derivs_energies_f32,
+    RotCtx,
+    (hbond_rotamer_eval_energies<
+        DeviceOperations,
+        tmol::Device::MPS,
+        float,
+        int32_t,
+        launch_t,
+        true>(ctx, shared, int(cta), lane)))

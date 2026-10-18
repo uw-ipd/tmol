@@ -1,6 +1,7 @@
 #pragma once
 
-#include <Eigen/Core>
+#include <tmol/utility/portable/reduce_ops.hh>
+#include <tmol/utility/portable/matrix.hh>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
@@ -15,8 +16,6 @@
 
 #include <tmol/score/metal/potentials/metal_coordination_pose_score.hh>
 
-#include <moderngpu/operators.hxx>
-
 #include "params.hh"
 #include "potentials.hh"
 
@@ -25,8 +24,7 @@ namespace score {
 namespace metal {
 namespace potentials {
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 
 // conn_virt values that are not a virtual atom index
 constexpr int NOT_A_SITE = -2;
@@ -635,7 +633,10 @@ auto MetalCoordinationRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::
       mgr, n_rots, count_dispatch_indices);
 
   int64_t const max_n_energies_for_rot_64 = DeviceDispatch<D>::reduce(
-      mgr, n_energies_for_rot.data(), n_rots, mgpu::maximum_t<int64_t>());
+      mgr,
+      n_energies_for_rot.data(),
+      n_rots,
+      tmol::portable::maximum_t<int64_t>());
   int const max_n_energies_for_rot = score::common::checked_dispatch_size(
       max_n_energies_for_rot_64, "metal coordination per-rotamer dispatch");
   int const candidate_dispatch = score::common::checked_dispatch_product(
@@ -644,12 +645,13 @@ auto MetalCoordinationRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::
   auto n_energies_for_rot_offset_t = TPack<int64_t, 1, D>::zeros({n_rots});
   auto n_energies_for_rot_offset = n_energies_for_rot_offset_t.view;
   int64_t const n_dispatch_total_64 =
-      DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+      DeviceDispatch<D>::template scan_and_return_total<
+          tmol::portable::scan_type::exclusive>(
           mgr,
           n_energies_for_rot.data(),
           n_energies_for_rot_offset.data(),
           n_rots,
-          mgpu::plus_t<int64_t>());
+          tmol::portable::plus_t<int64_t>());
   int const n_dispatch_total = score::common::checked_dispatch_size(
       n_dispatch_total_64, "metal coordination output dispatch");
 

@@ -1,8 +1,5 @@
 #pragma once
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
-
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>

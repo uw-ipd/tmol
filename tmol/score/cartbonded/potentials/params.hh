@@ -1,65 +1,9 @@
-#include <tmol/utility/tensor/native.hh>
 #pragma once
 
+#include <tmol/utility/tensor/native.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorUtil.h>
-
-namespace tmol {
-namespace score {
-namespace cartbonded {
-namespace potentials {
-
-template <typename Int>
-struct CartBondedLengthParams {
-  Int atom_index_i;
-  Int atom_index_j;
-  Int param_index;
-};
-
-template <typename Int>
-struct CartBondedAngleParams {
-  Int atom_index_i;
-  Int atom_index_j;
-  Int atom_index_k;
-  Int param_index;
-};
-
-template <typename Int>
-struct CartBondedTorsionParams {
-  Int atom_index_i;
-  Int atom_index_j;
-  Int atom_index_k;
-  Int atom_index_l;
-  Int param_index;
-};
-
-template <typename Real>
-struct CartBondedHarmonicTypeParams {
-  Real K;
-  Real x0;
-};
-
-template <typename Real>
-struct CartBondedPeriodicTypeParams {
-  Real K;
-  Real x0;
-  Real period;
-};
-
-template <typename Real>
-struct CartBondedSinusoidalTypeParams {
-  Real k1;
-  Real k2;
-  Real k3;
-  Real phi1;
-  Real phi2;
-  Real phi3;
-};
-
-}  // namespace potentials
-}  // namespace cartbonded
-}  // namespace score
-}  // namespace tmol
+#include "params_types.hh"
 
 namespace tmol {
 

@@ -1,25 +1,28 @@
 #pragma once
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
-#include <cmath>
+#include <tmol/utility/portable/math.hh>
+#include <tmol/utility/portable/matrix.hh>
+#include <tmol/utility/portable/metal_view.hh>
+#include <tmol/utility/portable/qualifiers.hh>
 
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/count_pair.hh>
 #include <tmol/score/common/data_loading.hh>
+#include <tmol/score/common/workgroup_lane.hh>
 #include <tmol/score/ljlk/potentials/lk_isotropic.hh>
 
-#include "params.hh"
+#include "params_types.hh"
 
 namespace tmol {
 namespace score {
 namespace lk_ball {
 namespace potentials {
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::score::common::WorkgroupLane;
+
+using tmol::portable::Vec;
 
 enum lk_ball_score_type {
   w_lk_ball_iso = 0,
@@ -29,27 +32,36 @@ enum lk_ball_score_type {
   n_lk_ball_score_types  // keep this last
 };
 
-#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+#define def auto TMOL_HD
 
 // fd  these could be exposed as global parameters
+//
+// Spelled as functions rather than `static constexpr Real` members: Metal
+// requires every program-scope variable to live in the `constant` address
+// space, and a static data member of a class template is program scope. A
+// static member function returning the literal costs nothing after inlining
+// and needs no address space. See traits.hh for the same problem solved with
+// enumerators, which only works for integral types.
 template <typename Real>
 struct lkball_globals {
-  static constexpr Real overlap_gap_A2 = 0.5;
-  static constexpr Real overlap_width_A2 = 2.6;
-  static constexpr Real angle_overlap_A2 = 2.8 * overlap_width_A2;
-  static constexpr Real ramp_width_A2 = 3.709;
+  static TMOL_HD Real overlap_gap_A2() { return Real(0.5); }
+  static TMOL_HD Real overlap_width_A2() { return Real(2.6); }
+  static TMOL_HD Real angle_overlap_A2() {
+    return Real(2.8) * overlap_width_A2();
+  }
+  static TMOL_HD Real ramp_width_A2() { return Real(3.709); }
 };
 
 template <typename Real, int MAX_WATER>
 struct lk_fraction {
-  typedef Eigen::Matrix<Real, 3, 1> Real3;
-  typedef Eigen::Matrix<Real, MAX_WATER, 3> WatersMat;
+  typedef tmol::portable::Vec<Real, 3> Real3;
+  typedef tmol::portable::Mat<Real, MAX_WATER, 3> WatersMat;
 
   struct dV_t {
     WatersMat dWI;
     Real3 dJ;
 
-    def astuple() { return tmol::score::common::make_tuple(dWI, dJ); }
+    def astuple() { return make_tuple(dWI, dJ); }
 
     static def Zero() -> dV_t { return {WatersMat::Zero(), Real3::Zero()}; }
   };
@@ -59,34 +71,37 @@ struct lk_fraction {
     dV_t dV;
   };
 
-  static constexpr Real ramp_width_A2 = lkball_globals<Real>::ramp_width_A2;
+  static TMOL_HD Real ramp_width_A2() {
+    return lkball_globals<Real>::ramp_width_A2();
+  }
 
   static def square(Real v) -> Real { return v * v; }
 
   static def V(WatersMat WI, Real3 J, Real lj_radius_j) -> Real {
-    Real d2_low = square(Real(1.4) + lj_radius_j) - ramp_width_A2;
+    Real d2_low = square(Real(1.4) + lj_radius_j) - ramp_width_A2();
     if (d2_low < 0.0) d2_low = 0.0;
 
     Real wted_d2_delta = 0;
     for (int w = 0; w < MAX_WATER; ++w) {
-      if (std::isnan(WI(w, 0))) continue;
-      Real d2_delta = (J - WI.row(w).transpose()).squaredNorm() - d2_low;
-      wted_d2_delta += std::exp(-d2_delta);
+      if (tmol::portable::math::isnan(WI(w, 0))) continue;
+      Real d2_delta = (J - WI.row(w)).squaredNorm() - d2_low;
+      wted_d2_delta += tmol::portable::math::fast_exp(-d2_delta);
     }
 
     // The piecewise ramp is already clamped when the exponential sum lies
-    // outside (exp(-ramp_width_A2), 1). Avoid a logarithm in those common
+    // outside (exp(-ramp_width_A2()), 1). Avoid a logarithm in those common
     // cases.
     if (wted_d2_delta >= Real(1)) return Real(1);
-    if (wted_d2_delta <= std::exp(-ramp_width_A2)) return Real(0);
-    wted_d2_delta = -std::log(wted_d2_delta);
+    if (wted_d2_delta <= tmol::portable::math::fast_exp(-ramp_width_A2()))
+      return Real(0);
+    wted_d2_delta = -tmol::portable::math::fast_log(wted_d2_delta);
 
-    // The clamps above imply 0 < wted_d2_delta < ramp_width_A2.
-    return square(1 - square(wted_d2_delta / ramp_width_A2));
+    // The clamps above imply 0 < wted_d2_delta < ramp_width_A2().
+    return square(1 - square(wted_d2_delta / ramp_width_A2()));
   }
 
   static def V_dV(WatersMat WI, Real3 J, Real lj_radius_j) -> V_dV_t {
-    Real d2_low = square(Real(1.4) + lj_radius_j) - ramp_width_A2;
+    Real d2_low = square(Real(1.4) + lj_radius_j) - ramp_width_A2();
     if (d2_low < 0.0) d2_low = 0.0;
 
     Real wted_d2_delta = 0.0;
@@ -94,30 +109,31 @@ struct lk_fraction {
     WatersMat d_wted_d2_delta_d_WI = WatersMat::Zero();
 
     for (int w = 0; w < MAX_WATER; ++w) {
-      if (std::isnan(WI(w, 0))) continue;
-      Real3 delta_Jw = J - WI.row(w).transpose();
+      if (tmol::portable::math::isnan(WI(w, 0))) continue;
+      Real3 delta_Jw = J - WI.row(w);
       Real d2_delta = delta_Jw.squaredNorm() - d2_low;
-      Real exp_d2_delta = std::exp(-d2_delta);
+      Real exp_d2_delta = tmol::portable::math::fast_exp(-d2_delta);
 
       wted_d2_delta += exp_d2_delta;
       d_wted_d2_delta_d_J += exp_d2_delta * delta_Jw;
-      d_wted_d2_delta_d_WI.row(w).transpose() = -exp_d2_delta * delta_Jw;
+      tmol::portable::row_ref(d_wted_d2_delta_d_WI, w) =
+          -exp_d2_delta * delta_Jw;
     }
 
     Real const exp_sum = wted_d2_delta;
     if (exp_sum >= Real(1)) {
       return V_dV_t{Real(1), dV_t::Zero()};
     }
-    if (exp_sum <= std::exp(-ramp_width_A2)) {
+    if (exp_sum <= tmol::portable::math::fast_exp(-ramp_width_A2())) {
       return V_dV_t{Real(0), dV_t::Zero()};
     }
-    wted_d2_delta = -std::log(wted_d2_delta);
+    wted_d2_delta = -tmol::portable::math::fast_log(wted_d2_delta);
 
-    // The clamps above imply 0 < wted_d2_delta < ramp_width_A2.
-    Real frac = square(1 - square(wted_d2_delta / ramp_width_A2));
+    // The clamps above imply 0 < wted_d2_delta < ramp_width_A2().
+    Real frac = square(1 - square(wted_d2_delta / ramp_width_A2()));
     Real dfrac_dwted_d2 = Real(-4) * wted_d2_delta
-                          * (square(ramp_width_A2) - square(wted_d2_delta))
-                          / square(square(ramp_width_A2));
+                          * (square(ramp_width_A2()) - square(wted_d2_delta))
+                          / square(square(ramp_width_A2()));
     Real const derivative_scale = 2 * dfrac_dwted_d2 / exp_sum;
     return V_dV_t{
         frac,
@@ -133,8 +149,8 @@ struct lk_fraction {
 
 template <typename Real, int MAX_WATER>
 struct lk_bridge_fraction {
-  typedef Eigen::Matrix<Real, 3, 1> Real3;
-  typedef Eigen::Matrix<Real, MAX_WATER, 3> WatersMat;
+  typedef tmol::portable::Vec<Real, 3> Real3;
+  typedef tmol::portable::Mat<Real, MAX_WATER, 3> WatersMat;
 
   struct dV_t {
     Real3 dI;
@@ -142,7 +158,7 @@ struct lk_bridge_fraction {
     WatersMat dWI;
     WatersMat dWJ;
 
-    def astuple() { return tmol::score::common::make_tuple(dI, dJ, dWI, dWJ); }
+    def astuple() { return make_tuple(dI, dJ, dWI, dWJ); }
 
     static def Zero() -> dV_t {
       return dV_t{
@@ -155,12 +171,18 @@ struct lk_bridge_fraction {
     dV_t dV;
   };
 
-  static constexpr Real ramp_width_A2 = lkball_globals<Real>::ramp_width_A2;
-  static constexpr Real overlap_gap_A2 = lkball_globals<Real>::overlap_gap_A2;
-  static constexpr Real overlap_width_A2 =
-      lkball_globals<Real>::overlap_width_A2;
-  static constexpr Real angle_overlap_A2 =
-      lkball_globals<Real>::angle_overlap_A2;
+  static TMOL_HD Real ramp_width_A2() {
+    return lkball_globals<Real>::ramp_width_A2();
+  }
+  static TMOL_HD Real overlap_gap_A2() {
+    return lkball_globals<Real>::overlap_gap_A2();
+  }
+  static TMOL_HD Real overlap_width_A2() {
+    return lkball_globals<Real>::overlap_width_A2();
+  }
+  static TMOL_HD Real angle_overlap_A2() {
+    return lkball_globals<Real>::angle_overlap_A2();
+  }
 
   static def square(Real v) -> Real { return v * v; }
 
@@ -172,29 +194,29 @@ struct lk_bridge_fraction {
     Real overlap_target_len2 = Real(8) / Real(3) * square(lkb_water_dist);
     Real overlap_len2 = (I - J).squaredNorm();
     Real base_delta = fabs(overlap_len2 - overlap_target_len2);
-    if (base_delta > angle_overlap_A2) return Real(0);
-    Real anglefrac = square(1 - square(base_delta / angle_overlap_A2));
+    if (base_delta > angle_overlap_A2()) return Real(0);
+    Real anglefrac = square(1 - square(base_delta / angle_overlap_A2()));
 
     // water overlap
     Real wted_d2_delta = 0.0;
     for (int wi = 0; wi < MAX_WATER; wi++) {
-      if (std::isnan(WI(wi, 0))) continue;
+      if (tmol::portable::math::isnan(WI(wi, 0))) continue;
       for (int wj = 0; wj < MAX_WATER; wj++) {
-        if (std::isnan(WJ(wj, 0))) continue;
+        if (tmol::portable::math::isnan(WJ(wj, 0))) continue;
         Real d2_delta =
-            (WI.row(wi) - WJ.row(wj)).squaredNorm() - overlap_gap_A2;
-        wted_d2_delta += std::exp(-d2_delta);
+            (WI.row(wi) - WJ.row(wj)).squaredNorm() - overlap_gap_A2();
+        wted_d2_delta += tmol::portable::math::fast_exp(-d2_delta);
       }
     }
     Real overlapfrac;
-    if (wted_d2_delta <= std::exp(-overlap_width_A2)) {
+    if (wted_d2_delta <= tmol::portable::math::fast_exp(-overlap_width_A2())) {
       overlapfrac = 0;
     } else if (wted_d2_delta >= Real(1)) {
       overlapfrac = 1;
     } else {
-      wted_d2_delta = -std::log(wted_d2_delta);
+      wted_d2_delta = -tmol::portable::math::fast_log(wted_d2_delta);
       // square-square -> 1 as x -> 0
-      overlapfrac = square(1 - square(wted_d2_delta / overlap_width_A2));
+      overlapfrac = square(1 - square(wted_d2_delta / overlap_width_A2()));
     }
     return overlapfrac * anglefrac;
   }
@@ -207,17 +229,17 @@ struct lk_bridge_fraction {
     Real3 delta_ij = I - J;
     Real overlap_len2 = delta_ij.squaredNorm();
     Real base_delta = overlap_len2 - overlap_target_len2;
-    if (std::abs(base_delta) > angle_overlap_A2) {
+    if (tmol::portable::math::abs(base_delta) > angle_overlap_A2()) {
       return V_dV_t{Real(0), dV_t::Zero()};
     }
     Real3 d_wted_d2_delta_d_I = Real(2) * delta_ij;
     Real3 d_wted_d2_delta_d_J = Real(-2) * delta_ij;
-    Real anglefrac = square(1 - square(base_delta / angle_overlap_A2));
+    Real anglefrac = square(1 - square(base_delta / angle_overlap_A2()));
     Real d_anglefrac_d_base_delta =
-        std::abs(base_delta) > 0.0
+        tmol::portable::math::abs(base_delta) > 0.0
             ? Real(-4) * base_delta
-                  * (square(angle_overlap_A2) - square(base_delta))
-                  / square(square(angle_overlap_A2))
+                  * (square(angle_overlap_A2()) - square(base_delta))
+                  / square(square(angle_overlap_A2()))
             : Real(0);
 
     Real wted_d2_delta = 0.0;
@@ -226,15 +248,17 @@ struct lk_bridge_fraction {
     WatersMat d_wted_d2_delta_d_WJ = WatersMat::Zero();
 
     for (int wi = 0; wi < MAX_WATER; wi++) {
-      if (std::isnan(WI(wi, 0))) continue;
+      if (tmol::portable::math::isnan(WI(wi, 0))) continue;
       for (int wj = 0; wj < MAX_WATER; wj++) {
-        if (std::isnan(WJ(wj, 0))) continue;
+        if (tmol::portable::math::isnan(WJ(wj, 0))) continue;
         Real3 delta_ij = WI.row(wi) - WJ.row(wj);
-        Real d2_delta = delta_ij.squaredNorm() - overlap_gap_A2;
-        Real exp_d2_delta = std::exp(-d2_delta);
+        Real d2_delta = delta_ij.squaredNorm() - overlap_gap_A2();
+        Real exp_d2_delta = tmol::portable::math::fast_exp(-d2_delta);
 
-        d_wted_d2_delta_d_WI.row(wi).transpose() += exp_d2_delta * delta_ij;
-        d_wted_d2_delta_d_WJ.row(wj).transpose() -= exp_d2_delta * delta_ij;
+        tmol::portable::row_ref(d_wted_d2_delta_d_WI, wi) +=
+            exp_d2_delta * delta_ij;
+        tmol::portable::row_ref(d_wted_d2_delta_d_WJ, wj) -=
+            exp_d2_delta * delta_ij;
 
         wted_d2_delta += exp_d2_delta;
       }
@@ -245,18 +269,18 @@ struct lk_bridge_fraction {
     Real overlapfrac;
     Real d_overlapfrac_d_wted_d2;
 
-    if (exp_sum <= std::exp(-overlap_width_A2)) {
+    if (exp_sum <= tmol::portable::math::fast_exp(-overlap_width_A2())) {
       return V_dV_t{Real(0), dV_t::Zero()};
     } else if (exp_sum >= Real(1)) {
       overlapfrac = 1;
       d_overlapfrac_d_wted_d2 = 0;
     } else {
-      wted_d2_delta = -std::log(wted_d2_delta);
-      overlapfrac = square(1 - square(wted_d2_delta / overlap_width_A2));
+      wted_d2_delta = -tmol::portable::math::fast_log(wted_d2_delta);
+      overlapfrac = square(1 - square(wted_d2_delta / overlap_width_A2()));
       d_overlapfrac_d_wted_d2 =
           Real(-4) * wted_d2_delta
-          * (square(overlap_width_A2) - square(wted_d2_delta))
-          / square(square(overlap_width_A2));
+          * (square(overlap_width_A2()) - square(wted_d2_delta))
+          / square(square(overlap_width_A2()));
     }
 
     Real const water_derivative_scale =
@@ -288,7 +312,7 @@ struct lk_ball_Vt {
 
 template <typename Real>
 struct lk_ball_dV_dReal3 {
-  typedef Eigen::Matrix<Real, 3, 1> Real3;
+  typedef tmol::portable::Vec<Real, 3> Real3;
 
   Real3 d_lkball_iso;
   Real3 d_lkball;
@@ -302,7 +326,7 @@ struct lk_ball_dV_dReal3 {
 
 template <typename Real, int MAX_WATER>
 struct lk_ball_dV_dWater {
-  typedef Eigen::Matrix<Real, MAX_WATER, 3> WatersMat;
+  typedef tmol::portable::Mat<Real, MAX_WATER, 3> WatersMat;
 
   WatersMat d_lkball_iso;
   WatersMat d_lkball;
@@ -336,8 +360,8 @@ struct lk_ball_dVt {
 
 template <typename Real, int MAX_WATER>
 struct lk_ball_weighted_dVt {
-  typedef Eigen::Matrix<Real, 3, 1> Real3;
-  typedef Eigen::Matrix<Real, MAX_WATER, 3> WatersMat;
+  typedef tmol::portable::Vec<Real, 3> Real3;
+  typedef tmol::portable::Mat<Real, MAX_WATER, 3> WatersMat;
 
   Real3 dI;
   Real3 dJ;
@@ -351,12 +375,12 @@ struct lk_ball_weighted_dVt {
 
 template <typename Real, int MAX_WATER>
 struct lk_ball_score {
-  typedef Eigen::Matrix<Real, 3, 1> Real3;
-  typedef Eigen::Matrix<Real, MAX_WATER, 3> WatersMat;
+  typedef tmol::portable::Vec<Real, 3> Real3;
+  typedef tmol::portable::Mat<Real, MAX_WATER, 3> WatersMat;
 
-  static def has_water(WatersMat const& waters) -> bool {
+  static def has_water(TMOL_THREAD WatersMat const& waters) -> bool {
     for (int w = 0; w < MAX_WATER; ++w) {
-      if (!std::isnan(waters(w, 0))) return true;
+      if (!tmol::portable::math::isnan(waters(w, 0))) return true;
     }
     return false;
   }
@@ -621,13 +645,16 @@ class LKBallSingleResData {
   int rot_coord_offset;
   int n_atoms;
   int n_conn;
-  Real* pose_coords;
-  Real* water_coords;
+  // These point into the workgroup's shared tile buffer (and, on the CPU,
+  // straight at the immutable source tensors). Metal makes the address space
+  // part of the pointer type, so it has to be spelled; see metal_view.hh.
+  TMOL_SHARED_PTR(Real) pose_coords;
+  TMOL_DEVICE_PTR(Real) water_coords;
   unsigned char n_polars;
   unsigned char n_occluders;
-  unsigned char* pol_occ_tile_inds;
-  LKBallTypeParams<Real>* lk_ball_params;
-  unsigned char* path_dist;
+  TMOL_SHARED_PTR(unsigned char) pol_occ_tile_inds;
+  TMOL_DEVICE_PTR(LKBallTypeParams<Real>) lk_ball_params;
+  TMOL_SHARED_PTR(unsigned char) path_dist;
 };
 
 template <typename Real>
@@ -637,7 +664,7 @@ class LKBallResPairData {
   int max_important_bond_separation;
   int min_separation;
   bool in_count_pair_striking_dist;
-  unsigned char* conn_seps;
+  TMOL_SHARED_PTR(unsigned char) conn_seps;
 
   // load global params once; store totalE's
   LKBallGlobalParams<Real> global_params;
@@ -659,8 +686,6 @@ template <typename Real, int TILE_SIZE, int MAX_N_WATER, int MAX_N_CONN>
 struct LKBallBlockPairSharedData {
   Real pose_coords1[TILE_SIZE * 3];  // 768 bytes for coords
   Real pose_coords2[TILE_SIZE * 3];
-  Real water_coords1[TILE_SIZE * MAX_N_WATER * 3];  // 3072 bytes for coords
-  Real water_coords2[TILE_SIZE * MAX_N_WATER * 3];
 
   unsigned char n_polars1;  // 4 bytes for counts
   unsigned char n_polars2;
@@ -668,8 +693,6 @@ struct LKBallBlockPairSharedData {
   unsigned char n_occluders2;
   unsigned char pol_occ_tile_inds1[TILE_SIZE];  // 64 bytes for indices
   unsigned char pol_occ_tile_inds2[TILE_SIZE];
-  LKBallTypeParams<Real> lk_ball_params1[TILE_SIZE];  // 192 bytes for params
-  LKBallTypeParams<Real> lk_ball_params2[TILE_SIZE];
 
   unsigned char conn_ats1[MAX_N_CONN];  // 12 bytes
   unsigned char conn_ats2[MAX_N_CONN];
@@ -684,82 +707,96 @@ template <
     template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
+    typename Int,
     int MAX_N_WATER,
     typename Real,
-    typename Int>
+    typename PoseCoordsView,
+    typename WaterCoordsView,
+    typename BlockTypeTilePolOccIndsView,
+    typename BlockTypeTileLkBallParamsView>
 void TMOL_DEVICE_FUNC lk_ball_load_block_coords_and_params_into_shared(
-    TView<Vec<Real, 3>, 1, Dev> pose_coords,
-    TView<Vec<Real, 3>, 2, Dev> water_coords,
-    TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
-    TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
+    PoseCoordsView pose_coords,
+    WaterCoordsView water_coords,
+    BlockTypeTilePolOccIndsView block_type_tile_pol_occ_inds,
+    BlockTypeTileLkBallParamsView block_type_tile_lk_ball_params,
     int pose_ind,
     int tile_ind,
-    LKBallSingleResData<Real>& r_dat,
+    TMOL_THREAD LKBallSingleResData<Real>& r_dat,
     int n_atoms_to_load,
-    int start_atom) {
+    int start_atom,
+    // Trailing lane handle: empty and omissible on CPU and CUDA, required
+    // by the Metal backend. See workgroup_lane.hh.
+    WorkgroupLane<Dev> lane = {}) {
   // pre-condition: n_atoms_to_load < TILE_SIZE
   // Note that TILE_SIZE is not explicitly passed in, but is "present"
   // in r_dat.coords allocation
 
+  // Waters and per-atom parameters are immutable and already contiguous for
+  // this tile, so every backend reads them in place rather than staging a
+  // copy: on Metal the threadgroup block is what bounds occupancy, and these
+  // two arrays were 5376 of its 7148 bytes.
+  // TMOL_DEVICE_PTR, not Real*: a discarded `if constexpr` branch is still
+  // parsed on Metal, and Metal requires an address space on every pointer
+  // type it parses. See metal_view.hh.
+  r_dat.water_coords = reinterpret_cast<TMOL_DEVICE_PTR(Real)>(
+      &water_coords[r_dat.rot_coord_offset + start_atom][0]);
+  r_dat.lk_ball_params =
+      &block_type_tile_lk_ball_params[r_dat.block_type][tile_ind][0];
+
   if constexpr (Dev == tmol::Device::CPU) {
-    // CPU has no workgroup-shared memory to populate. Read immutable,
-    // contiguous coordinates and parameters in place instead of copying each
-    // rotamer pair through the CUDA-oriented staging arrays.
-    r_dat.pose_coords = reinterpret_cast<Real*>(
+    // CPU has no workgroup-shared memory to populate; the coordinates are
+    // contiguous there too.
+    r_dat.pose_coords = reinterpret_cast<TMOL_DEVICE_PTR(Real)>(
         &pose_coords[r_dat.rot_coord_offset + start_atom]);
-    r_dat.water_coords = reinterpret_cast<Real*>(
-        &water_coords[r_dat.rot_coord_offset + start_atom][0]);
-    r_dat.lk_ball_params =
-        &block_type_tile_lk_ball_params[r_dat.block_type][tile_ind][0];
   } else {
     DeviceDispatch<Dev>::template copy_contiguous_data<nt, 3>(
         r_dat.pose_coords,
-        reinterpret_cast<Real*>(
+        reinterpret_cast<TMOL_DEVICE_PTR(Real)>(
             &pose_coords[r_dat.rot_coord_offset + start_atom]),
-        n_atoms_to_load * 3);
-    DeviceDispatch<Dev>::template copy_contiguous_data<nt, MAX_N_WATER * 3>(
-        r_dat.water_coords,
-        reinterpret_cast<Real*>(
-            &water_coords[r_dat.rot_coord_offset + start_atom][0]),
-        n_atoms_to_load * MAX_N_WATER * 3);
-    int const N_PARAMS = sizeof(LKBallTypeParams<Real>) / sizeof(Real);
-    DeviceDispatch<Dev>::template copy_contiguous_data<nt, N_PARAMS>(
-        reinterpret_cast<Real*>(r_dat.lk_ball_params),
-        reinterpret_cast<Real*>(
-            &block_type_tile_lk_ball_params[r_dat.block_type][tile_ind][0]),
-        r_dat.n_occluders * N_PARAMS);
+        n_atoms_to_load * 3,
+        lane);
   }
   DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
       r_dat.pol_occ_tile_inds,
       &block_type_tile_pol_occ_inds[r_dat.block_type][tile_ind][0],
-      r_dat.n_occluders);
+      r_dat.n_occluders,
+      lane);
 }
 
 template <
     template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
+    typename Int,
     int TILE_SIZE,
     int MAX_N_WATER,
     typename Real,
-    typename Int>
+    typename PoseCoordsView,
+    typename WaterCoordsView,
+    typename BlockTypeTilePolOccIndsView,
+    typename BlockTypeTileLkBallParamsView,
+    typename BlockTypePathDistanceView>
 void TMOL_DEVICE_FUNC lk_ball_load_block_into_shared(
-    TView<Vec<Real, 3>, 1, Dev> pose_coords,
-    TView<Vec<Real, 3>, 2, Dev> water_coords,
-    TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
-    TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
-    TView<Int, 3, Dev> block_type_path_distance,
+    PoseCoordsView pose_coords,
+    WaterCoordsView water_coords,
+    BlockTypeTilePolOccIndsView block_type_tile_pol_occ_inds,
+    BlockTypeTileLkBallParamsView block_type_tile_lk_ball_params,
+    BlockTypePathDistanceView block_type_path_distance,
     int pose_ind,
     int tile_ind,
-    LKBallSingleResData<Real>& r_dat,
+    TMOL_THREAD LKBallSingleResData<Real>& r_dat,
     int n_atoms_to_load,
     int start_atom,
     bool count_pair_striking_dist,
-    unsigned char* __restrict__ conn_ats) {
+    TMOL_SHARED_PTR(unsigned char) conn_ats,
+    // Trailing lane handle: empty and omissible on CPU and CUDA, required
+    // by the Metal backend. See workgroup_lane.hh.
+    WorkgroupLane<Dev> lane = {}) {
   lk_ball_load_block_coords_and_params_into_shared<
       DeviceDispatch,
       Dev,
       nt,
+      Int,
       MAX_N_WATER>(
       pose_coords,
       water_coords,
@@ -769,7 +806,8 @@ void TMOL_DEVICE_FUNC lk_ball_load_block_into_shared(
       tile_ind,
       r_dat,
       n_atoms_to_load,
-      start_atom);
+      start_atom,
+      lane);
 
   auto copy_path_dists = ([=](int tid) {
     for (int count = tid; count < n_atoms_to_load; count += nt) {
@@ -782,7 +820,7 @@ void TMOL_DEVICE_FUNC lk_ball_load_block_into_shared(
     }
   });
   if (count_pair_striking_dist) {
-    DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(copy_path_dists);
+    DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(copy_path_dists, lane);
   }
 }
 
@@ -794,16 +832,24 @@ template <
     typename Real,
     int TILE_SIZE,
     int MAX_N_WATER,
-    int MAX_N_CONN>
+    int MAX_N_CONN,
+    typename RotCoordOffsetView,
+    typename BlockTypeIndForRotView,
+    typename PoseStackInterResidueConnectionsView,
+    typename PoseStackNearBlocksView,
+    typename PoseStackInterBlockBondsepView,
+    typename BlockTypeNInterblockBondsView,
+    typename BlockTypeAtomsFormingChemicalBondsView,
+    typename GlobalParamsView>
 void TMOL_DEVICE_FUNC lk_ball_load_tile_invariant_interres_data(
-    TView<Int, 1, Dev> rot_coord_offset,
-    TView<Int, 1, Dev> block_type_ind_for_rot,
-    TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
-    TView<Int, 4, Dev> pose_stack_near_blocks,
-    TView<int8_t, 5, Dev> pose_stack_inter_block_bondsep,
-    TView<Int, 1, Dev> block_type_n_interblock_bonds,
-    TView<Int, 2, Dev> block_type_atoms_forming_chemical_bonds,
-    TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
+    RotCoordOffsetView rot_coord_offset,
+    BlockTypeIndForRotView block_type_ind_for_rot,
+    PoseStackInterResidueConnectionsView pose_stack_inter_residue_connections,
+    PoseStackNearBlocksView pose_stack_near_blocks,
+    PoseStackInterBlockBondsepView pose_stack_inter_block_bondsep,
+    BlockTypeNInterblockBondsView block_type_n_interblock_bonds,
+    BlockTypeAtomsFormingChemicalBondsView block_type_atoms_forming_chemical_bonds,
+    GlobalParamsView global_params,
     int const max_important_bond_separation,
     int pose_ind,
     int rot_ind1,
@@ -814,9 +860,12 @@ void TMOL_DEVICE_FUNC lk_ball_load_tile_invariant_interres_data(
     int block_type2,
     int n_atoms1,
     int n_atoms2,
-    LKBallScoringData<Real>& inter_dat,
-    LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>&
-        shared_m) {
+    TMOL_THREAD LKBallScoringData<Real>& inter_dat,
+    TMOL_SHARED_REF(LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>)
+        shared_m,
+        // Trailing lane handle: empty and omissible on CPU and CUDA, required
+        // by the Metal backend. See workgroup_lane.hh.
+        WorkgroupLane<Dev> lane = {}) {
   inter_dat.pair_data.pose_ind = pose_ind;
   inter_dat.r1.rot_ind = rot_ind1;
   inter_dat.r2.rot_ind = rot_ind2;
@@ -842,12 +891,8 @@ void TMOL_DEVICE_FUNC lk_ball_load_tile_invariant_interres_data(
   // set the pointers in inter_dat to point at the shared-memory arrays
   inter_dat.r1.pose_coords = shared_m.pose_coords1;
   inter_dat.r2.pose_coords = shared_m.pose_coords2;
-  inter_dat.r1.water_coords = shared_m.water_coords1;
-  inter_dat.r2.water_coords = shared_m.water_coords2;
   inter_dat.r1.pol_occ_tile_inds = shared_m.pol_occ_tile_inds1;
   inter_dat.r2.pol_occ_tile_inds = shared_m.pol_occ_tile_inds2;
-  inter_dat.r1.lk_ball_params = shared_m.lk_ball_params1;
-  inter_dat.r2.lk_ball_params = shared_m.lk_ball_params2;
 
   inter_dat.r1.path_dist = shared_m.path_dist1;
   inter_dat.r2.path_dist = shared_m.path_dist2;
@@ -882,7 +927,7 @@ void TMOL_DEVICE_FUNC lk_ball_load_tile_invariant_interres_data(
       }
     });
     DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(
-        load_count_pair_conn_at_data);
+        load_count_pair_conn_at_data, lane);
   }
 
   // Final data members
@@ -899,25 +944,35 @@ template <
     template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
+    typename Int,
     int TILE_SIZE,
     int MAX_N_WATER,
     int MAX_N_CONN,
     typename Real,
-    typename Int>
+    typename PoseCoordsView,
+    typename WaterCoordsView,
+    typename BlockTypeTileNPolarAtomsView,
+    typename BlockTypeTileNOccluderAtomsView,
+    typename BlockTypeTilePolOccIndsView,
+    typename BlockTypeTileLkBallParamsView,
+    typename BlockTypePathDistanceView>
 void TMOL_DEVICE_FUNC lk_ball_load_interres1_tile_data_to_shared(
-    TView<Vec<Real, 3>, 1, Dev> pose_coords,
-    TView<Vec<Real, 3>, 2, Dev> water_coords,
-    TView<Int, 2, Dev> block_type_tile_n_polar_atoms,
-    TView<Int, 2, Dev> block_type_tile_n_occluder_atoms,
-    TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
-    TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
-    TView<Int, 3, Dev> block_type_path_distance,
+    PoseCoordsView pose_coords,
+    WaterCoordsView water_coords,
+    BlockTypeTileNPolarAtomsView block_type_tile_n_polar_atoms,
+    BlockTypeTileNOccluderAtomsView block_type_tile_n_occluder_atoms,
+    BlockTypeTilePolOccIndsView block_type_tile_pol_occ_inds,
+    BlockTypeTileLkBallParamsView block_type_tile_lk_ball_params,
+    BlockTypePathDistanceView block_type_path_distance,
     int tile_ind,
     int start_atom1,
     int n_atoms_to_load1,
-    LKBallScoringData<Real>& inter_dat,
-    LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>&
-        shared_m) {
+    TMOL_THREAD LKBallScoringData<Real>& inter_dat,
+    TMOL_SHARED_REF(LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>)
+        shared_m,
+        // Trailing lane handle: empty and omissible on CPU and CUDA, required
+        // by the Metal backend. See workgroup_lane.hh.
+        WorkgroupLane<Dev> lane = {}) {
   auto store_n_pol_n_occ1 = ([&](int tid) {
     int n_pol =
         block_type_tile_n_polar_atoms[inter_dat.r1.block_type][tile_ind];
@@ -930,12 +985,13 @@ void TMOL_DEVICE_FUNC lk_ball_load_interres1_tile_data_to_shared(
       shared_m.n_occluders1 = n_occ;
     }
   });
-  DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(store_n_pol_n_occ1);
+  DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(store_n_pol_n_occ1, lane);
 
   lk_ball_load_block_into_shared<
       DeviceDispatch,
       Dev,
       nt,
+      Int,
       TILE_SIZE,
       MAX_N_WATER>(
       pose_coords,
@@ -949,32 +1005,43 @@ void TMOL_DEVICE_FUNC lk_ball_load_interres1_tile_data_to_shared(
       n_atoms_to_load1,
       start_atom1,
       inter_dat.pair_data.in_count_pair_striking_dist,
-      shared_m.conn_ats1);
+      shared_m.conn_ats1,
+      lane);
 }
 
 template <
     template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
+    typename Int,
     int TILE_SIZE,
     int MAX_N_WATER,
     int MAX_N_CONN,
     typename Real,
-    typename Int>
+    typename PoseCoordsView,
+    typename WaterCoordsView,
+    typename BlockTypeTileNPolarAtomsView,
+    typename BlockTypeTileNOccluderAtomsView,
+    typename BlockTypeTilePolOccIndsView,
+    typename BlockTypeTileLkBallParamsView,
+    typename BlockTypePathDistanceView>
 void TMOL_DEVICE_FUNC lk_ball_load_interres2_tile_data_to_shared(
-    TView<Vec<Real, 3>, 1, Dev> pose_coords,
-    TView<Vec<Real, 3>, 2, Dev> water_coords,
-    TView<Int, 2, Dev> block_type_tile_n_polar_atoms,
-    TView<Int, 2, Dev> block_type_tile_n_occluder_atoms,
-    TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
-    TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
-    TView<Int, 3, Dev> block_type_path_distance,
+    PoseCoordsView pose_coords,
+    WaterCoordsView water_coords,
+    BlockTypeTileNPolarAtomsView block_type_tile_n_polar_atoms,
+    BlockTypeTileNOccluderAtomsView block_type_tile_n_occluder_atoms,
+    BlockTypeTilePolOccIndsView block_type_tile_pol_occ_inds,
+    BlockTypeTileLkBallParamsView block_type_tile_lk_ball_params,
+    BlockTypePathDistanceView block_type_path_distance,
     int tile_ind,
     int start_atom2,
     int n_atoms_to_load2,
-    LKBallScoringData<Real>& inter_dat,
-    LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>&
-        shared_m) {
+    TMOL_THREAD LKBallScoringData<Real>& inter_dat,
+    TMOL_SHARED_REF(LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>)
+        shared_m,
+        // Trailing lane handle: empty and omissible on CPU and CUDA, required
+        // by the Metal backend. See workgroup_lane.hh.
+        WorkgroupLane<Dev> lane = {}) {
   auto store_n_pol_n_occ2 = ([&](int tid) {
     int n_pol =
         block_type_tile_n_polar_atoms[inter_dat.r2.block_type][tile_ind];
@@ -987,12 +1054,13 @@ void TMOL_DEVICE_FUNC lk_ball_load_interres2_tile_data_to_shared(
       shared_m.n_occluders2 = n_occ;
     }
   });
-  DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(store_n_pol_n_occ2);
+  DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(store_n_pol_n_occ2, lane);
 
   lk_ball_load_block_into_shared<
       DeviceDispatch,
       Dev,
       nt,
+      Int,
       TILE_SIZE,
       MAX_N_WATER>(
       pose_coords,
@@ -1006,7 +1074,8 @@ void TMOL_DEVICE_FUNC lk_ball_load_interres2_tile_data_to_shared(
       n_atoms_to_load2,
       start_atom2,
       inter_dat.pair_data.in_count_pair_striking_dist,
-      shared_m.conn_ats2);
+      shared_m.conn_ats2,
+      lane);
 }
 
 template <
@@ -1017,20 +1086,27 @@ template <
     typename Real,
     int TILE_SIZE,
     int MAX_N_WATER,
-    int MAX_N_CONN>
+    int MAX_N_CONN,
+    typename RotCoordOffsetView,
+    typename BlockTypeIndForRotView,
+    typename GlobalParamsView>
 void TMOL_DEVICE_FUNC lk_ball_load_tile_invariant_intrares_data(
-    TView<Int, 1, Dev> rot_coord_offset,
-    TView<Int, 1, Dev> block_type_ind_for_rot,
-    TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
+    RotCoordOffsetView rot_coord_offset,
+    BlockTypeIndForRotView block_type_ind_for_rot,
+    GlobalParamsView global_params,
     int const max_important_bond_separation,
     int pose_ind,
     int rot_ind1,
     int block_ind1,
     int block_type1,
     int n_atoms1,
-    LKBallScoringData<Real>& intra_dat,
-    LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>&
-        shared_m) {
+    TMOL_THREAD LKBallScoringData<Real>& intra_dat,
+    TMOL_SHARED_REF(LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>)
+        shared_m,
+    // Unused here -- this loader reaches no workgroup primitive -- but taken
+    // for uniformity with its siblings, whose call sites in
+    // lk_ball_kernels.hh are generated by the same macro.
+    WorkgroupLane<Dev> lane = {}) {
   intra_dat.pair_data.pose_ind = pose_ind;
   intra_dat.r1.block_ind = block_ind1;
   intra_dat.r2.block_ind = block_ind1;
@@ -1059,12 +1135,8 @@ void TMOL_DEVICE_FUNC lk_ball_load_tile_invariant_intrares_data(
   // which tile pair we are evaluating!
   intra_dat.r1.pose_coords = shared_m.pose_coords1;
   intra_dat.r2.pose_coords = shared_m.pose_coords2;
-  intra_dat.r1.water_coords = shared_m.water_coords1;
-  intra_dat.r2.water_coords = shared_m.water_coords2;
   intra_dat.r1.pol_occ_tile_inds = shared_m.pol_occ_tile_inds1;
   intra_dat.r2.pol_occ_tile_inds = shared_m.pol_occ_tile_inds2;
-  intra_dat.r1.lk_ball_params = shared_m.lk_ball_params1;
-  intra_dat.r2.lk_ball_params = shared_m.lk_ball_params2;
 
   // these count pair arrays are not going to be used
   intra_dat.r1.path_dist = 0;
@@ -1083,24 +1155,33 @@ template <
     template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
+    typename Int,
     int TILE_SIZE,
     int MAX_N_WATER,
     int MAX_N_CONN,
     typename Real,
-    typename Int>
+    typename PoseCoordsView,
+    typename WaterCoordsView,
+    typename BlockTypeTileNPolarAtomsView,
+    typename BlockTypeTileNOccluderAtomsView,
+    typename BlockTypeTilePolOccIndsView,
+    typename BlockTypeTileLkBallParamsView>
 void TMOL_DEVICE_FUNC lk_ball_load_intrares1_tile_data_to_shared(
-    TView<Vec<Real, 3>, 1, Dev> pose_coords,
-    TView<Vec<Real, 3>, 2, Dev> water_coords,
-    TView<Int, 2, Dev> block_type_tile_n_polar_atoms,
-    TView<Int, 2, Dev> block_type_tile_n_occluder_atoms,
-    TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
-    TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
+    PoseCoordsView pose_coords,
+    WaterCoordsView water_coords,
+    BlockTypeTileNPolarAtomsView block_type_tile_n_polar_atoms,
+    BlockTypeTileNOccluderAtomsView block_type_tile_n_occluder_atoms,
+    BlockTypeTilePolOccIndsView block_type_tile_pol_occ_inds,
+    BlockTypeTileLkBallParamsView block_type_tile_lk_ball_params,
     int tile_ind,
     int start_atom1,
     int n_atoms_to_load1,
-    LKBallScoringData<Real>& intra_dat,
-    LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>&
-        shared_m) {
+    TMOL_THREAD LKBallScoringData<Real>& intra_dat,
+    TMOL_SHARED_REF(LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>)
+        shared_m,
+        // Trailing lane handle: empty and omissible on CPU and CUDA, required
+        // by the Metal backend. See workgroup_lane.hh.
+        WorkgroupLane<Dev> lane = {}) {
   auto store_n_pol_n_occ1 = ([&](int tid) {
     int n_pol =
         block_type_tile_n_polar_atoms[intra_dat.r1.block_type][tile_ind];
@@ -1113,11 +1194,12 @@ void TMOL_DEVICE_FUNC lk_ball_load_intrares1_tile_data_to_shared(
       shared_m.n_occluders1 = n_occ;
     }
   });
-  DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(store_n_pol_n_occ1);
+  DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(store_n_pol_n_occ1, lane);
   lk_ball_load_block_coords_and_params_into_shared<
       DeviceDispatch,
       Dev,
       nt,
+      Int,
       MAX_N_WATER>(
       pose_coords,
       water_coords,
@@ -1127,38 +1209,46 @@ void TMOL_DEVICE_FUNC lk_ball_load_intrares1_tile_data_to_shared(
       tile_ind,
       intra_dat.r1,
       n_atoms_to_load1,
-      start_atom1);
+      start_atom1,
+      lane);
 }
 
 template <
     template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
+    typename Int,
     int TILE_SIZE,
     int MAX_N_WATER,
     int MAX_N_CONN,
     typename Real,
-    typename Int>
+    typename PoseCoordsView,
+    typename WaterCoordsView,
+    typename BlockTypeTileNPolarAtomsView,
+    typename BlockTypeTileNOccluderAtomsView,
+    typename BlockTypeTilePolOccIndsView,
+    typename BlockTypeTileLkBallParamsView>
 void TMOL_DEVICE_FUNC lk_ball_load_intrares2_tile_data_to_shared(
-    TView<Vec<Real, 3>, 1, Dev> pose_coords,
-    TView<Vec<Real, 3>, 2, Dev> water_coords,
-    TView<Int, 2, Dev> block_type_tile_n_polar_atoms,
-    TView<Int, 2, Dev> block_type_tile_n_occluder_atoms,
-    TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
-    TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
+    PoseCoordsView pose_coords,
+    WaterCoordsView water_coords,
+    BlockTypeTileNPolarAtomsView block_type_tile_n_polar_atoms,
+    BlockTypeTileNOccluderAtomsView block_type_tile_n_occluder_atoms,
+    BlockTypeTilePolOccIndsView block_type_tile_pol_occ_inds,
+    BlockTypeTileLkBallParamsView block_type_tile_lk_ball_params,
     int tile_ind,
     int start_atom2,
     int n_atoms_to_load2,
-    LKBallScoringData<Real>& intra_dat,
-    LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>&
-        shared_m) {
+    TMOL_THREAD LKBallScoringData<Real>& intra_dat,
+    TMOL_SHARED_REF(LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>)
+        shared_m,
+        // Trailing lane handle: empty and omissible on CPU and CUDA, required
+        // by the Metal backend. See workgroup_lane.hh.
+        WorkgroupLane<Dev> lane = {}) {
   // A prior same-tile lk_ball_load_intrares_data_from_shared call may have
   // aliased r2's pointers to the "1" shared-memory arrays. Reset them to
   // the "2" arrays so the load below writes to the correct destination.
   intra_dat.r2.pose_coords = shared_m.pose_coords2;
-  intra_dat.r2.water_coords = shared_m.water_coords2;
   intra_dat.r2.pol_occ_tile_inds = shared_m.pol_occ_tile_inds2;
-  intra_dat.r2.lk_ball_params = shared_m.lk_ball_params2;
   auto store_n_pol_n_occ2 = ([&](int tid) {
     int n_pol =
         block_type_tile_n_polar_atoms[intra_dat.r2.block_type][tile_ind];
@@ -1171,11 +1261,12 @@ void TMOL_DEVICE_FUNC lk_ball_load_intrares2_tile_data_to_shared(
       shared_m.n_occluders2 = n_occ;
     }
   });
-  DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(store_n_pol_n_occ2);
+  DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(store_n_pol_n_occ2, lane);
   lk_ball_load_block_coords_and_params_into_shared<
       DeviceDispatch,
       Dev,
       nt,
+      Int,
       MAX_N_WATER>(
       pose_coords,
       water_coords,
@@ -1185,7 +1276,8 @@ void TMOL_DEVICE_FUNC lk_ball_load_intrares2_tile_data_to_shared(
       tile_ind,
       intra_dat.r2,
       n_atoms_to_load2,
-      start_atom2);
+      start_atom2,
+      lane);
 }
 
 template <
@@ -1197,30 +1289,29 @@ template <
 void TMOL_DEVICE_FUNC lk_ball_load_intrares_data_from_shared(
     int tile_ind1,
     int tile_ind2,
-    LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>&
+    TMOL_SHARED_REF(LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>)
         shared_m,
-    LKBallScoringData<Real>& intra_dat) {
+    TMOL_THREAD LKBallScoringData<Real>& intra_dat) {
   // set the pointers in intra_dat to point at the shared-memory arrays
   // If we are evaluating the energies between atoms in the same tile
   // then only the "1" shared-memory arrays will be loaded with data;
   // we will point the "2" memory pointers at the "1" arrays
   bool same_tile = tile_ind1 == tile_ind2;
+  // Waters and parameters are device rows set by the tile loader, so when
+  // only tile 1 was loaded r2 has to alias r1 on every backend -- this is the
+  // path that segfaulted elec when the aliasing was missed.
+  if (same_tile) {
+    intra_dat.r2.water_coords = intra_dat.r1.water_coords;
+    intra_dat.r2.lk_ball_params = intra_dat.r1.lk_ball_params;
+  }
   if constexpr (Dev == tmol::Device::CPU) {
     if (same_tile) {
       intra_dat.r2.pose_coords = intra_dat.r1.pose_coords;
-      intra_dat.r2.water_coords = intra_dat.r1.water_coords;
-      intra_dat.r2.lk_ball_params = intra_dat.r1.lk_ball_params;
     }
   } else {
     intra_dat.r1.pose_coords = shared_m.pose_coords1;
     intra_dat.r2.pose_coords =
         (same_tile ? shared_m.pose_coords1 : shared_m.pose_coords2);
-    intra_dat.r1.water_coords = shared_m.water_coords1;
-    intra_dat.r2.water_coords =
-        (same_tile ? shared_m.water_coords1 : shared_m.water_coords2);
-    intra_dat.r1.lk_ball_params = shared_m.lk_ball_params1;
-    intra_dat.r2.lk_ball_params =
-        (same_tile ? shared_m.lk_ball_params1 : shared_m.lk_ball_params2);
   }
   intra_dat.r1.pol_occ_tile_inds = shared_m.pol_occ_tile_inds1;
   intra_dat.r2.pol_occ_tile_inds =
@@ -1239,12 +1330,12 @@ TMOL_DEVICE_FUNC lk_ball_Vt<Real> lk_ball_atom_energy_full(
     int occluder_atom_tile_ind,  // in [0:TILE_SIZE)
     int polar_start,
     int occluder_start,
-    LKBallSingleResData<Real> const& polar_block_dat,
-    LKBallSingleResData<Real> const& occluder_block_dat,
-    LKBallResPairData<Real> const& block_pair_dat,
+    TMOL_THREAD LKBallSingleResData<Real> const& polar_block_dat,
+    TMOL_THREAD LKBallSingleResData<Real> const& occluder_block_dat,
+    TMOL_THREAD LKBallResPairData<Real> const& block_pair_dat,
     int cp_separation) {
   using tmol::score::common::coord_from_shared;
-  using Real3 = Eigen::Matrix<Real, 3, 1>;
+  using Real3 = tmol::portable::Vec<Real, 3>;
 
   if (cp_separation <= 3) {
     return {0, 0, 0, 0};
@@ -1262,13 +1353,13 @@ TMOL_DEVICE_FUNC lk_ball_Vt<Real> lk_ball_atom_energy_full(
     return {0, 0, 0, 0};
   }
 
-  Eigen::Matrix<Real, 4, 3> wmat_polar;
-  Eigen::Matrix<Real, 4, 3> wmat_occluder;
+  tmol::portable::Mat<Real, MAX_N_WATER, 3> wmat_polar;
+  tmol::portable::Mat<Real, MAX_N_WATER, 3> wmat_occluder;
 
   for (int wi = 0; wi < MAX_N_WATER; wi++) {
-    wmat_polar.row(wi) = coord_from_shared(
+    tmol::portable::row_ref(wmat_polar, wi) = coord_from_shared(
         polar_block_dat.water_coords, MAX_N_WATER * polar_atom_tile_ind + wi);
-    wmat_occluder.row(wi) = coord_from_shared(
+    tmol::portable::row_ref(wmat_occluder, wi) = coord_from_shared(
         occluder_block_dat.water_coords,
         MAX_N_WATER * occluder_atom_tile_ind + wi);
   }
@@ -1284,6 +1375,11 @@ TMOL_DEVICE_FUNC lk_ball_Vt<Real> lk_ball_atom_energy_full(
       block_pair_dat.global_params);
 }
 
+// Derivative evaluation, backward pass only.
+//
+// Templated on the two output views rather than naming TView, so a Metal
+// translation unit -- which cannot include the torch tensor layer -- compiles
+// the same source.
 // Calculate and write to global memory only the derivatives for the two
 // indicated atoms. Does not return the score
 template <
@@ -1291,7 +1387,9 @@ template <
     int MAX_N_WATER,
     typename Real,
     tmol::Device Dev,
-    bool UseSharedScratch = false>
+    bool UseSharedScratch = false,
+    typename PoseDerivView = void,
+    typename WaterDerivView = void>
 TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
     int polar_ind,               // in [0:n_polar)
     int occluder_ind,            // in [0:n_occluders)
@@ -1299,15 +1397,20 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
     int occluder_atom_tile_ind,  // in [0:TILE_SIZE)
     int polar_start,
     int occluder_start,
-    LKBallSingleResData<Real> const& polar_block_dat,
-    LKBallSingleResData<Real> const& occluder_block_dat,
-    LKBallResPairData<Real> const& block_pair_dat,
+    TMOL_THREAD LKBallSingleResData<Real> const& polar_block_dat,
+    TMOL_THREAD LKBallSingleResData<Real> const& occluder_block_dat,
+    TMOL_THREAD LKBallResPairData<Real> const& block_pair_dat,
     int cp_separation,
     Vec<Real, 4> dTdV,
-    TView<Eigen::Matrix<Real, 3, 1>, 1, Dev> dV_d_pose_coords,
-    TView<Eigen::Matrix<Real, 3, 1>, 2, Dev> dV_d_water_coords) {
-  using Real3 = Eigen::Matrix<Real, 3, 1>;
-  using tmol::score::common::accumulate;
+    PoseDerivView dV_d_pose_coords,
+    WaterDerivView dV_d_water_coords) {
+  using Real3 = tmol::portable::Vec<Real, 3>;
+  // accumulate_grad, not accumulate: these adds land in a shared cell through
+  // whatever order the hardware schedules, and float addition does not
+  // commute. On Metal the gradient is snapped to an exactly representable
+  // grid so the sum is reproducible; the line search thrashes otherwise.
+  // See accumulate.hh.
+  using tmol::score::common::accumulate_grad;
   using tmol::score::common::coord_from_shared;
 
   if (cp_separation <= 3) {
@@ -1325,13 +1428,13 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
       >= distance_threshold * distance_threshold)
     return;
 
-  Eigen::Matrix<Real, MAX_N_WATER, 3> wmat_polar;
-  Eigen::Matrix<Real, MAX_N_WATER, 3> wmat_occluder;
+  tmol::portable::Mat<Real, MAX_N_WATER, 3> wmat_polar;
+  tmol::portable::Mat<Real, MAX_N_WATER, 3> wmat_occluder;
 
   for (int wi = 0; wi < MAX_N_WATER; wi++) {
-    wmat_polar.row(wi) = coord_from_shared(
+    tmol::portable::row_ref(wmat_polar, wi) = coord_from_shared(
         polar_block_dat.water_coords, MAX_N_WATER * polar_atom_tile_ind + wi);
-    wmat_occluder.row(wi) = coord_from_shared(
+    tmol::portable::row_ref(wmat_occluder, wi) = coord_from_shared(
         occluder_block_dat.water_coords,
         MAX_N_WATER * occluder_atom_tile_ind + wi);
   }
@@ -1349,12 +1452,12 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
           dTdV);
 
   auto accum_derivs = ([&] TMOL_DEVICE_FUNC(
-                           LKBallSingleResData<Real> const& block_dat,
+                           TMOL_THREAD LKBallSingleResData<Real> const& block_dat,
                            int atom_ind,
-                           Real3 const& derivs) {
+                           TMOL_THREAD Real3 const& derivs) {
     for (int j = 0; j < 3; ++j) {
       if (derivs[j] != 0) {
-        accumulate<Dev, Real>::add(
+        accumulate_grad<Dev, Real>::add(
             dV_d_pose_coords[block_dat.rot_coord_offset + atom_ind][j],
             derivs[j]);
       }
@@ -1363,13 +1466,14 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
 
   auto water_accum_derivs =
       ([&] TMOL_DEVICE_FUNC(
-           LKBallSingleResData<Real> const& block_dat,
+           TMOL_THREAD LKBallSingleResData<Real> const& block_dat,
            int atom_ind,
            int water_ind,
-           Eigen::Matrix<Real, MAX_N_WATER, 3> const& derivs) {
+           TMOL_THREAD tmol::portable::Mat<Real, MAX_N_WATER, 3> const&
+               derivs) {
         for (int j = 0; j < 3; ++j) {
           if (derivs(water_ind, j) != 0) {
-            accumulate<Dev, Real>::add(
+            accumulate_grad<Dev, Real>::add(
                 dV_d_water_coords[block_dat.rot_coord_offset + atom_ind]
                                  [water_ind][j],
                 derivs(water_ind, j));
@@ -1381,7 +1485,7 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
   accum_derivs(
       occluder_block_dat, occluder_start + occluder_atom_tile_ind, dV.dJ);
   for (int i = 0; i < MAX_N_WATER; ++i) {
-    if (std::isnan(
+    if (tmol::portable::math::isnan(
             polar_block_dat
                 .water_coords[3 * (MAX_N_WATER * polar_atom_tile_ind + i)]))
       continue;
@@ -1389,7 +1493,7 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
         polar_block_dat, polar_start + polar_atom_tile_ind, i, dV.dWI);
   }
   for (int i = 0; i < MAX_N_WATER; ++i) {
-    if (std::isnan(
+    if (tmol::portable::math::isnan(
             occluder_block_dat
                 .water_coords[3 * (MAX_N_WATER * occluder_atom_tile_ind + i)]))
       continue;
@@ -1405,10 +1509,13 @@ template <
     typename Func,
     typename Real>
 void TMOL_DEVICE_FUNC eval_interres_pol_occ_pair_energies(
-    LKBallScoringData<Real>& inter_dat,
+    TMOL_THREAD LKBallScoringData<Real>& inter_dat,
     int start_atom1,
     int start_atom2,
-    Func f) {
+    Func f,
+    // Trailing lane handle: empty and omissible on CPU and CUDA, required
+    // by the Metal backend. See workgroup_lane.hh.
+    WorkgroupLane<Dev> lane = {}) {
   if constexpr (Dev == tmol::Device::CPU) {
     // CPU workgroup lanes run serially; direct loops avoid flattened-index
     // division and modulo for every polar/occluder pair.
@@ -1433,9 +1540,9 @@ void TMOL_DEVICE_FUNC eval_interres_pol_occ_pair_energies(
       bool r1_polar = i < inter_dat.r1.n_polars * inter_dat.r2.n_occluders;
       int pair_ind =
           r1_polar ? i : i - inter_dat.r1.n_polars * inter_dat.r2.n_occluders;
-      LKBallSingleResData<Real> const& pol_dat =
+      TMOL_THREAD LKBallSingleResData<Real> const& pol_dat =
           r1_polar ? inter_dat.r1 : inter_dat.r2;
-      LKBallSingleResData<Real> const& occ_dat =
+      TMOL_THREAD LKBallSingleResData<Real> const& occ_dat =
           r1_polar ? inter_dat.r2 : inter_dat.r1;
       int pol_ind = pair_ind / occ_dat.n_occluders;
       int occ_ind = pair_ind % occ_dat.n_occluders;
@@ -1448,7 +1555,7 @@ void TMOL_DEVICE_FUNC eval_interres_pol_occ_pair_energies(
     }
   });
   DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(
-      eval_scores_for_pol_occ_pairs);
+      eval_scores_for_pol_occ_pairs, lane);
 }
 
 template <
@@ -1458,10 +1565,13 @@ template <
     typename Func,
     typename Real>
 void TMOL_DEVICE_FUNC eval_intrares_pol_occ_pair_energies(
-    LKBallScoringData<Real>& intra_dat,
+    TMOL_THREAD LKBallScoringData<Real>& intra_dat,
     int start_atom1,
     int start_atom2,
-    Func f) {
+    Func f,
+    // Trailing lane handle: empty and omissible on CPU and CUDA, required
+    // by the Metal backend. See workgroup_lane.hh.
+    WorkgroupLane<Dev> lane = {}) {
   if constexpr (Dev == tmol::Device::CPU) {
     if (start_atom1 == start_atom2) {
       for (int pol_ind = 0; pol_ind < intra_dat.r1.n_polars; ++pol_ind) {
@@ -1510,7 +1620,7 @@ void TMOL_DEVICE_FUNC eval_intrares_pol_occ_pair_energies(
         bool r1_polar = i < intra_dat.r1.n_polars * intra_dat.r2.n_occluders;
         int pair_ind =
             r1_polar ? i : i - intra_dat.r1.n_polars * intra_dat.r2.n_occluders;
-        LKBallSingleResData<Real> const& occ_dat =
+        TMOL_THREAD LKBallSingleResData<Real> const& occ_dat =
             r1_polar ? intra_dat.r2 : intra_dat.r1;
         int pol_ind = pair_ind / occ_dat.n_occluders;
         int occ_ind = pair_ind % occ_dat.n_occluders;
@@ -1525,7 +1635,7 @@ void TMOL_DEVICE_FUNC eval_intrares_pol_occ_pair_energies(
   });
 
   DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(
-      eval_scores_for_pol_occ_pairs);
+      eval_scores_for_pol_occ_pairs, lane);
 }
 
 }  // namespace potentials

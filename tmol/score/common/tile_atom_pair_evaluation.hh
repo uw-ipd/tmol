@@ -1,6 +1,10 @@
 #pragma once
 
-#include <Eigen/Core>
+#include <tmol/score/common/workgroup_lane.hh>
+#include <tmol/utility/portable/array.hh>
+#include <tmol/utility/portable/metal_view.hh>
+#include <tmol/utility/portable/device.hh>
+#include <tmol/utility/portable/math.hh>
 #include <tmol/score/common/diamond_macros.hh>
 
 namespace tmol {
@@ -27,13 +31,13 @@ template <template <typename T> typename InterPairData, typename T>
 class AllAtomPairSelector {
  public:
   template <int TILE>
-  static EIGEN_DEVICE_FUNC int n_remain1(
-      InterPairData<T> const& inter_data, int start_atom1) {
+  static TMOL_HD int n_remain1(
+      TMOL_THREAD InterPairData<T> const& inter_data, int start_atom1) {
     return min(int(TILE), int(inter_data.r1.n_atoms - start_atom1));
   }
   template <int TILE>
-  static EIGEN_DEVICE_FUNC int n_remain2(
-      InterPairData<T> const& inter_data, int start_atom2) {
+  static TMOL_HD int n_remain2(
+      TMOL_THREAD InterPairData<T> const& inter_data, int start_atom2) {
     return min(int(TILE), int(inter_data.r2.n_atoms - start_atom2));
   }
 };
@@ -42,33 +46,37 @@ template <template <typename T> typename InterPairData, typename T>
 class HeavyAtomPairSelector {
  public:
   template <int TILE>
-  static EIGEN_DEVICE_FUNC int n_remain1(
-      InterPairData<T> const& inter_data, int /*start_atom1*/) {
+  static TMOL_HD int n_remain1(
+      TMOL_THREAD InterPairData<T> const& inter_data, int /*start_atom1*/) {
     return inter_data.r1.n_heavy;
   }
   template <int TILE>
-  static EIGEN_DEVICE_FUNC int n_remain2(
-      InterPairData<T> const& inter_data, int /*start_atom2*/) {
+  static TMOL_HD int n_remain2(
+      TMOL_THREAD InterPairData<T> const& inter_data, int /*start_atom2*/) {
     return inter_data.r2.n_heavy;
   }
 };
 
-// helper code for summing over std::arrays at compile time
+// helper code for summing over portable::arrays at compile time
 // https://stackoverflow.com/a/47563100
-template <std::size_t N>
+//
+// `value` is an enumerator rather than a static data member: MSL requires
+// program-scope variables to live in the constant address space, which rules
+// out `static constexpr` data members.
+template <int N>
 struct num {
-  static const constexpr auto value = N;
+  enum { value = N };
 };
 
-template <class F, std::size_t... Is>
-TMOL_DEVICE_FUNC void for_(F func, std::index_sequence<Is...>) {
+template <class F, int... Is>
+TMOL_DEVICE_FUNC void for_(F func, tmol::portable::index_sequence<Is...>) {
   using expander = int[];
   (void)expander{0, ((void)func(num<Is>{}), 0)...};
 }
 
-template <std::size_t N, typename F>
+template <int N, typename F>
 TMOL_DEVICE_FUNC void for_(F func) {
-  for_(func, std::make_index_sequence<N>());
+  for_(func, tmol::portable::make_index_sequence<N>());
 }
 
 // Templated function for the evaluation of inter-block atom-pair energy
@@ -90,13 +98,13 @@ template <
 class InterResBlockEvaluation {
  public:
   template <typename AtomPairFunc>
-  static TMOL_DEVICE_FUNC std::array<Real, NTERMS> eval_interres_atom_pair(
+  static TMOL_DEVICE_FUNC tmol::portable::array<Real, NTERMS> eval_interres_atom_pair(
       int tid,
       int start_atom1,
       int start_atom2,
       AtomPairFunc f,
-      InterEnergyData<Real> const& inter_dat) {
-    std::array<Real, NTERMS> score_total = {};
+      TMOL_THREAD InterEnergyData<Real> const& inter_dat) {
+    tmol::portable::array<Real, NTERMS> score_total = {};
     int const n_remain1 =
         PairSelector<InterEnergyData, Real>::template n_remain1<TILE>(
             inter_dat, start_atom1);
@@ -110,10 +118,10 @@ class InterResBlockEvaluation {
     for (int i = tid; i < n_pairs; i += nt) {
       int const atom_tile_ind1 = i / n_remain2;
       int const atom_tile_ind2 = i % n_remain2;
-      std::array<Real, NTERMS> score_i = f(
+      tmol::portable::array<Real, NTERMS> score_i = f(
           start_atom1, start_atom2, atom_tile_ind1, atom_tile_ind2, inter_dat);
       for_<NTERMS>([&](auto i) {
-        std::get<i.value>(score_total) += std::get<i.value>(score_i);
+        tmol::portable::get<i.value>(score_total) += tmol::portable::get<i.value>(score_i);
       });
     }
     return score_total;
@@ -137,13 +145,13 @@ template <
 class IntraResBlockEvaluation {
  public:
   template <typename AtomPairFunc>
-  static TMOL_DEVICE_FUNC std::array<Real, NTERMS> eval_intrares_atom_pairs(
+  static TMOL_DEVICE_FUNC tmol::portable::array<Real, NTERMS> eval_intrares_atom_pairs(
       int tid,
       int start_atom1,
       int start_atom2,
       AtomPairFunc f,
-      IntraEnergyData<Real> const& intra_dat) {
-    std::array<Real, NTERMS> score_total = {};
+      TMOL_THREAD IntraEnergyData<Real> const& intra_dat) {
+    tmol::portable::array<Real, NTERMS> score_total = {};
     int const n_remain1 =
         PairSelector<IntraEnergyData, Real>::template n_remain1<TILE>(
             intra_dat, start_atom1);
@@ -164,10 +172,10 @@ class IntraResBlockEvaluation {
       if (atom_ind1 >= atom_ind2) {
         continue;
       }
-      std::array<Real, NTERMS> score_i = f(
+      tmol::portable::array<Real, NTERMS> score_i = f(
           start_atom1, start_atom2, atom_tile_ind1, atom_tile_ind2, intra_dat);
       for_<NTERMS>([&](auto i) {
-        std::get<i.value>(score_total) += std::get<i.value>(score_i);
+        tmol::portable::get<i.value>(score_total) += tmol::portable::get<i.value>(score_i);
       });
     }
     return score_total;
@@ -236,7 +244,7 @@ template <
     typename CalcIntraFunc,
     typename StoreEnergyFunc>
 TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
-    SharedMemData& shared_data,
+    TMOL_SHARED_REF(SharedMemData) shared_data,
     int pose_ind,
     int block_ind1,
     int block_ind2,
@@ -255,7 +263,10 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
     LoadIntraDatFunc2 load_intrares2_tile_data_to_shared,
     LoadIntraSharedDatFunc load_intrares_data_from_shared,
     CalcIntraFunc eval_intrares_atom_pair_scores,
-    StoreEnergyFunc store_calculated_intrares_energies) {
+    StoreEnergyFunc store_calculated_intrares_energies,
+    // Trailing lane handle: empty and omissible on CPU and CUDA, required by
+    // the Metal backend. See workgroup_lane.hh.
+    WorkgroupLane<D> lane = {}) {
   if (block_ind1 != block_ind2) {
     // Step 1: load any data that is consistent across all tile pairs
     InterResScoringData interres_data;
@@ -280,7 +291,7 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
       // sure that the calculations from the previous iteration
       // have completed before overwriting the data in shared
       // memory if i > 0
-      DeviceDispatch<D>::synchronize_workgroup();
+      DeviceDispatch<D>::synchronize_workgroup(lane);
 
       int const i_n_atoms_to_load1 =
           max(0, min(int(TILE), int((n_atoms1 - TILE * i))));
@@ -293,7 +304,7 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
           // but for j > 0, we have to wait for the calculations from the
           // previous iteration to complete  before overwriting the data
           // in shared memory
-          DeviceDispatch<D>::synchronize_workgroup();
+          DeviceDispatch<D>::synchronize_workgroup(lane);
         }
         int j_n_atoms_to_load2 = min(int(TILE), int((n_atoms2 - TILE * j)));
         load_interres2_tile_data_to_shared(
@@ -301,7 +312,7 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
 
         // Wait for all loading to complete before moving on to any
         // energy calculations;
-        DeviceDispatch<D>::synchronize_workgroup();
+        DeviceDispatch<D>::synchronize_workgroup(lane);
 
         // Step 3: initialize combo shared/
         load_interres_data_from_shared(i, j, shared_data, interres_data);
@@ -309,7 +320,7 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
         eval_interres_atom_pair_scores(interres_data, i * TILE, j * TILE);
       }
     }
-    DeviceDispatch<D>::synchronize_workgroup();
+    DeviceDispatch<D>::synchronize_workgroup(lane);
     store_calculated_interres_energies(interres_data, shared_data);
 
   } else {
@@ -329,7 +340,7 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
       // make sure the calculatixons for the previous iteration
       // or from the tile-independent load have completed before
       // we overwrite the contents of shared memory
-      DeviceDispatch<D>::synchronize_workgroup();
+      DeviceDispatch<D>::synchronize_workgroup(lane);
       int const i_n_atoms_to_load1 = min(int(TILE), int((n_atoms1 - TILE * i)));
       load_intrares1_tile_data_to_shared(
           i, TILE * i, i_n_atoms_to_load1, intrares_data, shared_data);
@@ -341,18 +352,18 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
           // make sure calculations from the previous iteration have
           // completed before we overwrite the contents of shared
           // memory
-          DeviceDispatch<D>::synchronize_workgroup();
+          DeviceDispatch<D>::synchronize_workgroup(lane);
           load_intrares2_tile_data_to_shared(
               j, TILE * j, j_n_atoms_to_load2, intrares_data, shared_data);
         }
         // Make sure that all the data has been loaded into shared memory
         // before we start any calculations
-        DeviceDispatch<D>::synchronize_workgroup();
+        DeviceDispatch<D>::synchronize_workgroup(lane);
         load_intrares_data_from_shared(i, j, shared_data, intrares_data);
         eval_intrares_atom_pair_scores(intrares_data, i * TILE, j * TILE);
       }
     }
-    DeviceDispatch<D>::synchronize_workgroup();
+    DeviceDispatch<D>::synchronize_workgroup(lane);
     store_calculated_intrares_energies(intrares_data, shared_data);
   }
 };
@@ -378,7 +389,7 @@ template <
     typename CalcIntraFunc,
     typename StoreEnergyFunc>
 TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
-    SharedMemData& shared_data,
+    TMOL_SHARED_REF(SharedMemData) shared_data,
     int pose_ind,
     int rot_ind1,
     int rot_ind2,
@@ -399,7 +410,10 @@ TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
     LoadIntraDatFunc2 load_intrares2_tile_data_to_shared,
     LoadIntraSharedDatFunc load_intrares_data_from_shared,
     CalcIntraFunc eval_intrares_atom_pair_scores,
-    StoreEnergyFunc store_calculated_intrares_energies) {
+    StoreEnergyFunc store_calculated_intrares_energies,
+    // Trailing lane handle: empty and omissible on CPU and CUDA, required by
+    // the Metal backend. See workgroup_lane.hh.
+    WorkgroupLane<D> lane = {}) {
   assert(
       !(block_ind1 == block_ind2
         && rot_ind1 != rot_ind2));  // working under this assumption
@@ -430,7 +444,7 @@ TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
       // sure that the calculations from the previous iteration
       // have completed before overwriting the data in shared
       // memory if i > 0
-      DeviceDispatch<D>::synchronize_workgroup();
+      DeviceDispatch<D>::synchronize_workgroup(lane);
 
       int const i_n_atoms_to_load1 =
           max(0, min(int(TILE), int((n_atoms1 - TILE * i))));
@@ -443,7 +457,7 @@ TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
           // but for j > 0, we have to wait for the calculations from the
           // previous iteration to complete  before overwriting the data
           // in shared memory
-          DeviceDispatch<D>::synchronize_workgroup();
+          DeviceDispatch<D>::synchronize_workgroup(lane);
         }
         int j_n_atoms_to_load2 = min(int(TILE), int((n_atoms2 - TILE * j)));
         load_interres2_tile_data_to_shared(
@@ -451,7 +465,7 @@ TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
 
         // Wait for all loading to complete before moving on to any
         // energy calculations;
-        DeviceDispatch<D>::synchronize_workgroup();
+        DeviceDispatch<D>::synchronize_workgroup(lane);
 
         // Step 3: initialize combo shared/
         load_interres_data_from_shared(i, j, shared_data, interres_data);
@@ -459,7 +473,7 @@ TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
         eval_interres_atom_pair_scores(interres_data, i * TILE, j * TILE);
       }
     }
-    DeviceDispatch<D>::synchronize_workgroup();
+    DeviceDispatch<D>::synchronize_workgroup(lane);
     store_calculated_interres_energies(interres_data, shared_data);
 
   } else {
@@ -480,7 +494,7 @@ TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
       // make sure the calculatixons for the previous iteration
       // or from the tile-independent load have completed before
       // we overwrite the contents of shared memory
-      DeviceDispatch<D>::synchronize_workgroup();
+      DeviceDispatch<D>::synchronize_workgroup(lane);
       int const i_n_atoms_to_load1 = min(int(TILE), int((n_atoms1 - TILE * i)));
       load_intrares1_tile_data_to_shared(
           i, TILE * i, i_n_atoms_to_load1, intrares_data, shared_data);
@@ -492,18 +506,18 @@ TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
           // make sure calculations from the previous iteration have
           // completed before we overwrite the contents of shared
           // memory
-          DeviceDispatch<D>::synchronize_workgroup();
+          DeviceDispatch<D>::synchronize_workgroup(lane);
           load_intrares2_tile_data_to_shared(
               j, TILE * j, j_n_atoms_to_load2, intrares_data, shared_data);
         }
         // Make sure that all the data has been loaded into shared memory
         // before we start any calculations
-        DeviceDispatch<D>::synchronize_workgroup();
+        DeviceDispatch<D>::synchronize_workgroup(lane);
         load_intrares_data_from_shared(i, j, shared_data, intrares_data);
         eval_intrares_atom_pair_scores(intrares_data, i * TILE, j * TILE);
       }
     }
-    DeviceDispatch<D>::synchronize_workgroup();
+    DeviceDispatch<D>::synchronize_workgroup(lane);
     store_calculated_intrares_energies(intrares_data, shared_data);
   }
 };

@@ -1,7 +1,6 @@
 #pragma once
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
+#include <tmol/utility/portable/matrix.hh>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
@@ -15,17 +14,18 @@ namespace tmol {
 namespace score {
 namespace common {
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 
-template <typename Int, tmol::Device D>
+// ConnTView is deduced so callers holding either an Eigen or a
+// tmol::portable connection view resolve the same overload.
+template <typename Int, tmol::Device D, typename ConnTView>
 TMOL_DEVICE_FUNC auto resolve_local_atom_ind_from_uaid(
     UnresolvedAtomID<Int> uaid,
     int block_index,
     int pose_index,
     TView<Int, 2, D> pose_stack_block_coord_offset,
     TView<Int, 2, D> pose_stack_block_type,
-    TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
+    ConnTView pose_stack_inter_block_connections,
     TView<Int, 3, D> block_type_atom_downstream_of_conn)
     -> std::tuple<Int, Int> {
   // Resolve an unresolved atom ID and return the block- and
@@ -37,7 +37,7 @@ TMOL_DEVICE_FUNC auto resolve_local_atom_ind_from_uaid(
     int connection_index = uaid.conn_id;
     int sep = uaid.n_bonds_from_conn;
 
-    const Vec<Int, 2>& connection =
+    auto const& connection =
         pose_stack_inter_block_connections[pose_index][block_index]
                                           [connection_index];
     int other_block_index = connection[0];
@@ -64,7 +64,9 @@ TMOL_DEVICE_FUNC auto resolve_local_atom_ind_from_uaid(
   }
 }
 
-template <typename Int, tmol::Device D>
+// ConnTView is deduced so callers holding either an Eigen or a
+// tmol::portable connection view resolve the same overload.
+template <typename Int, tmol::Device D, typename ConnTView>
 TMOL_DEVICE_FUNC auto resolve_local_rotamer_atom_ind_from_uaid(
     UnresolvedAtomID<Int> uaid,
     int rotamer_index,
@@ -72,7 +74,7 @@ TMOL_DEVICE_FUNC auto resolve_local_rotamer_atom_ind_from_uaid(
     int pose_index,
     TView<Int, 2, D> first_rot_for_block,
     TView<Int, 2, D> first_rot_block_type,
-    TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
+    ConnTView pose_stack_inter_block_connections,
     TView<Int, 3, D> block_type_atom_downstream_of_conn)
     -> std::tuple<Int, Int> {
   // Resolve an unresolved atom ID and return the block- and
@@ -84,7 +86,7 @@ TMOL_DEVICE_FUNC auto resolve_local_rotamer_atom_ind_from_uaid(
     int connection_index = uaid.conn_id;
     int sep = uaid.n_bonds_from_conn;
 
-    const Vec<Int, 2>& connection =
+    auto const& connection =
         pose_stack_inter_block_connections[pose_index][block_index]
                                           [connection_index];
     int other_block_index = connection[0];
@@ -113,7 +115,9 @@ TMOL_DEVICE_FUNC auto resolve_local_rotamer_atom_ind_from_uaid(
   }
 }
 
-template <typename Int, tmol::Device D>
+// ConnTView is deduced so callers holding either an Eigen or a
+// tmol::portable connection view resolve the same overload.
+template <typename Int, tmol::Device D, typename ConnTView>
 TMOL_DEVICE_FUNC auto resolve_local_rotamer_pair_atom_ind_from_uaid(
     UnresolvedAtomID<Int> uaid,
     int rotamer_index1,
@@ -124,7 +128,7 @@ TMOL_DEVICE_FUNC auto resolve_local_rotamer_pair_atom_ind_from_uaid(
     int pose_index,
     TView<Int, 2, D> first_rot_for_block,
     TView<Int, 2, D> first_rot_block_type,
-    TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
+    ConnTView pose_stack_inter_block_connections,
     TView<Int, 3, D> block_type_atom_downstream_of_conn)
     -> std::tuple<Int, Int> {
   // Resolve an unresolved atom ID and return the rotamer- and
@@ -136,7 +140,7 @@ TMOL_DEVICE_FUNC auto resolve_local_rotamer_pair_atom_ind_from_uaid(
     int connection_index = uaid.conn_id;
     int sep = uaid.n_bonds_from_conn;
 
-    const Vec<Int, 2>& connection =
+    auto const& connection =
         pose_stack_inter_block_connections[pose_index][block_index1]
                                           [connection_index];
     int other_block_index = connection[0];
@@ -174,7 +178,9 @@ TMOL_DEVICE_FUNC auto resolve_local_rotamer_pair_atom_ind_from_uaid(
   }
 }
 
-template <typename Int, tmol::Device D>
+// ConnTView is deduced so callers holding either an Eigen or a
+// tmol::portable connection view resolve the same overload.
+template <typename Int, tmol::Device D, typename ConnTView>
 TMOL_DEVICE_FUNC int resolve_atom_from_uaid(
     UnresolvedAtomID<Int> uaid,
     int block_index,
@@ -182,7 +188,7 @@ TMOL_DEVICE_FUNC int resolve_atom_from_uaid(
 
     TView<Int, 2, D> pose_stack_block_coord_offset,
     TView<Int, 2, D> pose_stack_block_type,
-    TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
+    ConnTView pose_stack_inter_block_connections,
     TView<Int, 3, D> block_type_atom_downstream_of_conn) {
   // Resolve an unresolved atom ID and return its pose-wide index
   auto resolved_atom_tuple = resolve_local_atom_ind_from_uaid(
@@ -204,7 +210,9 @@ TMOL_DEVICE_FUNC int resolve_atom_from_uaid(
   }
 }
 
-template <typename Int, tmol::Device D>
+// ConnTView is deduced so callers holding either an Eigen or a
+// tmol::portable connection view resolve the same overload.
+template <typename Int, tmol::Device D, typename ConnTView>
 TMOL_DEVICE_FUNC int resolve_rotamer_atom_from_uaid(
     UnresolvedAtomID<Int> uaid,
     int rotamer_index,
@@ -214,7 +222,7 @@ TMOL_DEVICE_FUNC int resolve_rotamer_atom_from_uaid(
     TView<Int, 1, D> rot_coord_offset,
     TView<Int, 2, D> first_rot_for_block,
     TView<Int, 2, D> first_rot_block_type,
-    TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
+    ConnTView pose_stack_inter_block_connections,
     TView<Int, 3, D> block_type_atom_downstream_of_conn) {
   // Resolve an unresolved atom ID and return its rotamer-set-wide index
   auto resolved_atom_tuple = resolve_local_rotamer_atom_ind_from_uaid(
@@ -236,7 +244,9 @@ TMOL_DEVICE_FUNC int resolve_rotamer_atom_from_uaid(
   }
 }
 
-template <typename Int, tmol::Device D>
+// ConnTView is deduced so callers holding either an Eigen or a
+// tmol::portable connection view resolve the same overload.
+template <typename Int, tmol::Device D, typename ConnTView>
 TMOL_DEVICE_FUNC int resolve_rotamer_pair_atom_from_uaid(
     UnresolvedAtomID<Int> uaid,  // on block_index1
     int rotamer_index1,
@@ -249,7 +259,7 @@ TMOL_DEVICE_FUNC int resolve_rotamer_pair_atom_from_uaid(
     TView<Int, 1, D> rot_coord_offset,
     TView<Int, 2, D> first_rot_for_block,
     TView<Int, 2, D> first_rot_block_type,
-    TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
+    ConnTView pose_stack_inter_block_connections,
     TView<Int, 3, D> block_type_atom_downstream_of_conn) {
   // Resolve an unresolved atom ID and return its rotamer-set-wide index
   auto resolved_atom_tuple = resolve_local_rotamer_pair_atom_ind_from_uaid(

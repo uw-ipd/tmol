@@ -3,6 +3,7 @@
 #pragma once
 
 #include <Eigen/Core>
+#include <tmol/utility/tensor/TensorUtilEigen.h>
 #include <Eigen/Geometry>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
@@ -11,9 +12,6 @@
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/launch_box_macros.hh>
 #include <tmol/score/unresolved_atom.hh>
-
-#include <moderngpu/scan_types.hxx>
-#include <moderngpu/operators.hxx>
 
 #include <pybind11/pybind11.h>
 

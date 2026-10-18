@@ -1,13 +1,8 @@
 #pragma once
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
-
-#include <tmol/utility/tensor/TensorAccessor.h>
-#include <tmol/utility/tensor/TensorPack.h>
-#include <tmol/utility/tensor/TensorStruct.h>
-#include <tmol/utility/tensor/TensorUtil.h>
-#include <tmol/utility/nvtx.hh>
+#include <tmol/utility/portable/metal_view.hh>
+#include <tmol/utility/portable/device.hh>
+#include <tmol/utility/portable/math.hh>
 
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/geom.hh>
@@ -21,7 +16,7 @@ namespace count_pair {
 // Slot of block2 in a near-block row, else of an empty slot whose separations
 // are the cap (see InterBlockBondsep).
 template <typename NearBlockRow>
-EIGEN_DEVICE_FUNC int near_block_slot(NearBlockRow near_blocks, int block2) {
+TMOL_HD int near_block_slot(NearBlockRow near_blocks, int block2) {
   int const last = int(near_blocks.size(0)) - 1;
   int slot = 0;
   while (slot < last && near_blocks[slot][0] != block2
@@ -35,15 +30,15 @@ EIGEN_DEVICE_FUNC int near_block_slot(NearBlockRow near_blocks, int block2) {
 // Templated on the number of atoms in the tile and the datatype
 // of the integer-typed T that
 template <int N, class T>
-static EIGEN_DEVICE_FUNC int shared_mem_inter_block_separation(
+static TMOL_HD int shared_mem_inter_block_separation(
     int const max_important_bond_separation,
     int atom_ind_1,
     int atom_ind_2,
     int const n_conn1,
     int const n_conn2,
-    T const* path_dist1,  // size max_n_conn * N
-    T const* path_dist2,  // size max_n_conn * N
-    T const* conn_seps) {
+    TMOL_SHARED_PTR(T const) path_dist1,  // size max_n_conn * N
+    TMOL_SHARED_PTR(T const) path_dist2,  // size max_n_conn * N
+    TMOL_SHARED_PTR(T const) conn_seps) {
   int separation = max_important_bond_separation + 1;
 
   // if (n_conn1 > 4) {

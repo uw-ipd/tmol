@@ -1,14 +1,14 @@
+#include <tmol/utility/portable/reduce_ops.hh>
+#include <tmol/utility/portable/matrix.hh>
 #include <tmol/utility/tensor/native.hh>
 #pragma once
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
 #include <vector>
-
-#include <Eigen/Core>
-#include <Eigen/Geometry>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/score/common/accumulate.hh>
@@ -16,10 +16,12 @@
 
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/launch_box_macros.hh>
+#include <tmol/score/common/sphere_overlap_ctx.hh>
+#include <tmol/score/common/sphere_overlap_kernels.hh>
+#include <tmol/score/common/tview_binder.hh>
+#include <tmol/score/common/sphere_overlap_mps_launch.hh>
 #include <tmol/score/common/upper_triangle_indices.hh>
 
-#include <moderngpu/operators.hxx>
-#include <moderngpu/scan_types.hxx>
 #include <tmol/utility/tensor/context_manager.hh>
 
 namespace tmol {
@@ -27,8 +29,27 @@ namespace score {
 namespace common {
 namespace sphere_overlap {
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+// Attribute a host-side phase into the Metal kernel tally. Compiles away
+// entirely in a build without the Metal backend.
+inline bool host_phase_timing_enabled() {
+#ifdef WITH_MPS
+  return tmol::score::common::mps_timing_enabled();
+#else
+  return false;
+#endif
+}
+
+inline void record_host_phase(char const* name, double ms) {
+#ifdef WITH_MPS
+  tmol::score::common::mps_record_host_phase(name, ms);
+#else
+  (void)name;
+  (void)ms;
+#endif
+}
+
+
+using tmol::portable::Vec;
 
 inline bool should_compact_block_neighbors(
     int n_poses, int max_n_blocks, bool computes_derivatives) {
@@ -59,97 +80,39 @@ template <
     typename Real,
     typename Int>
 struct compute_rot_spheres {
+  // Templated on the coordinate view so terms can move from Eigen to
+  // tmol::portable::Vec independently; both spell a 3-vector of Real.
+  template <typename CoordTView>
   static void f(
       ContextManager& mgr,
-      TView<Vec<Real, 3>, 1, D> rot_coords,
+      CoordTView rot_coords,
       TView<Int, 1, D> rot_coord_offset,
       TView<Int, 1, D> block_type_ind_for_rot,
       TView<Int, 1, D> block_type_n_atoms,
       TView<Real, 2, D> rot_spheres) {
     LAUNCH_BOX_32;
 
-    auto compute_spheres = ([=] TMOL_DEVICE_FUNC(int cta) {
-      CTA_LAUNCH_T_PARAMS;
+    // One context, three backends: the generic launch captures it in a device
+    // lambda, the Metal launch binds its views as buffers, and both reach the
+    // same body in sphere_overlap_kernels.hh.
+    RotSpheresCtxT<tmol::score::common::TViewBinder<D>::template View, Real, Int>
+        ctx;
+    ctx.rot_coords = rot_coords;
+    ctx.rot_coord_offset = rot_coord_offset;
+    ctx.block_type_ind_for_rot = block_type_ind_for_rot;
+    ctx.block_type_n_atoms = block_type_n_atoms;
+    ctx.rot_spheres = rot_spheres;
 
-      int const rot_ind = cta;
-      int const coord_offset = rot_coord_offset[rot_ind];
-      int const block_type = block_type_ind_for_rot[rot_ind];
-
-      if (block_type < 0) return;
-      int const n_atoms = block_type_n_atoms[block_type];
-      Vec<Real, 3> local_coords(0, 0, 0);
-
-      auto per_thread_com = ([&] TMOL_DEVICE_FUNC(int tid) {
-        for (int i = tid; i < n_atoms; i += nt) {
-          Vec<Real, 3> ci = rot_coords[coord_offset + i];
-          for (int j = 0; j < 3; ++j) {
-            local_coords[j] += ci[j];
-          }
-        }
-        for (int j = 0; j < 3; ++j) {
-          local_coords[j] /= n_atoms;
-        }
+    if (D == tmol::Device::MPS) {
+      rot_spheres_mps_launch_if<D>(ctx, rot_coord_offset.size(0));
+    } else {
+      auto compute_spheres = ([=] TMOL_DEVICE_FUNC(int cta) {
+        compute_rot_spheres_body<DeviceDispatch, D, Real, Int, launch_t>(
+            ctx, cta);
       });
-
-      DeviceDispatch<D>::template for_each_in_workgroup<nt>(per_thread_com);
-
-      // CPU's scalar workgroup implementation is faster with the square root
-      // before reduction; CUDA reduces squared distances to execute one sqrt.
-      Real dmax(0);
-
-      DeviceDispatch<D>::synchronize_workgroup();
-      Vec<Real, 3> com =
-          DeviceDispatch<D>::template shuffle_reduce_and_broadcast_in_workgroup<
-              nt>(local_coords, mgpu::plus_t<Real>());
-
-      Real d2max = 0;
-      // Now find maximum distance
-      auto per_thread_dist_to_com = ([&] TMOL_DEVICE_FUNC(int tid) {
-        for (int i = tid; i < n_atoms; i += nt) {
-          Vec<Real, 3> ci = rot_coords[coord_offset + i];
-          Real d2 =
-              ((ci[0] - com[0]) * (ci[0] - com[0])
-               + (ci[1] - com[1]) * (ci[1] - com[1])
-               + (ci[2] - com[2]) * (ci[2] - com[2]));
-          if (d2 > d2max) {
-            d2max = d2;
-          }
-        }
-        if constexpr (D == Device::CPU) {
-          dmax = sqrt(d2max);
-        }
-      });
-      DeviceDispatch<D>::template for_each_in_workgroup<nt>(
-          per_thread_dist_to_com);
-
-      if constexpr (D == Device::CPU) {
-        dmax = DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
-            dmax, mgpu::maximum_t<Real>());
-      } else {
-        d2max = DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
-            d2max, mgpu::maximum_t<Real>());
-      }
-
-      auto thread0_write_out_result = ([=] TMOL_DEVICE_FUNC(int tid) {
-        if (tid == 0) {
-          rot_spheres[rot_ind][0] = com[0];
-          rot_spheres[rot_ind][1] = com[1];
-          rot_spheres[rot_ind][2] = com[2];
-          if constexpr (D == Device::CPU) {
-            rot_spheres[rot_ind][3] = dmax;
-          } else {
-            // Reduce squared distances first and take one square root per
-            // block, rather than one per participating GPU thread.
-            rot_spheres[rot_ind][3] = sqrt(d2max);
-          }
-        }
-      });
-      DeviceDispatch<D>::template for_each_in_workgroup<nt>(
-          thread0_write_out_result);
-    });
-
-    DeviceDispatch<D>::template foreach_independent_workgroup<launch_t>(
-        mgr, rot_coord_offset.size(0), compute_spheres);
+      DeviceDispatch<D>::template foreach_independent_workgroup<launch_t>(
+          mgr, rot_coord_offset.size(0), compute_spheres);
+    }
   }
 };
 
@@ -160,9 +123,12 @@ template <
     typename Int,
     bool ResetCount = false>
 struct compute_block_spheres {
+  // Templated on the coordinate view so terms can move from Eigen to
+  // tmol::portable::Vec independently; both spell a 3-vector of Real.
+  template <typename CoordTView>
   static void f(
       ContextManager& mgr,
-      TView<Vec<Real, 3>, 1, D> rot_coords,
+      CoordTView rot_coords,
       TView<Int, 1, D> rot_coord_offset,
       TView<Int, 1, D> block_ind_for_rot,
       TView<Int, 1, D> pose_ind_for_rot,
@@ -191,11 +157,11 @@ struct compute_block_spheres {
 
       if (block_type < 0) return;
       int const n_atoms = block_type_n_atoms[block_type];
-      Vec<Real, 3> local_coords(0, 0, 0);
+      Vec<Real, 3> local_coords{0, 0, 0};
 
       auto per_thread_com = ([&] TMOL_DEVICE_FUNC(int tid) {
         for (int i = tid; i < n_atoms; i += nt) {
-          Vec<Real, 3> ci = rot_coords[coord_offset + i];
+          auto ci = rot_coords[coord_offset + i];
           for (int j = 0; j < 3; ++j) {
             local_coords[j] += ci[j];
           }
@@ -214,13 +180,13 @@ struct compute_block_spheres {
       DeviceDispatch<D>::synchronize_workgroup();
       Vec<Real, 3> com =
           DeviceDispatch<D>::template shuffle_reduce_and_broadcast_in_workgroup<
-              nt>(local_coords, mgpu::plus_t<Real>());
+              nt>(local_coords, tmol::portable::plus_t<Real>());
 
       Real d2max = 0;
       // Now find maximum distance
       auto per_thread_dist_to_com = ([&] TMOL_DEVICE_FUNC(int tid) {
         for (int i = tid; i < n_atoms; i += nt) {
-          Vec<Real, 3> ci = rot_coords[coord_offset + i];
+          auto ci = rot_coords[coord_offset + i];
           Real d2 =
               ((ci[0] - com[0]) * (ci[0] - com[0])
                + (ci[1] - com[1]) * (ci[1] - com[1])
@@ -238,10 +204,10 @@ struct compute_block_spheres {
 
       if constexpr (D == Device::CPU) {
         dmax = DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
-            dmax, mgpu::maximum_t<Real>());
+            dmax, tmol::portable::maximum_t<Real>());
       } else {
         d2max = DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
-            d2max, mgpu::maximum_t<Real>());
+            d2max, tmol::portable::maximum_t<Real>());
       }
 
       auto thread0_write_out_result = ([=] TMOL_DEVICE_FUNC(int tid) {
@@ -262,8 +228,26 @@ struct compute_block_spheres {
           thread0_write_out_result);
     });
 
-    DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-        mgr, block_ind_for_rot.size(0), compute_spheres);
+    if (D == tmol::Device::MPS) {
+      // Metal cannot launch a device lambda, so the same body is reached
+      // through a named entry point instead of through compute_spheres.
+      BlockSpheresCtxT<
+          tmol::score::common::TViewBinder<D>::template View,
+          Real,
+          Int>
+          ctx;
+      ctx.rot_coords = rot_coords;
+      ctx.rot_coord_offset = rot_coord_offset;
+      ctx.block_ind_for_rot = block_ind_for_rot;
+      ctx.pose_ind_for_rot = pose_ind_for_rot;
+      ctx.block_type_ind_for_rot = block_type_ind_for_rot;
+      ctx.block_type_n_atoms = block_type_n_atoms;
+      ctx.block_spheres = block_spheres;
+      block_spheres_mps_launch_if<D>(ctx, block_ind_for_rot.size(0));
+    } else {
+      DeviceDispatch<D>::template foreach_workgroup<launch_t>(
+          mgr, block_ind_for_rot.size(0), compute_spheres);
+    }
   }
 };
 
@@ -347,8 +331,8 @@ struct detect_rot_neighbors {
         return;
       }
 
-      Vec<Real, 4> sphere1(0, 0, 0, 0);
-      Vec<Real, 4> sphere2(0, 0, 0, 0);
+      Vec<Real, 4> sphere1{0, 0, 0, 0};
+      Vec<Real, 4> sphere2{0, 0, 0, 0};
 
       for (int i = 0; i < 4; ++i) {
         sphere1[i] = rot_spheres[global_rot_ind1][i];
@@ -424,8 +408,8 @@ struct detect_block_neighbors {
         return;
       }
 
-      Vec<Real, 4> sphere1(0, 0, 0, 0);
-      Vec<Real, 4> sphere2(0, 0, 0, 0);
+      Vec<Real, 4> sphere1{0, 0, 0, 0};
+      Vec<Real, 4> sphere2{0, 0, 0, 0};
 
       for (int i = 0; i < 4; ++i) {
         sphere1[i] = block_spheres[pose_ind][block_ind1][i];
@@ -448,8 +432,23 @@ struct detect_block_neighbors {
         block_neighbors[pose_ind][block_ind1][block_ind2] = 0;
       }
     });
-    DeviceDispatch<D>::template forall_independent<launch_t>(
-        mgr, n_block_pairs, detect_neighbors);
+    if (D == tmol::Device::MPS) {
+      BlockNeighborsCtxT<
+          tmol::score::common::TViewBinder<D>::template View,
+          Real,
+          Int>
+          ctx;
+      ctx.pose_stack_block_type = pose_stack_block_type;
+      ctx.block_spheres = block_spheres;
+      ctx.block_neighbors = block_neighbors;
+      ctx.max_n_blocks = max_n_blocks;
+      ctx.block_pairs_per_pose = block_pairs_per_pose;
+      ctx.reach = reach;
+      block_neighbors_mps_launch_if<D>(ctx, n_block_pairs);
+    } else {
+      DeviceDispatch<D>::template forall_independent<launch_t>(
+          mgr, n_block_pairs, detect_neighbors);
+    }
   }
 };
 
@@ -614,8 +613,8 @@ struct detect_compact_block_neighbors {
             int const block_type2 = pose_stack_block_type[pose_ind][block_ind2];
             if (block_type2 < 0) return;
 
-            Vec<Real, 4> sphere1(0, 0, 0, 0);
-            Vec<Real, 4> sphere2(0, 0, 0, 0);
+            Vec<Real, 4> sphere1{0, 0, 0, 0};
+            Vec<Real, 4> sphere2{0, 0, 0, 0};
             for (int i = 0; i < 4; ++i) {
               sphere1[i] = block_spheres[pose_ind][block_ind1][i];
               sphere2[i] = block_spheres[pose_ind][block_ind2][i];
@@ -674,8 +673,8 @@ struct detect_compact_block_neighbors {
         int const block_type2 = pose_stack_block_type[pose_ind][block_ind2];
         if (block_type2 < 0) return;
 
-        Vec<Real, 4> sphere1(0, 0, 0, 0);
-        Vec<Real, 4> sphere2(0, 0, 0, 0);
+        Vec<Real, 4> sphere1{0, 0, 0, 0};
+        Vec<Real, 4> sphere2{0, 0, 0, 0};
         for (int i = 0; i < 4; ++i) {
           sphere1[i] = block_spheres[pose_ind][block_ind1][i];
           sphere2[i] = block_spheres[pose_ind][block_ind2][i];
@@ -907,12 +906,13 @@ struct rot_neighbor_indices {
     auto offset_for_cell = offset_for_cell_tp.view;
 
     int64_t const n_dispatch_total_64 =
-        DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+        DeviceDispatch<D>::template scan_and_return_total<
+            tmol::portable::scan_type::exclusive>(
             mgr,
             count_for_cell.data(),
             offset_for_cell.data(),
             n_cells,
-            mgpu::plus_t<int64_t>());
+            tmol::portable::plus_t<int64_t>());
     int const n_dispatch_total = common::checked_dispatch_size(
         n_dispatch_total_64, "rotamer-neighbor dispatch");
 
@@ -971,12 +971,13 @@ struct block_neighbor_indices {
     auto offset_for_cell = offset_for_cell_tp.view;
 
     int64_t const n_dispatch_total_64 =
-        DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+        DeviceDispatch<D>::template scan_and_return_total<
+            tmol::portable::scan_type::exclusive>(
             mgr,
             count_for_cell.data(),
             offset_for_cell.data(),
             n_cells,
-            mgpu::plus_t<int64_t>());
+            tmol::portable::plus_t<int64_t>());
     int const n_dispatch_total = common::checked_dispatch_size(
         n_dispatch_total_64, "block-neighbor dispatch");
 
@@ -1029,54 +1030,28 @@ struct compute_block_spheres_from_rot_spheres {
     int const n_pose_blocks = common::checked_dispatch_product(
         n_poses, max_n_blocks, "rotamer block-sphere dispatch");
 
-    auto compute = ([=] TMOL_DEVICE_FUNC(int ind) {
-      int const pose = ind / max_n_blocks;
-      int const block = ind % max_n_blocks;
-      int const n_rots = n_rots_for_block[pose][block];
-      if (n_rots <= 0) return;
-      int const rot_start = rot_offset_for_block[pose][block];
-      if (rot_start < 0) return;
+    BlockSpheresFromRotCtxT<
+        tmol::score::common::TViewBinder<D>::template View,
+        Real,
+        Int>
+        ctx;
+    ctx.rot_spheres = rot_spheres;
+    ctx.n_rots_for_block = n_rots_for_block;
+    ctx.rot_offset_for_block = rot_offset_for_block;
+    ctx.block_spheres = block_spheres;
+    ctx.max_n_blocks = max_n_blocks;
 
-      Real cx = 0, cy = 0, cz = 0;
-      for (int r = 0; r < n_rots; ++r) {
-        cx += rot_spheres[rot_start + r][0];
-        cy += rot_spheres[rot_start + r][1];
-        cz += rot_spheres[rot_start + r][2];
-      }
-      cx /= n_rots;
-      cy /= n_rots;
-      cz /= n_rots;
-
-      Real rmax = 0;
-      for (int r = 0; r < n_rots; ++r) {
-        Real dx = rot_spheres[rot_start + r][0] - cx;
-        Real dy = rot_spheres[rot_start + r][1] - cy;
-        Real dz = rot_spheres[rot_start + r][2] - cz;
-        Real d =
-            sqrt(dx * dx + dy * dy + dz * dz) + rot_spheres[rot_start + r][3];
-        if (d > rmax) rmax = d;
-      }
-
-      block_spheres[pose][block][0] = cx;
-      block_spheres[pose][block][1] = cy;
-      block_spheres[pose][block][2] = cz;
-      block_spheres[pose][block][3] = rmax;
-    });
-
-    DeviceDispatch<D>::template forall_independent<launch_t>(
-        mgr, n_pose_blocks, compute);
+    if (D == tmol::Device::MPS) {
+      block_spheres_from_rot_mps_launch_if<D>(ctx, n_pose_blocks);
+    } else {
+      auto compute = ([=] TMOL_DEVICE_FUNC(int ind) {
+        compute_block_spheres_from_rot_body<D, Real, Int>(ctx, ind);
+      });
+      DeviceDispatch<D>::template forall_independent<launch_t>(
+          mgr, n_pose_blocks, compute);
+    }
   }
 };
-
-template <tmol::Device D, typename Real>
-inline TMOL_DEVICE_FUNC bool rot_spheres_overlap(
-    TView<Real, 2, D> rot_spheres, int rot1, int rot2, Real reach) {
-  Real const dx = rot_spheres[rot1][0] - rot_spheres[rot2][0];
-  Real const dy = rot_spheres[rot1][1] - rot_spheres[rot2][1];
-  Real const dz = rot_spheres[rot1][2] - rot_spheres[rot2][2];
-  Real const threshold = rot_spheres[rot1][3] + rot_spheres[rot2][3] + reach;
-  return dx * dx + dy * dy + dz * dz < threshold * threshold;
-}
 
 // Convert block and rotamer bounding spheres into rotamer-pair dispatch indices
 // (the same [3, n_pairs] format as rot_neighbor_indices). Canonical packed
@@ -1088,6 +1063,49 @@ template <
     typename Real,
     typename Int>
 struct rot_neighbor_indices_from_block_neighbors {
+  // Exclusive scan of the per-candidate counts.
+  //
+  // DeviceDispatch::scan takes raw pointers, which Metal cannot honour: an
+  // MPS tensor's data pointer is an MTLBuffer handle, not an address a kernel
+  // can be handed, and the stable ABI exposes no cumsum. The scan runs on the
+  // host there instead -- which costs no extra synchronization, because the
+  // caller has already blocked on the overflow flag and the count sum
+  // immediately above.
+  static auto exclusive_scan_counts(
+      ContextManager& mgr, TPack<Int, 1, D>& counts_t, int n_candidates)
+      -> TPack<Int, 1, D> {
+    if (D == tmol::Device::MPS) {
+      auto const t0 = std::chrono::steady_clock::now();
+      auto host_counts =
+          counts_t.tensor.to(tmol::native::Device(tmol::native::kCPU));
+      auto host_offsets_t = TPack<Int, 1, tmol::Device::CPU>::empty(
+          {int64_t(n_candidates)});
+      Int const* counts = host_counts.template data_ptr<Int>();
+      Int* offsets = host_offsets_t.tensor.template data_ptr<Int>();
+      Int running = 0;
+      for (int i = 0; i < n_candidates; ++i) {
+        offsets[i] = running;
+        running += counts[i];
+      }
+      auto result =
+          TPack<Int, 1, D>(host_offsets_t.tensor.to(counts_t.tensor.device()));
+      if (host_phase_timing_enabled()) {
+        std::chrono::duration<double, std::milli> const dt =
+            std::chrono::steady_clock::now() - t0;
+        record_host_phase("HOST rot_pair exclusive_scan", dt.count());
+      }
+      return result;
+    }
+    auto offsets_t = TPack<Int, 1, D>::zeros({n_candidates});
+    DeviceDispatch<D>::template scan<tmol::portable::scan_type::exclusive>(
+        mgr,
+        counts_t.view.data(),
+        offsets_t.view.data(),
+        n_candidates,
+        tmol::portable::plus_t<Int>());
+    return offsets_t;
+  }
+
   static auto f(
       ContextManager& mgr,
       TView<Int, 2, D> pose_stack_block_type,
@@ -1126,60 +1144,45 @@ struct rot_neighbor_indices_from_block_neighbors {
     // For diagonal (b1==b2): only self-pairs (r,r), count = n_rots[b1].
     // For off-diagonal (b1<b2): count the overlapping rotamer spheres.
     auto pair_counts_t = TPack<Int, 1, D>::zeros({n_candidates});
-    auto pair_counts = pair_counts_t.view;
     auto pair_count_overflow_t = TPack<int64_t, 1, D>::zeros({1});
-    auto pair_count_overflow = pair_count_overflow_t.view;
 
-    auto compute_counts = ([=] TMOL_DEVICE_FUNC(int candidate) {
-      int const global_candidate = candidate_begin + candidate;
-      int const pose = global_candidate / block_pairs_per_pose;
-      auto pair = common::upper_triangle_inds_from_linear_index(
-          global_candidate % block_pairs_per_pose, max_n_blocks + 1);
-      int const b1 = common::get<0>(pair);
-      int const b2 = common::get<1>(pair) - 1;
+    RotPairListCtxT<
+        tmol::score::common::TViewBinder<D>::template View,
+        Real,
+        Int>
+        ctx;
+    ctx.pose_stack_block_type = pose_stack_block_type;
+    ctx.block_spheres = block_spheres;
+    ctx.n_rots_for_block = n_rots_for_block;
+    ctx.rot_offset_for_block = rot_offset_for_block;
+    ctx.rot_spheres = rot_spheres;
+    ctx.lockstep_group_for_block = lockstep_group_for_block;
+    ctx.pair_counts = pair_counts_t.view;
+    ctx.pair_count_overflow = pair_count_overflow_t.view;
+    ctx.max_n_blocks = max_n_blocks;
+    ctx.block_pairs_per_pose = block_pairs_per_pose;
+    ctx.candidate_begin = int(candidate_begin);
+    ctx.reach = reach;
+    // The fill pass reuses this context; its two remaining views are bound
+    // once the scan and the output allocation exist. They are bound to the
+    // counts for now so the Metal collector never sees an undefined view.
+    ctx.pair_offsets = pair_counts_t.view;
+    auto indices_placeholder_t = TPack<Int, 2, D>::empty({3, 1});
+    ctx.indices = indices_placeholder_t.view;
 
-      if (pose_stack_block_type[pose][b1] < 0
-          || pose_stack_block_type[pose][b2] < 0) {
-        return;
-      }
-      Real const dx = block_spheres[pose][b1][0] - block_spheres[pose][b2][0];
-      Real const dy = block_spheres[pose][b1][1] - block_spheres[pose][b2][1];
-      Real const dz = block_spheres[pose][b1][2] - block_spheres[pose][b2][2];
-      Real const block_threshold =
-          block_spheres[pose][b1][3] + block_spheres[pose][b2][3] + reach;
-      if (!(dx * dx + dy * dy + dz * dz < block_threshold * block_threshold)) {
-        return;
-      }
-
-      int const nr1 = n_rots_for_block[pose][b1];
-      int const nr2 = n_rots_for_block[pose][b2];
-      int const off1 = rot_offset_for_block[pose][b1];
-      int const off2 = rot_offset_for_block[pose][b2];
-      if (nr1 <= 0 || nr2 <= 0 || off1 < 0 || off2 < 0) return;
-      int const g1 = lockstep_group_for_block[pose][b1];
-      int const g2 = lockstep_group_for_block[pose][b2];
-      int64_t count = 0;
-      if (b1 == b2 || (g1 >= 0 && g1 == g2)) {
-        count = nr1 < nr2 ? nr1 : nr2;
-      } else {
-        for (int i = 0; i < nr1; ++i) {
-          for (int j = 0; j < nr2; ++j) {
-            count +=
-                rot_spheres_overlap<D>(rot_spheres, off1 + i, off2 + j, reach);
-          }
-        }
-      }
-      if (count > std::numeric_limits<Int>::max()) {
-        DeviceDispatch<D>::store_idempotent(pair_count_overflow[0], int64_t(1));
-        return;
-      }
-      pair_counts[candidate] = static_cast<Int>(count);
-    });
-    DeviceDispatch<D>::template forall_independent<launch_t>(
-        mgr, n_candidates, compute_counts);
+    if (D == tmol::Device::MPS) {
+      rot_pair_list_mps_launch_if<D>(ctx, n_candidates, "rot_pair_counts_f32");
+    } else {
+      auto compute_counts = ([=] TMOL_DEVICE_FUNC(int candidate) {
+        rot_pair_counts_body<D, Real, Int>(ctx, candidate);
+      });
+      DeviceDispatch<D>::template forall_independent<launch_t>(
+          mgr, n_candidates, compute_counts);
+    }
 
     // Step 2: check an int64 reduction before scanning int32 offsets. This
     // preserves the signed-32-bit dispatch limit without two int64 pair arrays.
+    auto const t_sync = std::chrono::steady_clock::now();
     if (pair_count_overflow_t.tensor.template item<int64_t>() != 0) {
       throw std::overflow_error(
           "rotamer block-pair dispatch exceeds the signed 32-bit native "
@@ -1190,76 +1193,31 @@ struct rot_neighbor_indices_from_block_neighbors {
             .template item<int64_t>();
     int const total =
         common::checked_dispatch_size(total_64, "rotamer block-pair dispatch");
+    if (D == tmol::Device::MPS && host_phase_timing_enabled()) {
+      std::chrono::duration<double, std::milli> const dt =
+          std::chrono::steady_clock::now() - t_sync;
+      record_host_phase("HOST rot_pair overflow+sum sync", dt.count());
+    }
 
-    auto pair_offsets_t = TPack<Int, 1, D>::zeros({n_candidates});
-    auto pair_offsets = pair_offsets_t.view;
-    DeviceDispatch<D>::template scan<mgpu::scan_type_exc>(
-        mgr,
-        pair_counts.data(),
-        pair_offsets.data(),
-        n_candidates,
-        mgpu::plus_t<Int>());
+    auto pair_offsets_t = exclusive_scan_counts(mgr, pair_counts_t, n_candidates);
 
     // Step 3: allocate output [3, total]
     auto indices_t = TPack<Int, 2, D>::full({3, total}, -1);
-    auto indices = indices_t.view;
+    ctx.pair_offsets = pair_offsets_t.view;
+    ctx.indices = indices_t.view;
 
-    // Step 4: fill — one thread per block pair, serial loop over rot pairs.
+    // Step 4: fill -- one thread per block pair, serial loop over rot pairs.
     // Diagonal (b1==b2): only (r,r) self-pairs (intrares scoring).
     // Same lockstep group: matching states; otherwise overlapping spheres.
-    auto fill = ([=] TMOL_DEVICE_FUNC(int candidate) {
-      if (pair_counts[candidate] == 0) return;
-      int const global_candidate = candidate_begin + candidate;
-      int const pose = global_candidate / block_pairs_per_pose;
-      auto pair = common::upper_triangle_inds_from_linear_index(
-          global_candidate % block_pairs_per_pose, max_n_blocks + 1);
-      int const b1 = common::get<0>(pair);
-      int const b2 = common::get<1>(pair) - 1;
-
-      int const nr1 = n_rots_for_block[pose][b1];
-      int const nr2 = n_rots_for_block[pose][b2];
-      int const off1 = rot_offset_for_block[pose][b1];
-      int const off2 = rot_offset_for_block[pose][b2];
-      if (off1 < 0 || off2 < 0) return;
-
-      int const g1 = lockstep_group_for_block[pose][b1];
-      int const g2 = lockstep_group_for_block[pose][b2];
-
-      Int offset = pair_offsets[candidate];
-      if (b1 == b2) {
-        for (int i = 0; i < nr1; ++i) {
-          indices[0][offset] = pose;
-          indices[1][offset] = off1 + i;
-          indices[2][offset] = off1 + i;  // same rot
-          ++offset;
-        }
-      } else if (g1 >= 0 && g1 == g2) {
-        // lockstep: any pair of differing rotamer indices describes a
-        // conformer combination the group cannot adopt
-        int const n = nr1 < nr2 ? nr1 : nr2;
-        for (int i = 0; i < n; ++i) {
-          indices[0][offset] = pose;
-          indices[1][offset] = off1 + i;
-          indices[2][offset] = off2 + i;
-          ++offset;
-        }
-      } else {
-        for (int i = 0; i < nr1; ++i) {
-          for (int j = 0; j < nr2; ++j) {
-            if (!rot_spheres_overlap<D>(
-                    rot_spheres, off1 + i, off2 + j, reach)) {
-              continue;
-            }
-            indices[0][offset] = pose;
-            indices[1][offset] = off1 + i;
-            indices[2][offset] = off2 + j;
-            ++offset;
-          }
-        }
-      }
-    });
-    DeviceDispatch<D>::template forall_independent<launch_t>(
-        mgr, n_candidates, fill);
+    if (D == tmol::Device::MPS) {
+      rot_pair_list_mps_launch_if<D>(ctx, n_candidates, "rot_pair_fill_f32");
+    } else {
+      auto fill = ([=] TMOL_DEVICE_FUNC(int candidate) {
+        rot_pair_fill_body<D, Real, Int>(ctx, candidate);
+      });
+      DeviceDispatch<D>::template forall_independent<launch_t>(
+          mgr, n_candidates, fill);
+    }
 
     return indices_t;
   }

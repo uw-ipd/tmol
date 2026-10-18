@@ -141,7 +141,9 @@ struct TPack {
         tmol::native::TensorOptions()
             .dtype(enable_tensor_view<T>::scalar_type())
             .device(
-                (D == Device::CPU) ? tmol::native::kCPU : tmol::native::kCUDA);
+                (D == Device::CPU)   ? tmol::native::kCPU
+                : (D == Device::MPS) ? tmol::native::kMPS
+                                     : tmol::native::kCUDA);
 
     constexpr int nconsumed_dims = enable_tensor_view<T>::nconsumed_dims;
     auto consumed_dims = enable_tensor_view<T>::consumed_dims;

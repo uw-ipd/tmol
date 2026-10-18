@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tmol/utility/portable/matrix.hh>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
@@ -13,8 +14,7 @@ namespace tests {
 namespace score {
 namespace bonded_atom {
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 
 template <template <Device> class Dispatch, Device D, typename Int>
 struct BondedAtomTests {

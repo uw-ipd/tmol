@@ -1,7 +1,7 @@
 #pragma once
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
+#include <tmol/utility/portable/reduce_ops.hh>
+#include <tmol/utility/portable/matrix.hh>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
@@ -24,7 +24,6 @@
 #include <tmol/score/backbone_torsion/potentials/backbone_torsion_pose_score.hh>
 
 // Operator definitions; safe for CPU compilation
-#include <moderngpu/operators.hxx>
 
 #include <chrono>
 
@@ -33,10 +32,9 @@ namespace score {
 namespace backbone_torsion {
 namespace potentials {
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
 template <typename Real>
-using CoordQuad = Eigen::Matrix<Real, 4, 3>;
+using CoordQuad = tmol::portable::Mat<Real, 4, 3>;
 
 template <
     template <tmol::Device> class DeviceDispatch,
@@ -211,7 +209,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     CoordQuad<Real> phi_coords;
     if (valid_phipsi) {
       for (int i = 0; i < 4; ++i) {
-        phi_coords.row(i) = rot_coords[phi_ats[i]];
+        tmol::portable::row_ref(phi_coords, i) = rot_coords[phi_ats[i]];
       }
     }
 
@@ -236,7 +234,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     CoordQuad<Real> psi_coords;
     if (valid_phipsi) {
       for (int i = 0; i < 4; ++i) {
-        psi_coords.row(i) = rot_coords[psi_ats[i]];
+        tmol::portable::row_ref(psi_coords, i) = rot_coords[psi_ats[i]];
       }
     }
 
@@ -247,9 +245,9 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
             phi_coords,
             psi_coords,
             rama_tables[rama_table_ind],
-            Eigen::Map<Vec<Real, 2>>(
+            tmol::portable::vec_from<Real, 2>(
                 rama_table_params[rama_table_ind].bbstarts),
-            Eigen::Map<Vec<Real, 2>>(
+            tmol::portable::vec_from<Real, 2>(
                 rama_table_params[rama_table_ind].bbsteps));
         accumulate<Dev, Real>::add(
             V[0][pose_ind][V_ind1][V_ind2], common::get<0>(rama));
@@ -266,9 +264,9 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
                 phi_coords,
                 psi_coords,
                 rama_tables[rama_table_ind],
-                Eigen::Map<Vec<Real, 2>>(
+                tmol::portable::vec_from<Real, 2>(
                     rama_table_params[rama_table_ind].bbstarts),
-                Eigen::Map<Vec<Real, 2>>(
+                tmol::portable::vec_from<Real, 2>(
                     rama_table_params[rama_table_ind].bbsteps)));
       }
     }
@@ -309,7 +307,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     }
 
     for (int i = 0; i < 4; ++i) {
-      omega_coords.row(i) = rot_coords[omega_ats[i]];
+      tmol::portable::row_ref(omega_coords, i) = rot_coords[omega_ats[i]];
     }
 
     if (valid_phipsi && omega_table_ind >= 0) {
@@ -320,9 +318,9 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
             omega_coords,
             omega_tables[omega_table_ind][0],
             omega_tables[omega_table_ind][1],
-            Eigen::Map<Vec<Real, 2>>(
+            tmol::portable::vec_from<Real, 2>(
                 omega_table_params[omega_table_ind].bbstarts),
-            Eigen::Map<Vec<Real, 2>>(
+            tmol::portable::vec_from<Real, 2>(
                 omega_table_params[omega_table_ind].bbsteps),
             32.8);
         accumulate<Dev, Real>::add(
@@ -345,9 +343,9 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
                 omega_coords,
                 omega_tables[omega_table_ind][0],
                 omega_tables[omega_table_ind][1],
-                Eigen::Map<Vec<Real, 2>>(
+                tmol::portable::vec_from<Real, 2>(
                     omega_table_params[omega_table_ind].bbstarts),
-                Eigen::Map<Vec<Real, 2>>(
+                tmol::portable::vec_from<Real, 2>(
                     omega_table_params[omega_table_ind].bbsteps),
                 32.8));
       }
@@ -541,7 +539,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
     CoordQuad<Real> phi_coords;
     if (valid_phipsi) {
       for (int i = 0; i < 4; ++i) {
-        phi_coords.row(i) = rot_coords[phi_ats[i]];
+        tmol::portable::row_ref(phi_coords, i) = rot_coords[phi_ats[i]];
       }
     }
 
@@ -566,7 +564,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
     CoordQuad<Real> psi_coords;
     if (valid_phipsi) {
       for (int i = 0; i < 4; ++i) {
-        psi_coords.row(i) = rot_coords[psi_ats[i]];
+        tmol::portable::row_ref(psi_coords, i) = rot_coords[psi_ats[i]];
       }
     }
 
@@ -577,8 +575,10 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
           phi_coords,
           psi_coords,
           rama_tables[rama_table_ind],
-          Eigen::Map<Vec<Real, 2>>(rama_table_params[rama_table_ind].bbstarts),
-          Eigen::Map<Vec<Real, 2>>(rama_table_params[rama_table_ind].bbsteps));
+          tmol::portable::vec_from<Real, 2>(
+              rama_table_params[rama_table_ind].bbstarts),
+          tmol::portable::vec_from<Real, 2>(
+              rama_table_params[rama_table_ind].bbsteps));
       for (int j = 0; j < 4; ++j) {
         accumulate<Dev, Vec<Real, 3>>::add(
             dV_dxyz[0][phi_ats[j]],
@@ -624,7 +624,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
     }
 
     for (int i = 0; i < 4; ++i) {
-      omega_coords.row(i) = rot_coords[omega_ats[i]];
+      tmol::portable::row_ref(omega_coords, i) = rot_coords[omega_ats[i]];
     }
 
     Real omega_block_weight = dTdV[1][pose_ind][dTdV_ind1][dTdV_ind2];
@@ -635,9 +635,10 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
           omega_coords,
           omega_tables[omega_table_ind][0],
           omega_tables[omega_table_ind][1],
-          Eigen::Map<Vec<Real, 2>>(
+          tmol::portable::vec_from<Real, 2>(
               omega_table_params[omega_table_ind].bbstarts),
-          Eigen::Map<Vec<Real, 2>>(omega_table_params[omega_table_ind].bbsteps),
+          tmol::portable::vec_from<Real, 2>(
+              omega_table_params[omega_table_ind].bbsteps),
           32.8);
       for (int j = 0; j < 4; ++j) {
         // omega : [V, dVdphi, dVdpsi, dVdomega]
@@ -827,12 +828,13 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
       TPack<int64_t, 2, Dev>::zeros({n_poses, max_n_blocks});
   auto n_energies_for_block_offset = n_energies_for_block_offset_t.view;
   int64_t const n_dispatch_total_64 =
-      DeviceDispatch<Dev>::template scan_and_return_total<mgpu::scan_type_exc>(
+      DeviceDispatch<Dev>::template scan_and_return_total<
+          tmol::portable::scan_type::exclusive>(
           mgr,
           n_energies_for_block.data(),
           n_energies_for_block_offset.data(),
           n_pose_block_cells,
-          mgpu::plus_t<int64_t>());
+          tmol::portable::plus_t<int64_t>());
   int const n_dispatch_total = score::common::checked_dispatch_size(
       n_dispatch_total_64, "backbone-torsion output dispatch");
 
@@ -972,7 +974,7 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
     CoordQuad<Real> phi_coords;
     if (valid_phipsi) {
       for (int i = 0; i < 4; ++i) {
-        phi_coords.row(i) = rot_coords[phi_ats[i]];
+        tmol::portable::row_ref(phi_coords, i) = rot_coords[phi_ats[i]];
       }
     }
 
@@ -997,7 +999,7 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
     CoordQuad<Real> psi_coords;
     if (valid_phipsi) {
       for (int i = 0; i < 4; ++i) {
-        psi_coords.row(i) = rot_coords[psi_ats[i]];
+        tmol::portable::row_ref(psi_coords, i) = rot_coords[psi_ats[i]];
       }
     }
 
@@ -1007,8 +1009,10 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
           phi_coords,
           psi_coords,
           rama_tables[rama_table_ind],
-          Eigen::Map<Vec<Real, 2>>(rama_table_params[rama_table_ind].bbstarts),
-          Eigen::Map<Vec<Real, 2>>(rama_table_params[rama_table_ind].bbsteps));
+          tmol::portable::vec_from<Real, 2>(
+              rama_table_params[rama_table_ind].bbstarts),
+          tmol::portable::vec_from<Real, 2>(
+              rama_table_params[rama_table_ind].bbsteps));
       accumulate<Dev, Real>::add(V[0][V_ind], common::get<0>(rama));
       if (accumulate_derivs) {
         for (int j = 0; j < 4; ++j) {
@@ -1056,7 +1060,7 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
     }
 
     for (int i = 0; i < 4; ++i) {
-      omega_coords.row(i) = rot_coords[omega_ats[i]];
+      tmol::portable::row_ref(omega_coords, i) = rot_coords[omega_ats[i]];
     }
 
     if (valid_phipsi && omega_table_ind >= 0) {
@@ -1066,9 +1070,10 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
           omega_coords,
           omega_tables[omega_table_ind][0],
           omega_tables[omega_table_ind][1],
-          Eigen::Map<Vec<Real, 2>>(
+          tmol::portable::vec_from<Real, 2>(
               omega_table_params[omega_table_ind].bbstarts),
-          Eigen::Map<Vec<Real, 2>>(omega_table_params[omega_table_ind].bbsteps),
+          tmol::portable::vec_from<Real, 2>(
+              omega_table_params[omega_table_ind].bbsteps),
           32.8);
       accumulate<Dev, Real>::add(V[1][V_ind], common::get<0>(omega));
       if (accumulate_derivs) {
@@ -1269,7 +1274,7 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
     CoordQuad<Real> phi_coords;
     if (valid_phipsi) {
       for (int i = 0; i < 4; ++i) {
-        phi_coords.row(i) = rot_coords[phi_ats[i]];
+        tmol::portable::row_ref(phi_coords, i) = rot_coords[phi_ats[i]];
       }
     }
 
@@ -1294,7 +1299,7 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
     CoordQuad<Real> psi_coords;
     if (valid_phipsi) {
       for (int i = 0; i < 4; ++i) {
-        psi_coords.row(i) = rot_coords[psi_ats[i]];
+        tmol::portable::row_ref(psi_coords, i) = rot_coords[psi_ats[i]];
       }
     }
 
@@ -1305,8 +1310,10 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
           phi_coords,
           psi_coords,
           rama_tables[rama_table_ind],
-          Eigen::Map<Vec<Real, 2>>(rama_table_params[rama_table_ind].bbstarts),
-          Eigen::Map<Vec<Real, 2>>(rama_table_params[rama_table_ind].bbsteps));
+          tmol::portable::vec_from<Real, 2>(
+              rama_table_params[rama_table_ind].bbstarts),
+          tmol::portable::vec_from<Real, 2>(
+              rama_table_params[rama_table_ind].bbsteps));
       for (int j = 0; j < 4; ++j) {
         accumulate<Dev, Vec<Real, 3>>::add(
             dV_dxyz[0][phi_ats[j]],
@@ -1352,7 +1359,7 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
     }
 
     for (int i = 0; i < 4; ++i) {
-      omega_coords.row(i) = rot_coords[omega_ats[i]];
+      tmol::portable::row_ref(omega_coords, i) = rot_coords[omega_ats[i]];
     }
 
     Real omega_block_weight = dTdV[1][V_ind];
@@ -1363,9 +1370,10 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
           omega_coords,
           omega_tables[omega_table_ind][0],
           omega_tables[omega_table_ind][1],
-          Eigen::Map<Vec<Real, 2>>(
+          tmol::portable::vec_from<Real, 2>(
               omega_table_params[omega_table_ind].bbstarts),
-          Eigen::Map<Vec<Real, 2>>(omega_table_params[omega_table_ind].bbsteps),
+          tmol::portable::vec_from<Real, 2>(
+              omega_table_params[omega_table_ind].bbsteps),
           32.8);
       for (int j = 0; j < 4; ++j) {
         // omega : [V, dVdphi, dVdpsi, dVdomega]

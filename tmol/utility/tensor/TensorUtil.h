@@ -1,10 +1,8 @@
+#include <tmol/utility/portable/matrix.hh>
 #include <tmol/utility/tensor/native.hh>
 #pragma once
 
 #include <array>
-
-#include <Eigen/Core>
-#include <Eigen/Geometry>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 
@@ -15,6 +13,8 @@ inline bool operator==(const tmol::Device& lhs, const native::DeviceType& rhs) {
     return rhs == native::DeviceType::CPU;
   } else if (lhs == tmol::Device::CUDA) {
     return rhs == native::DeviceType::CUDA;
+  } else if (lhs == tmol::Device::MPS) {
+    return rhs == native::DeviceType::MPS;
   } else {
     AT_ERROR("Unknown tmol::Device type.");
   }
@@ -55,11 +55,11 @@ static_assert(sizeof(bool) == 1);
 FORALL_SCALAR_TYPES_EXCEPT_HALF(SCALAR_VIEW)
 #undef SCALAR_VIEW
 
-// Eigen Matrix/Vector Conversions
-// Matrix is defined as <T, M, N>, consume two [M, N] dimensions.
-// Vector is defined as <T, M, 1>, consume one [M] dimension.
+// tmol::portable::Mat mirrors Eigen's fixed-size layout and is the element
+// type of tmol's device-side tensors. Mat<T, M, 1> consumes one [M] dimension,
+// Mat<T, M, N> consumes two.
 template <typename T, int M, int N>
-struct enable_tensor_view<Eigen::Matrix<T, M, N>> {
+struct enable_tensor_view<tmol::portable::Mat<T, M, N>> {
   static const bool enabled = enable_tensor_view<T>::enabled;
   static const tmol::native::ScalarType scalar_type() {
     return enable_tensor_view<T>::scalar_type();
@@ -74,17 +74,6 @@ struct enable_tensor_view<Eigen::Matrix<T, M, N>> {
       return 0;
     }
   }
-  typedef typename enable_tensor_view<T>::PrimitiveType PrimitiveType;
-};
-
-template <typename T, int N>
-struct enable_tensor_view<Eigen::AlignedBox<T, N>> {
-  static const bool enabled = enable_tensor_view<T>::enabled;
-  static const tmol::native::ScalarType scalar_type() {
-    return enable_tensor_view<T>::scalar_type();
-  }
-  static const int nconsumed_dims = 1;
-  static int consumed_dims(int i) { return (i == 0) ? N : 0; }
   typedef typename enable_tensor_view<T>::PrimitiveType PrimitiveType;
 };
 

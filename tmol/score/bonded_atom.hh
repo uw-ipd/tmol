@@ -1,16 +1,26 @@
 #pragma once
 
+#include <tmol/utility/portable/math.hh>
+#include <tmol/utility/portable/matrix.hh>
+#include <tmol/utility/portable/metal_view.hh>
+#include <tmol/utility/portable/qualifiers.hh>
+
+#if !TMOL_PORTABLE_METAL
 #include <tmol/utility/tensor/TensorAccessor.h>
-#include <Eigen/Core>
+#endif
 
 namespace tmol {
 namespace score {
 namespace bonded_atom {
 
-#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+#define def auto TMOL_HD
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+using tmol::portable::Vec;
+
+// IndexedBonds and BlockCentricIndexedBonds hold TensorAccessor members and
+// are reached only from host and CUDA code. RotamerCentricIndexedBonds below
+// is the one a Metal kernel needs, and it is templated on the view instead.
+#if !TMOL_PORTABLE_METAL
 
 template <typename Int, tmol::Device D>
 struct IndexedBonds {
@@ -44,10 +54,12 @@ struct IndexedBonds {
     }
   };
 
-  EIGEN_DEVICE_FUNC BoundAtomRange bound_to(Int i) const {
+  TMOL_HD BoundAtomRange bound_to(Int i) const {
     return BoundAtomRange{i, *this};
   }
 };
+
+#endif  // !TMOL_PORTABLE_METAL
 
 template <typename Int>
 struct BlockCentricAtom {
@@ -55,14 +67,18 @@ struct BlockCentricAtom {
   Int block_type;
   Int atom;
 
-  EIGEN_DEVICE_FUNC bool operator==(BlockCentricAtom<Int> const& other) const {
+  TMOL_HD bool operator==(TMOL_THREAD BlockCentricAtom<Int> const& other)
+      const {
     return block == other.block && block_type == other.block_type
            && atom == other.atom;
   }
-  EIGEN_DEVICE_FUNC bool operator!=(BlockCentricAtom<Int> const& other) const {
+  TMOL_HD bool operator!=(TMOL_THREAD BlockCentricAtom<Int> const& other)
+      const {
     return !(*this == other);
   }
 };
+
+#if !TMOL_PORTABLE_METAL
 
 template <typename Int, tmol::Device D>
 struct BlockCentricIndexedBonds {
@@ -109,7 +125,8 @@ struct BlockCentricIndexedBonds {
         // neighbor block. 5. Look up the atom index for the connection atom
         // on the neighbor, nbr_conn_atom.
         Int conn_id = parent.block_type_all_bonds[block_type][bidx][2];
-        Int nbr_conn_id = parent.inter_block_connections[block][conn_id][1];
+        Int nbr_conn_id =
+            parent.inter_block_connections[block][conn_id][1];
         if (nbr_conn_id == -1) {
           // We have an undefined connection.
           // This is how we treat non-termini residues where
@@ -148,12 +165,21 @@ struct BlockCentricIndexedBonds {
     }
   };
 
-  EIGEN_DEVICE_FUNC BondAtomRange bound_to(BlockCentricAtom<Int> bcat) const {
+  TMOL_HD BondAtomRange bound_to(BlockCentricAtom<Int> bcat) const {
     return BondAtomRange{bcat, *this};
   }
 };
 
-template <typename Int, tmol::Device D>
+#endif  // !TMOL_PORTABLE_METAL
+
+// Templated on the view so the field list is declared exactly once; see
+// elec_ctx.hh for why. The two members that used to hold a pose slice --
+// an accessor returned by indexing a view once -- now hold the full view and
+// the pose index, because the type of a slice differs between TView (which
+// yields a TensorAccessor) and MetalView (which yields a MetalView), and
+// naming that difference costs a second template parameter everywhere this
+// struct travels.
+template <typename Int, template <typename, int> class View>
 struct RotamerCentricIndexedBonds {
   // We need to iterate across the bonds for a rotamer being built
   // at a particular position. The block-type for this rotamer may
@@ -173,32 +199,33 @@ struct RotamerCentricIndexedBonds {
   // residue bonds (such as CYD's SG atom).
   int const rot_block;
   int const rot_block_type;
-  // inter_block_connections and block_type have already been sliced
-  // to focus on a particular Pose in the PoseStack
-  TensorAccessor<Vec<Int, 2>, 2, D> inter_block_connections;
-  TensorAccessor<Int, 1, D> neighbor_example_block_types;
+  // The pose this rotamer belongs to; indexes the first dimension of the two
+  // views below, which used to arrive pre-sliced.
+  int const pose_ind;
+  View<Vec<Int, 2>, 3> inter_block_connections;
+  View<Int, 2> neighbor_example_block_types;
 
   // Properties of the block types in this molecular system
-  TView<Int, 1, D> block_type_n_all_bonds;
-  TView<Vec<Int, 3>, 2, D> block_type_all_bonds;
-  TView<Vec<Int, 2>, 2, D> block_type_atom_all_bond_ranges;
-  TView<Int, 2, D> block_type_atoms_forming_chemical_bonds;
+  View<Int, 1> block_type_n_all_bonds;
+  View<Vec<Int, 3>, 2> block_type_all_bonds;
+  View<Vec<Int, 2>, 2> block_type_atom_all_bond_ranges;
+  View<Int, 2> block_type_atoms_forming_chemical_bonds;
 
   struct BondJIter {
     Int block;
     Int block_type;
     Int bidx;
-    RotamerCentricIndexedBonds<Int, D> const& parent;
+    TMOL_THREAD RotamerCentricIndexedBonds<Int, View> const& parent;
 
-    def operator++()->BondJIter& {
+    def operator++()->TMOL_THREAD BondJIter& {
       bidx++;
       return *this;
     }
-    def operator==(BondJIter const& other) const->bool {
+    def operator==(TMOL_THREAD BondJIter const& other) const->bool {
       return bidx == other.bidx && block == other.block
              && block_type == other.block_type;
     }
-    def operator!=(BondJIter const& other) const->bool {
+    def operator!=(TMOL_THREAD BondJIter const& other) const->bool {
       return !(*this == other);
     }
     def operator*() const->BlockCentricAtom<Int> {
@@ -216,7 +243,8 @@ struct RotamerCentricIndexedBonds {
         // neighbor block. 5. Look up the atom index for the connection atom
         // on the neighbor, nbr_conn_atom.
         Int conn_id = parent.block_type_all_bonds[block_type][bidx][2];
-        Int nbr_conn_id = parent.inter_block_connections[block][conn_id][1];
+        Int nbr_conn_id =
+            parent.inter_block_connections[parent.pose_ind][block][conn_id][1];
         if (nbr_conn_id == -1) {
           // We have an undefined connection.
           // This is how we treat non-termini residues where
@@ -225,7 +253,8 @@ struct RotamerCentricIndexedBonds {
           return {-1, -1, -1};
         }
 
-        Int nbr_block = parent.inter_block_connections[block][conn_id][0];
+        Int nbr_block =
+            parent.inter_block_connections[parent.pose_ind][block][conn_id][0];
         Int nbr_block_type;
         if (nbr_block == parent.rot_block) {
           // We have walked back to the original residue; we should use
@@ -233,7 +262,8 @@ struct RotamerCentricIndexedBonds {
           // position
           nbr_block_type = parent.rot_block_type;
         } else {
-          nbr_block_type = parent.neighbor_example_block_types[nbr_block];
+          nbr_block_type =
+              parent.neighbor_example_block_types[parent.pose_ind][nbr_block];
         }
 
         Int nbr_conn_atom =
@@ -246,7 +276,7 @@ struct RotamerCentricIndexedBonds {
 
   struct BondAtomRange {
     BlockCentricAtom<Int> bcat;
-    RotamerCentricIndexedBonds<Int, D> const& parent;
+    TMOL_THREAD RotamerCentricIndexedBonds<Int, View> const& parent;
 
     def begin() -> BondJIter {
       return BondJIter{
@@ -264,7 +294,7 @@ struct RotamerCentricIndexedBonds {
     }
   };
 
-  EIGEN_DEVICE_FUNC BondAtomRange bound_to(BlockCentricAtom<Int> bcat) const {
+  TMOL_HD BondAtomRange bound_to(BlockCentricAtom<Int> bcat) const {
     return BondAtomRange{bcat, *this};
   }
 };

@@ -170,6 +170,19 @@ class HBondParamResolver(ValidateAttrs):
         def tensor(values, dtype):
             return torch.tensor(values, dtype=dtype, device=device)
 
+        # MPS has no float64, so the polynomial tables cannot live there. They
+        # are held on the host instead. Nothing is lost: only the hbond energy
+        # term reads them, and it has no Metal backend -- these degree-10 fits
+        # reach |V| ~ 1e7 inside their own range, so rounding the coefficients
+        # to float32 costs up to 0.1 kcal/mol in the ordinary hydrogen-bond
+        # window. LK-ball, which is the term that pulls this resolver onto a
+        # GPU, reads only the donor/acceptor listings and never the
+        # polynomials. See MPS_PORT_NOTES.md.
+        poly_device = torch.device("cpu") if device.type == "mps" else device
+
+        def poly_tensor(values, dtype):
+            return torch.tensor(values, dtype=dtype, device=poly_device)
+
         # Gather on the host, then copy each final tensor once. Polynomial
         # coefficients retain double precision and descending-power order.
         def pack_polynomial(kind):
@@ -186,9 +199,9 @@ class HBondParamResolver(ValidateAttrs):
                     f"HBond polynomials {names} contain non-finite parameters"
                 )
             return HBondPolyParams(
-                range=tensor(values[..., :2], torch.float64),
-                bound=tensor(values[..., 2:4], torch.float64),
-                coeffs=tensor(values[..., 4:], torch.float64),
+                range=poly_tensor(values[..., :2], torch.float64),
+                bound=poly_tensor(values[..., 2:4], torch.float64),
+                coeffs=poly_tensor(values[..., 4:], torch.float64),
             )
 
         hybridization = AcceptorHybridization._index.get_indexer(
@@ -227,7 +240,10 @@ class CompactedHBondDatabase(ValidateAttrs):
 
     global_param_table: Tensor[torch.float32][:, :]
     pair_param_table: Tensor[torch.float32][:, :, :]
-    pair_poly_table: Tensor[torch.float64][:, :, :]
+    # float64 on the host and CUDA; on Metal, which has no float64 tensor,
+    # each coefficient is an unevaluated hi + lo float32 pair and the trailing
+    # dimension is twice as long. Validated loosely for that reason.
+    pair_poly_table: torch.Tensor
 
     @classmethod
     @validate_args
@@ -304,31 +320,49 @@ class CompactedHBondDatabase(ValidateAttrs):
         # Eigen allocates space for 12 Reals for an 11x1 matrix
         # so we need to pad out with 0s in between the coefficients
         # and the ranges.
+        # On the same device as the coefficients, which is the host when the
+        # requested device is MPS -- that backend has no float64. See the
+        # comment on poly_device in HBondParamResolver._from_database.
         pad = torch.zeros(
             [pp.AHdist.coeffs.shape[0], pp.AHdist.coeffs.shape[1], 1],
-            device=device,
+            device=pp.AHdist.coeffs.device,
             dtype=torch.float64,
         )
 
-        pair_poly_table = _p(
-            torch.cat(
-                [
-                    pp.AHdist.coeffs,
-                    pad,
-                    pp.AHdist.range,
-                    pp.AHdist.bound,
-                    pp.cosBAH.coeffs,
-                    pad,
-                    pp.cosBAH.range,
-                    pp.cosBAH.bound,
-                    pp.cosAHD.coeffs,
-                    pad,
-                    pp.cosAHD.range,
-                    pp.cosAHD.bound,
-                ],
-                2,
-            )
+        packed = torch.cat(
+            [
+                pp.AHdist.coeffs,
+                pad,
+                pp.AHdist.range,
+                pp.AHdist.bound,
+                pp.cosBAH.coeffs,
+                pad,
+                pp.cosBAH.range,
+                pp.cosBAH.bound,
+                pp.cosAHD.coeffs,
+                pad,
+                pp.cosAHD.range,
+                pp.cosAHD.bound,
+            ],
+            2,
         )
+
+        if device.type == "mps":
+            # Metal has no float64 at the tensor level either, so each
+            # coefficient crosses as an unevaluated hi + lo float32 pair --
+            # the layout of tmol::portable::DoubleFloat<float>, which is the
+            # same eight bytes a double occupied, so the struct keeps its
+            # footprint. Rounding to plain float32 instead costs a relative
+            # error of 1.96 on these degree-10 fits, enough to flip the sign
+            # of a near-zero value; see MPS_PORT_NOTES.md.
+            hi = packed.to(torch.float32)
+            lo = (packed - hi.to(torch.float64)).to(torch.float32)
+            packed = torch.stack([hi, lo], dim=-1).reshape(
+                packed.shape[:-1] + (2 * packed.shape[-1],)
+            )
+            packed = packed.to(device)
+
+        pair_poly_table = _p(packed)
 
         return cls(
             global_param_table=global_param_table,

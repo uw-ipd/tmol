@@ -1,17 +1,15 @@
 #pragma once
 
+#include <tmol/score/common/diamond_macros.hh>
 #include <cmath>
-
-#include <Eigen/Core>
-#include <Eigen/Geometry>
-
-#include <pybind11/pybind11.h>
 
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/common/tuple_operators.hh>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
+
+#include "params_types.hh"
 
 namespace tmol {
 namespace score {

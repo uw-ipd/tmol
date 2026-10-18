@@ -1,3 +1,4 @@
+#include <tmol/utility/portable/reduce_ops.hh>
 #include <tmol/tests/score/common/warp_stride_reduce.hh>
 #include <tmol/score/common/warp_stride_reduce.hh>
 
@@ -14,11 +15,10 @@ tmol::TPack<float, 1, tmol::Device::CUDA> gpu_warp_stride_reduce_full(
   int const n_cta = n_vals / 32;
   assert(n_cta * 32 == n_vals);
 
-  using namespace mgpu;
-  typedef launch_box_t<
-      arch_20_cta<32, 1>,
-      arch_35_cta<32, 1>,
-      arch_52_cta<32, 1>>
+  typedef mgpu::launch_box_t<
+      mgpu::arch_20_cta<32, 1>,
+      mgpu::arch_35_cta<32, 1>,
+      mgpu::arch_52_cta<32, 1>>
       launch_t;
 
   auto output_t = tmol::TPack<float, 1, tmol::Device::CUDA>::zeros({n_vals});
@@ -49,11 +49,10 @@ gpu_warp_stride_reduce_full_vec3(
   int const n_cta = n_vals / 32;
   assert(n_cta * 32 == n_vals);
 
-  using namespace mgpu;
-  typedef launch_box_t<
-      arch_20_cta<32, 1>,
-      arch_35_cta<32, 1>,
-      arch_52_cta<32, 1>>
+  typedef mgpu::launch_box_t<
+      mgpu::arch_20_cta<32, 1>,
+      mgpu::arch_35_cta<32, 1>,
+      mgpu::arch_52_cta<32, 1>>
       launch_t;
 
   auto output_t =
@@ -85,11 +84,10 @@ tmol::TPack<float, 1, tmol::Device::CUDA> gpu_warp_stride_reduce_partial(
   int const n_cta = n_vals / 32;
   assert(n_cta * 32 == n_vals);
 
-  using namespace mgpu;
-  typedef launch_box_t<
-      arch_20_cta<32, 1>,
-      arch_35_cta<32, 1>,
-      arch_52_cta<32, 1>>
+  typedef mgpu::launch_box_t<
+      mgpu::arch_20_cta<32, 1>,
+      mgpu::arch_35_cta<32, 1>,
+      mgpu::arch_52_cta<32, 1>>
       launch_t;
 
   auto output_t = tmol::TPack<float, 1, tmol::Device::CUDA>::zeros({n_vals});

@@ -97,9 +97,9 @@ def _rotamer_dispatch_cutoff_compatible(
     producer_cutoff: float,
     consumer_cutoff: float,
 ) -> bool:
-    """Select exact layouts everywhere and larger-cutoff supersets on CUDA."""
+    """Select exact layouts everywhere and larger-cutoff supersets on GPUs."""
     return producer_cutoff == consumer_cutoff or (
-        device_type == "cuda" and producer_cutoff > consumer_cutoff
+        device_type in ("cuda", "mps") and producer_cutoff > consumer_cutoff
     )
 
 
@@ -1078,10 +1078,28 @@ class WholePoseScoringModule:
             default=None,
         )
 
+    def _shares_block_neighbors(self, coords: torch.Tensor) -> bool:
+        """Whether this call will build and share one compact neighbor list.
+
+        The shared list is a CUDA-oriented optimization for sparse poses, and
+        its builder (build_compact_block_neighbors) has no Metal kernel. The
+        ported MPS kernels read the dense scratch_rot_neighbors grid instead,
+        which sphere_overlap produces on the device, so MPS opts out and keeps
+        everything on the GPU rather than failing.
+
+        Also decides which module list runs, which is why it is a predicate
+        rather than inline: the fused LJLK/elec module lives in
+        ``_execution_modules`` only, and its index means nothing against the
+        fallback list.
+        """
+        if len(self._shared_neighbor_term_indices) < 2:
+            return False
+        return coords.device.type != "mps"
+
     def _build_shared_block_neighbors(
         self, coords: torch.Tensor
     ) -> torch.Tensor | None:
-        if len(self._shared_neighbor_term_indices) < 2:
+        if not self._shares_block_neighbors(coords):
             return None
         builder = self.term_modules[self._shared_neighbor_term_indices[0]]
         return builder.build_compact_block_neighbors(
@@ -1154,6 +1172,12 @@ class WholePoseScoringModule:
         # lanes. Preserve the canonical Python weighting path when callers opt
         # into fitting score-function weights.
         if torch.is_grad_enabled() and self.weights.requires_grad:
+            return False
+        # The fused module is only in _execution_modules, which runs only when
+        # the shared neighbor list is built. Without it, unweighted_scores
+        # enumerates term_modules instead and _fused_ljlk_elec_module_index
+        # would select the wrong term.
+        if not self._shares_block_neighbors(coords):
             return False
         if self._fused_ljlk_elec_weight_range is None or not _use_weighted_fused_score(
             coords,
@@ -1625,7 +1649,8 @@ class _DefaultWholePoseScoringModule(torch.nn.Module):
 
     def forward(self, coords):
         shared_block_neighbors = None
-        if len(self._shared_neighbor_terms) >= 2:
+        # See _build_shared_block_neighbors for why MPS opts out.
+        if len(self._shared_neighbor_terms) >= 2 and coords.device.type != "mps":
             builder = self._shared_neighbor_terms[0]
             shared_block_neighbors = builder.build_compact_block_neighbors(
                 coords, self._shared_neighbor_cutoff
@@ -2062,7 +2087,14 @@ class RotamerScoringModule:
             weights.view(-1, 1, 1, 1), requires_grad=False
         )
         self.term_modules = tuple(term_modules)
-        fused = _fused_ljlk_elec_rotamer_module(self.term_modules)
+        # Not on MPS: the fused rotamer op has no Metal kernel, while the
+        # separate LJ/LK and Elec rotamer dispatches both do. Fusing there
+        # would trade two working kernels for one that raises.
+        fused = (
+            None
+            if weights.device.type == "mps"
+            else _fused_ljlk_elec_rotamer_module(self.term_modules)
+        )
         self._fused_ljlk_elec = fused[0] if fused is not None else None
         self._fused_ljlk_elec_index = fused[1] if fused is not None else None
         self._fused_ljlk_elec_weight_offset = fused[2] if fused is not None else None

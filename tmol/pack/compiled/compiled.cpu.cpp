@@ -1,3 +1,4 @@
+#include <tmol/utility/portable/math.hh>
 #include <tmol/utility/tensor/native.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
@@ -298,7 +299,8 @@ auto AnnealerDispatch<D>::forward(
         // e.g. if towards 0.3, then:
         // temperature = 0.35 * (temperature - 0.3) + 0.3;
         temperature =
-            (high_temp - low_temp) * std::exp(-1 * (i + 1)) + low_temp;
+            (high_temp - low_temp) * tmol::portable::math::exp(-1 * (i + 1))
+            + low_temp;
 
       }  // end outer loop
 
