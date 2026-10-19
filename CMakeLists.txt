@@ -516,6 +516,14 @@ if(TMOL_ENABLE_MPS)
     kPoseTotalReduceMetalShaderSource
   )
 
+  set(_TMOL_ANNEALER_SHADER
+      "${_TMOL_GENERATED}/tmol/pack/compiled/annealer_mps_kernels_source.h")
+  tmol_embed_metal_shader(
+    "${CMAKE_SOURCE_DIR}/tmol/pack/compiled/annealer_mps_kernels.metal.in"
+    "${_TMOL_ANNEALER_SHADER}"
+    kAnnealerMetalShaderSource
+  )
+
   set(_TMOL_SPHERE_SHADER
       "${_TMOL_GENERATED}/tmol/score/common/sphere_overlap_mps_kernels_source.h")
   tmol_embed_metal_shader(
@@ -540,6 +548,7 @@ if(TMOL_ENABLE_MPS)
     "${_TMOL_HBOND_BASES_SHADER}"
     "${_TMOL_POSE_REDUCE_SHADER}"
     "${_TMOL_SPHERE_SHADER}"
+    "${_TMOL_ANNEALER_SHADER}"
   )
 endif()
 

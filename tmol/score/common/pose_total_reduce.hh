@@ -50,7 +50,7 @@ struct pose_total_reduce {
     }
 
     typedef PoseTotalReduceShared<Real, nt> shared_t;
-    auto reduce_one = ([=, &ctx] TMOL_DEVICE_FUNC(int cta) {
+    auto reduce_one = ([=] TMOL_DEVICE_FUNC(int cta) {
       SHARED_MEMORY shared_t shared;
       pose_total_reduce_body<DeviceDispatch, D, Real, nt>(ctx, shared, cta);
     });

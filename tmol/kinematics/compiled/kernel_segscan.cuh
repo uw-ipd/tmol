@@ -136,8 +136,8 @@ void spine_segreduce(
     int* carry_out_codes,      // output buffer
     op_t op,
     type_t init,
-    context_t& context) {
-  int num_ctas = div_up(count, nt);
+    mgpu::context_t& context) {
+  int num_ctas = mgpu::div_up(count, nt);
 
   // mem_t<type_t> carry_out(num_ctas, context);
   // mem_t<int> codes_out(num_ctas, context);
@@ -154,7 +154,7 @@ void spine_segreduce(
       typename reduce_t::storage_t reduce;
     } shared;
 
-    range_t tile = get_tile(cta, nt, count);
+    mgpu::range_t tile = mgpu::get_tile(cta, nt, count);
     int gid = tile.begin + tid;
 
     type_t value = (gid < count) ? values[gid] : init;
@@ -202,7 +202,7 @@ void spine_segreduce(
 
     // downward pass (not cta 0)
     auto k_spine_down = [=] MGPU_DEVICE(int tid, int cta) {
-      range_t tile = get_tile(cta + 1, nt, count);
+      mgpu::range_t tile = mgpu::get_tile(cta + 1, nt, count);
       int gid = tile.begin + tid;
 
       int seg0 = carry_out_codes[cta + 1] >> 1;
@@ -249,7 +249,7 @@ void spine_segreduce(
 //      ceil ((dest_count + num_segments) / (vt*nt)) + 1
 //
 template <
-    typename launch_arg_t = empty_t,
+    typename launch_arg_t = mgpu::empty_t,
     mgpu::scan_type_t scan_type = mgpu::scan_type_inc,
     typename func_t,
     typename segments_it,
@@ -267,8 +267,8 @@ void kernel_segscan(
     int* mp_data,
     op_t op,
     type_t init,
-    context_t& context) {
-  typedef typename conditional_typedef_t<
+    mgpu::context_t& context) {
+  typedef typename mgpu::conditional_typedef_t<
       launch_arg_t,
       mgpu::launch_box_t<
           mgpu::arch_20_cta<128, 11, 8>,
@@ -277,7 +277,7 @@ void kernel_segscan(
   NVTXRange _function(__FUNCTION__);
 
   nvtx_range_push("kernel_segscan::setup");
-  cta_dim_t cta_dim = launch_t::cta_dim(context);
+  mgpu::cta_dim_t cta_dim = launch_t::cta_dim(context);
   int num_ctas = cta_dim.num_ctas(count + num_segments);
   mgpu::load_balance_partitions(
       count, segments, num_segments, cta_dim.nv(), mp_data, context);
@@ -318,7 +318,7 @@ void kernel_segscan(
         lbs.merge_range.a_count());
 
     // Store the values back to shared memory for segmented scan
-    reg_to_shared_strided<nt, vt>(strided_values, tid, shared.mysegscan.values);
+    mgpu::reg_to_shared_strided<nt, vt>(strided_values, tid, shared.mysegscan.values);
 
     // Split the flags.
     mgpu::array_t<bool, vt + 1> merge_bits;

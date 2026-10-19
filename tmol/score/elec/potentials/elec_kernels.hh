@@ -438,7 +438,7 @@ TMOL_HD void elec_eval_energies_by_block_2(
   CTA_LAUNCH_T_PARAMS;
   typedef ElecSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t> shared_mem_union;
   auto elec_atom_energy_and_derivs =
-      ([=, &ctx] TMOL_DEVICE_FUNC(
+      ([=] TMOL_DEVICE_FUNC(
            int atom_tile_ind1,
            int atom_tile_ind2,
            int,
@@ -449,14 +449,14 @@ TMOL_HD void elec_eval_energies_by_block_2(
             atom_tile_ind1, atom_tile_ind2, score_dat, cp_separation);
       });
 
-  auto score_inter_elec_atom_pair = ([ =, &ctx ] SCORE_INTER_ELEC_ATOM_PAIR);
+  auto score_inter_elec_atom_pair = ([=] SCORE_INTER_ELEC_ATOM_PAIR);
 
-  auto score_intra_elec_atom_pair = ([ =, &ctx ] SCORE_INTRA_ELEC_ATOM_PAIR);
+  auto score_intra_elec_atom_pair = ([=] SCORE_INTRA_ELEC_ATOM_PAIR);
 
   auto load_block_coords_and_params_into_shared =
-      ([ =, &ctx ] LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED);
+      ([=] LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED);
 
-  auto load_block_into_shared = ([ =, &ctx ] LOAD_BLOCK_INTO_SHARED);
+  auto load_block_into_shared = ([=] LOAD_BLOCK_INTO_SHARED);
 
   int const max_important_bond_separation = 4;
 
@@ -500,36 +500,36 @@ TMOL_HD void elec_eval_energies_by_block_2(
   int const n_atoms2 = ctx.block_type_n_atoms[block_type2];
 
   auto load_tile_invariant_interres_data =
-      ([ =, &ctx ] LOAD_TILE_INVARIANT_INTERRES_DATA);
+      ([=] LOAD_TILE_INVARIANT_INTERRES_DATA);
 
   auto load_interres1_tile_data_to_shared =
-      ([ =, &ctx ] LOAD_INTERRES1_TILE_DATA_TO_SHARED);
+      ([=] LOAD_INTERRES1_TILE_DATA_TO_SHARED);
 
   auto load_interres2_tile_data_to_shared =
-      ([ =, &ctx ] LOAD_INTERRES2_TILE_DATA_TO_SHARED);
+      ([=] LOAD_INTERRES2_TILE_DATA_TO_SHARED);
 
   auto load_interres_data_from_shared =
-      ([ =, &ctx ] LOAD_INTERRES_DATA_FROM_SHARED);
+      ([=] LOAD_INTERRES_DATA_FROM_SHARED);
 
   auto eval_interres_atom_pair_scores =
-      ([ =, &ctx ] EVAL_INTERRES_ATOM_PAIR_SCORES);
+      ([=] EVAL_INTERRES_ATOM_PAIR_SCORES);
 
-  auto store_calculated_energies = ([ =, &ctx ] STORE_CALCULATED_POSE_ENERGIES);
+  auto store_calculated_energies = ([=] STORE_CALCULATED_POSE_ENERGIES);
 
   auto load_tile_invariant_intrares_data =
-      ([ =, &ctx ] LOAD_TILE_INVARIANT_INTRARES_DATA);
+      ([=] LOAD_TILE_INVARIANT_INTRARES_DATA);
 
   auto load_intrares1_tile_data_to_shared =
-      ([ =, &ctx ] LOAD_INTRARES1_TILE_DATA_TO_SHARED);
+      ([=] LOAD_INTRARES1_TILE_DATA_TO_SHARED);
 
   auto load_intrares2_tile_data_to_shared =
-      ([ =, &ctx ] LOAD_INTRARES2_TILE_DATA_TO_SHARED);
+      ([=] LOAD_INTRARES2_TILE_DATA_TO_SHARED);
 
   auto load_intrares_data_from_shared =
-      ([ =, &ctx ] LOAD_INTRARES_DATA_FROM_SHARED);
+      ([=] LOAD_INTRARES_DATA_FROM_SHARED);
 
   auto eval_intrares_atom_pair_scores =
-      ([ =, &ctx ] EVAL_INTRARES_ATOM_PAIR_SCORES);
+      ([=] EVAL_INTRARES_ATOM_PAIR_SCORES);
 
   tmol::score::common::tile_evaluate_rot_pair<
       DeviceDispatch,
@@ -584,7 +584,7 @@ TMOL_HD void elec_eval_energies(
   CTA_LAUNCH_T_PARAMS;
   typedef ElecSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t> shared_mem_union;
   auto elec_atom_energy_and_derivs =
-      ([=, &ctx] TMOL_DEVICE_FUNC(
+      ([=] TMOL_DEVICE_FUNC(
            int atom_tile_ind1,
            int atom_tile_ind2,
            int start_atom1,
@@ -601,14 +601,14 @@ TMOL_HD void elec_eval_energies(
             ctx.dV_dcoords);
       });
 
-  auto score_inter_elec_atom_pair = ([ =, &ctx ] SCORE_INTER_ELEC_ATOM_PAIR);
+  auto score_inter_elec_atom_pair = ([=] SCORE_INTER_ELEC_ATOM_PAIR);
 
-  auto score_intra_elec_atom_pair = ([ =, &ctx ] SCORE_INTRA_ELEC_ATOM_PAIR);
+  auto score_intra_elec_atom_pair = ([=] SCORE_INTRA_ELEC_ATOM_PAIR);
 
   auto load_block_coords_and_params_into_shared =
-      ([ =, &ctx ] LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED);
+      ([=] LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED);
 
-  auto load_block_into_shared = ([ =, &ctx ] LOAD_BLOCK_INTO_SHARED);
+  auto load_block_into_shared = ([=] LOAD_BLOCK_INTO_SHARED);
 
   int const max_important_bond_separation = 4;
 
@@ -651,36 +651,36 @@ TMOL_HD void elec_eval_energies(
   int const n_atoms2 = ctx.block_type_n_atoms[block_type2];
 
   auto load_tile_invariant_interres_data =
-      ([ =, &ctx ] LOAD_TILE_INVARIANT_INTERRES_DATA);
+      ([=] LOAD_TILE_INVARIANT_INTERRES_DATA);
 
   auto load_interres1_tile_data_to_shared =
-      ([ =, &ctx ] LOAD_INTERRES1_TILE_DATA_TO_SHARED);
+      ([=] LOAD_INTERRES1_TILE_DATA_TO_SHARED);
 
   auto load_interres2_tile_data_to_shared =
-      ([ =, &ctx ] LOAD_INTERRES2_TILE_DATA_TO_SHARED);
+      ([=] LOAD_INTERRES2_TILE_DATA_TO_SHARED);
 
   auto load_interres_data_from_shared =
-      ([ =, &ctx ] LOAD_INTERRES_DATA_FROM_SHARED);
+      ([=] LOAD_INTERRES_DATA_FROM_SHARED);
 
   auto eval_interres_atom_pair_scores =
-      ([ =, &ctx ] EVAL_INTERRES_ATOM_PAIR_SCORES);
+      ([=] EVAL_INTERRES_ATOM_PAIR_SCORES);
 
-  auto store_calculated_energies = ([ =, &ctx ] STORE_CALCULATED_POSE_ENERGIES);
+  auto store_calculated_energies = ([=] STORE_CALCULATED_POSE_ENERGIES);
 
   auto load_tile_invariant_intrares_data =
-      ([ =, &ctx ] LOAD_TILE_INVARIANT_INTRARES_DATA);
+      ([=] LOAD_TILE_INVARIANT_INTRARES_DATA);
 
   auto load_intrares1_tile_data_to_shared =
-      ([ =, &ctx ] LOAD_INTRARES1_TILE_DATA_TO_SHARED);
+      ([=] LOAD_INTRARES1_TILE_DATA_TO_SHARED);
 
   auto load_intrares2_tile_data_to_shared =
-      ([ =, &ctx ] LOAD_INTRARES2_TILE_DATA_TO_SHARED);
+      ([=] LOAD_INTRARES2_TILE_DATA_TO_SHARED);
 
   auto load_intrares_data_from_shared =
-      ([ =, &ctx ] LOAD_INTRARES_DATA_FROM_SHARED);
+      ([=] LOAD_INTRARES_DATA_FROM_SHARED);
 
   auto eval_intrares_atom_pair_scores =
-      ([ =, &ctx ] EVAL_INTRARES_ATOM_PAIR_SCORES);
+      ([=] EVAL_INTRARES_ATOM_PAIR_SCORES);
 
   tmol::score::common::tile_evaluate_rot_pair<
       DeviceDispatch,
@@ -735,7 +735,7 @@ TMOL_HD void elec_eval_derivs_2(
   CTA_LAUNCH_T_PARAMS;
   typedef ElecSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t> shared_mem_union;
   auto elec_atom_energy_and_derivs =
-      ([=, &ctx] TMOL_DEVICE_FUNC(
+      ([=] TMOL_DEVICE_FUNC(
            int atom_tile_ind1,
            int atom_tile_ind2,
            int start_atom1,
@@ -754,14 +754,14 @@ TMOL_HD void elec_eval_derivs_2(
             ctx.dV_dcoords);
         return 0.0;
       });
-  auto score_inter_elec_atom_pair = ([ =, &ctx ] SCORE_INTER_ELEC_ATOM_PAIR);
+  auto score_inter_elec_atom_pair = ([=] SCORE_INTER_ELEC_ATOM_PAIR);
 
-  auto score_intra_elec_atom_pair = ([ =, &ctx ] SCORE_INTRA_ELEC_ATOM_PAIR);
+  auto score_intra_elec_atom_pair = ([=] SCORE_INTRA_ELEC_ATOM_PAIR);
 
   auto load_block_coords_and_params_into_shared =
-      ([ =, &ctx ] LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED);
+      ([=] LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED);
 
-  auto load_block_into_shared = ([ =, &ctx ] LOAD_BLOCK_INTO_SHARED);
+  auto load_block_into_shared = ([=] LOAD_BLOCK_INTO_SHARED);
 
   int const max_important_bond_separation = 4;
   int const pose_ind = cta / (ctx.max_n_upper_triangle_inds);
@@ -794,19 +794,19 @@ TMOL_HD void elec_eval_derivs_2(
   int const n_atoms2 = ctx.block_type_n_atoms[block_type2];
 
   auto load_tile_invariant_interres_data =
-      ([ =, &ctx ] LOAD_TILE_INVARIANT_INTERRES_DATA);
+      ([=] LOAD_TILE_INVARIANT_INTERRES_DATA);
 
   auto load_interres1_tile_data_to_shared =
-      ([ =, &ctx ] LOAD_INTERRES1_TILE_DATA_TO_SHARED);
+      ([=] LOAD_INTERRES1_TILE_DATA_TO_SHARED);
 
   auto load_interres2_tile_data_to_shared =
-      ([ =, &ctx ] LOAD_INTERRES2_TILE_DATA_TO_SHARED);
+      ([=] LOAD_INTERRES2_TILE_DATA_TO_SHARED);
 
   auto load_interres_data_from_shared =
-      ([ =, &ctx ] LOAD_INTERRES_DATA_FROM_SHARED);
+      ([=] LOAD_INTERRES_DATA_FROM_SHARED);
 
   auto eval_interres_atom_pair_scores =
-      ([ =, &ctx ] EVAL_INTERRES_ATOM_PAIR_SCORES);
+      ([=] EVAL_INTERRES_ATOM_PAIR_SCORES);
 
   auto store_calculated_energies =
       ([=](TMOL_THREAD ElecScoringData<Real>& score_dat, TMOL_SHARED_REF(shared_mem_union) shared) {
@@ -814,19 +814,19 @@ TMOL_HD void elec_eval_derivs_2(
       });
 
   auto load_tile_invariant_intrares_data =
-      ([ =, &ctx ] LOAD_TILE_INVARIANT_INTRARES_DATA);
+      ([=] LOAD_TILE_INVARIANT_INTRARES_DATA);
 
   auto load_intrares1_tile_data_to_shared =
-      ([ =, &ctx ] LOAD_INTRARES1_TILE_DATA_TO_SHARED);
+      ([=] LOAD_INTRARES1_TILE_DATA_TO_SHARED);
 
   auto load_intrares2_tile_data_to_shared =
-      ([ =, &ctx ] LOAD_INTRARES2_TILE_DATA_TO_SHARED);
+      ([=] LOAD_INTRARES2_TILE_DATA_TO_SHARED);
 
   auto load_intrares_data_from_shared =
-      ([ =, &ctx ] LOAD_INTRARES_DATA_FROM_SHARED);
+      ([=] LOAD_INTRARES_DATA_FROM_SHARED);
 
   auto eval_intrares_atom_pair_scores =
-      ([ =, &ctx ] EVAL_INTRARES_ATOM_PAIR_SCORES);
+      ([=] EVAL_INTRARES_ATOM_PAIR_SCORES);
 
   tmol::score::common::tile_evaluate_rot_pair<
       DeviceDispatch,
@@ -881,7 +881,7 @@ TMOL_HD void elec_eval_energies_by_block(
   CTA_LAUNCH_T_PARAMS;
   typedef ElecSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t> shared_mem_union;
   auto elec_atom_energy_and_derivs =
-      ([=, &ctx] TMOL_DEVICE_FUNC(
+      ([=] TMOL_DEVICE_FUNC(
            int atom_tile_ind1,
            int atom_tile_ind2,
            int,
@@ -892,14 +892,14 @@ TMOL_HD void elec_eval_energies_by_block(
             atom_tile_ind1, atom_tile_ind2, score_dat, cp_separation);
       });
 
-  auto score_inter_elec_atom_pair = ([ =, &ctx ] SCORE_INTER_ELEC_ATOM_PAIR);
+  auto score_inter_elec_atom_pair = ([=] SCORE_INTER_ELEC_ATOM_PAIR);
 
-  auto score_intra_elec_atom_pair = ([ =, &ctx ] SCORE_INTRA_ELEC_ATOM_PAIR);
+  auto score_intra_elec_atom_pair = ([=] SCORE_INTRA_ELEC_ATOM_PAIR);
 
   auto load_block_coords_and_params_into_shared =
-      ([ =, &ctx ] LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED);
+      ([=] LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED);
 
-  auto load_block_into_shared = ([ =, &ctx ] LOAD_BLOCK_INTO_SHARED);
+  auto load_block_into_shared = ([=] LOAD_BLOCK_INTO_SHARED);
 
   int const max_important_bond_separation = 4;
 
@@ -922,37 +922,37 @@ TMOL_HD void elec_eval_energies_by_block(
   int const n_atoms2 = ctx.block_type_n_atoms[block_type2];
 
   auto load_tile_invariant_interres_data =
-      ([ =, &ctx ] LOAD_TILE_INVARIANT_INTERRES_DATA);
+      ([=] LOAD_TILE_INVARIANT_INTERRES_DATA);
 
   auto load_interres1_tile_data_to_shared =
-      ([ =, &ctx ] LOAD_INTERRES1_TILE_DATA_TO_SHARED);
+      ([=] LOAD_INTERRES1_TILE_DATA_TO_SHARED);
 
   auto load_interres2_tile_data_to_shared =
-      ([ =, &ctx ] LOAD_INTERRES2_TILE_DATA_TO_SHARED);
+      ([=] LOAD_INTERRES2_TILE_DATA_TO_SHARED);
 
   auto load_interres_data_from_shared =
-      ([ =, &ctx ] LOAD_INTERRES_DATA_FROM_SHARED);
+      ([=] LOAD_INTERRES_DATA_FROM_SHARED);
 
   auto eval_interres_atom_pair_scores =
-      ([ =, &ctx ] EVAL_INTERRES_ATOM_PAIR_SCORES);
+      ([=] EVAL_INTERRES_ATOM_PAIR_SCORES);
 
   auto store_calculated_energies =
-      ([ =, &ctx ] STORE_CALCULATED_ROTAMER_ENERGIES);
+      ([=] STORE_CALCULATED_ROTAMER_ENERGIES);
 
   auto load_tile_invariant_intrares_data =
-      ([ =, &ctx ] LOAD_TILE_INVARIANT_INTRARES_DATA);
+      ([=] LOAD_TILE_INVARIANT_INTRARES_DATA);
 
   auto load_intrares1_tile_data_to_shared =
-      ([ =, &ctx ] LOAD_INTRARES1_TILE_DATA_TO_SHARED);
+      ([=] LOAD_INTRARES1_TILE_DATA_TO_SHARED);
 
   auto load_intrares2_tile_data_to_shared =
-      ([ =, &ctx ] LOAD_INTRARES2_TILE_DATA_TO_SHARED);
+      ([=] LOAD_INTRARES2_TILE_DATA_TO_SHARED);
 
   auto load_intrares_data_from_shared =
-      ([ =, &ctx ] LOAD_INTRARES_DATA_FROM_SHARED);
+      ([=] LOAD_INTRARES_DATA_FROM_SHARED);
 
   auto eval_intrares_atom_pair_scores =
-      ([ =, &ctx ] EVAL_INTRARES_ATOM_PAIR_SCORES);
+      ([=] EVAL_INTRARES_ATOM_PAIR_SCORES);
 
   tmol::score::common::tile_evaluate_rot_pair<
       DeviceDispatch,
@@ -1007,7 +1007,7 @@ TMOL_HD void elec_eval_derivs(
   CTA_LAUNCH_T_PARAMS;
   typedef ElecSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t> shared_mem_union;
   auto elec_atom_energy_and_derivs =
-      ([=, &ctx] TMOL_DEVICE_FUNC(
+      ([=] TMOL_DEVICE_FUNC(
            int atom_tile_ind1,
            int atom_tile_ind2,
            int start_atom1,
@@ -1027,14 +1027,14 @@ TMOL_HD void elec_eval_derivs(
       });
 
   // TEST!
-  auto score_inter_elec_atom_pair = ([ =, &ctx ] SCORE_INTER_ELEC_ATOM_PAIR);
+  auto score_inter_elec_atom_pair = ([=] SCORE_INTER_ELEC_ATOM_PAIR);
 
-  auto score_intra_elec_atom_pair = ([ =, &ctx ] SCORE_INTRA_ELEC_ATOM_PAIR);
+  auto score_intra_elec_atom_pair = ([=] SCORE_INTRA_ELEC_ATOM_PAIR);
 
   auto load_block_coords_and_params_into_shared =
-      ([ =, &ctx ] LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED);
+      ([=] LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED);
 
-  auto load_block_into_shared = ([ =, &ctx ] LOAD_BLOCK_INTO_SHARED);
+  auto load_block_into_shared = ([=] LOAD_BLOCK_INTO_SHARED);
 
   int const max_important_bond_separation = 4;
   int const pose_ind = ctx.dispatch_indices[0][cta];
@@ -1056,19 +1056,19 @@ TMOL_HD void elec_eval_derivs(
   int const n_atoms2 = ctx.block_type_n_atoms[block_type2];
 
   auto load_tile_invariant_interres_data =
-      ([ =, &ctx ] LOAD_TILE_INVARIANT_INTERRES_DATA);
+      ([=] LOAD_TILE_INVARIANT_INTERRES_DATA);
 
   auto load_interres1_tile_data_to_shared =
-      ([ =, &ctx ] LOAD_INTERRES1_TILE_DATA_TO_SHARED);
+      ([=] LOAD_INTERRES1_TILE_DATA_TO_SHARED);
 
   auto load_interres2_tile_data_to_shared =
-      ([ =, &ctx ] LOAD_INTERRES2_TILE_DATA_TO_SHARED);
+      ([=] LOAD_INTERRES2_TILE_DATA_TO_SHARED);
 
   auto load_interres_data_from_shared =
-      ([ =, &ctx ] LOAD_INTERRES_DATA_FROM_SHARED);
+      ([=] LOAD_INTERRES_DATA_FROM_SHARED);
 
   auto eval_interres_atom_pair_scores =
-      ([ =, &ctx ] EVAL_INTERRES_ATOM_PAIR_SCORES);
+      ([=] EVAL_INTERRES_ATOM_PAIR_SCORES);
 
   auto store_calculated_energies =
       ([=](TMOL_THREAD ElecScoringData<Real>& score_dat, TMOL_SHARED_REF(shared_mem_union) shared) {
@@ -1076,19 +1076,19 @@ TMOL_HD void elec_eval_derivs(
       });
 
   auto load_tile_invariant_intrares_data =
-      ([ =, &ctx ] LOAD_TILE_INVARIANT_INTRARES_DATA);
+      ([=] LOAD_TILE_INVARIANT_INTRARES_DATA);
 
   auto load_intrares1_tile_data_to_shared =
-      ([ =, &ctx ] LOAD_INTRARES1_TILE_DATA_TO_SHARED);
+      ([=] LOAD_INTRARES1_TILE_DATA_TO_SHARED);
 
   auto load_intrares2_tile_data_to_shared =
-      ([ =, &ctx ] LOAD_INTRARES2_TILE_DATA_TO_SHARED);
+      ([=] LOAD_INTRARES2_TILE_DATA_TO_SHARED);
 
   auto load_intrares_data_from_shared =
-      ([ =, &ctx ] LOAD_INTRARES_DATA_FROM_SHARED);
+      ([=] LOAD_INTRARES_DATA_FROM_SHARED);
 
   auto eval_intrares_atom_pair_scores =
-      ([ =, &ctx ] EVAL_INTRARES_ATOM_PAIR_SCORES);
+      ([=] EVAL_INTRARES_ATOM_PAIR_SCORES);
 
   tmol::score::common::tile_evaluate_rot_pair<
       DeviceDispatch,

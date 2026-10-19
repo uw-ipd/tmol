@@ -28,6 +28,7 @@ def pack_rotamers(
     task: PackerTask,
     verbose: bool = False,
     seed: int | None = None,
+    anneal_device: torch.device | str | None = None,
 ) -> PoseStack:
     """Optimize side-chain conformers for a pose stack.
 
@@ -40,6 +41,12 @@ def pack_rotamers(
         task: Allowed block types, conformers, and packing positions.
         verbose: Print synchronized stage timings when true.
         seed: Seed for this call only, leaving torch's global random state unchanged.
+        anneal_device: Run annealing on this device instead of the pose
+            stack's. Simulated annealing reads the interaction graph and
+            writes rotamer indices, so it can run anywhere the tables can be
+            put; on Apple silicon the tables cost almost nothing to move
+            (9 ms for 174 MB of unified memory) and the Metal annealer
+            searches both faster and far better than the host one.
 
     Returns:
         A new pose stack containing the lowest-ranked assignment per pose.
@@ -51,7 +58,9 @@ def pack_rotamers(
             if cuda:
                 with torch.cuda.device(pose_stack.device):
                     torch.cuda.manual_seed(seed)
-            return pack_rotamers(pose_stack, sfxn, task, verbose=verbose)
+            return pack_rotamers(
+                pose_stack, sfxn, task, verbose=verbose,
+                anneal_device=anneal_device)
 
     max_poses_per_chunk = _max_poses_per_packing_chunk(pose_stack)
     if pose_stack.n_poses > max_poses_per_chunk:
@@ -63,7 +72,8 @@ def pack_rotamers(
             )
             chunk_task = _slice_packer_task(task, first_pose, last_pose)
             packed_chunk = pack_rotamers(
-                chunk_pose_stack, sfxn, chunk_task, verbose=verbose
+                chunk_pose_stack, sfxn, chunk_task, verbose=verbose,
+                anneal_device=anneal_device,
             )
             packed_chunks.append(packed_chunk)
         combined_pose_stack = PoseStackBuilder.from_poses(
@@ -99,7 +109,9 @@ def pack_rotamers(
         synchronize_device(pose_stack.device)
     end_time4 = time.perf_counter()
 
-    _, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
+    _, rotamer_assignments = _anneal_on(
+        packer_energy_tables, anneal_device, pose_stack.device
+    )
     if verbose:
         synchronize_device(pose_stack.device)
     end_time5 = time.perf_counter()
@@ -303,6 +315,35 @@ def _slice_packer_task(task: PackerTask, first_pose: int, last_pose: int) -> Pac
     return chunk_task
 
 
+def _anneal_on(energy_tables, anneal_device, pose_device):
+    """Anneal the interaction graph, optionally on a device of its own.
+
+    The graph is already built when this runs, and annealing only reads it and
+    returns rotamer indices, so the choice of device is a backend choice
+    rather than a semantic one. Left unset, annealing stays where the poses
+    are, which is what every existing caller gets.
+    """
+    if anneal_device is None:
+        return run_simulated_annealing(energy_tables)
+
+    anneal_device = torch.device(anneal_device)
+    if anneal_device == pose_device:
+        return run_simulated_annealing(energy_tables)
+
+    # Not TensorGroup.to: the table group carries plain ints beside its
+    # tensors, which that method rejects.
+    moved = attr.evolve(
+        energy_tables,
+        **{
+            name: value.to(anneal_device)
+            for name, value in attr.asdict(energy_tables, recurse=False).items()
+            if torch.is_tensor(value)
+        },
+    )
+    scores, assignments = run_simulated_annealing(moved)
+    return scores.to(pose_device), assignments.to(pose_device)
+
+
 def _should_stream_interaction_graph(pose_stack, rotamer_set, task) -> bool:
     """Select the non-differentiable bounded-memory CUDA packing path."""
     return (
@@ -325,6 +366,7 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
         pose_stack, rotamer_set, task
     )
 
+    n_unique_entries = -1
     if stream_interaction_graph:
         energy_indices = None
         energy_values = None
@@ -337,11 +379,28 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
             rotamer_set.coords
         )
     else:
-        # The CPU interaction-graph accumulator is deliberately non-atomic.
-        # Coalesce cross-layout duplicates before its parallel native loops.
-        energies = rotamer_scoring_module(rotamer_set.coords).coalesce()
-        energy_indices = energies.indices().to(torch.int32)
-        energy_values = energies.values()
+        # The CPU interaction-graph accumulator is deliberately non-atomic, so
+        # it may only run its parallel passes over entries whose keys are
+        # distinct. Coalescing guarantees that globally, and is what happens
+        # unless the scoring module can say where the duplicates start.
+        #
+        # A module may expose `unique_prefix_nnz`: the number of leading
+        # entries of the table it just returned that are known to carry
+        # distinct (pose, rot1, rot2) keys. A split scorer knows this without
+        # looking -- it concatenates one internally-unique layout ahead of the
+        # rest -- and the graph builder then runs parallel over the prefix and
+        # serial over the tail, which is cheaper than sorting the whole table.
+        energies = rotamer_scoring_module(rotamer_set.coords)
+        unique_prefix = getattr(rotamer_scoring_module, "unique_prefix_nnz", None)
+        if unique_prefix is None:
+            energies = energies.coalesce()
+            n_unique_entries = -1
+        else:
+            n_unique_entries = int(unique_prefix)
+        # The underscore accessors: an uncoalesced table is exactly what the
+        # prefix contract describes, and the checked accessors refuse it.
+        energy_indices = energies._indices().to(torch.int32)
+        energy_values = energies._values()
 
     # a group of covalently joined blocks is one choice, not several: fold its
     #    members onto a representative so the packer cannot pick a conformer
@@ -355,6 +414,8 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
         )
         energy_indices = energies.indices().to(torch.int32)
         energy_values = energies.values()
+        # collapse_group_energies returns a coalesced table of its own.
+        n_unique_entries = -1
         n_rots_for_block = collapse.compact_n_rots_for_block
         rot_offset_for_block = collapse.compact_rot_offset_for_block
         block_ind_for_rot = collapse.compact_block_ind_for_rot
@@ -403,6 +464,7 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
             *graph_inputs,
             energy_indices,
             energy_values,
+            n_unique_entries,
             verbose,
         )
     (
@@ -521,6 +583,10 @@ def _build_streaming_interaction_graph(
             block_ind_for_rot,
             empty_indices,
             empty_values,
+            # The table is empty: this call establishes the kept/fixed rotamer
+            # numbering and retains no score layout, so "all entries unique"
+            # is both true and irrelevant.
+            -1,
             verbose,
         )
     )

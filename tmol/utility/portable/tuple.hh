@@ -129,7 +129,7 @@ struct tuple_size<tuple<Ts...>> {
   enum { value = sizeof...(Ts) };
 };
 
-TMOL_HD inline tuple<> make_tuple() { return tuple<>(); }
+TMOL_HD tuple<> make_tuple() { return tuple<>(); }
 
 // Taken by value rather than by const reference: Metal folds the address space
 // into a type deduced from a reference parameter, so `T const&` binding a
@@ -210,7 +210,7 @@ struct tuple_size<ref_tuple<Ps...>> {
   enum { value = sizeof...(Ps) };
 };
 
-TMOL_HD inline ref_tuple<> tie() { return ref_tuple<>(); }
+TMOL_HD ref_tuple<> tie() { return ref_tuple<>(); }
 
 template <typename T, typename... Ts>
 TMOL_HD auto tie(TMOL_THREAD T& v, TMOL_THREAD Ts&... vs)

@@ -416,15 +416,22 @@ template <
     typename Int,
     typename launch_t,
     typename Ctx,
-    typename Shared>
+    typename Shared,
+    // The compact launcher splits a large neighbour list into an inter-only
+    // and an intra-only pass over the same triangular candidate ids, so the
+    // body has to be told which kind of pair to score. Defaulting both to
+    // InterAndIntra keeps every other caller -- and the CPU and Metal front
+    // ends, which never split -- unchanged.
+    common::TilePairMode PairMode = common::TilePairMode::InterAndIntra,
+    common::TilePairMode IndexMode = PairMode>
 TMOL_HD void lk_ball_eval_energies_by_block(
     TMOL_THREAD Ctx const& ctx,
     TMOL_SHARED_REF(Shared) shared,
     int cta,
     WorkgroupLane<Dev> lane = {}) {
   CTA_LAUNCH_T_PARAMS;
-  constexpr auto pair_mode = common::TilePairMode::InterAndIntra;
-  constexpr auto index_mode = pair_mode;
+  constexpr auto pair_mode = PairMode;
+  constexpr auto index_mode = IndexMode;
     auto score_inter_lk_ball_atom_pair =
         ([=] TMOL_DEVICE_FUNC(
              int pol_start,
@@ -605,15 +612,19 @@ template <
     typename Int,
     typename launch_t,
     typename Ctx,
-    typename Shared>
+    typename Shared,
+    // See lk_ball_eval_energies_by_block: the backward pass splits the same
+    // way, so it takes the same two modes.
+    common::TilePairMode PairMode = common::TilePairMode::InterAndIntra,
+    common::TilePairMode IndexMode = PairMode>
 TMOL_HD void lk_ball_eval_derivs(
     TMOL_THREAD Ctx const& ctx,
     TMOL_SHARED_REF(Shared) shared,
     int cta,
     WorkgroupLane<Dev> lane = {}) {
   CTA_LAUNCH_T_PARAMS;
-  constexpr auto pair_mode = common::TilePairMode::InterAndIntra;
-  constexpr auto index_mode = pair_mode;
+  constexpr auto pair_mode = PairMode;
+  constexpr auto index_mode = IndexMode;
     // The upstream weights are invariant for every atom pair this workgroup
     // handles. Load them once rather than per pair.
     auto weight_indices = lk_ball_pose_pair_indices<index_mode>(

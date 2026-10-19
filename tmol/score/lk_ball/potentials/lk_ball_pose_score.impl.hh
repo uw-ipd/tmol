@@ -584,15 +584,31 @@ class LKBallPoseScoreDispatch {
     typedef LKBallSharedMem<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN, launch_t>
         shared_mem_union;
 
-    auto eval_energies_by_block = ([=, &ctx] TMOL_DEVICE_FUNC(
+    auto eval_energies_by_block = ([=] TMOL_DEVICE_FUNC(
 #ifdef __NVCC__
-                                       int cta, auto) {
+                                       int cta, auto pair_mode_tag) {
 #else
                                        int cta) {
 #endif
       SHARED_MEMORY shared_mem_union shared;
+#ifdef __NVCC__
+      // The compact launcher hands down which kind of pair this pass scores;
+      // dropping the tag would make both halves of a split launch compute
+      // InterAndIntra and double-count.
+      lk_ball_eval_energies_by_block<
+          DeviceDispatch,
+          Dev,
+          Real,
+          Int,
+          launch_t,
+          std::decay_t<decltype(ctx)>,
+          shared_mem_union,
+          decltype(pair_mode_tag)::value,
+          decltype(pair_mode_tag)::index_mode>(ctx, shared, cta);
+#else
       lk_ball_eval_energies_by_block<DeviceDispatch, Dev, Real, Int, launch_t>(
           ctx, shared, cta);
+#endif
     });
 
     // Build block neighbors before dispatching LK-ball pair scoring.
@@ -1331,7 +1347,7 @@ class LKBallRotamerScoreDispatch {
     ctx.n_block_pairs = 0;
     ctx.use_shared_compact_block_neighbors = false;
 
-    auto eval_energies_by_block = ([=, &ctx] TMOL_DEVICE_FUNC(int cta) {
+    auto eval_energies_by_block = ([=] TMOL_DEVICE_FUNC(int cta) {
       typedef LKBallSharedMem<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN, launch_t>
           shared_mem_union;
       SHARED_MEMORY shared_mem_union shared;

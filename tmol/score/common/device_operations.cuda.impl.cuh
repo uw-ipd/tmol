@@ -290,7 +290,7 @@ struct DeviceOperations<tmol::Device::CUDA> {
         [&](int i, int j) { dst[j] = static_cast<TD>(x[i]); }, threadIdx.x, n);
   }
 
-  template <int N_T, typename Func>
+  template <int N_T, typename Func, tmol::Device LaneD = tmol::Device::CUDA>
   // The trailing lane handle is empty here -- threadIdx supplies the lane --
   // and so may be omitted. See workgroup_lane.hh.
   __device__ static void for_each_in_workgroup(
@@ -343,8 +343,8 @@ struct DeviceOperations<tmol::Device::CUDA> {
         g, val, op);
   }
 
-  __device__ template <tmol::Device LaneD = tmol::Device::CUDA>
-  static void synchronize_workgroup(WorkgroupLane<LaneD> = {}) {
+  template <tmol::Device LaneD = tmol::Device::CUDA>
+  __device__ static void synchronize_workgroup(WorkgroupLane<LaneD> = {}) {
     __syncthreads();
   }
 

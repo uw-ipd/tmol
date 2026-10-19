@@ -10,12 +10,11 @@ namespace common {
 
 // Number of entries preceding row i of the strict upper triangle of an n-x-n
 // matrix.
-inline int64_t TMOL_DEVICE_FUNC
-upper_triangle_row_start(int64_t i, int64_t n) {
+TMOL_HD int64_t upper_triangle_row_start(int64_t i, int64_t n) {
   return i * (2 * n - i - 1) / 2;
 }
 
-inline tuple<int, int> TMOL_DEVICE_FUNC upper_triangle_inds_from_linear_index(
+TMOL_HD tuple<int, int> upper_triangle_inds_from_linear_index(
     int k,  // the linear index
     int n   // for an n-x-n matrix
 ) {

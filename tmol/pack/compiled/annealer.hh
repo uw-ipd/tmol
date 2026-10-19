@@ -28,6 +28,7 @@ struct InteractionGraphBuilder {
       TView<int32_t, 1, D> block_ind_for_rot,
       TView<int32_t, 2, D> sparse_inds,
       TView<Real, 1, D> sparse_energies,
+      int64_t const n_unique_entries,
       int const verbose)
       -> std::tuple<
           TPack<

@@ -154,7 +154,7 @@ struct GeneratePoseWaters {
     ctx.water_coords = water_coords;
     ctx.n_rots_total = n_rots;
 
-    auto f_watergen = ([=, &ctx] TMOL_DEVICE_FUNC(int rot_ind) {
+    auto f_watergen = ([=] TMOL_DEVICE_FUNC(int rot_ind) {
       SHARED_MEMORY WaterGenSharedData<Real, TILE_SIZE> shared_m;
       water_gen_build_waters_for_rot<DeviceOps, Dev, Real, Int, launch_t>(
           ctx, shared_m, rot_ind);

@@ -349,7 +349,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   using PairMode = common::TilePairMode;
 #ifdef __NVCC__
   auto eval_energies_impl =
-      ([=, &ctx] TMOL_DEVICE_FUNC(
+      ([=] TMOL_DEVICE_FUNC(
            int cta, auto derivative_tag, auto pair_mode_tag) {
         constexpr auto Mode = decltype(pair_mode_tag)::value;
         typedef HBondSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t>
@@ -364,7 +364,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
             Mode>(ctx, shared, cta, derivative_tag);
       });
 #else
-  auto eval_energies = ([=, &ctx] TMOL_DEVICE_FUNC(int cta) {
+  auto eval_energies = ([=] TMOL_DEVICE_FUNC(int cta) {
     typedef HBondSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t>
         shared_mem_union;
     SHARED_MEMORY shared_mem_union shared;
@@ -633,7 +633,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
   // reduction scratch the workgroup primitives need. See workgroup_lane.hh.
   WorkgroupLane<Dev> lane;
 
-  auto eval_derivs = ([=, &ctx] TMOL_DEVICE_FUNC(int cta) {
+  auto eval_derivs = ([=] TMOL_DEVICE_FUNC(int cta) {
     typedef HBondSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t>
         shared_mem_union;
     SHARED_MEMORY shared_mem_union shared;
@@ -1017,7 +1017,7 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   // it must not be left default-constructed.
   ctx.dTdV = output;
 
-  auto eval_energies = ([=, &ctx] TMOL_DEVICE_FUNC(int cta) {
+  auto eval_energies = ([=] TMOL_DEVICE_FUNC(int cta) {
     typedef HBondSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t>
         shared_mem_union;
     SHARED_MEMORY shared_mem_union shared;
@@ -1222,7 +1222,7 @@ auto HBondRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
   // reduction scratch the workgroup primitives need. See workgroup_lane.hh.
   WorkgroupLane<Dev> lane;
 
-  auto eval_derivs = ([=, &ctx] TMOL_DEVICE_FUNC(int cta) {
+  auto eval_derivs = ([=] TMOL_DEVICE_FUNC(int cta) {
     int const max_important_bond_separation = 4;
 
     int const pose_ind = dispatch_indices[0][cta];

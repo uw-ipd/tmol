@@ -304,7 +304,7 @@ TMOL_HD void hbond_bases_gen(
         ctx, tile_ind, r_dat, n_atoms_to_load, tile_ind * TILE_SIZE, lane);
     DeviceOps<Dev>::synchronize_workgroup(lane);
 
-    auto gen_tile_bases = ([&] TMOL_DEVICE_FUNC(int tid) {
+    auto gen_tile_bases = ([=] TMOL_DEVICE_FUNC(int tid) {
       int const n_items = r_dat.n_donH + r_dat.n_acc;
       for (int i = tid; i < n_items; i += nt) {
         if (i < r_dat.n_donH) {

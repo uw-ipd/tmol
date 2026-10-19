@@ -48,15 +48,19 @@ TMOL_HD void compute_block_spheres_body(
   int const n_atoms = ctx.block_type_n_atoms[block_type];
 
   tmol::portable::Vec<Real, 3> local_coords{0, 0, 0};
-  auto per_thread_com = ([&] TMOL_DEVICE_FUNC(int tid) {
+  // CUDA forbids by-reference capture in an extended __device__ lambda, so
+  // the thread-local accumulators are reached through pointers captured by
+  // value. Each thread has its own copy of the enclosing frame.
+  TMOL_THREAD_PTR(tmol::portable::Vec<Real, 3>) local_coords_p = &local_coords;
+  auto per_thread_com = ([=] TMOL_DEVICE_FUNC(int tid) {
     for (int i = tid; i < n_atoms; i += nt) {
       auto ci = ctx.rot_coords[coord_offset + i];
       for (int j = 0; j < 3; ++j) {
-        local_coords[j] += ci[j];
+        (*local_coords_p)[j] += ci[j];
       }
     }
     for (int j = 0; j < 3; ++j) {
-      local_coords[j] /= n_atoms;
+      (*local_coords_p)[j] /= n_atoms;
     }
   });
   DeviceDispatch<D>::template for_each_in_workgroup<nt>(per_thread_com, lane);
@@ -68,22 +72,24 @@ TMOL_HD void compute_block_spheres_body(
 
   Real dmax(0);
   Real d2max(0);
-  auto per_thread_dist_to_com = ([&] TMOL_DEVICE_FUNC(int tid) {
+  TMOL_THREAD_PTR(Real) dmax_p = &dmax;
+  TMOL_THREAD_PTR(Real) d2max_p = &d2max;
+  auto per_thread_dist_to_com = ([=] TMOL_DEVICE_FUNC(int tid) {
     for (int i = tid; i < n_atoms; i += nt) {
       auto ci = ctx.rot_coords[coord_offset + i];
       Real d2 =
           ((ci[0] - com[0]) * (ci[0] - com[0])
            + (ci[1] - com[1]) * (ci[1] - com[1])
            + (ci[2] - com[2]) * (ci[2] - com[2]));
-      if (d2 > d2max) {
-        d2max = d2;
+      if (d2 > *d2max_p) {
+        *d2max_p = d2;
       }
     }
     // The scalar workgroup implementation is faster taking the square root
     // before the reduction; the parallel backends reduce squared distances so
     // that one square root runs per block rather than one per thread.
     if (D == tmol::Device::CPU) {
-      dmax = tmol::portable::math::sqrt(d2max);
+      *dmax_p = tmol::portable::math::sqrt(*d2max_p);
     }
   });
   DeviceDispatch<D>::template for_each_in_workgroup<nt>(
@@ -98,7 +104,7 @@ TMOL_HD void compute_block_spheres_body(
     dmax = tmol::portable::math::sqrt(d2max);
   }
 
-  auto thread0_write_out_result = ([&] TMOL_DEVICE_FUNC(int tid) {
+  auto thread0_write_out_result = ([=] TMOL_DEVICE_FUNC(int tid) {
     if (tid == 0) {
       ctx.block_spheres[pose_ind][block_ind][0] = com[0];
       ctx.block_spheres[pose_ind][block_ind][1] = com[1];
@@ -199,15 +205,18 @@ TMOL_HD void compute_rot_spheres_body(
   int const n_atoms = ctx.block_type_n_atoms[block_type];
 
   tmol::portable::Vec<Real, 3> local_coords{0, 0, 0};
-  auto per_thread_com = ([&] TMOL_DEVICE_FUNC(int tid) {
+  // See compute_block_spheres_body: by-reference capture is illegal in an
+  // extended __device__ lambda, so the accumulator is reached by pointer.
+  TMOL_THREAD_PTR(tmol::portable::Vec<Real, 3>) local_coords_p = &local_coords;
+  auto per_thread_com = ([=] TMOL_DEVICE_FUNC(int tid) {
     for (int i = tid; i < n_atoms; i += nt) {
       auto ci = ctx.rot_coords[coord_offset + i];
       for (int j = 0; j < 3; ++j) {
-        local_coords[j] += ci[j];
+        (*local_coords_p)[j] += ci[j];
       }
     }
     for (int j = 0; j < 3; ++j) {
-      local_coords[j] /= n_atoms;
+      (*local_coords_p)[j] /= n_atoms;
     }
   });
   DeviceDispatch<D>::template for_each_in_workgroup<nt>(per_thread_com, lane);
@@ -219,21 +228,23 @@ TMOL_HD void compute_rot_spheres_body(
 
   Real dmax(0);
   Real d2max(0);
-  auto per_thread_dist_to_com = ([&] TMOL_DEVICE_FUNC(int tid) {
+  TMOL_THREAD_PTR(Real) dmax_p = &dmax;
+  TMOL_THREAD_PTR(Real) d2max_p = &d2max;
+  auto per_thread_dist_to_com = ([=] TMOL_DEVICE_FUNC(int tid) {
     for (int i = tid; i < n_atoms; i += nt) {
       auto ci = ctx.rot_coords[coord_offset + i];
       Real d2 =
           ((ci[0] - com[0]) * (ci[0] - com[0])
            + (ci[1] - com[1]) * (ci[1] - com[1])
            + (ci[2] - com[2]) * (ci[2] - com[2]));
-      if (d2 > d2max) {
-        d2max = d2;
+      if (d2 > *d2max_p) {
+        *d2max_p = d2;
       }
     }
     // See compute_block_spheres_body: the scalar backend is faster taking the
     // square root before the reduction, the parallel ones after.
     if (D == tmol::Device::CPU) {
-      dmax = tmol::portable::math::sqrt(d2max);
+      *dmax_p = tmol::portable::math::sqrt(*d2max_p);
     }
   });
   DeviceDispatch<D>::template for_each_in_workgroup<nt>(
@@ -248,7 +259,7 @@ TMOL_HD void compute_rot_spheres_body(
     dmax = tmol::portable::math::sqrt(d2max);
   }
 
-  auto thread0_write_out_result = ([&] TMOL_DEVICE_FUNC(int tid) {
+  auto thread0_write_out_result = ([=] TMOL_DEVICE_FUNC(int tid) {
     if (tid == 0) {
       ctx.rot_spheres[rot_ind][0] = com[0];
       ctx.rot_spheres[rot_ind][1] = com[1];

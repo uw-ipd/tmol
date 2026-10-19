@@ -288,6 +288,8 @@ using tmol::portable::Vec;
   TMOL_DEVICE_FUNC(                                                           \
       LJLKScoringData<Real>& score_dat, shared_mem_union& shared) {           \
     auto reduce_energies = ([&](int tid) {                                    \
+      (void)cpu_pose_accum;  /* nvcc: first-capture outside the */   \
+      /* constexpr-if below, which may not introduce a capture */   \
       Real const cta_total_ljatr =                                            \
           DeviceOperations<D>::template reduce_in_workgroup<nt>(              \
               score_dat.total_ljatr, shared, tmol::portable::plus_t<Real>()); \
@@ -811,7 +813,7 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   ctx.require_gradient = require_gradient;
   ctx.max_dis = max_dis;
 
-  auto eval_energies_by_block = ([=, &ctx] TMOL_DEVICE_FUNC(int cta) {
+  auto eval_energies_by_block = ([=] TMOL_DEVICE_FUNC(int cta) {
     typedef LJLKSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t>
         shared_mem_union;
     SHARED_MEMORY shared_mem_union shared;
@@ -819,7 +821,7 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
         ctx, shared, cta, cpu_pose_accum);
   });
 
-  auto eval_energies = ([=, &ctx] TMOL_DEVICE_FUNC(int cta) {
+  auto eval_energies = ([=] TMOL_DEVICE_FUNC(int cta) {
     typedef LJLKSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t>
         shared_mem_union;
     SHARED_MEMORY shared_mem_union shared;
@@ -1480,7 +1482,7 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   // writes one cell per workgroup.
   double* cpu_pose_accum = nullptr;
 
-  auto eval_energies_by_block = ([=, &ctx] TMOL_DEVICE_FUNC(int cta) {
+  auto eval_energies_by_block = ([=] TMOL_DEVICE_FUNC(int cta) {
     typedef LJLKSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t>
         shared_mem_union;
     SHARED_MEMORY shared_mem_union shared;

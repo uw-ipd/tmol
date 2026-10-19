@@ -297,6 +297,8 @@ union LJLKSharedMem {
   TMOL_DEVICE_FUNC(                                                           \
       TMOL_THREAD LJLKScoringData<Real>& score_dat, TMOL_SHARED_REF(shared_mem_union) shared) {           \
     auto reduce_energies = ([&](int tid) {                                    \
+      (void)cpu_pose_accum;  /* nvcc: first-capture outside the */   \
+      /* constexpr-if below, which may not introduce a capture */   \
       Real const cta_total_ljatr =                                            \
           DeviceDispatch<D>::template reduce_in_workgroup<nt>(              \
               score_dat.total_ljatr, shared, tmol::portable::plus_t<Real>(), lane); \

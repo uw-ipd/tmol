@@ -2,6 +2,14 @@
 
 #include "qualifiers.hh"
 
+// int64_t is used below for sizes and strides. Metal's standard library
+// supplies the fixed-width typedefs itself and cannot parse <cstdint>, which
+// drags in host headers; every other backend needs the include, and needs it
+// here rather than transitively, so this header can be included first.
+#if !TMOL_PORTABLE_METAL
+#include <cstdint>
+#endif
+
 namespace tmol {
 namespace portable {
 
@@ -34,11 +42,13 @@ namespace portable {
 #define TMOL_DEVICE_PTR(...) device __VA_ARGS__*
 #define TMOL_DEVICE_REF(...) device __VA_ARGS__&
 #define TMOL_SHARED_PTR(...) threadgroup __VA_ARGS__*
+#define TMOL_THREAD_PTR(...) thread __VA_ARGS__*
 #define TMOL_SHARED_REF(...) threadgroup __VA_ARGS__&
 #else
 #define TMOL_DEVICE_PTR(...) __VA_ARGS__*
 #define TMOL_DEVICE_REF(...) __VA_ARGS__&
 #define TMOL_SHARED_PTR(...) __VA_ARGS__*
+#define TMOL_THREAD_PTR(...) __VA_ARGS__*
 #define TMOL_SHARED_REF(...) __VA_ARGS__&
 #endif
 

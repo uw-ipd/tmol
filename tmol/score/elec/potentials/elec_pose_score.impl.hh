@@ -257,14 +257,14 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   ctx.output_block_pair_energies =
       output_block_pair_energies || mps_cell_reduction;
   ctx.use_shared_compact_block_neighbors = use_shared_compact_block_neighbors;
-  auto eval_energies_by_block = ([=, &ctx] TMOL_DEVICE_FUNC(int cta) {
+  auto eval_energies_by_block = ([=] TMOL_DEVICE_FUNC(int cta) {
     typedef ElecSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t>
         shared_mem_union;
     SHARED_MEMORY shared_mem_union shared;
     elec_eval_energies_by_block_2<DeviceDispatch, D, Real, Int, launch_t>(
         ctx, shared, cta);
   });
-  auto eval_energies = ([=, &ctx] TMOL_DEVICE_FUNC(int cta) {
+  auto eval_energies = ([=] TMOL_DEVICE_FUNC(int cta) {
     typedef ElecSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t>
         shared_mem_union;
     SHARED_MEMORY shared_mem_union shared;
@@ -499,7 +499,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   ctx.dV_dcoords = dV_dcoords;
   ctx.max_n_blocks = max_n_blocks;
   ctx.max_n_upper_triangle_inds = max_n_upper_triangle_inds;
-  auto eval_derivs = ([=, &ctx] TMOL_DEVICE_FUNC(int cta) {
+  auto eval_derivs = ([=] TMOL_DEVICE_FUNC(int cta) {
     typedef ElecSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t>
         shared_mem_union;
     SHARED_MEMORY shared_mem_union shared;
@@ -694,7 +694,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // they must not be left uninitialized.
   ctx.max_n_upper_triangle_inds = 0;
   ctx.use_shared_compact_block_neighbors = false;
-  auto eval_energies_by_block = ([=, &ctx] TMOL_DEVICE_FUNC(int cta) {
+  auto eval_energies_by_block = ([=] TMOL_DEVICE_FUNC(int cta) {
     typedef ElecSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t>
         shared_mem_union;
     SHARED_MEMORY shared_mem_union shared;
@@ -839,7 +839,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   ctx.dTdV = dTdV;
   ctx.dV_dcoords = dV_dcoords;
   ctx.max_n_blocks = max_n_blocks;
-  auto eval_derivs = ([=, &ctx] TMOL_DEVICE_FUNC(int cta) {
+  auto eval_derivs = ([=] TMOL_DEVICE_FUNC(int cta) {
     typedef ElecSharedMem<Real, TILE_SIZE, MAX_N_CONN, launch_t>
         shared_mem_union;
     SHARED_MEMORY shared_mem_union shared;

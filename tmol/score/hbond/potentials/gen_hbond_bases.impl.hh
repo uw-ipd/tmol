@@ -97,7 +97,7 @@ auto GenerateHBondBases<DeviceOps, Dev, Real, Int>::forward(
   ctx.derived_coords = derived_coords;
   ctx.derived_atom_inds = derived_atom_inds;
 
-  auto f_basesgen = ([=, &ctx] TMOL_DEVICE_FUNC(int rot_ind) {
+  auto f_basesgen = ([=] TMOL_DEVICE_FUNC(int rot_ind) {
     SHARED_MEMORY HBondBasesGenSharedData<Real, TILE_SIZE> shared_m;
     hbond_bases_gen<DeviceOps, Dev, Real, Int, launch_t>(
         ctx, shared_m, rot_ind);

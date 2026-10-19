@@ -17,6 +17,7 @@ namespace tmol {
 namespace pack {
 namespace compiled {
 
+
 template <
     template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
@@ -36,6 +37,12 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     TView<int32_t, 1, D> block_ind_for_rot,
     TView<int32_t, 2, D> sparse_inds,
     TView<Real, 1, D> sparse_energies,
+    // How many leading entries of sparse_inds are known to have
+    // pairwise-distinct (pose, rot1, rot2). The energy accumulations write
+    // through a non-atomic add on CPU, so they may only run in parallel over
+    // entries whose destination cells cannot collide; past this bound they
+    // run serially. Pass the full entry count for a coalesced table.
+    int64_t const n_unique_entries,
     int const verbose)
     -> std::tuple<
         TPack<
@@ -68,6 +75,13 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
 
   int const n_sparse_entries_dispatch = score::common::checked_dispatch_size(
       n_sparse_entries, "interaction-graph construction");
+
+  // A negative bound means the caller is handing over a table it knows to be
+  // free of duplicate (pose, rot1, rot2) keys -- a coalesced one -- so the
+  // parallel passes may cover all of it.
+  int64_t const n_unique =
+      n_unique_entries < 0 ? int64_t(n_sparse_entries_dispatch)
+                           : n_unique_entries;
   int const n_pose_block_cells = score::common::checked_dispatch_product(
       n_poses, max_n_blocks, "interaction-graph block dispatch");
 
@@ -322,10 +336,18 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
                 energy);
           }
         });
+    // Same split as the main accumulation below: this lambda's writes are
+    // disjoint only while the keys are distinct, so the parallel pass stops
+    // at the unique prefix and the duplicate tail runs serially.
+    auto record_duplicate_energies = ([=] TMOL_DEVICE_FUNC(int64_t offset) {
+      record_energies_in_energy1b_and_energy2b(n_unique + offset);
+    });
     DeviceDispatch<D>::template forall_independent<launch_t>(
+        mgr, n_unique, record_energies_in_energy1b_and_energy2b);
+    DeviceDispatch<D>::template forall<launch_t>(
         mgr,
-        n_sparse_entries_dispatch,
-        record_energies_in_energy1b_and_energy2b);
+        n_sparse_entries_dispatch - n_unique,
+        record_duplicate_energies);
 
     // Mark the chunk_pair_offset_for_block_pair that are not adjacent w/ -1s
     // Mark the chunk_pair_offsets that are not adjacent w/ -1s
@@ -1184,10 +1206,88 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   //
   // The serial pass still walks every entry, but exits after a handful of
   // loads for the entries the parallel pass handled.
+  //
+  // `n_unique` bounds how far the parallel pass may go. Entries
+  // before it are known to have pairwise-distinct (pose, rot1, rot2), so
+  // their disjoint-case cells really are disjoint; entries past it may
+  // duplicate an earlier key, which would put two of them in the same cell.
+  // Those run through the same lambda serially. A caller handing over a
+  // coalesced table passes the full count and the tail is empty, which is
+  // what every caller did before this parameter existed.
+  auto record_duplicate_disjoint_destinations =
+      ([=] TMOL_DEVICE_FUNC(int64_t offset_index) {
+        record_energies_into_disjoint_cells(n_unique + offset_index);
+      });
+
   DeviceDispatch<D>::template forall_independent<launch_t>(
-      mgr, n_sparse_entries_dispatch, record_energies_into_disjoint_cells);
+      mgr, n_unique, record_energies_into_disjoint_cells);
   DeviceDispatch<D>::template forall<launch_t>(
-      mgr, n_sparse_entries_dispatch, record_energies_into_shared_cells);
+      mgr,
+      n_sparse_entries_dispatch - n_unique,
+      record_duplicate_disjoint_destinations);
+
+  if (D == tmol::Device::CPU) {
+    // Walking all 18M entries serially to find the few that fold into a
+    // shared cell costs more than the folding does: deciding the case takes
+    // half a dozen scattered gathers, and in serial every one of them is a
+    // cache miss on the critical path. Find them in parallel instead and let
+    // the serial pass visit only those. At 100 poses this is the difference
+    // between a 1098 ms pass and a ~100 ms one.
+    //
+    // CPU only: the CUDA accumulator is atomic, so both passes already run in
+    // parallel there and this would just add three sweeps and a scan.
+    auto folds_into_shared_cell_tp =
+        TPack<int32_t, 1, D>::zeros({n_sparse_entries_dispatch});
+    auto folds_into_shared_cell = folds_into_shared_cell_tp.view;
+    auto flag_shared_cell_entries = ([=] TMOL_DEVICE_FUNC(int64_t index) {
+      int const pose = sparse_inds[0][index];
+      int const rot1 = sparse_inds[1][index];
+      int const rot2 = sparse_inds[2][index];
+      int const block1 = block_ind_for_rot[rot1];
+      int const block2 = block_ind_for_rot[rot2];
+      // Deliberately wider than the lambda's own tests: the kept-rotamer
+      // cases only lead to an early return, so including them costs one
+      // wasted visit and keeps this predicate cheap.
+      folds_into_shared_cell[index] =
+          (!keep_block[pose][block1] || !keep_block[pose][block2]) ? 1 : 0;
+    });
+    DeviceDispatch<D>::template forall_independent<launch_t>(
+        mgr, n_sparse_entries_dispatch, flag_shared_cell_entries);
+
+    auto shared_cell_offsets_tp =
+        TPack<int32_t, 1, D>::zeros({n_sparse_entries_dispatch});
+    auto shared_cell_offsets = shared_cell_offsets_tp.view;
+    int32_t const n_shared_cell_entries =
+        DeviceDispatch<D>::template scan_and_return_total<
+            tmol::portable::scan_type::exclusive>(
+            mgr,
+            folds_into_shared_cell.data(),
+            shared_cell_offsets.data(),
+            n_sparse_entries_dispatch,
+            tmol::portable::plus_t<int32_t>());
+
+    auto shared_cell_entries_tp =
+        TPack<int32_t, 1, D>::zeros({n_shared_cell_entries});
+    auto shared_cell_entries = shared_cell_entries_tp.view;
+    auto gather_shared_cell_entries = ([=] TMOL_DEVICE_FUNC(int64_t index) {
+      if (folds_into_shared_cell[index]) {
+        shared_cell_entries[shared_cell_offsets[index]] = int32_t(index);
+      }
+    });
+    DeviceDispatch<D>::template forall_independent<launch_t>(
+        mgr, n_sparse_entries_dispatch, gather_shared_cell_entries);
+
+    // Ascending by construction, so this folds in the same order the full
+    // serial walk did and the sums are unchanged.
+    auto record_gathered_shared_cells = ([=] TMOL_DEVICE_FUNC(int64_t slot) {
+      record_energies_into_shared_cells(shared_cell_entries[slot]);
+    });
+    DeviceDispatch<D>::template forall<launch_t>(
+        mgr, n_shared_cell_entries, record_gathered_shared_cells);
+  } else {
+    DeviceDispatch<D>::template forall<launch_t>(
+        mgr, n_sparse_entries_dispatch, record_energies_into_shared_cells);
+  }
 
   auto sentinel_out_non_adjacent_chunk_pairs =
       ([=] TMOL_DEVICE_FUNC(int index) {
