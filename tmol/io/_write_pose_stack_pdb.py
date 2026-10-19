@@ -1,7 +1,7 @@
 import numpy
 import torch
 
-from tmol.io import atom_record_dtype
+from tmol.io._pdb_parsing import atom_record_dtype, _to_pdb
 from tmol.pose import (
     PoseStack,
     PackedBlockTypes,
@@ -15,7 +15,7 @@ from typing import Optional
 
 
 @validate_args
-def write_pose_stack_pdb(
+def _write_pose_stack_pdb(
     pose_stack: PoseStack,
     fname_out: str,
     merge_fragments: bool = True,
@@ -23,22 +23,20 @@ def write_pose_stack_pdb(
 ):
     """Write a PDB-formatted file to disk given an input PoseStack.
     Optionally, additional arguments may be passed to the inner function
-    "atom_records_from_pose_stack." Fragmented ligands use their original
+    "_atom_records_from_pose_stack." Fragmented ligands use their original
     residue identity by default; pass ``merge_fragments=False`` to keep
     fragment residues separate.
     """
-    from tmol.io import to_pdb
-
-    atom_records = atom_records_from_pose_stack(
+    atom_records = _atom_records_from_pose_stack(
         pose_stack, merge_fragments=merge_fragments, **kwargs
     )
-    pdbstring = to_pdb(atom_records)
+    pdbstring = _to_pdb(atom_records)
     with open(fname_out, "w") as fid:
         fid.write(pdbstring)
 
 
 @validate_args
-def atom_records_from_pose_stack(
+def _atom_records_from_pose_stack(
     pose_stack: PoseStack,
     merge_fragments: bool = True,
 ) -> NDArray[atom_record_dtype][:]:
@@ -49,7 +47,7 @@ def atom_records_from_pose_stack(
     ``merge_fragments=False`` to retain the separate fragment residue numbers.
     """
 
-    records = atom_records_from_coords(
+    records = _atom_records_from_coords(
         pose_stack.packed_block_types,
         pose_stack.chain_id64,
         pose_stack.block_type_ind64,
@@ -80,7 +78,7 @@ def atom_records_from_pose_stack(
 
 
 @validate_args
-def atom_records_from_coords(
+def _atom_records_from_coords(
     pbt: "PackedBlockTypes",
     chain_ind_for_block: Tensor[torch.int64][:, :],
     block_types64: Tensor[torch.int64][:, :],
@@ -97,7 +95,6 @@ def atom_records_from_coords(
     laid out in pose-stack form.
     """
 
-    from tmol.io import atom_record_dtype
     from tmol.utility.tensor import exclusive_cumsum1d
 
     assert pose_like_coords.shape[0] == chain_ind_for_block.shape[0]

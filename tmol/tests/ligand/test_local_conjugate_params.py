@@ -7,7 +7,7 @@ import pytest
 import torch
 
 from tmol.database import inject_residue_params
-from tmol.io import pose_stack_from_biotite
+from tmol.io import pose_stack_from_atom_array
 from tmol.ligand import _connection_params
 from tmol.ligand._local_conjugate_params import (
     generate_conjugate_parameters,
@@ -309,7 +309,7 @@ def test_corrected_attachment_pose_charge_geometry_and_gradient(
         assert all(p.K == 300 for r in result.connections for p in r.length_parameters)
         assert all(p.K == 80 for r in result.connections for p in r.angle_parameters)
     corrected = install(database, result)
-    pose = pose_stack_from_biotite(
+    pose = pose_stack_from_atom_array(
         array, torch_device, param_db=corrected, no_optH=not opt_h
     )
     assert torch.isfinite(pose.coords).all()
@@ -360,10 +360,10 @@ def test_corrected_attachment_pose_charge_geometry_and_gradient(
     gradient = torch.autograd.grad(values.sum(), coords)[0]
     assert torch.isfinite(values).all() and torch.isfinite(gradient).all()
     if parameter_source == "generator-ideals":
-        from tmol.io import build_context_from_biotite
+        from tmol.io import build_context_from_atom_array
         from tmol.tests.io.test_atomworks_corpus_regressions import _score_and_minimize
 
-        context = build_context_from_biotite(array, torch_device, param_db=corrected)
+        context = build_context_from_atom_array(array, torch_device, param_db=corrected)
         _score_and_minimize(pose, context)
 
 
@@ -372,7 +372,7 @@ def test_terminal_and_internal_n_alkylation_workflow(torch_device, tmp_path):
     import biotite.structure as struc
 
     from tmol.database import ParameterDatabase
-    from tmol.io import atom_array_from_cif, build_context_from_biotite
+    from tmol.io import atom_array_from_file, build_context_from_atom_array
     from tmol.ligand import load_params_file, prepare_ligands
     from tmol.ligand._conjugate_model import (
         attachment_connection_name,
@@ -394,7 +394,7 @@ def test_terminal_and_internal_n_alkylation_workflow(torch_device, tmp_path):
     # A free alpha amine and an unrelated sidechain attachment share one
     # terminal residue. Move only N to keep the synthetic N-C measurement local;
     # preparation derives chemistry from bonds rather than these coordinates.
-    terminal = atom_array_from_cif(
+    terminal = atom_array_from_file(
         data_path("covalent_fixtures", "oglycan_sia_1g1s.cif")
     )
     standard = struc.filter_amino_acids(terminal)
@@ -437,7 +437,7 @@ def test_terminal_and_internal_n_alkylation_workflow(torch_device, tmp_path):
     # Keep both peptide neighbours around an internal backbone N. Rename the
     # target to the chemically equivalent hydroxyl residue after removing its
     # beta methyl, so terminal and internal states have distinct reusable names.
-    internal = atom_array_from_cif(
+    internal = atom_array_from_file(
         data_path("covalent_fixtures", "oglycan_sia_1g1s.cif")
     )
     standard = struc.filter_amino_acids(internal)
@@ -522,8 +522,8 @@ def test_terminal_and_internal_n_alkylation_workflow(torch_device, tmp_path):
             params_output=str(params_path),
             seed=20260914,
         )
-        context = build_context_from_biotite(array, torch_device, param_db=prepared)
-        pose = pose_stack_from_biotite(
+        context = build_context_from_atom_array(array, torch_device, param_db=prepared)
+        pose = pose_stack_from_atom_array(
             array, torch_device, context=context, no_optH=True
         )
         used = [

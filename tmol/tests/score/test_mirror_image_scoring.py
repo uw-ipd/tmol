@@ -20,7 +20,7 @@ import torch
 
 
 from tmol.database import ParameterDatabase
-from tmol.io import atom_array_from_cif
+from tmol.io import atom_array_from_file
 from tmol.score import beta2016_score_function
 from tmol.tests.data import data_path
 
@@ -29,17 +29,17 @@ MIRROR_PAIR = "6dmz_mod"
 
 
 def _pose(stem, param_db, torch_device, hydrogen_policy="preserve"):
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
 
-    array = atom_array_from_cif(FIXTURE_DIR / f"{stem}.cif")
+    array = atom_array_from_file(FIXTURE_DIR / f"{stem}.cif")
     if hydrogen_policy == "rebuild":
         array = array[~numpy.isin(array.element, ["H", "D"])]
-    return pose_stack_from_biotite(
+    return pose_stack_from_atom_array(
         array,
         torch_device,
         param_db=param_db,
         no_optH=True,
-        trust_hydrogen_names=hydrogen_policy == "preserve",
+        ligand_hydrogens="input" if hydrogen_policy == "preserve" else "names",
     )
 
 
@@ -59,8 +59,8 @@ def _scores_by_term(pose_stack, sfxn):
 
 def test_mirror_image_coordinates_are_exact_negations() -> None:
     """The fixtures are a mirror pair, so the comparison means what it says."""
-    left = atom_array_from_cif(FIXTURE_DIR / f"{MIRROR_PAIR}_l.cif")
-    right = atom_array_from_cif(FIXTURE_DIR / f"{MIRROR_PAIR}_d.cif")
+    left = atom_array_from_file(FIXTURE_DIR / f"{MIRROR_PAIR}_l.cif")
+    right = atom_array_from_file(FIXTURE_DIR / f"{MIRROR_PAIR}_d.cif")
     assert left.array_length() == right.array_length()
     numpy.testing.assert_allclose(left.coord, -right.coord, atol=1e-4)
     assert list(left.atom_name) == list(right.atom_name)

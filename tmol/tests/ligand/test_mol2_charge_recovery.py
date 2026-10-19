@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from rdkit import Chem
 
-from tmol.io import pose_stack_from_biotite
+from tmol.io import pose_stack_from_atom_array
 from tmol.ligand import prepare_ligand_from_mol2
 from tmol.ligand._detect import nonstandard_residue_info_from_mol2_block
 from tmol.ligand._rdkit_mol import ligand_atom_array_to_rdkit_mol
@@ -53,12 +53,12 @@ def test_prepared_charge_recovers_source_resonance_and_scores(code, torch_device
     assert actual.GetNumAtoms() == len(atoms)  # Includes every supplied hydrogen.
     assert not any(atom.GetNumRadicalElectrons() for atom in actual.GetAtoms())
     database, _ = prepare_ligand_from_mol2(path, res_name="LIG", mode="keep")
-    pose = pose_stack_from_biotite(
+    pose = pose_stack_from_atom_array(
         info.atom_array,
         torch_device,
         param_db=database,
         no_optH=True,
-        trust_hydrogen_names=True,
+        ligand_hydrogens="input",
     )
     block = pose.packed_block_types.active_block_types[int(pose.block_type_ind[0, 0])]
     np.testing.assert_allclose(

@@ -29,7 +29,11 @@ from tmol.pack.rotamer import (
     IncludeCurrentSampler,
     OptHSampler,
 )
-from tmol.io import atom_array_from_cif, pose_stack_from_biotite, pose_stack_from_pdb
+from tmol.io import (
+    atom_array_from_file,
+    pose_stack_from_atom_array,
+    pose_stack_from_file,
+)
 from tmol.database import ParameterDatabase
 from tmol.score import beta2016_score_function
 from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
@@ -238,7 +242,14 @@ def test_pack_rotamers(
     default_database, ubq_pdb, dun_sampler, torch_device, chunk_size
 ):
     n_poses = 4
-    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    p = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=76,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose_stack, task = setup_pose_stack_and_task(
         [p] * n_poses, torch_device, dun_sampler
     )
@@ -277,7 +288,14 @@ def test_raw_rotamer_entries_match_coalesced_interaction_graph(
     if torch_device.type != "cuda":
         pytest.skip("raw duplicate accumulation requires CUDA atomics")
 
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=20)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=20,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose_stack, task = setup_pose_stack_and_task([pose] * 2, torch_device, dun_sampler)
     task = SetPackerTask.from_packer_task(task)
     sfxn = get_packer_sfxn(default_database, torch_device)
@@ -323,7 +341,14 @@ def test_raw_rotamer_entries_match_coalesced_interaction_graph(
 def test_pack_rotamers_pose_chunks_preserve_pose_order_and_task(
     default_database, ubq_pdb, dun_sampler, torch_device, monkeypatch
 ):
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=20)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=20,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose_stack, task = setup_pose_stack_and_task([pose] * 4, torch_device, dun_sampler)
     sliced_pose_stack = _slice_pose_stack_for_packing(pose_stack, 1, 3)
     assert sliced_pose_stack.n_poses == 2
@@ -359,7 +384,14 @@ def test_seeded_packing_is_reproducible(
     default_database, ubq_pdb, biotite_1ubq, dun_sampler, torch_device
 ):
     # Seeded packs agree whatever the C rand() state and the global torch state.
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=40)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=40,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose_stack, task = setup_pose_stack_and_task([pose], torch_device, dun_sampler)
     sfxn = get_packer_sfxn(default_database, torch_device)
     packed = []
@@ -371,7 +403,7 @@ def test_seeded_packing_is_reproducible(
 
     state = torch.random.get_rng_state()
     ubq = biotite_1ubq[~biotite_1ubq.hetero]
-    pose_stack_from_biotite(ubq, torch_device, no_optH=False, packer_seed=0)
+    pose_stack_from_atom_array(ubq, torch_device, no_optH=False, packer_seed=0)
     assert torch.equal(torch.random.get_rng_state(), state)
 
 
@@ -393,7 +425,14 @@ def test_packing_chunk_size_rejects_invalid_override(configured, monkeypatch):
 def test_shared_rotamer_dispatch_matches_independent_lk_ball_layout(
     default_database, ubq_pdb, dun_sampler, torch_device
 ):
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=10,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose_stack, task = setup_pose_stack_and_task([pose], torch_device, dun_sampler)
     task = SetPackerTask.from_packer_task(task)
     sfxn = get_packer_sfxn(default_database, torch_device)
@@ -447,7 +486,14 @@ def test_shared_rotamer_dispatch_matches_independent_lk_ball_layout(
 def test_shared_rotamer_dispatch_matches_independent_hbond_layout(
     default_database, ubq_pdb, dun_sampler, torch_device
 ):
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=10,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose_stack, task = setup_pose_stack_and_task([pose], torch_device, dun_sampler)
     sfxn = get_packer_sfxn(default_database, torch_device)
     pose_stack, rotamer_set = build_rotamers(
@@ -509,7 +555,14 @@ def test_weighted_fused_ljlk_elec_rotamer_scores_match_fallback(
 ):
     from tmol.score import _score_function
 
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=10,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose_stack, task = setup_pose_stack_and_task([pose], torch_device, dun_sampler)
     task = SetPackerTask.from_packer_task(task)
     sfxn = get_packer_sfxn(default_database, torch_device)
@@ -692,8 +745,20 @@ def test_weighted_fused_ljlk_elec_rotamer_scores_match_fallback(
 def test_bonded_packing_topology_without_scores(
     ubq_pdb, dun_sampler, torch_device, dtype
 ):
-    short = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
-    long = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=7)
+    short = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=4,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
+    long = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=7,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose_stack, task = setup_pose_stack_and_task(
         [short, long], torch_device, dun_sampler
     )
@@ -744,7 +809,14 @@ def test_packing_pages_shared_lk_ball_dispatch(
     if torch_device.type != "cuda":
         pytest.skip("sharing the fused dispatch across terms is a CUDA-only path")
 
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=10,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose_stack, task = setup_pose_stack_and_task([pose], torch_device, dun_sampler)
     pose_stack, rotamer_set = build_rotamers(
         pose_stack,
@@ -846,7 +918,14 @@ def test_fused_ljlk_elec_empty_table_gradient(monkeypatch):
 
 def test_pack_rotamers_optH(default_database, ubq_pdb, torch_device):
     n_poses = 4
-    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    p = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=76,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     palette = PackerPalette()
     task = PackerTask(pose_stack, palette)
@@ -925,7 +1004,14 @@ def test_pack_rotamers_w_cst(
     default_database, ubq_pdb, dun_sampler, torch_device, monkeypatch
 ):
     n_poses = 4
-    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    p = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=76,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose_stack, task = setup_pose_stack_and_task(
         [p] * n_poses, torch_device, dun_sampler
     )
@@ -1015,7 +1101,12 @@ def test_pack_rotamers_w_empty_interaction_graph(
     default_database, disulfide_pdb, dun_sampler, torch_device
 ):
     n_poses = 4
-    p = pose_stack_from_pdb(disulfide_pdb, torch_device)
+    p = pose_stack_from_file(
+        disulfide_pdb,
+        torch_device,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose_stack, task = setup_pose_stack_and_task(
         [p] * n_poses, torch_device, dun_sampler
     )
@@ -1055,7 +1146,12 @@ def test_pack_rotamers_w_dslf(
     default_database, disulfide_pdb, dun_sampler, torch_device
 ):
     n_poses = 4
-    p = pose_stack_from_pdb(disulfide_pdb, torch_device)
+    p = pose_stack_from_file(
+        disulfide_pdb,
+        torch_device,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose_stack, task = setup_pose_stack_and_task(
         [p] * n_poses, torch_device, dun_sampler
     )
@@ -1095,7 +1191,14 @@ def test_pack_rotamers2(default_database, ubq_pdb, dun_sampler, torch_device):
     if torch_device == torch.device("cpu"):
         return
     n_poses = 10
-    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    p = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=76,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose_stack, task = setup_pose_stack_and_task(
         [p] * n_poses, torch_device, dun_sampler
     )
@@ -1111,7 +1214,14 @@ def test_pack_rotamers_irregular_sized_poses(
         return
     n_poses = 20
     poses = [
-        pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=20 + i)
+        pose_stack_from_file(
+            ubq_pdb,
+            torch_device,
+            residue_start=0,
+            residue_end=20 + i,
+            no_optH=True,
+            missing_density_distance_threshold=0.0,
+        )
         for i in range(n_poses)
     ]
     pose_stack, task = setup_pose_stack_and_task(poses, torch_device, dun_sampler)
@@ -1130,13 +1240,14 @@ def test_pack_a_capped_structure(stem, torch_device):
     Its block carries a single rotamer, so it is classified as background while
     the residues between the caps are packed.
     """
-    structure = atom_array_from_cif(data_path("ncaa_fixtures") / f"{stem}.cif")
-    pose_stack, context = pose_stack_from_biotite(
+    structure = atom_array_from_file(data_path("ncaa_fixtures") / f"{stem}.cif")
+    pose_stack, context = pose_stack_from_atom_array(
         structure,
         torch_device,
         prepare_ligands=True,
         param_db=ParameterDatabase.get_default(),
         return_context=True,
+        no_optH=True,
     )
     prepared = context.parameter_database
     sfxn = beta2016_score_function(torch_device, param_db=prepared)

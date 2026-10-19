@@ -29,7 +29,7 @@ from tmol.kinematics import (
     EdgeType,
     FoldForest,
 )
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 
 
 @pytest.mark.parametrize("grow", [False, True])
@@ -125,7 +125,12 @@ def get_relax_sfxn(default_database, torch_device):
     ],
 )
 def test_fast_relax_automatic_graph_mode(request, pdb_fixture, expected, torch_device):
-    pose_stack = pose_stack_from_pdb(request.getfixturevalue(pdb_fixture), torch_device)
+    pose_stack = pose_stack_from_file(
+        request.getfixturevalue(pdb_fixture),
+        torch_device,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
 
     assert _resolve_cuda_graph_mode(pose_stack, None) == (
         expected and torch_device.type == "cuda"
@@ -139,7 +144,14 @@ def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
     # if torch_device == torch.device("cpu"):
     #     return
 
-    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    p = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=76,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
 
     pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     sfxn = get_relax_sfxn(default_database, torch_device)
@@ -195,7 +207,14 @@ def test_cart_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
     if torch_device == torch.device("cpu"):
         pytest.skip("CUDA only test")
 
-    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    p = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=76,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
 
     pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     sfxn = get_relax_sfxn(default_database, torch_device)
@@ -244,7 +263,14 @@ def test_fast_relax_releases_minimizer_state_between_packing_stages(
     default_database, ubq_pdb, dun_sampler, torch_device, monkeypatch
 ):
     """Preserve pack/min results while releasing prior minimization storage."""
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=8)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=8,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     palette = PackerPalette()
     move_map = CartesianMoveMap()
     fold_forest = FoldForest.reasonable_fold_forest(pose)
@@ -419,8 +445,12 @@ def test_fast_relax_pertuz(
     res_not_connected[0, 100, 1] = True
     res_not_connected[0, 101, 0] = True
 
-    p = pose_stack_from_pdb(
-        erbb2_and_pertuzumab_pdb, torch_device, res_not_connected=res_not_connected
+    p = pose_stack_from_file(
+        erbb2_and_pertuzumab_pdb,
+        torch_device,
+        res_not_connected=res_not_connected,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
     )
 
     pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
@@ -499,14 +529,18 @@ def test_fast_relax_for_different_shapes(
     res_not_connected[0, 0, 0] = True
     res_not_connected[0, 39, 1] = True
 
-    p1 = pose_stack_from_pdb(
+    p1 = pose_stack_from_file(
         ubq_pdb,
         torch_device,
         residue_start=10,
         residue_end=50,
         res_not_connected=res_not_connected,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
     )
-    p2 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    p2 = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
 
     res_not_connected3 = torch.zeros(
         (1, 564 - 9 + 214 + 216 + 6, 2), dtype=torch.bool, device=torch_device
@@ -514,8 +548,11 @@ def test_fast_relax_for_different_shapes(
     res_not_connected3[0, 100, 1] = True
     res_not_connected3[0, 101, 0] = True
 
-    p3 = pose_stack_from_pdb(
-        erbb2_and_pertuzumab_pdb, torch_device
+    p3 = pose_stack_from_file(
+        erbb2_and_pertuzumab_pdb,
+        torch_device,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
     )  # lets pretend residues 100 and 101 are connected.
 
     pose_stack = PoseStackBuilder.from_poses([p1, p2, p3], torch_device)

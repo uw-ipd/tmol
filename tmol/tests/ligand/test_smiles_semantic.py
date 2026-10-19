@@ -49,7 +49,7 @@ def test_mol2_roundtrip_preserves_delocalized_chemistry_and_scores(
     import torch
     from rdkit import Chem
     from tmol.database import ParameterDatabase
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
     from tmol.ligand._detect import nonstandard_residue_info_from_mol2_block
     from tmol.ligand._openbabel_compat import _build_charged_3d_mol2_mol
     from tmol.ligand._rdkit_mol import ligand_atom_array_to_rdkit_mol
@@ -76,7 +76,7 @@ def test_mol2_roundtrip_preserves_delocalized_chemistry_and_scores(
         Chem.GetFormalCharge(mol), abs=1e-4 * mol.GetNumAtoms()
     )
     db = inject_ligand_preparations(ParameterDatabase.get_default(), [prep])
-    pose = pose_stack_from_biotite(
+    pose = pose_stack_from_atom_array(
         info.atom_array, torch_device, param_db=db, no_optH=True
     )
     coords = pose.coords.detach().clone().requires_grad_()

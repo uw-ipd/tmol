@@ -113,17 +113,18 @@ class TestDUDScoring:
         import biotite.structure
         import biotite.structure.io
 
-        from tmol.io import pose_stack_from_biotite
+        from tmol.io import pose_stack_from_atom_array
         from tmol.score import beta2016_score_function
 
         bt_struct = biotite.structure.io.load_structure(str(dud_scoring_data["in_pdb"]))
         if isinstance(bt_struct, biotite.structure.AtomArrayStack):
             bt_struct = bt_struct[0]
 
-        pose_stack = pose_stack_from_biotite(
+        pose_stack = pose_stack_from_atom_array(
             bt_struct,
             torch_device,
             param_db=param_db,
+            no_optH=True,
         )
 
         sfxn = beta2016_score_function(torch_device, param_db=param_db)

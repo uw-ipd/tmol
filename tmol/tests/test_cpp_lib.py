@@ -59,10 +59,16 @@ def test_native_boundary_gradients(torch_device):
 def test_native_boundary_saved_input_version(ubq_pdb, torch_device):
     import pytest
     import torch
-    from tmol.io import pose_stack_from_pdb
+    from tmol.io import pose_stack_from_file
     from tmol.score import beta2016_score_function
 
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=4,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     scorer = beta2016_score_function(torch_device).render_whole_pose_scoring_module(
         pose
     )

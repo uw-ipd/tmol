@@ -9,12 +9,12 @@ from tmol.score import (
 
 from tmol.pose import PoseStackBuilder
 from tmol.io import (
-    pose_stack_from_pdb,
+    pose_stack_from_file,
     default_canonical_ordering,
     default_packed_block_types,
-    canonical_form_from_pdb,
     pose_stack_from_canonical_form,
 )
+from tmol.io._canonical_ordering import _canonical_form_from_pdb
 
 from tmol.score.cartbonded import CartBondedEnergyTerm
 from tmol.score.disulfide import DisulfideEnergyTerm
@@ -34,7 +34,9 @@ def dont_test_res_centric_score_benchmark_setup(
     benchmark, energy_term, n_poses, ubq_pdb, default_database, torch_device
 ):
     n_poses = int(n_poses)
-    pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    pose_stack1 = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
 
     pose_stack_n = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
     sfxn = ScoreFunction(default_database, torch_device)
@@ -88,7 +90,9 @@ def test_res_centric_score_benchmark(
     torch_device,
 ):
     n_poses = int(n_poses)
-    pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    pose_stack1 = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     pose_stack_n = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
 
     sfxn = ScoreFunction(default_database, torch_device)
@@ -158,7 +162,9 @@ def test_combined_res_centric_score_benchmark(
     torch_device,
 ):
     n_poses = int(n_poses)
-    pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    pose_stack1 = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     pose_stack_n = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
 
     sfxn = ScoreFunction(default_database, torch_device)
@@ -208,7 +214,7 @@ def test_build_posestack(
     def setup():
         co = default_canonical_ordering()
         pbt = default_packed_block_types(torch_device)
-        canonical_form = canonical_form_from_pdb(
+        canonical_form = _canonical_form_from_pdb(
             co, systems_bysize[system_size], torch_device
         )
         _ = pose_stack_from_canonical_form(co, pbt, *canonical_form)
@@ -223,7 +229,7 @@ def test_render_module(
 ):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(
+    canonical_form = _canonical_form_from_pdb(
         co, systems_bysize[system_size], torch_device
     )
     pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
@@ -241,7 +247,7 @@ def test_render_module(
 def test_full(benchmark, systems_bysize, system_size, torch_device):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(
+    canonical_form = _canonical_form_from_pdb(
         co, systems_bysize[system_size], torch_device
     )
     pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)

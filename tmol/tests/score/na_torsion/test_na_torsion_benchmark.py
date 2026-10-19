@@ -3,7 +3,7 @@ import torch
 
 from tmol.tests import zero_padded_counts
 
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 from tmol.pose import PoseStackBuilder
 from tmol.score import (
     beta2016_score_function,
@@ -48,7 +48,9 @@ def test_na_torsion_benchmark(
     torch_device,
 ):
     n_poses = int(n_poses)
-    pose_stack1 = pose_stack_from_pdb(dna_pdb, torch_device)
+    pose_stack1 = pose_stack_from_file(
+        dna_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     pose_stack_n = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
 
     sfxn = _sfxn(variant, default_database, torch_device)

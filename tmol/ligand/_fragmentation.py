@@ -101,7 +101,7 @@ def recombine_fragmented_ligands(
     Uses ``pose_stack.split_block_mapping`` to identify which residues in
     *structure* are split-block fragments and what their original PDB identity
     should be.  Atoms are matched by the residue label stored in the pose's
-    PDBInfo (which is what ``biotite_from_pose_stack`` writes to ``res_id``).
+    PDBInfo (which is what ``atom_array_from_pose_stack`` writes to ``res_id``).
     """
     sbm = pose_stack.split_block_mapping
     if sbm is None or not sbm.entries:

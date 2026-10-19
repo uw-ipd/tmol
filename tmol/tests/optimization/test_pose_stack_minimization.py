@@ -12,7 +12,7 @@ from tmol import (
     FoldForest,
     MoveMap,
 )
-from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+from tmol.io import atom_array_from_file, pose_stack_from_atom_array
 from tmol.pose import PoseStackBuilder
 from tmol.optimization import CartesianSfxnNetwork, KinForestSfxnNetwork
 from tmol.kinematics import PoseStackKinematicsModule
@@ -188,13 +188,14 @@ def _sweep_regression_poses(device):
         "oxygen_acceptor_1mbo.cif.zst",
         "capped_peptide_1coi.pdb.zst",
     ):
-        pose, context = pose_stack_from_biotite(
-            atom_array_from_cif(data_path("sweep_regressions", name)),
+        pose, context = pose_stack_from_atom_array(
+            atom_array_from_file(data_path("sweep_regressions", name)),
             device,
             prepare_ligands=True,
             ligand_seed=0,
             param_db=database,
             return_context=True,
+            no_optH=True,
         )
         database = context.parameter_database
         # metal donor forms extend the database per pose

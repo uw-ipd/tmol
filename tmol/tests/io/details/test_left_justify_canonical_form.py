@@ -2,11 +2,8 @@ import torch
 import numpy
 
 from functools import partial
-from tmol.io import (
-    canonical_form_from_pdb,
-    default_packed_block_types,
-    default_canonical_ordering,
-)
+from tmol.io._canonical_ordering import _canonical_form_from_pdb
+from tmol.io import default_packed_block_types, default_canonical_ordering
 from tmol.io.details import left_justify_canonical_form
 
 from tmol.pose import (
@@ -68,7 +65,7 @@ def add_two_res_at_end(x, fill_value):
 
 
 def cf_as_tuple_from_pdb_lines(co, pdblines, device):
-    cf = canonical_form_from_pdb(co, pdblines, device)
+    cf = _canonical_form_from_pdb(co, pdblines, device)
     # the leading fields, through covalent_bonds, that the tests unpack
     return tuple([*cf])[:12]
 

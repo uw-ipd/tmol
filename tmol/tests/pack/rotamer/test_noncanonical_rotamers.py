@@ -129,10 +129,10 @@ def test_a_modified_nucleotide_borrows_the_base_it_resembles() -> None:
     Pseudouridine is joined to the sugar through C5 rather than N1, so a chi
     read off the canonical uracil's atom names would turn the wrong bond.
     """
-    from tmol.io import atom_array_from_cif
+    from tmol.io import atom_array_from_file
 
     param_db = ParameterDatabase.get_default()
-    structure = atom_array_from_cif(FIXTURE_DIR / "na_rna_psu_1bzt.cif")
+    structure = atom_array_from_file(FIXTURE_DIR / "na_rna_psu_1bzt.cif")
     prepared, _canonical_ordering = prepare_ligands(structure, param_db=param_db)
     residue_type = next(r for r in prepared.chemical.residues if r.name == "PSU")
 
@@ -179,17 +179,18 @@ _EXPECTED_ROTAMERS = {
 
 def _pose_with(code: str, torch_device):
     """A pose built from the fixture, and the block index of ``code``."""
-    from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+    from tmol.io import atom_array_from_file, pose_stack_from_atom_array
 
     param_db = ParameterDatabase.get_default()
-    structure = atom_array_from_cif(FIXTURE_DIR / f"{_STRUCTURES[code]}.cif")
-    poses, context = pose_stack_from_biotite(
+    structure = atom_array_from_file(FIXTURE_DIR / f"{_STRUCTURES[code]}.cif")
+    poses, context = pose_stack_from_atom_array(
         structure,
         torch_device,
         prepare_ligands=True,
         param_db=param_db,
         ligand_seed=20250828,
         return_context=True,
+        no_optH=True,
     )
     block_types = poses.packed_block_types.active_block_types
     blocks = [

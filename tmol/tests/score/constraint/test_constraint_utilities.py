@@ -1,12 +1,5 @@
 import torch
-from tmol import (
-    pose_stack_from_pdb,
-    # beta2016_score_function,
-    # canonical_form_from_pdb,
-    # default_canonical_ordering,
-    # default_packed_block_types,
-    # pose_stack_from_canonical_form,
-)
+from tmol import pose_stack_from_file
 from tmol.score.constraint import (
     constrain_all_ca,
     create_mainchain_coordinate_constraints,
@@ -17,7 +10,9 @@ from tmol.pose import PoseStackBuilder
 def test_create_mainchain_coordinate_constraints(
     ubq_pdb, default_database, torch_device
 ):
-    pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    pose_stack1 = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     pose_stack10 = PoseStackBuilder.from_poses([pose_stack1] * 10, torch_device)
 
     pose_stack10 = create_mainchain_coordinate_constraints(pose_stack10)
@@ -30,7 +25,9 @@ def test_create_mainchain_coordinate_constraints(
 
 
 def test_constrain_all_ca(ubq_pdb, default_database, torch_device):
-    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device)
+    pose_stack = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
 
     constrained = constrain_all_ca(pose_stack)
 

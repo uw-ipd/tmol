@@ -11,7 +11,7 @@ from tmol.pack import (
 from tmol.pack.compiled import build_interaction_graph
 from tmol.pack.rotamer import RotamerSet
 from tmol.utility import exclusive_cumsum1d
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 
 
 @pytest.fixture
@@ -38,7 +38,9 @@ def test_load_ig(ubq_ig):
 
 
 def construct_faux_rotamer_set_and_sparse_energies_table_from_ig(ig, pdb_fname, device):
-    pose_stack = pose_stack_from_pdb(pdb_fname, device)
+    pose_stack = pose_stack_from_file(
+        pdb_fname, device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     oneb, twob = ig
 
     n_rots = torch.zeros((76,), dtype=torch.int64)
@@ -128,7 +130,9 @@ def construct_faux_rotamer_set_and_sparse_energies_table_from_ig(ig, pdb_fname, 
 def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(  # noqa: C901
     ig, pdb_fname, device
 ):
-    pose_stack = pose_stack_from_pdb(pdb_fname, device)
+    pose_stack = pose_stack_from_file(
+        pdb_fname, device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     oneb, twob = ig
     n_res = len(oneb)
 

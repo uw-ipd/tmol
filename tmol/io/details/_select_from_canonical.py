@@ -26,6 +26,22 @@ from tmol.pose import (
 
 logger = logging.getLogger(__name__)
 
+# Treatment of a generated ligand's input hydrogens: keep names and coordinates,
+# keep names only, or keep neither.
+LIGAND_HYDROGEN_MODES = ("input", "names", "rebuild")
+
+# An input hydrogen is on its parent when within this distance of its ideal
+# bond length (A).
+_BONDED_H_TOLERANCE = 0.4
+
+
+def validate_ligand_hydrogens(mode: str):
+    """Raise unless mode is one of LIGAND_HYDROGEN_MODES."""
+    if mode not in LIGAND_HYDROGEN_MODES:
+        raise ValueError(
+            f"ligand_hydrogens must be one of {LIGAND_HYDROGEN_MODES}, not {mode!r}"
+        )
+
 
 @validate_args
 def assign_block_types(
@@ -782,7 +798,7 @@ def take_block_type_atoms_from_canonical(
     atom_occupancy: Optional[NDArray[numpy.float32][:, :, :]] = None,
     atom_b_factor: Optional[NDArray[numpy.float32][:, :, :]] = None,
     *,
-    trust_hydrogen_names: bool = False,
+    ligand_hydrogens: str = "names",
 ):
     """Now that we have decided which block type each canonical residue
     is, we want to select only those atoms from the canonically-ordered
@@ -832,19 +848,25 @@ def take_block_type_atoms_from_canonical(
         atom_is_present[nz_real_pose_ind, nz_real_block_ind, real_canonical_atom_inds]
     )
 
-    # Raw hydrogen names may no longer match after ligand protonation.
-    if not trust_hydrogen_names:
-        regenerate = torch.tensor(
-            [bool(bt.hydrogens_regenerated) for bt in pbt.active_block_types],
-            dtype=torch.bool,
-            device=device,
+    # A generated ligand keeps an input hydrogen only in "input" mode, and only
+    # where it sits on the parent its name gives it.
+    validate_ligand_hydrogens(ligand_hydrogens)
+    regenerate = torch.tensor(
+        [bool(bt.hydrogens_regenerated) for bt in pbt.active_block_types],
+        dtype=torch.bool,
+        device=device,
+    )
+    indices = block_types64.clamp_min(0)
+    rebuild = (
+        regenerate[indices].unsqueeze(-1)
+        & pbt.atom_is_hydrogen[indices].bool()
+        & real_atoms
+    )
+    if ligand_hydrogens == "input":
+        rebuild &= ~_hydrogens_on_their_parents(
+            pbt, indices, block_coords.detach(), missing_atoms
         )
-        indices = block_types64.clamp_min(0)
-        missing_atoms |= (
-            regenerate[indices].unsqueeze(-1)
-            & pbt.atom_is_hydrogen[indices].bool()
-            & real_atoms
-        )
+    missing_atoms |= rebuild
 
     canonical_atom_occupancy = canonical_atom_b_factor = None
     if atom_occupancy is not None or atom_b_factor is not None:
@@ -872,6 +894,41 @@ def take_block_type_atoms_from_canonical(
         real_canonical_atom_inds,
         canonical_atom_occupancy,
         canonical_atom_b_factor,
+    )
+
+
+def _annotate_pbt_w_hydrogen_parents(pbt: PackedBlockTypes):
+    """Per block type and atom, a hydrogen's bonded heavy atom and its ideal distance."""
+    if hasattr(pbt, "hydrogen_parent"):
+        return
+    is_h = pbt.atom_is_hydrogen.cpu().numpy().astype(bool)
+    parent = numpy.full((pbt.n_types, pbt.max_n_atoms), -1, dtype=numpy.int64)
+    length = numpy.zeros((pbt.n_types, pbt.max_n_atoms), dtype=numpy.float32)
+    for i, bt in enumerate(pbt.active_block_types):
+        for a0, a1 in bt.bond_indices:
+            h, heavy = int(a1), int(a0)
+            if is_h[i, h] and not is_h[i, heavy]:
+                parent[i, h] = heavy
+                length[i, h] = bt.icoors[bt.icoors_index[bt.atoms[h].name]].d
+    setattr(pbt, "hydrogen_parent", torch.tensor(parent, device=pbt.device))
+    setattr(pbt, "hydrogen_parent_distance", torch.tensor(length, device=pbt.device))
+
+
+def _hydrogens_on_their_parents(pbt, block_types64, block_coords, missing_atoms):
+    """[pose, block, atom] mask of present hydrogens at bond length from their parent."""
+    _annotate_pbt_w_hydrogen_parents(pbt)
+    parent = pbt.hydrogen_parent[block_types64]
+    clamped = parent.clamp_min(0)
+    parent_xyz = torch.gather(
+        block_coords, 2, clamped.unsqueeze(-1).expand(-1, -1, -1, 3)
+    )
+    distance = torch.linalg.vector_norm(block_coords - parent_xyz, dim=-1)
+    ideal = pbt.hydrogen_parent_distance[block_types64]
+    return (
+        (parent >= 0)
+        & ~missing_atoms
+        & ~torch.gather(missing_atoms, 2, clamped)
+        & ((distance - ideal).abs() < _BONDED_H_TOLERANCE)
     )
 
 

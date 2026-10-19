@@ -7,10 +7,10 @@ import torch
 
 from tmol.chemical import MAX_SIG_BOND_SEPARATION as CAP
 from tmol.io import (
-    atom_array_from_cif,
-    build_context_from_biotite,
-    pose_stack_from_biotite,
-    pose_stack_from_pdb,
+    atom_array_from_file,
+    build_context_from_atom_array,
+    pose_stack_from_atom_array,
+    pose_stack_from_file,
 )
 from tmol.pose import PoseStackBuilder
 
@@ -19,14 +19,14 @@ DATA = Path(__file__).parents[1] / "data"
 
 def heavy_pose_stack(array, device):
     array = array[np.char.upper(array.element.astype(str)) != "H"]
-    context = build_context_from_biotite(array, device)
-    return pose_stack_from_biotite(array, device, context=context, no_optH=True)
+    context = build_context_from_atom_array(array, device)
+    return pose_stack_from_atom_array(array, device, context=context, no_optH=True)
 
 
 def oex_site_5xnl(device):
     """5XNL's Mn4CaO5 cluster (OEX A 401, 12 connections) and residues within 3 A."""
     path = DATA / "atomworks_regressions" / "decreasing_water_author_ids_5xnl.cif.zst"
-    array = atom_array_from_cif(path)
+    array = atom_array_from_file(path)
     cluster = array.coord[(array.res_name == "OEX") & (array.chain_id == "A")]
     distance = np.linalg.norm(array.coord[:, None] - cluster[None], axis=-1)
     residue = struc.get_all_residue_positions(array)
@@ -83,8 +83,20 @@ def test_the_sparse_table_holds_every_short_path_and_only_near_blocks(
         # the second pose has more blocks and more near blocks (its disulfide)
         pose_stack = PoseStackBuilder.from_poses(
             [
-                pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=9),
-                pose_stack_from_pdb(pertuzumab_pdb, torch_device, residue_end=100),
+                pose_stack_from_file(
+                    ubq_pdb,
+                    torch_device,
+                    residue_end=9,
+                    no_optH=True,
+                    missing_density_distance_threshold=0.0,
+                ),
+                pose_stack_from_file(
+                    pertuzumab_pdb,
+                    torch_device,
+                    residue_end=100,
+                    no_optH=True,
+                    missing_density_distance_threshold=0.0,
+                ),
             ],
             torch_device,
         )
@@ -92,7 +104,7 @@ def test_the_sparse_table_holds_every_short_path_and_only_near_blocks(
         pose_stack = oex_site_5xnl(torch_device)
     else:
         path = DATA / "metal_fixtures" / f"{structure}.cif.zst"
-        pose_stack = heavy_pose_stack(atom_array_from_cif(path), torch_device)
+        pose_stack = heavy_pose_stack(atom_array_from_file(path), torch_device)
     ibb = pose_stack.inter_block_bondsep
     dense = floyd_warshall_bondsep(pose_stack)
 

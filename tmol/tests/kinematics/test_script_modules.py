@@ -4,12 +4,8 @@ import numpy
 
 import torch
 
-from tmol import (
-    PoseStack,
-    PackedBlockTypes,
-    canonical_form_from_pdb,
-    pose_stack_from_canonical_form,
-)
+from tmol import PoseStack, PackedBlockTypes, pose_stack_from_canonical_form
+from tmol.io._canonical_ordering import _canonical_form_from_pdb
 from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
@@ -84,7 +80,7 @@ def pose_stack_system1(
 ) -> typing.Tuple[PoseStack, FoldForest]:
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(
+    canonical_form = _canonical_form_from_pdb(
         co, ubq_pdb, torch_device, residue_start=0, residue_end=2
     )
     pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
@@ -136,7 +132,7 @@ def pose_stack_system2(
 ) -> typing.Tuple[PoseStack, FoldForest]:
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(
+    canonical_form = _canonical_form_from_pdb(
         co, ubq_pdb, torch_device, residue_start=0, residue_end=6
     )
     pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)

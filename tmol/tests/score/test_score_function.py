@@ -26,13 +26,13 @@ from tmol.pose import (
     PoseStackBuilder,
 )
 from tmol import (
-    pose_stack_from_pdb,
+    pose_stack_from_file,
     beta2016_score_function,
-    canonical_form_from_pdb,
     default_canonical_ordering,
     default_packed_block_types,
     pose_stack_from_canonical_form,
 )
+from tmol.io._canonical_ordering import _canonical_form_from_pdb
 
 
 def _separate_unweighted_scores(scorer, coords):
@@ -41,7 +41,13 @@ def _separate_unweighted_scores(scorer, coords):
 
 
 def test_pose_score_smoke(ubq_pdb, default_database, torch_device):
-    pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    pose_stack1 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=4,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose_stack100 = PoseStackBuilder.from_poses([pose_stack1] * 100, torch_device)
 
     sfxn = ScoreFunction(default_database, torch_device)
@@ -57,7 +63,9 @@ def test_pose_score_smoke(ubq_pdb, default_database, torch_device):
 
 
 def test_shared_block_neighbors_preserve_scores_and_gradients(ubq_pdb, torch_device):
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device)
+    pose = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     sfxn = beta2016_score_function(torch_device)
     scorer = sfxn.render_whole_pose_scoring_module(pose)
 
@@ -87,8 +95,16 @@ def test_fused_compact_specialization_preserves_subsets(
 ):
     if torch_device.type != "cuda":
         pytest.skip("CUDA compact interaction specialization")
-    single = pose_stack_from_pdb(ubq_pdb, torch_device)
-    short = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    single = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
+    short = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=10,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose = PoseStackBuilder.from_poses([single, short] * 32, torch_device)
     scorer = _non_memoized_beta2016(torch_device).render_whole_pose_scoring_module(pose)
     term = scorer._execution_modules[scorer._fused_ljlk_elec_module_index]
@@ -146,8 +162,20 @@ def test_cpu_compact_neighbors_preserve_pose_accumulation_order(
     ubq_pdb, request, dtype, reverse_neighbors, strided_neighbors
 ):
     device = torch.device("cpu")
-    short = pose_stack_from_pdb(ubq_pdb, device, residue_end=3)
-    longer = pose_stack_from_pdb(ubq_pdb, device, residue_end=5)
+    short = pose_stack_from_file(
+        ubq_pdb,
+        device,
+        residue_end=3,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
+    longer = pose_stack_from_file(
+        ubq_pdb,
+        device,
+        residue_end=5,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose = PoseStackBuilder.from_poses([short, longer, longer, short], device)
     scorer = _non_memoized_beta2016(device).render_whole_pose_scoring_module(pose)
     original_threads = torch.get_num_threads()
@@ -186,8 +214,16 @@ def test_cpu_compact_neighbors_preserve_pose_accumulation_order(
 def test_lk_ball_compact_specialization_preserves_subsets(ubq_pdb, torch_device, dtype):
     if torch_device.type != "cuda":
         pytest.skip("CUDA compact interaction specialization")
-    single_pose = pose_stack_from_pdb(ubq_pdb, torch_device)
-    short_pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    single_pose = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
+    short_pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=10,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose = PoseStackBuilder.from_poses([single_pose, short_pose] * 8, torch_device)
     scorer = _non_memoized_beta2016(torch_device).render_whole_pose_scoring_module(pose)
     term = next(t for t in scorer.term_modules if t.classname == "LKBall")
@@ -219,7 +255,13 @@ def test_lk_ball_compact_specialization_preserves_subsets(ubq_pdb, torch_device,
 def test_shared_block_neighbors_follow_active_terms(
     ubq_pdb, default_database, torch_device
 ):
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=4,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     sfxn = ScoreFunction(default_database, torch_device)
     sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
 
@@ -248,7 +290,13 @@ def test_shared_block_neighbors_follow_active_terms(
 def test_fused_ljlk_elec_preserves_term_lanes_weights_and_gradients(
     ubq_pdb, torch_device
 ):
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=4,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
 
     # This test edits the rendered weight buffer, which shares storage with
     # its score function. Keep those edits out of the memoized beta2016 object.
@@ -338,7 +386,13 @@ def test_fused_ljlk_elec_weighted_gradient_finite_difference(
 ):
     if torch_device.type != "cpu":
         pytest.skip("CPU double-precision finite-difference check")
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=2)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=2,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     sfxn = ScoreFunction(default_database, torch_device)
     for score_type, weight in (
         (ScoreType.fa_ljatr, 0.7),
@@ -364,7 +418,13 @@ def test_fused_ljlk_elec_weighted_gradient_finite_difference(
 def test_fused_ljlk_elec_backward_respects_lane_and_pose_weights(
     ubq_pdb, default_database, torch_device, monkeypatch
 ):
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=4,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose_batch = PoseStackBuilder.from_poses([pose, pose], torch_device)
 
     if torch_device.type == "cpu":
@@ -401,7 +461,13 @@ def test_cpu_fused_shard_planner_preserves_fallbacks(
 ):
     if torch_device.type != "cpu":
         pytest.skip("CPU execution-planner check")
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=4,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     monkeypatch.setattr(torch, "get_num_threads", lambda: 4)
     fused = beta2016_score_function(
         torch_device, param_db=default_database
@@ -513,7 +579,12 @@ def test_large_cpu_spatial_neighbor_build_is_deterministic(
 ):
     if torch_device.type != "cpu":
         pytest.skip("CPU compact-list determinism check")
-    pose = pose_stack_from_pdb(systems_bysize[300], torch_device)
+    pose = pose_stack_from_file(
+        systems_bysize[300],
+        torch_device,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     scorer = beta2016_score_function(
         torch_device, param_db=default_database
     ).render_whole_pose_scoring_module(pose)
@@ -551,7 +622,13 @@ def test_score_function_resolves_unindexed_cuda(default_database, torch_device):
 def test_whole_pose_gradients_respect_per_pose_upstream_weights(
     ubq_pdb, default_database, torch_device
 ):
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=4,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     stack = PoseStackBuilder.from_poses([pose] * 3, torch_device)
     sfxn = ScoreFunction(default_database, torch_device)
     sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
@@ -586,7 +663,13 @@ def test_cuda_term_gradients_accept_strided_lane_weights(ubq_pdb, device_index):
     original_device = torch.cuda.current_device()
     torch_device = torch.device("cuda", device_index)
     with torch.cuda.device(torch_device):
-        one = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+        one = pose_stack_from_file(
+            ubq_pdb,
+            torch_device,
+            residue_end=4,
+            no_optH=True,
+            missing_density_distance_threshold=0.0,
+        )
         pose = PoseStackBuilder.from_poses([one, one], torch_device)
         scorer = _non_memoized_beta2016(torch_device).render_whole_pose_scoring_module(
             pose
@@ -689,7 +772,13 @@ def test_weight_tensor_refresh_preserves_score_type_order(
 def test_packed_block_setup_is_reused_and_cross_score_function_safe(
     ubq_pdb, default_database, torch_device, monkeypatch
 ):
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=4,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     sfxn = ScoreFunction(default_database, torch_device)
     sfxn.set_weight(ScoreType.ref, 1.0)
     term = sfxn.all_terms()[0]
@@ -721,7 +810,13 @@ def test_packed_block_setup_is_reused_and_cross_score_function_safe(
 def test_packed_block_setup_reuses_annotations_for_identical_types(
     ubq_pdb, default_database, torch_device
 ):
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=4,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     original_pbt = pose.packed_block_types
     packed_block_types = [
         PackedBlockTypes.from_restype_list(
@@ -761,7 +856,13 @@ def test_packed_block_setup_reuses_annotations_for_identical_types(
 def test_packed_block_annotation_reuse_survives_option_changes(
     ubq_pdb, default_database, torch_device
 ):
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=4,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     original_pbt = pose.packed_block_types
 
     def equivalent_pose():
@@ -793,7 +894,13 @@ def test_packed_block_annotation_reuse_survives_option_changes(
 def test_replacing_options_restores_default_scores(
     ubq_pdb, default_database, torch_device, score_type
 ):
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=4,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     score_function = ScoreFunction(default_database, torch_device)
     score_function.set_weight(score_type, 1.0)
 
@@ -949,7 +1056,13 @@ def test_cpu_parallel_whole_pose_gradient_matches_serial_order(
         0,
     )
 
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=10,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     scorer = beta2016_score_function(
         torch_device, default_database
     ).render_whole_pose_scoring_module(pose)
@@ -1291,7 +1404,13 @@ def test_cuda_graphed_protein_score_matches_eager(ubq_pdb, torch_device):
     if torch_device.type != "cuda":
         pytest.skip("CUDA graph test")
 
-    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    pose_stack = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=10,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     # Reweighting the graph below must not alter later tests' beta2016 scores.
     sfxn = _non_memoized_beta2016(torch_device)
     eager = sfxn.render_whole_pose_scoring_module(pose_stack)
@@ -1376,7 +1495,12 @@ def test_large_cuda_pose_score_matches_serial_terms_on_caller_stream(
     if torch_device.type != "cuda":
         pytest.skip("Requires CUDA")
 
-    pose = pose_stack_from_pdb(systems_bysize[600], torch_device)
+    pose = pose_stack_from_file(
+        systems_bysize[600],
+        torch_device,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     scorer = beta2016_score_function(torch_device).render_whole_pose_scoring_module(
         pose
     )
@@ -1420,9 +1544,27 @@ def test_block_pair_scoring_matches_whole_pose(ubq_pdb, default_database, torch_
     sfxn.set_weight(ScoreType.fa_ljrep, 3)
 
     # test multiple poses to ensure score is being attributed the same
-    pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
-    pose_stack2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=20)
-    pose_stack3 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=30)
+    pose_stack1 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=10,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
+    pose_stack2 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=20,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
+    pose_stack3 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=30,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose_stack = PoseStackBuilder.from_poses(
         [pose_stack1, pose_stack2, pose_stack3], torch_device
     )
@@ -1461,7 +1603,12 @@ def test_large_cuda_compact_scores_match_block_pair_reference(
     if torch_device.type != "cuda":
         pytest.skip("Requires CUDA")
 
-    single_pose = pose_stack_from_pdb(systems_bysize[300], torch_device)
+    single_pose = pose_stack_from_file(
+        systems_bysize[300],
+        torch_device,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     # Eight 300-residue poses cross both compact-dispatch thresholds and the
     # higher threshold for differentiable cross-term stream overlap.
     pose = PoseStackBuilder.from_poses([single_pose] * 8, torch_device)
@@ -1506,7 +1653,13 @@ def test_large_cuda_compact_scores_match_block_pair_reference(
 def test_interaction_only_block_pair_scoring_skips_diagonal_terms(
     ubq_pdb, default_database, torch_device
 ):
-    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    pose_stack = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=10,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     sfxn = beta2016_score_function(torch_device, default_database)
     full_scorer = sfxn.render_block_pair_scoring_module(pose_stack)
     interaction_scorer = sfxn.render_block_pair_scoring_module(
@@ -1532,7 +1685,13 @@ def test_interaction_only_block_pair_scoring_skips_diagonal_terms(
 
 
 def test_score_interactions_validates_block_pairs(ubq_pdb, torch_device):
-    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=2)
+    pose_stack = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=2,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     scorer = beta2016_score_function(torch_device).render_block_pair_scoring_module(
         pose_stack, interaction_only=True
     )
@@ -1552,7 +1711,13 @@ def test_score_interactions_validates_block_pairs(ubq_pdb, torch_device):
 def test_block_pair_gradients_respect_sparse_upstream_weights(
     ubq_pdb, default_database, torch_device
 ):
-    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    pose_stack = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=10,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     scorer = beta2016_score_function(
         torch_device, default_database
     ).render_block_pair_scoring_module(pose_stack)
@@ -1652,7 +1817,7 @@ def test_virtual_residue_scoring(ubq_pdb, torch_device):
         def xyz(x, y, z):
             return torch.tensor((x, y, z), dtype=torch.float32, device=torch_device)
 
-        canonical_form = canonical_form_from_pdb(
+        canonical_form = _canonical_form_from_pdb(
             co, ubq_pdb, torch_device, residue_start=0, residue_end=nres
         )
         if add_vrt:
@@ -1777,7 +1942,9 @@ def _assert_matches_gold(score_map, gold_map, score_types, rtol, atol):
 
 @pytest.mark.parametrize("weights", ["beta2016", "beta_soft"])
 def test_hydroxyl_torsion_weight(ubq_pdb, default_database, torch_device, weights):
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device)
+    pose = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     weights_path = os.path.join(
         os.path.dirname(__file__),
         "..",
@@ -1803,7 +1970,9 @@ def test_hydroxyl_torsion_weight(ubq_pdb, default_database, torch_device, weight
 
 
 def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_device):
-    ps = pose_stack_from_pdb(ubq_pdb, torch_device)
+    ps = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
 
     _weights_path = os.path.join(
         os.path.dirname(__file__),
@@ -1865,7 +2034,9 @@ def test_soft_score_function_all_score_types(ubq_pdb, default_database, torch_de
 
 def test_score_function_all_score_types(ubq_pdb):
     device = torch.device("cpu")
-    ps = pose_stack_from_pdb(ubq_pdb, device)
+    ps = pose_stack_from_file(
+        ubq_pdb, device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     sfxn = beta2016_score_function(device)
 
     wpsm = sfxn.render_whole_pose_scoring_module(ps)
@@ -1914,7 +2085,9 @@ def test_score_function_all_score_types(ubq_pdb):
 def test_score_function_all_score_types_protein_dna(protein_dna_pdb):
     """Golden values for a protein-DNA complex."""
     device = torch.device("cpu")
-    ps = pose_stack_from_pdb(protein_dna_pdb, device)
+    ps = pose_stack_from_file(
+        protein_dna_pdb, device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     sfxn = beta2016_score_function(device)
 
     wpsm = sfxn.render_whole_pose_scoring_module(ps)
@@ -2173,7 +2346,16 @@ def test_packing_releases_term_iterator_pages(topology_only):
 
 @pytest.mark.parametrize("layout", ["dense", "strided", "negative"])
 def test_whole_pose_gradient_accumulation(ubq_pdb, torch_device, layout):
-    poses = [pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=n) for n in (4, 6)]
+    poses = [
+        pose_stack_from_file(
+            ubq_pdb,
+            torch_device,
+            residue_end=n,
+            no_optH=True,
+            missing_density_distance_threshold=0.0,
+        )
+        for n in (4, 6)
+    ]
     pose = PoseStackBuilder.from_poses(poses, torch_device)
     scorer = beta2016_score_function(torch_device).render_whole_pose_scoring_module(
         pose
@@ -2216,7 +2398,13 @@ def test_whole_pose_accumulation_preserves_term_hooks(
     ubq_pdb, torch_device, monkeypatch, term_name
 ):
     monkeypatch.setattr(torch, "get_num_threads", lambda: 1)
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=4,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     scorer = beta2016_score_function(torch_device).render_whole_pose_scoring_module(
         pose
     )

@@ -7,7 +7,7 @@ import torch
 
 from tmol.io import (
     atom37_slot_map_for_ordering,
-    build_context_from_biotite,
+    build_context_from_atom_array,
     canonical_form_from_biotite,
     pose_stack_from_atom37,
     pose_stack_from_canonical_form_and_context,
@@ -80,7 +80,7 @@ def test_tensor_path_matches_the_atom_array_path(source, torch_device):
     tensors; pose construction itself sees no structure object.
     """
     structure = _load(data_path(*source))
-    context = build_context_from_biotite(structure, torch_device)
+    context = build_context_from_atom_array(structure, torch_device)
     canonical_ordering = context.canonical_ordering
 
     canonical_form = canonical_form_from_biotite(
@@ -170,7 +170,7 @@ def test_slot_map_leaves_terminus_atoms_unmapped(torch_device):
     any chemistry the ordering covers rather than for a named list.
     """
     structure = _load(data_path("pdb", "1ubq.pdb"))
-    context = build_context_from_biotite(structure, torch_device)
+    context = build_context_from_atom_array(structure, torch_device)
     canonical_ordering = context.canonical_ordering
 
     layout = _full_atom_layout(canonical_ordering)
@@ -195,7 +195,7 @@ def test_slot_map_leaves_terminus_atoms_unmapped(torch_device):
 def test_tensor_path_rejects_more_slots_than_the_map_covers(torch_device):
     """A layout narrower than the coordinates is a caller error, not a crop."""
     structure = _load(data_path("pdb", "1ubq.pdb"))
-    context = build_context_from_biotite(structure, torch_device)
+    context = build_context_from_atom_array(structure, torch_device)
     canonical_ordering = context.canonical_ordering
     canonical_form = canonical_form_from_biotite(
         structure, torch_device, co=canonical_ordering
@@ -229,12 +229,12 @@ def test_tensor_path_refuses_a_residue_type_the_slot_map_cannot_route(torch_devi
     import pytest
     import torch
 
-    from tmol.io import build_context_from_biotite
+    from tmol.io import build_context_from_atom_array
     from tmol.io._pose_stack_from_atom37 import canonical_form_from_atom37
     from tmol.tests.data import data_path
 
     structure = _load(data_path("pdb", "1ubq.pdb"))
-    context = build_context_from_biotite(structure, torch_device)
+    context = build_context_from_atom_array(structure, torch_device)
     co = context.canonical_ordering
     layout = _full_atom_layout(co)
     slot_map = atom37_slot_map_for_ordering(co, layout, torch_device)

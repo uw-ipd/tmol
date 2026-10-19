@@ -3,7 +3,7 @@ import numpy
 import yaml
 from attrs import evolve
 
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 from tmol.chemical import (
     normalize,
     RefinedResidueType,
@@ -72,7 +72,9 @@ def test_patched_residue_ideal_coords(default_database):
 
 
 def test_patched_pdb(ubq_pdb, torch_device):
-    ps = pose_stack_from_pdb(ubq_pdb, torch_device)
+    ps = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     pbt_abt = ps.packed_block_types.active_block_types
 
     assert pbt_abt[ps.block_type_ind64[0, 0]].name == "MET:nterm"

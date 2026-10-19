@@ -11,7 +11,11 @@ import biotite.structure.io.pdbx as pdbx
 import pytest
 import torch
 
-from tmol.io import atom_array_from_cif, pose_stack_from_biotite, pose_stack_from_cif
+from tmol.io import (
+    atom_array_from_file,
+    pose_stack_from_atom_array,
+    pose_stack_from_file,
+)
 from tmol.io._pose_stack_from_biotite import (
     _map_atoms_to_canonical,
     canonical_form_from_biotite,
@@ -30,12 +34,12 @@ def assert_metal_bonds_are_coordination(array, metal):
 
 
 def test_partial_sugar_rings_construct_score_and_minimize(torch_device, monkeypatch):
-    from tmol.io import build_context_from_biotite
+    from tmol.io import build_context_from_atom_array
     from tmol.io.details import _build_missing_leaf_atoms as leaf
     from rdkit import Chem
     from tmol.ligand._conjugate_model import capped_conjugate_models
 
-    array = atom_array_from_cif(DATA / "partial_sugar_rings_2msb.cif.zst")
+    array = atom_array_from_file(DATA / "partial_sugar_rings_2msb.cif.zst")
     sugars = [
         r for r in struc.residue_iter(array) if r.res_name[0] in ("NAG", "BMA", "MAN")
     ]
@@ -57,7 +61,7 @@ def test_partial_sugar_rings_construct_score_and_minimize(torch_device, monkeypa
     assert_metal_bonds_are_coordination(array, metal)
     array = array[~metal & (array.res_name != "HOH")]
     supplied = array.coord.copy()
-    context = build_context_from_biotite(
+    context = build_context_from_atom_array(
         array, torch_device, prepare_ligands=True, ligand_seed=20260909
     )
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)
@@ -91,7 +95,9 @@ def test_partial_sugar_rings_construct_score_and_minimize(torch_device, monkeypa
         return result
 
     monkeypatch.setattr(leaf, "build_missing_by_context", record)
-    pose = pose_stack_from_biotite(array, torch_device, context=context, no_optH=True)
+    pose = pose_stack_from_atom_array(
+        array, torch_device, context=context, no_optH=True
+    )
     np.testing.assert_array_equal(array.coord, supplied)
     # the heavy atoms, grown before any hydrogen
     assert len(calls) == 1
@@ -193,15 +199,15 @@ def _blocks_with(atoms, offsets, types, pbt):
 def test_terminal_and_linked_glycans_construct_score_and_minimize(
     torch_device, pdb, sugar, count
 ):
-    from tmol.io import build_context_from_biotite
+    from tmol.io import build_context_from_atom_array
     from tmol.tests.ligand.test_local_conjugate_params import _charges
 
-    array = atom_array_from_cif(DATA / f"terminal_and_linked_glycans_{pdb}.cif.zst")
+    array = atom_array_from_file(DATA / f"terminal_and_linked_glycans_{pdb}.cif.zst")
     metal = np.isin(np.char.upper(array.element), ("ZN", "NA", "MG", "CA"))
     assert_metal_bonds_are_coordination(array, metal)
     array = array[~metal & (array.res_name != "HOH")]
     supplied = array.coord.copy()
-    context = build_context_from_biotite(
+    context = build_context_from_atom_array(
         array, torch_device, prepare_ligands=True, ligand_seed=20260909
     )
     db = context.parameter_database
@@ -212,7 +218,7 @@ def test_terminal_and_linked_glycans_construct_score_and_minimize(
     assert records
     assert all(p.K == 300 for r in records for p in r.length_parameters)
     assert all(p.K == 80 for r in records for p in r.angle_parameters)
-    pose = pose_stack_from_biotite(
+    pose = pose_stack_from_atom_array(
         array,
         torch_device,
         context=context,
@@ -309,9 +315,9 @@ def test_terminal_and_linked_glycans_construct_score_and_minimize(
 
 
 def test_decreasing_water_author_ids_preserve_full_input(torch_device):
-    from tmol.io import build_context_from_biotite
+    from tmol.io import build_context_from_atom_array
 
-    array = atom_array_from_cif(DATA / "decreasing_water_author_ids_5xnl.cif.zst")
+    array = atom_array_from_file(DATA / "decreasing_water_author_ids_5xnl.cif.zst")
     assert int(np.isfinite(array.coord).all(axis=-1).sum()) == 98986
     waters = array[array.res_name == "HOH"]
     assert len(waters) == struc.get_residue_count(waters) == 1076
@@ -319,8 +325,10 @@ def test_decreasing_water_author_ids_preserve_full_input(torch_device):
     chain = "A"  # Preserve the author chain ID.
     protein = array[(array.chain_id == chain) & struc.filter_amino_acids(array)]
     assert struc.get_residue_count(protein) > 300
-    context = build_context_from_biotite(protein, torch_device)
-    pose = pose_stack_from_biotite(protein, torch_device, context=context, no_optH=True)
+    context = build_context_from_atom_array(protein, torch_device)
+    pose = pose_stack_from_atom_array(
+        protein, torch_device, context=context, no_optH=True
+    )
     _score_and_minimize(pose, context)
 
 
@@ -328,18 +336,18 @@ def test_a_ligand_whose_only_hydrogens_a_metal_displaces_is_prepared_without_the
     torch_device,
 ):
     """5XNL's BCT D 401 binds the non-heme Fe through O2 and O3: a carbonate."""
-    from tmol.io import build_context_from_biotite
+    from tmol.io import build_context_from_atom_array
 
-    array = atom_array_from_cif(DATA / "decreasing_water_author_ids_5xnl.cif.zst")
+    array = atom_array_from_file(DATA / "decreasing_water_author_ids_5xnl.cif.zst")
     iron = np.flatnonzero((array.res_name == "FE2") & (array.chain_id == "A"))
     near = np.linalg.norm(array.coord - array.coord[iron], axis=1) < 3.0
     residue = struc.get_all_residue_positions(array)
     site = array[np.isin(residue, residue[near])]
     site = site[np.char.upper(site.element) != "H"]
-    context = build_context_from_biotite(
+    context = build_context_from_atom_array(
         site, torch_device, prepare_ligands=True, ligand_seed=20260928
     )
-    pose = pose_stack_from_biotite(site, torch_device, context=context, no_optH=True)
+    pose = pose_stack_from_atom_array(site, torch_device, context=context, no_optH=True)
 
     types = pose.packed_block_types.active_block_types
     names = {types[i].name: types[i] for i in pose.block_type_ind64[0] if i >= 0}
@@ -348,10 +356,10 @@ def test_a_ligand_whose_only_hydrogens_a_metal_displaces_is_prepared_without_the
 
 
 def test_af3_cyclic_peptide_resolves_leaving_atoms_and_minimizes(torch_device):
-    from tmol.io import build_context_from_biotite
+    from tmol.io import build_context_from_atom_array
 
     path = DATA / "af3_cyclic_peptide_7ubd.cif"
-    array = atom_array_from_cif(path)
+    array = atom_array_from_file(path)
     site = pdbx.CIFFile.read(path).block["atom_site"]
     retained = {
         (str(c), int(r), str(n)): xyz
@@ -373,10 +381,12 @@ def test_af3_cyclic_peptide_resolves_leaving_atoms_and_minimizes(torch_device):
             np.testing.assert_allclose(
                 retained[chain, residue, name], expected, atol=1e-6
             )
-    context = build_context_from_biotite(
+    context = build_context_from_atom_array(
         array, torch_device, prepare_ligands=True, ligand_seed=20260909
     )
-    pose = pose_stack_from_biotite(array, torch_device, context=context, no_optH=True)
+    pose = pose_stack_from_atom_array(
+        array, torch_device, context=context, no_optH=True
+    )
     assert int((pose.block_type_ind >= 0).sum()) == 8
     assert all(
         "OXT" not in pose.packed_block_types.active_block_types[int(i)].atom_to_idx
@@ -411,7 +421,7 @@ def test_terminal_nucleoside_keeps_its_backbone_and_minimizes(
         )
         path = tmp_path / "copies.cif"
         cif.write(path)
-    pose, context = pose_stack_from_cif(
+    pose, context = pose_stack_from_file(
         path,
         torch_device,
         assembly_id=assembly_id,
@@ -431,12 +441,12 @@ def test_terminal_nucleoside_keeps_its_backbone_and_minimizes(
     # Each strand has six residues; proximity adds no conjugations.
     assert int((pose.inter_residue_connections[..., 0] >= 0).sum()) == blocks // 6 * 10
     assert not any("conj_" in bt.name for bt in types)
-    array = atom_array_from_cif(path, assembly_id=assembly_id)
+    array = atom_array_from_file(path, assembly_id=assembly_id)
     array = array[array.res_name != "HOH"]
     _assert_all_source_connections(pose, array)
     if assembly_id == "copies":
-        declared = atom_array_from_cif(path, assembly_id=assembly_id)
-        known = pose_stack_from_biotite(
+        declared = atom_array_from_file(path, assembly_id=assembly_id)
+        known = pose_stack_from_atom_array(
             declared, torch_device, context=context, no_optH=True
         )
         torch.testing.assert_close(known.block_type_ind, pose.block_type_ind)
@@ -458,7 +468,7 @@ def test_terminal_nucleoside_keeps_its_backbone_and_minimizes(
             array, torch_device, co=context.canonical_ordering
         )
         assert torch.unique(canonical.chain_id).numel() == 2
-        direct = pose_stack_from_biotite(
+        direct = pose_stack_from_atom_array(
             array, torch_device, context=context, no_optH=True
         )
         np.testing.assert_array_equal(array.chain_id, original_chains)
@@ -516,12 +526,12 @@ def _score_and_minimize(pose, context, max_iter=10, fixed_iterations=False):
 
 
 def test_macrocycle_preserves_every_bond_across_residue_order(torch_device):
-    from tmol.io import build_context_from_biotite, pose_stack_from_biotite
+    from tmol.io import build_context_from_atom_array, pose_stack_from_atom_array
 
-    array = atom_array_from_cif(DATA / "macrocycle_1xvk.cif")
+    array = atom_array_from_file(DATA / "macrocycle_1xvk.cif")
     # Free magnesium is deferred; waters follow the constructor's usual policy.
     array = array[(np.char.upper(array.element) != "MG") & (array.res_name != "HOH")]
-    context = build_context_from_biotite(
+    context = build_context_from_atom_array(
         array, torch_device, prepare_ligands=True, ligand_seed=20260909
     )
     records = context.parameter_database.scoring.cartbonded.connection_params
@@ -536,7 +546,7 @@ def test_macrocycle_preserves_every_bond_across_residue_order(torch_device):
     energies = []
     for order in (np.arange(18), np.arange(18)[::-1]):
         indices = np.concatenate([np.arange(starts[i], starts[i + 1]) for i in order])
-        pose = pose_stack_from_biotite(
+        pose = pose_stack_from_atom_array(
             array[indices], torch_device, context=context, no_optH=True
         )
         _assert_all_source_connections(pose, array[indices])
@@ -588,15 +598,15 @@ def _assert_all_source_connections(pose, array):
 def test_repeated_glycans_share_transferable_attachment_targets(
     torch_device, fixture, shared_type
 ):
-    from tmol.io import build_context_from_biotite
+    from tmol.io import build_context_from_atom_array
     from tmol.ligand._connection_params import generate_conjugate_connection_params
 
-    array = atom_array_from_cif(DATA / f"{fixture}.cif.zst")
+    array = atom_array_from_file(DATA / f"{fixture}.cif.zst")
     array = array[array.res_name != "HOH"]
     metals = np.isin(np.char.upper(array.element), ("ZN", "NA", "MG", "CA"))
     assert_metal_bonds_are_coordination(array, metals)
     array = array[~metals]
-    context = build_context_from_biotite(
+    context = build_context_from_atom_array(
         array, torch_device, prepare_ligands=True, ligand_seed=20260909
     )
     database = context.parameter_database
@@ -641,7 +651,7 @@ def test_repeated_glycans_share_transferable_attachment_targets(
     for source in (array, reversed_array):
         # Require the declared graph exactly in this regression. The corpus
         # runner separately exercises the default disulfide-inference policy.
-        pose = pose_stack_from_biotite(
+        pose = pose_stack_from_atom_array(
             source,
             torch_device,
             context=context,
@@ -739,7 +749,7 @@ def test_author_named_view_preserves_the_conflicting_label_atom_coordinate():
             for name in ("Cartn_x", "Cartn_y", "Cartn_z")
         ]
     )
-    array = atom_array_from_cif(path)
+    array = atom_array_from_file(path)
     actual = array[(array.res_id == 152) & (array.atom_name == "CG")].coord
     np.testing.assert_allclose(actual, expected, atol=1e-5)
 
@@ -763,12 +773,12 @@ def test_unrecognized_hydrogen_names_can_be_rebuilt(element):
 def test_generated_amine_attachment_uses_bonded_hydrogen_count(
     torch_device, kind, n_hydrogens, bond_type
 ):
-    from tmol.io import build_context_from_biotite
+    from tmol.io import build_context_from_atom_array
     from tmol.ligand._conjugation_patches import _hydrogens_on
     from tmol.tests.ligand.test_local_conjugate_params import _charges
 
-    array = atom_array_from_cif(DATA / f"generated_{kind}_attachment.cif")
-    context = build_context_from_biotite(
+    array = atom_array_from_file(DATA / f"generated_{kind}_attachment.cif")
+    context = build_context_from_atom_array(
         array, torch_device, prepare_ligands=True, ligand_seed=20260913
     )
     db = context.parameter_database
@@ -792,7 +802,9 @@ def test_generated_amine_attachment_uses_bonded_hydrogen_count(
     assert sum(_charges(db, patched).values()) == pytest.approx(
         sum(_charges(db, base).values()), abs=1e-8
     )
-    pose = pose_stack_from_biotite(array, torch_device, context=context, no_optH=True)
+    pose = pose_stack_from_atom_array(
+        array, torch_device, context=context, no_optH=True
+    )
     _assert_all_source_connections(pose, array)
     _score_and_minimize(pose, context)
 
@@ -803,7 +815,7 @@ def test_schiff_base_reports_missing_covalent_partner_backbone():
     with pytest.raises(
         ValueError, match="Cannot discard an incomplete or unsupported residue"
     ):
-        pose_stack_from_cif(
+        pose_stack_from_file(
             DATA / "schiff_base_double_bond.cif",
             torch.device("cpu"),
             prepare_ligands=True,
@@ -813,12 +825,12 @@ def test_schiff_base_reports_missing_covalent_partner_backbone():
 
 
 def test_conflicting_myristate_connections_are_reported(torch_device):
-    array = atom_array_from_cif(DATA / "conflicting_myristate_1aym.cif.zst")
+    array = atom_array_from_file(DATA / "conflicting_myristate_1aym.cif.zst")
     # The complete source has a free zinc ion; metal parameters are out of scope.
     array = array[array.res_name != "ZN"]
     before = array.bonds.as_array().copy()
     with pytest.raises(ValueError, match=r"MYR\.C1.*multiple declared partners") as exc:
-        pose_stack_from_biotite(
+        pose_stack_from_atom_array(
             array,
             torch_device,
             prepare_ligands=True,
@@ -830,8 +842,8 @@ def test_conflicting_myristate_connections_are_reported(torch_device):
 
 
 def test_a_histidine_bridging_two_zinc_is_the_imidazolate(torch_device):
-    array = atom_array_from_cif(DATA / "bridging_histidine_6iu8.cif.zst")
-    pose_stack = pose_stack_from_biotite(array, torch_device)
+    array = atom_array_from_file(DATA / "bridging_histidine_6iu8.cif.zst")
+    pose_stack = pose_stack_from_atom_array(array, torch_device, no_optH=True)
     block_types = pose_stack.packed_block_types.active_block_types
     names = [
         block_types[i].name.split(":") for i in pose_stack.block_type_ind64[0] if i >= 0
@@ -846,9 +858,9 @@ def test_a_thioglycine_link_read_as_an_iminothiol_builds_as_the_thioamide(
     torch_device,
 ):
     """1MRO GL3 445 reads C=N to TYR 446 with an SH; it is the C=S thioamide."""
-    array = atom_array_from_cif(DATA / "thioglycine_1mro.cif.zst")
-    pose = pose_stack_from_biotite(
-        array, torch_device, prepare_ligands=True, ligand_seed=20260928
+    array = atom_array_from_file(DATA / "thioglycine_1mro.cif.zst")
+    pose = pose_stack_from_atom_array(
+        array, torch_device, prepare_ligands=True, ligand_seed=20260928, no_optH=True
     )
     types = pose.packed_block_types.active_block_types
     (gl3,) = [types[i] for i in pose.block_type_ind64[0] if types[i].name == "GL3"]
@@ -858,9 +870,9 @@ def test_a_thioglycine_link_read_as_an_iminothiol_builds_as_the_thioamide(
 
 def test_a_thioglycine_link_is_a_backbone_bond_not_a_conjugation(torch_device):
     """1MRO GL3 445 C(=S) bonds TYR 446 N as the backbone: TYR gets no conj_N type."""
-    array = atom_array_from_cif(DATA / "thioglycine_1mro.cif.zst")
-    pose = pose_stack_from_biotite(
-        array, torch_device, prepare_ligands=True, ligand_seed=20260928
+    array = atom_array_from_file(DATA / "thioglycine_1mro.cif.zst")
+    pose = pose_stack_from_atom_array(
+        array, torch_device, prepare_ligands=True, ligand_seed=20260928, no_optH=True
     )
     names = {bt.name for bt in pose.packed_block_types.active_block_types}
     assert not [n for n in names if n.startswith("TYR") and "conj_N" in n]
@@ -868,14 +880,16 @@ def test_a_thioglycine_link_is_a_backbone_bond_not_a_conjugation(torch_device):
 
 def test_an_ester_oxygen_and_a_metal_bound_oxygen_keep_their_own_forms(torch_device):
     """In each of three chains PLM esterifies SER 360 OG and SER 342 OG binds Na."""
-    from tmol.io import build_context_from_biotite
+    from tmol.io import build_context_from_atom_array
 
-    array = atom_array_from_cif(DATA / "attachment_contexts_8trb.cif.zst")
+    array = atom_array_from_file(DATA / "attachment_contexts_8trb.cif.zst")
     array = array[np.char.upper(array.element) != "H"]
-    context = build_context_from_biotite(
+    context = build_context_from_atom_array(
         array, torch_device, prepare_ligands=True, ligand_seed=20260928
     )
-    pose = pose_stack_from_biotite(array, torch_device, context=context, no_optH=True)
+    pose = pose_stack_from_atom_array(
+        array, torch_device, context=context, no_optH=True
+    )
     types = pose.packed_block_types.active_block_types
     blocks = pose.block_type_ind64[0].tolist()
     partners = collections.Counter()
@@ -889,14 +903,14 @@ def test_an_ester_oxygen_and_a_metal_bound_oxygen_keep_their_own_forms(torch_dev
 
 
 def test_entirely_unresolved_ligand_keeps_its_chemical_identity():
-    array = atom_array_from_cif(DATA / "unresolved_unl.cif")
+    array = atom_array_from_file(DATA / "unresolved_unl.cif")
     ligand = array[array.res_name == "UNL"]
     assert len(ligand) == 28
     assert np.isnan(ligand.coord).all()
     assert ligand.bonds.get_bond_count() > 0
     # There is no placement anchor. Do not manufacture a positioned ligand.
     with pytest.raises(RuntimeError, match="UNL|missing"):
-        pose_stack_from_cif(
+        pose_stack_from_file(
             DATA / "unresolved_unl.cif",
             torch.device("cpu"),
             prepare_ligands=True,
@@ -912,7 +926,7 @@ def test_backbone_only_and_crosslinked_modified_peptides_build_and_score(
     filename, torch_device
 ):
     path = DATA / filename
-    pose, context = pose_stack_from_cif(
+    pose, context = pose_stack_from_file(
         path,
         torch_device,
         prepare_ligands=True,
@@ -941,14 +955,14 @@ def test_backbone_only_and_crosslinked_modified_peptides_build_and_score(
 def test_chromophore_imine_junction_retains_generated_restoring_forces(torch_device):
     """3SVU's acyl-imine junction must not collapse during relaxation."""
     path = DATA.parent / "ncaa_fixtures" / "chromophore_nrq_3svu.cif"
-    array = atom_array_from_cif(path)
+    array = atom_array_from_file(path)
     chromophore = array[array.res_name == "NRQ"]
     names = chromophore.atom_name
     assert any(
         {names[a], names[b]} == {"N1", "CA1"} and order == int(struc.BondType.DOUBLE)
         for a, b, order in chromophore.bonds.as_array()
     )
-    pose, context = pose_stack_from_biotite(
+    pose, context = pose_stack_from_atom_array(
         array,
         torch_device,
         prepare_ligands=True,
@@ -988,7 +1002,7 @@ def test_a_retinal_conformer_keeps_its_trans_double_bonds(monkeypatch):
     from rdkit import Chem
 
     import tmol.ligand._conformer_generation as conformers
-    from tmol.io import build_context_from_biotite
+    from tmol.io import build_context_from_atom_array
 
     generated = []
     generate = conformers._generate_conformer
@@ -1000,8 +1014,8 @@ def test_a_retinal_conformer_keeps_its_trans_double_bonds(monkeypatch):
 
     monkeypatch.setattr(conformers, "_generate_conformer", recording)
     conformers._seeded_conformer.cache_clear()
-    array = atom_array_from_cif(DATA / "retinyl_lysine_4xxj.cif")
-    build_context_from_biotite(
+    array = atom_array_from_file(DATA / "retinyl_lysine_4xxj.cif")
+    build_context_from_atom_array(
         array, torch.device("cpu"), prepare_ligands=True, ligand_seed=20260909
     )
     torsions = []
@@ -1032,22 +1046,24 @@ def test_a_retinal_conformer_keeps_its_trans_double_bonds(monkeypatch):
     ],
 )
 def test_random_cif_completion_and_relax(fixture, blocks, missing, torch_device):
-    from tmol.io import build_context_from_biotite
+    from tmol.io import build_context_from_atom_array
     from tmol.kinematics import CartesianMoveMap, FoldForest
     from tmol.optimization import run_cart_min
     from tmol.pack import PackerPalette
     from tmol.relax import fast_relax
 
-    array = atom_array_from_cif(DATA / f"{fixture}.cif")
+    array = atom_array_from_file(DATA / f"{fixture}.cif")
     if fixture == "orphan_hydrogen_9ewf":
         neighbors, _ = array.bonds.get_all_bonds()
         assert ((array.element == "H") & (neighbors[:, 0] < 0)).any()
     if missing:
         assert np.isnan(array.coord[array.atom_name == missing]).any()
-    context = build_context_from_biotite(
+    context = build_context_from_atom_array(
         array, torch_device, prepare_ligands=True, ligand_seed=20260909
     )
-    pose = pose_stack_from_biotite(array, torch_device, context=context, no_optH=True)
+    pose = pose_stack_from_atom_array(
+        array, torch_device, context=context, no_optH=True
+    )
     assert int((pose.block_type_ind >= 0).sum()) == blocks
     if fixture == "missing_proline_ring_7no8":
         bt = pose.packed_block_types.active_block_types[int(pose.block_type_ind[0, 0])]
@@ -1130,10 +1146,10 @@ def test_random_cif_completion_and_relax(fixture, blocks, missing, torch_device)
 
 def test_full_9ewf_conjugate_survives_export_and_minimization(torch_device, tmp_path):
     """Exercise the complete 9EWF adduct containing the orphan-H ligand."""
-    from tmol.io import build_context_from_biotite
+    from tmol.io import build_context_from_atom_array
     from tmol.ligand import prepare_ligands
 
-    array = atom_array_from_cif(DATA / "full_conjugate_9ewf.cif.zst")
+    array = atom_array_from_file(DATA / "full_conjugate_9ewf.cif.zst")
     array = array[array.res_name != "HOH"]
     source_coords = array.coord.copy()
     source_bonds = array.bonds.as_array().copy()
@@ -1148,8 +1164,10 @@ def test_full_9ewf_conjugate_survives_export_and_minimization(torch_device, tmp_
     neighbors, _ = array.bonds.get_all_bonds()
     assert ((array.atom_name == "H10A") & (neighbors[:, 0] < 0)).sum() == 2
 
-    context = build_context_from_biotite(array, torch_device, param_db=database)
-    pose = pose_stack_from_biotite(array, torch_device, context=context, no_optH=True)
+    context = build_context_from_atom_array(array, torch_device, param_db=database)
+    pose = pose_stack_from_atom_array(
+        array, torch_device, context=context, no_optH=True
+    )
     assert int((pose.block_type_ind >= 0).sum()) == 1040
     _assert_all_source_connections(pose, array)
 
@@ -1173,13 +1191,13 @@ def test_full_9ewf_conjugate_survives_export_and_minimization(torch_device, tmp_
                 name for a, b, *_ in bt.bonds for name in (a, b)
             }
 
-    loaded = build_context_from_biotite(
+    loaded = build_context_from_atom_array(
         array,
         torch_device,
         prepare_ligands=True,
         ligand_params_files=[str(output)],
     )
-    restored = pose_stack_from_biotite(
+    restored = pose_stack_from_atom_array(
         array, torch_device, context=loaded, no_optH=True
     )
     torch.testing.assert_close(restored.coords, pose.coords)
@@ -1202,10 +1220,10 @@ def test_full_9ewf_conjugate_survives_export_and_minimization(torch_device, tmp_
     ],
 )
 def test_small_attachment_frames_and_minimization(fixture, components, torch_device):
-    from tmol.io import build_context_from_biotite
+    from tmol.io import build_context_from_atom_array
     from tmol.ligand._fragmentation import _full_ideal_coords
 
-    array = atom_array_from_cif(DATA / f"{fixture}.cif.zst")
+    array = atom_array_from_file(DATA / f"{fixture}.cif.zst")
     if "VDF" in components:
         # Exercise the generator length fallback when the attachment is unresolved.
         array.coord[(array.res_name == "VDF") & (array.atom_name == "OP3")] = np.nan
@@ -1217,10 +1235,12 @@ def test_small_attachment_frames_and_minimization(fixture, components, torch_dev
     array = array[
         np.repeat(resolved, np.diff(starts)) & (array.res_name != "HOH") & ~metals
     ]
-    context = build_context_from_biotite(
+    context = build_context_from_atom_array(
         array, torch_device, prepare_ligands=True, ligand_seed=20260909
     )
-    pose = pose_stack_from_biotite(array, torch_device, context=context, no_optH=True)
+    pose = pose_stack_from_atom_array(
+        array, torch_device, context=context, no_optH=True
+    )
     _assert_all_source_connections(pose, array)
     types = pose.packed_block_types.active_block_types
     attached = [
@@ -1275,12 +1295,12 @@ def test_small_attachment_frames_and_minimization(fixture, components, torch_dev
 def test_sidechain_substitutions_retain_chemistry(
     code, acyl, carbon, oxygen, departed, links, torch_device, tmp_path
 ):
-    from tmol.io import build_context_from_biotite
+    from tmol.io import build_context_from_atom_array
     from tmol.ligand import prepare_ligands
     from tmol.ligand._conjugation_patches import _hydrogens_on
     from tmol.tests.ligand.test_local_conjugate_params import _charges
 
-    array = atom_array_from_cif(DATA / f"isopeptide_{code}.cif.zst")
+    array = atom_array_from_file(DATA / f"isopeptide_{code}.cif.zst")
     metals = np.isin(np.char.upper(array.element), ("CA", "ZN", "FE"))
     assert_metal_bonds_are_coordination(array, metals)
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)
@@ -1292,8 +1312,10 @@ def test_sidechain_substitutions_retain_chemistry(
     ]
     output = tmp_path / "isopeptide.tmol"
     database, _ = prepare_ligands(array, seed=20260914, params_output=output)
-    context = build_context_from_biotite(array, torch_device, param_db=database)
-    pose = pose_stack_from_biotite(array, torch_device, context=context, no_optH=True)
+    context = build_context_from_atom_array(array, torch_device, param_db=database)
+    pose = pose_stack_from_atom_array(
+        array, torch_device, context=context, no_optH=True
+    )
     _assert_all_source_connections(pose, array)
     types = pose.packed_block_types.active_block_types
     attached = [types[i] for i in pose.block_type_ind[0].tolist() if i >= 0]
@@ -1331,10 +1353,10 @@ def test_sidechain_substitutions_retain_chemistry(
             sum(_charges(database, base[bt.base_name]).values()), abs=1e-8
         )
         assert np.isfinite(bt.compute_ideal_coords()).all()
-    loaded = build_context_from_biotite(
+    loaded = build_context_from_atom_array(
         array, torch_device, prepare_ligands=True, ligand_params_files=[str(output)]
     )
-    restored = pose_stack_from_biotite(
+    restored = pose_stack_from_atom_array(
         array, torch_device, context=loaded, no_optH=True
     )
     _assert_all_source_connections(restored, array)
@@ -1346,11 +1368,11 @@ def test_sidechain_substitutions_retain_chemistry(
 
 
 def test_ester_and_thioester_contexts_survive_reuse_and_export(torch_device, tmp_path):
-    from tmol.io import build_context_from_biotite
+    from tmol.io import build_context_from_atom_array
     from tmol.ligand import prepare_ligands
     from tmol.pack._packer_task import PackerPalette
 
-    array = atom_array_from_cif(DATA / "attachment_contexts_8trb.cif.zst")
+    array = atom_array_from_file(DATA / "attachment_contexts_8trb.cif.zst")
     metals = np.isin(np.char.upper(array.element), ("NA", "ZN"))
     assert_metal_bonds_are_coordination(array, metals)
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)
@@ -1365,14 +1387,14 @@ def test_ester_and_thioester_contexts_survive_reuse_and_export(torch_device, tmp
     ]
     output = tmp_path / "contexts.tmol"
     database, _ = prepare_ligands(array, seed=20260914, params_output=output)
-    context = build_context_from_biotite(array, torch_device, param_db=database)
+    context = build_context_from_atom_array(array, torch_device, param_db=database)
     starts = struc.get_residue_starts(array, add_exclusive_stop=True)
     reverse = array[
         np.concatenate([np.arange(a, b) for a, b in zip(starts[-2::-1], starts[:0:-1])])
     ]
     energies, original_blocks = [], []
     for source in (array, reverse):
-        pose = pose_stack_from_biotite(
+        pose = pose_stack_from_atom_array(
             source,
             torch_device,
             context=context,
@@ -1427,10 +1449,10 @@ def test_ester_and_thioester_contexts_survive_reuse_and_export(torch_device, tmp
             )
         energies.append(_score_and_minimize(pose, context)[0])
     torch.testing.assert_close(energies[0], energies[1], atol=0.002, rtol=1e-5)
-    restored_context = build_context_from_biotite(
+    restored_context = build_context_from_atom_array(
         array, torch_device, prepare_ligands=True, ligand_params_files=[str(output)]
     )
-    restored = pose_stack_from_biotite(
+    restored = pose_stack_from_atom_array(
         reverse,
         torch_device,
         context=restored_context,
@@ -1462,7 +1484,7 @@ def test_ester_and_thioester_contexts_survive_reuse_and_export(torch_device, tmp
     pair = next(pair for pair in ends if set(array.res_name[pair]) == {"PLM", "CYS"})
     residues = np.repeat(np.arange(len(starts) - 1), np.diff(starts))
     subset = array[np.isin(residues, residues[pair])]
-    reused = pose_stack_from_biotite(
+    reused = pose_stack_from_atom_array(
         subset, torch_device, context=context, no_optH=True
     )
     _assert_all_source_connections(reused, subset)

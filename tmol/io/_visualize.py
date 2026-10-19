@@ -9,7 +9,6 @@ from __future__ import annotations
 import json
 import warnings
 from html import escape
-from io import StringIO
 from os import PathLike
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Mapping
@@ -25,14 +24,6 @@ else:
     AtomArrayStack = Any
     PoseStack = Any
     StructureInput = Any
-
-
-def pose_stack_to_pdb_string(pose_stack: PoseStack) -> str:
-    """Convert a ``PoseStack`` into PDB text suitable for molecular viewers."""
-    from tmol.io import to_pdb
-    from tmol.io import atom_records_from_pose_stack
-
-    return to_pdb(atom_records_from_pose_stack(pose_stack))
 
 
 def _is_biotite_structure(model: object) -> bool:
@@ -52,25 +43,21 @@ def _is_atom_array(model: object) -> bool:
 
 
 def _biotite_to_pdb_string(model: AtomArray | AtomArrayStack) -> str:
-    """Serialize a Biotite structure with Biotite's PDB writer."""
-    try:
-        from biotite.structure.io.pdb import PDBFile
-    except ImportError as exc:
-        raise ImportError("Viewing a Biotite structure requires biotite.") from exc
+    """Serialize a Biotite structure as PDB text."""
+    from tmol.io._structure_io import file_from_atom_array
 
-    pdb_file = PDBFile()
-    # Biotite warns when PDB's fixed-width compatibility format cannot carry
-    # every annotation. The viewer only consumes coordinates and connectivity,
-    # so these warnings are expected and would otherwise become alarming red
-    # stderr boxes in rendered notebooks.
+    # PDB's fixed columns cannot carry every annotation; the viewer only needs
+    # coordinates and connectivity, so the writer's warnings are noise here.
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)
-        pdb_file.set_structure(model)
-    output = StringIO()
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", UserWarning)
-        pdb_file.write(output)
-    return output.getvalue()
+        return file_from_atom_array(model, format="pdb")
+
+
+def _pose_stack_to_pdb_string(pose_stack: PoseStack) -> str:
+    """Serialize a PoseStack as PDB text."""
+    from tmol.io._structure_io import atom_array_from_pose_stack
+
+    return _biotite_to_pdb_string(atom_array_from_pose_stack(pose_stack))
 
 
 def _pdb_text(model: StructureInput) -> str:
@@ -91,7 +78,7 @@ def _pdb_text(model: StructureInput) -> str:
     from tmol.pose import PoseStack
 
     if isinstance(model, PoseStack):
-        return pose_stack_to_pdb_string(model)
+        return _pose_stack_to_pdb_string(model)
 
     raise TypeError(
         "Expected a PoseStack, Biotite AtomArray/AtomArrayStack, PDB text, "

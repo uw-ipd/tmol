@@ -2,7 +2,11 @@ import numpy
 import pytest
 import torch
 
-from tmol.io import atom_array_from_cif, pose_stack_from_biotite, pose_stack_from_pdb
+from tmol.io import (
+    atom_array_from_file,
+    pose_stack_from_atom_array,
+    pose_stack_from_file,
+)
 from tmol.optimization import run_cart_min
 from tmol.pack import PackerPalette, PackerTask, SetPackerTask
 from tmol.pack.rotamer import IncludeCurrentSampler, build_rotamers
@@ -37,7 +41,13 @@ def test_paged_rotamer_scores_match_full_values_indices_and_gradients(
 ):
     from tmol.score.hbond import _hbond_energy_term
 
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=10,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     task = PackerTask(pose, PackerPalette())
     task.restrict_to_repacking()
     task.add_conformer_sampler(IncludeCurrentSampler())
@@ -133,7 +143,9 @@ def test_annotate_restypes(
 def test_whole_pose_scoring_module_smoke(ubq_pdb, default_database, torch_device):
     gold_vals = numpy.array([[-55.6756]], dtype=numpy.float32)
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
-    p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    p1 = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     for bt in p1.packed_block_types.active_block_types:
         hbond_energy.setup_block_type(bt)
     hbond_energy.setup_packed_block_types(p1.packed_block_types)
@@ -219,8 +231,16 @@ def test_compact_specialization_preserves_subsets(
 ):
     if torch_device.type != "cuda":
         pytest.skip("CUDA compact interaction specialization")
-    full = pose_stack_from_pdb(ubq_pdb, torch_device)
-    short = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    full = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
+    short = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=10,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose = PoseStackBuilder.from_poses([full, short] * 32, torch_device)
     energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
     for bt in pose.packed_block_types.active_block_types:
@@ -261,15 +281,16 @@ def test_an_acceptor_without_a_base_has_finite_gradients(torch_device):
     undefined, so gen_hbond_bases leaves its base coordinates NaN. Its pairs
     scored 0 with a NaN gradient (NaN * 0), which minimization spread into NaN
     coordinates."""
-    structure = atom_array_from_cif(
+    structure = atom_array_from_file(
         data_path("sweep_regressions", "oxygen_acceptor_1mbo.cif.zst")
     )
-    pose_stack, context = pose_stack_from_biotite(
+    pose_stack, context = pose_stack_from_atom_array(
         structure,
         torch_device,
         prepare_ligands=True,
         ligand_seed=0,
         return_context=True,
+        no_optH=True,
     )
     assert any(
         bt.name.startswith("OXY")

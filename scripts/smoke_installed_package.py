@@ -9,7 +9,7 @@ from pathlib import Path
 import torch
 import tmol
 from tmol._cpp_lib import _ensure_loaded, _find_extension_library
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 from tmol.score import beta2016_score_function
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -24,7 +24,7 @@ assert Path(tmol.__file__).resolve().is_relative_to(Path(sys.prefix).resolve())
 _ensure_loaded()
 assert _find_extension_library()
 device = torch.device(args.device)
-pose = pose_stack_from_pdb(str(args.pdb), device)
+pose = pose_stack_from_file(args.pdb, device)
 scorer = beta2016_score_function(device).render_whole_pose_scoring_module(pose)
 coords = pose.coords.detach().clone().requires_grad_(True)
 score = scorer(coords)

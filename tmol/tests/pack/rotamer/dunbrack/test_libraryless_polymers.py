@@ -9,7 +9,7 @@ import pytest
 import torch
 
 from tmol.database.chemical import ChiSamples
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 from tmol.numeric import coord_dihedrals
 from tmol.pack import PackerPalette, PackerTask, SetPackerTask
 from tmol.pack.rotamer import FixedAAChiSampler, build_rotamers
@@ -20,7 +20,14 @@ from tmol.tests.pack.rotamer.dunbrack.test_sampler_parameter_identity import fre
 
 def own_chi_pose(ubq_pdb, device, expanded=False, n_poses=1, gapped=False):
     pose = fresh_pose(
-        pose_stack_from_pdb(ubq_pdb, device, residue_start=0, residue_end=12)
+        pose_stack_from_file(
+            ubq_pdb,
+            device,
+            residue_start=0,
+            residue_end=12,
+            no_optH=True,
+            missing_density_distance_threshold=0.0,
+        )
     )
     old = pose.packed_block_types
     samples = (ChiSamples("chi1", (-60.0, 60.0, 180.0), (), False),)

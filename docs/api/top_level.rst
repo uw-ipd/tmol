@@ -33,20 +33,21 @@ Structure and chemistry
 .. autosummary::
    :nosignatures:
 
-   atom_records_from_pose_stack
-   canonical_form_from_pdb
+   atom_array_from_file
+   atom_array_from_pose_stack
    default_canonical_ordering
    default_packed_block_types
    extended_pose_stack_from_sequences
+   file_from_atom_array
+   file_from_pose_stack
    one2three
+   pose_stack_from_atom_array
    pose_stack_from_canonical_form
-   pose_stack_from_pdb
-   pose_stack_to_pdb_string
+   pose_stack_from_file
    selection_gallery
    switchable_view
    three2one
    view
-   write_pose_stack_pdb
 
 Scoring and optimization
 ------------------------

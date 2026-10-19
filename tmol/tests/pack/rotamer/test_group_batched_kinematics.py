@@ -118,10 +118,10 @@ def test_reused_sampler_keeps_real_pose_groups_independent(torch_device, fixture
     if fixture == "biotin":
         first, context = _pose(FIXTURES["biotin"], torch_device)
     else:
-        from tmol.io import pose_stack_from_biotite
+        from tmol.io import pose_stack_from_atom_array
         from tmol.tests.pack.rotamer.test_group_constraints import crosslinked_lysines
 
-        first, context = pose_stack_from_biotite(
+        first, context = pose_stack_from_atom_array(
             crosslinked_lysines(fixture),
             torch_device,
             prepare_ligands=True,

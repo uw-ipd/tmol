@@ -56,7 +56,7 @@ import torch
 import tmol
 
 device = torch.device("cpu")
-pose = tmol.pose_stack_from_pdb("input.pdb", device)
+pose = tmol.pose_stack_from_file("input.pdb", device)
 
 score_function = tmol.beta2016_score_function(device)
 score = score_function.render_whole_pose_scoring_module(pose)

@@ -7,9 +7,9 @@ Find a guide, runnable notebook, or API for a specific operation.
 | Task | Guide or tutorial | API and notes |
 | --- | --- | --- |
 | Build a default `ParameterDatabase`, `PackedBlockTypes`, or `CanonicalOrdering` | {doc}`Structure I/O guide </workflows/structure_io>`; {doc}`Tutorial 01 <01_working_with_tmol>` | {doc}`Database API </api/database>`; {doc}`I/O API </api/io>`. Most callers receive packed types and ordering through a build context. |
-| Build a pose from PDB | {doc}`Structure I/O guide </workflows/structure_io>`; {doc}`Tutorial 01 <01_working_with_tmol>` | `pose_stack_from_pdb()` is a compatibility path. Prefer CIF/Biotite when metadata or ligand bonds matter. |
-| Select a residue range from PDB | {doc}`Tutorial 01 <01_working_with_tmol>` | `residue_start`/`residue_end` are zero-based, half-open parsed positions, not author residue numbers. |
-| Build a pose from Biotite or mmCIF | {doc}`Structure I/O guide </workflows/structure_io>`; {doc}`Tutorial 01 <01_working_with_tmol>` | Preferred general input path; see the {doc}`I/O API </api/io>`. |
+| Build a pose from a PDB, CIF, MOL2 or SDF file | {doc}`Structure I/O guide </workflows/structure_io>`; {doc}`Tutorial 01 <01_working_with_tmol>` | `pose_stack_from_file()` infers the format. Prefer CIF when metadata or ligand bonds matter. |
+| Select a residue range from a file | {doc}`Tutorial 01 <01_working_with_tmol>` | `residue_start`/`residue_end` are zero-based, half-open parsed positions, not author residue numbers. |
+| Build a pose from a Biotite AtomArray | {doc}`Structure I/O guide </workflows/structure_io>`; {doc}`Tutorial 01 <01_working_with_tmol>` | `pose_stack_from_atom_array()`; see the {doc}`I/O API </api/io>`. |
 | Build from OpenFold, RoseTTAFold2, or AtomWorks tensors | {doc}`Integrations </user_guide/integrations>`; {doc}`Tutorial 01 <01_working_with_tmol>` | Use Atom37 or map another named layout to canonical tensors; see the {doc}`model input tutorial </model_inputs>`. |
 | Preserve chain gaps and disconnected regions | {doc}`Tutorial 01 <01_working_with_tmol>`; {doc}`Tutorial 05 <05_minimization_constraints_kinematics>` | Keep internal gaps disconnected rather than silently turning them into chemical termini. |
 | Batch heterogeneous poses | {doc}`GPU batching guide </workflows/gpu_batching>`; {doc}`Tutorial 02 <02_gpu_batching>` | Use `PoseStackBuilder.from_poses()` for compatible chemistry. |

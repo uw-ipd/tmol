@@ -1,7 +1,7 @@
 import numpy
 import torch
 
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 from tmol.score.elec import ElecEnergyTerm
 from tmol.pose import PackedBlockTypes
 
@@ -43,8 +43,13 @@ def test_whole_pose_scoring_module_smoke(ubq_pdb, default_database, torch_device
     elec_energy = ElecEnergyTerm(param_db=default_database, device=torch_device)
     r2_not_cterm = torch.zeros((1, 3, 2), dtype=torch.bool, device=torch_device)
     r2_not_cterm[0, 2, 1] = True
-    p1 = pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_end=3, res_not_connected=r2_not_cterm
+    p1 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=3,
+        res_not_connected=r2_not_cterm,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
     )
     for bt in p1.packed_block_types.active_block_types:
         elec_energy.setup_block_type(bt)

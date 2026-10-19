@@ -8,7 +8,7 @@ import torch
 import yaml
 
 from tmol.database import ParameterDatabase, inject_residue_params
-from tmol.io import pose_stack_from_biotite
+from tmol.io import pose_stack_from_atom_array
 from tmol.ligand import load_params_file, prepare_ligands, write_params_file
 from tmol.ligand._local_conjugate_params import (
     generate_conjugate_parameters,
@@ -270,7 +270,9 @@ def test_native_replacement_bundle_scores_and_builds_identically(
     values, gradients, poses = [], [], []
     repeat_values, repeat_gradients = [], []
     for db in (expected, actual):
-        pose = pose_stack_from_biotite(array, torch_device, param_db=db, no_optH=True)
+        pose = pose_stack_from_atom_array(
+            array, torch_device, param_db=db, no_optH=True
+        )
         poses.append(pose)
         module = beta2016_score_function(
             torch_device, param_db=db

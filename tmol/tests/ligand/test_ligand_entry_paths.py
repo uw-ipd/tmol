@@ -57,7 +57,7 @@ def _smallest_mol2() -> Path:
 )
 def test_seeded_preparation_owns_its_molecule(smiles, torch_device):
     import numpy as np
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
     from tmol.ligand import prepare_ligand_from_smiles
     from tmol.ligand._conformer_generation import generate_conformer
     from tmol.ligand._detect import nonstandard_residue_info_from_smiles_via_mol2
@@ -73,7 +73,7 @@ def test_seeded_preparation_owns_its_molecule(smiles, torch_device):
     database, _ = prepare_ligand_from_smiles(
         smiles, res_name="LG1", protonate=False, seed=47
     )
-    pose = pose_stack_from_biotite(
+    pose = pose_stack_from_atom_array(
         info.atom_array, torch_device, param_db=database, no_optH=True
     )
     bt = pose.packed_block_types.active_block_types[int(pose.block_type_ind[0, 0])]
@@ -92,7 +92,7 @@ def test_seeded_preparation_owns_its_molecule(smiles, torch_device):
 )
 def test_prepare_ligand_from_mol2_registers_residue(fixture, torch_device, tmp_path):
     import torch
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
     from tmol.ligand import prepare_ligand_from_mol2, write_params_from_mol2
     from tmol.ligand._detect import nonstandard_residue_info_from_mol2
 
@@ -168,7 +168,7 @@ def test_prepare_ligand_from_mol2_registers_residue(fixture, torch_device, tmp_p
         }
         for atom in info.atom_array[info.atom_array.element != "H"]:
             assert charges[atom.atom_name] == info.partial_charges[atom.atom_name]
-    pose = pose_stack_from_biotite(
+    pose = pose_stack_from_atom_array(
         info.atom_array, torch_device, param_db=param_db, no_optH=True
     )
     if fixture == "ammonia":
@@ -203,7 +203,7 @@ def test_partially_protonated_atom_array_builds_complete_ligand(torch_device):
     import numpy as np
     import torch
 
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
     from tmol.ligand._detect import nonstandard_residue_info_from_mol2
 
     source = nonstandard_residue_info_from_mol2(
@@ -214,13 +214,14 @@ def test_partially_protonated_atom_array_builds_complete_ligand(torch_device):
     partial = source[np.arange(len(source)) != hydrogen_indices[0]]
     partial_hydrogens = int(np.count_nonzero(partial.element == "H"))
 
-    pose, context = pose_stack_from_biotite(
+    pose, context = pose_stack_from_atom_array(
         partial,
         torch_device,
         prepare_ligands=True,
         param_db=ParameterDatabase.get_default(),
         return_context=True,
         ligand_seed=17,
+        no_optH=True,
     )
     residue = next(
         residue
@@ -250,7 +251,7 @@ def test_neutralized_mol2_protonation_workflow(
 ):
     import torch
     from atomworks.io.utils.io_utils import to_cif_file
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
     from tmol.ligand import (
         load_params_file,
         prepare_ligand_from_cif,
@@ -311,7 +312,7 @@ def test_neutralized_mol2_protonation_workflow(
                 assert charges[name] == source.partial_charges[name]
         # Generated ligand types rebuild source H by default, including names
         # that now belong to a different hydrogen after protonation.
-        pose = pose_stack_from_biotite(
+        pose = pose_stack_from_atom_array(
             source.atom_array, torch_device, param_db=database, no_optH=True
         )
         bt = pose.packed_block_types.active_block_types[int(pose.block_type_ind[0, 0])]
@@ -374,7 +375,7 @@ def test_prepare_ligand_from_cif_preserves_selected_model(torch_device, tmp_path
     import biotite.structure.io.pdbx as pdbx
     import numpy as np
     import torch
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
     from tmol.ligand import _ligand_info_from_cif, prepare_ligand_from_cif
 
     cif = pdbx.CIFFile.read(DATA / "ligand_cif_fixtures" / "vww.bonds_present.cif")
@@ -393,7 +394,7 @@ def test_prepare_ligand_from_cif_preserves_selected_model(torch_device, tmp_path
     assert set(info.atom_names) <= set(
         ordering.restypes_ordered_atom_names["LONG_LIGAND"]
     )
-    pose = pose_stack_from_biotite(
+    pose = pose_stack_from_atom_array(
         info.atom_array, torch_device, param_db=database, no_optH=True
     )
     bt = pose.packed_block_types.active_block_types[int(pose.block_type_ind[0, 0])]
@@ -584,9 +585,9 @@ _CIF_LIGANDS = ["ada", "cdk2", "cox2", "hivrt", "src", "egfr"]
 
 
 def _load_full_array(cif_path: Path):
-    from tmol.io import atom_array_from_cif
+    from tmol.io import atom_array_from_file
 
-    return atom_array_from_cif(cif_path)
+    return atom_array_from_file(cif_path)
 
 
 @pytest.mark.parametrize("name", _CIF_LIGANDS)
@@ -782,7 +783,7 @@ def test_a_component_of_unbonded_fragments_builds_scores_packs_and_minimizes(
     import numpy as np
     import torch
     from tmol import FoldForest, MoveMap, beta2016_score_function, run_kin_min
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
 
     # ethanol and a hydroxide that is not bonded to it, both in residue ZZF
     names = ["C1", "C2", "O1", "O2", "H1", "H2", "H3", "H4", "H5", "H6", "H7"]
@@ -812,12 +813,13 @@ def test_a_component_of_unbonded_fragments_builds_scores_packs_and_minimizes(
     array.bonds = struc.BondList(
         len(names), np.array([(a, b, struc.BondType.SINGLE) for a, b in bonds])
     )
-    pose, context = pose_stack_from_biotite(
+    pose, context = pose_stack_from_atom_array(
         array,
         torch_device,
         prepare_ligands=True,
         return_context=True,
         ligand_seed=0,
+        no_optH=True,
     )
     database = context.parameter_database
     (residue,) = [r for r in database.chemical.residues if r.name == "ZZF"]
@@ -837,7 +839,7 @@ def test_a_component_of_unbonded_fragments_builds_scores_packs_and_minimizes(
 
     # the packer's rotamer tree and the torsion-space minimizer reach both
     #    fragments through the same tree-only edge
-    packed = pose_stack_from_biotite(
+    packed = pose_stack_from_atom_array(
         array, torch_device, param_db=database, no_optH=False
     )
     assert torch.isfinite(packed.coords[packed.real_atoms]).all()
@@ -859,7 +861,7 @@ def test_a_component_of_unbonded_fragments_builds_scores_packs_and_minimizes(
 def test_localized_mol2_oxyanions_survive_fallback_reader(torch_device):
     """PDBbind 1AKW's FMN needs both the correct ring and its stated O.co2 charges."""
     import numpy as np
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
     from tmol.ligand._detect import nonstandard_residue_info_from_mol2
 
     path = DATA / "sweep_regressions" / "localized_oxyacid_1akw.mol2"
@@ -868,7 +870,7 @@ def test_localized_mol2_oxyanions_survive_fallback_reader(torch_device):
     assert source.charge[source.atom_name == "O1P"].tolist() == [0]
     assert source.charge[source.atom_name == "O2P"].tolist() == [-1]
     assert source.charge[source.atom_name == "O3P"].tolist() == [-1]
-    pose, context = pose_stack_from_biotite(
+    pose, context = pose_stack_from_atom_array(
         source, torch_device, prepare_ligands=True, return_context=True, no_optH=True
     )
     block = pose.packed_block_types.active_block_types[int(pose.block_type_ind[0, 0])]

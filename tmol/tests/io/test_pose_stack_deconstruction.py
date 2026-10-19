@@ -5,9 +5,9 @@ from tmol.io import (
     canonical_form_from_pose_stack,
     default_canonical_ordering,
     default_packed_block_types,
-    canonical_form_from_pdb,
     pose_stack_from_canonical_form,
 )
+from tmol.io._canonical_ordering import _canonical_form_from_pdb
 
 
 def not_any_nancoord(coords):
@@ -16,7 +16,7 @@ def not_any_nancoord(coords):
 
 def test_canonical_form_from_ubq_pose(ubq_pdb, torch_device):
     co = default_canonical_ordering()
-    canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device)
+    canonical_form = _canonical_form_from_pdb(co, ubq_pdb, torch_device)
     # unpack
     cf_orig_chain_id, cf_orig_res_types, cf_orig_coords, cf_orig_chain_labels = tuple(
         (
@@ -103,7 +103,7 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
 
     co = default_canonical_ordering()
     max_n_canonical_atoms = co.max_n_canonical_atoms
-    canonical_form4 = canonical_form_from_pdb(co, ubq_lines4, torch_device)
+    canonical_form4 = _canonical_form_from_pdb(co, ubq_lines4, torch_device)
     # unpack
     (
         cf_orig_chain_id4,
@@ -128,7 +128,7 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
         ]
     )
 
-    canonical_form6 = canonical_form_from_pdb(co, ubq_lines6, torch_device)
+    canonical_form6 = _canonical_form_from_pdb(co, ubq_lines6, torch_device)
     # unpack
     (
         cf_orig_chain_id6,
@@ -240,7 +240,7 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
 
 def test_canonical_form_from_pertuzumab_pose(pertuzumab_pdb, torch_device):
     co = default_canonical_ordering()
-    canonical_form = canonical_form_from_pdb(co, pertuzumab_pdb, torch_device)
+    canonical_form = _canonical_form_from_pdb(co, pertuzumab_pdb, torch_device)
     # unpack and copy before pose stack construction
     cf_orig_chain_id, cf_orig_res_types, cf_orig_coords, cf_orig_chain_labels = tuple(
         (
@@ -336,7 +336,7 @@ def test_canonical_form_from_pertuzumab_and_antigen_pose(
         res_not_connected_orig_np,
     ) = pertuzumab_and_nearby_erbb2_pdb_and_segments
     co = default_canonical_ordering()
-    canonical_form = canonical_form_from_pdb(co, pert_and_erbb2_lines, torch_device)
+    canonical_form = _canonical_form_from_pdb(co, pert_and_erbb2_lines, torch_device)
     res_not_connected_orig = torch.tensor(
         res_not_connected_orig_np, device=torch_device
     )
@@ -443,7 +443,7 @@ def test_canonical_form_from_pertuzumab_and_antigen_pose(
 
 def test_round_trip_deconstruction(ubq_pdb, torch_device):
     co = default_canonical_ordering()
-    canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device)
+    canonical_form = _canonical_form_from_pdb(co, ubq_pdb, torch_device)
     canonical_form.residue_insertion_codes[0, 0] = "A"
     pbt = default_packed_block_types(torch_device)
     pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)

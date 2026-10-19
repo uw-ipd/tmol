@@ -14,7 +14,7 @@ from rdkit.Chem import AllChem
 
 from tmol.database.scoring import CartBondedDatabase
 from tmol.database import ParameterDatabase
-from tmol.io import pose_stack_from_biotite
+from tmol.io import pose_stack_from_atom_array
 from tmol.ligand._connection_params import (
     MMFF_HARMONIC_CONVERSION,
     generate_conjugate_connection_params,
@@ -340,7 +340,9 @@ def test_generated_attachment_energy_and_gradients(
     fixture, array, database = conjugate_input
     records = database.scoring.cartbonded.connection_params
     assert records
-    pose = pose_stack_from_biotite(array, torch_device, param_db=database, no_optH=True)
+    pose = pose_stack_from_atom_array(
+        array, torch_device, param_db=database, no_optH=True
+    )
     # Isolate generated terms, so a legacy wildcard cannot mask missing rows.
     isolated = attr.evolve(
         database,

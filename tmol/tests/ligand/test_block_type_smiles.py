@@ -6,9 +6,9 @@ from rdkit import Chem
 from tmol.chemical import ResidueTypeSet
 from tmol.database import ParameterDatabase
 from tmol.io import (
-    atom_array_from_cif,
+    atom_array_from_file,
     extended_pose_stack_from_sequences,
-    pose_stack_from_biotite,
+    pose_stack_from_atom_array,
 )
 from tmol.ligand import (
     prepare_ligand_from_smiles,
@@ -115,10 +115,10 @@ def test_pose_matches_type(torch_device):
 
 
 def test_covalent_ligand_attachment(torch_device):
-    structure = atom_array_from_cif(
+    structure = atom_array_from_file(
         data_path("covalent_fixtures", "lys_biotin_1bdo.cif")
     )
-    pose_stack = pose_stack_from_biotite(
+    pose_stack = pose_stack_from_atom_array(
         structure, torch_device, prepare_ligands=True, ligand_seed=1, no_optH=True
     )
     smiles = {
@@ -136,10 +136,12 @@ def test_covalent_ligand_attachment(torch_device):
 
 
 def test_metal_coordination_is_left_out(torch_device):
-    structure = atom_array_from_cif(
+    structure = atom_array_from_file(
         data_path("metal_fixtures", "zn_tetrahedral_3ks3.cif.zst")
     )
-    pose_stack = pose_stack_from_biotite(structure, torch_device, prepare_ligands=True)
+    pose_stack = pose_stack_from_atom_array(
+        structure, torch_device, prepare_ligands=True, no_optH=True
+    )
     partners = pose_stack.inter_residue_connections64[0].tolist()
     zn = next(
         b

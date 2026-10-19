@@ -22,7 +22,7 @@ from tmol.pack.rotamer import (
     FixedAAChiSampler,
 )
 
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 
 from tmol.pose import (
     PackedBlockTypes,
@@ -108,8 +108,22 @@ def test_annotate_restypes(
 
 
 def test_build_rotamers_smoke(default_database, ubq_pdb, torch_device, dun_sampler):
-    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=11)
-    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
+    p1 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=11,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
+    p2 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=10,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
 
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     palette = PackerPalette()
@@ -313,7 +327,14 @@ def test_measure_pose_dofs(default_database, ubq_pdb, torch_device, dun_sampler)
     """Create single residue kinforests for the original pose and refold."""
     chem_db = default_database.chemical
 
-    poses = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    poses = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=76,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
 
     fixed_sampler = FixedAAChiSampler()
     samplers = (dun_sampler, fixed_sampler)
@@ -368,7 +389,14 @@ def test_inv_kin_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
 
     chem_db = default_database.chemical
 
-    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=4)
+    p = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=4,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     restype_set = p.packed_block_types.restype_set
 
     fixed_sampler = FixedAAChiSampler()
@@ -749,7 +777,14 @@ def test_construct_kinforest_for_rotamers2(
 def test_measure_original_dofs(default_database, ubq_pdb, torch_device, dun_sampler):
     chem_db = default_database.chemical
 
-    poses = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=25)
+    poses = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=25,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
 
     # restype_set = poses.packed_block_types.restype_set
     palette = PackerPalette()
@@ -825,8 +860,22 @@ def test_measure_original_dofs(default_database, ubq_pdb, torch_device, dun_samp
 def test_measure_original_dofs2(default_database, ubq_pdb, torch_device, dun_sampler):
     chem_db = default_database.chemical
 
-    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=11)
-    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    p1 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=11,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
+    p2 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=76,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
 
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     palette = PackerPalette()
@@ -1053,7 +1102,14 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
 def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
     default_database, ubq_pdb, torch_device, dun_sampler
 ):
-    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=6)
+    p = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=6,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     poses = PoseStackBuilder.from_poses([p] * 3, torch_device)
     # restype_set = poses.packed_block_types.restype_set
     palette = PackerPalette()
@@ -1124,7 +1180,14 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
 
 
 def test_write_rotamers_pdb(default_database, ubq_pdb, torch_device, dun_sampler):
-    poses = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=75)
+    poses = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=75,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
 
     palette = PackerPalette()
     task = PackerTask(poses, palette)
@@ -1152,7 +1215,14 @@ def test_write_rotamers_pdb(default_database, ubq_pdb, torch_device, dun_sampler
 
 def test_build_some_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
 
-    poses = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=75)
+    poses = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=75,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     # restype_set = poses.packed_block_types.restype_set
 
     palette = PackerPalette()
@@ -1196,7 +1266,14 @@ def test_build_some_rotamers(default_database, ubq_pdb, torch_device, dun_sample
 
 def test_build_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
     n_poses = 2
-    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    p = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=76,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
 
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 
@@ -1338,7 +1415,14 @@ def test_create_dofs_for_many_rotamers(
 ):
     n_poses = 6
 
-    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    p = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=76,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     palette = PackerPalette()
     task = PackerTask(poses, palette)
@@ -1482,7 +1566,14 @@ def test_new_rotamer_building_logic1(
     default_database, ubq_pdb, torch_device, dun_sampler
 ):
     n_poses = 6
-    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    p = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=76,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 
     palette = PackerPalette()
@@ -1616,7 +1707,14 @@ def test_new_rotamer_building_logic2(
     default_database, ubq_pdb, torch_device, dun_sampler
 ):
     n_poses = 6
-    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    p = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=76,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 
     palette = PackerPalette()
@@ -1637,7 +1735,14 @@ def test_new_rotamer_building_logic3(
     default_database, ubq_pdb, torch_device, dun_sampler
 ):
     n_poses = 6
-    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    p = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=76,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 
     palette = PackerPalette()

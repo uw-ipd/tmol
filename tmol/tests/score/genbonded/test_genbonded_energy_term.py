@@ -56,11 +56,13 @@ def test_canonical_protein_scores_no_gen_torsions(
     Rosetta types carry generic fall-backs, so a non-zero score here means the
     partition has sprung a leak rather than that a parameter changed.
     """
-    from tmol.io import pose_stack_from_pdb
+    from tmol.io import pose_stack_from_file
     from tmol.score import ScoreFunction
     from tmol.score._score_types import ScoreType
 
-    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device)
+    pose_stack = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     sfxn = ScoreFunction(default_database, torch_device)
     sfxn.set_weight(ScoreType.gen_torsions, 1.0)
 
@@ -76,7 +78,7 @@ def test_gradcheck_on_noncanonical_backbones(backbone_class, torch_device):
     a torsion in the forward pass while its derivative still contributes shows
     up here and nowhere else.
     """
-    from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+    from tmol.io import atom_array_from_file, pose_stack_from_atom_array
     from tmol.ligand import prepare_ligands
     from tmol.score import ScoreFunction
     from tmol.score._score_types import ScoreType
@@ -84,11 +86,13 @@ def test_gradcheck_on_noncanonical_backbones(backbone_class, torch_device):
 
     stem = NCAA_FIXTURES[backbone_class]
     param_db = ParameterDatabase.get_default()
-    structure = atom_array_from_cif(data_path("ncaa_fixtures") / (stem + ".cif"))
+    structure = atom_array_from_file(data_path("ncaa_fixtures") / (stem + ".cif"))
     prepared, _ordering = prepare_ligands(
         structure, param_db=param_db, seed=_CONFORMER_SEED
     )
-    pose_stack = pose_stack_from_biotite(structure, torch_device, param_db=prepared)
+    pose_stack = pose_stack_from_atom_array(
+        structure, torch_device, param_db=prepared, no_optH=True
+    )
 
     sfxn = ScoreFunction(prepared, torch_device)
     sfxn.set_weight(ScoreType.gen_torsions, 1.0)
@@ -181,20 +185,21 @@ def test_genbonded_parameter_lookups_are_reused(default_database, monkeypatch):
 def test_gen_torsions_gradient_is_consistent_through_an_sp_centre(torch_device):
     """7E9I J0C ends in a terminal alkyne. A torsion through its linear sp centre
     has a singular derivative, which stalls line searches in minimization."""
-    from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+    from tmol.io import atom_array_from_file, pose_stack_from_atom_array
     from tmol.score import ScoreFunction
     from tmol.score._score_types import ScoreType
     from tmol.tests.data import data_path
 
-    structure = atom_array_from_cif(
+    structure = atom_array_from_file(
         data_path("sweep_regressions", "terminal_alkyne_7e9i.cif.zst")
     )
-    pose_stack, context = pose_stack_from_biotite(
+    pose_stack, context = pose_stack_from_atom_array(
         structure,
         torch_device,
         prepare_ligands=True,
         ligand_seed=_CONFORMER_SEED,
         return_context=True,
+        no_optH=True,
     )
     sfxn = ScoreFunction(context.parameter_database, torch_device)
     sfxn.set_weight(ScoreType.gen_torsions, 1.0)

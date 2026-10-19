@@ -18,11 +18,11 @@ CUDA. Prefer its public APIs and existing workflows before adding custom code.
 
 ```python
 import torch
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 from tmol.score import beta2016_score_function
 
 device = torch.device("cpu")  # Use CUDA with a matching CUDA-enabled installation.
-pose = pose_stack_from_pdb("input.pdb", device)
+pose = pose_stack_from_file("input.pdb", device)
 sfxn = beta2016_score_function(device)
 scorer = sfxn.render_whole_pose_scoring_module(pose)
 scores = scorer(pose.coords)  # One weighted total per pose, in TMol score units.

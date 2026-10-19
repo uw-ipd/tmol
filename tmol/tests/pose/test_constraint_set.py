@@ -8,7 +8,7 @@ from tmol.pose import (
 )
 from tmol.score.constraint import ConstraintEnergyTerm
 
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 
 
 def _zero_constraint(atoms: torch.Tensor, params: torch.Tensor) -> torch.Tensor:
@@ -115,8 +115,13 @@ def test_constraint_set_add_constraints(torch_device, ubq_pdb):
 
     pose_stack = PoseStackBuilder.from_poses(
         [
-            pose_stack_from_pdb(
-                ubq_pdb, torch_device, residue_start=0, residue_end=20 + i
+            pose_stack_from_file(
+                ubq_pdb,
+                torch_device,
+                residue_start=0,
+                residue_end=20 + i,
+                no_optH=True,
+                missing_density_distance_threshold=0.0,
             )
             for i in range(n_poses)
         ],
@@ -152,8 +157,13 @@ def test_constraint_set_concatenate_constraints(torch_device, ubq_pdb):
 
     pose_stack = PoseStackBuilder.from_poses(
         [
-            pose_stack_from_pdb(
-                ubq_pdb, torch_device, residue_start=0, residue_end=20 + i
+            pose_stack_from_file(
+                ubq_pdb,
+                torch_device,
+                residue_start=0,
+                residue_end=20 + i,
+                no_optH=True,
+                missing_density_distance_threshold=0.0,
             )
             for i in range(n_poses)
         ],
@@ -212,8 +222,13 @@ def test_constraint_set_concatenate_constraints_2(torch_device, ubq_pdb):
 
     pose_stack_A = PoseStackBuilder.from_poses(
         [
-            pose_stack_from_pdb(
-                ubq_pdb, torch_device, residue_start=0, residue_end=20 + i
+            pose_stack_from_file(
+                ubq_pdb,
+                torch_device,
+                residue_start=0,
+                residue_end=20 + i,
+                no_optH=True,
+                missing_density_distance_threshold=0.0,
             )
             for i in range(n_poses_A)
         ],
@@ -221,8 +236,13 @@ def test_constraint_set_concatenate_constraints_2(torch_device, ubq_pdb):
     )
     pose_stack_B = PoseStackBuilder.from_poses(
         [
-            pose_stack_from_pdb(
-                ubq_pdb, torch_device, residue_start=0, residue_end=20 + i
+            pose_stack_from_file(
+                ubq_pdb,
+                torch_device,
+                residue_start=0,
+                residue_end=20 + i,
+                no_optH=True,
+                missing_density_distance_threshold=0.0,
             )
             for i in range(n_poses_B)
         ],
@@ -284,7 +304,14 @@ def test_constraint_set_concatenate_constraints_2(torch_device, ubq_pdb):
 def test_split_constraint_set(default_database, ubq_pdb, torch_device):
     n_poses = 4
     poses = [
-        pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=20 + i)
+        pose_stack_from_file(
+            ubq_pdb,
+            torch_device,
+            residue_start=0,
+            residue_end=20 + i,
+            no_optH=True,
+            missing_density_distance_threshold=0.0,
+        )
         for i in range(n_poses)
     ]
 

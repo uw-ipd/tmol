@@ -8,16 +8,30 @@ from tmol.pose import (
 from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
-    canonical_form_from_pdb,
-    pose_stack_from_pdb,
+    pose_stack_from_file,
     pose_stack_from_canonical_form,
 )
+from tmol.io._canonical_ordering import _canonical_form_from_pdb
 
 
 @pytest.fixture
 def ubq_40_60_pose_stack(ubq_pdb, torch_device):
-    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=40)
-    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=60)
+    p1 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=40,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
+    p2 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=60,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     return poses
 
@@ -36,7 +50,7 @@ def fresh_default_packed_block_types(fresh_default_restype_set, torch_device):
 def stack_of_two_six_res_ubqs(ubq_pdb, torch_device):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(
+    canonical_form = _canonical_form_from_pdb(
         co, ubq_pdb, torch_device, residue_start=0, residue_end=6
     )
 
@@ -48,7 +62,7 @@ def stack_of_two_six_res_ubqs(ubq_pdb, torch_device):
 def stack_of_two_six_res_ubqs_no_term(ubq_pdb, torch_device):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(
+    canonical_form = _canonical_form_from_pdb(
         co, ubq_pdb, torch_device, residue_start=1, residue_end=7
     )
 
@@ -65,7 +79,12 @@ def stack_of_two_six_res_ubqs_no_term(ubq_pdb, torch_device):
 def distinct_pose_stacks(systems_bysize, torch_device):
     """Single-pose PoseStacks for three unrelated proteins (40, 75, 150 res)."""
     return [
-        pose_stack_from_pdb(systems_bysize[nres], torch_device)
+        pose_stack_from_file(
+            systems_bysize[nres],
+            torch_device,
+            no_optH=True,
+            missing_density_distance_threshold=0.0,
+        )
         for nres in (40, 75, 150)
     ]
 
@@ -82,7 +101,7 @@ def jagged_stack_of_465_res_ubqs(ubq_pdb, torch_device):
     pbt = default_packed_block_types(torch_device)
 
     def pose_stack_of_nres(nres):
-        canonical_form = canonical_form_from_pdb(
+        canonical_form = _canonical_form_from_pdb(
             co, ubq_pdb, torch_device, residue_start=0, residue_end=nres
         )
         return pose_stack_from_canonical_form(co, pbt, *canonical_form)

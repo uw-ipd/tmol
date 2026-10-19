@@ -5,10 +5,10 @@ import pytest
 import torch
 
 from tmol.io import (
-    atom_array_from_cif,
+    atom_array_from_file,
     default_canonical_ordering,
-    pose_stack_from_biotite,
-    pose_stack_from_pdb,
+    pose_stack_from_atom_array,
+    pose_stack_from_file,
     remove_metal_coordination,
 )
 from tmol.tests.data import data_path
@@ -21,7 +21,12 @@ def ion_pose(residue_names, device):
         f"{3.1 * (i - 1):8.3f}{0.:8.3f}{0.:8.3f}  1.00  0.00          {name:>2s}"
         for i, name in enumerate(residue_names, 1)
     ]
-    return pose_stack_from_pdb("\n".join(lines + ["END"]) + "\n", device)
+    return pose_stack_from_file(
+        "\n".join(lines + ["END"]) + "\n",
+        device,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
 
 
 def assert_energy_and_gradient(pose, database, expected_energy):
@@ -62,14 +67,14 @@ def test_free_ions_coulomb_energy_and_gradient(
 def test_coordinated_donor_exclusion_changes_when_link_is_removed(
     default_database, torch_device
 ):
-    structure = atom_array_from_cif(
+    structure = atom_array_from_file(
         data_path("metal_fixtures", "ca_irregular_2fvy.cif.zst")
     )
     structure = structure[
         ((structure.res_name == "ASP") & (structure.res_id == 134))
         | ((structure.res_name == "CA") & (structure.res_id == 311))
     ]
-    bound = pose_stack_from_biotite(structure, torch_device)
+    bound = pose_stack_from_atom_array(structure, torch_device, no_optH=True)
     assert bound.max_n_blocks == 2
     unbound = remove_metal_coordination(default_canonical_ordering(), bound, 0, 1, 0)
     # Isolate the calcium/donor pair without changing either charge. All other

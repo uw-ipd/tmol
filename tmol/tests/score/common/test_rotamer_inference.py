@@ -5,7 +5,7 @@ import gc
 import pytest
 import torch
 
-from tmol import pose_stack_from_pdb
+from tmol import pose_stack_from_file
 from tmol.tests import requires_cuda
 from tmol.pack import PackerPalette, PackerTask, SetPackerTask
 from tmol.pack.rotamer import IncludeCurrentSampler, build_rotamers
@@ -41,7 +41,13 @@ def torch_device():
 def test_rotamer_forward_avoids_unused_gradient_storage(
     term_class, dtype, ubq_pdb, default_database, torch_device
 ):
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=15)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=15,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     task = PackerTask(pose, PackerPalette())
     task.restrict_to_repacking()
     task.add_conformer_sampler(IncludeCurrentSampler())

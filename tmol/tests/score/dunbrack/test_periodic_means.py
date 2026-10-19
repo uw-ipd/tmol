@@ -6,7 +6,7 @@ import attr
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 from tmol.score.dunbrack import DunbrackEnergyTerm, ScoringDunbrackDatabaseView
 from tmol.tests.score.dunbrack.test_parameter_identity import setup, render
 
@@ -16,7 +16,14 @@ from tmol.tests.score.dunbrack.test_parameter_identity import setup, render
 def test_mean_full_turns_preserve_energies_and_gradients(
     default_database, ubq_pdb, torch_device, block_pairs, turns
 ):
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=12)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=12,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     original = DunbrackEnergyTerm(default_database, torch_device)
     shifted = DunbrackEnergyTerm(default_database, torch_device)
     index = [field.name for field in attr.fields(ScoringDunbrackDatabaseView)].index(

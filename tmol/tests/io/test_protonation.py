@@ -7,7 +7,7 @@ from atomworks.io.utils.ccd import atom_array_from_ccd_code
 
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import DEPROTONATED_VAR_IND
-from tmol.io import atom_array_from_cif
+from tmol.io import atom_array_from_file
 from tmol.io import _protonation as protonation
 from tmol.tests.data import data_path
 
@@ -23,7 +23,7 @@ from tmol.tests.data import data_path
 )
 def test_states_by_context_match_the_whole_structure(path, monkeypatch):
     """A residue's state read from its bonded context is the whole structure's."""
-    structure = atom_array_from_cif(data_path(*path))
+    structure = atom_array_from_file(data_path(*path))
     heavy = structure[structure.element != "H"]
     forms = protonation.database_forms(ParameterDatabase.get_default().chemical)
     monkeypatch.setattr(protonation, "_STATE_CAPACITY", 1)
@@ -90,7 +90,7 @@ def test_a_cached_state_follows_the_metal_bond_length(lengths):
 
 def test_a_ligand_numbered_after_its_chain_is_not_bonded_to_it():
     """3T14 FAD 500 follows MET 418 in chain A; its pyrophosphate stays a dianion."""
-    structure = atom_array_from_cif(
+    structure = atom_array_from_file(
         data_path("atomworks_regressions", "sulfur_attachments_3t14.cif.zst")
     )
     heavy = structure[(structure.element != "H") & (structure.res_name != "HOH")]
@@ -103,7 +103,7 @@ def test_a_ligand_numbered_after_its_chain_is_not_bonded_to_it():
 
 def test_free_nucleotides_of_one_chain_are_not_linked():
     """Two AMP ligands of one chain and entity (8gpb) are no dinucleotide: each O3' is a hydroxyl."""
-    structure = atom_array_from_cif(
+    structure = atom_array_from_file(
         data_path("sweep_regressions", "free_nucleotides_8gpb.cif.zst")
     )
     protonated = protonation.with_atomworks_hydrogens(
@@ -160,7 +160,7 @@ def test_residue_types_take_the_atomworks_state(
     AtomWorks is asked about the whole input once, with the bonds and drawn
     hydrogens tmol hands it; a histidine tautomer it leaves free is summed.
     """
-    from tmol.io import atom_array_from_file, pose_stack_from_biotite
+    from tmol.io import atom_array_from_file, pose_stack_from_atom_array
 
     placed, reference = protonation._placed_hydrogens, []
 
@@ -175,8 +175,8 @@ def test_residue_types_take_the_atomworks_state(
     monkeypatch.setattr(protonation, "_placed_hydrogens", whole)
     protonation._STATES.clear()
     structure = atom_array_from_file(data_path("sweep_regressions", fixture))
-    pose = pose_stack_from_biotite(
-        structure, torch_device, prepare_ligands=True, ligand_seed=0
+    pose = pose_stack_from_atom_array(
+        structure, torch_device, prepare_ligands=True, ligand_seed=0, no_optH=True
     )
     model, count, free = reference[0]
     for chain, number in residues:
@@ -207,15 +207,16 @@ def test_residues_without_a_free_resolved_state_keep_their_type(
     only free ligand copies get state types (8TRB prepared unused PLM_ types)."""
     import re
 
-    from tmol.io import atom_array_from_file, pose_stack_from_biotite
+    from tmol.io import atom_array_from_file, pose_stack_from_atom_array
 
     structure = atom_array_from_file(data_path("sweep_regressions", fixture))
-    pose, context = pose_stack_from_biotite(
+    pose, context = pose_stack_from_atom_array(
         structure,
         torch_device,
         prepare_ligands=True,
         ligand_seed=0,
         return_context=True,
+        no_optH=True,
     )
     assert _hydrogens_on(pose, chain, number)[0].split(":")[0] == name
     state = re.compile(rf"{name}_[0-9A-F]{{6}}")
@@ -228,17 +229,18 @@ def test_a_capped_peptide_after_an_on_demand_terminus_builds(torch_device):
     in that database, must not take it as a terminus template for its ACE cap."""
     import attr
 
-    from tmol.io import atom_array_from_file, pose_stack_from_biotite
+    from tmol.io import atom_array_from_file, pose_stack_from_atom_array
 
     database = None
     for fixture in ("metal_amine_terminus_3ppd.cif.zst", "capped_peptide_1j8z.cif.zst"):
-        pose, context = pose_stack_from_biotite(
+        pose, context = pose_stack_from_atom_array(
             atom_array_from_file(data_path("sweep_regressions", fixture)),
             torch_device,
             prepare_ligands=True,
             ligand_seed=0,
             param_db=database,
             return_context=True,
+            no_optH=True,
         )
         database = context.parameter_database
         if pose.packed_block_types.chem_db is not database.chemical:
@@ -250,7 +252,7 @@ def test_a_heme_split_from_its_iron_keeps_the_porphyrin_dianion():
     """155C HEM's Fe becomes an ion residue; NA and NC stay anionic, not radicals."""
     from tmol.io._pose_stack_from_biotite import _with_input_hydrogens
 
-    structure = atom_array_from_cif(data_path("cif", "155c__1__1.A__1.B.cif"))
+    structure = atom_array_from_file(data_path("cif", "155c__1__1.A__1.B.cif"))
     heavy = structure[(structure.element != "H") & (structure.res_name != "HOH")]
     chemdb = ParameterDatabase.get_default().chemical
     protonated = _with_input_hydrogens(heavy, 7.4, None, chemdb, True)

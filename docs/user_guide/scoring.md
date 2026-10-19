@@ -8,12 +8,12 @@ Calculate whole-pose scores, coordinate gradients, and block-pair contributions.
 import torch
 import tmol
 
-from tmol.io import atom_array_from_file, pose_stack_from_biotite
+from tmol.io import atom_array_from_file, pose_stack_from_atom_array
 from tmol.score import beta2016_score_function
 
 device = torch.device("cuda" if tmol.has_cuda() and torch.cuda.is_available() else "cpu")
 structure = atom_array_from_file("1ubq.cif")
-pose_stack = pose_stack_from_biotite(structure, device)
+pose_stack = pose_stack_from_atom_array(structure, device)
 
 sfxn = beta2016_score_function(device)
 scorer = sfxn.render_whole_pose_scoring_module(pose_stack)

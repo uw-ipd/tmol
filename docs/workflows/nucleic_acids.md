@@ -8,11 +8,11 @@ build the score function from that same database:
 
 ```python
 from tmol.database import ParameterDatabase
-from tmol.io import pose_stack_from_biotite
+from tmol.io import pose_stack_from_atom_array
 from tmol.score import beta2016_score_function
 
 param_db = ParameterDatabase.get_default()
-pose_stack = pose_stack_from_biotite(structure, device, param_db=param_db)
+pose_stack = pose_stack_from_atom_array(structure, device, param_db=param_db)
 sfxn = beta2016_score_function(device, param_db=param_db)
 scores = sfxn.render_whole_pose_scoring_module(pose_stack)(pose_stack.coords)
 ```

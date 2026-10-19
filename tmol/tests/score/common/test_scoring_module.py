@@ -2,7 +2,7 @@
 
 import torch
 
-from tmol import pose_stack_from_pdb
+from tmol import pose_stack_from_file
 from tmol.score.common import TermScoringModule, TermWholePoseScoringModule
 
 
@@ -29,7 +29,13 @@ def test_float64_static_parameters_are_built_lazily() -> None:
 
 
 def test_custom_scorer_can_enable_grad_in_no_grad(ubq_pdb, torch_device):
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=2)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=2,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
 
     def custom_score(coords, *args):
         with torch.enable_grad():
