@@ -29,6 +29,7 @@ from ._restypes import (  # noqa: F401
     three2one,
     uaid_t,
 )  # noqa: F401
+from ._bond_orders import chemical_bond_orders  # noqa: F401
 
 __all__ = [
     "AtomIndex",
@@ -46,6 +47,7 @@ __all__ = [
     "bonds_and_bond_ranges",
     "build_coords_from_icoors",
     "build_ideal_coords",
+    "chemical_bond_orders",
     "frame_from_coords",
     "one2three",
     "three2one",
