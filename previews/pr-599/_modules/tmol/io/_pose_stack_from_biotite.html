@@ -446,6 +446,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_args</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">ResidueTypeSet</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">BondType</span> <span class="k">as</span> <span class="n">ChemBondType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">chemical_bond_orders</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">metal_table</span><span class="p">,</span> <span class="n">site_connections</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._atomworks_reader</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -1687,56 +1688,6 @@
     <span class="k">return</span> <span class="n">structure</span><span class="p">[</span><span class="n">order</span><span class="p">]</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_order_name</span><span class="p">(</span><span class="n">order</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">order</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">order</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="n">ChemBondType</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">order</span><span class="p">))</span><span class="o">.</span><span class="n">name</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_chemical_bond_orders</span><span class="p">(</span><span class="n">bt</span><span class="p">,</span> <span class="n">element_of</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""One Lewis structure for a block type's bonds, by atom-name pair: io_bond_orders,</span>
-<span class="sd">    then non-ring AROMATIC: one double to a terminal heteroatom per atom, rest single.</span>
-<span class="sd">    """</span>
-    <span class="n">order_of</span><span class="p">,</span> <span class="n">in_ring</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">{}</span>
-    <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span> <span class="ow">in</span> <span class="n">bt</span><span class="o">.</span><span class="n">bonds</span><span class="p">:</span>
-        <span class="n">key</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))</span>
-        <span class="n">order_of</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_order_name</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
-        <span class="n">in_ring</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">rest</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">if</span> <span class="n">rest</span> <span class="k">else</span> <span class="kc">False</span>
-    <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">order</span> <span class="ow">in</span> <span class="n">bt</span><span class="o">.</span><span class="n">io_bond_orders</span><span class="p">:</span>
-        <span class="n">order_of</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">((</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))]</span> <span class="o">=</span> <span class="n">order</span>
-    <span class="n">neighbors</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">order_of</span><span class="p">:</span>
-        <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-        <span class="n">neighbors</span><span class="p">[</span><span class="n">a</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
-        <span class="n">neighbors</span><span class="p">[</span><span class="n">b</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">terminal_heteroatom</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
-        <span class="n">heavy</span> <span class="o">=</span> <span class="p">[</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">neighbors</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">if</span> <span class="n">element_of</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"H"</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">element_of</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"O"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">,</span> <span class="s2">"S"</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">heavy</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
-
-    <span class="n">delocalized</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">order</span> <span class="ow">in</span> <span class="n">order_of</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">order</span> <span class="o">==</span> <span class="s2">"AROMATIC"</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">in_ring</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
-    <span class="p">]</span>
-    <span class="n">ends_of</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">delocalized</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">center</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">key</span><span class="p">)[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
-            <span class="k">if</span> <span class="n">terminal_heteroatom</span><span class="p">(</span><span class="n">end</span><span class="p">):</span>
-                <span class="n">ends_of</span><span class="p">[</span><span class="n">center</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">center</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">ends_of</span><span class="p">):</span>
-        <span class="n">has_double</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span>
-            <span class="n">order_of</span><span class="p">[</span><span class="nb">frozenset</span><span class="p">((</span><span class="n">center</span><span class="p">,</span> <span class="n">n</span><span class="p">))]</span> <span class="o">==</span> <span class="s2">"DOUBLE"</span>
-            <span class="ow">and</span> <span class="n">element_of</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"O"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">,</span> <span class="s2">"S"</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">neighbors</span><span class="p">[</span><span class="n">center</span><span class="p">]</span>
-        <span class="p">)</span>
-        <span class="k">for</span> <span class="n">end</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">ends_of</span><span class="p">[</span><span class="n">center</span><span class="p">]):</span>
-            <span class="n">key</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="n">center</span><span class="p">,</span> <span class="n">end</span><span class="p">))</span>
-            <span class="k">if</span> <span class="n">order_of</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"AROMATIC"</span><span class="p">:</span>
-                <span class="n">order_of</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"SINGLE"</span> <span class="k">if</span> <span class="n">has_double</span> <span class="k">else</span> <span class="s2">"DOUBLE"</span>
-                <span class="n">has_double</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">delocalized</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">order_of</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"AROMATIC"</span><span class="p">:</span>
-            <span class="n">order_of</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"SINGLE"</span>
-    <span class="k">return</span> <span class="n">order_of</span>
-
-
 <span class="k">def</span><span class="w"> </span><span class="nf">_bonds_from_pose_stack</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">structure</span><span class="p">,</span> <span class="n">block_for_atom</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""The bond table of an exported structure, from the pose's residue types, which</span>
 <span class="sd">    every pose of the stack must share; bonds to atoms left out are dropped."""</span>
@@ -1751,7 +1702,6 @@
             <span class="s2">"one bond table"</span>
         <span class="p">)</span>
     <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
-    <span class="n">element_for_type</span> <span class="o">=</span> <span class="p">{</span><span class="n">at</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">at</span><span class="o">.</span><span class="n">element</span> <span class="k">for</span> <span class="n">at</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">chem_db</span><span class="o">.</span><span class="n">atom_types</span><span class="p">}</span>
     <span class="n">bt_for_block</span> <span class="o">=</span> <span class="n">block_types</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
     <span class="n">irc</span> <span class="o">=</span> <span class="n">connections</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
     <span class="n">index</span> <span class="o">=</span> <span class="p">{</span>
@@ -1775,8 +1725,7 @@
         <span class="k">if</span> <span class="n">bt_ind</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">orders_for_type</span><span class="p">:</span>
             <span class="c1"># Only the first block of each type needs this; there are two dozen</span>
             <span class="c1"># types behind hundreds of blocks.</span>
-            <span class="n">element_of</span> <span class="o">=</span> <span class="p">{</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">element_for_type</span><span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">atom_type</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">bt</span><span class="o">.</span><span class="n">atoms</span><span class="p">}</span>
-            <span class="n">orders_for_type</span><span class="p">[</span><span class="n">bt_ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">_chemical_bond_orders</span><span class="p">(</span><span class="n">bt</span><span class="p">,</span> <span class="n">element_of</span><span class="p">)</span>
+            <span class="n">orders_for_type</span><span class="p">[</span><span class="n">bt_ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">chemical_bond_orders</span><span class="p">(</span><span class="n">bt</span><span class="p">,</span> <span class="n">pbt</span><span class="o">.</span><span class="n">chem_db</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">order</span> <span class="ow">in</span> <span class="n">orders_for_type</span><span class="p">[</span><span class="n">bt_ind</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
             <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">block</span><span class="p">,</span> <span class="n">a</span><span class="p">)),</span> <span class="n">index</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">block</span><span class="p">,</span> <span class="n">b</span><span class="p">))</span>
