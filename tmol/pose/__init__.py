@@ -21,7 +21,14 @@ from ._sequence import (  # noqa: F401
     smiles_in_tokens,
     tokenize_sequences,
 )  # noqa: F401
-from ._util import get_named_torsions, get_sequence, get_torsion_names  # noqa: F401
+from ._util import (  # noqa: F401
+    block_for_residue_label,
+    blocks_for_residue_labels,
+    get_ligand_mask,
+    get_named_torsions,
+    get_sequence,
+    get_torsion_names,
+)
 
 __all__ = [
     "ConstraintSet",
@@ -36,6 +43,9 @@ __all__ = [
     "SeqToken",
     "SplitBlockEntry",
     "SplitBlockMapping",
+    "block_for_residue_label",
+    "blocks_for_residue_labels",
+    "get_ligand_mask",
     "get_named_torsions",
     "get_sequence",
     "get_torsion_names",

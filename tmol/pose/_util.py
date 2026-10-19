@@ -28,6 +28,64 @@ def get_sequence(pose_stack: PoseStack, pose: int = 0) -> str:
     return "".join(three2one(bt.name3) or "X" for bt in block_types)
 
 
+def get_ligand_mask(pose_stack: PoseStack) -> torch.Tensor:
+    """Boolean mask shaped ``[n_poses, max_n_blocks]``, true where a block is a
+    ligand (or any other non-polymer residue, such as an ion). Padding blocks
+    are false.
+    """
+    pbt = pose_stack.packed_block_types
+    is_polymer_by_type = torch.tensor(
+        [bt.properties.polymer.is_polymer for bt in pbt.active_block_types],
+        dtype=torch.bool,
+        device=pose_stack.device,
+    )
+    block_type_ind64 = pose_stack.block_type_ind64
+    real = block_type_ind64 >= 0
+    safe_ind = torch.where(real, block_type_ind64, torch.zeros_like(block_type_ind64))
+    return real & ~is_polymer_by_type[safe_ind]
+
+
+def block_for_residue_label(
+    pose_stack: PoseStack, pose_index: int, chain: str, residue_number: int
+) -> int:
+    """Block index of one (chain, author residue number) label.
+
+    Raises ValueError if no block in the pose matches.
+    """
+    chain_labels = pose_stack.pdb_info.chain_labels[pose_index]
+    residue_labels = pose_stack.pdb_info.residue_labels[pose_index]
+    matches = numpy.flatnonzero(
+        (chain_labels == chain) & (residue_labels == residue_number)
+    )
+    if len(matches) == 0:
+        raise ValueError(
+            f"no block found for chain {chain!r} residue {residue_number} "
+            f"in pose {pose_index}"
+        )
+    return int(matches[0])
+
+
+def blocks_for_residue_labels(
+    pose_stack: PoseStack,
+    pose_index: int,
+    chain: str,
+    residue_numbers: torch.Tensor,
+) -> torch.Tensor:
+    """Block index of each (chain, author residue number) label in a batch.
+
+    ``residue_numbers`` may have any shape; the result has the same shape.
+    Entries with no matching block resolve to ``-1``.
+    """
+    chain_labels = pose_stack.pdb_info.chain_labels[pose_index]
+    residue_labels = pose_stack.pdb_info.residue_labels[pose_index]
+    chain_mask = chain_labels == chain
+
+    queries = residue_numbers.cpu().numpy()
+    matches = (residue_labels == queries[..., None]) & chain_mask
+    block = numpy.where(matches.any(axis=-1), matches.argmax(axis=-1), -1)
+    return torch.as_tensor(block, dtype=torch.int64, device=pose_stack.device)
+
+
 def get_torsion_names(pose_stack: PoseStack, pose: int, block: int) -> List[str]:
     """Names of the torsions defined on a block's type, in database order."""
     bt_ind = int(pose_stack.block_type_ind64[pose, block])
