@@ -46,7 +46,9 @@ def pack_rotamers(
             writes rotamer indices, so it can run anywhere the tables can be
             put; on Apple silicon the tables cost almost nothing to move
             (9 ms for 174 MB of unified memory) and the Metal annealer
-            searches both faster and far better than the host one.
+            searches both faster and far better than the host one. Left
+            unset, host poses anneal on Metal when it is available, unless
+            ``TMOL_MPS_OFFLOAD=0``.
 
     Returns:
         A new pose stack containing the lowest-ranked assignment per pose.
@@ -59,8 +61,8 @@ def pack_rotamers(
                 with torch.cuda.device(pose_stack.device):
                     torch.cuda.manual_seed(seed)
             return pack_rotamers(
-                pose_stack, sfxn, task, verbose=verbose,
-                anneal_device=anneal_device)
+                pose_stack, sfxn, task, verbose=verbose, anneal_device=anneal_device
+            )
 
     max_poses_per_chunk = _max_poses_per_packing_chunk(pose_stack)
     if pose_stack.n_poses > max_poses_per_chunk:
@@ -72,7 +74,10 @@ def pack_rotamers(
             )
             chunk_task = _slice_packer_task(task, first_pose, last_pose)
             packed_chunk = pack_rotamers(
-                chunk_pose_stack, sfxn, chunk_task, verbose=verbose,
+                chunk_pose_stack,
+                sfxn,
+                chunk_task,
+                verbose=verbose,
                 anneal_device=anneal_device,
             )
             packed_chunks.append(packed_chunk)
@@ -321,8 +326,14 @@ def _anneal_on(energy_tables, anneal_device, pose_device):
     The graph is already built when this runs, and annealing only reads it and
     returns rotamer indices, so the choice of device is a backend choice
     rather than a semantic one. Left unset, annealing stays where the poses
-    are, which is what every existing caller gets.
+    are, except that host poses anneal on the Apple GPU when CPU scoring is
+    offloading there too (see tmol.score._mps_offload).
     """
+    if anneal_device is None and pose_device.type == "cpu":
+        from tmol.score._mps_offload import mps_offload_enabled
+
+        if mps_offload_enabled():
+            anneal_device = "mps"
     if anneal_device is None:
         return run_simulated_annealing(energy_tables)
 

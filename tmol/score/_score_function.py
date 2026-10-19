@@ -16,6 +16,15 @@ from tmol.database._yaml import safe_load
 from tmol.score import ScoreType
 from tmol.score.common import ZeroTermPoseScoringModule, TermWholePoseScoringModule
 from tmol.score.hbond import HBondEnergyTerm
+from tmol.score._mps_offload import (
+    ROTAMER_SCORE_TYPES as _MPS_ROTAMER_SCORE_TYPES,
+    WHOLE_POSE_SCORE_TYPES as _MPS_WHOLE_POSE_SCORE_TYPES,
+    OffloadedRotamerScoringModule,
+    OffloadedWholePoseScoringModule,
+    OffloadPlan,
+    mps_offload_enabled,
+    to_mps,
+)
 from tmol.utility._device import resolve_device
 
 # force registration of the terms with the ScoreTermFactory
@@ -374,6 +383,7 @@ class ScoreFunction:
         self._prepared_block_type_ids = None
         self._prepared_packed_annotation_names = ()
         self._setup_token = object()
+        self._mps_twins = {}
 
         self.term_options = {}
 
@@ -537,14 +547,42 @@ class ScoreFunction:
         its output buffer; clone an output that must survive the next call.
         """
         self.pre_work_initialization(pose_stack)
+        plan = (
+            None
+            if cuda_graph
+            else self._mps_offload_plan(pose_stack, _MPS_WHOLE_POSE_SCORE_TYPES)
+        )
         term_modules = []
-        for term in self.all_terms():
+        for term in plan.host_terms if plan else self.all_terms():
             module = term.render_whole_pose_scoring_module(pose_stack)
             # Retain the score-lane width without evaluating the module.  The
             # default weighted fused path uses this metadata to map its scalar
             # contribution back onto the live score-function weight buffer.
             module.n_score_types = len(term.score_types())
             term_modules.append(module)
+        if plan is not None:
+            weights = self.weights_tensor()
+            host = (
+                WholePoseScoringModule(weights[plan.host_lanes], term_modules)
+                if term_modules
+                else None
+            )
+            gpu = self._mps_twin(plan).render_whole_pose_scoring_module(
+                to_mps(pose_stack)
+            )
+
+            def render_host_twin():
+                self.pre_work_initialization(pose_stack)
+                modules = []
+                for term in plan.gpu_terms:
+                    module = term.render_whole_pose_scoring_module(pose_stack)
+                    module.n_score_types = len(term.score_types())
+                    modules.append(module)
+                return WholePoseScoringModule(weights[plan.gpu_lanes], modules)
+
+            return OffloadedWholePoseScoringModule(
+                plan, weights, host, gpu, render_host_twin
+            )
         scoring_module = WholePoseScoringModule(self.weights_tensor(), term_modules)
         if cuda_graph:
             mode = "both" if cuda_graph is True else cuda_graph
@@ -592,12 +630,59 @@ class ScoreFunction:
             results may already be coalesced.
         """
         self.pre_work_initialization(pose_stack)
+        plan = self._mps_offload_plan(pose_stack, _MPS_ROTAMER_SCORE_TYPES)
         term_modules = []
-        for term in self.all_terms():
+        for term in plan.host_terms if plan else self.all_terms():
             module = term.render_rotamer_scoring_module(pose_stack, rotamer_set)
             module.n_score_types = len(term.score_types())
             term_modules.append(module)
+        if plan is not None:
+            weights = self.weights_tensor()
+            host = (
+                RotamerScoringModule(weights[plan.host_lanes], term_modules)
+                if term_modules
+                else None
+            )
+            gpu = self._mps_twin(plan).render_rotamer_scoring_module(
+                *to_mps((pose_stack, rotamer_set))
+            )
+            return OffloadedRotamerScoringModule(host, gpu)
         return RotamerScoringModule(self.weights_tensor(), term_modules)
+
+    def _mps_offload_plan(self, pose_stack, offloadable):
+        """Choose the terms to run on the Apple GPU, or None to stay on the host.
+
+        Only a host score function scoring host poses offloads; see
+        tmol.score._mps_offload for which terms go and why.
+        """
+        if self._device.type != "cpu" or pose_stack.device.type != "cpu":
+            return None
+        if self._weights.requires_grad or not mps_offload_enabled():
+            return None
+        return OffloadPlan.for_terms(self.all_terms(), offloadable)
+
+    def _mps_twin(self, plan):
+        """A Metal score function holding this one's offloaded terms.
+
+        Cached per term set, so the terms' parameter tables are moved to the
+        GPU once rather than at every render.
+        """
+        score_types = tuple(st for t in plan.gpu_terms for st in t.score_types())
+        twin = self._mps_twins.get(score_types)
+        if twin is None:
+            twin = ScoreFunction(self._param_db, torch.device("mps"))
+            twin._source_options_version = None
+            self._mps_twins[score_types] = twin
+        for st in score_types:
+            twin.set_weight(st, float(self._weights[st.value]))
+        if twin._source_options_version != self._options_version:
+            twin.set_options(dict(self.term_options))
+            twin._source_options_version = self._options_version
+        # The twin's lanes must line up with the plan's.
+        assert (
+            tuple(st for t in twin.all_terms() for st in t.score_types()) == score_types
+        )
+        return twin
 
     def pre_work_initialization(self, pose_stack: PoseStack) -> None:
         """Prepare active energy terms for a pose topology.
