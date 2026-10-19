@@ -5,10 +5,7 @@ import attr
 
 from typing import Tuple
 
-from tmol.types import (
-    Tensor,
-    validate_args,
-)
+from tmol.types import Tensor
 from tmol.chemical import RefinedResidueType, l_base_name
 from tmol.pose import (
     PackedBlockTypes,
@@ -26,7 +23,6 @@ class FixedAAChiSampler(ChiSampler):
     def sampler_name(cls):
         return "FixedAAChiSampler"
 
-    @validate_args
     def defines_rotamers_for_rt(self, rt: RefinedResidueType):
         # ugly hack for now:
         if not rt.properties.polymer.is_polymer:
@@ -46,7 +42,6 @@ class FixedAAChiSampler(ChiSampler):
     ) -> Tensor[torch.bool]:
         return pbt.fixed_aa_chi_sampler_builds_bt[bt_inds]
 
-    @validate_args
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
         base = l_base_name(rt)
         if base == "GLY":
@@ -80,7 +75,6 @@ class FixedAAChiSampler(ChiSampler):
         )
         setattr(packed_block_types, "fixed_aa_chi_sampler_builds_bt", builds_bt)
 
-    @validate_args
     def sample_chi_for_poses(
         self, poses: PoseStack, task
     ) -> Tuple[

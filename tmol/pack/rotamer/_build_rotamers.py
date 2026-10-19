@@ -340,7 +340,7 @@ def update_scan_starts(
     return scan_starts
 
 
-@validate_args
+# @validate_args
 def construct_scans_for_conformers(
     pbt: PackedBlockTypes,
     block_type_ind_for_conf: NDArray[numpy.int32][:],

@@ -145,7 +145,6 @@ class DunbrackChiSampler(ChiSampler):
         self._annotation_key()
         return int(self._library_indices.get(lib_name, -1))
 
-    @validate_args
     def annotate_residue_type(self, restype: RefinedResidueType):  # noqa: C901
         """TEMP TEMP TEMP: assume the dihedrals we care about are phi and psi"""
         key = self._annotation_key()
@@ -332,7 +331,6 @@ class DunbrackChiSampler(ChiSampler):
             fields=("dun_sampler_cache",),
         )
 
-    @validate_args
     def annotate_packed_block_types(self, packed_block_types: PackedBlockTypes):
         key = self._annotation_key()
         cached = cached_annotation(packed_block_types, "_dun_sampler_annotation", key)
@@ -445,7 +443,6 @@ class DunbrackChiSampler(ChiSampler):
             index = self._library_index(rt.dunbrack_reference)
         return int(index)
 
-    @validate_args
     def defines_rotamers_for_rt(self, rt: RefinedResidueType):
         """Whether a rotamer library reaches this residue type.
 
@@ -471,7 +468,6 @@ class DunbrackChiSampler(ChiSampler):
         self.annotate_packed_block_types(pbt)
         return pbt.dun_sampler_cache.defines_rotamers_for_bts[bt_inds]
 
-    @validate_args
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
         """The atom chi1 rotates, which is where the sidechain starts.
 
@@ -486,7 +482,6 @@ class DunbrackChiSampler(ChiSampler):
             return sc_roots_for_chis(rt, (cs.chi_dihedral for cs in rt.chi_samples))
         return tuple(t.c.atom for t in rt.torsions if t.name == "chi1")
 
-    @validate_args
     def sample_chi_for_poses(
         self, pose_stack: PoseStack, task: SetPackerTask
     ) -> Tuple[
@@ -741,7 +736,6 @@ class DunbrackChiSampler(ChiSampler):
             sampled_chi,
         )
 
-    @validate_args
     def atom_indices_for_backbone_dihedral(
         self, pose_stack: PoseStack, bb_dihedral_ind: int
     ):
@@ -874,7 +868,6 @@ class DunbrackChiSampler(ChiSampler):
             max_samples_per_restype,
         )
 
-    @validate_args
     def package_samples_for_output(
         self,
         pbt: PackedBlockTypes,
