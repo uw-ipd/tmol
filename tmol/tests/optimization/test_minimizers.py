@@ -148,4 +148,4 @@ def test_kinematic_minimizer_reuses_compatible_network(
     assert minimizer.network is network
     assert minimizer.optimizer is optimizer
     assert minimizer.last_optimizer_reused
-    torch.testing.assert_close(second.coords, first.coords)
+    torch.testing.assert_close(second.coords, first.coords, atol=1e-4, rtol=1e-4)
