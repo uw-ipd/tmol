@@ -249,6 +249,14 @@ def per_residue_block_pair_energies(block_pair_scores: torch.Tensor) -> torch.Te
     return diag + 0.5 * symmetrized.sum(dim=-1)
 
 
+def get_chain_mask(pose_stack: PoseStack, chain: str) -> torch.Tensor:
+    """Boolean mask shaped ``[n_poses, max_n_blocks]``, true where a block
+    belongs to the given chain label.
+    """
+    mask = pose_stack.pdb_info.chain_labels == chain
+    return torch.as_tensor(mask, dtype=torch.bool, device=pose_stack.device)
+
+
 def res_mask_to_coord_mask(
     pose_stack: PoseStack, mask: Tensor[torch.bool][:, :]
 ) -> Tensor[torch.bool][:, :]:

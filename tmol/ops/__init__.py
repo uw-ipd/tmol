@@ -7,6 +7,7 @@ from ._score_utils import (  # noqa: F401
     calculate_block_pair_ddg,
     compute_block_adjacency,
     compute_block_centroids_and_furthest_dist,
+    get_chain_mask,
     per_residue_block_pair_energies,
     res_mask_to_coord_mask,
 )
@@ -18,6 +19,7 @@ __all__ = [
     "calculate_block_pair_ddg",
     "compute_block_adjacency",
     "compute_block_centroids_and_furthest_dist",
+    "get_chain_mask",
     "per_residue_block_pair_energies",
     "res_mask_to_coord_mask",
 ]

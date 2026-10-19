@@ -67,6 +67,8 @@ __all__ = [
     "get_torsion_names",
     "include_paths",
     "has_cuda",
+    "mutate_residue",
+    "mutate_to_sequence",
     "one2three",
     "pose_stack_from_canonical_form",
     "pose_stack_from_pdb",
@@ -139,6 +141,10 @@ for _module, _names in (
             "get_sequence",
             "get_torsion_names",
         ),
+    ),
+    (
+        "tmol.pack",
+        ("mutate_residue", "mutate_to_sequence"),
     ),
     (
         "tmol.score",
