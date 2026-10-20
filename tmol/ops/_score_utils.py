@@ -283,13 +283,14 @@ def res_mask_to_coord_mask(
 
     Args:
         pose_stack: Poses supplying the block-to-coordinate layout.
-        mask: Selected blocks shaped ``[n_poses, n_blocks]``.
+        mask: Selected blocks shaped ``[n_poses, n_blocks]``. It may live on
+            any device; it is moved to the pose's device.
 
     Returns:
         Selected real atoms shaped ``[n_poses, max_n_atoms]``.
     """
     block_for_atom, _, real_atoms = _compact_atom_layout(pose_stack)
-    return mask.gather(1, block_for_atom) & real_atoms
+    return mask.to(block_for_atom.device).gather(1, block_for_atom) & real_atoms
 
 
 def _compact_atom_layout(
@@ -542,6 +543,7 @@ def build_coord_mask_for_mask_and_nearby_blocks(
     Returns:
         Coordinate mask shaped ``[n_poses, max_n_atoms]``.
     """
+    mask = mask.to(pose_stack.device)
     coord_mask = res_mask_to_coord_mask(pose_stack, mask)
     sidechain_mask = build_sidechain_coord_mask(pose_stack)  # [n_poses, max_n_atoms]
 

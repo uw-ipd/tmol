@@ -312,3 +312,22 @@ def test_build_coord_mask_and_minimize_for_first_residue(
     assert not torch.any(
         torch.isnan(minimized_pose.coords)
     ), "Minimized pose contains NaN coordinates"
+
+
+def test_block_masks_may_live_on_a_different_device_than_the_pose(torch_device):
+    """Tutorials build masks with ``torch.zeros(...)``, which defaults to the CPU."""
+    from tmol.io import extended_pose_stack_from_sequences
+
+    pose_stack = extended_pose_stack_from_sequences(["AGA", "AGA"], device=torch_device)
+    cpu_mask = torch.zeros((pose_stack.n_poses, pose_stack.max_n_blocks), dtype=bool)
+    cpu_mask[:, 1] = True
+
+    on_pose_device = score_utils.res_mask_to_coord_mask(
+        pose_stack, cpu_mask.to(torch_device)
+    )
+    from_cpu = score_utils.res_mask_to_coord_mask(pose_stack, cpu_mask)
+    assert from_cpu.device == on_pose_device.device
+    assert torch.equal(from_cpu, on_pose_device)
+
+    nearby = build_coord_mask_for_mask_and_nearby_blocks(pose_stack, cpu_mask)
+    assert nearby.device == on_pose_device.device
