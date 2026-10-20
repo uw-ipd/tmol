@@ -173,7 +173,7 @@ this error, use the metadata repair supplied with the
 [TMol release](https://github.com/uw-ipd/tmol/releases):
 
 ```bash
-curl -fLO https://github.com/uw-ipd/tmol/releases/download/v0.1.64/repair_cuda13_arm64_metadata.py
+curl -fLO https://github.com/uw-ipd/tmol/releases/download/v0.2.0/repair_cuda13_arm64_metadata.py
 python repair_cuda13_arm64_metadata.py
 python -m pip check
 ```
