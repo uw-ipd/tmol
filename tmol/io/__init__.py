@@ -10,6 +10,7 @@ from tmol.types import (
 )
 from tmol.pose import PoseStack
 from tmol.io._visualize import (
+    overlay_view,
     pose_stack_to_pdb_string,
     selection_gallery,
     switchable_view,
@@ -152,6 +153,7 @@ __all__ = [
     "atom_array_from_cif",
     "component_chemistry_from_cif",
     "pose_stack_from_pdb",
+    "overlay_view",
     "pose_stack_to_pdb_string",
     "selection_gallery",
     "switchable_view",
