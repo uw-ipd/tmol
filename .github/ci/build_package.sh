@@ -68,9 +68,13 @@ fi
 CUDA_ARCHS="${TMOL_CI_CUDA_ARCHITECTURES:-native}"
 export TORCH_CUDA_ARCH_LIST
 TORCH_CUDA_ARCH_LIST=$(python -c 'import torch; c=torch.cuda.get_device_capability(); print(f"{c[0]}.{c[1]}")')
-CMAKE_BUILD_PARALLEL_LEVEL=4 pip install -v --no-build-isolation --no-deps \
+# Each build job runs nvcc with TMOL_NVCC_THREADS threads, so size the job
+# count to the allocation instead of a fixed 4 (the CI allocation has 16 CPUs).
+NVCC_THREADS=2
+BUILD_JOBS="${TMOL_CI_BUILD_JOBS:-$(( ${SLURM_CPUS_PER_TASK:-8} / NVCC_THREADS ))}"
+CMAKE_BUILD_PARALLEL_LEVEL="${BUILD_JOBS}" pip install -v --no-build-isolation --no-deps \
   -Ccmake.define.TMOL_ENABLE_CUDA=ON \
   -Ccmake.define.TMOL_STABLE_HEADERS="${STABLE_HEADERS}" \
   -Ccmake.define.CMAKE_CUDA_ARCHITECTURES="${CUDA_ARCHS}" \
   -Ccmake.define.TMOL_BUILD_TESTS=ON \
-  -Ccmake.define.TMOL_NVCC_THREADS=2 -e .
+  -Ccmake.define.TMOL_NVCC_THREADS="${NVCC_THREADS}" -e .
