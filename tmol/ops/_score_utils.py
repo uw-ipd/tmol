@@ -2,7 +2,7 @@ import torch
 
 from tmol.database import ParameterDatabase
 from tmol.pose import PoseStack
-from tmol.score import ScoreFunction, beta2016_score_function
+from tmol.score import ScoreFunction, ScoreType, beta2016_score_function
 from tmol.pack import pack_rotamers, PackerTask, PackerPalette
 from tmol.pack.rotamer import (
     ConjugatedSCSampler,
@@ -247,6 +247,25 @@ def per_residue_block_pair_energies(block_pair_scores: torch.Tensor) -> torch.Te
     symmetrized = block_pair_scores + block_pair_scores.transpose(-2, -1)
     torch.diagonal(symmetrized, dim1=-2, dim2=-1).zero_()
     return diag + 0.5 * symmetrized.sum(dim=-1)
+
+
+def block_energies(
+    score_function: ScoreFunction,
+    pose_stack: PoseStack,
+    score_type: ScoreType,
+    pose: int,
+    blocks: list,
+) -> list:
+    """Weighted energy of one term involving each block.
+
+    Each value is that block's row plus column of the block-pair matrix for
+    ``score_type``, i.e. every interaction the block participates in
+    (including with itself), counted once.
+    """
+    block_scorer = score_function.render_block_pair_scoring_module(pose_stack)
+    terms = block_scorer(pose_stack.coords, sum_terms=False, apply_weights=True)
+    pair = terms[score_function.all_score_types().index(score_type), pose]
+    return [float(pair[b].sum() + pair[:, b].sum() - pair[b, b]) for b in blocks]
 
 
 def get_chain_mask(pose_stack: PoseStack, chain: str) -> torch.Tensor:

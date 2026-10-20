@@ -29,6 +29,7 @@ from ._util import (  # noqa: F401
     get_named_torsions,
     get_sequence,
     get_torsion_names,
+    metal_blocks,
     residue_label,
 )
 
@@ -52,6 +53,7 @@ __all__ = [
     "get_named_torsions",
     "get_sequence",
     "get_torsion_names",
+    "metal_blocks",
     "residue_label",
     "resolve_block_type_names",
     "smiles_in_tokens",

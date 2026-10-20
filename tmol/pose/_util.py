@@ -45,6 +45,16 @@ def get_ligand_mask(pose_stack: PoseStack) -> torch.Tensor:
     return real & ~is_polymer_by_type[safe_ind]
 
 
+def metal_blocks(pose_stack: PoseStack, pose: int) -> List[int]:
+    """Indices of the blocks in one pose that carry metal sites."""
+    return [
+        block
+        for block in range(pose_stack.max_n_blocks)
+        if int(pose_stack.block_type_ind64[pose, block]) >= 0
+        and pose_stack.block_type(pose, block).metal_sites
+    ]
+
+
 def residue_label(pose_stack: PoseStack, pose: int, block: int) -> str:
     """ "chain resnum name3" for one block."""
     info = pose_stack.pdb_info
