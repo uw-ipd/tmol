@@ -6,10 +6,7 @@ import attr
 
 from typing import Tuple
 
-from tmol.types import (
-    Tensor,
-    validate_args,
-)
+from tmol.types import Tensor
 from tmol.utility.tensor import exclusive_cumsum1d
 
 from tmol.database import ParameterDatabase
@@ -125,7 +122,6 @@ class NaChiRotamerSampler(ChiSampler):
             tuple(sorted(self.element_for_atom_type.items())),
         )
 
-    @validate_args
     def annotate_residue_type(self, rt: RefinedResidueType):
         key = self._annotation_key()
         if getattr(rt, "_na_chi_sampler_key", None) == key and hasattr(
@@ -167,7 +163,6 @@ class NaChiRotamerSampler(ChiSampler):
         setattr(rt, "_na_chi_sampler_key", key)
         return p
 
-    @validate_args
     def annotate_packed_block_types(self, packed_block_types: PackedBlockTypes):
         key = self._annotation_key()
         if getattr(packed_block_types, "_na_chi_sampler_key", None) == key:
@@ -207,7 +202,6 @@ class NaChiRotamerSampler(ChiSampler):
         setattr(packed_block_types, "_na_chi_sampler_key", key)
         return cache
 
-    @validate_args
     def defines_rotamers_for_rt(self, rt: RefinedResidueType):
         return self.annotate_residue_type(rt)["base"] >= 0
 
@@ -216,7 +210,6 @@ class NaChiRotamerSampler(ChiSampler):
     ) -> Tensor[torch.bool]:
         return self.annotate_packed_block_types(pbt)["builds_bt"][bt_inds]
 
-    @validate_args
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
         return sc_roots_for_chis(
             rt, ("chi1",) + tuple(cs.chi_dihedral for cs in rt.chi_samples)
@@ -246,7 +239,6 @@ class NaChiRotamerSampler(ChiSampler):
         pucker = w.argmax(dim=-1)
         return torch.where(ok.all(-1), pucker, torch.full_like(pucker, -1))
 
-    @validate_args
     def sample_chi_for_poses(
         self, poses: PoseStack, task: SetPackerTask
     ) -> Tuple[

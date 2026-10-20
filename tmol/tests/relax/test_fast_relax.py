@@ -7,7 +7,7 @@ import torch
 
 from tmol.relax import fast_relax
 import tmol.relax._fast_relax as fast_relax_module
-from tmol.relax._fast_relax import _resolve_cuda_graph_mode
+from tmol.relax._fast_relax import _resolve_cuda_graph_mode, DefaultKinematicMinimizer
 from tmol.optimization import CartesianMinimizer
 
 from tmol.pose import (
@@ -183,6 +183,63 @@ def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
         mm,
         fold_forest,
         task_operations=[task_op],
+        num_repeats=1,
+        verbose=verbose,
+    )
+
+    if torch_device == torch.device("cuda"):
+        torch.cuda.synchronize()
+    stop_time = time.perf_counter()
+    assert new_pose_stack
+    assert isinstance(new_pose_stack, PoseStack)
+
+    elapsed_time = stop_time - start_time
+
+    print(f"1ubq {n_poses} FastRelax Execution time: {elapsed_time:.6f} seconds")
+
+
+@pytest.mark.parametrize("n_poses", [1])
+def test_kin_fast_relax_ubq(
+    default_database, ubq_pdb, dun_sampler, torch_device, n_poses
+):
+    # if torch_device == torch.device("cpu"):
+    #     return
+
+    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+
+    pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
+    sfxn = get_relax_sfxn(default_database, torch_device)
+
+    mm = MoveMap.from_pose_stack(pose_stack)
+    mm.move_all_jumps = True
+    mm.move_all_named_torsions = True
+
+    palette = PackerPalette()
+    fold_forest = FoldForest.reasonable_fold_forest(pose_stack)
+
+    def task_op(task):
+        task.restrict_to_repacking()
+        task.or_bump_check(True)
+
+        fixed_sampler = FixedAAChiSampler()
+        task.add_conformer_sampler(dun_sampler)
+        task.add_conformer_sampler(fixed_sampler)
+        task.add_conformer_sampler(IncludeCurrentSampler())
+
+    start_time = time.perf_counter()
+
+    # Now let's run fast_relax
+    verbose = True
+    new_pose_stack = fast_relax(
+        pose_stack,
+        sfxn,
+        palette,
+        mm,
+        fold_forest,
+        task_operations=[task_op],
+        min_fn=DefaultKinematicMinimizer(
+            cuda_graph=torch_device == torch.device("cuda")
+        ),
         num_repeats=1,
         verbose=verbose,
     )
