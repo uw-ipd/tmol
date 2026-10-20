@@ -485,11 +485,11 @@
 proteins. Load a Biotite structure with the default parameter database, then
 build the score function from that same database:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_biotite</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_atom_array</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
 
 <span class="n">param_db</span> <span class="o">=</span> <span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">get_default</span><span class="p">()</span>
-<span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">param_db</span><span class="o">=</span><span class="n">param_db</span><span class="p">)</span>
+<span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack_from_atom_array</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">param_db</span><span class="o">=</span><span class="n">param_db</span><span class="p">)</span>
 <span class="n">sfxn</span> <span class="o">=</span> <span class="n">beta2016_score_function</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">param_db</span><span class="o">=</span><span class="n">param_db</span><span class="p">)</span>
 <span class="n">scores</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
 </pre></div>

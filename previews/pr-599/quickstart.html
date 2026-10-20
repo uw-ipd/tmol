@@ -486,11 +486,11 @@ curl<span class="w"> </span>-L<span class="w"> </span>https://files.rcsb.org/dow
 <p>This installs CPU-only TMol. For CUDA, follow <a class="reference internal" href="installation.html"><span class="doc">Installation</span></a> and use
 <code class="docutils literal notranslate"><span class="pre">torch.device(&quot;cuda&quot;)</span></code> below.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_pdb</span><span class="p">,</span> <span class="n">write_pose_stack_pdb</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">file_from_pose_stack</span><span class="p">,</span> <span class="n">pose_stack_from_file</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta2016_score_function</span>
 
 <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">)</span>
-<span class="n">pose</span> <span class="o">=</span> <span class="n">pose_stack_from_pdb</span><span class="p">(</span><span class="s2">"1ubq.pdb"</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+<span class="n">pose</span> <span class="o">=</span> <span class="n">pose_stack_from_file</span><span class="p">(</span><span class="s2">"1ubq.pdb"</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
 <span class="n">sfxn</span> <span class="o">=</span> <span class="n">beta2016_score_function</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 <span class="n">scorer</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">pose</span><span class="p">)</span>
 </pre></div>
@@ -524,7 +524,7 @@ total. See <a class="reference internal" href="terminology.html#glossary-score-f
 <span class="n">minimized</span> <span class="o">=</span> <span class="n">run_cart_min</span><span class="p">(</span><span class="n">pose</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">"Before:"</span><span class="p">,</span> <span class="n">scorer</span><span class="p">(</span><span class="n">pose</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">"After:"</span><span class="p">,</span> <span class="n">scorer</span><span class="p">(</span><span class="n">minimized</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
-<span class="n">write_pose_stack_pdb</span><span class="p">(</span><span class="n">minimized</span><span class="p">,</span> <span class="s2">"minimized.pdb"</span><span class="p">)</span>
+<span class="n">file_from_pose_stack</span><span class="p">(</span><span class="n">minimized</span><span class="p">,</span> <span class="s2">"minimized.pdb"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>This optimizes atom positions continuously. Pass <code class="docutils literal notranslate"><span class="pre">coord_mask</span></code> to restrict
@@ -572,7 +572,7 @@ ramping steric repulsion back to its full weight.</p>
 <span class="p">)</span>
 <span class="n">relaxed_scorer</span> <span class="o">=</span> <span class="n">sfxn</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">relaxed</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">relaxed_scorer</span><span class="p">(</span><span class="n">relaxed</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
-<span class="n">write_pose_stack_pdb</span><span class="p">(</span><span class="n">relaxed</span><span class="p">,</span> <span class="s2">"relaxed.pdb"</span><span class="p">)</span>
+<span class="n">file_from_pose_stack</span><span class="p">(</span><span class="n">relaxed</span><span class="p">,</span> <span class="s2">"relaxed.pdb"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>This uses Cartesian minimization with all atom coordinates free. For torsion
@@ -598,10 +598,10 @@ See the <a class="reference internal" href="tutorial/02_gpu_batching.html"><span
 <h2>Load a protein–ligand complex<a class="headerlink" href="#load-a-proteinligand-complex" title="Link to this heading">#</a></h2>
 <p>Use mmCIF to retain ligand bond information, and score with the extended
 parameter database returned during preparation:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_file</span><span class="p">,</span> <span class="n">pose_stack_from_biotite</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_file</span><span class="p">,</span> <span class="n">pose_stack_from_atom_array</span>
 
 <span class="n">structure</span> <span class="o">=</span> <span class="n">atom_array_from_file</span><span class="p">(</span><span class="s2">"complex.cif"</span><span class="p">)</span>
-<span class="n">complex_pose</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span>
+<span class="n">complex_pose</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="n">pose_stack_from_atom_array</span><span class="p">(</span>
     <span class="n">structure</span><span class="p">,</span>
     <span class="n">device</span><span class="p">,</span>
     <span class="n">prepare_ligands</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>

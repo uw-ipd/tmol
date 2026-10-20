@@ -490,17 +490,17 @@
 <td><p><a class="reference internal" href="../workflows/structure_io.html"><span class="doc">Structure I/O guide</span></a>; <a class="reference internal" href="01_working_with_tmol.html"><span class="doc">Tutorial 01</span></a></p></td>
 <td><p><a class="reference internal" href="../api/database.html"><span class="doc">Database API</span></a>; <a class="reference internal" href="../api/io.html"><span class="doc">I/O API</span></a>. Most callers receive packed types and ordering through a build context.</p></td>
 </tr>
-<tr class="row-odd"><td><p>Build a pose from PDB</p></td>
+<tr class="row-odd"><td><p>Build a pose from a PDB, CIF, MOL2 or SDF file</p></td>
 <td><p><a class="reference internal" href="../workflows/structure_io.html"><span class="doc">Structure I/O guide</span></a>; <a class="reference internal" href="01_working_with_tmol.html"><span class="doc">Tutorial 01</span></a></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">pose_stack_from_pdb()</span></code> is a compatibility path. Prefer CIF/Biotite when metadata or ligand bonds matter.</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pose_stack_from_file()</span></code> infers the format. Prefer CIF when metadata or ligand bonds matter.</p></td>
 </tr>
-<tr class="row-even"><td><p>Select a residue range from PDB</p></td>
+<tr class="row-even"><td><p>Select a residue range from a file</p></td>
 <td><p><a class="reference internal" href="01_working_with_tmol.html"><span class="doc">Tutorial 01</span></a></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">residue_start</span></code>/<code class="docutils literal notranslate"><span class="pre">residue_end</span></code> are zero-based, half-open parsed positions, not author residue numbers.</p></td>
 </tr>
-<tr class="row-odd"><td><p>Build a pose from Biotite or mmCIF</p></td>
+<tr class="row-odd"><td><p>Build a pose from a Biotite AtomArray</p></td>
 <td><p><a class="reference internal" href="../workflows/structure_io.html"><span class="doc">Structure I/O guide</span></a>; <a class="reference internal" href="01_working_with_tmol.html"><span class="doc">Tutorial 01</span></a></p></td>
-<td><p>Preferred general input path; see the <a class="reference internal" href="../api/io.html"><span class="doc">I/O API</span></a>.</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pose_stack_from_atom_array()</span></code>; see the <a class="reference internal" href="../api/io.html"><span class="doc">I/O API</span></a>.</p></td>
 </tr>
 <tr class="row-even"><td><p>Build from OpenFold, RoseTTAFold2, or AtomWorks tensors</p></td>
 <td><p><a class="reference internal" href="../user_guide/integrations.html"><span class="doc">Integrations</span></a>; <a class="reference internal" href="01_working_with_tmol.html"><span class="doc">Tutorial 01</span></a></p></td>

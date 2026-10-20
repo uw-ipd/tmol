@@ -845,6 +845,7 @@
     <span class="n">name_source</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NonStandardResidueInfo</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">assign_ring_chis</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">generate_heavy_chi_samples</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">input_hydrogen_names</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LigandPreparation</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Build a :class:`LigandPreparation` from a SMILES-derived ligand.</span>
 
@@ -872,6 +873,8 @@
 <span class="sd">            adopt (mapped to the prepared heavy atoms via the atom-order map). On</span>
 <span class="sd">            the unified CIF path this is the original CIF ligand. Defaults to</span>
 <span class="sd">            ``ligand_info``.</span>
+<span class="sd">        input_hydrogen_names: Name hydrogens after name_source's where they pair</span>
+<span class="sd">            up parent by parent; otherwise name them by parent.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If ``ligand_info`` lacks explicit hydrogens / authoritative</span>
@@ -922,7 +925,7 @@
     <span class="n">source</span> <span class="o">=</span> <span class="n">name_source</span> <span class="k">if</span> <span class="n">name_source</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ligand_info</span>
     <span class="n">from_source</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">_name_hydrogens_from_source</span><span class="p">(</span><span class="n">protonated</span><span class="p">,</span> <span class="n">atom_types</span><span class="p">,</span> <span class="n">name_source</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">name_source</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">name_source</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">input_hydrogen_names</span>
         <span class="k">else</span> <span class="kc">None</span>
     <span class="p">)</span>
     <span class="n">atom_types</span> <span class="o">=</span> <span class="p">(</span>
@@ -1397,6 +1400,7 @@
     <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">assign_ring_chis</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">generate_heavy_chi_samples</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">input_hydrogen_names</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LigandPreparation</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Prepare one ligand through the unified CIF -&gt; SMILES -&gt; params path.</span>
 
@@ -1413,6 +1417,7 @@
 <span class="sd">        seed: Fixed RNG seed for reproducible 3D coordinates; ``None`` is</span>
 <span class="sd">            random, which makes the measured bonded parameters differ between</span>
 <span class="sd">            runs of the same input.</span>
+<span class="sd">        input_hydrogen_names: See :func:`prepare_single_ligand`.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        The :class:`LigandPreparation`.</span>
@@ -1450,6 +1455,7 @@
             <span class="n">name_source</span><span class="o">=</span><span class="n">ligand_info</span><span class="p">,</span>
             <span class="n">assign_ring_chis</span><span class="o">=</span><span class="n">assign_ring_chis</span><span class="p">,</span>
             <span class="n">generate_heavy_chi_samples</span><span class="o">=</span><span class="n">generate_heavy_chi_samples</span><span class="p">,</span>
+            <span class="n">input_hydrogen_names</span><span class="o">=</span><span class="n">input_hydrogen_names</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -2211,7 +2217,9 @@
     <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">==</span> <span class="n">got</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">got</span> <span class="ow">in</span> <span class="n">a</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">b</span> <span class="ow">and</span> <span class="n">b</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">got</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_state_variants</span><span class="p">(</span><span class="n">lig</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">atom_array</span><span class="p">,</span> <span class="n">ph</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">generate_heavy_chi_samples</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_state_variants</span><span class="p">(</span>
+    <span class="n">lig</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">atom_array</span><span class="p">,</span> <span class="n">ph</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">generate_heavy_chi_samples</span><span class="p">,</span> <span class="n">input_hydrogen_names</span>
+<span class="p">):</span>
 <span class="w">    </span><span class="sd">"""A type for each hydrogen state a free copy of ``lig`` presents that ``base`` lacks.</span>
 
 <span class="sd">    A copy's state is AtomWorks' in its own context: a metal donor may lose a</span>
@@ -2255,6 +2263,7 @@
                 <span class="n">protonate</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                 <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
                 <span class="n">generate_heavy_chi_samples</span><span class="o">=</span><span class="n">generate_heavy_chi_samples</span><span class="p">,</span>
+                <span class="n">input_hydrogen_names</span><span class="o">=</span><span class="n">input_hydrogen_names</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>  <span class="c1"># noqa: BLE001  the copy keeps the base type</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
@@ -2291,6 +2300,7 @@
     <span class="n">chem_comp_types</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">coordinating_atoms</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">input_hydrogen_names</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Detect, prepare, and register all non-standard residues.</span>
 
@@ -2343,6 +2353,8 @@
 <span class="sd">        coordinating_atoms: {residue name: atoms bonded to a metal}, which a</span>
 <span class="sd">            residue's charges cannot account for. Each hydrogen state the copies</span>
 <span class="sd">            of a ligand present gets a type (see ``_state_variants``).</span>
+<span class="sd">        input_hydrogen_names: Name a ligand's hydrogens after the input's where</span>
+<span class="sd">            they pair up parent by parent; otherwise name them by parent.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        A (ParameterDatabase, CanonicalOrdering) tuple. When</span>
@@ -2587,9 +2599,16 @@
                     <span class="n">protonate</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                     <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
                     <span class="n">generate_heavy_chi_samples</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">conjugations</span><span class="p">),</span>
+                    <span class="n">input_hydrogen_names</span><span class="o">=</span><span class="n">input_hydrogen_names</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">variants</span> <span class="o">=</span> <span class="n">_state_variants</span><span class="p">(</span>
-                    <span class="n">source</span><span class="p">,</span> <span class="n">prep</span><span class="p">,</span> <span class="n">atom_array</span><span class="p">,</span> <span class="n">ph</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="nb">bool</span><span class="p">(</span><span class="n">conjugations</span><span class="p">)</span>
+                    <span class="n">source</span><span class="p">,</span>
+                    <span class="n">prep</span><span class="p">,</span>
+                    <span class="n">atom_array</span><span class="p">,</span>
+                    <span class="n">ph</span><span class="p">,</span>
+                    <span class="n">seed</span><span class="p">,</span>
+                    <span class="nb">bool</span><span class="p">(</span><span class="n">conjugations</span><span class="p">),</span>
+                    <span class="n">input_hydrogen_names</span><span class="p">,</span>
                 <span class="p">)</span>
         <span class="k">except</span> <span class="n">LigandPreparationError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
             <span class="c1"># strict_ligands=False means "drop what you cannot prepare". That has</span>
@@ -2788,9 +2807,9 @@
     <span class="n">cif_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NonStandardResidueInfo</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Read one ligand through the shared format, identity and completion path."""</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_cif</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_file</span>
 
-    <span class="n">arr</span> <span class="o">=</span> <span class="n">atom_array_from_cif</span><span class="p">(</span><span class="n">cif_path</span><span class="p">)</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">atom_array_from_file</span><span class="p">(</span><span class="n">cif_path</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">struc</span><span class="o">.</span><span class="n">get_residue_count</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Single-ligand preparation requires exactly one residue"</span><span class="p">)</span>
     <span class="n">resolved</span> <span class="o">=</span> <span class="p">(</span><span class="n">res_name</span> <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>

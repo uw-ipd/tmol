@@ -16,11 +16,11 @@ This installs CPU-only TMol. For CUDA, follow {doc}`installation` and use
 
 ```python
 import torch
-from tmol.io import pose_stack_from_pdb, write_pose_stack_pdb
+from tmol.io import file_from_pose_stack, pose_stack_from_file
 from tmol.score import beta2016_score_function
 
 device = torch.device("cpu")
-pose = pose_stack_from_pdb("1ubq.pdb", device)
+pose = pose_stack_from_file("1ubq.pdb", device)
 sfxn = beta2016_score_function(device)
 scorer = sfxn.render_whole_pose_scoring_module(pose)
 ```
@@ -58,7 +58,7 @@ from tmol.optimization import run_cart_min
 minimized = run_cart_min(pose, sfxn)
 print("Before:", scorer(pose.coords).tolist())
 print("After:", scorer(minimized.coords).tolist())
-write_pose_stack_pdb(minimized, "minimized.pdb")
+file_from_pose_stack(minimized, "minimized.pdb")
 ```
 
 This optimizes atom positions continuously. Pass `coord_mask` to restrict
@@ -110,7 +110,7 @@ relaxed = fast_relax(
 )
 relaxed_scorer = sfxn.render_whole_pose_scoring_module(relaxed)
 print(relaxed_scorer(relaxed.coords).tolist())
-write_pose_stack_pdb(relaxed, "relaxed.pdb")
+file_from_pose_stack(relaxed, "relaxed.pdb")
 ```
 
 This uses Cartesian minimization with all atom coordinates free. For torsion
@@ -139,10 +139,10 @@ Use mmCIF to retain ligand bond information, and score with the extended
 parameter database returned during preparation:
 
 ```python
-from tmol.io import atom_array_from_file, pose_stack_from_biotite
+from tmol.io import atom_array_from_file, pose_stack_from_atom_array
 
 structure = atom_array_from_file("complex.cif")
-complex_pose, context = pose_stack_from_biotite(
+complex_pose, context = pose_stack_from_atom_array(
     structure,
     device,
     prepare_ligands=True,

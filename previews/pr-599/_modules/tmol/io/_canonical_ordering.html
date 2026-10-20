@@ -409,9 +409,6 @@
     
     <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../io.html" class="nav-link">tmol.io</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.io._canonical_ordering</span></li>
   </ul>
 </nav>
@@ -449,7 +446,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.utility</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_device</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">FrozenSet</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._canonical_form</span><span class="w"> </span><span class="kn">import</span> <span class="n">CanonicalForm</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">._pdb_parsing</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_pdb</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._pdb_parsing</span><span class="w"> </span><span class="kn">import</span> <span class="n">_parse_pdb</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">._alternates</span><span class="w"> </span><span class="kn">import</span> <span class="n">records_with_one_alternate</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">toolz.functoolz</span>
 
@@ -1104,10 +1101,8 @@
     <span class="p">)</span>
 
 
-<div class="viewcode-block" id="canonical_form_from_pdb">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.canonical_form_from_pdb">[docs]</a>
 <span class="nd">@validate_args</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">canonical_form_from_pdb</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_canonical_form_from_pdb</span><span class="p">(</span>
     <span class="n">canonical_ordering</span><span class="p">:</span> <span class="n">CanonicalOrdering</span><span class="p">,</span>
     <span class="n">pdb_lines_or_fname</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">],</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
@@ -1124,18 +1119,17 @@
 <span class="sd">    a string representing a file</span>
 
 <span class="sd">    """</span>
-    <span class="n">atom_records</span> <span class="o">=</span> <span class="n">records_with_one_alternate</span><span class="p">(</span><span class="n">parse_pdb</span><span class="p">(</span><span class="n">pdb_lines_or_fname</span><span class="p">))</span>
+    <span class="n">atom_records</span> <span class="o">=</span> <span class="n">records_with_one_alternate</span><span class="p">(</span><span class="n">_parse_pdb</span><span class="p">(</span><span class="n">pdb_lines_or_fname</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">residue_start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">residue_end</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">atom_records</span> <span class="o">=</span> <span class="n">select_atom_records_res_subset</span><span class="p">(</span>
+        <span class="n">atom_records</span> <span class="o">=</span> <span class="n">_select_atom_records_res_subset</span><span class="p">(</span>
             <span class="n">atom_records</span><span class="p">,</span> <span class="n">residue_start</span><span class="p">,</span> <span class="n">residue_end</span>
         <span class="p">)</span>
-    <span class="k">return</span> <span class="n">canonical_form_from_atom_records</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">_canonical_form_from_atom_records</span><span class="p">(</span>
         <span class="n">canonical_ordering</span><span class="p">,</span> <span class="n">atom_records</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">res_not_connected</span>
-    <span class="p">)</span></div>
+    <span class="p">)</span>
 
 
-
-<span class="k">def</span><span class="w"> </span><span class="nf">select_atom_records_res_subset</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_select_atom_records_res_subset</span><span class="p">(</span>
     <span class="n">atom_records</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">residue_start</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
     <span class="n">residue_end</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
@@ -1166,7 +1160,7 @@
     <span class="k">return</span> <span class="n">atom_records</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">begin</span><span class="p">:</span><span class="n">end</span><span class="p">]</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">canonical_form_from_atom_records</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_canonical_form_from_atom_records</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
     <span class="n">canonical_ordering</span><span class="p">:</span> <span class="n">CanonicalOrdering</span><span class="p">,</span>
     <span class="n">atom_records</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>

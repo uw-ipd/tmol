@@ -537,10 +537,10 @@ same preparation path:</p>
 source distribution; release wheels omit tests and fixtures. For example, load
 your own mmCIF containing a nonstandard polymer:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_cif</span><span class="p">,</span> <span class="n">pose_stack_from_biotite</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_file</span><span class="p">,</span> <span class="n">pose_stack_from_atom_array</span>
 
-<span class="n">array</span> <span class="o">=</span> <span class="n">atom_array_from_cif</span><span class="p">(</span><span class="s2">"modified_polymer.cif"</span><span class="p">)</span>
-<span class="n">pose</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span>
+<span class="n">array</span> <span class="o">=</span> <span class="n">atom_array_from_file</span><span class="p">(</span><span class="s2">"modified_polymer.cif"</span><span class="p">)</span>
+<span class="n">pose</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="n">pose_stack_from_atom_array</span><span class="p">(</span>
     <span class="n">array</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span><span class="p">),</span> <span class="n">prepare_ligands</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_context</span><span class="o">=</span><span class="kc">True</span>
 <span class="p">)</span>
 </pre></div>
@@ -589,17 +589,17 @@ neutralized phosphate inputs with explicit hydrogens and valid partial charges.<
 <section id="load-a-complex">
 <h2>Load a complex<a class="headerlink" href="#load-a-complex" title="Link to this heading">#</a></h2>
 <p>For full protein-ligand structures, load with Biotite and let
-<code class="docutils literal notranslate"><span class="pre">pose_stack_from_biotite()</span></code> prepare every non-standard residue:</p>
+<code class="docutils literal notranslate"><span class="pre">pose_stack_from_atom_array()</span></code> prepare every non-standard residue:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">tmol</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_file</span><span class="p">,</span> <span class="n">pose_stack_from_biotite</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_file</span><span class="p">,</span> <span class="n">pose_stack_from_atom_array</span>
 
 <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span> <span class="k">if</span> <span class="n">tmol</span><span class="o">.</span><span class="n">has_cuda</span><span class="p">()</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"cpu"</span><span class="p">)</span>
 <span class="n">structure</span> <span class="o">=</span> <span class="n">atom_array_from_file</span><span class="p">(</span><span class="s2">"complex.cif"</span><span class="p">)</span>
 
-<span class="n">pose_stack</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span>
+<span class="n">pose_stack</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="n">pose_stack_from_atom_array</span><span class="p">(</span>
     <span class="n">structure</span><span class="p">,</span>
     <span class="n">device</span><span class="p">,</span>
     <span class="n">prepare_ligands</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -641,13 +641,13 @@ entry of its name (PDBbind names ligands <code class="docutils literal notransla
 <p>When scoring many structures that contain the same ligand definitions, build
 the structure-independent context once:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">build_context_from_biotite</span><span class="p">,</span>
-    <span class="n">pose_stack_from_biotite</span><span class="p">,</span>
+    <span class="n">build_context_from_atom_array</span><span class="p">,</span>
+    <span class="n">pose_stack_from_atom_array</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="n">context</span> <span class="o">=</span> <span class="n">build_context_from_biotite</span><span class="p">(</span><span class="n">struct0</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">prepare_ligands</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">context</span> <span class="o">=</span> <span class="n">build_context_from_atom_array</span><span class="p">(</span><span class="n">struct0</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">prepare_ligands</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">for</span> <span class="n">structure</span> <span class="ow">in</span> <span class="n">structures</span><span class="p">:</span>
-    <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">)</span>
+    <span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack_from_atom_array</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>This skips rebuilding the parameter database, canonical ordering, residue type
@@ -674,7 +674,7 @@ set, and packed block types for every structure.</p>
 </pre></div>
 </div>
 <p>The same prepared files can be passed through IO:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="n">pose_stack_from_atom_array</span><span class="p">(</span>
     <span class="n">structure</span><span class="p">,</span>
     <span class="n">device</span><span class="p">,</span>
     <span class="n">prepare_ligands</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>

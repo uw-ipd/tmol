@@ -409,9 +409,6 @@
     
     <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../io.html" class="nav-link">tmol.io</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.io._pose_stack_from_biotite</span></li>
   </ul>
 </nav>
@@ -454,6 +451,7 @@
     <span class="n">renumbered_decreasing_chains</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._input_geometry</span><span class="w"> </span><span class="kn">import</span> <span class="n">rebuild_coincident_hydrogens</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io.details._select_from_canonical</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_ligand_hydrogens</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._input_termini</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">EXPLICIT_TERMINI</span><span class="p">,</span>
     <span class="n">validate_connection_hydrogens</span><span class="p">,</span>
@@ -925,10 +923,10 @@
 
 
 
-<div class="viewcode-block" id="build_context_from_biotite">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.build_context_from_biotite">[docs]</a>
+<div class="viewcode-block" id="build_context_from_atom_array">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.build_context_from_atom_array">[docs]</a>
 <span class="nd">@validate_args</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">build_context_from_biotite</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_context_from_atom_array</span><span class="p">(</span>
     <span class="n">biotite_structure</span><span class="p">:</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">,</span>
     <span class="n">torch_device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
     <span class="n">param_db</span><span class="p">:</span> <span class="n">ParameterDatabase</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -939,6 +937,7 @@
     <span class="n">ligand_params_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">chem_comp_types</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">ligand_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">ligand_hydrogens</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"names"</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseBuildContext</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Build the structure-independent construction context.</span>
 
@@ -978,12 +977,16 @@
 <span class="sd">        ligand_seed: Fixed RNG seed for the conformer each prepared residue</span>
 <span class="sd">            is built from, making preparation reproducible. Only used when</span>
 <span class="sd">            prepare_ligands=True.</span>
+<span class="sd">        ligand_hydrogens: "rebuild" names prepared ligands' hydrogens by parent;</span>
+<span class="sd">            "input" and "names" take the input's names where its hydrogens pair</span>
+<span class="sd">            up parent by parent. Only used when prepare_ligands=True.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        PoseBuildContext containing canonical ordering, packed block</span>
 <span class="sd">        types, parameter database, and residue type set.</span>
 <span class="sd">    """</span>
     <span class="n">torch_device</span> <span class="o">=</span> <span class="n">resolve_device</span><span class="p">(</span><span class="n">torch_device</span><span class="p">)</span>
+    <span class="n">validate_ligand_hydrogens</span><span class="p">(</span><span class="n">ligand_hydrogens</span><span class="p">)</span>
     <span class="c1"># aliased names are resolved before ligand detection, or the residue the</span>
     <span class="c1">#    alias points at would be prepared as a nonstandard one</span>
     <span class="k">if</span> <span class="n">ligand_params_files</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">prepare_ligands</span><span class="p">:</span>
@@ -1032,6 +1035,7 @@
             <span class="n">chem_comp_types</span><span class="o">=</span><span class="n">chem_comp_types</span><span class="p">,</span>
             <span class="n">seed</span><span class="o">=</span><span class="n">ligand_seed</span><span class="p">,</span>
             <span class="n">coordinating_atoms</span><span class="o">=</span><span class="n">coordinating_atoms</span><span class="p">,</span>
+            <span class="n">input_hydrogen_names</span><span class="o">=</span><span class="n">ligand_hydrogens</span> <span class="o">!=</span> <span class="s2">"rebuild"</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="p">(</span>
             <span class="n">using_default_database</span>
@@ -1067,15 +1071,15 @@
 
 
 
-<div class="viewcode-block" id="pose_stack_from_biotite">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.pose_stack_from_biotite">[docs]</a>
+<div class="viewcode-block" id="pose_stack_from_atom_array">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.pose_stack_from_atom_array">[docs]</a>
 <span class="nd">@validate_args</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_biotite</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_atom_array</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
     <span class="n">biotite_structure</span><span class="p">:</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">,</span>
     <span class="n">torch_device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
     <span class="n">param_db</span><span class="p">:</span> <span class="n">ParameterDatabase</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">missing_density_distance_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.4</span><span class="p">,</span>
-    <span class="n">no_optH</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">no_optH</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">prepare_ligands</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">ligand_ph</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">7.4</span><span class="p">,</span>
     <span class="n">strict_atom_types</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -1083,20 +1087,21 @@
     <span class="n">ligand_params_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">chem_comp_types</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">ligand_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">ligand_hydrogens</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"names"</span><span class="p">,</span>
     <span class="n">packer_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">return_context</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">context</span><span class="p">:</span> <span class="n">PoseBuildContext</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">atom37_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStack</span><span class="p">,</span> <span class="n">PoseBuildContext</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""Build a PoseStack from the output generated by Biotite.</span>
+<span class="w">    </span><span class="sd">"""Build a PoseStack from an AtomArray or AtomArrayStack.</span>
 
 <span class="sd">    To score many structures that share the same ligand(s) efficiently, build</span>
 <span class="sd">    the (expensive, structure-independent) context once and reuse it::</span>
 
-<span class="sd">        context = build_context_from_biotite(struct0, dev, prepare_ligands=True)</span>
+<span class="sd">        context = build_context_from_atom_array(struct0, dev, prepare_ligands=True)</span>
 <span class="sd">        for struct in structures:</span>
-<span class="sd">            pose_stack = pose_stack_from_biotite(struct, dev, context=context)</span>
+<span class="sd">            pose_stack = pose_stack_from_atom_array(struct, dev, context=context)</span>
 
 <span class="sd">    Reusing a context skips rebuilding the parameter database, canonical</span>
 <span class="sd">    ordering, residue-type set, and packed block types; only the per-structure</span>
@@ -1121,18 +1126,17 @@
 <span class="sd">            across a gap raises; set to 0 to retain it. Default is 2.4.</span>
 <span class="sd">        no_optH: Residues the input gives no hydrogens take AtomWorks'</span>
 <span class="sd">            protonation state: database residues then get hydrogens built by</span>
-<span class="sd">            tmol, other residues those AtomWorks places. When True (default),</span>
+<span class="sd">            tmol, other residues those AtomWorks places. When True,</span>
 <span class="sd">            preserve finite input hydrogen coordinates, except coincident</span>
 <span class="sd">            hydrogen-parent pairs, which are rebuilt with a warning,</span>
 <span class="sd">            and build only missing hydrogens and heavy-atom sidechains. When</span>
-<span class="sd">            False, residues with complete heavy atoms are packed with OptHSampler</span>
-<span class="sd">            to optimize hydrogen positions and NHQ flips, while residues with</span>
-<span class="sd">            missing heavy atoms are rebuilt with DunbrackChiSampler. Generated</span>
-<span class="sd">            ligand types may still rebuild hydrogens whose names changed during</span>
-<span class="sd">            parameter generation; pass ``trust_hydrogen_names=True`` only when</span>
-<span class="sd">            those names are known to match the prepared database.</span>
+<span class="sd">            False (default), residues with complete heavy atoms are packed with</span>
+<span class="sd">            OptHSampler to optimize hydrogen positions and NHQ flips, while</span>
+<span class="sd">            residues with missing heavy atoms are rebuilt with</span>
+<span class="sd">            DunbrackChiSampler. Generated ligand hydrogens follow</span>
+<span class="sd">            ``ligand_hydrogens`` instead.</span>
 <span class="sd">        prepare_ligands: If True, detect and prepare non-standard residues</span>
-<span class="sd">            (see ``build_context_from_biotite`` for details).</span>
+<span class="sd">            (see ``build_context_from_atom_array`` for details).</span>
 <span class="sd">        ligand_ph: pH AtomWorks protonates residues lacking hydrogens at</span>
 <span class="sd">            (default 7.4).</span>
 <span class="sd">        strict_atom_types: If True, unknown ligand atom types raise errors</span>
@@ -1148,10 +1152,16 @@
 <span class="sd">        ligand_seed: Fixed RNG seed for the conformer each prepared residue</span>
 <span class="sd">            is built from, making preparation reproducible. Only used when</span>
 <span class="sd">            prepare_ligands=True.</span>
+<span class="sd">        ligand_hydrogens: Hydrogens of generated ligand types. "input" takes the</span>
+<span class="sd">            input's names where its hydrogens pair up with the prepared ones</span>
+<span class="sd">            parent by parent, and keeps each input hydrogen at bond length from</span>
+<span class="sd">            the parent its name gives it. "names" (default) takes the names but</span>
+<span class="sd">            rebuilds every coordinate. "rebuild" names them by parent and</span>
+<span class="sd">            rebuilds every coordinate.</span>
 <span class="sd">        packer_seed: Seed of the packer that places hydrogens and builds missing</span>
 <span class="sd">            side chains; unseeded, it continues torch's global random state.</span>
 <span class="sd">        return_context: If True, return ``(pose_stack, PoseBuildContext)``.</span>
-<span class="sd">        context: Reusable context from ``build_context_from_biotite``. It must</span>
+<span class="sd">        context: Reusable context from ``build_context_from_atom_array``. It must</span>
 <span class="sd">            be on ``torch_device`` and is mutually exclusive with ``param_db``</span>
 <span class="sd">            and ``prepare_ligands=True``.</span>
 <span class="sd">        atom37_coords: Optional coordinates shaped ``[pose, token, 37, xyz]``.</span>
@@ -1205,7 +1215,7 @@
                 <span class="p">(</span><span class="n">param_db</span> <span class="ow">or</span> <span class="n">_paramdb_for_biotite</span><span class="p">())</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span>
                 <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"find_additional_metal_coordination"</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
             <span class="p">)</span>
-        <span class="n">context</span> <span class="o">=</span> <span class="n">build_context_from_biotite</span><span class="p">(</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="n">build_context_from_atom_array</span><span class="p">(</span>
             <span class="n">biotite_structure</span><span class="p">,</span>
             <span class="n">torch_device</span><span class="p">,</span>
             <span class="n">param_db</span><span class="o">=</span><span class="n">param_db</span><span class="p">,</span>
@@ -1216,6 +1226,7 @@
             <span class="n">ligand_params_files</span><span class="o">=</span><span class="n">ligand_params_files</span><span class="p">,</span>
             <span class="n">chem_comp_types</span><span class="o">=</span><span class="n">chem_comp_types</span><span class="p">,</span>
             <span class="n">ligand_seed</span><span class="o">=</span><span class="n">ligand_seed</span><span class="p">,</span>
+            <span class="n">ligand_hydrogens</span><span class="o">=</span><span class="n">ligand_hydrogens</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">if</span> <span class="n">atom37_coords</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">biotite_structure</span> <span class="o">=</span> <span class="n">_with_input_hydrogens</span><span class="p">(</span>
@@ -1278,6 +1289,7 @@
         <span class="n">fragment_mapping</span><span class="o">=</span><span class="n">fragment_mapping</span><span class="p">,</span>
         <span class="n">return_context</span><span class="o">=</span><span class="n">return_context</span><span class="p">,</span>
         <span class="n">packer_seed</span><span class="o">=</span><span class="n">packer_seed</span><span class="p">,</span>
+        <span class="n">ligand_hydrogens</span><span class="o">=</span><span class="n">ligand_hydrogens</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span></div>
 
@@ -1321,7 +1333,7 @@
 <span class="sd">        coordinates; retained so gradients survive hydrogen rebuilding.</span>
 <span class="sd">      fragment_mapping: Mapping produced when fragmented ligands were expanded.</span>
 <span class="sd">      return_context: Also return the context used.</span>
-<span class="sd">      packer_seed: Seed of the packer, as for ``pose_stack_from_biotite``.</span>
+<span class="sd">      packer_seed: Seed of the packer, as for ``pose_stack_from_atom_array``.</span>
 
 <span class="sd">    For ordinary structure inputs, coincident bonded heavy atoms raise before</span>
 <span class="sd">    packing; hydrogens coincident with their parent are rebuilt without changing</span>
@@ -1527,7 +1539,7 @@
             <span class="s2">"Ligand (non-polymer) block(s) have missing heavy atoms; "</span>
             <span class="s2">"the available construction frames cannot place them. "</span>
             <span class="s2">"Provide enough resolved anchors or a complete ligand structure "</span>
-            <span class="s2">"before calling pose_stack_from_biotite:</span><span class="se">\n</span><span class="s2">  "</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">  "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">bad</span><span class="p">)</span>
+            <span class="s2">"before calling pose_stack_from_atom_array:</span><span class="se">\n</span><span class="s2">  "</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">  "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">bad</span><span class="p">)</span>
         <span class="p">)</span>
 
 
@@ -1581,27 +1593,29 @@
     <span class="n">head</span> <span class="o">=</span> <span class="n">bad</span><span class="p">[:</span><span class="mi">20</span><span class="p">]</span>
     <span class="n">tail</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  ... and </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">bad</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">20</span><span class="si">}</span><span class="s2"> more"</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bad</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">20</span> <span class="k">else</span> <span class="s2">""</span>
     <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-        <span class="s2">"NaN coordinates produced by pose_stack_from_biotite:</span><span class="se">\n</span><span class="s2">  "</span>
+        <span class="s2">"NaN coordinates produced by pose_stack_from_atom_array:</span><span class="se">\n</span><span class="s2">  "</span>
         <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">  "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">head</span><span class="p">)</span>
         <span class="o">+</span> <span class="n">tail</span>
     <span class="p">)</span>
 
 
-<div class="viewcode-block" id="biotite_from_pose_stack">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.biotite_from_pose_stack">[docs]</a>
+<div class="viewcode-block" id="atom_array_from_pose_stack">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.atom_array_from_pose_stack">[docs]</a>
 <span class="nd">@validate_args</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">biotite_from_pose_stack</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">atom_array_from_pose_stack</span><span class="p">(</span>
     <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
     <span class="n">co</span><span class="p">:</span> <span class="n">CanonicalOrdering</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">merge_fragments</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">include_virtual_atoms</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArray</span> <span class="o">|</span> <span class="n">biotite</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">AtomArrayStack</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Convert PoseStack back to Biotite structure.</span>
+<span class="w">    </span><span class="sd">"""Convert a PoseStack to an AtomArray or AtomArrayStack.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        pose_stack: Pose stack to convert.</span>
 <span class="sd">        co: Canonical ordering used for conversion. Provide the ordering that</span>
-<span class="sd">            was used when ligands or custom residue types are present.</span>
+<span class="sd">            was used when ligands or custom residue types are present. By</span>
+<span class="sd">            default it is built from the pose's own chemical database when</span>
+<span class="sd">            the pose holds types outside the standard ordering.</span>
 <span class="sd">        merge_fragments: Restore fragmented ligands to their original residue</span>
 <span class="sd">            identity. Set to False to keep fragment residues separate.</span>
 <span class="sd">        include_virtual_atoms: Also write virtual atoms, such as a metal's</span>
@@ -1616,7 +1630,7 @@
 <span class="sd">        coordination typed COORDINATION.</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">co</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">co</span> <span class="o">=</span> <span class="n">canonical_ordering_for_biotite</span><span class="p">()</span>
+        <span class="n">co</span> <span class="o">=</span> <span class="n">_canonical_ordering_for_pose_stack</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
     <span class="n">cf</span> <span class="o">=</span> <span class="n">canonical_form_from_pose_stack</span><span class="p">(</span><span class="n">co</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">)</span>
     <span class="n">structure</span><span class="p">,</span> <span class="n">block_for_atom</span> <span class="o">=</span> <span class="n">_biotite_from_canonical_form</span><span class="p">(</span>
         <span class="n">cf</span><span class="p">,</span> <span class="n">co</span><span class="p">,</span> <span class="n">include_virtual_atoms</span>
@@ -1642,6 +1656,20 @@
         <span class="n">structure</span> <span class="o">=</span> <span class="n">recombine_fragmented_ligands</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">_renumbered_for_cif</span><span class="p">(</span><span class="n">structure</span><span class="p">)</span></div>
 
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_canonical_ordering_for_pose_stack</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CanonicalOrdering</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Default Biotite ordering, or one built from the pose's own chemical database.</span>
+
+<span class="sd">    Generated ligand and custom residue types are absent from the default</span>
+<span class="sd">    ordering, but the pose's packed block types carry the database they came from.</span>
+<span class="sd">    """</span>
+    <span class="n">co</span> <span class="o">=</span> <span class="n">canonical_ordering_for_biotite</span><span class="p">()</span>
+    <span class="n">known</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">co</span><span class="o">.</span><span class="n">restype_io_equiv_classes</span><span class="p">)</span>
+    <span class="n">block_types</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">active_block_types</span>
+    <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">io_equiv_class</span> <span class="ow">in</span> <span class="n">known</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">block_types</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">co</span>
+    <span class="k">return</span> <span class="n">CanonicalOrdering</span><span class="o">.</span><span class="n">from_chemdb</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span><span class="o">.</span><span class="n">chem_db</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_with_metals_rejoined</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">block_for_atom</span><span class="p">,</span> <span class="n">origins</span><span class="p">):</span>
@@ -3409,7 +3437,7 @@
 <span class="sd">    author labels default to internal chain IDs and one-based residue positions.</span>
 <span class="sd">    Virtual atoms are left out unless ``include_virtual_atoms``. This host-array</span>
 <span class="sd">    export detaches coordinates from autograd. A canonical form carries no</span>
-<span class="sd">    residue types, so the result has no bonds; biotite_from_pose_stack adds them.</span>
+<span class="sd">    residue types, so the result has no bonds; atom_array_from_pose_stack adds them.</span>
 <span class="sd">    """</span>
     <span class="k">return</span> <span class="n">_biotite_from_canonical_form</span><span class="p">(</span><span class="n">cf</span><span class="p">,</span> <span class="n">co</span><span class="p">,</span> <span class="n">include_virtual_atoms</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
 

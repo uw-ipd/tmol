@@ -538,7 +538,7 @@
 <span class="sd">    Uses ``pose_stack.split_block_mapping`` to identify which residues in</span>
 <span class="sd">    *structure* are split-block fragments and what their original PDB identity</span>
 <span class="sd">    should be.  Atoms are matched by the residue label stored in the pose's</span>
-<span class="sd">    PDBInfo (which is what ``biotite_from_pose_stack`` writes to ``res_id``).</span>
+<span class="sd">    PDBInfo (which is what ``atom_array_from_pose_stack`` writes to ``res_id``).</span>
 <span class="sd">    """</span>
     <span class="n">sbm</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">split_block_mapping</span>
     <span class="k">if</span> <span class="n">sbm</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">sbm</span><span class="o">.</span><span class="n">entries</span><span class="p">:</span>

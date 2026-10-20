@@ -409,9 +409,6 @@
     
     <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../io.html" class="nav-link">tmol.io</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.io._cif</span></li>
   </ul>
 </nav>
@@ -446,7 +443,6 @@
 <span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">biotite.structure</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">struc</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -551,15 +547,13 @@
     <span class="k">return</span> <span class="n">component</span> <span class="k">if</span> <span class="n">component</span><span class="o">.</span><span class="n">bonds</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
 
 
-<div class="viewcode-block" id="atom_array_from_cif">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.atom_array_from_cif">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">atom_array_from_cif</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_atom_array_from_pdbx</span><span class="p">(</span>
     <span class="n">cif_path</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">model</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">assembly_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Read a PDB, CIF, compressed CIF, binary CIF, MOL2 or SDF into an AtomArray.</span>
+<span class="w">    </span><span class="sd">"""Read a PDB, CIF, compressed CIF or binary CIF into an AtomArray.</span>
 
 <span class="sd">    Preserve supplied names, coordinates, hydrogens and covalent connections.</span>
 <span class="sd">    Declared unresolved heavy atoms have NaN coordinates. Chemistry the file</span>
@@ -572,14 +566,6 @@
 <span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._atomworks_reader</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_structure</span>
 
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cif_path</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">))</span> <span class="ow">and</span> <span class="n">Path</span><span class="p">(</span><span class="n">cif_path</span><span class="p">)</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span>
-        <span class="s2">".mol2"</span><span class="p">,</span>
-        <span class="s2">".sdf"</span><span class="p">,</span>
-        <span class="s2">".mol"</span><span class="p">,</span>
-    <span class="p">):</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._assemble</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_mol2</span>
-
-        <span class="k">return</span> <span class="n">atom_array_from_mol2</span><span class="p">(</span><span class="n">cif_path</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">assembly_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
         <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">assembly_id</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">assembly_id</span>
     <span class="p">):</span>
@@ -674,8 +660,7 @@
         <span class="n">product</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">resolve_leaving_atoms</span><span class="p">(</span>
             <span class="n">array</span><span class="p">,</span> <span class="n">preserve_atom_mask</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">array</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">_without_misstated_charges</span><span class="p">(</span><span class="n">product</span><span class="p">,</span> <span class="n">templates</span><span class="p">)</span></div>
-
+        <span class="k">return</span> <span class="n">_without_misstated_charges</span><span class="p">(</span><span class="n">product</span><span class="p">,</span> <span class="n">templates</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_without_misstated_charges</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">templates</span><span class="p">):</span>
@@ -1014,40 +999,6 @@
             <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">source</span><span class="p">[</span><span class="n">begin</span><span class="p">]]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">missing</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="n">extra</span><span class="o">.</span><span class="n">set_annotation</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">extra</span>
-
-
-<div class="viewcode-block" id="pose_stack_from_cif">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.pose_stack_from_cif">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_cif</span><span class="p">(</span>
-    <span class="n">cif_path</span><span class="p">,</span>
-    <span class="n">device</span><span class="p">,</span>
-    <span class="o">*</span><span class="p">,</span>
-    <span class="n">model</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-    <span class="n">assembly_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">residue_start</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">residue_end</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-<span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Construct a PoseStack from a PDB, CIF or binary/compressed CIF structure.</span>
-
-<span class="sd">    Reads the structure with :func:`atom_array_from_cif`, so the residues carry</span>
-<span class="sd">    every atom their chemistry declares and the unresolved ones arrive at NaN</span>
-<span class="sd">    for pose construction to rebuild. Further keyword arguments are passed to</span>
-<span class="sd">    :func:`tmol.io.pose_stack_from_biotite`.</span>
-<span class="sd">    """</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._pose_stack_from_biotite</span><span class="w"> </span><span class="kn">import</span> <span class="n">pose_stack_from_biotite</span>
-
-    <span class="n">array</span> <span class="o">=</span> <span class="n">atom_array_from_cif</span><span class="p">(</span><span class="n">cif_path</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">assembly_id</span><span class="o">=</span><span class="n">assembly_id</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">residue_start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">residue_end</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">boundaries</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">get_residue_starts</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">add_exclusive_stop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">residue_start</span><span class="p">,</span> <span class="n">residue_end</span><span class="p">)</span><span class="o">.</span><span class="n">indices</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">boundaries</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="n">array</span> <span class="o">=</span> <span class="n">array</span><span class="p">[</span><span class="n">boundaries</span><span class="p">[</span><span class="n">start</span><span class="p">]</span> <span class="p">:</span> <span class="n">boundaries</span><span class="p">[</span><span class="n">stop</span><span class="p">]]</span>
-    <span class="k">return</span> <span class="n">pose_stack_from_biotite</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
-
-
-
-<span class="n">atom_array_from_file</span> <span class="o">=</span> <span class="n">atom_array_from_cif</span>
-<span class="n">pose_stack_from_file</span> <span class="o">=</span> <span class="n">pose_stack_from_cif</span>
 </pre></div>
 
                 </article>

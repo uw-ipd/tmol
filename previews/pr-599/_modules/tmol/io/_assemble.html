@@ -409,9 +409,6 @@
     
     <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../io.html" class="nav-link">tmol.io</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.io._assemble</span></li>
   </ul>
 </nav>
@@ -430,8 +427,8 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.io._assemble</h1><div class="highlight"><pre>
-<span></span><span class="sd">"""Join an input split across files (a PDB protein, a MOL2 ligand) into one CIF that</span>
-<span class="sd">carries its own component chemistry."""</span>
+<span></span><span class="sd">"""Read a MOL2/SDF molecule as its own component, and join an input split across</span>
+<span class="sd">files (a PDB protein, a MOL2 ligand) into one structure."""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
@@ -443,15 +440,12 @@
     <span class="n">as_atom_array_plus</span><span class="p">,</span>
     <span class="n">concatenate_atom_array_plus</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">atomworks.io.utils.io_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">CIFWriteConfig</span><span class="p">,</span> <span class="n">to_cif_string</span>
 
 <span class="c1"># Chain IDs to draw from when a part collides with one already taken.</span>
 <span class="n">_CHAIN_ID_POOL</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="s2">"LMNOPQRSTUVWXYZABCDEFGHIJK"</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="atom_array_from_mol2">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.atom_array_from_mol2">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">atom_array_from_mol2</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_atom_array_from_small_molecule</span><span class="p">(</span>
     <span class="n">mol2_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">res_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -470,11 +464,6 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">        A single-residue AtomArray with a populated bond list.</span>
-
-<span class="sd">    Examples:</span>
-<span class="sd">        &gt;&gt;&gt; ligand = atom_array_from_mol2("ligand.mol2")</span>
-<span class="sd">        &gt;&gt;&gt; ligand.bonds.get_bond_count() &gt; 0</span>
-<span class="sd">        True</span>
 <span class="sd">    """</span>
     <span class="c1"># tmol.ligand imports tmol.io</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.ligand._detect</span><span class="w"> </span><span class="kn">import</span> <span class="n">nonstandard_residue_info_from_file</span>
@@ -491,8 +480,7 @@
     <span class="n">atom_array</span><span class="o">.</span><span class="n">_custom_ccd_registry</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">atom_array</span><span class="o">.</span><span class="n">res_name</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">upper</span><span class="p">()]</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">_component_template</span><span class="p">(</span><span class="n">atom_array</span><span class="p">)</span>
     <span class="p">)</span>
-    <span class="k">return</span> <span class="n">atom_array</span></div>
-
+    <span class="k">return</span> <span class="n">atom_array</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_component_template</span><span class="p">(</span><span class="n">residue</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">:</span>
@@ -582,45 +570,6 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"assemble_input requires at least one structure"</span><span class="p">)</span>
     <span class="n">prepared</span> <span class="o">=</span> <span class="n">_harmonised</span><span class="p">(</span><span class="n">_with_unique_chain_ids</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">parts</span><span class="p">)))</span>
     <span class="k">return</span> <span class="n">concatenate_atom_array_plus</span><span class="p">(</span><span class="n">prepared</span><span class="p">)</span></div>
-
-
-
-<div class="viewcode-block" id="cif_from_atom_array">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.cif_from_atom_array">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">cif_from_atom_array</span><span class="p">(</span>
-    <span class="n">atom_array</span><span class="p">:</span> <span class="n">struc</span><span class="o">.</span><span class="n">AtomArray</span><span class="p">,</span>
-    <span class="o">*</span><span class="p">,</span>
-    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">entry_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"assembled"</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Write a structure as a CIF carrying its own component chemistry: known components</span>
-<span class="sd">    from the dictionary, others (a MOL2 ligand) from the structure itself.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        atom_array: Structure to write.</span>
-<span class="sd">        path: Where to write. Returns the CIF text instead when None.</span>
-<span class="sd">        entry_id: Data block name.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        The written path, or the CIF text when ``path`` is None.</span>
-
-<span class="sd">    Examples:</span>
-<span class="sd">        &gt;&gt;&gt; text = cif_from_atom_array(assemble_input(protein, ligand))</span>
-<span class="sd">        &gt;&gt;&gt; "_chem_comp_bond" in text</span>
-<span class="sd">        True</span>
-<span class="sd">    """</span>
-    <span class="n">config</span> <span class="o">=</span> <span class="n">CIFWriteConfig</span><span class="p">(</span>
-        <span class="nb">id</span><span class="o">=</span><span class="n">entry_id</span><span class="p">,</span>
-        <span class="n">include_entity_categories</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">chem_comp_source</span><span class="o">=</span><span class="s2">"ccd"</span><span class="p">,</span>
-        <span class="n">warn_on_ccd_without_registry</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">text</span> <span class="o">=</span> <span class="n">to_cif_string</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">text</span>
-    <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-    <span class="n">path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">path</span></div>
 
 </pre></div>
 
