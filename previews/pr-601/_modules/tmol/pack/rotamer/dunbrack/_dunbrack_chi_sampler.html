@@ -587,7 +587,6 @@
 
 <div class="viewcode-block" id="DunbrackChiSampler.annotate_residue_type">
 <a class="viewcode-back" href="../../../../../api/pack.html#tmol.pack.rotamer.dunbrack.DunbrackChiSampler.annotate_residue_type">[docs]</a>
-    <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">annotate_residue_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">restype</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>  <span class="c1"># noqa: C901</span>
 <span class="w">        </span><span class="sd">"""TEMP TEMP TEMP: assume the dihedrals we care about are phi and psi"""</span>
         <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_key</span><span class="p">()</span>
@@ -777,7 +776,6 @@
 
 <div class="viewcode-block" id="DunbrackChiSampler.annotate_packed_block_types">
 <a class="viewcode-back" href="../../../../../api/pack.html#tmol.pack.rotamer.dunbrack.DunbrackChiSampler.annotate_packed_block_types">[docs]</a>
-    <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">annotate_packed_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
         <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotation_key</span><span class="p">()</span>
         <span class="n">cached</span> <span class="o">=</span> <span class="n">cached_annotation</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"_dun_sampler_annotation"</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
@@ -893,7 +891,6 @@
 
 <div class="viewcode-block" id="DunbrackChiSampler.defines_rotamers_for_rt">
 <a class="viewcode-back" href="../../../../../api/pack.html#tmol.pack.rotamer.dunbrack.DunbrackChiSampler.defines_rotamers_for_rt">[docs]</a>
-    <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">defines_rotamers_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Whether a rotamer library reaches this residue type.</span>
 
@@ -922,7 +919,6 @@
 
 <div class="viewcode-block" id="DunbrackChiSampler.first_sc_atoms_for_rt">
 <a class="viewcode-back" href="../../../../../api/pack.html#tmol.pack.rotamer.dunbrack.DunbrackChiSampler.first_sc_atoms_for_rt">[docs]</a>
-    <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">first_sc_atoms_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">"""The atom chi1 rotates, which is where the sidechain starts.</span>
 
@@ -938,7 +934,6 @@
         <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">atom</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">torsions</span> <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">"chi1"</span><span class="p">)</span></div>
 
 
-    <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">sample_chi_for_poses</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">SetPackerTask</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>
@@ -1193,7 +1188,6 @@
             <span class="n">sampled_chi</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">atom_indices_for_backbone_dihedral</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">bb_dihedral_ind</span><span class="p">:</span> <span class="nb">int</span>
     <span class="p">):</span>
@@ -1326,7 +1320,6 @@
             <span class="n">max_samples_per_restype</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">package_samples_for_output</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">pbt</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">,</span>

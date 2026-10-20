@@ -427,12 +427,18 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.optimization._sfxn_modules</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">deepcopy</span>
+
 <span class="kn">import</span><span class="w"> </span><span class="nn">attrs</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreFunction</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.kinematics</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">FoldForest</span><span class="p">,</span>
+    <span class="n">MoveMap</span><span class="p">,</span>
     <span class="n">NodeType</span><span class="p">,</span>
     <span class="n">BondDOFTypes</span><span class="p">,</span>
     <span class="n">JumpDOFTypes</span><span class="p">,</span>
@@ -590,10 +596,86 @@
 
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_same_fold_forest</span><span class="p">(</span><span class="n">left</span><span class="p">:</span> <span class="n">FoldForest</span><span class="p">,</span> <span class="n">right</span><span class="p">:</span> <span class="n">FoldForest</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">left</span><span class="o">.</span><span class="n">max_n_edges</span> <span class="o">==</span> <span class="n">right</span><span class="o">.</span><span class="n">max_n_edges</span>
+        <span class="ow">and</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">left</span><span class="o">.</span><span class="n">n_edges</span><span class="p">,</span> <span class="n">right</span><span class="o">.</span><span class="n">n_edges</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">left</span><span class="o">.</span><span class="n">edges</span><span class="p">,</span> <span class="n">right</span><span class="o">.</span><span class="n">edges</span><span class="p">)</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_same_move_map</span><span class="p">(</span><span class="n">left</span><span class="p">:</span> <span class="n">MoveMap</span><span class="p">,</span> <span class="n">right</span><span class="p">:</span> <span class="n">MoveMap</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">attrs</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="n">MoveMap</span><span class="p">):</span>
+        <span class="n">left_value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">right_value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">right</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">left_value</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
+                <span class="n">left_value</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">right_value</span><span class="o">.</span><span class="n">shape</span>
+                <span class="ow">and</span> <span class="n">left_value</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="n">right_value</span><span class="o">.</span><span class="n">device</span>
+                <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">left_value</span><span class="p">,</span> <span class="n">right_value</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">elif</span> <span class="n">left_value</span> <span class="o">!=</span> <span class="n">right_value</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="kc">True</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_KinematicScoringModule</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Map movable kinematic DOFs through coordinates to weighted pose scores.</span>
+
+<span class="sd">    Every step is out of place so the same module can run eagerly or be</span>
+<span class="sd">    captured as a CUDA graph. A graph reads ``base_dofs`` and ``base_coords``</span>
+<span class="sd">    by address on replay, so update them in place rather than reassigning.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">kin_module</span><span class="p">:</span> <span class="n">PoseStackKinematicsModule</span><span class="p">,</span>
+        <span class="n">scoring_module</span><span class="p">,</span>
+        <span class="n">base_dofs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">base_coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">dof_flat_idx</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">atom_idx</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kin_module</span> <span class="o">=</span> <span class="n">kin_module</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scoring_module</span> <span class="o">=</span> <span class="n">scoring_module</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_dofs</span> <span class="o">=</span> <span class="n">base_dofs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_coords</span> <span class="o">=</span> <span class="n">base_coords</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dof_flat_idx</span> <span class="o">=</span> <span class="n">dof_flat_idx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atom_idx</span> <span class="o">=</span> <span class="n">atom_idx</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">dofs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">masked_dofs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">base_dofs</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">index_put</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">dof_flat_idx</span><span class="p">,),</span> <span class="n">masked_dofs</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">view_as</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dofs</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">coords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">masked_dofs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="c1"># Node 0 is the kinematic root; it has no pose-stack atom.</span>
+        <span class="n">kin_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kin_module</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dofs</span><span class="p">(</span><span class="n">masked_dofs</span><span class="p">))</span>
+        <span class="n">flat_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_coords</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">index_put</span><span class="p">(</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atom_idx</span><span class="p">,),</span> <span class="n">kin_coords</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">flat_coords</span><span class="o">.</span><span class="n">view_as</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_coords</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">masked_dofs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">scoring_module</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="p">(</span><span class="n">masked_dofs</span><span class="p">))</span>
+
+
 <div class="viewcode-block" id="KinForestSfxnNetwork">
 <a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.KinForestSfxnNetwork">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">KinForestSfxnNetwork</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Differentiable score network over selected kinematic degrees of freedom."""</span>
+<span class="w">    </span><span class="sd">"""Differentiable score network over selected kinematic degrees of freedom.</span>
+
+<span class="sd">    Set ``cuda_graph`` to ``"forward_backward"`` (or ``True``) to capture the</span>
+<span class="sd">    complete DOF-to-score evaluation and its gradient as CUDA graphs,</span>
+<span class="sd">    ``"forward"`` to capture gradient-free evaluation, or ``"both"``. Capture</span>
+<span class="sd">    requires CUDA and a fixed topology; :meth:`_reset` reuses the captured</span>
+<span class="sd">    graphs for new coordinates. Pass ``fold_forest`` and ``move_map`` to</span>
+<span class="sd">    allow that reuse.</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -602,36 +684,37 @@
         <span class="n">kin_module</span><span class="p">:</span> <span class="n">PoseStackKinematicsModule</span><span class="p">,</span>
         <span class="n">dof_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">kin_dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">cuda_graph</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">fold_forest</span><span class="p">:</span> <span class="n">FoldForest</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">move_map</span><span class="p">:</span> <span class="n">MoveMap</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">KinForestSfxnNetwork</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="n">torch_device</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack</span>
+        <span class="c1"># The kinematic graph captures scoring itself; a separate</span>
+        <span class="c1"># coordinate-input scoring graph would only retain more memory.</span>
         <span class="n">wpsm</span> <span class="o">=</span> <span class="n">score_function</span><span class="o">.</span><span class="n">render_whole_pose_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
         <span class="n">kmd</span> <span class="o">=</span> <span class="n">kin_module</span><span class="o">.</span><span class="n">kmd</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ff_copy</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">fold_forest</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">fold_forest</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mm_copy</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">move_map</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">move_map</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">kin_module</span> <span class="o">=</span> <span class="n">kin_module</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">whole_pose_scoring_module</span> <span class="o">=</span> <span class="n">wpsm</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">flat_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kin_dtype</span> <span class="o">=</span> <span class="n">kin_dtype</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_score_function</span> <span class="o">=</span> <span class="n">score_function</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_score_function_versions</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">score_function</span><span class="o">.</span><span class="n">_terms_version</span><span class="p">,</span>
+            <span class="n">score_function</span><span class="o">.</span><span class="n">_options_version</span><span class="p">,</span>
+        <span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">orig_coords_shape</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_atom_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
 
-        <span class="n">kincoords</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">kin_module</span><span class="o">.</span><span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">3</span><span class="p">),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">kin_dtype</span><span class="p">,</span>
-            <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">kincoords</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)[</span><span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">id</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">kin_dtype</span><span class="p">)</span>
-
-        <span class="n">raw_dofs</span> <span class="o">=</span> <span class="n">inverse_kin</span><span class="p">(</span>
-            <span class="n">kincoords</span><span class="p">,</span>
-            <span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
-            <span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">frame_x</span><span class="p">,</span>
-            <span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">frame_y</span><span class="p">,</span>
-            <span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">frame_z</span><span class="p">,</span>
-            <span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">doftype</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">full_dofs</span> <span class="o">=</span> <span class="n">raw_dofs</span>
+        <span class="n">base_coords</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+        <span class="n">raw_dofs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dofs_from_coords</span><span class="p">(</span><span class="n">base_coords</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">dof_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># Default behavior:</span>
@@ -654,7 +737,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">dof_mask</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">as_tuple</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
         <span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">masked_dofs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_dofs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dof_mask</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">masked_dofs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">raw_dofs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dof_mask</span><span class="p">])</span>
 
         <span class="c1"># pose each element of masked_dofs belongs to, for per-pose minimization.</span>
         <span class="c1"># kmd.forest.id is the index into the flattened (pose, atom) coords; the</span>
@@ -665,34 +748,189 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">segment_ids</span> <span class="o">=</span> <span class="n">pose_for_dof</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_dof_flat_idx</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
         <span class="k">assert</span> <span class="nb">bool</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">segment_ids</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()),</span> <span class="s2">"root node dofs cannot be minimized"</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">_kinematic_scoring</span> <span class="o">=</span> <span class="n">_KinematicScoringModule</span><span class="p">(</span>
+            <span class="n">kin_module</span><span class="p">,</span>
+            <span class="n">wpsm</span><span class="p">,</span>
+            <span class="n">raw_dofs</span><span class="p">,</span>
+            <span class="n">base_coords</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dof_flat_idx</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_atom_idx</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># A plain dict keeps the captured modules, and the score weights they</span>
+        <span class="c1"># hold, out of parameters(): optimizers see only masked_dofs.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cuda_graphs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">cuda_graph</span><span class="p">:</span>
+            <span class="n">mode</span> <span class="o">=</span> <span class="s2">"forward_backward"</span> <span class="k">if</span> <span class="n">cuda_graph</span> <span class="ow">is</span> <span class="kc">True</span> <span class="k">else</span> <span class="n">cuda_graph</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">enable_cuda_graphs</span><span class="p">(</span><span class="n">mode</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_dofs_from_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">kmd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kin_module</span><span class="o">.</span><span class="n">kmd</span>
+        <span class="n">kincoords</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kin_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">kincoords</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">_atom_idx</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kin_dtype</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">inverse_kin</span><span class="p">(</span>
+            <span class="n">kincoords</span><span class="p">,</span>
+            <span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
+            <span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">frame_x</span><span class="p">,</span>
+            <span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">frame_y</span><span class="p">,</span>
+            <span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">frame_z</span><span class="p">,</span>
+            <span class="n">kmd</span><span class="o">.</span><span class="n">forest</span><span class="o">.</span><span class="n">doftype</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="KinForestSfxnNetwork.enable_cuda_graphs">
+<a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.KinForestSfxnNetwork.enable_cuda_graphs">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">enable_cuda_graphs</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"forward_backward"</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"KinForestSfxnNetwork"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Capture DOF-to-score evaluation for this fixed topology.</span>
+
+<span class="sd">        Captures forward kinematics, the coordinate scatter, and weighted</span>
+<span class="sd">        scoring as one graph and, for gradients, their backward pass as a</span>
+<span class="sd">        second graph sharing its memory pool. ``mode`` may be ``"forward"``,</span>
+<span class="sd">        ``"forward_backward"``, or ``"both"``; paths already captured are kept.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">masked_dofs</span><span class="o">.</span><span class="n">is_cuda</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"CUDA graphs require CUDA degrees of freedom"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"forward"</span><span class="p">,</span> <span class="s2">"forward_backward"</span><span class="p">,</span> <span class="s2">"both"</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unsupported CUDA graph mode: </span><span class="si">{</span><span class="n">mode</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score._score_function</span><span class="w"> </span><span class="kn">import</span> <span class="n">_InferenceCUDAGraph</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score.common._cuda_graph</span><span class="w"> </span><span class="kn">import</span> <span class="n">CapturedScoringGraph</span>
+
+        <span class="n">graph_module</span> <span class="o">=</span> <span class="n">_KinematicScoringModule</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">kin_module</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">whole_pose_scoring_module</span><span class="o">.</span><span class="n">_graph_capturable_module</span><span class="p">(),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_kinematic_scoring</span><span class="o">.</span><span class="n">base_dofs</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_kinematic_scoring</span><span class="o">.</span><span class="n">base_coords</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dof_flat_idx</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_atom_idx</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"forward"</span><span class="p">,</span> <span class="s2">"both"</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">"forward"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cuda_graphs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cuda_graphs</span><span class="p">[</span><span class="s2">"forward"</span><span class="p">]</span> <span class="o">=</span> <span class="n">_InferenceCUDAGraph</span><span class="p">(</span>
+                <span class="n">graph_module</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">masked_dofs</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"forward_backward"</span><span class="p">,</span> <span class="s2">"both"</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">"autograd"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cuda_graphs</span><span class="p">:</span>
+            <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">masked_dofs</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">with</span> <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">sample</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">enable_grad</span><span class="p">(),</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">(),</span>
+            <span class="p">):</span>
+                <span class="c1"># Scoring parameters may retain an AccumulateGrad node on</span>
+                <span class="c1"># another stream. Suppress only that known warmup warning.</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span>
+                    <span class="s2">"ignore"</span><span class="p">,</span>
+                    <span class="n">message</span><span class="o">=</span><span class="s2">"The AccumulateGrad node's stream does not match"</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_cuda_graphs</span><span class="p">[</span><span class="s2">"autograd"</span><span class="p">]</span> <span class="o">=</span> <span class="n">CapturedScoringGraph</span><span class="p">(</span>
+                    <span class="n">graph_module</span><span class="p">,</span> <span class="n">sample</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">full_dofs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""All kinematic DOFs at the current movable-DOF values."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_kinematic_scoring</span><span class="o">.</span><span class="n">dofs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masked_dofs</span><span class="o">.</span><span class="n">detach</span><span class="p">())</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">full_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Pose-stack coordinates at the current movable-DOF values."""</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_kinematic_scoring</span><span class="o">.</span><span class="n">coords</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masked_dofs</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">flat_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_reusable_for</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">score_function</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
+        <span class="n">fold_forest</span><span class="p">:</span> <span class="n">FoldForest</span><span class="p">,</span>
+        <span class="n">move_map</span><span class="p">:</span> <span class="n">MoveMap</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return whether this network can score another pose without rendering."""</span>
+        <span class="c1"># Check cheap Python identity and shape predicates before any tensor</span>
+        <span class="c1"># comparison. The normal repeated-topology path shares these tensors,</span>
+        <span class="c1"># so it avoids both rebuilding ``real_atoms`` and synchronizing CUDA.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
+            <span class="n">score_function</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">_score_function</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_score_function_versions</span>
+            <span class="o">==</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_score_function</span><span class="o">.</span><span class="n">_terms_version</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_score_function</span><span class="o">.</span><span class="n">_options_version</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="ow">and</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+            <span class="ow">and</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">constraint_set</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">constraint_set</span>
+            <span class="ow">and</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span>
+            <span class="ow">and</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span>
+            <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_residue_connections</span>
+            <span class="ow">and</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_block_bondsep</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">inter_block_bondsep</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ff_copy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">mm_copy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="n">_same_fold_forest</span><span class="p">(</span><span class="n">fold_forest</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ff_copy</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="c1"># The fold forest and move map are mutable, so compare their contents</span>
+        <span class="c1"># against the copies taken at construction rather than identity.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_same_move_map</span><span class="p">(</span><span class="n">move_map</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mm_copy</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span>
+            <span class="ow">or</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind</span><span class="p">)</span>
+        <span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span>
+            <span class="ow">or</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span>
+                <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_reset</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">score_function</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span>
+        <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
+        <span class="n">fold_forest</span><span class="p">:</span> <span class="n">FoldForest</span><span class="p">,</span>
+        <span class="n">move_map</span><span class="p">:</span> <span class="n">MoveMap</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Reset for a compatible pose topology; report whether it was reused."""</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reusable_for</span><span class="p">(</span><span class="n">score_function</span><span class="p">,</span> <span class="n">pose_stack</span><span class="p">,</span> <span class="n">fold_forest</span><span class="p">,</span> <span class="n">move_map</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span> <span class="o">=</span> <span class="n">pose_stack</span>
+        <span class="c1"># Copy in place: captured graphs read these buffers by address.</span>
+        <span class="n">scoring</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_kinematic_scoring</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">whole_pose_scoring_module</span><span class="o">.</span><span class="n">weights</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span>
+                <span class="n">score_function</span><span class="o">.</span><span class="n">weights_tensor</span><span class="p">()</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">scoring</span><span class="o">.</span><span class="n">base_coords</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+            <span class="n">scoring</span><span class="o">.</span><span class="n">base_dofs</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dofs_from_coords</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">masked_dofs</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">scoring</span><span class="o">.</span><span class="n">base_dofs</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">_dof_flat_idx</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">masked_dofs</span><span class="o">.</span><span class="n">grad</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
 <div class="viewcode-block" id="KinForestSfxnNetwork.forward">
 <a class="viewcode-back" href="../../../api/optimization.html#tmol.optimization.KinForestSfxnNetwork.forward">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="c1"># get rid of any gradients from the previous iteration</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">full_dofs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_dofs</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">flat_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flat_coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
-
-        <span class="c1"># update the full-dofs, calc the coords, and map them</span>
-        <span class="c1"># to the pose-stack-ordered coords</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">full_dofs</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">_dof_flat_idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">masked_dofs</span>
-        <span class="n">kin_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kin_module</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_dofs</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">flat_coords</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span> <span class="o">=</span> <span class="n">kin_coords</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">flat_coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flat_coords</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">orig_coords_shape</span><span class="p">)</span>
-
-        <span class="c1"># now evaluate the score</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">whole_pose_scoring_module</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="p">)</span></div>
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_grad_enabled</span><span class="p">():</span>
+            <span class="n">graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cuda_graphs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"autograd"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">graph</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Graph replay reuses its output storage. Optimizers such as</span>
+                <span class="c1"># LBFGS retain earlier losses, so return owned storage.</span>
+                <span class="k">return</span> <span class="n">graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masked_dofs</span><span class="p">)</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cuda_graphs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"forward"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">graph</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masked_dofs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_kinematic_scoring</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masked_dofs</span><span class="p">)</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_from_dofs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStack</span><span class="p">:</span>
-        <span class="n">full_dofs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_dofs</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
-        <span class="n">flat_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flat_coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
-        <span class="n">full_dofs</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">_dof_flat_idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">masked_dofs</span>
-        <span class="n">kin_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kin_module</span><span class="p">(</span><span class="n">full_dofs</span><span class="p">)</span>
-        <span class="n">flat_coords</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span> <span class="o">=</span> <span class="n">kin_coords</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">flat_coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="n">full_coords</span> <span class="o">=</span> <span class="n">flat_coords</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">orig_coords_shape</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">attrs</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">full_coords</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">attrs</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">full_coords</span><span class="p">)</span></div>
 
 </pre></div>
 
