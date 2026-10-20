@@ -431,7 +431,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreFunction</span><span class="p">,</span> <span class="n">beta2016_score_function</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreFunction</span><span class="p">,</span> <span class="n">ScoreType</span><span class="p">,</span> <span class="n">beta2016_score_function</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">pack_rotamers</span><span class="p">,</span> <span class="n">PackerTask</span><span class="p">,</span> <span class="n">PackerPalette</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">ConjugatedSCSampler</span><span class="p">,</span>
@@ -681,6 +681,28 @@
     <span class="n">symmetrized</span> <span class="o">=</span> <span class="n">block_pair_scores</span> <span class="o">+</span> <span class="n">block_pair_scores</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">torch</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">symmetrized</span><span class="p">,</span> <span class="n">dim1</span><span class="o">=-</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim2</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">diag</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">symmetrized</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="block_energies">
+<a class="viewcode-back" href="../../../api/analysis.html#tmol.ops.block_energies">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">block_energies</span><span class="p">(</span>
+    <span class="n">score_function</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span>
+    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
+    <span class="n">score_type</span><span class="p">:</span> <span class="n">ScoreType</span><span class="p">,</span>
+    <span class="n">pose</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">blocks</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Weighted energy of one term involving each block.</span>
+
+<span class="sd">    Each value is that block's row plus column of the block-pair matrix for</span>
+<span class="sd">    ``score_type``, i.e. every interaction the block participates in</span>
+<span class="sd">    (including with itself), counted once.</span>
+<span class="sd">    """</span>
+    <span class="n">block_scorer</span> <span class="o">=</span> <span class="n">score_function</span><span class="o">.</span><span class="n">render_block_pair_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
+    <span class="n">terms</span> <span class="o">=</span> <span class="n">block_scorer</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span> <span class="n">sum_terms</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">apply_weights</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">pair</span> <span class="o">=</span> <span class="n">terms</span><span class="p">[</span><span class="n">score_function</span><span class="o">.</span><span class="n">all_score_types</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">score_type</span><span class="p">),</span> <span class="n">pose</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">pair</span><span class="p">[</span><span class="n">b</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">+</span> <span class="n">pair</span><span class="p">[:,</span> <span class="n">b</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">-</span> <span class="n">pair</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">b</span><span class="p">])</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">blocks</span><span class="p">]</span></div>
 
 
 
