@@ -462,10 +462,28 @@ make<span class="w"> </span>-C<span class="w"> </span>docs<span class="w"> </spa
 </pre></div>
 </div>
 <p>Rendered HTML is written to <code class="docutils literal notranslate"><span class="pre">docs/_build/html</span></code>.</p>
-<p>The committed notebook thumbnails live under <code class="docutils literal notranslate"><span class="pre">docs/_static/tutorials/</span></code>.
-nbsphinx does not execute notebooks during the Sphinx phase; the smoke command
+<p>nbsphinx does not execute notebooks during the Sphinx phase; the smoke command
 above executes them first and writes the plots, tables, and viewer HTML that
 Sphinx consumes. CI performs the same two-step notebook-and-Sphinx build.</p>
+<section id="adding-a-tutorial-notebook">
+<h3>Adding a tutorial notebook<a class="headerlink" href="#adding-a-tutorial-notebook" title="Link to this heading">#</a></h3>
+<p>Put it in <code class="docutils literal notranslate"><span class="pre">docs/tutorial/</span></code> as <code class="docutils literal notranslate"><span class="pre">NN_name.ipynb</span></code> and add it to the gallery in
+<code class="docutils literal notranslate"><span class="pre">docs/examples_index.rst</span></code>. CI finds notebooks by that pattern, so nothing else
+needs registering. A tutorial must:</p>
+<ul class="simple">
+<li><p>start with the shared setup cell (copy it from an existing notebook):
+<code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">notebook_setup</span> <span class="pre">import</span> <span class="pre">*</span></code> then <code class="docutils literal notranslate"><span class="pre">device,</span> <span class="pre">param_db</span> <span class="pre">=</span> <span class="pre">setup()</span></code>.
+<a class="reference download internal" download="" href="_downloads/0d74b966c1a6e97f79da47a900c29009/notebook_setup.py"><span class="xref download myst"><code class="docutils literal notranslate"><span class="pre">notebook_setup.py</span></code></span></a> installs TMol on Colab and
+provides the common TMol names, <code class="docutils literal notranslate"><span class="pre">data_path()</span></code> for the checked-in example
+structures, and the device and seed. Add new example files to its <code class="docutils literal notranslate"><span class="pre">FIXTURES</span></code>
+so Colab downloads them;</p></li>
+<li><p>carry an Open In Colab badge linking to itself, and the <code class="docutils literal notranslate"><span class="pre">accelerator:</span> <span class="pre">GPU</span></code>
+notebook metadata. <code class="docutils literal notranslate"><span class="pre">smoke_tutorial_notebooks.py</span></code> rejects a notebook without
+them;</p></li>
+<li><p>opt into the CUDA smoke run in CI with <code class="docutils literal notranslate"><span class="pre">&quot;tmol&quot;:</span> <span class="pre">{&quot;gpu_smoke&quot;:</span> <span class="pre">true}</span></code> in the
+notebook metadata. Tag cells that need a GPU with <code class="docutils literal notranslate"><span class="pre">gpu-only</span></code>.</p></li>
+</ul>
+</section>
 </section>
 <section id="writing-documentation">
 <h2>Writing documentation<a class="headerlink" href="#writing-documentation" title="Link to this heading">#</a></h2>
@@ -577,7 +595,10 @@ and its eval case together. See
   </div>
   <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="pst-show_toc_level nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#documentation">Documentation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#documentation">Documentation</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#adding-a-tutorial-notebook">Adding a tutorial notebook</a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#writing-documentation">Writing documentation</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pull-requests">Pull requests</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#api-documentation">API documentation</a></li>

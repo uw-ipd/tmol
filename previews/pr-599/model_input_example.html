@@ -504,16 +504,16 @@
     <span class="n">IN_COLAB</span> <span class="o">=</span> <span class="kc">True</span>
 
 <span class="k">if</span> <span class="n">IN_COLAB</span><span class="p">:</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">urllib.request</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlopen</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">urllib.request</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlretrieve</span>
 
-    <span class="n">exec</span><span class="p">(</span>
-        <span class="n">urlopen</span><span class="p">(</span>
-            <span class="s2">"https://raw.githubusercontent.com/uw-ipd/tmol/"</span>
-            <span class="s2">"master/docs/tutorial/colab_setup.py"</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span>
-        <span class="nb">globals</span><span class="p">(),</span>
+    <span class="n">urlretrieve</span><span class="p">(</span>
+        <span class="s2">"https://raw.githubusercontent.com/uw-ipd/tmol/"</span>
+        <span class="s2">"master/docs/tutorial/notebook_setup.py"</span><span class="p">,</span>
+        <span class="s2">"notebook_setup.py"</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">setup_colab</span><span class="p">(</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">notebook_setup</span>
+
+    <span class="n">notebook_setup</span><span class="o">.</span><span class="n">setup_colab</span><span class="p">(</span>
         <span class="p">[</span>
             <span class="s2">"tmol/tests/data/openfold/openfold_ubq_and_sumo.pt"</span><span class="p">,</span>
             <span class="s2">"tmol/tests/data/rosettafold2/ubiquitin.pt"</span><span class="p">,</span>

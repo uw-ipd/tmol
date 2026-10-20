@@ -53,4 +53,4 @@ can follow packing; select its movable atoms separately.
 
 ## Examples and reference
 
-{doc}`DNA/RNA tutorial </tutorial/08_nucleic_acids>` · {doc}`Packing </workflows/packing>` · {doc}`Scoring API </api/score>`
+{doc}`DNA/RNA tutorial </tutorial/03_metals_and_nucleic_acids>` · {doc}`Packing </workflows/packing>` · {doc}`Scoring API </api/score>`

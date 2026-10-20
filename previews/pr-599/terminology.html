@@ -504,7 +504,7 @@ A <strong>rotamer</strong> is a candidate side-chain conformation.</p>
 neighboring choices interact. <strong>Design</strong> also permits residue identities to
 change, according to the packer task.</p>
 <p>The <a class="reference internal" href="playground.html"><span class="doc">Protein score playground</span></a> isolates two side-chain angles. The
-<a class="reference internal" href="tutorial/04_packing_and_mutation_scan.html"><span class="doc">packing notebook</span></a> runs a full
+<a class="reference internal" href="tutorial/02_scoring_and_optimization.html"><span class="doc">scoring and optimization notebook</span></a> runs a full
 repacking calculation with residue-specific conformer samplers.</p>
 <p><span id="cartesian-and-kinematic-movement"></span></p>
 </section>
@@ -559,7 +559,7 @@ The two poses remain independent.</p>
 </section><p>Chemical connectivity and the kinematic tree are distinct. A cyclic molecule
 needs a cut in its kinematic representation even though its chemical bond
 remains. Choose the tree and allowed moves together; see the
-<a class="reference internal" href="tutorial/12_explicit_foldforests_and_torsions.html"><span class="doc">fold-forest notebook</span></a>.</p>
+<a class="reference internal" href="tutorial/07_advanced_kinematics.html"><span class="doc">fold-forest notebook</span></a>.</p>
 </section>
 <section id="movemap-and-constraints">
 <h2>MoveMap and constraints<a class="headerlink" href="#movemap-and-constraints" title="Link to this heading">#</a></h2>
@@ -588,7 +588,7 @@ score. Lower repulsion during a stage does not itself mean the structure improve
   <div class="relax-operations"><span>Repack <strong id="relax-pack">4.0%</strong></span><span aria-hidden="true">→</span><span>Minimize <strong id="relax-min">5.1%</strong></span><span aria-hidden="true">→</span><span>Next stage</span></div>
   <p class="explorer-explanation" aria-live="polite">Stage 1: repack, then minimize at the indicated fractions of the full repulsion weight.</p>
 </section><p>The default protocol uses Cartesian minimization and repeats the four-stage
-schedule twice. See the <a class="reference internal" href="tutorial/06_fast_relax.html"><span class="doc">FastRelax notebook</span></a> to run
+schedule twice. See the <a class="reference internal" href="tutorial/02_scoring_and_optimization.html"><span class="doc">scoring and optimization notebook</span></a> to run
 it and compare structures.</p>
 <p><span id="parameterdatabase-and-packedblocktypes"></span></p>
 </section>
