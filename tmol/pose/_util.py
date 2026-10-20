@@ -45,6 +45,27 @@ def get_ligand_mask(pose_stack: PoseStack) -> torch.Tensor:
     return real & ~is_polymer_by_type[safe_ind]
 
 
+def get_polymer_type_mask(pose_stack: PoseStack, polymer_type) -> torch.Tensor:
+    """Boolean mask shaped ``[n_poses, max_n_blocks]``, true where a block's
+    ``properties.polymer.polymer_type`` equals ``polymer_type`` (one of
+    ``"amino_acid"``, ``"nucleic_acid"``, or ``None`` for a non-polymer like a
+    ligand or ion). Padding blocks are false.
+    """
+    pbt = pose_stack.packed_block_types
+    matches_by_type = torch.tensor(
+        [
+            bt.properties.polymer.polymer_type == polymer_type
+            for bt in pbt.active_block_types
+        ],
+        dtype=torch.bool,
+        device=pose_stack.device,
+    )
+    block_type_ind64 = pose_stack.block_type_ind64
+    real = block_type_ind64 >= 0
+    safe_ind = torch.where(real, block_type_ind64, torch.zeros_like(block_type_ind64))
+    return real & matches_by_type[safe_ind]
+
+
 def metal_blocks(pose_stack: PoseStack, pose: int) -> List[int]:
     """Indices of the blocks in one pose that carry metal sites."""
     return [
