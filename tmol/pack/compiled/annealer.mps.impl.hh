@@ -2,8 +2,8 @@
 
 // Simulated annealing on Metal: the host half.
 //
-// The kernel body lives in annealer_kernels.hh and is shared with the other
-// backends; this file does what only the host can -- build the graph's
+// The kernel body lives in annealer_kernels.hh (Metal only; CPU and CUDA keep
+// their own annealers); this file does what only the host can -- build the graph's
 // transposed offset table, and drive the three rounds of the funnel, ranking
 // between them.
 //
