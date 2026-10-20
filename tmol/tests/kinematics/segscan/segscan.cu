@@ -212,18 +212,23 @@ struct segscan<Real, Ident, OP, tmol::Device::CUDA, scan_type, nt, vt> {
     };
 
     mgpu::standard_context_t context;
-    tmol::kinematics::kernel_segscan<mgpu::launch_params_t<nt, vt>, scan_type>(
-        data_loader,
-        nelts,
-        segs.data(),
-        nsegs,
-        res.data(),
-        scanCarryout.data(),
-        scanCodes.data(),
-        LBS.data(),
-        OP(),
-        init,
-        context);
+    // kernel_segscan is mgpu code and takes mgpu's scan type.
+    constexpr mgpu::scan_type_t mgpu_scan_type =
+        scan_type == tmol::portable::scan_type::inclusive ? mgpu::scan_type_inc
+                                                          : mgpu::scan_type_exc;
+    tmol::kinematics::
+        kernel_segscan<mgpu::launch_params_t<nt, vt>, mgpu_scan_type>(
+            data_loader,
+            nelts,
+            segs.data(),
+            nsegs,
+            res.data(),
+            scanCarryout.data(),
+            scanCodes.data(),
+            LBS.data(),
+            OP(),
+            init,
+            context);
 
     return res_t;
   }
