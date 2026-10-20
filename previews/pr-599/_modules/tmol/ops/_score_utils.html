@@ -726,13 +726,14 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        pose_stack: Poses supplying the block-to-coordinate layout.</span>
-<span class="sd">        mask: Selected blocks shaped ``[n_poses, n_blocks]``.</span>
+<span class="sd">        mask: Selected blocks shaped ``[n_poses, n_blocks]``. It may live on</span>
+<span class="sd">            any device; it is moved to the pose's device.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Selected real atoms shaped ``[n_poses, max_n_atoms]``.</span>
 <span class="sd">    """</span>
     <span class="n">block_for_atom</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">real_atoms</span> <span class="o">=</span> <span class="n">_compact_atom_layout</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">mask</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">block_for_atom</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">real_atoms</span></div>
+    <span class="k">return</span> <span class="n">mask</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">block_for_atom</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">block_for_atom</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">real_atoms</span></div>
 
 
 
@@ -997,6 +998,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        Coordinate mask shaped ``[n_poses, max_n_atoms]``.</span>
 <span class="sd">    """</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="n">coord_mask</span> <span class="o">=</span> <span class="n">res_mask_to_coord_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
     <span class="n">sidechain_mask</span> <span class="o">=</span> <span class="n">build_sidechain_coord_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>  <span class="c1"># [n_poses, max_n_atoms]</span>
 

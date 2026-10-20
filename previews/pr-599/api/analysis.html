@@ -639,7 +639,8 @@ input: <code class="docutils literal notranslate"><span class="pre">[n_poses,</s
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>pose_stack</strong> – Poses supplying the block-to-coordinate layout.</p></li>
-<li><p><strong>mask</strong> – Selected blocks shaped <code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_blocks]</span></code>.</p></li>
+<li><p><strong>mask</strong> – Selected blocks shaped <code class="docutils literal notranslate"><span class="pre">[n_poses,</span> <span class="pre">n_blocks]</span></code>. It may live on
+any device; it is moved to the pose’s device.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
