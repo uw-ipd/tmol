@@ -51,7 +51,6 @@ __all__ = [
     "ScoreFunction",
     "ScoreType",
     "atom_label",
-    "atom_records_from_pose_stack",
     "atom_array_from_file",
     "atom_array_from_pose_stack",
     "file_from_atom_array",
