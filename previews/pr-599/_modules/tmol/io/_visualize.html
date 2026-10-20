@@ -772,6 +772,140 @@
 
 
 
+<div class="viewcode-block" id="overlay_view">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.overlay_view">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">overlay_view</span><span class="p">(</span>
+    <span class="n">structures</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">StructureInput</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">notes</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">colors</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">default</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"both"</span><span class="p">,</span>
+    <span class="n">width</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">720</span><span class="p">,</span>
+    <span class="n">height</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">420</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Compare two or more structures, with the option to overlay them all.</span>
+
+<span class="sd">    A selector shows any one structure alone (as :func:`view` would render</span>
+<span class="sd">    it), or all of them at once in a single shared viewer, each colored</span>
+<span class="sd">    distinctly.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        structures: Two or more labeled structures, each accepted by :func:`view`.</span>
+<span class="sd">        notes: Optional mapping of structure labels to short explanatory text,</span>
+<span class="sd">            shown under each individual (non-overlay) panel.</span>
+<span class="sd">        colors: Optional mapping of structure labels to a color used for that</span>
+<span class="sd">            structure in the overlay panel. Unlisted labels draw from a</span>
+<span class="sd">            default categorical palette, cycling if there are more structures</span>
+<span class="sd">            than colors in it.</span>
+<span class="sd">        default: Which panel is visible initially: ``"both"`` (the overlay,</span>
+<span class="sd">            the default) or one of the structure labels.</span>
+<span class="sd">        width: Viewer width in pixels.</span>
+<span class="sd">        height: Viewer height in pixels.</span>
+<span class="sd">    """</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">py3Dmol</span>
+    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">"tmol.overlay_view() requires py3Dmol. Install it with "</span>
+            <span class="s2">"`python -m pip install py3Dmol` or `python -m pip install -e '.[docs]'`."</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+
+    <span class="n">labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">structures</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"overlay_view compares two or more structures"</span><span class="p">)</span>
+
+    <span class="n">notes</span> <span class="o">=</span> <span class="n">notes</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">default_palette</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"#2563eb"</span><span class="p">,</span> <span class="s2">"#f97316"</span><span class="p">,</span> <span class="s2">"#16a34a"</span><span class="p">,</span> <span class="s2">"#9333ea"</span><span class="p">,</span> <span class="s2">"#dc2626"</span><span class="p">,</span> <span class="s2">"#0891b2"</span><span class="p">]</span>
+    <span class="n">colors</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">label</span><span class="p">:</span> <span class="p">(</span><span class="n">colors</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">default_palette</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">default_palette</span><span class="p">)])</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="n">root_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"tmol-overlay-</span><span class="si">{</span><span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="si">}</span><span class="s2">"</span>
+    <span class="n">select_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2">-select"</span>
+
+    <span class="n">panels</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">labels</span><span class="p">):</span>
+        <span class="n">viewer</span> <span class="o">=</span> <span class="n">view</span><span class="p">(</span><span class="n">structures</span><span class="p">[</span><span class="n">label</span><span class="p">],</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">)</span>
+        <span class="n">note</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">notes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span>
+        <span class="n">options</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">index</span><span class="p">,</span> <span class="n">label</span><span class="p">))</span>
+        <span class="n">panels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"""</span>
+<span class="s2">&lt;section class="tmol-switch-panel" style="position:absolute;inset:0;visibility:hidden"&gt;</span>
+<span class="s2">  &lt;div class="tmol-viewer-note"&gt;</span><span class="si">{</span><span class="n">escape</span><span class="p">(</span><span class="n">note</span><span class="p">)</span><span class="si">}</span><span class="s2">&lt;/div&gt;</span>
+<span class="s2">  </span><span class="si">{</span><span class="n">_viewer_html</span><span class="p">(</span><span class="n">viewer</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">&lt;/section&gt;"""</span><span class="p">)</span>
+
+    <span class="n">overlay_viewer</span> <span class="o">=</span> <span class="n">py3Dmol</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">)</span>
+    <span class="n">overlay_viewer</span><span class="o">.</span><span class="n">setBackgroundColor</span><span class="p">(</span><span class="s2">"white"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">labels</span><span class="p">):</span>
+        <span class="n">pdb_text</span> <span class="o">=</span> <span class="n">_pdb_text</span><span class="p">(</span><span class="n">structures</span><span class="p">[</span><span class="n">label</span><span class="p">])</span>
+        <span class="n">color</span> <span class="o">=</span> <span class="n">colors</span><span class="p">[</span><span class="n">label</span><span class="p">]</span>
+        <span class="n">overlay_viewer</span><span class="o">.</span><span class="n">addModel</span><span class="p">(</span><span class="n">pdb_text</span><span class="p">,</span> <span class="s2">"pdb"</span><span class="p">)</span>
+        <span class="n">overlay_viewer</span><span class="o">.</span><span class="n">setStyle</span><span class="p">({</span><span class="s2">"model"</span><span class="p">:</span> <span class="n">index</span><span class="p">},</span> <span class="p">{</span><span class="s2">"cartoon"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"color"</span><span class="p">:</span> <span class="n">color</span><span class="p">}})</span>
+        <span class="n">overlay_viewer</span><span class="o">.</span><span class="n">addStyle</span><span class="p">(</span>
+            <span class="p">{</span><span class="s2">"model"</span><span class="p">:</span> <span class="n">index</span><span class="p">,</span> <span class="s2">"not"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"hetflag"</span><span class="p">:</span> <span class="kc">True</span><span class="p">}},</span>
+            <span class="p">{</span><span class="s2">"stick"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"color"</span><span class="p">:</span> <span class="n">color</span><span class="p">,</span> <span class="s2">"radius"</span><span class="p">:</span> <span class="mf">0.08</span><span class="p">,</span> <span class="s2">"opacity"</span><span class="p">:</span> <span class="mf">0.6</span><span class="p">}},</span>
+        <span class="p">)</span>
+        <span class="n">overlay_viewer</span><span class="o">.</span><span class="n">setStyle</span><span class="p">(</span>
+            <span class="p">{</span><span class="s2">"model"</span><span class="p">:</span> <span class="n">index</span><span class="p">,</span> <span class="s2">"hetflag"</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+            <span class="p">{</span><span class="s2">"stick"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"color"</span><span class="p">:</span> <span class="n">color</span><span class="p">,</span> <span class="s2">"radius"</span><span class="p">:</span> <span class="mf">0.22</span><span class="p">}},</span>
+        <span class="p">)</span>
+    <span class="n">_add_hover_labels</span><span class="p">(</span><span class="n">overlay_viewer</span><span class="p">)</span>
+    <span class="n">overlay_viewer</span><span class="o">.</span><span class="n">zoomTo</span><span class="p">()</span>
+
+    <span class="n">overlay_index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+    <span class="n">overlay_note</span> <span class="o">=</span> <span class="s2">" vs. "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s1">'&lt;span style="color:</span><span class="si">{</span><span class="n">colors</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="si">}</span><span class="s1">"&gt;</span><span class="si">{</span><span class="n">escape</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">label</span><span class="p">))</span><span class="si">}</span><span class="s1">&lt;/span&gt;'</span>
+        <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span>
+    <span class="p">)</span>
+    <span class="n">panels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"""</span>
+<span class="s2">&lt;section class="tmol-switch-panel" style="position:absolute;inset:0;visibility:hidden"&gt;</span>
+<span class="s2">  &lt;div class="tmol-viewer-note"&gt;</span><span class="si">{</span><span class="n">overlay_note</span><span class="si">}</span><span class="s2">&lt;/div&gt;</span>
+<span class="s2">  </span><span class="si">{</span><span class="n">_viewer_html</span><span class="p">(</span><span class="n">overlay_viewer</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">&lt;/section&gt;"""</span><span class="p">)</span>
+    <span class="n">options</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">overlay_index</span><span class="p">,</span> <span class="s2">"Both"</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="k">else</span> <span class="s2">"All"</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">default</span> <span class="o">==</span> <span class="s2">"both"</span><span class="p">:</span>
+        <span class="n">default_index</span> <span class="o">=</span> <span class="n">overlay_index</span>
+    <span class="k">elif</span> <span class="n">default</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">:</span>
+        <span class="n">default_index</span> <span class="o">=</span> <span class="n">labels</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">default</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"default must be 'both' or one of </span><span class="si">{</span><span class="n">labels</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">option_html</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s1">'&lt;option value="</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s1">"'</span>
+        <span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="s2">" selected"</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">index</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">default_index</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">""</span><span class="si">}</span><span class="s1">&gt;'</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">escape</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">label</span><span class="p">))</span><span class="si">}</span><span class="s2">&lt;/option&gt;"</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">options</span>
+    <span class="p">)</span>
+    <span class="n">html</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""</span>
+<span class="s2">&lt;div class="tmol-switchable-view" id="</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2">" style="max-width:</span><span class="si">{</span><span class="n">width</span><span class="si">}</span><span class="s2">px"&gt;</span>
+<span class="s2">  &lt;label&gt;Show: &lt;select id="</span><span class="si">{</span><span class="n">select_id</span><span class="si">}</span><span class="s2">"&gt;</span><span class="si">{</span><span class="n">option_html</span><span class="si">}</span><span class="s2">&lt;/select&gt;&lt;/label&gt;</span>
+<span class="s2">  &lt;div style="position:relative;width:100%;height:</span><span class="si">{</span><span class="n">height</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">32</span><span class="si">}</span><span class="s2">px"&gt;</span>
+<span class="s2">    </span><span class="si">{</span><span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">panels</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">  &lt;/div&gt;</span>
+<span class="s2">&lt;/div&gt;</span>
+<span class="s2">&lt;script&gt;</span>
+<span class="s2">(() =&gt; </span><span class="se">{{</span>
+<span class="s2">  const root = document.getElementById(</span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">root_id</span><span class="p">)</span><span class="si">}</span><span class="s2">);</span>
+<span class="s2">  const select = document.getElementById(</span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">select_id</span><span class="p">)</span><span class="si">}</span><span class="s2">);</span>
+<span class="s2">  const panels = root.querySelectorAll('.tmol-switch-panel');</span>
+<span class="s2">  const show = (index) =&gt; </span><span class="se">{{</span>
+<span class="s2">    panels.forEach((panel, i) =&gt; </span><span class="se">{{</span>
+<span class="s2">      panel.style.visibility = i === index ? 'visible' : 'hidden';</span>
+<span class="s2">    </span><span class="se">}}</span><span class="s2">);</span>
+<span class="s2">    window.dispatchEvent(new Event('resize'));</span>
+<span class="s2">  </span><span class="se">}}</span><span class="s2">;</span>
+<span class="s2">  select.addEventListener('change', () =&gt; show(Number(select.value)));</span>
+<span class="s2">  show(</span><span class="si">{</span><span class="n">default_index</span><span class="si">}</span><span class="s2">);</span>
+<span class="se">}}</span><span class="s2">)();</span>
+<span class="s2">&lt;/script&gt;</span>
+<span class="s2">"""</span>
+    <span class="k">return</span> <span class="n">_display_html</span><span class="p">(</span><span class="n">html</span><span class="p">)</span></div>
+
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_selection_mask</span><span class="p">(</span><span class="n">atom_array</span><span class="p">:</span> <span class="n">AtomArray</span><span class="p">,</span> <span class="n">selection</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">bool</span><span class="p">]:</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selection</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="n">query</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">atom_array</span><span class="p">,</span> <span class="s2">"mask"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
@@ -1022,7 +1156,7 @@
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
   </p>
 </div>
       
