@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 from tmol.pack import PackerPalette, PackerTask, SetPackerTask
 from tmol.pack.rotamer import (
     FixedAAChiSampler,
@@ -41,7 +41,7 @@ def _host_and_offloaded(render):
 
 @pytest.fixture
 def ubq_stack(ubq_pdb):
-    one = pose_stack_from_pdb(ubq_pdb, CPU)
+    one = pose_stack_from_file(ubq_pdb, CPU)
     return PoseStackBuilder.from_poses([one] * 3, CPU)
 
 
@@ -103,7 +103,7 @@ def test_float64_coordinates_score_entirely_on_host(
 def test_rotamer_pair_energies_match_host(
     offload, default_database, ubq_pdb, dun_sampler
 ):
-    one = pose_stack_from_pdb(ubq_pdb, CPU, residue_start=0, residue_end=12)
+    one = pose_stack_from_file(ubq_pdb, CPU, residue_start=0, residue_end=12)
     stack = PoseStackBuilder.from_poses([one, one], CPU)
     task = PackerTask(stack, PackerPalette())
     task.restrict_to_repacking()
@@ -158,7 +158,7 @@ def test_packer_energy_tables_match_host(
     # prefix straight into the interaction-graph builder.
     from tmol.pack._pack_rotamers import _calculate_packer_energies
 
-    one = pose_stack_from_pdb(ubq_pdb, CPU, residue_start=0, residue_end=12)
+    one = pose_stack_from_file(ubq_pdb, CPU, residue_start=0, residue_end=12)
     stack = PoseStackBuilder.from_poses([one, one], CPU)
     task = PackerTask(stack, PackerPalette())
     task.restrict_to_repacking()
