@@ -524,11 +524,15 @@ python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </sp
 <td><p><code class="docutils literal notranslate"><span class="pre">OFF</span></code></p></td>
 <td><p>Enable CUDA in a development build; CUDA operator packages enable it automatically.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TMOL_STABLE_HEADERS</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TMOL_ENABLE_MPS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ON</span></code> on Apple</p></td>
+<td><p>Build the Metal (MPS) kernels that CPU scoring offloads to the Apple GPU. Shaders compile at runtime, so no Metal toolchain is needed.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TMOL_STABLE_HEADERS</span></code></p></td>
 <td><p>build-time Torch include directory</p></td>
 <td><p>Optional PyTorch 2.14+ headers when testing production modules against an older runtime; test helpers retain that runtime’s headers.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MAX_JOBS</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MAX_JOBS</span></code></p></td>
 <td><p>auto</p></td>
 <td><p>Maximum parallel build jobs.</p></td>
 </tr>
@@ -772,7 +776,7 @@ flake8
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
   </p>
 </div>
       

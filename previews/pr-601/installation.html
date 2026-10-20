@@ -523,7 +523,12 @@ select the TMol backend. TMol selects operators using PyTorch’s CUDA major.</p
 <span class="nb">print</span><span class="p">(</span><span class="s2">"GPU available:"</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">())</span>
 </pre></div>
 </div>
-<p>For CPU execution, use <code class="docutils literal notranslate"><span class="pre">torch.device(&quot;cpu&quot;)</span></code>. For GPU execution, both CUDA
+<p>For CPU execution, use <code class="docutils literal notranslate"><span class="pre">torch.device(&quot;cpu&quot;)</span></code>. On Apple silicon this is also
+the device to use: poses stay on the CPU, and the most expensive operations –
+the pairwise score terms, the packer’s interaction graph, and simulated
+annealing – run on the GPU automatically, with their inputs copied over as
+needed. Set <code class="docutils literal notranslate"><span class="pre">TMOL_MPS_OFFLOAD=0</span></code> to keep everything on the CPU. Do not place
+poses on <code class="docutils literal notranslate"><span class="pre">torch.device(&quot;mps&quot;)</span></code>. For GPU execution with CUDA, both CUDA
 checks must be true. Applications that require a GPU should fail explicitly:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">tmol</span><span class="o">.</span><span class="n">has_cuda</span><span class="p">()</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()):</span>
     <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"Install matching TMol/PyTorch CUDA packages and check GPU access"</span><span class="p">)</span>
@@ -736,7 +741,7 @@ not repair an installed wheel.</p>
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
   </p>
 </div>
       

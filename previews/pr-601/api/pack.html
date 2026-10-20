@@ -725,7 +725,9 @@ stack’s. Simulated annealing reads the interaction graph and
 writes rotamer indices, so it can run anywhere the tables can be
 put; on Apple silicon the tables cost almost nothing to move
 (9 ms for 174 MB of unified memory) and the Metal annealer
-searches both faster and far better than the host one.</p></li>
+searches both faster and far better than the host one. Left
+unset, host poses anneal on Metal when it is available, unless
+<code class="docutils literal notranslate"><span class="pre">TMOL_MPS_OFFLOAD=0</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1583,7 +1585,7 @@ resolves to the current CUDA device.</p></li>
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
   </p>
 </div>
       

@@ -523,7 +523,8 @@ valid entries from coordinate values alone.</p>
 <p>All tensors participating in one operation must use compatible devices and
 dtypes. A <a class="reference internal" href="api/pose.html#tmol.pose.PoseStack" title="tmol.pose.PoseStack"><code class="xref py py-class docutils literal notranslate"><span class="pre">PoseStack</span></code></a>, its
 <a class="reference internal" href="api/pose.html#tmol.pose.PackedBlockTypes" title="tmol.pose.PackedBlockTypes"><code class="xref py py-class docutils literal notranslate"><span class="pre">PackedBlockTypes</span></code></a>, rendered scoring modules, and movement
-data normally live on the same CPU or CUDA device.</p>
+data normally live on the same CPU or CUDA device. On Apple silicon they stay
+on the CPU; scoring copies what its GPU-offloaded terms need internally.</p>
 <p>TMol APIs commonly accept a device-like value and normalize it through
 <a class="reference internal" href="api/utility.html#tmol.utility.resolve_device" title="tmol.utility.resolve_device"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmol.utility.resolve_device()</span></code></a>. Preserve the input coordinate dtype unless
 an API documents a stronger requirement; silently mixing <code class="docutils literal notranslate"><span class="pre">float32</span></code> and
@@ -646,7 +647,7 @@ atoms, and built atoms.</p>
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
   </p>
 </div>
       

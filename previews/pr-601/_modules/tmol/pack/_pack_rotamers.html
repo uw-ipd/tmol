@@ -477,7 +477,9 @@
 <span class="sd">            writes rotamer indices, so it can run anywhere the tables can be</span>
 <span class="sd">            put; on Apple silicon the tables cost almost nothing to move</span>
 <span class="sd">            (9 ms for 174 MB of unified memory) and the Metal annealer</span>
-<span class="sd">            searches both faster and far better than the host one.</span>
+<span class="sd">            searches both faster and far better than the host one. Left</span>
+<span class="sd">            unset, host poses anneal on Metal when it is available, unless</span>
+<span class="sd">            ``TMOL_MPS_OFFLOAD=0``.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        A new pose stack containing the lowest-ranked assignment per pose.</span>
@@ -490,8 +492,8 @@
                 <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
                     <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">pack_rotamers</span><span class="p">(</span>
-                <span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
-                <span class="n">anneal_device</span><span class="o">=</span><span class="n">anneal_device</span><span class="p">)</span>
+                <span class="n">pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">anneal_device</span><span class="o">=</span><span class="n">anneal_device</span>
+            <span class="p">)</span>
 
     <span class="n">max_poses_per_chunk</span> <span class="o">=</span> <span class="n">_max_poses_per_packing_chunk</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">n_poses</span> <span class="o">&gt;</span> <span class="n">max_poses_per_chunk</span><span class="p">:</span>
@@ -503,7 +505,10 @@
             <span class="p">)</span>
             <span class="n">chunk_task</span> <span class="o">=</span> <span class="n">_slice_packer_task</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">first_pose</span><span class="p">,</span> <span class="n">last_pose</span><span class="p">)</span>
             <span class="n">packed_chunk</span> <span class="o">=</span> <span class="n">pack_rotamers</span><span class="p">(</span>
-                <span class="n">chunk_pose_stack</span><span class="p">,</span> <span class="n">sfxn</span><span class="p">,</span> <span class="n">chunk_task</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="n">chunk_pose_stack</span><span class="p">,</span>
+                <span class="n">sfxn</span><span class="p">,</span>
+                <span class="n">chunk_task</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
                 <span class="n">anneal_device</span><span class="o">=</span><span class="n">anneal_device</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">packed_chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">packed_chunk</span><span class="p">)</span>
@@ -753,8 +758,14 @@
 <span class="sd">    The graph is already built when this runs, and annealing only reads it and</span>
 <span class="sd">    returns rotamer indices, so the choice of device is a backend choice</span>
 <span class="sd">    rather than a semantic one. Left unset, annealing stays where the poses</span>
-<span class="sd">    are, which is what every existing caller gets.</span>
+<span class="sd">    are, except that host poses anneal on the Apple GPU when CPU scoring is</span>
+<span class="sd">    offloading there too (see tmol.score._mps_offload).</span>
 <span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">anneal_device</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">pose_device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">"cpu"</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score._mps_offload</span><span class="w"> </span><span class="kn">import</span> <span class="n">mps_offload_enabled</span>
+
+        <span class="k">if</span> <span class="n">mps_offload_enabled</span><span class="p">():</span>
+            <span class="n">anneal_device</span> <span class="o">=</span> <span class="s2">"mps"</span>
     <span class="k">if</span> <span class="n">anneal_device</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">run_simulated_annealing</span><span class="p">(</span><span class="n">energy_tables</span><span class="p">)</span>
 
@@ -799,6 +810,7 @@
     <span class="p">)</span>
 
     <span class="n">n_unique_entries</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">device_entries</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">stream_interaction_graph</span><span class="p">:</span>
         <span class="n">energy_indices</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">energy_values</span> <span class="o">=</span> <span class="kc">None</span>
@@ -810,6 +822,37 @@
         <span class="n">energy_indices</span><span class="p">,</span> <span class="n">energy_values</span> <span class="o">=</span> <span class="n">rotamer_scoring_module</span><span class="o">.</span><span class="n">forward_sparse_entries</span><span class="p">(</span>
             <span class="n">rotamer_set</span><span class="o">.</span><span class="n">coords</span>
         <span class="p">)</span>
+    <span class="k">elif</span> <span class="p">(</span>
+        <span class="nb">hasattr</span><span class="p">(</span><span class="n">rotamer_scoring_module</span><span class="p">,</span> <span class="s2">"forward_device_entries"</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="ow">not</span> <span class="n">rotamer_set</span><span class="o">.</span><span class="n">correlated_groups</span>
+        <span class="ow">and</span> <span class="ow">not</span> <span class="n">task</span><span class="o">.</span><span class="n">bump_check</span>
+    <span class="p">):</span>
+        <span class="c1"># A scorer whose table is computed on the GPU (see</span>
+        <span class="c1"># tmol.score._mps_offload) keeps it there, and the graph is built</span>
+        <span class="c1"># beside it; see _build_device_interaction_graph.</span>
+        <span class="n">device_entries</span> <span class="o">=</span> <span class="n">rotamer_scoring_module</span><span class="o">.</span><span class="n">forward_device_entries</span><span class="p">(</span>
+            <span class="n">rotamer_set</span><span class="o">.</span><span class="n">coords</span>
+        <span class="p">)</span>
+        <span class="n">energy_indices</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">energy_values</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">elif</span> <span class="p">(</span>
+        <span class="nb">hasattr</span><span class="p">(</span><span class="n">rotamer_scoring_module</span><span class="p">,</span> <span class="s2">"unique_prefix_nnz"</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="ow">not</span> <span class="n">rotamer_set</span><span class="o">.</span><span class="n">correlated_groups</span>
+    <span class="p">):</span>
+        <span class="c1"># A split scorer reports where its distinct-key prefix ends (see the</span>
+        <span class="c1"># contract below) for its raw int32 entries too, so take those</span>
+        <span class="c1"># directly and skip the int64 COO round trip.</span>
+        <span class="n">energy_indices</span><span class="p">,</span> <span class="n">energy_values</span> <span class="o">=</span> <span class="n">rotamer_scoring_module</span><span class="o">.</span><span class="n">forward_sparse_entries</span><span class="p">(</span>
+            <span class="n">rotamer_set</span><span class="o">.</span><span class="n">coords</span>
+        <span class="p">)</span>
+        <span class="n">n_unique_entries</span> <span class="o">=</span> <span class="n">rotamer_scoring_module</span><span class="o">.</span><span class="n">unique_prefix_nnz</span>
+        <span class="k">if</span> <span class="n">n_unique_entries</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">energies</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sparse_coo_tensor</span><span class="p">(</span>
+                <span class="n">energy_indices</span><span class="p">,</span> <span class="n">energy_values</span><span class="p">,</span> <span class="n">rotamer_scoring_module</span><span class="o">.</span><span class="n">shape</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">coalesce</span><span class="p">()</span>
+            <span class="n">energy_indices</span> <span class="o">=</span> <span class="n">energies</span><span class="o">.</span><span class="n">indices</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="n">energy_values</span> <span class="o">=</span> <span class="n">energies</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="n">n_unique_entries</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="c1"># The CPU interaction-graph accumulator is deliberately non-atomic, so</span>
         <span class="c1"># it may only run its parallel passes over entries whose keys are</span>
@@ -889,6 +932,10 @@
             <span class="n">graph_inputs</span><span class="p">,</span>
             <span class="n">verbose</span><span class="p">,</span>
         <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">device_entries</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">graph_result</span> <span class="o">=</span> <span class="n">_build_device_interaction_graph</span><span class="p">(</span>
+            <span class="n">device_entries</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="n">graph_inputs</span><span class="p">,</span> <span class="n">verbose</span>
+        <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">graph_result</span> <span class="o">=</span> <span class="n">build_interaction_graph</span><span class="p">(</span>
             <span class="n">task</span><span class="o">.</span><span class="n">bump_check</span><span class="p">,</span>
@@ -960,6 +1007,151 @@
         <span class="n">end_time2</span><span class="p">,</span>
         <span class="n">end_time3</span><span class="p">,</span>
     <span class="p">)</span>
+
+
+<span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_device_interaction_graph</span><span class="p">(</span><span class="n">entries</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="n">graph_inputs</span><span class="p">,</span> <span class="n">verbose</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Build the interaction graph on the device that holds the energy table.</span>
+
+<span class="sd">    The streaming builder's passes, run over a table that is already</span>
+<span class="sd">    materialized on the GPU rather than re-scored page by page: the entry-wise</span>
+<span class="sd">    passes (block adjacency, chunk occupancy, energy accumulation) run there,</span>
+<span class="sd">    one entry per thread with atomics, while the topology steps between them</span>
+<span class="sd">    -- per block and per chunk pair, a few thousand rows -- run on the host.</span>
+<span class="sd">    The rotamer numbering and everything addressed by it stay on the host as</span>
+<span class="sd">    the CPU builder leaves them; the one- and two-body energy tables stay on</span>
+<span class="sd">    the GPU, where the annealer reads them.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.compiled</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">accumulate_interaction_graph_entries</span><span class="p">,</span>
+        <span class="n">build_interaction_graph</span><span class="p">,</span>
+        <span class="n">finalize_interaction_graph_chunk_topology</span><span class="p">,</span>
+        <span class="n">finalize_interaction_graph_topology</span><span class="p">,</span>
+        <span class="n">initialize_interaction_graph_topology</span><span class="p">,</span>
+        <span class="n">note_interaction_graph_chunk_topology</span><span class="p">,</span>
+        <span class="n">note_interaction_graph_topology</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="p">(</span>
+        <span class="n">_max_n_block_types</span><span class="p">,</span>
+        <span class="n">_n_rots_for_pose</span><span class="p">,</span>
+        <span class="n">_rot_offset_for_pose</span><span class="p">,</span>
+        <span class="n">n_rots_for_block</span><span class="p">,</span>
+        <span class="n">rot_offset_for_block</span><span class="p">,</span>
+        <span class="n">_pose_for_rot</span><span class="p">,</span>
+        <span class="n">_block_type_ind_for_rot</span><span class="p">,</span>
+        <span class="n">block_ind_for_rot</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">=</span> <span class="n">graph_inputs</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">entries</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">device</span> <span class="k">if</span> <span class="n">entries</span> <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cpu"</span><span class="p">)</span>
+    <span class="n">empty_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">empty_values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="c1"># The empty build fixes the kept/fixed rotamer numbering on the host.</span>
+    <span class="n">base</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+        <span class="n">build_interaction_graph</span><span class="p">(</span>
+            <span class="kc">False</span><span class="p">,</span>
+            <span class="n">chunk_size</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">graph_inputs</span><span class="p">,</span>
+            <span class="n">empty_indices</span><span class="p">,</span>
+            <span class="n">empty_values</span><span class="p">,</span>
+            <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">block_adjacency</span><span class="p">,</span> <span class="n">orig_block_to_molten</span> <span class="o">=</span> <span class="n">initialize_interaction_graph_topology</span><span class="p">(</span>
+        <span class="n">n_rots_for_block</span><span class="p">,</span> <span class="n">base</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">empty_values</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">up</span><span class="p">(</span><span class="n">tensor</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tensor</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="n">n_rots_for_block_d</span> <span class="o">=</span> <span class="n">up</span><span class="p">(</span><span class="n">n_rots_for_block</span><span class="p">)</span>
+    <span class="n">rot_offset_for_block_d</span> <span class="o">=</span> <span class="n">up</span><span class="p">(</span><span class="n">rot_offset_for_block</span><span class="p">)</span>
+    <span class="n">block_ind_for_rot_d</span> <span class="o">=</span> <span class="n">up</span><span class="p">(</span><span class="n">block_ind_for_rot</span><span class="p">)</span>
+    <span class="n">orig_block_to_molten_d</span> <span class="o">=</span> <span class="n">up</span><span class="p">(</span><span class="n">orig_block_to_molten</span><span class="p">)</span>
+    <span class="n">n_bc_rots_for_molten_block_d</span> <span class="o">=</span> <span class="n">up</span><span class="p">(</span><span class="n">base</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+
+    <span class="c1"># Pass one: which molten blocks interact.</span>
+    <span class="n">block_adjacency</span> <span class="o">=</span> <span class="n">up</span><span class="p">(</span><span class="n">block_adjacency</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">indices</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">entries</span><span class="p">:</span>
+        <span class="p">(</span><span class="n">block_adjacency</span><span class="p">,)</span> <span class="o">=</span> <span class="n">note_interaction_graph_topology</span><span class="p">(</span>
+            <span class="n">block_ind_for_rot_d</span><span class="p">,</span>
+            <span class="n">orig_block_to_molten_d</span><span class="p">,</span>
+            <span class="n">block_adjacency</span><span class="p">,</span>
+            <span class="n">indices</span><span class="p">,</span>
+            <span class="n">values</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="n">chunk_topology</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+        <span class="n">finalize_interaction_graph_topology</span><span class="p">(</span>
+            <span class="n">chunk_size</span><span class="p">,</span> <span class="n">base</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">block_adjacency</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">empty_values</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">del</span> <span class="n">block_adjacency</span>
+
+    <span class="c1"># Pass two: which rotamer chunks inside those block pairs interact.</span>
+    <span class="n">neighbor_row_offsets_d</span> <span class="o">=</span> <span class="n">up</span><span class="p">(</span><span class="n">chunk_topology</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">neighbor_blocks_d</span> <span class="o">=</span> <span class="n">up</span><span class="p">(</span><span class="n">chunk_topology</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">chunk_adjacency</span> <span class="o">=</span> <span class="n">up</span><span class="p">(</span><span class="n">chunk_topology</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">indices</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">entries</span><span class="p">:</span>
+        <span class="p">(</span><span class="n">chunk_adjacency</span><span class="p">,)</span> <span class="o">=</span> <span class="n">note_interaction_graph_chunk_topology</span><span class="p">(</span>
+            <span class="n">chunk_size</span><span class="p">,</span>
+            <span class="n">n_rots_for_block_d</span><span class="p">,</span>
+            <span class="n">rot_offset_for_block_d</span><span class="p">,</span>
+            <span class="n">block_ind_for_rot_d</span><span class="p">,</span>
+            <span class="n">orig_block_to_molten_d</span><span class="p">,</span>
+            <span class="n">n_bc_rots_for_molten_block_d</span><span class="p">,</span>
+            <span class="n">neighbor_row_offsets_d</span><span class="p">,</span>
+            <span class="n">neighbor_blocks_d</span><span class="p">,</span>
+            <span class="n">up</span><span class="p">(</span><span class="n">chunk_topology</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span>
+            <span class="n">chunk_adjacency</span><span class="p">,</span>
+            <span class="n">indices</span><span class="p">,</span>
+            <span class="n">values</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="n">base</span><span class="p">[</span><span class="mi">11</span><span class="p">],</span> <span class="n">base</span><span class="p">[</span><span class="mi">12</span><span class="p">],</span> <span class="n">base</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span> <span class="o">=</span> <span class="n">chunk_topology</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>
+    <span class="n">base</span><span class="p">[</span><span class="mi">14</span><span class="p">],</span> <span class="n">base</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">=</span> <span class="n">finalize_interaction_graph_chunk_topology</span><span class="p">(</span>
+        <span class="n">chunk_size</span><span class="p">,</span>
+        <span class="n">base</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+        <span class="n">chunk_topology</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="n">chunk_topology</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="n">chunk_topology</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+        <span class="n">chunk_topology</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+        <span class="n">chunk_adjacency</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span>
+        <span class="n">empty_values</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">del</span> <span class="n">chunk_topology</span><span class="p">,</span> <span class="n">chunk_adjacency</span>
+
+    <span class="c1"># Pass three: accumulate the energies.</span>
+    <span class="n">bg_bg_energies</span> <span class="o">=</span> <span class="n">up</span><span class="p">(</span><span class="n">base</span><span class="p">[</span><span class="mi">9</span><span class="p">])</span>
+    <span class="n">energy1b</span> <span class="o">=</span> <span class="n">up</span><span class="p">(</span><span class="n">base</span><span class="p">[</span><span class="mi">10</span><span class="p">])</span>
+    <span class="n">energy2b</span> <span class="o">=</span> <span class="n">up</span><span class="p">(</span><span class="n">base</span><span class="p">[</span><span class="mi">15</span><span class="p">])</span>
+    <span class="n">rotamer_for_nonmolten_block_d</span> <span class="o">=</span> <span class="n">up</span><span class="p">(</span><span class="n">base</span><span class="p">[</span><span class="mi">7</span><span class="p">])</span>
+    <span class="n">bc_rot_offset_for_molten_block_d</span> <span class="o">=</span> <span class="n">up</span><span class="p">(</span><span class="n">base</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+    <span class="n">neighbor_chunk_offset_offsets_d</span> <span class="o">=</span> <span class="n">up</span><span class="p">(</span><span class="n">base</span><span class="p">[</span><span class="mi">13</span><span class="p">])</span>
+    <span class="n">chunk_offsets_d</span> <span class="o">=</span> <span class="n">up</span><span class="p">(</span><span class="n">base</span><span class="p">[</span><span class="mi">14</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">indices</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">entries</span><span class="p">:</span>
+        <span class="n">bg_bg_energies</span><span class="p">,</span> <span class="n">energy1b</span><span class="p">,</span> <span class="n">energy2b</span> <span class="o">=</span> <span class="n">accumulate_interaction_graph_entries</span><span class="p">(</span>
+            <span class="n">chunk_size</span><span class="p">,</span>
+            <span class="n">n_rots_for_block_d</span><span class="p">,</span>
+            <span class="n">rot_offset_for_block_d</span><span class="p">,</span>
+            <span class="n">block_ind_for_rot_d</span><span class="p">,</span>
+            <span class="n">orig_block_to_molten_d</span><span class="p">,</span>
+            <span class="n">rotamer_for_nonmolten_block_d</span><span class="p">,</span>
+            <span class="n">n_bc_rots_for_molten_block_d</span><span class="p">,</span>
+            <span class="n">bc_rot_offset_for_molten_block_d</span><span class="p">,</span>
+            <span class="n">neighbor_row_offsets_d</span><span class="p">,</span>
+            <span class="n">neighbor_blocks_d</span><span class="p">,</span>
+            <span class="n">neighbor_chunk_offset_offsets_d</span><span class="p">,</span>
+            <span class="n">chunk_offsets_d</span><span class="p">,</span>
+            <span class="n">bg_bg_energies</span><span class="p">,</span>
+            <span class="n">energy1b</span><span class="p">,</span>
+            <span class="n">energy2b</span><span class="p">,</span>
+            <span class="n">indices</span><span class="p">,</span>
+            <span class="n">values</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="n">base</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span> <span class="o">=</span> <span class="n">bg_bg_energies</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+    <span class="n">base</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">=</span> <span class="n">energy1b</span>
+    <span class="n">base</span><span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="o">=</span> <span class="n">energy2b</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
 
 
 <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
@@ -1161,7 +1353,7 @@
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
   </p>
 </div>
       
