@@ -247,7 +247,7 @@ def atom_records_from_coords(
     if chain_labels is None:
         # create default chain labels as A, B, ..., Z, AA, AB, ... ZZ; max 702 chains.
         assert max_n_chains <= 26 * 27
-        chain_labels = numpy.array(
+        chain_letter_by_ind = numpy.array(
             [
                 (
                     chr(i + ord("A"))
@@ -258,7 +258,9 @@ def atom_records_from_coords(
             ],
             dtype=object,
         )
-    results["chain"] = chain_labels[pose_for_real_atom, block_for_real_atom]
+        results["chain"] = chain_letter_by_ind[chain_ind_for_real_atom]
+    else:
+        results["chain"] = chain_labels[pose_for_real_atom, block_for_real_atom]
 
     # create lookup for atom names
     bt_names = numpy.array([bt.name3 for bt in pbt.active_block_types])
