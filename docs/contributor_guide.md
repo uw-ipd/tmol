@@ -37,8 +37,10 @@ needs registering. A tutorial must:
 - carry an Open In Colab badge linking to itself, and the `accelerator: GPU`
   notebook metadata. `smoke_tutorial_notebooks.py` rejects a notebook without
   them;
-- opt into the CUDA smoke run in CI with `"tmol": {"gpu_smoke": true}` in the
-  notebook metadata. Tag cells that need a GPU with `gpu-only`.
+- set `"tmol": {"gpu_smoke": true}` in the notebook metadata. Every tutorial
+  runs on CUDA in CI as well as on CPU, because CPU-only runs hide
+  device-mismatch bugs; a test enforces it. Tag cells that need a GPU with
+  `gpu-only`.
 
 ## Writing documentation
 

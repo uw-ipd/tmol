@@ -197,4 +197,5 @@ def test_docs_workflow_uses_hosted_cpu_and_gpu_ci_executes_gpu_cells():
         .get("tmol", {})
         .get("gpu_smoke")
     ]
-    assert flagged, "no tutorial opts into the GPU smoke run"
+    # Every tutorial must run on CUDA: CPU-only runs hide device-mismatch bugs.
+    assert flagged == [path.name for path in _tutorial_notebooks()]
