@@ -18,10 +18,29 @@ make -C docs html
 
 Rendered HTML is written to `docs/_build/html`.
 
-The committed notebook thumbnails live under `docs/_static/tutorials/`.
 nbsphinx does not execute notebooks during the Sphinx phase; the smoke command
 above executes them first and writes the plots, tables, and viewer HTML that
 Sphinx consumes. CI performs the same two-step notebook-and-Sphinx build.
+
+### Adding a tutorial notebook
+
+Put it in `docs/tutorial/` as `NN_name.ipynb` and add it to the gallery in
+`docs/examples_index.rst`. CI finds notebooks by that pattern, so nothing else
+needs registering. A tutorial must:
+
+- start with the shared setup cell (copy it from an existing notebook):
+  `from notebook_setup import *` then `device, param_db = setup()`.
+  [`notebook_setup.py`](tutorial/notebook_setup.py) installs TMol on Colab and
+  provides the common TMol names, `data_path()` for the checked-in example
+  structures, and the device and seed. Add new example files to its `FIXTURES`
+  so Colab downloads them;
+- carry an Open In Colab badge linking to itself, and the `accelerator: GPU`
+  notebook metadata. `smoke_tutorial_notebooks.py` rejects a notebook without
+  them;
+- set `"tmol": {"gpu_smoke": true}` in the notebook metadata. Every tutorial
+  runs on CUDA in CI as well as on CPU, because CPU-only runs hide
+  device-mismatch bugs; a test enforces it. Tag cells that need a GPU with
+  `gpu-only`.
 
 ## Writing documentation
 

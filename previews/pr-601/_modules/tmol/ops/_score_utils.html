@@ -38,7 +38,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=a395f30a"></script>
+    <script src="../../../_static/documentation_options.js?v=938c9ccc"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.64" />
+  <meta name="docsearch:version" content="0.2.0" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -431,7 +431,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.database</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreFunction</span><span class="p">,</span> <span class="n">beta2016_score_function</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.score</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScoreFunction</span><span class="p">,</span> <span class="n">ScoreType</span><span class="p">,</span> <span class="n">beta2016_score_function</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack</span><span class="w"> </span><span class="kn">import</span> <span class="n">pack_rotamers</span><span class="p">,</span> <span class="n">PackerTask</span><span class="p">,</span> <span class="n">PackerPalette</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pack.rotamer</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">ConjugatedSCSampler</span><span class="p">,</span>
@@ -655,6 +655,68 @@
 
 
 
+<div class="viewcode-block" id="per_residue_block_pair_energies">
+<a class="viewcode-back" href="../../../api/analysis.html#tmol.ops.per_residue_block_pair_energies">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">per_residue_block_pair_energies</span><span class="p">(</span><span class="n">block_pair_scores</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Reduce block-pair scores to one energy per residue.</span>
+
+<span class="sd">    Each off-diagonal block-pair entry is split evenly between its two</span>
+<span class="sd">    partner residues, so the per-residue sum reconciles exactly with the</span>
+<span class="sd">    pairwise total. The reduction only touches the trailing two (block)</span>
+<span class="sd">    dimensions, so a leading score-type dimension -- present when the</span>
+<span class="sd">    block-pair scores came from a scoring module called with</span>
+<span class="sd">    ``sum_terms=False`` -- passes through unsummed.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        block_pair_scores: Block-pair scores shaped</span>
+<span class="sd">            ``[n_poses, n_blocks, n_blocks]``, or ``[n_terms, n_poses,</span>
+<span class="sd">            n_blocks, n_blocks]`` if the score-type dimension has not been</span>
+<span class="sd">            summed.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Per-residue energies with the same leading dimension(s) as the</span>
+<span class="sd">        input: ``[n_poses, n_blocks]`` or ``[n_terms, n_poses, n_blocks]``.</span>
+<span class="sd">    """</span>
+    <span class="n">diag</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">block_pair_scores</span><span class="p">,</span> <span class="n">dim1</span><span class="o">=-</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim2</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="n">symmetrized</span> <span class="o">=</span> <span class="n">block_pair_scores</span> <span class="o">+</span> <span class="n">block_pair_scores</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">symmetrized</span><span class="p">,</span> <span class="n">dim1</span><span class="o">=-</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim2</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">diag</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">symmetrized</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="block_energies">
+<a class="viewcode-back" href="../../../api/analysis.html#tmol.ops.block_energies">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">block_energies</span><span class="p">(</span>
+    <span class="n">score_function</span><span class="p">:</span> <span class="n">ScoreFunction</span><span class="p">,</span>
+    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
+    <span class="n">score_type</span><span class="p">:</span> <span class="n">ScoreType</span><span class="p">,</span>
+    <span class="n">pose</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">blocks</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Weighted energy of one term involving each block.</span>
+
+<span class="sd">    Each value is that block's row plus column of the block-pair matrix for</span>
+<span class="sd">    ``score_type``, i.e. every interaction the block participates in</span>
+<span class="sd">    (including with itself), counted once.</span>
+<span class="sd">    """</span>
+    <span class="n">block_scorer</span> <span class="o">=</span> <span class="n">score_function</span><span class="o">.</span><span class="n">render_block_pair_scoring_module</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
+    <span class="n">terms</span> <span class="o">=</span> <span class="n">block_scorer</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span> <span class="n">sum_terms</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">apply_weights</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">pair</span> <span class="o">=</span> <span class="n">terms</span><span class="p">[</span><span class="n">score_function</span><span class="o">.</span><span class="n">all_score_types</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">score_type</span><span class="p">),</span> <span class="n">pose</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">pair</span><span class="p">[</span><span class="n">b</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">+</span> <span class="n">pair</span><span class="p">[:,</span> <span class="n">b</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">-</span> <span class="n">pair</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">b</span><span class="p">])</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">blocks</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="get_chain_mask">
+<a class="viewcode-back" href="../../../api/analysis.html#tmol.ops.get_chain_mask">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_chain_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Boolean mask shaped ``[n_poses, max_n_blocks]``, true where a block</span>
+<span class="sd">    belongs to the given chain label.</span>
+<span class="sd">    """</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">chain_labels</span> <span class="o">==</span> <span class="n">chain</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
+
+
+
 <div class="viewcode-block" id="res_mask_to_coord_mask">
 <a class="viewcode-back" href="../../../api/analysis.html#tmol.ops.res_mask_to_coord_mask">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">res_mask_to_coord_mask</span><span class="p">(</span>
@@ -664,13 +726,14 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        pose_stack: Poses supplying the block-to-coordinate layout.</span>
-<span class="sd">        mask: Selected blocks shaped ``[n_poses, n_blocks]``.</span>
+<span class="sd">        mask: Selected blocks shaped ``[n_poses, n_blocks]``. It may live on</span>
+<span class="sd">            any device; it is moved to the pose's device.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Selected real atoms shaped ``[n_poses, max_n_atoms]``.</span>
 <span class="sd">    """</span>
     <span class="n">block_for_atom</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">real_atoms</span> <span class="o">=</span> <span class="n">_compact_atom_layout</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">mask</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">block_for_atom</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">real_atoms</span></div>
+    <span class="k">return</span> <span class="n">mask</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">block_for_atom</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">block_for_atom</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">real_atoms</span></div>
 
 
 
@@ -935,6 +998,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        Coordinate mask shaped ``[n_poses, max_n_atoms]``.</span>
 <span class="sd">    """</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="n">coord_mask</span> <span class="o">=</span> <span class="n">res_mask_to_coord_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
     <span class="n">sidechain_mask</span> <span class="o">=</span> <span class="n">build_sidechain_coord_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">)</span>  <span class="c1"># [n_poses, max_n_atoms]</span>
 

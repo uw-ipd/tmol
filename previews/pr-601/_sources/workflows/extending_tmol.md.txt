@@ -30,4 +30,4 @@ validation against suitable molecular data.
 
 ## Examples and reference
 
-{doc}`Chemistry and scoring </tutorial/11_extending_chemistry_and_scoring>` · {doc}`Kinematics </tutorial/12_explicit_foldforests_and_torsions>` · {doc}`Packer extensions </tutorial/13_extending_the_packer>`
+{doc}`Ligands and NCAAs </tutorial/04_ligands_and_ncaas>` · {doc}`Advanced kinematics </tutorial/07_advanced_kinematics>` · {doc}`Packer extensions </tutorial/08_advanced_topics>`

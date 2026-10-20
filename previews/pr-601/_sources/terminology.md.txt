@@ -63,7 +63,7 @@ neighboring choices interact. **Design** also permits residue identities to
 change, according to the packer task.
 
 The {doc}`playground` isolates two side-chain angles. The
-{doc}`packing notebook <tutorial/04_packing_and_mutation_scan>` runs a full
+{doc}`scoring and optimization notebook <tutorial/02_scoring_and_optimization>` runs a full
 repacking calculation with residue-specific conformer samplers.
 
 <span id="cartesian-and-kinematic-movement"></span>
@@ -128,7 +128,7 @@ The two poses remain independent.
 Chemical connectivity and the kinematic tree are distinct. A cyclic molecule
 needs a cut in its kinematic representation even though its chemical bond
 remains. Choose the tree and allowed moves together; see the
-{doc}`fold-forest notebook <tutorial/12_explicit_foldforests_and_torsions>`.
+{doc}`fold-forest notebook <tutorial/07_advanced_kinematics>`.
 
 ## MoveMap and constraints
 
@@ -166,7 +166,7 @@ Select a stage to see the default repulsion-weight fractions:
 ```
 
 The default protocol uses Cartesian minimization and repeats the four-stage
-schedule twice. See the {doc}`FastRelax notebook <tutorial/06_fast_relax>` to run
+schedule twice. See the {doc}`scoring and optimization notebook <tutorial/02_scoring_and_optimization>` to run
 it and compare structures.
 
 <span id="parameterdatabase-and-packedblocktypes"></span>

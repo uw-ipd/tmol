@@ -38,7 +38,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=a395f30a"></script>
+    <script src="../../../_static/documentation_options.js?v=938c9ccc"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.64" />
+  <meta name="docsearch:version" content="0.2.0" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -427,7 +427,7 @@
                 <article class="bd-article">
                   
   <h1>Source code for tmol.pose._util</h1><div class="highlight"><pre>
-<span></span><span class="sd">"""Measuring named torsions on a PoseStack.</span>
+<span></span><span class="sd">"""Read-only queries on a PoseStack: sequence and named torsions.</span>
 
 <span class="sd">Setting torsions (which requires inverse kinematics) lives in</span>
 <span class="sd">``tmol.kinematics._pose_stack_kinematics`` so that this module carries no</span>
@@ -439,8 +439,152 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">three2one</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.numeric</span><span class="w"> </span><span class="kn">import</span> <span class="n">coord_dihedrals</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
+
+
+<div class="viewcode-block" id="get_sequence">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.get_sequence">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_sequence</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">pose</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""One-letter sequence of one pose's real (non-padding) blocks.</span>
+
+<span class="sd">    Blocks whose three-letter code has no one-letter equivalent (ligands,</span>
+<span class="sd">    ions, and other non-canonical residues) appear as ``"X"``.</span>
+<span class="sd">    """</span>
+    <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+    <span class="n">real</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">pose</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+    <span class="n">type_inds</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">real</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="n">block_types</span> <span class="o">=</span> <span class="p">[</span><span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">type_inds</span><span class="p">]</span>
+    <span class="k">return</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">three2one</span><span class="p">(</span><span class="n">bt</span><span class="o">.</span><span class="n">name3</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"X"</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">block_types</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="get_ligand_mask">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.get_ligand_mask">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_ligand_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Boolean mask shaped ``[n_poses, max_n_blocks]``, true where a block is a</span>
+<span class="sd">    ligand (or any other non-polymer residue, such as an ion). Padding blocks</span>
+<span class="sd">    are false.</span>
+<span class="sd">    """</span>
+    <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+    <span class="n">is_polymer_by_type</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">is_polymer</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">block_type_ind64</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span>
+    <span class="n">real</span> <span class="o">=</span> <span class="n">block_type_ind64</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+    <span class="n">safe_ind</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">real</span><span class="p">,</span> <span class="n">block_type_ind64</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">block_type_ind64</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">real</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">is_polymer_by_type</span><span class="p">[</span><span class="n">safe_ind</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="get_polymer_type_mask">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.get_polymer_type_mask">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_polymer_type_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">polymer_type</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Boolean mask shaped ``[n_poses, max_n_blocks]``, true where a block's</span>
+<span class="sd">    ``properties.polymer.polymer_type`` equals ``polymer_type`` (one of</span>
+<span class="sd">    ``"amino_acid"``, ``"nucleic_acid"``, or ``None`` for a non-polymer like a</span>
+<span class="sd">    ligand or ion). Padding blocks are false.</span>
+<span class="sd">    """</span>
+    <span class="n">pbt</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">packed_block_types</span>
+    <span class="n">matches_by_type</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="n">bt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">polymer_type</span> <span class="o">==</span> <span class="n">polymer_type</span>
+            <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span>
+        <span class="p">],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">block_type_ind64</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span>
+    <span class="n">real</span> <span class="o">=</span> <span class="n">block_type_ind64</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+    <span class="n">safe_ind</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">real</span><span class="p">,</span> <span class="n">block_type_ind64</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">block_type_ind64</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">real</span> <span class="o">&amp;</span> <span class="n">matches_by_type</span><span class="p">[</span><span class="n">safe_ind</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="metal_blocks">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.metal_blocks">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">metal_blocks</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">pose</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Indices of the blocks in one pose that carry metal sites."""</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">block</span>
+        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">max_n_blocks</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="ow">and</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type</span><span class="p">(</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">)</span><span class="o">.</span><span class="n">metal_sites</span>
+    <span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="residue_label">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.residue_label">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">residue_label</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">pose</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">block</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">""" "chain resnum name3" for one block."""</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span>
+    <span class="n">name3</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type</span><span class="p">(</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">)</span><span class="o">.</span><span class="n">name3</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">info</span><span class="o">.</span><span class="n">chain_labels</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span><span class="w"> </span><span class="n">block</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">info</span><span class="o">.</span><span class="n">residue_labels</span><span class="p">[</span><span class="n">pose</span><span class="p">,</span><span class="w"> </span><span class="n">block</span><span class="p">])</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">name3</span><span class="si">}</span><span class="s2">"</span></div>
+
+
+
+<div class="viewcode-block" id="atom_label">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.atom_label">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">atom_label</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">pose</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">atom</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">""" "chain resnum name3 atom" for a per-pose atom index."""</span>
+    <span class="n">real</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type_ind64</span><span class="p">[</span><span class="n">pose</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+    <span class="n">offsets</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_coord_offset64</span><span class="p">[</span><span class="n">pose</span><span class="p">]</span>
+    <span class="n">block</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(((</span><span class="n">offsets</span> <span class="o">&lt;=</span> <span class="n">atom</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">real</span><span class="p">)</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">local</span> <span class="o">=</span> <span class="n">atom</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="n">offsets</span><span class="p">[</span><span class="n">block</span><span class="p">])</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">block_type</span><span class="p">(</span><span class="n">pose</span><span class="p">,</span> <span class="n">block</span><span class="p">)</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="n">local</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">residue_label</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">,</span><span class="w"> </span><span class="n">pose</span><span class="p">,</span><span class="w"> </span><span class="n">block</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span></div>
+
+
+
+<div class="viewcode-block" id="block_for_residue_label">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.block_for_residue_label">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">block_for_residue_label</span><span class="p">(</span>
+    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">pose_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">residue_number</span><span class="p">:</span> <span class="nb">int</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Block index of one (chain, author residue number) label.</span>
+
+<span class="sd">    Raises ValueError if no block in the pose matches.</span>
+<span class="sd">    """</span>
+    <span class="n">chain_labels</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">chain_labels</span><span class="p">[</span><span class="n">pose_index</span><span class="p">]</span>
+    <span class="n">residue_labels</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_labels</span><span class="p">[</span><span class="n">pose_index</span><span class="p">]</span>
+    <span class="n">matches</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">chain_labels</span> <span class="o">==</span> <span class="n">chain</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">residue_labels</span> <span class="o">==</span> <span class="n">residue_number</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matches</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"no block found for chain </span><span class="si">{</span><span class="n">chain</span><span class="si">!r}</span><span class="s2"> residue </span><span class="si">{</span><span class="n">residue_number</span><span class="si">}</span><span class="s2"> "</span>
+            <span class="sa">f</span><span class="s2">"in pose </span><span class="si">{</span><span class="n">pose_index</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">matches</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
+
+
+
+<div class="viewcode-block" id="blocks_for_residue_labels">
+<a class="viewcode-back" href="../../../api/pose.html#tmol.pose.blocks_for_residue_labels">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">blocks_for_residue_labels</span><span class="p">(</span>
+    <span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
+    <span class="n">pose_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">chain</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">residue_numbers</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Block index of each (chain, author residue number) label in a batch.</span>
+
+<span class="sd">    ``residue_numbers`` may have any shape; the result has the same shape.</span>
+<span class="sd">    Entries with no matching block resolve to ``-1``.</span>
+<span class="sd">    """</span>
+    <span class="n">chain_labels</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">chain_labels</span><span class="p">[</span><span class="n">pose_index</span><span class="p">]</span>
+    <span class="n">residue_labels</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">residue_labels</span><span class="p">[</span><span class="n">pose_index</span><span class="p">]</span>
+    <span class="n">chain_mask</span> <span class="o">=</span> <span class="n">chain_labels</span> <span class="o">==</span> <span class="n">chain</span>
+
+    <span class="n">queries</span> <span class="o">=</span> <span class="n">residue_numbers</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">matches</span> <span class="o">=</span> <span class="p">(</span><span class="n">residue_labels</span> <span class="o">==</span> <span class="n">queries</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span> <span class="o">&amp;</span> <span class="n">chain_mask</span>
+    <span class="n">block</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">matches</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span> <span class="n">matches</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
+
 
 
 <div class="viewcode-block" id="get_torsion_names">

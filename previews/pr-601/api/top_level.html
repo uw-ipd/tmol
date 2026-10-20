@@ -39,7 +39,7 @@
   <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../_static/documentation_options.js?v=a395f30a"></script>
+    <script src="../_static/documentation_options.js?v=938c9ccc"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -60,7 +60,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.64" />
+  <meta name="docsearch:version" content="0.2.0" />
   
     
     <script src="../_static/searchtools.js"></script>
@@ -520,11 +520,11 @@ such as <a class="reference internal" href="io.html#module-tmol.io" title="tmol.
 <h2>Structure and chemistry<a class="headerlink" href="#structure-and-chemistry" title="Link to this heading">#</a></h2>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">atom_records_from_pose_stack</span></code></p></td>
-<td><p>Create a numpy array holding the atom records needed to write a PDB file from a PoseStack.</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">atom_array_from_file</span></code></p></td>
+<td><p>Read a PDB, CIF, MOL2 or SDF structure into an AtomArray.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">canonical_form_from_pdb</span></code></p></td>
-<td><p>Create a canonical form from either the contents of a PDB file as one long string or a list of individual lines from the file or by providing the name/path of a PDB file</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">atom_array_from_pose_stack</span></code></p></td>
+<td><p>Convert a PoseStack to an AtomArray or AtomArrayStack.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">default_canonical_ordering</span></code></p></td>
 <td><p>Create a CanonicalOrdering object from the default set of residue types</p></td>
@@ -535,17 +535,23 @@ such as <a class="reference internal" href="io.html#module-tmol.io" title="tmol.
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">extended_pose_stack_from_sequences</span></code></p></td>
 <td><p>Build a PoseStack from sequences with ideal geometry and extended backbone torsions.</p></td>
 </tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">file_from_atom_array</span></code></p></td>
+<td><p>Write an AtomArray as PDB or CIF; return the text when path is None.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">file_from_pose_stack</span></code></p></td>
+<td><p>Write a PoseStack as PDB or CIF; return the text when path is None.</p></td>
+</tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">one2three</span></code></p></td>
 <td><p>Return the three-letter amino acid code given its one-letter code, or None if not a valid one-letter code.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pose_stack_from_canonical_form</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pose_stack_from_atom_array</span></code></p></td>
+<td><p>Build a PoseStack from an AtomArray or AtomArrayStack.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pose_stack_from_canonical_form</span></code></p></td>
 <td><p>Build a pose stack from tensors in canonical atom ordering.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pose_stack_from_pdb</span></code></p></td>
-<td><p>Read PDB through AtomWorks and the shared annotated-array constructor.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pose_stack_to_pdb_string</span></code></p></td>
-<td><p>Convert a <code class="docutils literal notranslate"><span class="pre">PoseStack</span></code> into PDB text suitable for molecular viewers.</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pose_stack_from_file</span></code></p></td>
+<td><p>Build a PoseStack from a PDB, CIF, MOL2 or SDF structure.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">selection_gallery</span></code></p></td>
 <td><p>Return one interactive viewer for several labeled AtomArray selections.</p></td>
@@ -558,9 +564,6 @@ such as <a class="reference internal" href="io.html#module-tmol.io" title="tmol.
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">view</span></code></p></td>
 <td><p>Create a draggable py3Dmol viewer for a molecular structure.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_pose_stack_pdb</span></code></p></td>
-<td><p>Write a PDB-formatted file to disk given an input PoseStack.</p></td>
 </tr>
 </tbody>
 </table>

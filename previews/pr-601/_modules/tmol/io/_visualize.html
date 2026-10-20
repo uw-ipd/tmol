@@ -38,7 +38,7 @@
   <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
 <link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
 
-    <script src="../../../_static/documentation_options.js?v=a395f30a"></script>
+    <script src="../../../_static/documentation_options.js?v=938c9ccc"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script>let toggleHintShow = 'show code';</script>
@@ -57,7 +57,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="light dark"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="0.1.64" />
+  <meta name="docsearch:version" content="0.2.0" />
   
     
     <script src="../../../_static/searchtools.js"></script>
@@ -409,9 +409,6 @@
     
     <li class="breadcrumb-item"><a href="../../tmol.html" class="nav-link">tmol</a></li>
     
-    
-    <li class="breadcrumb-item"><a href="../io.html" class="nav-link">tmol.io</a></li>
-    
     <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">tmol.io._visualize</span></li>
   </ul>
 </nav>
@@ -441,7 +438,6 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">html</span><span class="w"> </span><span class="kn">import</span> <span class="n">escape</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">io</span><span class="w"> </span><span class="kn">import</span> <span class="n">StringIO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">os</span><span class="w"> </span><span class="kn">import</span> <span class="n">PathLike</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Mapping</span>
@@ -457,17 +453,6 @@
     <span class="n">AtomArrayStack</span> <span class="o">=</span> <span class="n">Any</span>
     <span class="n">PoseStack</span> <span class="o">=</span> <span class="n">Any</span>
     <span class="n">StructureInput</span> <span class="o">=</span> <span class="n">Any</span>
-
-
-<div class="viewcode-block" id="pose_stack_to_pdb_string">
-<a class="viewcode-back" href="../../../api/io.html#tmol.io.pose_stack_to_pdb_string">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">pose_stack_to_pdb_string</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Convert a ``PoseStack`` into PDB text suitable for molecular viewers."""</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">to_pdb</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_records_from_pose_stack</span>
-
-    <span class="k">return</span> <span class="n">to_pdb</span><span class="p">(</span><span class="n">atom_records_from_pose_stack</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">))</span></div>
-
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_is_biotite_structure</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -487,25 +472,21 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_biotite_to_pdb_string</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">AtomArray</span> <span class="o">|</span> <span class="n">AtomArrayStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Serialize a Biotite structure with Biotite's PDB writer."""</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">biotite.structure.io.pdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">PDBFile</span>
-    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">"Viewing a Biotite structure requires biotite."</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+<span class="w">    </span><span class="sd">"""Serialize a Biotite structure as PDB text."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._structure_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">file_from_atom_array</span>
 
-    <span class="n">pdb_file</span> <span class="o">=</span> <span class="n">PDBFile</span><span class="p">()</span>
-    <span class="c1"># Biotite warns when PDB's fixed-width compatibility format cannot carry</span>
-    <span class="c1"># every annotation. The viewer only consumes coordinates and connectivity,</span>
-    <span class="c1"># so these warnings are expected and would otherwise become alarming red</span>
-    <span class="c1"># stderr boxes in rendered notebooks.</span>
+    <span class="c1"># PDB's fixed columns cannot carry every annotation; the viewer only needs</span>
+    <span class="c1"># coordinates and connectivity, so the writer's warnings are noise here.</span>
     <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
         <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">"ignore"</span><span class="p">,</span> <span class="ne">UserWarning</span><span class="p">)</span>
-        <span class="n">pdb_file</span><span class="o">.</span><span class="n">set_structure</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
-    <span class="n">output</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">()</span>
-    <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
-        <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">"ignore"</span><span class="p">,</span> <span class="ne">UserWarning</span><span class="p">)</span>
-        <span class="n">pdb_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">output</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">file_from_atom_array</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"pdb"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_pose_stack_to_pdb_string</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Serialize a PoseStack as PDB text."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.io._structure_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">atom_array_from_pose_stack</span>
+
+    <span class="k">return</span> <span class="n">_biotite_to_pdb_string</span><span class="p">(</span><span class="n">atom_array_from_pose_stack</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">))</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_pdb_text</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">StructureInput</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -526,7 +507,7 @@
     <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="n">PoseStack</span>
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">PoseStack</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">pose_stack_to_pdb_string</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_pose_stack_to_pdb_string</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
 
     <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
         <span class="s2">"Expected a PoseStack, Biotite AtomArray/AtomArrayStack, PDB text, "</span>
@@ -765,6 +746,140 @@
 <span class="s2">    </span><span class="se">}}</span><span class="s2">);</span>
 <span class="s2">    window.dispatchEvent(new Event('resize'));</span>
 <span class="s2">  </span><span class="se">}}</span><span class="s2">);</span>
+<span class="se">}}</span><span class="s2">)();</span>
+<span class="s2">&lt;/script&gt;</span>
+<span class="s2">"""</span>
+    <span class="k">return</span> <span class="n">_display_html</span><span class="p">(</span><span class="n">html</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="overlay_view">
+<a class="viewcode-back" href="../../../api/io.html#tmol.io.overlay_view">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">overlay_view</span><span class="p">(</span>
+    <span class="n">structures</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">StructureInput</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">notes</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">colors</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">default</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"both"</span><span class="p">,</span>
+    <span class="n">width</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">720</span><span class="p">,</span>
+    <span class="n">height</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">420</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Compare two or more structures, with the option to overlay them all.</span>
+
+<span class="sd">    A selector shows any one structure alone (as :func:`view` would render</span>
+<span class="sd">    it), or all of them at once in a single shared viewer, each colored</span>
+<span class="sd">    distinctly.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        structures: Two or more labeled structures, each accepted by :func:`view`.</span>
+<span class="sd">        notes: Optional mapping of structure labels to short explanatory text,</span>
+<span class="sd">            shown under each individual (non-overlay) panel.</span>
+<span class="sd">        colors: Optional mapping of structure labels to a color used for that</span>
+<span class="sd">            structure in the overlay panel. Unlisted labels draw from a</span>
+<span class="sd">            default categorical palette, cycling if there are more structures</span>
+<span class="sd">            than colors in it.</span>
+<span class="sd">        default: Which panel is visible initially: ``"both"`` (the overlay,</span>
+<span class="sd">            the default) or one of the structure labels.</span>
+<span class="sd">        width: Viewer width in pixels.</span>
+<span class="sd">        height: Viewer height in pixels.</span>
+<span class="sd">    """</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">py3Dmol</span>
+    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">"tmol.overlay_view() requires py3Dmol. Install it with "</span>
+            <span class="s2">"`python -m pip install py3Dmol` or `python -m pip install -e '.[docs]'`."</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+
+    <span class="n">labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">structures</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"overlay_view compares two or more structures"</span><span class="p">)</span>
+
+    <span class="n">notes</span> <span class="o">=</span> <span class="n">notes</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">default_palette</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"#2563eb"</span><span class="p">,</span> <span class="s2">"#f97316"</span><span class="p">,</span> <span class="s2">"#16a34a"</span><span class="p">,</span> <span class="s2">"#9333ea"</span><span class="p">,</span> <span class="s2">"#dc2626"</span><span class="p">,</span> <span class="s2">"#0891b2"</span><span class="p">]</span>
+    <span class="n">colors</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">label</span><span class="p">:</span> <span class="p">(</span><span class="n">colors</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">default_palette</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">default_palette</span><span class="p">)])</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="n">root_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"tmol-overlay-</span><span class="si">{</span><span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="si">}</span><span class="s2">"</span>
+    <span class="n">select_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2">-select"</span>
+
+    <span class="n">panels</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">labels</span><span class="p">):</span>
+        <span class="n">viewer</span> <span class="o">=</span> <span class="n">view</span><span class="p">(</span><span class="n">structures</span><span class="p">[</span><span class="n">label</span><span class="p">],</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">)</span>
+        <span class="n">note</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">notes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span>
+        <span class="n">options</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">index</span><span class="p">,</span> <span class="n">label</span><span class="p">))</span>
+        <span class="n">panels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"""</span>
+<span class="s2">&lt;section class="tmol-switch-panel" style="position:absolute;inset:0;visibility:hidden"&gt;</span>
+<span class="s2">  &lt;div class="tmol-viewer-note"&gt;</span><span class="si">{</span><span class="n">escape</span><span class="p">(</span><span class="n">note</span><span class="p">)</span><span class="si">}</span><span class="s2">&lt;/div&gt;</span>
+<span class="s2">  </span><span class="si">{</span><span class="n">_viewer_html</span><span class="p">(</span><span class="n">viewer</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">&lt;/section&gt;"""</span><span class="p">)</span>
+
+    <span class="n">overlay_viewer</span> <span class="o">=</span> <span class="n">py3Dmol</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">)</span>
+    <span class="n">overlay_viewer</span><span class="o">.</span><span class="n">setBackgroundColor</span><span class="p">(</span><span class="s2">"white"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">labels</span><span class="p">):</span>
+        <span class="n">pdb_text</span> <span class="o">=</span> <span class="n">_pdb_text</span><span class="p">(</span><span class="n">structures</span><span class="p">[</span><span class="n">label</span><span class="p">])</span>
+        <span class="n">color</span> <span class="o">=</span> <span class="n">colors</span><span class="p">[</span><span class="n">label</span><span class="p">]</span>
+        <span class="n">overlay_viewer</span><span class="o">.</span><span class="n">addModel</span><span class="p">(</span><span class="n">pdb_text</span><span class="p">,</span> <span class="s2">"pdb"</span><span class="p">)</span>
+        <span class="n">overlay_viewer</span><span class="o">.</span><span class="n">setStyle</span><span class="p">({</span><span class="s2">"model"</span><span class="p">:</span> <span class="n">index</span><span class="p">},</span> <span class="p">{</span><span class="s2">"cartoon"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"color"</span><span class="p">:</span> <span class="n">color</span><span class="p">}})</span>
+        <span class="n">overlay_viewer</span><span class="o">.</span><span class="n">addStyle</span><span class="p">(</span>
+            <span class="p">{</span><span class="s2">"model"</span><span class="p">:</span> <span class="n">index</span><span class="p">,</span> <span class="s2">"not"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"hetflag"</span><span class="p">:</span> <span class="kc">True</span><span class="p">}},</span>
+            <span class="p">{</span><span class="s2">"stick"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"color"</span><span class="p">:</span> <span class="n">color</span><span class="p">,</span> <span class="s2">"radius"</span><span class="p">:</span> <span class="mf">0.08</span><span class="p">,</span> <span class="s2">"opacity"</span><span class="p">:</span> <span class="mf">0.6</span><span class="p">}},</span>
+        <span class="p">)</span>
+        <span class="n">overlay_viewer</span><span class="o">.</span><span class="n">setStyle</span><span class="p">(</span>
+            <span class="p">{</span><span class="s2">"model"</span><span class="p">:</span> <span class="n">index</span><span class="p">,</span> <span class="s2">"hetflag"</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+            <span class="p">{</span><span class="s2">"stick"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"color"</span><span class="p">:</span> <span class="n">color</span><span class="p">,</span> <span class="s2">"radius"</span><span class="p">:</span> <span class="mf">0.22</span><span class="p">}},</span>
+        <span class="p">)</span>
+    <span class="n">_add_hover_labels</span><span class="p">(</span><span class="n">overlay_viewer</span><span class="p">)</span>
+    <span class="n">overlay_viewer</span><span class="o">.</span><span class="n">zoomTo</span><span class="p">()</span>
+
+    <span class="n">overlay_index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+    <span class="n">overlay_note</span> <span class="o">=</span> <span class="s2">" vs. "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s1">'&lt;span style="color:</span><span class="si">{</span><span class="n">colors</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="si">}</span><span class="s1">"&gt;</span><span class="si">{</span><span class="n">escape</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">label</span><span class="p">))</span><span class="si">}</span><span class="s1">&lt;/span&gt;'</span>
+        <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span>
+    <span class="p">)</span>
+    <span class="n">panels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"""</span>
+<span class="s2">&lt;section class="tmol-switch-panel" style="position:absolute;inset:0;visibility:hidden"&gt;</span>
+<span class="s2">  &lt;div class="tmol-viewer-note"&gt;</span><span class="si">{</span><span class="n">overlay_note</span><span class="si">}</span><span class="s2">&lt;/div&gt;</span>
+<span class="s2">  </span><span class="si">{</span><span class="n">_viewer_html</span><span class="p">(</span><span class="n">overlay_viewer</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">&lt;/section&gt;"""</span><span class="p">)</span>
+    <span class="n">options</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">overlay_index</span><span class="p">,</span> <span class="s2">"Both"</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="k">else</span> <span class="s2">"All"</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">default</span> <span class="o">==</span> <span class="s2">"both"</span><span class="p">:</span>
+        <span class="n">default_index</span> <span class="o">=</span> <span class="n">overlay_index</span>
+    <span class="k">elif</span> <span class="n">default</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">:</span>
+        <span class="n">default_index</span> <span class="o">=</span> <span class="n">labels</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">default</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"default must be 'both' or one of </span><span class="si">{</span><span class="n">labels</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">option_html</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s1">'&lt;option value="</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s1">"'</span>
+        <span class="sa">f</span><span class="s1">'</span><span class="si">{</span><span class="s2">" selected"</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">index</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">default_index</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">""</span><span class="si">}</span><span class="s1">&gt;'</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">escape</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">label</span><span class="p">))</span><span class="si">}</span><span class="s2">&lt;/option&gt;"</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">options</span>
+    <span class="p">)</span>
+    <span class="n">html</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""</span>
+<span class="s2">&lt;div class="tmol-switchable-view" id="</span><span class="si">{</span><span class="n">root_id</span><span class="si">}</span><span class="s2">" style="max-width:</span><span class="si">{</span><span class="n">width</span><span class="si">}</span><span class="s2">px"&gt;</span>
+<span class="s2">  &lt;label&gt;Show: &lt;select id="</span><span class="si">{</span><span class="n">select_id</span><span class="si">}</span><span class="s2">"&gt;</span><span class="si">{</span><span class="n">option_html</span><span class="si">}</span><span class="s2">&lt;/select&gt;&lt;/label&gt;</span>
+<span class="s2">  &lt;div style="position:relative;width:100%;height:</span><span class="si">{</span><span class="n">height</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">32</span><span class="si">}</span><span class="s2">px"&gt;</span>
+<span class="s2">    </span><span class="si">{</span><span class="s1">''</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">panels</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">  &lt;/div&gt;</span>
+<span class="s2">&lt;/div&gt;</span>
+<span class="s2">&lt;script&gt;</span>
+<span class="s2">(() =&gt; </span><span class="se">{{</span>
+<span class="s2">  const root = document.getElementById(</span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">root_id</span><span class="p">)</span><span class="si">}</span><span class="s2">);</span>
+<span class="s2">  const select = document.getElementById(</span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">select_id</span><span class="p">)</span><span class="si">}</span><span class="s2">);</span>
+<span class="s2">  const panels = root.querySelectorAll('.tmol-switch-panel');</span>
+<span class="s2">  const show = (index) =&gt; </span><span class="se">{{</span>
+<span class="s2">    panels.forEach((panel, i) =&gt; </span><span class="se">{{</span>
+<span class="s2">      panel.style.visibility = i === index ? 'visible' : 'hidden';</span>
+<span class="s2">    </span><span class="se">}}</span><span class="s2">);</span>
+<span class="s2">    window.dispatchEvent(new Event('resize'));</span>
+<span class="s2">  </span><span class="se">}}</span><span class="s2">;</span>
+<span class="s2">  select.addEventListener('change', () =&gt; show(Number(select.value)));</span>
+<span class="s2">  show(</span><span class="si">{</span><span class="n">default_index</span><span class="si">}</span><span class="s2">);</span>
 <span class="se">}}</span><span class="s2">)();</span>
 <span class="s2">&lt;/script&gt;</span>
 <span class="s2">"""</span>

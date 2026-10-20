@@ -34,10 +34,10 @@ your own mmCIF containing a nonstandard polymer:
 
 ```python
 import torch
-from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+from tmol.io import atom_array_from_file, pose_stack_from_atom_array
 
-array = atom_array_from_cif("modified_polymer.cif")
-pose, context = pose_stack_from_biotite(
+array = atom_array_from_file("modified_polymer.cif")
+pose, context = pose_stack_from_atom_array(
     array, torch.device("cuda"), prepare_ligands=True, return_context=True
 )
 ```
@@ -93,19 +93,19 @@ A MOL2 charge-model label alone does not establish the intended protonation pH.
 ## Load a complex
 
 For full protein-ligand structures, load with Biotite and let
-`pose_stack_from_biotite()` prepare every non-standard residue:
+`pose_stack_from_atom_array()` prepare every non-standard residue:
 
 ```python
 import torch
 import tmol
 
 from tmol.database import ParameterDatabase
-from tmol.io import atom_array_from_file, pose_stack_from_biotite
+from tmol.io import atom_array_from_file, pose_stack_from_atom_array
 
 device = torch.device("cuda" if tmol.has_cuda() and torch.cuda.is_available() else "cpu")
 structure = atom_array_from_file("complex.cif")
 
-pose_stack, context = pose_stack_from_biotite(
+pose_stack, context = pose_stack_from_atom_array(
     structure,
     device,
     prepare_ligands=True,
@@ -154,13 +154,13 @@ the structure-independent context once:
 
 ```python
 from tmol.io import (
-    build_context_from_biotite,
-    pose_stack_from_biotite,
+    build_context_from_atom_array,
+    pose_stack_from_atom_array,
 )
 
-context = build_context_from_biotite(struct0, device, prepare_ligands=True)
+context = build_context_from_atom_array(struct0, device, prepare_ligands=True)
 for structure in structures:
-    pose_stack = pose_stack_from_biotite(structure, device, context=context)
+    pose_stack = pose_stack_from_atom_array(structure, device, context=context)
 ```
 
 This skips rebuilding the parameter database, canonical ordering, residue type
@@ -192,7 +192,7 @@ param_db, co = prepare_ligands(
 The same prepared files can be passed through IO:
 
 ```python
-pose_stack, context = pose_stack_from_biotite(
+pose_stack, context = pose_stack_from_atom_array(
     structure,
     device,
     prepare_ligands=True,
@@ -266,4 +266,4 @@ lists the currently supported exports.
 
 ## Examples and reference
 
-{doc}`Ligand tutorial </tutorial/07_ligand_and_params>` · {doc}`Ligand API </api/ligand>` · {doc}`Scoring </user_guide/scoring>`
+{doc}`Ligand tutorial </tutorial/04_ligands_and_ncaas>` · {doc}`Ligand API </api/ligand>` · {doc}`Scoring </user_guide/scoring>`
