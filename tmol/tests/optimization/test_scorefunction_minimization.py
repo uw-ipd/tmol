@@ -149,7 +149,9 @@ def test_kin_network_reset_reuses_topology_and_updates_weights(
 
     torch.testing.assert_close(network.full_coords, updated_pose.coords)
     torch.testing.assert_close(actual[0], expected[0])
-    torch.testing.assert_close(actual[1], expected[1])
+    # Gradients accumulate float32 contributions in a different order with the
+    # CUDA graph than without it, so allow more than the default 1e-5.
+    torch.testing.assert_close(actual[1], expected[1], rtol=1e-4, atol=1e-4)
 
     # A move-map edit changes the DOF mask and must force a rebuild.
     changed_mm = MoveMap.from_pose_stack(pose_stack)
