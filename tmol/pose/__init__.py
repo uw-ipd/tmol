@@ -22,12 +22,14 @@ from ._sequence import (  # noqa: F401
     tokenize_sequences,
 )  # noqa: F401
 from ._util import (  # noqa: F401
+    atom_label,
     block_for_residue_label,
     blocks_for_residue_labels,
     get_ligand_mask,
     get_named_torsions,
     get_sequence,
     get_torsion_names,
+    residue_label,
 )
 
 __all__ = [
@@ -43,12 +45,14 @@ __all__ = [
     "SeqToken",
     "SplitBlockEntry",
     "SplitBlockMapping",
+    "atom_label",
     "block_for_residue_label",
     "blocks_for_residue_labels",
     "get_ligand_mask",
     "get_named_torsions",
     "get_sequence",
     "get_torsion_names",
+    "residue_label",
     "resolve_block_type_names",
     "smiles_in_tokens",
     "tokenize_sequences",

@@ -40,6 +40,7 @@ from ._operations import CoordArray, inverseKin  # noqa: F401
 from ._script_modules import PoseStackKinematicsModule  # noqa: F401
 from ._pose_stack_kinematics import (  # noqa: F401
     set_named_torsions,
+    torsion_labels,
     _apply_torsion_deltas,
 )  # noqa: F401
 
@@ -65,5 +66,6 @@ __all__ = [
     "construct_kin_module_data_for_pose",
     "inverseKin",
     "set_named_torsions",
+    "torsion_labels",
     "validate_fold_forest",
 ]

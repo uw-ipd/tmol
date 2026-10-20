@@ -45,6 +45,23 @@ def get_ligand_mask(pose_stack: PoseStack) -> torch.Tensor:
     return real & ~is_polymer_by_type[safe_ind]
 
 
+def residue_label(pose_stack: PoseStack, pose: int, block: int) -> str:
+    """ "chain resnum name3" for one block."""
+    info = pose_stack.pdb_info
+    name3 = pose_stack.block_type(pose, block).name3
+    return f"{info.chain_labels[pose, block]} {int(info.residue_labels[pose, block])} {name3}"
+
+
+def atom_label(pose_stack: PoseStack, pose: int, atom: int) -> str:
+    """ "chain resnum name3 atom" for a per-pose atom index."""
+    real = pose_stack.block_type_ind64[pose] >= 0
+    offsets = pose_stack.block_coord_offset64[pose]
+    block = int(((offsets <= atom) & real).nonzero()[-1])
+    local = atom - int(offsets[block])
+    name = pose_stack.block_type(pose, block).atoms[local].name
+    return f"{residue_label(pose_stack, pose, block)} {name}"
+
+
 def block_for_residue_label(
     pose_stack: PoseStack, pose_index: int, chain: str, residue_number: int
 ) -> int:
