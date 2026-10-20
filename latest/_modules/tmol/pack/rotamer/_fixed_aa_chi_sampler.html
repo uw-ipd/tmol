@@ -434,10 +434,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">Tensor</span><span class="p">,</span>
-    <span class="n">validate_args</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span><span class="p">,</span> <span class="n">l_base_name</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">PackedBlockTypes</span><span class="p">,</span>
@@ -462,7 +459,6 @@
 
 <div class="viewcode-block" id="FixedAAChiSampler.defines_rotamers_for_rt">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.FixedAAChiSampler.defines_rotamers_for_rt">[docs]</a>
-    <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">defines_rotamers_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
         <span class="c1"># ugly hack for now:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">rt</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">polymer</span><span class="o">.</span><span class="n">is_polymer</span><span class="p">:</span>
@@ -485,7 +481,6 @@
 
 <div class="viewcode-block" id="FixedAAChiSampler.first_sc_atoms_for_rt">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.FixedAAChiSampler.first_sc_atoms_for_rt">[docs]</a>
-    <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">first_sc_atoms_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
         <span class="n">base</span> <span class="o">=</span> <span class="n">l_base_name</span><span class="p">(</span><span class="n">rt</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">base</span> <span class="o">==</span> <span class="s2">"GLY"</span><span class="p">:</span>
@@ -526,7 +521,6 @@
         <span class="nb">setattr</span><span class="p">(</span><span class="n">packed_block_types</span><span class="p">,</span> <span class="s2">"fixed_aa_chi_sampler_builds_bt"</span><span class="p">,</span> <span class="n">builds_bt</span><span class="p">)</span></div>
 
 
-    <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">sample_chi_for_poses</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">task</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>
@@ -617,7 +611,7 @@
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
   </p>
 </div>
       

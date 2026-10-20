@@ -432,10 +432,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">Tensor</span><span class="p">,</span>
-    <span class="n">validate_args</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tmol.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.chemical</span><span class="w"> </span><span class="kn">import</span> <span class="n">RefinedResidueType</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tmol.pose</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">PackedBlockTypes</span><span class="p">,</span>
@@ -460,21 +457,18 @@
 
 <div class="viewcode-block" id="IncludeCurrentSampler.annotate_residue_type">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.IncludeCurrentSampler.annotate_residue_type">[docs]</a>
-    <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">annotate_residue_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
         <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="IncludeCurrentSampler.annotate_packed_block_types">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.IncludeCurrentSampler.annotate_packed_block_types">[docs]</a>
-    <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">annotate_packed_block_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">packed_block_types</span><span class="p">:</span> <span class="n">PackedBlockTypes</span><span class="p">):</span>
         <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="IncludeCurrentSampler.defines_rotamers_for_rt">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.IncludeCurrentSampler.defines_rotamers_for_rt">[docs]</a>
-    <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">defines_rotamers_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">):</span>
         <span class="k">return</span> <span class="kc">True</span></div>
 
@@ -486,7 +480,6 @@
 
 <div class="viewcode-block" id="IncludeCurrentSampler.first_sc_atoms_for_rt">
 <a class="viewcode-back" href="../../../../api/pack.html#tmol.pack.rotamer.IncludeCurrentSampler.first_sc_atoms_for_rt">[docs]</a>
-    <span class="nd">@validate_args</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">first_sc_atoms_for_rt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rt</span><span class="p">:</span> <span class="n">RefinedResidueType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">rt</span><span class="o">.</span><span class="n">default_jump_connection_atom</span><span class="p">,)</span></div>
 
@@ -568,7 +561,6 @@
 
 
 
-<span class="c1"># @validate_args</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampler</span><span class="p">(</span>
     <span class="n">poses</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span>
     <span class="n">task</span><span class="p">:</span> <span class="s2">"SetPackerTask"</span><span class="p">,</span>  <span class="c1"># noqa F821</span>
@@ -655,7 +647,7 @@
         <div class="footer-item">
 
   <p class="sphinx-version">
-    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
   </p>
 </div>
       
