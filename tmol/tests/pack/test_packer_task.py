@@ -3,7 +3,7 @@ import torch
 
 from tmol.pack import PackerPalette, PackerTask, SetPackerTask
 from tmol.pose import PoseStackBuilder
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 
 # choices are padded to the largest palette: an AIB position offers the 21
 #    canonical choices and AIB itself
@@ -71,8 +71,20 @@ def test_packer_palette_design_to_canonical_aas2_backward_compat(
 
 
 def test_packer_task_smoke(ubq_pdb, torch_device):
-    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
-    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=7)
+    p1 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=5,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
+    p2 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=7,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     palette = PackerPalette()
     task = PackerTask(poses, palette)
@@ -84,7 +96,9 @@ def test_residue_level_task_his_restrict_to_repacking_backward_compat(
 ):
     palette = PackerPalette()
 
-    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device)
+    pose_stack = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     pbt = pose_stack.packed_block_types
     i, his_res = next(
         (i, res)
@@ -139,8 +153,20 @@ def test_residue_level_task_his_restrict_to_repacking_backward_compat(
 
 
 def test_packer_task_masked_restrictions(ubq_pdb, torch_device):
-    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
-    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
+    p1 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=5,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
+    p2 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=5,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     task = PackerTask(poses, PackerPalette())
 
@@ -180,8 +206,20 @@ def test_packer_task_masked_restrictions(ubq_pdb, torch_device):
 
 def test_packer_task_ctor(ubq_pdb, default_restype_set, torch_device):
     palette = PackerPalette()
-    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
-    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=7)
+    p1 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=5,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
+    p2 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=7,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
     task = PackerTask(poses, palette)
@@ -212,8 +250,20 @@ def test_packer_task_ctor(ubq_pdb, default_restype_set, torch_device):
 
 def test_set_packer_task_ctor(ubq_pdb, torch_device):
     palette = PackerPalette()
-    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
-    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=7)
+    p1 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=5,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
+    p2 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=7,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
     task = PackerTask(poses, palette)
@@ -290,7 +340,13 @@ def test_masked_name3_restriction_that_empties_a_block_raises(ubq_pdb, torch_dev
     Guards PackerTask.restrict_absent_name3s in pack/_packer_task.py, which left
     such a block with no allowed block type and no error.
     """
-    poses = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
+    poses = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=5,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     task = PackerTask(poses, PackerPalette())
     mask = torch.zeros(
         task.per_block_n_considered_block_types.shape,
@@ -315,7 +371,13 @@ def test_masked_name3_restriction_of_a_fixed_block_does_not_raise(
     ubq_pdb, torch_device
 ):
     """A block that already had no allowed block type is not reported."""
-    poses = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
+    poses = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=5,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     task = PackerTask(poses, PackerPalette())
     mask = torch.zeros(
         task.per_block_n_considered_block_types.shape,

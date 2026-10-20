@@ -74,4 +74,4 @@ each mutant with its independently repacked WT control.
 
 ## Examples and reference
 
-{doc}`Interface example </tutorial/09_protein_interface_hotspot_scan>` · {doc}`Analysis API </api/analysis>` · {doc}`Packing </workflows/packing>`
+{doc}`Interface example </tutorial/02_scoring_and_optimization>` · {doc}`Analysis API </api/analysis>` · {doc}`Packing </workflows/packing>`

@@ -7,12 +7,14 @@ import pytest
 import torch
 
 from tmol.io import (
-    atom_array_from_cif,
-    build_context_from_biotite,
+    atom_array_from_file,
+    build_context_from_atom_array,
+    file_from_atom_array,
+    file_from_pose_stack,
     canonical_form_from_biotite,
-    pose_stack_from_biotite,
-    pose_stack_from_cif,
-    biotite_from_pose_stack,
+    pose_stack_from_atom_array,
+    pose_stack_from_file,
+    atom_array_from_pose_stack,
     pose_stack_from_canonical_form,
 )
 from tmol.io._pose_stack_from_biotite import (
@@ -46,7 +48,7 @@ def test_load_score_roundtrip_cif(pdb_code, tmp_path):
     if isinstance(bt_struct, biotite.structure.AtomArrayStack):
         bt_struct = bt_struct[0]
 
-    pose_stack = pose_stack_from_biotite(bt_struct, device)
+    pose_stack = pose_stack_from_atom_array(bt_struct, device, no_optH=True)
     sfxn = beta2016_score_function(device)
     scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
     scores = scorer.unweighted_scores(pose_stack.coords)
@@ -54,10 +56,7 @@ def test_load_score_roundtrip_cif(pdb_code, tmp_path):
     assert not torch.any(torch.isnan(scores))
     assert not torch.any(torch.isinf(scores))
 
-    bio = biotite_from_pose_stack(pose_stack)
-    out_file = CIFFile()
-    set_structure(out_file, bio)
-    out_file.write(tmp_path / f"{pdb_code}_roundtrip.cif")
+    file_from_pose_stack(pose_stack, tmp_path / f"{pdb_code}_roundtrip.cif")
 
 
 def _score_and_gradient(pose_stack, device):
@@ -77,10 +76,10 @@ def test_default_cif_roundtrip_preserves_authored_hydrogens_and_score(
     biotite_1ubq, tmp_path, torch_device, hydrogen_offset
 ):
     starts = biotite.structure.get_residue_starts(biotite_1ubq)
-    initial = pose_stack_from_biotite(
-        biotite_1ubq[: starts[3]], torch_device=torch_device
+    initial = pose_stack_from_atom_array(
+        biotite_1ubq[: starts[3]], torch_device=torch_device, no_optH=True
     )
-    authored = biotite_from_pose_stack(initial)
+    authored = atom_array_from_pose_stack(initial)
     hydrogens = authored.element == "H"
     assert hydrogens.any()
     authored.coord[hydrogens] += numpy.array(
@@ -88,8 +87,10 @@ def test_default_cif_roundtrip_preserves_authored_hydrogens_and_score(
     )
     authored.coord[:] = numpy.round(authored.coord, 3)
 
-    before = pose_stack_from_biotite(authored, torch_device=torch_device)
-    before_array = biotite_from_pose_stack(before)
+    before = pose_stack_from_atom_array(
+        authored, torch_device=torch_device, no_optH=True
+    )
+    before_array = atom_array_from_pose_stack(before)
     numpy.testing.assert_array_equal(before_array.atom_name, authored.atom_name)
     numpy.testing.assert_array_equal(before_array.coord, authored.coord)
 
@@ -97,9 +98,9 @@ def test_default_cif_roundtrip_preserves_authored_hydrogens_and_score(
     set_structure(cif, before_array)
     path = tmp_path / "hydrogen-roundtrip.cif"
     cif.write(path)
-    parsed = atom_array_from_cif(path)
-    after = pose_stack_from_cif(path, torch_device)
-    after_array = biotite_from_pose_stack(after)
+    parsed = atom_array_from_file(path)
+    after = pose_stack_from_file(path, torch_device, no_optH=True)
+    after_array = atom_array_from_pose_stack(after)
 
     numpy.testing.assert_array_equal(parsed.atom_name, before_array.atom_name)
     numpy.testing.assert_array_equal(after_array.atom_name, before_array.atom_name)
@@ -127,8 +128,8 @@ def test_default_cif_roundtrip_preserves_histidine_tautomer_hydrogen(
     authored.coord[hd1] += numpy.array([0.173, -0.119, 0.087])
     authored.coord[:] = numpy.round(authored.coord, 3)
 
-    before = pose_stack_from_biotite(authored, torch_device)
-    before_array = biotite_from_pose_stack(before)
+    before = pose_stack_from_atom_array(authored, torch_device, no_optH=True)
+    before_array = atom_array_from_pose_stack(before)
     assert "HD1" in before_array.atom_name
     assert "HE2" not in before_array.atom_name
     numpy.testing.assert_array_equal(
@@ -139,8 +140,8 @@ def test_default_cif_roundtrip_preserves_histidine_tautomer_hydrogen(
     set_structure(cif, before_array)
     path = tmp_path / "histidine-roundtrip.cif"
     cif.write(path)
-    after = pose_stack_from_cif(path, torch_device)
-    after_array = biotite_from_pose_stack(after)
+    after = pose_stack_from_file(path, torch_device, no_optH=True)
+    after_array = atom_array_from_pose_stack(after)
     assert "HD1" in after_array.atom_name
     assert "HE2" not in after_array.atom_name
     numpy.testing.assert_allclose(
@@ -151,7 +152,7 @@ def test_default_cif_roundtrip_preserves_histidine_tautomer_hydrogen(
 
 
 def test_build_context_from_biotite_smoke(biotite_1ubq, torch_device):
-    context = build_context_from_biotite(biotite_1ubq, torch_device=torch_device)
+    context = build_context_from_atom_array(biotite_1ubq, torch_device=torch_device)
     assert context.packed_block_types.device.type == torch_device.type
 
 
@@ -160,7 +161,7 @@ def test_canonical_form_from_biotite_smoke(biotite_1r21, torch_device):
 
 
 def test_pose_stack_from_biotite_1ubq_smoke(biotite_1ubq, torch_device):
-    pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
+    pose_stack_from_atom_array(biotite_1ubq, torch_device=torch_device, no_optH=True)
 
 
 def test_complete_protein_skips_na_sampler_setup(
@@ -172,24 +173,26 @@ def test_complete_protein_skips_na_sampler_setup(
         raise AssertionError("NA sampler is unnecessary for a complete protein")
 
     monkeypatch.setattr(NaChiRotamerSampler, "from_database", unexpected_na_sampler)
-    pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
+    pose_stack_from_atom_array(biotite_1ubq, torch_device=torch_device, no_optH=True)
 
 
 def test_default_pose_builds_reuse_packing_setup(biotite_1ubq, torch_device):
     torch.manual_seed(0)
-    first, context = pose_stack_from_biotite(
+    first, context = pose_stack_from_atom_array(
         biotite_1ubq,
         torch_device=torch_device,
         return_context=True,
+        no_optH=True,
     )
     score_function = context._packing_score_function
     dunbrack_sampler = context._dunbrack_sampler
 
     torch.manual_seed(0)
-    second, second_context = pose_stack_from_biotite(
+    second, second_context = pose_stack_from_atom_array(
         biotite_1ubq,
         torch_device=torch_device,
         return_context=True,
+        no_optH=True,
     )
 
     assert second_context is context
@@ -203,10 +206,10 @@ def test_default_pose_builds_reuse_packing_setup(biotite_1ubq, torch_device):
 def test_standard_only_ligand_preparation_reuses_default_context(
     biotite_1ubq, torch_device
 ):
-    default_context = build_context_from_biotite(
+    default_context = build_context_from_atom_array(
         biotite_1ubq, torch_device=torch_device
     )
-    ligand_aware_context = build_context_from_biotite(
+    ligand_aware_context = build_context_from_atom_array(
         biotite_1ubq,
         torch_device=torch_device,
         prepare_ligands=True,
@@ -219,23 +222,27 @@ def test_standard_only_ligand_preparation_reuses_default_context(
 def test_pose_stack_from_biotite_1ubq_err_smoke(biotite_1ubq_err, torch_device):
     starts = biotite.structure.get_residue_starts(biotite_1ubq_err)
     bt = biotite_1ubq_err[starts[-5] : starts[-1]]
-    pose_stack_from_biotite(bt, torch_device=torch_device)
+    pose_stack_from_atom_array(bt, torch_device=torch_device, no_optH=True)
 
 
 def test_pose_stack_from_biotite_1ubq_cif_smoke(biotite_1ubq_cif, torch_device):
-    pose_stack_from_biotite(biotite_1ubq_cif, torch_device=torch_device)
+    pose_stack_from_atom_array(
+        biotite_1ubq_cif, torch_device=torch_device, no_optH=True
+    )
 
 
 def test_pose_stack_from_and_to_biotite_1ubq_smoke(biotite_1ubq, torch_device):
-    pose_stack = pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
-    biotite_from_pose_stack(pose_stack)
+    pose_stack = pose_stack_from_atom_array(
+        biotite_1ubq, torch_device=torch_device, no_optH=True
+    )
+    atom_array_from_pose_stack(pose_stack)
 
 
 def test_pose_stack_from_and_to_biotite_1ubq_no_opth_smoke(biotite_1ubq, torch_device):
-    pose_stack = pose_stack_from_biotite(
+    pose_stack = pose_stack_from_atom_array(
         biotite_1ubq, torch_device=torch_device, no_optH=True
     )
-    biotite_from_pose_stack(pose_stack)
+    atom_array_from_pose_stack(pose_stack)
 
 
 def test_pose_stack_from_and_to_biotite_1ubq_defaults_absent_metadata(
@@ -245,8 +252,10 @@ def test_pose_stack_from_and_to_biotite_1ubq_defaults_absent_metadata(
 
     biotite_1ubq.del_annotation("occupancy")
     biotite_1ubq.del_annotation("b_factor")
-    pose_stack = pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
-    restored = biotite_from_pose_stack(pose_stack)
+    pose_stack = pose_stack_from_atom_array(
+        biotite_1ubq, torch_device=torch_device, no_optH=True
+    )
+    restored = atom_array_from_pose_stack(pose_stack)
     numpy.testing.assert_array_equal(restored.occupancy, DEFAULT_ATOM_OCCUPANCY)
     numpy.testing.assert_array_equal(restored.b_factor, DEFAULT_ATOM_B_FACTOR)
 
@@ -256,8 +265,10 @@ def test_pose_stack_from_and_to_biotite_1ubq_keeps_explicit_occupancy(
 ):
     biotite_1ubq.occupancy[:] = 0.5
     biotite_1ubq.occupancy[biotite_1ubq.res_id == 1] = 0.0
-    pose_stack = pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
-    restored = biotite_from_pose_stack(pose_stack)
+    pose_stack = pose_stack_from_atom_array(
+        biotite_1ubq, torch_device=torch_device, no_optH=True
+    )
+    restored = atom_array_from_pose_stack(pose_stack)
     heavy = restored.element != "H"
     first = restored.res_id == 1
     numpy.testing.assert_array_equal(restored.occupancy[heavy & first], 0.0)
@@ -274,8 +285,8 @@ def test_pose_stack_from_and_to_biotite_multiple_poses(
     canonical = canonical_form_from_biotite(source, torch_device)
     single = canonical_form_from_biotite(source[0], torch_device)
     torch.testing.assert_close(canonical.coords[0], single.coords[0], equal_nan=True)
-    pose = pose_stack_from_biotite(source, torch_device, no_optH=True)
-    restored = biotite_from_pose_stack(pose)
+    pose = pose_stack_from_atom_array(source, torch_device, no_optH=True)
+    restored = atom_array_from_pose_stack(pose)
     restored_coords = restored.coord
     if restored_coords.ndim == 2:
         restored_coords = restored_coords[None]
@@ -345,31 +356,31 @@ def test_canonical_form_multipose_metadata_propagation(biotite_1r21, torch_devic
 def test_pose_stack_from_biotite_1ubq_slice_smoke(biotite_1ubq, torch_device):
     starts = biotite.structure.get_residue_starts(biotite_1ubq)
     bt = biotite_1ubq[0 : starts[30]]
-    pose_stack_from_biotite(bt, torch_device=torch_device)
+    pose_stack_from_atom_array(bt, torch_device=torch_device, no_optH=True)
 
 
 def test_pose_stack_from_biotite_n_term_smoke(biotite_1r21, torch_device):
     starts = biotite.structure.get_residue_starts(biotite_1r21)
     bt = biotite_1r21[0][0 : starts[3]]
-    pose_stack_from_biotite(bt, torch_device=torch_device)
+    pose_stack_from_atom_array(bt, torch_device=torch_device, no_optH=True)
 
 
 def test_pose_stack_from_biotite_c_term_smoke(biotite_1r21, torch_device):
     starts = biotite.structure.get_residue_starts(biotite_1r21)
     bt = biotite_1r21[0][starts[-5] : starts[-1]]
-    pose_stack_from_biotite(bt, torch_device=torch_device)
+    pose_stack_from_atom_array(bt, torch_device=torch_device, no_optH=True)
 
 
 def test_pose_stack_from_biotite_his_d_smoke(biotite_1r21, torch_device):
     starts = biotite.structure.get_residue_starts(biotite_1r21)
     bt = biotite_1r21[0][starts[52] : starts[55]]
-    pose_stack_from_biotite(bt, torch_device=torch_device)
+    pose_stack_from_atom_array(bt, torch_device=torch_device, no_optH=True)
 
 
 def test_pose_stack_from_biotite_missing_sidechain_smoke(biotite_1bl8, torch_device):
     bt = biotite_1bl8
-    pose_stack = pose_stack_from_biotite(bt, torch_device=torch_device)
-    biotite_from_pose_stack(pose_stack)
+    pose_stack = pose_stack_from_atom_array(bt, torch_device=torch_device, no_optH=True)
+    atom_array_from_pose_stack(pose_stack)
 
 
 def test_pose_stack_from_biotite_missing_single_sidechain_smoke(
@@ -377,8 +388,8 @@ def test_pose_stack_from_biotite_missing_single_sidechain_smoke(
 ):
     starts = biotite.structure.get_residue_starts(biotite_1bl8)
     bt = biotite_1bl8[starts[0] : starts[6]]
-    pose_stack = pose_stack_from_biotite(bt, torch_device=torch_device)
-    biotite_from_pose_stack(pose_stack)
+    pose_stack = pose_stack_from_atom_array(bt, torch_device=torch_device, no_optH=True)
+    atom_array_from_pose_stack(pose_stack)
 
 
 def test_ligand_proton_chi_samples_build_finite_coords(torch_device):
@@ -412,12 +423,13 @@ def test_ligand_proton_chi_samples_build_finite_coords(torch_device):
     assert "QZ" not in bt_struct.atom_name
     bt_struct.atom_name[carbon] = "QZ"
 
-    pose_stack, context = pose_stack_from_biotite(
+    pose_stack, context = pose_stack_from_atom_array(
         bt_struct,
         torch_device,
         prepare_ligands=True,
         param_db=ParameterDatabase.get_default(),
         return_context=True,
+        no_optH=True,
     )
     assert torch.isfinite(pose_stack.coords[pose_stack.real_atoms]).all()
     lg1 = next(
@@ -425,14 +437,14 @@ def test_ligand_proton_chi_samples_build_finite_coords(torch_device):
     )
     assert lg1.torsions
     assert lg1.chi_samples
-    exported = biotite_from_pose_stack(pose_stack, context.canonical_ordering)
+    exported = atom_array_from_pose_stack(pose_stack, context.canonical_ordering)
     assert exported.element[exported.atom_name == "QZ"].tolist() == ["C"]
-    rebuilt = pose_stack_from_biotite(
+    rebuilt = pose_stack_from_atom_array(
         exported,
         torch_device,
         context=context,
         no_optH=True,
-        trust_hydrogen_names=True,
+        ligand_hydrogens="input",
     )
     torch.testing.assert_close(rebuilt.coords, pose_stack.coords, rtol=0, atol=0)
 
@@ -444,7 +456,7 @@ def test_ligand_proton_chi_samples_build_finite_coords(torch_device):
         context.canonical_ordering,
         context.packed_block_types,
         **canonical.as_dict(),
-        trust_hydrogen_names=True,
+        ligand_hydrogens="input",
     )
     trusted.coords.sum().backward()
     observed = torch.isfinite(canonical.coords)
@@ -477,12 +489,13 @@ def test_ligand_build_from_mol2_bond_orders(torch_device):
         str(mol2_path), res_name="LG1"
     ).atom_array
 
-    pose_on, context_on = pose_stack_from_biotite(
+    pose_on, context_on = pose_stack_from_atom_array(
         bt_struct,
         torch_device,
         prepare_ligands=True,
         param_db=ParameterDatabase.get_default(),
         return_context=True,
+        no_optH=True,
     )
     assert torch.isfinite(pose_on.coords[pose_on.real_atoms]).all()
 
@@ -519,20 +532,21 @@ def test_a_capped_peptide_builds_a_pose_stack(stem, torch_device):
     hydrogens. Both are resolved against the chain it sits in.
     """
     from tmol.database import ParameterDatabase
-    from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+    from tmol.io import atom_array_from_file, pose_stack_from_atom_array
     from tmol.tests.data import data_path
 
-    structure = atom_array_from_cif(data_path("ncaa_fixtures") / f"{stem}.cif")
-    pose_stack = pose_stack_from_biotite(
+    structure = atom_array_from_file(data_path("ncaa_fixtures") / f"{stem}.cif")
+    pose_stack = pose_stack_from_atom_array(
         structure,
         torch_device,
         prepare_ligands=True,
         param_db=ParameterDatabase.get_default(),
+        no_optH=True,
     )
 
     assert pose_stack.n_poses == 1
     assert int(pose_stack.max_n_blocks) == 3
-    # pose_stack_from_biotite raises on NaN coordinates, so reaching here means
+    # pose_stack_from_atom_array raises on NaN coordinates, so reaching here means
     #    every atom of the cap was placed
     real = pose_stack.block_type_ind64[0] >= 0
     names = [
@@ -546,21 +560,22 @@ def test_a_capped_peptide_builds_a_pose_stack(stem, torch_device):
 def test_an_amide_cap_places_its_hydrogens_in_the_amide_plane(torch_device):
     """NH2's hydrogens have no in-residue reference; the partner supplies it."""
     from tmol.database import ParameterDatabase
-    from tmol.io import atom_array_from_cif, pose_stack_from_biotite
-    from tmol.io._pose_stack_from_biotite import biotite_from_pose_stack
+    from tmol.io import atom_array_from_file, pose_stack_from_atom_array
+    from tmol.io._pose_stack_from_biotite import atom_array_from_pose_stack
     from tmol.tests.data import data_path
 
-    structure = atom_array_from_cif(
+    structure = atom_array_from_file(
         data_path("ncaa_fixtures") / "capped_peptide_ace_nh2.cif"
     )
-    pose_stack, context = pose_stack_from_biotite(
+    pose_stack, context = pose_stack_from_atom_array(
         structure,
         torch_device,
         prepare_ligands=True,
         param_db=ParameterDatabase.get_default(),
         return_context=True,
+        no_optH=True,
     )
-    arr = biotite_from_pose_stack(pose_stack, context.canonical_ordering)
+    arr = atom_array_from_pose_stack(pose_stack, context.canonical_ordering)
     names = [str(n) for n in arr.atom_name]
     resids = [int(r) for r in arr.res_id]
 
@@ -647,14 +662,16 @@ def test_partly_absent_mainchain_triplets_are_still_missing():
 )
 def test_export_rebuilds_the_pose_exactly(path):
     """An exported structure carries every bond its pose needs to be rebuilt."""
-    structure = atom_array_from_cif(data_path(*path))
+    structure = atom_array_from_file(data_path(*path))
     structure = structure[structure.res_name != "HOH"]
     device = torch.device("cpu")
-    pose_stack, context = pose_stack_from_biotite(
+    pose_stack, context = pose_stack_from_atom_array(
         structure, device, prepare_ligands=True, no_optH=True, return_context=True
     )
-    exported = biotite_from_pose_stack(pose_stack, context.canonical_ordering)
-    rebuilt = pose_stack_from_biotite(exported, device, context=context, no_optH=True)
+    exported = atom_array_from_pose_stack(pose_stack, context.canonical_ordering)
+    rebuilt = pose_stack_from_atom_array(
+        exported, device, context=context, no_optH=True
+    )
 
     torch.testing.assert_close(rebuilt.block_type_ind64, pose_stack.block_type_ind64)
     torch.testing.assert_close(
@@ -677,13 +694,13 @@ def _residue_key(array, i):
 @ANNOTATED_INPUTS
 def test_export_keeps_the_input_residue_annotations(path):
     """Exported atoms carry their input residue's annotations through batching."""
-    structure = atom_array_from_cif(data_path(*path))
+    structure = atom_array_from_file(data_path(*path))
     device = torch.device("cpu")
-    pose_stack, context = pose_stack_from_biotite(
+    pose_stack, context = pose_stack_from_atom_array(
         structure, device, prepare_ligands=True, no_optH=True, return_context=True
     )
     batch = PoseStackBuilder.from_poses([pose_stack, pose_stack], device)
-    exported = biotite_from_pose_stack(batch, context.canonical_ordering)
+    exported = atom_array_from_pose_stack(batch, context.canonical_ordering)
 
     expected = {
         _residue_key(structure, i): tuple(
@@ -709,7 +726,7 @@ def test_export_keeps_the_input_residue_annotations(path):
 )
 def test_an_excised_residue_leaves_the_others_their_residue_metadata(path):
     """Residue annotations and metal origins shift left with their residues."""
-    structure = atom_array_from_cif(data_path(*path))
+    structure = atom_array_from_file(data_path(*path))
     # without ligand preparation the bonded ACE cap can be neither built nor dropped
     structure = structure[~numpy.isin(structure.res_name, ("HOH", "ACE"))]
     device = torch.device("cpu")
@@ -735,7 +752,7 @@ def test_an_excised_residue_leaves_the_others_their_residue_metadata(path):
 @ANNOTATED_INPUTS
 def test_export_without_is_polymer_takes_it_from_block_types(path):
     """An input without is_polymer exports each atom's from its block type."""
-    structure = atom_array_from_cif(data_path(*path))
+    structure = atom_array_from_file(data_path(*path))
 
     # a HETATM cap bonded into its chain, such as ACE, is a polymer block type
     expected = {
@@ -744,14 +761,14 @@ def test_export_without_is_polymer_takes_it_from_block_types(path):
     }
     structure.del_annotation("is_polymer")
     structure.del_annotation("chain_type")
-    pose_stack, context = pose_stack_from_biotite(
+    pose_stack, context = pose_stack_from_atom_array(
         structure,
         torch.device("cpu"),
         prepare_ligands=True,
         no_optH=True,
         return_context=True,
     )
-    exported = biotite_from_pose_stack(pose_stack, context.canonical_ordering)
+    exported = atom_array_from_pose_stack(pose_stack, context.canonical_ordering)
 
     assert "chain_type" not in exported.get_annotation_categories()
     for i in range(exported.array_length()):
@@ -826,19 +843,20 @@ def _heavy_atom_mask(pose_stack):
 @pytest.mark.filterwarnings("ignore:Renumbering chain")
 def test_export_rebuilds_without_its_context(path, route, tmp_path):
     """An exported structure alone carries the chemistry to rebuild its pose."""
-    structure = atom_array_from_cif(data_path(*path))
+    structure = atom_array_from_file(data_path(*path))
     structure = structure[structure.res_name != "HOH"]
     device = torch.device("cpu")
-    pose_stack, context = pose_stack_from_biotite(
-        structure, device, prepare_ligands=True, return_context=True
+    pose_stack, context = pose_stack_from_atom_array(
+        structure, device, prepare_ligands=True, return_context=True, no_optH=True
     )
-    exported = biotite_from_pose_stack(pose_stack, context.canonical_ordering)
+    exported = atom_array_from_pose_stack(pose_stack, context.canonical_ordering)
     if route == "cif":
-        cif = CIFFile()
-        set_structure(cif, exported, include_bonds=True)
-        cif.write(str(tmp_path / "out.cif"))
-        exported = atom_array_from_cif(str(tmp_path / "out.cif"))
-    rebuilt = pose_stack_from_biotite(exported, device, prepare_ligands=True)
+        exported = atom_array_from_file(
+            file_from_atom_array(exported, tmp_path / "out.cif")
+        )
+    rebuilt = pose_stack_from_atom_array(
+        exported, device, prepare_ligands=True, no_optH=True
+    )
 
     names = [bt.name for bt in pose_stack.packed_block_types.active_block_types]
     rebuilt_names = [bt.name for bt in rebuilt.packed_block_types.active_block_types]
@@ -854,20 +872,24 @@ def test_export_rebuilds_without_its_context(path, route, tmp_path):
 
 def test_nothing_buildable_is_refused_with_the_reason():
     """A CA-only trace (1a1d) and an empty structure leave no residue to build."""
-    trace = atom_array_from_cif(data_path("sweep_regressions", "ca_trace_1a1d.cif.zst"))
+    trace = atom_array_from_file(
+        data_path("sweep_regressions", "ca_trace_1a1d.cif.zst")
+    )
     with pytest.raises(ValueError, match="3 polymer residues lack mainchain atoms"):
-        pose_stack_from_biotite(trace, torch.device("cpu"))
+        pose_stack_from_atom_array(trace, torch.device("cpu"), no_optH=True)
     with pytest.raises(ValueError, match="no recognized residues"):
-        pose_stack_from_biotite(trace[:0], torch.device("cpu"), prepare_ligands=True)
+        pose_stack_from_atom_array(
+            trace[:0], torch.device("cpu"), prepare_ligands=True, no_optH=True
+        )
 
 
 def test_return_block_has_missing_atoms_is_honoured(biotite_1ubq, torch_device):
-    pose_stack, extra = pose_stack_from_biotite(
-        biotite_1ubq, torch_device, return_block_has_missing_atoms=True
+    pose_stack, extra = pose_stack_from_atom_array(
+        biotite_1ubq, torch_device, return_block_has_missing_atoms=True, no_optH=True
     )
     assert list(extra) == ["block_has_missing_atoms"]
     assert extra["block_has_missing_atoms"].shape == pose_stack.block_type_ind.shape
-    alone = pose_stack_from_biotite(
-        biotite_1ubq, torch_device, return_block_has_missing_atoms=False
+    alone = pose_stack_from_atom_array(
+        biotite_1ubq, torch_device, return_block_has_missing_atoms=False, no_optH=True
     )
     assert isinstance(alone, type(pose_stack))

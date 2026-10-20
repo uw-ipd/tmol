@@ -12,8 +12,8 @@ import numpy
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_biotite
-from tmol.io._cif import atom_array_from_cif
+from tmol.io import pose_stack_from_atom_array
+from tmol.io import atom_array_from_file
 from tmol.pack import PackerTask, PackerPalette, pack_rotamers
 from tmol.pack._impose_rotamers import (
     chosen_rotamer_for_block,
@@ -40,8 +40,8 @@ FIXTURES = {
 
 
 def _pose(stem, device):
-    aa = atom_array_from_cif(data_path("covalent_fixtures", stem + ".cif"))
-    return pose_stack_from_biotite(
+    aa = atom_array_from_file(data_path("covalent_fixtures", stem + ".cif"))
+    return pose_stack_from_atom_array(
         aa,
         device,
         prepare_ligands=True,
@@ -273,9 +273,11 @@ def test_default_relax_samples_general_chemistry(
         pose, context = _pose(FIXTURES.get(chemistry, chemistry), torch_device)
         database = context.parameter_database
     else:
-        from tmol.io import pose_stack_from_pdb
+        from tmol.io import pose_stack_from_file
 
-        pose = pose_stack_from_pdb(dna_pdb, torch_device)
+        pose = pose_stack_from_file(
+            dna_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+        )
         database = default_database
     score = beta2016_score_function(torch_device, param_db=database)
     groups = find_conjugated_groups(pose)

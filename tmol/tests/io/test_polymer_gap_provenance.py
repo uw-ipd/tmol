@@ -6,7 +6,7 @@ from biotite.structure.io.pdbx import CIFFile, CIFBlock, CIFCategory, set_struct
 import numpy as np
 import pytest
 
-from tmol.io import atom_array_from_cif, canonical_form_from_biotite
+from tmol.io import atom_array_from_file, canonical_form_from_biotite
 from tmol.io._atomworks_reader import (
     INFERRED_POLYMER_BOND,
     _declared_cif_pairs,
@@ -64,7 +64,7 @@ def test_supplied_polymer_bond_is_not_silently_cut(tmp_path, torch_device, sourc
         )
         path = tmp_path / "explicit.cif"
         file.write(path)
-        atoms = atom_array_from_cif(path)
+        atoms = atom_array_from_file(path)
     elif source != "array":
         atoms.bonds = None
         file = PDBFile()
@@ -82,7 +82,7 @@ def test_supplied_polymer_bond_is_not_silently_cut(tmp_path, torch_device, sourc
             file.lines.append("".join(link))
         path = tmp_path / "explicit.pdb"
         file.write(path)
-        atoms = atom_array_from_cif(path)
+        atoms = atom_array_from_file(path)
 
     coordinates, bonds = atoms.coord.copy(), atoms.bonds.as_array().copy()
     with pytest.raises(

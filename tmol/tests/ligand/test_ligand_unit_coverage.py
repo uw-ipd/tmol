@@ -521,10 +521,10 @@ class TestDetectHelpers:
 # --------------------------------------------------------------------------- #
 class TestStructureToSmiles:
     def _array(self):
-        from tmol.io import atom_array_from_cif
+        from tmol.io import atom_array_from_file
 
         fixture = DATA / "ligand_cif_fixtures" / "vww.bonds_present.cif"
-        return atom_array_from_cif(fixture)
+        return atom_array_from_file(fixture)
 
     def test_mol_to_smiles_returns_none_on_failure(self, monkeypatch) -> None:
         import tmol.ligand._structure_to_smiles as mod

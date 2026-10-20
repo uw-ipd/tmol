@@ -3,14 +3,14 @@
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_cif
+from tmol.io import pose_stack_from_file
 from tmol.score import beta2016_score_function
 from tmol.tests.data import data_path
 
 
 @pytest.mark.parametrize("cap", ["nh2", "nme"])
 def test_capped_peptide_builds_bonds_scores_and_gradients(cap, torch_device):
-    pose, context = pose_stack_from_cif(
+    pose, context = pose_stack_from_file(
         data_path("ncaa_fixtures") / f"capped_peptide_ace_{cap}.cif",
         torch_device,
         prepare_ligands=True,

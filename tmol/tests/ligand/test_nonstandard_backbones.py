@@ -390,9 +390,9 @@ def _hyp_structure(renames: dict):
 
     from tmol.tests.data import data_path
 
-    from tmol.io import atom_array_from_cif
+    from tmol.io import atom_array_from_file
 
-    atom_array = atom_array_from_cif(
+    atom_array = atom_array_from_file(
         data_path("ncaa_fixtures") / "collagen_hyp_1bkv.cif"
     )
     for i, name in enumerate(atom_array.atom_name):
@@ -448,7 +448,7 @@ def test_a_ring_atom_named_otherwise_scores_the_same(torch_device) -> None:
     row; called anything else, from the copy the residue carries. The two paths
     have to arrive at the same number.
     """
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
     from tmol.ligand._registry import inject_ligand_preparations
     from tmol.score import beta2016_score_function
 
@@ -463,8 +463,8 @@ def test_a_ring_atom_named_otherwise_scores_the_same(torch_device) -> None:
             seed=_CONFORMER_SEED,
         )
         injected = inject_ligand_preparations(param_db, [prep])
-        pose_stack = pose_stack_from_biotite(
-            _hyp_structure(renames), torch_device, param_db=injected
+        pose_stack = pose_stack_from_atom_array(
+            _hyp_structure(renames), torch_device, param_db=injected, no_optH=True
         )
         sfxn = beta2016_score_function(torch_device, param_db=injected)
         module = sfxn.render_whole_pose_scoring_module(pose_stack)
@@ -743,10 +743,10 @@ _PIPELINE_FIXTURES: dict[str, dict[str, int]] = {
 
 def _structure(stem: str):
     """A fixture as tmol reads it: bonded, and complete where the density was not."""
-    from tmol.io import atom_array_from_cif
+    from tmol.io import atom_array_from_file
     from tmol.tests.data import data_path
 
-    return atom_array_from_cif(data_path("ncaa_fixtures") / f"{stem}.cif")
+    return atom_array_from_file(data_path("ncaa_fixtures") / f"{stem}.cif")
 
 
 # --------------------------------------------------------------------------- #
@@ -873,7 +873,7 @@ def test_the_component_dictionary_completes_what_the_file_does_not_declare(
     """A file with no chem_comp_atom reaches the same residue via the dictionary."""
     import biotite.structure.io.pdbx as pdbx
 
-    from tmol.io import atom_array_from_cif
+    from tmol.io import atom_array_from_file
     from tmol.tests.data import data_path
 
     code, n_atoms, n_chi = _TRUNCATED
@@ -884,7 +884,7 @@ def test_the_component_dictionary_completes_what_the_file_does_not_declare(
     stripped = tmp_path / "undeclared.cif"
     cif.write(str(stripped))
 
-    assert _prepared_beta_peptide(atom_array_from_cif(stripped))[code] == (
+    assert _prepared_beta_peptide(atom_array_from_file(stripped))[code] == (
         n_atoms,
         n_chi,
     )
@@ -983,7 +983,7 @@ def test_a_nonstandard_backbone_is_found_and_prepared_from_a_structure(
 @pytest.mark.parametrize("stem", sorted(_PIPELINE_FIXTURES))
 def test_a_nonstandard_backbone_scores(stem: str, torch_device) -> None:
     """Smoke test: preparation has to survive into a pose and a number."""
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
     from tmol.ligand import prepare_ligands
     from tmol.score import beta2016_score_function
 
@@ -991,7 +991,9 @@ def test_a_nonstandard_backbone_scores(stem: str, torch_device) -> None:
     prepared, _canonical_ordering = prepare_ligands(
         structure, param_db=ParameterDatabase.get_default()
     )
-    pose_stack = pose_stack_from_biotite(structure, torch_device, param_db=prepared)
+    pose_stack = pose_stack_from_atom_array(
+        structure, torch_device, param_db=prepared, no_optH=True
+    )
     sfxn = beta2016_score_function(torch_device, param_db=prepared)
     module = sfxn.render_whole_pose_scoring_module(pose_stack)
     total = float(module(pose_stack.coords).sum())

@@ -16,7 +16,7 @@ from tmol.io._pose_stack_from_biotite import (
 )
 def test_disulfide_input_authority_through_scoring(source, torch_device):
     from biotite.structure.info import residue
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
     from tmol.score import beta2016_score_function
 
     first = residue("CYS")
@@ -43,9 +43,9 @@ def test_disulfide_input_authority_through_scoring(source, torch_device):
         sulfurs = np.flatnonzero(array.atom_name == "SG")
         array.bonds.add_bond(*sulfurs[1:], struc.BondType.SINGLE)
         with pytest.raises(ValueError, match="only one declared disulfide"):
-            pose_stack_from_biotite(array, torch_device, no_optH=True)
+            pose_stack_from_atom_array(array, torch_device, no_optH=True)
         return
-    pose = pose_stack_from_biotite(array, torch_device, no_optH=True)
+    pose = pose_stack_from_atom_array(array, torch_device, no_optH=True)
     assert int((pose.inter_residue_connections[..., 0] >= 0).sum()) == 2
     types = [
         pose.packed_block_types.active_block_types[int(i)]

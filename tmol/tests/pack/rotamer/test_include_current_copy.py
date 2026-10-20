@@ -116,15 +116,27 @@ def test_copy_preserves_dofs_without_global_cuda_barriers(
 def test_current_conformers_reconstruct_ragged_pose_coordinates(
     ubq_pdb, torch_device, monkeypatch, sampler_class
 ):
-    from tmol.io import pose_stack_from_pdb
+    from tmol.io import pose_stack_from_file
     from tmol.pack import PackerPalette, PackerTask, SetPackerTask
     from tmol.pack.rotamer import build_rotamers
     from tmol.pose import PoseStackBuilder
 
     poses = PoseStackBuilder.from_poses(
         [
-            pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=3),
-            pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5),
+            pose_stack_from_file(
+                ubq_pdb,
+                torch_device,
+                residue_end=3,
+                no_optH=True,
+                missing_density_distance_threshold=0.0,
+            ),
+            pose_stack_from_file(
+                ubq_pdb,
+                torch_device,
+                residue_end=5,
+                no_optH=True,
+                missing_density_distance_threshold=0.0,
+            ),
         ],
         torch_device,
     )

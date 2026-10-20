@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_biotite
+from tmol.io import pose_stack_from_atom_array
 from tmol.pack import SetPackerTask
 from tmol.pack.rotamer import build_rotamers
 from tmol.pose._conjugated_groups import find_conjugated_groups
@@ -16,7 +16,7 @@ from tmol.tests.pack.test_conjugated_group_packing import _task, _pack_and_check
 
 @pytest.fixture(params=["free", "cycle", "external"])
 def group_pose(request, torch_device):
-    return pose_stack_from_biotite(
+    return pose_stack_from_atom_array(
         crosslinked_lysines(request.param),
         torch_device,
         prepare_ligands=True,

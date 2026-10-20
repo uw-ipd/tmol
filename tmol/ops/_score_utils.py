@@ -2,7 +2,7 @@ import torch
 
 from tmol.database import ParameterDatabase
 from tmol.pose import PoseStack
-from tmol.score import ScoreFunction, beta2016_score_function
+from tmol.score import ScoreFunction, ScoreType, beta2016_score_function
 from tmol.pack import pack_rotamers, PackerTask, PackerPalette
 from tmol.pack.rotamer import (
     ConjugatedSCSampler,
@@ -223,6 +223,59 @@ def calculate_block_pair_ddg(
     return ddg_scores
 
 
+def per_residue_block_pair_energies(block_pair_scores: torch.Tensor) -> torch.Tensor:
+    """Reduce block-pair scores to one energy per residue.
+
+    Each off-diagonal block-pair entry is split evenly between its two
+    partner residues, so the per-residue sum reconciles exactly with the
+    pairwise total. The reduction only touches the trailing two (block)
+    dimensions, so a leading score-type dimension -- present when the
+    block-pair scores came from a scoring module called with
+    ``sum_terms=False`` -- passes through unsummed.
+
+    Args:
+        block_pair_scores: Block-pair scores shaped
+            ``[n_poses, n_blocks, n_blocks]``, or ``[n_terms, n_poses,
+            n_blocks, n_blocks]`` if the score-type dimension has not been
+            summed.
+
+    Returns:
+        Per-residue energies with the same leading dimension(s) as the
+        input: ``[n_poses, n_blocks]`` or ``[n_terms, n_poses, n_blocks]``.
+    """
+    diag = torch.diagonal(block_pair_scores, dim1=-2, dim2=-1).clone()
+    symmetrized = block_pair_scores + block_pair_scores.transpose(-2, -1)
+    torch.diagonal(symmetrized, dim1=-2, dim2=-1).zero_()
+    return diag + 0.5 * symmetrized.sum(dim=-1)
+
+
+def block_energies(
+    score_function: ScoreFunction,
+    pose_stack: PoseStack,
+    score_type: ScoreType,
+    pose: int,
+    blocks: list,
+) -> list:
+    """Weighted energy of one term involving each block.
+
+    Each value is that block's row plus column of the block-pair matrix for
+    ``score_type``, i.e. every interaction the block participates in
+    (including with itself), counted once.
+    """
+    block_scorer = score_function.render_block_pair_scoring_module(pose_stack)
+    terms = block_scorer(pose_stack.coords, sum_terms=False, apply_weights=True)
+    pair = terms[score_function.all_score_types().index(score_type), pose]
+    return [float(pair[b].sum() + pair[:, b].sum() - pair[b, b]) for b in blocks]
+
+
+def get_chain_mask(pose_stack: PoseStack, chain: str) -> torch.Tensor:
+    """Boolean mask shaped ``[n_poses, max_n_blocks]``, true where a block
+    belongs to the given chain label.
+    """
+    mask = pose_stack.pdb_info.chain_labels == chain
+    return torch.as_tensor(mask, dtype=torch.bool, device=pose_stack.device)
+
+
 def res_mask_to_coord_mask(
     pose_stack: PoseStack, mask: Tensor[torch.bool][:, :]
 ) -> Tensor[torch.bool][:, :]:
@@ -230,13 +283,14 @@ def res_mask_to_coord_mask(
 
     Args:
         pose_stack: Poses supplying the block-to-coordinate layout.
-        mask: Selected blocks shaped ``[n_poses, n_blocks]``.
+        mask: Selected blocks shaped ``[n_poses, n_blocks]``. It may live on
+            any device; it is moved to the pose's device.
 
     Returns:
         Selected real atoms shaped ``[n_poses, max_n_atoms]``.
     """
     block_for_atom, _, real_atoms = _compact_atom_layout(pose_stack)
-    return mask.gather(1, block_for_atom) & real_atoms
+    return mask.to(block_for_atom.device).gather(1, block_for_atom) & real_atoms
 
 
 def _compact_atom_layout(
@@ -489,6 +543,7 @@ def build_coord_mask_for_mask_and_nearby_blocks(
     Returns:
         Coordinate mask shaped ``[n_poses, max_n_atoms]``.
     """
+    mask = mask.to(pose_stack.device)
     coord_mask = res_mask_to_coord_mask(pose_stack, mask)
     sidechain_mask = build_sidechain_coord_mask(pose_stack)  # [n_poses, max_n_atoms]
 

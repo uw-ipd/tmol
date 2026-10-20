@@ -132,9 +132,9 @@ def _annotate_at_cuts(structure, preparation, cuts):
 
 def _build(structure, params_path, torch_device, *, fragmented):
     from tmol.database import ParameterDatabase
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
 
-    pose, context = pose_stack_from_biotite(
+    pose, context = pose_stack_from_atom_array(
         structure,
         torch_device,
         prepare_ligands=True,
@@ -217,8 +217,8 @@ def test_fragment_definition_connections_icoors_and_mapping(torch_device):
 def test_fragmented_ligand_export_restores_original_residue(torch_device):
     import attr
 
-    from tmol.io import biotite_from_pose_stack
-    from tmol.io import atom_records_from_pose_stack
+    from tmol.io import atom_array_from_pose_stack
+    from tmol.io._write_pose_stack_pdb import _atom_records_from_pose_stack
     from tmol.ligand import recombine_fragmented_ligands
 
     structure, params_path, preparation = _load_fixture()
@@ -229,11 +229,11 @@ def test_fragmented_ligand_export_restores_original_residue(torch_device):
     pose = attr.evolve(pose, coords=pose.coords.clone())
     assert pose.split_block_mapping is mapping
 
-    split = biotite_from_pose_stack(
+    split = atom_array_from_pose_stack(
         pose, context.canonical_ordering, merge_fragments=False
     )
     restored = recombine_fragmented_ligands(split, pose)
-    merged = biotite_from_pose_stack(pose, context.canonical_ordering)
+    merged = atom_array_from_pose_stack(pose, context.canonical_ordering)
 
     np.testing.assert_array_equal(merged.res_name, restored.res_name)
     np.testing.assert_array_equal(merged.res_id, restored.res_id)
@@ -255,8 +255,8 @@ def test_fragmented_ligand_export_restores_original_residue(torch_device):
         if str(res_name).startswith(f"{LIGAND_NAME}.")
     } == expected_frag_res_ids
 
-    split_records = atom_records_from_pose_stack(pose, merge_fragments=False)
-    merged_records = atom_records_from_pose_stack(pose)
+    split_records = _atom_records_from_pose_stack(pose, merge_fragments=False)
+    merged_records = _atom_records_from_pose_stack(pose)
     fragment_residue_labels = {
         int(pose.pdb_info.residue_labels[e.pose_ind, e.block_ind])
         for e in mapping.entries
@@ -270,13 +270,13 @@ def test_fragmented_ligand_export_restores_original_residue(torch_device):
 
 
 def test_fragmentation_uses_ligand_already_in_parameter_database(torch_device):
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
 
     structure, params_path, preparation = _load_fixture()
     _, whole_context, _ = _build(structure, params_path, torch_device, fragmented=False)
     annotated = _annotate_at_bridge(structure, preparation)
 
-    pose = pose_stack_from_biotite(
+    pose = pose_stack_from_atom_array(
         annotated,
         torch_device,
         param_db=whole_context.parameter_database,
@@ -453,13 +453,13 @@ def test_fragment_validation_rejects_unsupported_layouts():
 
 
 def test_fragment_mapping_is_stable_for_atom_array_stack(torch_device):
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
 
     structure, params_path, preparation = _load_fixture()
     annotated = _annotate_at_bridge(structure, preparation)
     _, context, _ = _build(annotated, params_path, torch_device, fragmented=True)
     stack = struc.stack([annotated, annotated])
-    pose = pose_stack_from_biotite(
+    pose = pose_stack_from_atom_array(
         stack,
         torch_device,
         context=context,
@@ -1242,13 +1242,13 @@ def test_unsplit_pose_stack_fragment_atom_coords_preserved(torch_device):
 
 def test_unsplit_pose_stack_two_pose_stack(torch_device):
     """A two-pose fragmented stack is correctly unsplit pose-independently."""
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
 
     structure, params_path, preparation = _load_fixture()
     annotated = _annotate_at_bridge(structure, preparation)
     _, context, _ = _build(annotated, params_path, torch_device, fragmented=True)
     stack = struc.stack([annotated, annotated])
-    fragmented = pose_stack_from_biotite(
+    fragmented = pose_stack_from_atom_array(
         stack, torch_device, context=context, no_optH=True
     )
     assert len(fragmented) == 2

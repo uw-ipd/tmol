@@ -5,7 +5,7 @@ import torch
 
 import tmol.pack.rotamer.dunbrack._compiled  # noqa F401
 from tmol.chemical import RefinedResidueType, ResidueTypeSet
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 from tmol.pack import PackerPalette, PackerTask, SetPackerTask
 from tmol.pose import (
     PackedBlockTypes,
@@ -909,8 +909,22 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
 
 def test_chi_sampler_smoke(ubq_pdb, default_database):
     torch_device = torch.device("cpu")
-    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=5)
-    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=7)
+    p1 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=5,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
+    p2 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=7,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     palette = PackerPalette()
     task = PackerTask(poses, palette)
@@ -928,7 +942,14 @@ def test_chi_sampler_smoke(ubq_pdb, default_database):
 
 def test_chi_sampler_build_lots_of_rotamers(ubq_pdb, default_database, torch_device):
     n_poses = 10
-    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
+    p = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=10,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     palette = PackerPalette()
     task = PackerTask(poses, palette)

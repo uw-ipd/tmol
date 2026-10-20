@@ -12,21 +12,7 @@ from pathlib import Path
 import nbformat
 from nbclient import NotebookClient
 
-TUTORIAL_NOTEBOOKS = (
-    "01_working_with_tmol.ipynb",
-    "02_gpu_batching.ipynb",
-    "03_scoring_and_analysis.ipynb",
-    "04_packing_and_mutation_scan.ipynb",
-    "05_minimization_constraints_kinematics.ipynb",
-    "06_fast_relax.ipynb",
-    "07_ligand_and_params.ipynb",
-    "08_nucleic_acids.ipynb",
-    "09_protein_interface_hotspot_scan.ipynb",
-    "10_ligand_pose_sensitivity.ipynb",
-    "11_extending_chemistry_and_scoring.ipynb",
-    "12_explicit_foldforests_and_torsions.ipynb",
-    "13_extending_the_packer.ipynb",
-)
+TUTORIAL_DIR = Path("docs/tutorial")
 TUTORIAL_REF = "master"
 KERNEL_STARTUP_TIMEOUT = 180
 CPU_CUDA_RUNTIME_NOISE = re.compile(
@@ -43,8 +29,6 @@ def _validate_tutorial_entrypoints(notebook, path: Path) -> None:
     code = "\n".join(cell.source for cell in notebook.cells if cell.cell_type == "code")
     if "Open In Colab" not in markdown:
         raise ValueError(f"{path} is missing its Open In Colab badge")
-    if "setup_colab(" not in code:
-        raise ValueError(f"{path} is missing its guarded Colab bootstrap")
     if notebook.metadata.get("accelerator") != "GPU":
         raise ValueError(f"{path} does not request a Colab GPU runtime")
     colab_url = (
@@ -53,8 +37,25 @@ def _validate_tutorial_entrypoints(notebook, path: Path) -> None:
     )
     if colab_url not in markdown:
         raise ValueError(f"{path} does not link to its own notebook in Colab")
-    if f"{TUTORIAL_REF}/docs/tutorial/colab_setup.py" not in code:
-        raise ValueError(f"{path} does not use the current tutorial bootstrap")
+    if f"{TUTORIAL_REF}/docs/tutorial/notebook_setup.py" not in code:
+        raise ValueError(f"{path} does not fetch the current notebook_setup module")
+    if "from notebook_setup import" not in code or "setup()" not in code:
+        raise ValueError(f"{path} does not run the shared notebook setup")
+
+
+def _is_gpu_smoke(notebook) -> bool:
+    """Return whether a notebook opts into the GPU smoke run in its metadata."""
+    return bool(notebook.metadata.get("tmol", {}).get("gpu_smoke"))
+
+
+def discover_notebooks(*, gpu_smoke_only: bool = False) -> list[Path]:
+    """Published tutorials in ``docs/tutorial``, optionally only GPU-smoke ones."""
+    paths = sorted(TUTORIAL_DIR.glob("[0-9][0-9]_*.ipynb"))
+    if gpu_smoke_only:
+        paths = [
+            path for path in paths if _is_gpu_smoke(nbformat.read(path, as_version=4))
+        ]
+    return paths
 
 
 def _is_gpu_only_cell(cell) -> bool:
@@ -146,7 +147,7 @@ def main() -> int:
         "notebooks",
         nargs="*",
         type=Path,
-        help="Notebook paths (defaults to all thirteen published tutorials)",
+        help="Notebook paths (defaults to every tutorial in docs/tutorial)",
     )
     parser.add_argument(
         "--timeout",
@@ -158,6 +159,14 @@ def main() -> int:
         "--write",
         action="store_true",
         help="Retain executed outputs in the source notebooks for a docs build",
+    )
+    parser.add_argument(
+        "--gpu-smoke",
+        action="store_true",
+        help=(
+            "Select only tutorials that set metadata tmol.gpu_smoke, instead of "
+            "all of them"
+        ),
     )
     parser.add_argument(
         "--execution-device",
@@ -185,8 +194,9 @@ def main() -> int:
     if args.notebooks:
         paths = args.notebooks
     else:
-        tutorial_dir = Path("docs/tutorial")
-        paths = [tutorial_dir / name for name in TUTORIAL_NOTEBOOKS]
+        paths = discover_notebooks(gpu_smoke_only=args.gpu_smoke)
+        if not paths:
+            parser.error("No tutorial notebooks found in " + str(TUTORIAL_DIR))
 
     missing = [path for path in paths if not path.is_file()]
     if missing:

@@ -6,9 +6,9 @@ import biotite.structure as struc
 
 from tmol.ops import build_coord_mask_for_mask_and_nearby_blocks
 from tmol.io import (
-    pose_stack_from_biotite,
-    pose_stack_from_pdb,
-    biotite_from_pose_stack,
+    pose_stack_from_atom_array,
+    pose_stack_from_file,
+    atom_array_from_pose_stack,
 )
 from tmol.pose import PoseStackBuilder
 from tmol import run_cart_min, beta2016_score_function
@@ -186,8 +186,13 @@ def test_calculate_ddg_retains_diagonal_terms_for_overlapping_masks(torch_device
 def test_interacting_coord_mask_matches_per_pose_reference(
     biotite_1ubq: struc.AtomArray, systems_bysize, torch_device
 ):
-    pose = pose_stack_from_biotite(biotite_1ubq, torch_device)
-    shorter_pose = pose_stack_from_pdb(systems_bysize[40], torch_device)
+    pose = pose_stack_from_atom_array(biotite_1ubq, torch_device, no_optH=True)
+    shorter_pose = pose_stack_from_file(
+        systems_bysize[40],
+        torch_device,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     poses = PoseStackBuilder.from_poses([pose, shorter_pose, pose], torch_device)
     block_mask = torch.zeros_like(poses.block_type_ind, dtype=torch.bool)
     block_mask[0, 0] = True
@@ -270,7 +275,7 @@ def test_build_coord_mask_and_minimize_for_first_residue(
     run cart_min on the masked atoms, and convert back to biotite."""
 
     # Convert biotite structure to a PoseStack
-    pose_stack = pose_stack_from_biotite(biotite_1ubq, torch_device)
+    pose_stack = pose_stack_from_atom_array(biotite_1ubq, torch_device, no_optH=True)
 
     # Build a mask: True for the first residue (block 0)
     mask = torch.zeros_like(
@@ -297,7 +302,7 @@ def test_build_coord_mask_and_minimize_for_first_residue(
     minimized_pose = run_cart_min(pose_stack, sfxn, coord_mask)
 
     # Convert the minimized pose back to a biotite structure
-    result_biotite = biotite_from_pose_stack(minimized_pose)
+    result_biotite = atom_array_from_pose_stack(minimized_pose)
 
     # Check that the output is a valid biotite AtomArray
     assert isinstance(
@@ -307,3 +312,22 @@ def test_build_coord_mask_and_minimize_for_first_residue(
     assert not torch.any(
         torch.isnan(minimized_pose.coords)
     ), "Minimized pose contains NaN coordinates"
+
+
+def test_block_masks_may_live_on_a_different_device_than_the_pose(torch_device):
+    """Tutorials build masks with ``torch.zeros(...)``, which defaults to the CPU."""
+    from tmol.io import extended_pose_stack_from_sequences
+
+    pose_stack = extended_pose_stack_from_sequences(["AGA", "AGA"], device=torch_device)
+    cpu_mask = torch.zeros((pose_stack.n_poses, pose_stack.max_n_blocks), dtype=bool)
+    cpu_mask[:, 1] = True
+
+    on_pose_device = score_utils.res_mask_to_coord_mask(
+        pose_stack, cpu_mask.to(torch_device)
+    )
+    from_cpu = score_utils.res_mask_to_coord_mask(pose_stack, cpu_mask)
+    assert from_cpu.device == on_pose_device.device
+    assert torch.equal(from_cpu, on_pose_device)
+
+    nearby = build_coord_mask_for_mask_and_nearby_blocks(pose_stack, cpu_mask)
+    assert nearby.device == on_pose_device.device

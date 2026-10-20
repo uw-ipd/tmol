@@ -13,7 +13,7 @@ from biotite.structure import AtomArray, BondList
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
-from tmol.io import pose_stack_from_biotite
+from tmol.io import pose_stack_from_atom_array
 from tmol.pack import SetPackerTask
 from tmol.pack.rotamer import build_rotamers
 from tmol.pack.rotamer._conjugated_groups import find_conjugated_groups
@@ -218,7 +218,7 @@ def assert_geometry(pose, coordinates, owners=None):
 @pytest.mark.parametrize("topology", ["free", "cycle", "external"])
 def test_constrained_group_builds_rotamers(topology, torch_device):
     arr = crosslinked_lysines(topology)
-    pose, context = pose_stack_from_biotite(
+    pose, context = pose_stack_from_atom_array(
         arr,
         torch_device,
         prepare_ligands=True,
@@ -310,7 +310,7 @@ def test_constrained_group_builds_rotamers(topology, torch_device):
 def test_constrained_group_packing_preserves_geometry_and_energy(
     topology, torch_device
 ):
-    pose, context = pose_stack_from_biotite(
+    pose, context = pose_stack_from_atom_array(
         crosslinked_lysines(topology),
         torch_device,
         prepare_ligands=True,

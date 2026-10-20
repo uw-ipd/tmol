@@ -5,11 +5,13 @@ from tmol.io import (
     default_canonical_ordering,
     default_packed_block_types,
     CanonicalOrdering,
-    canonical_form_from_pdb,
-    canonical_form_from_atom_records,
-    select_atom_records_res_subset,
-    parse_pdb,
 )
+from tmol.io._canonical_ordering import (
+    _canonical_form_from_pdb,
+    _canonical_form_from_atom_records,
+    _select_atom_records_res_subset,
+)
+from tmol.io._pdb_parsing import _parse_pdb
 
 
 def test_create_canonical_ordering_smoke(default_database):
@@ -44,7 +46,7 @@ def test_default_packed_block_types(torch_device):
 
 def test_default_canonical_form_from_pdb(pertuzumab_pdb, torch_device):
     can_ord = default_canonical_ordering()
-    cf = canonical_form_from_pdb(can_ord, pertuzumab_pdb, torch_device)
+    cf = _canonical_form_from_pdb(can_ord, pertuzumab_pdb, torch_device)
     (
         chain_id,
         res_types,
@@ -146,7 +148,7 @@ def test_canonical_form_w_unk(torch_device):
         "HETATM 6186  C4  SAM B 402     -15.231  13.034   5.166  1.00 53.49           C\n",
     ]
     can_ord = default_canonical_ordering()
-    co = canonical_form_from_pdb(can_ord, sam_pdb_lines, torch_device)
+    co = _canonical_form_from_pdb(can_ord, sam_pdb_lines, torch_device)
     (
         chain_id,
         res_types,
@@ -188,15 +190,15 @@ def test_create_src_2_tmol_mapping(default_database, torch_device):
 
 
 def test_concatenate_pdb_atom_records_dataframes(disulfide_pdb):
-    atom_records = parse_pdb(disulfide_pdb)
+    atom_records = _parse_pdb(disulfide_pdb)
     ar = pandas.concat(
         (
-            select_atom_records_res_subset(atom_records, 2, 3),
-            select_atom_records_res_subset(atom_records, 21, 22),
+            _select_atom_records_res_subset(atom_records, 2, 3),
+            _select_atom_records_res_subset(atom_records, 21, 22),
         )
     )
     co = default_canonical_ordering()
-    canonical_form_from_atom_records(co, ar, torch.device("cpu"))
+    _canonical_form_from_atom_records(co, ar, torch.device("cpu"))
 
 
 def test_canonical_form_from_pdb_keeps_one_alternate_per_group(torch_device):
@@ -211,9 +213,9 @@ def test_canonical_form_from_pdb_keeps_one_alternate_per_group(torch_device):
         packed.read_bytes(), max_output_size=1 << 26
     )
     lines = lines.decode()
-    records = parse_pdb(lines)
+    records = _parse_pdb(lines)
     co = default_canonical_ordering()
-    cf = canonical_form_from_pdb(co, lines, torch_device)
+    cf = _canonical_form_from_pdb(co, lines, torch_device)
     atoms = "\n".join(
         line for line in lines.splitlines() if line.startswith(("ATOM", "HETATM"))
     )
@@ -222,7 +224,7 @@ def test_canonical_form_from_pdb_keeps_one_alternate_per_group(torch_device):
         for line in atoms.splitlines()
     )
     ensemble = f"MODEL        1\n{atoms}\nENDMDL\nMODEL        2\n{shifted}\nENDMDL\n"
-    models = canonical_form_from_pdb(co, ensemble, torch_device)
+    models = _canonical_form_from_pdb(co, ensemble, torch_device)
     assert models.coords.shape[0] == 2
     for model in range(2):
         torch.testing.assert_close(models.coords[model], cf.coords[0], equal_nan=True)

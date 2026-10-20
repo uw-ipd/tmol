@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from tmol import pose_stack_from_pdb
+from tmol import pose_stack_from_file
 from tmol.score.lk_ball import LKBallEnergyTerm
 
 
@@ -12,7 +12,13 @@ def test_lk_ball_backward_does_not_materialize_neighbor_gradient(
 ):
     if torch_device.type != "cuda":
         pytest.skip("CUDA allocator statistics required")
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=10)
+    pose = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=10,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     term = LKBallEnergyTerm(param_db=default_database, device=torch_device)
     for block_type in pose.packed_block_types.active_block_types:
         term.setup_block_type(block_type)

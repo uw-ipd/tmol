@@ -10,9 +10,9 @@ from tmol.database.chemical import is_metal_cluster, site_connections
 from tmol.database.scoring import MetalWellDepth
 from tmol.io import (
     add_metal_coordination,
-    atom_array_from_cif,
-    pose_stack_from_biotite,
-    pose_stack_from_pdb,
+    atom_array_from_file,
+    pose_stack_from_atom_array,
+    pose_stack_from_file,
     remove_metal_coordination,
 )
 from tmol.pack import PackerPalette, PackerTask, SetPackerTask
@@ -34,9 +34,9 @@ def built():
 
     def build(stem, device=torch.device("cpu")):
         if (stem, device) not in cache:
-            structure = atom_array_from_cif(FIXTURE_DIR / f"{stem}.cif.zst")
-            cache[stem, device] = pose_stack_from_biotite(
-                structure, device, prepare_ligands=True
+            structure = atom_array_from_file(FIXTURE_DIR / f"{stem}.cif.zst")
+            cache[stem, device] = pose_stack_from_atom_array(
+                structure, device, prepare_ligands=True, no_optH=True
             )
         return cache[stem, device]
 
@@ -326,9 +326,9 @@ def metal_atom(pose_stack, block):
 
 def bridged_sod(device):
     """3F7L with His61 ND1 bonded to both its zinc and the copper."""
-    structure = atom_array_from_cif(FIXTURE_DIR / "cu_zn_sod_3f7l.cif.zst")
-    pose_stack, context = pose_stack_from_biotite(
-        structure, device, prepare_ligands=True, return_context=True
+    structure = atom_array_from_file(FIXTURE_DIR / "cu_zn_sod_3f7l.cif.zst")
+    pose_stack, context = pose_stack_from_atom_array(
+        structure, device, prepare_ligands=True, return_context=True, no_optH=True
     )
     cu, zn, his61, his118 = (
         block_index(pose_stack, "A", r) for r in (201, 203, 61, 118)
@@ -540,7 +540,9 @@ def test_block_pair_sums_to_whole_pose(built, default_database, torch_device):
 
 
 def test_pose_without_metals_is_zero(ubq_pdb, default_database, torch_device):
-    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device)
+    pose_stack = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     term = MetalCoordinationEnergyTerm(default_database, torch_device)
     render(term, pose_stack)
     assert term.pose_score_term_is_invariant_zero(pose_stack)

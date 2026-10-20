@@ -5,7 +5,7 @@ import pytest
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.io import atom_array_from_file, pose_stack_from_biotite
+from tmol.io import atom_array_from_file, pose_stack_from_atom_array
 from tmol.io._input_termini import (
     EXPLICIT_TERMINI,
     validate_connection_hydrogens,
@@ -59,7 +59,7 @@ def test_declared_aldehyde_does_not_become_a_carboxylate(
         match=rf"Unsupported terminal hydrogen count at {chain}:{residue}:\w+/C: "
         "supplied 1, database forms support at most 0",
     ):
-        pose_stack_from_biotite(structure, torch.device("cpu"), no_optH=True)
+        pose_stack_from_atom_array(structure, torch.device("cpu"), no_optH=True)
     np.testing.assert_array_equal(structure.coord, original.coord)
     np.testing.assert_array_equal(structure.atom_name, original.atom_name)
     np.testing.assert_array_equal(structure.bonds.as_array(), original.bonds.as_array())
@@ -76,7 +76,7 @@ def test_supplied_neutral_terminus_breaks_a_short_gap(
         terminal_residue = 131
         structure.res_id[structure.res_id == 132] = terminal_residue
     original = structure.copy()
-    pose = pose_stack_from_biotite(structure, torch_device, no_optH=True)
+    pose = pose_stack_from_atom_array(structure, torch_device, no_optH=True)
     assert _hydrogens_on(pose, "A", terminal_residue)[2]["N"] == 2
     assert pose.inter_residue_connections[0, 0, :, 0].lt(0).all()
     assert pose.inter_residue_connections[0, 1, :, 0].lt(0).all()
@@ -153,8 +153,8 @@ def test_pdb_reader_preserves_supplied_short_gap_termini(
     bonds = structure.bonds.as_array()
     assert (structure.res_id[bonds[:, 0]] == structure.res_id[bonds[:, 1]]).all()
     with pytest.raises(ValueError, match="Unsupported terminal hydrogen count"):
-        pose_stack_from_biotite(structure, torch_device, no_optH=True)
-    pose = pose_stack_from_biotite(terminal, torch_device, no_optH=True)
+        pose_stack_from_atom_array(structure, torch_device, no_optH=True)
+    pose = pose_stack_from_atom_array(terminal, torch_device, no_optH=True)
     assert _hydrogens_on(pose, "A", residue)[2]["N"] == 2
     assert pose.inter_residue_connections[0, :, :, 0].lt(0).all()
     block_type = pose.packed_block_types.active_block_types[
@@ -214,12 +214,12 @@ def test_terminal_name_requires_chemical_identity(renamed):
 
 
 def test_generated_polymer_terminal_names_respect_supplied_parents(torch_device):
-    from tmol.io import biotite_from_pose_stack
+    from tmol.io import atom_array_from_pose_stack
 
     structure = atom_array_from_file(
         data_path("sweep_regressions", "terminal_name_collision_1a8i.pdb")
     )
-    pose, context = pose_stack_from_biotite(
+    pose, context = pose_stack_from_atom_array(
         structure,
         torch_device,
         prepare_ligands=True,
@@ -230,7 +230,7 @@ def test_generated_polymer_terminal_names_respect_supplied_parents(torch_device)
     assert _hydrogens_on(pose, "A", 680)[2]["O3"] == 1
     assert _hydrogens_on(pose, "A", 680)[2]["N"] == 1
     assert (pose.inter_residue_connections[0, 1, :2, 0] >= 0).all()
-    actual = biotite_from_pose_stack(pose, context.canonical_ordering)
+    actual = atom_array_from_pose_stack(pose, context.canonical_ordering)
     for mode in ("given", "partial", "absent"):
         original = structure.copy()
         h = int(
@@ -256,10 +256,10 @@ def test_generated_polymer_terminal_names_respect_supplied_parents(torch_device)
     named = structure.copy()
     o3_h = (named.res_id == 680) & (named.atom_name == "H3")
     named.atom_name[o3_h] = "HO3"
-    retained = pose_stack_from_biotite(
-        named, torch_device, context=context, no_optH=True, trust_hydrogen_names=True
+    retained = pose_stack_from_atom_array(
+        named, torch_device, context=context, no_optH=True, ligand_hydrogens="input"
     )
-    retained_atoms = biotite_from_pose_stack(retained, context.canonical_ordering)
+    retained_atoms = atom_array_from_pose_stack(retained, context.canonical_ordering)
     actual_h = retained_atoms[
         (retained_atoms.res_id == 680) & (retained_atoms.atom_name == "HO3")
     ]
@@ -319,7 +319,7 @@ def test_pocket_terminal_oxygen_survives_unrelated_hydrogen_name(torch_device):
     structure = atom_array_from_file(
         data_path("sweep_regressions", "terminal_pocket_2jdm.pdb")
     )
-    pose, context = pose_stack_from_biotite(
+    pose, context = pose_stack_from_atom_array(
         structure,
         torch_device,
         prepare_ligands=True,

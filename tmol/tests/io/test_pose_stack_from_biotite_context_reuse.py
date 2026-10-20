@@ -1,4 +1,4 @@
-"""Correctness of the ``context=`` reuse path in ``pose_stack_from_biotite``.
+"""Correctness of the ``context=`` reuse path in ``pose_stack_from_atom_array``.
 
 Scoring many structures that share one ligand can build the expensive,
 structure-independent ``PoseBuildContext`` once and reuse it, recomputing
@@ -15,9 +15,9 @@ import torch
 
 from tmol.database import ParameterDatabase
 from tmol.io import (
-    atom_array_from_cif,
-    build_context_from_biotite,
-    pose_stack_from_biotite,
+    atom_array_from_file,
+    build_context_from_atom_array,
+    pose_stack_from_atom_array,
 )
 from tmol.ligand import LigandPreparationError
 from tmol.pack import build_missing_sidechains
@@ -44,7 +44,7 @@ def _params_files(target: str = TARGET) -> list[str]:
 
 
 def _build_context(structure, torch_device):
-    return build_context_from_biotite(
+    return build_context_from_atom_array(
         structure,
         torch_device,
         prepare_ligands=True,
@@ -65,7 +65,7 @@ def test_reused_context_matches_prepare_ligands(torch_device):
     """A pose built from a reused context equals one built with prepare_ligands."""
     structure = _load_complex_cif(TARGET)
 
-    reference, _ = pose_stack_from_biotite(
+    reference, _ = pose_stack_from_atom_array(
         structure,
         torch_device,
         prepare_ligands=True,
@@ -76,7 +76,7 @@ def test_reused_context_matches_prepare_ligands(torch_device):
     )
 
     context = _build_context(structure, torch_device)
-    pose_stack = pose_stack_from_biotite(
+    pose_stack = pose_stack_from_atom_array(
         structure, torch_device, context=context, no_optH=True
     )
     _assert_pose_stacks_equal(reference, pose_stack)
@@ -87,11 +87,11 @@ def test_repeated_calls_with_same_context_stable(torch_device):
     structure = _load_complex_cif(TARGET)
     context = _build_context(structure, torch_device)
 
-    first = pose_stack_from_biotite(
+    first = pose_stack_from_atom_array(
         structure, torch_device, context=context, no_optH=True
     )
     for _ in range(N_REPEATS):
-        pose_stack = pose_stack_from_biotite(
+        pose_stack = pose_stack_from_atom_array(
             structure, torch_device, context=context, no_optH=True
         )
         _assert_pose_stacks_equal(first, pose_stack)
@@ -99,7 +99,7 @@ def test_repeated_calls_with_same_context_stable(torch_device):
 
 def test_context_opth_score_function_omits_invariant_terms(biotite_1ubq, torch_device):
     """The lighter OptH scorer preserves its rotamer assignment exactly."""
-    context = build_context_from_biotite(biotite_1ubq, torch_device)
+    context = build_context_from_atom_array(biotite_1ubq, torch_device)
     score_function = context._opth_score_function
     for score_type in (
         ScoreType.disulfide,
@@ -112,7 +112,7 @@ def test_context_opth_score_function_omits_invariant_terms(biotite_1ubq, torch_d
         assert score_function.get_weight(score_type) == 0
     assert score_function.get_weight(ScoreType.hbond) != 0
 
-    pose = pose_stack_from_biotite(
+    pose = pose_stack_from_atom_array(
         biotite_1ubq, torch_device, context=context, no_optH=True
     )
     missing = torch.zeros_like(pose.block_type_ind, dtype=torch.bool)
@@ -132,11 +132,12 @@ def test_context_and_param_db_mutually_exclusive(torch_device):
     context = _build_context(structure, torch_device)
 
     with pytest.raises(ValueError):
-        pose_stack_from_biotite(
+        pose_stack_from_atom_array(
             structure,
             torch_device,
             context=context,
             param_db=ParameterDatabase.get_default(),
+            no_optH=True,
         )
 
 
@@ -146,25 +147,26 @@ def test_context_and_prepare_ligands_mutually_exclusive(torch_device):
     context = _build_context(structure, torch_device)
 
     with pytest.raises(ValueError):
-        pose_stack_from_biotite(
+        pose_stack_from_atom_array(
             structure,
             torch_device,
             context=context,
             prepare_ligands=True,
+            no_optH=True,
         )
 
 
 def test_a_database_that_defines_a_name_refuses_a_copy_with_more_atoms(torch_device):
     """2yor's linked NAGs lack the leaving O1; its free NAG 511 keeps it."""
-    structure = atom_array_from_cif(
+    structure = atom_array_from_file(
         data_path("sweep_regressions", "glycan_o1_2yor.cif.zst")
     )
     free = (structure.res_name == "NAG") & (structure.res_id == 511)
-    linked = build_context_from_biotite(
+    linked = build_context_from_atom_array(
         structure[~free], torch_device, prepare_ligands=True, ligand_seed=0
     )
     with pytest.raises(LigandPreparationError, match=r"\(NAG: \['O1'\]\)"):
-        build_context_from_biotite(
+        build_context_from_atom_array(
             structure[free],
             torch_device,
             param_db=linked.parameter_database,

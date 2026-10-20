@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_cif
+from tmol.io import pose_stack_from_file
 from tmol.score.ljlk import LJLKEnergyTerm
 from tmol.tests.data import data_path
 
@@ -11,7 +11,7 @@ from tmol.tests.data import data_path
 @pytest.mark.parametrize("requires_grad", [False, True])
 def test_cpu_pose_total_matches_precise_sum_of_block_pairs(requires_grad):
     device = torch.device("cpu")
-    pose, context = pose_stack_from_cif(
+    pose, context = pose_stack_from_file(
         data_path("covalent_fixtures") / "nglycan_tree_1ax2.cif",
         device,
         prepare_ligands=True,

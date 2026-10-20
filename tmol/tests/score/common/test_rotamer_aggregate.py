@@ -2,7 +2,7 @@
 
 import torch
 
-from tmol import pose_stack_from_pdb
+from tmol import pose_stack_from_file
 from tmol.pack import PackerPalette, PackerTask, SetPackerTask
 from tmol.pack.rotamer import FixedAAChiSampler, IncludeCurrentSampler, build_rotamers
 from tmol.pack.rotamer.dunbrack import create_dunbrack_sampler_from_database
@@ -13,7 +13,16 @@ from tmol.score.cartbonded.potentials import cartbonded_rotamer_scores
 
 def test_cpu_aggregate_rotamer_scores_match_serial(ubq_pdb, default_database):
     device = torch.device("cpu")
-    poses = [pose_stack_from_pdb(ubq_pdb, device, residue_end=n) for n in (12, 17, 25)]
+    poses = [
+        pose_stack_from_file(
+            ubq_pdb,
+            device,
+            residue_end=n,
+            no_optH=True,
+            missing_density_distance_threshold=0.0,
+        )
+        for n in (12, 17, 25)
+    ]
     pose = PoseStackBuilder.from_poses(poses, device)
     task = PackerTask(pose, PackerPalette())
     task.restrict_to_repacking()

@@ -1,7 +1,7 @@
 import numpy
 import torch
 
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 from tmol.score.backbone_torsion import BackboneTorsionEnergyTerm
 from tmol.tests.score.common import EnergyTermTestBase
 
@@ -58,7 +58,9 @@ def test_whole_pose_scoring_module_smoke(ubq_pdb, default_database, torch_device
     backbone_torsion_energy = BackboneTorsionEnergyTerm(
         param_db=default_database, device=torch_device
     )
-    p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    p1 = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     for bt in p1.packed_block_types.active_block_types:
         backbone_torsion_energy.setup_block_type(bt)
     backbone_torsion_energy.setup_packed_block_types(p1.packed_block_types)

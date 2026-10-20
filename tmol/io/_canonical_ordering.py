@@ -17,7 +17,7 @@ from tmol.chemical import ResidueTypeSet, l_base_name
 from tmol.utility import resolve_device
 from typing import FrozenSet, List, Mapping, Optional, Tuple, Union
 from ._canonical_form import CanonicalForm
-from ._pdb_parsing import parse_pdb
+from ._pdb_parsing import _parse_pdb
 from ._alternates import records_with_one_alternate
 import toolz.functoolz
 
@@ -664,7 +664,7 @@ def _memoized_packed_block_types(device: torch.device) -> PackedBlockTypes:
 
 
 @validate_args
-def canonical_form_from_pdb(
+def _canonical_form_from_pdb(
     canonical_ordering: CanonicalOrdering,
     pdb_lines_or_fname: Union[str, List],
     device: torch.device,
@@ -681,17 +681,17 @@ def canonical_form_from_pdb(
     a string representing a file
 
     """
-    atom_records = records_with_one_alternate(parse_pdb(pdb_lines_or_fname))
+    atom_records = records_with_one_alternate(_parse_pdb(pdb_lines_or_fname))
     if residue_start is not None or residue_end is not None:
-        atom_records = select_atom_records_res_subset(
+        atom_records = _select_atom_records_res_subset(
             atom_records, residue_start, residue_end
         )
-    return canonical_form_from_atom_records(
+    return _canonical_form_from_atom_records(
         canonical_ordering, atom_records, device, res_not_connected
     )
 
 
-def select_atom_records_res_subset(
+def _select_atom_records_res_subset(
     atom_records: pandas.DataFrame,
     residue_start: Optional[int],
     residue_end: Optional[int],
@@ -722,7 +722,7 @@ def select_atom_records_res_subset(
     return atom_records.iloc[begin:end]
 
 
-def canonical_form_from_atom_records(  # noqa: C901
+def _canonical_form_from_atom_records(  # noqa: C901
     canonical_ordering: CanonicalOrdering,
     atom_records: pandas.DataFrame,
     device: torch.device,

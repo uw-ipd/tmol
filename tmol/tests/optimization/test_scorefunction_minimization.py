@@ -2,7 +2,7 @@ import attr
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 from tmol.pose import PoseStackBuilder
 from tmol.optimization import (
     LBFGS_Armijo,
@@ -23,7 +23,13 @@ from tmol.kinematics import (
 
 
 def test_cart_minimize_w_pose_and_sfxn_smoke(ubq_pdb, default_database, torch_device):
-    pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    pose_stack1 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=4,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     pose_stack5 = PoseStackBuilder.from_poses([pose_stack1] * 5, torch_device)
 
     sfxn = ScoreFunction(default_database, torch_device)
@@ -55,7 +61,13 @@ def test_cart_minimize_w_pose_and_sfxn_smoke(ubq_pdb, default_database, torch_de
 def test_cart_network_reset_reuses_topology_and_updates_weights(
     ubq_pdb, default_database, torch_device
 ):
-    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    pose_stack = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=4,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     sfxn = ScoreFunction(default_database, torch_device)
     sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
     network = CartesianSfxnNetwork(
@@ -90,7 +102,14 @@ def test_cart_network_reset_reuses_topology_and_updates_weights(
 
 
 def _kin_network_inputs(ubq_pdb, default_database, torch_device):
-    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=6)
+    pose_stack = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=6,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+        ligand_hydrogens="input",
+    )
     sfxn = ScoreFunction(default_database, torch_device)
     sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
     sfxn.set_weight(ScoreType.fa_ljrep, 0.55)
@@ -168,7 +187,9 @@ def test_kin_network_cuda_graph_matches_eager(ubq_pdb, default_database, torch_d
 
 
 def test_kin_minimize_w_pose_and_sfxn_smoke(ubq_pdb, default_database, torch_device):
-    pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    pose_stack1 = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     pose_stack5 = PoseStackBuilder.from_poses([pose_stack1] * 5, torch_device)
 
     sfxn = ScoreFunction(default_database, torch_device)
@@ -218,7 +239,9 @@ def test_minimize_w_pose_and_sfxn_benchmark(
     if torch_device == torch.device("cpu"):
         return
 
-    pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    pose_stack1 = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     pose_stack = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
     start_coords = pose_stack.coords.clone()
 
@@ -250,7 +273,9 @@ def test_minimize_w_pose_and_sfxn_benchmark(
 
 
 def test_minimizer(ubq_pdb, torch_device):
-    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device)
+    pose_stack = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     sfxn = beta2016_score_function(torch_device)
 
     wpsm = sfxn.render_whole_pose_scoring_module(pose_stack)

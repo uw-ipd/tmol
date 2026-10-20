@@ -55,9 +55,9 @@ def _alpha():
 
 def _load(stem: str) -> struc.AtomArray:
     """A fixture as tmol reads it: bonded, and complete where the density was not."""
-    from tmol.io import atom_array_from_cif
+    from tmol.io import atom_array_from_file
 
-    return atom_array_from_cif(FIXTURE_DIR / f"{stem}.cif")
+    return atom_array_from_file(FIXTURE_DIR / f"{stem}.cif")
 
 
 def _residue(atom_array: struc.AtomArray, res_name: str) -> struc.AtomArray:

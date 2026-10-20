@@ -126,12 +126,12 @@ def test_invalid_reference_is_rejected(default_database, reference):
 
 
 def _attached_amide(default_database, torch_device, generic_center, references):
-    from tmol.io import atom_array_from_cif, pose_stack_from_biotite
+    from tmol.io import atom_array_from_file, pose_stack_from_atom_array
     from tmol.ligand import prepare_ligands
     from tmol.tests.data import data_path
     from tmol.tests.pack.test_conjugated_group_packing import FIXTURES
 
-    array = atom_array_from_cif(
+    array = atom_array_from_file(
         data_path("covalent_fixtures", FIXTURES["biotin"] + ".cif")
     )
     database, _ = prepare_ligands(array, param_db=default_database, seed=20250828)
@@ -172,7 +172,9 @@ def _attached_amide(default_database, torch_device, generic_center, references):
             ),
         ),
     )
-    pose = pose_stack_from_biotite(array, torch_device, param_db=database, no_optH=True)
+    pose = pose_stack_from_atom_array(
+        array, torch_device, param_db=database, no_optH=True
+    )
     return pose, database
 
 

@@ -24,11 +24,11 @@ construction.
 
 ```python
 import torch
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 from tmol.score import beta2016_score_function
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-pose = pose_stack_from_pdb("input.pdb", device)
+pose = pose_stack_from_file("input.pdb", device)
 sfxn = beta2016_score_function(device)
 scorer = sfxn.render_whole_pose_scoring_module(pose)
 scores = scorer(pose.coords)
@@ -37,7 +37,7 @@ scores = scorer(pose.coords)
 Render the scorer again after changing the pose's block or atom layout. A
 coordinate-only update with the same layout can reuse it.
 
-For ligands prepared through `pose_stack_from_biotite(...,
+For ligands prepared through `pose_stack_from_atom_array(...,
 return_context=True)`, construct the score function with
 `context.parameter_database`. Read `docs/workflows/structure_io.md` and
 `docs/user_guide/ligands.md` before substituting a direct PDB path for

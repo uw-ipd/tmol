@@ -4,7 +4,7 @@ import attr
 import pytest
 import torch
 
-from tmol.io import pose_stack_from_pdb
+from tmol.io import pose_stack_from_file
 from tmol.score.hbond import HBondEnergyTerm
 
 
@@ -22,7 +22,9 @@ def test_empty_family_scores_zero(default_database, ubq_pdb, torch_device, empty
         default_database,
         scoring=attr.evolve(default_database.scoring, hbond=attr.evolve(hb, **fields)),
     )
-    pose = pose_stack_from_pdb(ubq_pdb, torch_device)
+    pose = pose_stack_from_file(
+        ubq_pdb, torch_device, no_optH=True, missing_density_distance_threshold=0.0
+    )
     term = HBondEnergyTerm(database, torch_device)
     term.setup_packed_block_types(pose.packed_block_types)
     term.setup_poses(pose)

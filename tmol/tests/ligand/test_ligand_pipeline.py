@@ -32,14 +32,14 @@ PLI_DATA_DIR = data_path("protein_ligand_test")
 
 def test_nitric_oxide_is_not_converted_to_nitroxyl(torch_device):
     """1KOI NO has no hydrogen; its radical cannot be filled with an H to prepare it."""
-    from tmol.io import atom_array_from_file, pose_stack_from_biotite
+    from tmol.io import atom_array_from_file, pose_stack_from_atom_array
     from tmol.ligand import LigandPreparationError
 
     array = atom_array_from_file(
         data_path("sweep_regressions", "nitric_oxide_1koi.cif.zst")
     )
     with pytest.raises(LigandPreparationError, match=r"\[N:1\]=\[O:2\]"):
-        pose_stack_from_biotite(
+        pose_stack_from_atom_array(
             array, torch_device, prepare_ligands=True, strict_ligands=True, no_optH=True
         )
 
@@ -166,7 +166,7 @@ def test_prepare_ligands_missing_ligand_atom_fails(
     import numpy
 
     from tmol.database import ParameterDatabase
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
     from tmol.ligand import LigandPreparationError
 
     bt = cif_184l_with_i4b.copy()
@@ -181,11 +181,12 @@ def test_prepare_ligands_missing_ligand_atom_fails(
     with pytest.raises(
         LigandPreparationError, match="I4B.*missing declared heavy atoms: C1"
     ):
-        pose_stack_from_biotite(
+        pose_stack_from_atom_array(
             bt_ligand_missing,
             torch_device,
             prepare_ligands=True,
             param_db=ParameterDatabase.get_default(),
+            no_optH=True,
         )
 
 
@@ -197,17 +198,17 @@ def test_ddg_from_cif_complex_with_onthefly_ligand_prep(
     Exercises the path a user hits when they only have a structure (a biotite
     AtomArray loaded from a CIF whose ligand carries explicit bond orders via a
     ``_chem_comp_bond`` block) and no preprocessed ``.tmol``/``.params`` file:
-    ``pose_stack_from_biotite(prepare_ligands=True)`` generates the ligand
+    ``pose_stack_from_atom_array(prepare_ligands=True)`` generates the ligand
     parameters on the fly, and ``calculate_block_pair_ddg`` then scores the
     protein-ligand interface. The score function must be built from the
     ligand-extended parameter database returned in the build context, otherwise
     the freshly minted ligand block type has no scoring parameters.
     """
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
     from tmol.score import beta2016_score_function
     from tmol.ops import calculate_block_pair_ddg
 
-    pose_stack, context = pose_stack_from_biotite(
+    pose_stack, context = pose_stack_from_atom_array(
         cif_1a25_with_pse,
         torch_device,
         prepare_ligands=True,
@@ -420,9 +421,9 @@ def test_btn_close_contact_ligand_not_dropped_as_covalent(filename) -> None:
     if not cif_path.exists():
         pytest.skip(f"Yanjing dataset not available: {cif_path}")
 
-    from tmol.io import atom_array_from_cif
+    from tmol.io import atom_array_from_file
 
-    arr = atom_array_from_cif(cif_path)
+    arr = atom_array_from_file(cif_path)
 
     ligands = detect_nonstandard_residues(arr, canonical_ordering_for_biotite())
     btn = next((lig for lig in ligands if lig.res_name == "B;N"), None)

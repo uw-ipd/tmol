@@ -2,17 +2,23 @@ import numpy
 
 from tmol.pose import PoseStackBuilder
 from tmol.io import (
-    pose_stack_from_pdb,
+    pose_stack_from_file,
     chain_inds_for_pose_stack,
     default_canonical_ordering,
     default_packed_block_types,
-    canonical_form_from_pdb,
     pose_stack_from_canonical_form,
 )
+from tmol.io._canonical_ordering import _canonical_form_from_pdb
 
 
 def test_deduce_chains_for_monomer(ubq_pdb, torch_device):
-    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
+    p1 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=5,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     chain_inds = chain_inds_for_pose_stack(p1)
     numpy.testing.assert_equal(
         numpy.zeros(5, dtype=numpy.int32).reshape((1, 5)), chain_inds
@@ -20,8 +26,20 @@ def test_deduce_chains_for_monomer(ubq_pdb, torch_device):
 
 
 def test_deduce_chains_two_monomers(ubq_pdb, torch_device):
-    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
-    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=7)
+    p1 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=5,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
+    p2 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=7,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
     chain_inds = chain_inds_for_pose_stack(poses)
@@ -32,8 +50,20 @@ def test_deduce_chains_two_monomers(ubq_pdb, torch_device):
 
 
 def test_deduce_chains_four_monomers(ubq_pdb, torch_device):
-    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
-    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=7)
+    p1 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=5,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
+    p2 = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=7,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     poses = PoseStackBuilder.from_poses([p1, p2, p1, p2], torch_device)
 
     chain_inds = chain_inds_for_pose_stack(poses)
@@ -52,7 +82,7 @@ def test_deduce_chains_four_monomers(ubq_pdb, torch_device):
 def test_deduce_chains_dslf_dimer(pertuzumab_pdb, torch_device):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(co, pertuzumab_pdb, torch_device)
+    canonical_form = _canonical_form_from_pdb(co, pertuzumab_pdb, torch_device)
 
     pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
 

@@ -16,7 +16,9 @@ import tomllib
 import numpy as np
 import torch
 import tmol
-from tmol.io import pose_stack_from_pdb, pose_stack_to_pdb_string
+from tmol.io import pose_stack_from_file
+from tmol.io._pdb_parsing import _to_pdb
+from tmol.io._write_pose_stack_pdb import _atom_records_from_pose_stack
 from tmol.score import beta2016_score_function
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -70,7 +72,12 @@ def main():
     torch.manual_seed(0)
     torch.set_num_threads(1)
     source = ROOT / "tmol/tests/data/pdb/1ubq.pdb"
-    pose = pose_stack_from_pdb(str(source), torch.device("cpu"))
+    pose = pose_stack_from_file(
+        source,
+        torch.device("cpu"),
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+    )
     residue_index = 44
     block = pose.packed_block_types.active_block_types[
         pose.block_type_ind[0, residue_index].item()
@@ -86,7 +93,7 @@ def main():
 
     pdb_lines = [
         line
-        for line in pose_stack_to_pdb_string(pose).splitlines()
+        for line in _to_pdb(_atom_records_from_pose_stack(pose)).splitlines()
         if line.startswith("ATOM")
         and not line[12:16].strip().lstrip("0123456789").startswith("H")
     ]

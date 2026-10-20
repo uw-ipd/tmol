@@ -118,7 +118,7 @@ def pose_stack_from_atom37_and_topology(
     over atomized inputs, where the same fixed topology is scored repeatedly as
     coordinates move.
 
-    Build ``context`` once with :func:`build_context_from_biotite` (with
+    Build ``context`` once with :func:`build_context_from_atom_array` (with
     ``prepare_ligands=True`` when ligands are present). For repeated diffusion
     or search steps, bind the topology once with
     :func:`prepare_atom37_pose_builder` and call the returned builder with
@@ -141,22 +141,22 @@ def pose_stack_from_atom37_and_topology(
     biotite_structure : biotite AtomArray
         Reference topology carrying ``token_id`` and ``atom37_slot`` annotations.
     context : PoseBuildContext
-        Structure-independent context from :func:`build_context_from_biotite`.
+        Structure-independent context from :func:`build_context_from_atom_array`.
     no_optH : bool
         Preserve finite input hydrogens and leave newly built hydrogens at ideal
         positions when True (default). Pass False to run TMol's hydrogen
         optimization pipeline.
     **kwargs
-        Additional arguments forwarded to ``pose_stack_from_biotite``.
+        Additional arguments forwarded to ``pose_stack_from_atom_array``.
 
     Returns
     -------
     PoseStack
         Whose ``coords`` carry gradients back to ``atom37_coords``.
     """
-    from tmol.io import pose_stack_from_biotite
+    from tmol.io import pose_stack_from_atom_array
 
-    return pose_stack_from_biotite(
+    return pose_stack_from_atom_array(
         biotite_structure,
         atom37_coords.device,
         context=context,
