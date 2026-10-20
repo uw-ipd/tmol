@@ -102,7 +102,14 @@ def test_cart_network_reset_reuses_topology_and_updates_weights(
 
 
 def _kin_network_inputs(ubq_pdb, default_database, torch_device):
-    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=6)
+    pose_stack = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_end=6,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+        ligand_hydrogens="input",
+    )
     sfxn = ScoreFunction(default_database, torch_device)
     sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
     sfxn.set_weight(ScoreType.fa_ljrep, 0.55)

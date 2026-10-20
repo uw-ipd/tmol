@@ -205,7 +205,15 @@ def test_kin_fast_relax_ubq(
     # if torch_device == torch.device("cpu"):
     #     return
 
-    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    p = pose_stack_from_file(
+        ubq_pdb,
+        torch_device,
+        residue_start=0,
+        residue_end=76,
+        no_optH=True,
+        missing_density_distance_threshold=0.0,
+        ligand_hydrogens="input",
+    )
 
     pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     sfxn = get_relax_sfxn(default_database, torch_device)
