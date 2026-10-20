@@ -687,7 +687,7 @@
     <span class="k">if</span> <span class="n">chain_labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># create default chain labels as A, B, ..., Z, AA, AB, ... ZZ; max 702 chains.</span>
         <span class="k">assert</span> <span class="n">max_n_chains</span> <span class="o">&lt;=</span> <span class="mi">26</span> <span class="o">*</span> <span class="mi">27</span>
-        <span class="n">chain_labels</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="n">chain_letter_by_ind</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
             <span class="p">[</span>
                 <span class="p">(</span>
                     <span class="nb">chr</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="nb">ord</span><span class="p">(</span><span class="s2">"A"</span><span class="p">))</span>
@@ -698,7 +698,9 @@
             <span class="p">],</span>
             <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">,</span>
         <span class="p">)</span>
-    <span class="n">results</span><span class="p">[</span><span class="s2">"chain"</span><span class="p">]</span> <span class="o">=</span> <span class="n">chain_labels</span><span class="p">[</span><span class="n">pose_for_real_atom</span><span class="p">,</span> <span class="n">block_for_real_atom</span><span class="p">]</span>
+        <span class="n">results</span><span class="p">[</span><span class="s2">"chain"</span><span class="p">]</span> <span class="o">=</span> <span class="n">chain_letter_by_ind</span><span class="p">[</span><span class="n">chain_ind_for_real_atom</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">results</span><span class="p">[</span><span class="s2">"chain"</span><span class="p">]</span> <span class="o">=</span> <span class="n">chain_labels</span><span class="p">[</span><span class="n">pose_for_real_atom</span><span class="p">,</span> <span class="n">block_for_real_atom</span><span class="p">]</span>
 
     <span class="c1"># create lookup for atom names</span>
     <span class="n">bt_names</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">bt</span><span class="o">.</span><span class="n">name3</span> <span class="k">for</span> <span class="n">bt</span> <span class="ow">in</span> <span class="n">pbt</span><span class="o">.</span><span class="n">active_block_types</span><span class="p">])</span>

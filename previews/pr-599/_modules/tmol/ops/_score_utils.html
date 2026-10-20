@@ -684,6 +684,17 @@
 
 
 
+<div class="viewcode-block" id="get_chain_mask">
+<a class="viewcode-back" href="../../../api/analysis.html#tmol.ops.get_chain_mask">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_chain_mask</span><span class="p">(</span><span class="n">pose_stack</span><span class="p">:</span> <span class="n">PoseStack</span><span class="p">,</span> <span class="n">chain</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Boolean mask shaped ``[n_poses, max_n_blocks]``, true where a block</span>
+<span class="sd">    belongs to the given chain label.</span>
+<span class="sd">    """</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">pose_stack</span><span class="o">.</span><span class="n">pdb_info</span><span class="o">.</span><span class="n">chain_labels</span> <span class="o">==</span> <span class="n">chain</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">pose_stack</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
+
+
+
 <div class="viewcode-block" id="res_mask_to_coord_mask">
 <a class="viewcode-back" href="../../../api/analysis.html#tmol.ops.res_mask_to_coord_mask">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">res_mask_to_coord_mask</span><span class="p">(</span>
