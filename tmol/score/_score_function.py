@@ -2172,14 +2172,7 @@ class RotamerScoringModule:
             weights.view(-1, 1, 1, 1), requires_grad=False
         )
         self.term_modules = tuple(term_modules)
-        # Not on MPS: the fused rotamer op has no Metal kernel, while the
-        # separate LJ/LK and Elec rotamer dispatches both do. Fusing there
-        # would trade two working kernels for one that raises.
-        fused = (
-            None
-            if weights.device.type == "mps"
-            else _fused_ljlk_elec_rotamer_module(self.term_modules)
-        )
+        fused = _fused_ljlk_elec_rotamer_module(self.term_modules)
         self._fused_ljlk_elec = fused[0] if fused is not None else None
         self._fused_ljlk_elec_index = fused[1] if fused is not None else None
         self._fused_ljlk_elec_weight_offset = fused[2] if fused is not None else None
@@ -2190,6 +2183,20 @@ class RotamerScoringModule:
         )
         self._cpu_term_workers = _cpu_score_term_worker_count(
             len(self.term_modules), weights.device
+        )
+
+    def _use_fused_ljlk_elec(self, coords: torch.Tensor) -> bool:
+        """Whether this call can score LJ/LK and Elec as one fused term."""
+        if (
+            self._fused_ljlk_elec is None
+            or not self._fused_ljlk_elec.is_compatible()
+            or self.weights.requires_grad
+        ):
+            return False
+        # Metal runs the fused kernel's packing variant only: energies, no
+        # coordinate derivatives. Differentiable calls take the two terms.
+        return coords.device.type != "mps" or not (
+            torch.is_grad_enabled() and coords.requires_grad
         )
 
     def _execution_terms(self, use_fused):
@@ -2324,11 +2331,7 @@ class RotamerScoringModule:
         if not torch.is_grad_enabled() and coords.requires_grad:
             coords = coords.detach()
 
-        use_fused = (
-            self._fused_ljlk_elec is not None
-            and self._fused_ljlk_elec.is_compatible()
-            and not self.weights.requires_grad
-        )
+        use_fused = self._use_fused_ljlk_elec(coords)
         execution_terms = self._execution_terms(use_fused)
         if not retain_shared_dispatch:
             weights_offset = 0
@@ -2466,11 +2469,7 @@ class RotamerScoringModule:
             or self.weights.requires_grad
             or self._has_trainable_term_parameters
         )
-        use_fused = (
-            self._fused_ljlk_elec is not None
-            and self._fused_ljlk_elec.is_compatible()
-            and not self.weights.requires_grad
-        )
+        use_fused = self._use_fused_ljlk_elec(coords)
         execution_terms = self._execution_terms(use_fused)
         parallel = self._cpu_term_workers >= 2 and not differentiable
         if parallel:

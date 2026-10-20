@@ -476,6 +476,22 @@ if(TMOL_ENABLE_MPS)
     kLJLKMetalShaderSource
   )
 
+  set(_TMOL_LJLK_ELEC_SHADER
+      "${_TMOL_GENERATED}/tmol/score/ljlk/potentials/ljlk_elec_mps_kernels_source.h")
+  tmol_embed_metal_shader(
+    "${CMAKE_SOURCE_DIR}/tmol/score/ljlk/potentials/ljlk_elec_mps_kernels.metal.in"
+    "${_TMOL_LJLK_ELEC_SHADER}"
+    kLJLKElecMetalShaderSource
+  )
+
+  set(_TMOL_STREAMING_IG_SHADER
+      "${_TMOL_GENERATED}/tmol/pack/compiled/streaming_interaction_graph_mps_kernels_source.h")
+  tmol_embed_metal_shader(
+    "${CMAKE_SOURCE_DIR}/tmol/pack/compiled/streaming_interaction_graph_mps_kernels.metal.in"
+    "${_TMOL_STREAMING_IG_SHADER}"
+    kStreamingInteractionGraphMetalShaderSource
+  )
+
   set(_TMOL_LK_BALL_SHADER
       "${_TMOL_GENERATED}/tmol/score/lk_ball/potentials/lk_ball_mps_kernels_source.h")
   tmol_embed_metal_shader(
@@ -536,12 +552,16 @@ if(TMOL_ENABLE_MPS)
     tmol/score/common/mps_launch.cpp
     tmol/score/elec/potentials/elec_pose_score.mps.cpp
     tmol/score/ljlk/potentials/ljlk_pose_score.mps.cpp
+    tmol/score/ljlk/potentials/ljlk_elec_pose_score.mps.cpp
+    tmol/pack/compiled/streaming_interaction_graph.mps.cpp
     tmol/score/lk_ball/potentials/lk_ball_pose_score.mps.cpp
     tmol/score/lk_ball/potentials/gen_pose_waters.mps.cpp
     tmol/score/hbond/potentials/hbond_pose_score.mps.cpp
     tmol/score/hbond/potentials/gen_hbond_bases.mps.cpp
     "${_TMOL_ELEC_SHADER}"
     "${_TMOL_LJLK_SHADER}"
+    "${_TMOL_LJLK_ELEC_SHADER}"
+    "${_TMOL_STREAMING_IG_SHADER}"
     "${_TMOL_LK_BALL_SHADER}"
     "${_TMOL_WATERGEN_SHADER}"
     "${_TMOL_HBOND_SHADER}"

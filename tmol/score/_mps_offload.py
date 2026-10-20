@@ -198,10 +198,14 @@ class OffloadedWholePoseScoringModule:
 class OffloadedRotamerScoringModule:
     """A RotamerScoringModule split between the host and the GPU.
 
-    The two halves' sparse entries are concatenated, host first. The packer
-    accumulates duplicates, and when the host half arrives coalesced it is a
-    run of distinct keys, which ``unique_prefix_nnz`` reports so the
-    interaction-graph builder can process it in parallel.
+    The packer's CPU interaction-graph builder accumulates without atomics, so
+    it runs in parallel only over entries with distinct (pose, rot1, rot2)
+    keys and serially over the rest. ``unique_prefix_nnz`` tells it how many
+    leading entries are distinct. The GPU terms share one rotamer-pair
+    dispatch, which visits each pair once, so when the GPU half comes back as
+    a single layout it is distinct throughout. It goes first, and it is
+    nearly the whole table: the host terms only add entries at pairs it
+    already holds. The host half, coalesced and small, is the tail.
     """
 
     def __init__(self, host_module, gpu_module):
@@ -211,33 +215,74 @@ class OffloadedRotamerScoringModule:
             *(host_module.term_modules if host_module else ()),
             *gpu_module.term_modules,
         )
+        term = gpu_module.term_modules[0]
+        self.shape = (term.n_poses, term.n_rots, term.n_rots)
         self.unique_prefix_nnz = None
 
     def forward_sparse_entries(self, coords):
-        gpu_indices, gpu_values = self.gpu.forward_sparse_entries(coords.to(_MPS))
-        _commit_mps()
-        if self.host is None:
-            return gpu_indices.cpu(), gpu_values.cpu()
-        host_indices, host_values = self.host.forward_sparse_entries(coords)
-        return (
-            torch.cat([host_indices, gpu_indices.cpu()], dim=1),
-            torch.cat([host_values, gpu_values.cpu()]),
+        """Return int32 ``(indices, values)``, GPU entries first.
+
+        Sets ``unique_prefix_nnz`` for the table returned.
+        """
+        gpu_indices, gpu_values, _, _ = self.gpu._weighted_entries_by_layout(
+            coords.to(_MPS)
         )
+        _commit_mps()
+        host_indices, host_values = [], []
+        if self.host is not None:
+            # Run the host half while the GPU half is in flight; nothing may
+            # read a GPU result before this, or the two run back to back.
+            # Coalescing costs no wall time here -- the host half finishes
+            # well before the GPU one -- and shortens the serial tail.
+            host = self.host(coords)
+            if not host.is_coalesced():
+                host = host.coalesce()
+            host_indices.append(host._indices().to(torch.int32))
+            host_values.append(host._values())
+        indices = [layout.cpu() for layout in gpu_indices] + host_indices
+        values = [layout.cpu() for layout in gpu_values] + host_values
+        # Two GPU layouts would share keys; only a single one is distinct.
+        gpu_nnz = sum(layout.shape[1] for layout in gpu_indices)
+        self.unique_prefix_nnz = gpu_nnz if len(gpu_indices) <= 1 else None
+        if not indices:
+            return (
+                torch.zeros((3, 0), dtype=torch.int32),
+                torch.zeros(0, dtype=torch.float32),
+            )
+        return torch.cat(indices, dim=1), torch.cat(values)
+
+    def forward_device_entries(self, coords):
+        """Return the table as ``[(indices, values)]`` layouts on the GPU.
+
+        For a packer that builds its interaction graph on the GPU. The GPU
+        half stays where it was computed, one layout per dispatch; the host
+        half is coalesced and copied up, so no (pose, rot1, rot2) key gets
+        more than one entry from each half -- which keeps the graph builder's
+        atomic sums independent of thread order.
+        """
+        gpu_indices, gpu_values, _, _ = self.gpu._weighted_entries_by_layout(
+            coords.to(_MPS)
+        )
+        _commit_mps()
+        entries = list(zip(gpu_indices, gpu_values))
+        if self.host is not None:
+            host = self.host(coords)
+            if not host.is_coalesced():
+                host = host.coalesce()
+            entries.append(
+                (
+                    host._indices().to(torch.int32).to(_MPS),
+                    host._values().to(_MPS),
+                )
+            )
+        return entries
 
     def __call__(self, coords):
-        gpu = self.gpu(coords.to(_MPS))
-        _commit_mps()
-        if self.host is None:
-            self.unique_prefix_nnz = None
-            return gpu.cpu()
-        host = self.host(coords)
-        gpu = gpu.cpu()
-        self.unique_prefix_nnz = host._nnz() if host.is_coalesced() else None
+        indices, values = self.forward_sparse_entries(coords)
         return torch.sparse_coo_tensor(
-            torch.cat([host._indices(), gpu._indices().to(host._indices().dtype)], 1),
-            torch.cat([host._values(), gpu._values()]),
-            # An empty half reports (0, 0, 0) rather than the table's shape.
-            size=host.shape if host.shape[0] else gpu.shape,
+            indices,
+            values,
+            size=self.shape,
             is_coalesced=False,
             check_invariants=False,
         )

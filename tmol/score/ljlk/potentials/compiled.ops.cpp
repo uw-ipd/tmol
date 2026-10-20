@@ -1083,7 +1083,7 @@ Tensor ljlk_elec_rotamer_dispatch_op(
     int64_t candidate_count) {
   Tensor dispatch_indices;
   using Int = int32_t;
-  TMOL_DISPATCH_FLOATING_DEVICE(
+  TMOL_DISPATCH_FLOATING_DEVICE_MPS(
       rot_coords.options(), "ljlk_elec_rotamer_dispatch", ([&] {
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;
@@ -1180,7 +1180,7 @@ std::vector<Tensor> ljlk_elec_weighted_rotamer_scores_op(
 
   Tensor score, dscore_dcoords, dispatch_indices;
   using Int = int32_t;
-  TMOL_DISPATCH_FLOATING_DEVICE(
+  TMOL_DISPATCH_FLOATING_DEVICE_MPS(
       rot_coords.options(), "ljlk_elec_weighted_rotamer_scores", ([&] {
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;

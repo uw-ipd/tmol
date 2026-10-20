@@ -378,6 +378,7 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
     )
 
     n_unique_entries = -1
+    device_entries = None
     if stream_interaction_graph:
         energy_indices = None
         energy_values = None
@@ -389,6 +390,37 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
         energy_indices, energy_values = rotamer_scoring_module.forward_sparse_entries(
             rotamer_set.coords
         )
+    elif (
+        hasattr(rotamer_scoring_module, "forward_device_entries")
+        and not rotamer_set.correlated_groups
+        and not task.bump_check
+    ):
+        # A scorer whose table is computed on the GPU (see
+        # tmol.score._mps_offload) keeps it there, and the graph is built
+        # beside it; see _build_device_interaction_graph.
+        device_entries = rotamer_scoring_module.forward_device_entries(
+            rotamer_set.coords
+        )
+        energy_indices = None
+        energy_values = None
+    elif (
+        hasattr(rotamer_scoring_module, "unique_prefix_nnz")
+        and not rotamer_set.correlated_groups
+    ):
+        # A split scorer reports where its distinct-key prefix ends (see the
+        # contract below) for its raw int32 entries too, so take those
+        # directly and skip the int64 COO round trip.
+        energy_indices, energy_values = rotamer_scoring_module.forward_sparse_entries(
+            rotamer_set.coords
+        )
+        n_unique_entries = rotamer_scoring_module.unique_prefix_nnz
+        if n_unique_entries is None:
+            energies = torch.sparse_coo_tensor(
+                energy_indices, energy_values, rotamer_scoring_module.shape
+            ).coalesce()
+            energy_indices = energies.indices().to(torch.int32)
+            energy_values = energies.values()
+            n_unique_entries = -1
     else:
         # The CPU interaction-graph accumulator is deliberately non-atomic, so
         # it may only run its parallel passes over entries whose keys are
@@ -468,6 +500,10 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
             graph_inputs,
             verbose,
         )
+    elif device_entries is not None:
+        graph_result = _build_device_interaction_graph(
+            device_entries, chunk_size, graph_inputs, verbose
+        )
     else:
         graph_result = build_interaction_graph(
             task.bump_check,
@@ -539,6 +575,151 @@ def _calculate_packer_energies(pose_stack, sfxn, rotamer_set, task, verbose=Fals
         end_time2,
         end_time3,
     )
+
+
+@torch.no_grad()
+def _build_device_interaction_graph(entries, chunk_size, graph_inputs, verbose):
+    """Build the interaction graph on the device that holds the energy table.
+
+    The streaming builder's passes, run over a table that is already
+    materialized on the GPU rather than re-scored page by page: the entry-wise
+    passes (block adjacency, chunk occupancy, energy accumulation) run there,
+    one entry per thread with atomics, while the topology steps between them
+    -- per block and per chunk pair, a few thousand rows -- run on the host.
+    The rotamer numbering and everything addressed by it stay on the host as
+    the CPU builder leaves them; the one- and two-body energy tables stay on
+    the GPU, where the annealer reads them.
+    """
+    from tmol.pack.compiled import (
+        accumulate_interaction_graph_entries,
+        build_interaction_graph,
+        finalize_interaction_graph_chunk_topology,
+        finalize_interaction_graph_topology,
+        initialize_interaction_graph_topology,
+        note_interaction_graph_chunk_topology,
+        note_interaction_graph_topology,
+    )
+
+    (
+        _max_n_block_types,
+        _n_rots_for_pose,
+        _rot_offset_for_pose,
+        n_rots_for_block,
+        rot_offset_for_block,
+        _pose_for_rot,
+        _block_type_ind_for_rot,
+        block_ind_for_rot,
+    ) = graph_inputs
+    device = entries[0][1].device if entries else torch.device("cpu")
+    empty_indices = torch.empty((3, 0), dtype=torch.int32)
+    empty_values = torch.empty(0, dtype=torch.float32)
+
+    # The empty build fixes the kept/fixed rotamer numbering on the host.
+    base = list(
+        build_interaction_graph(
+            False,
+            chunk_size,
+            *graph_inputs,
+            empty_indices,
+            empty_values,
+            -1,
+            verbose,
+        )
+    )
+    block_adjacency, orig_block_to_molten = initialize_interaction_graph_topology(
+        n_rots_for_block, base[4], empty_values
+    )
+
+    def up(tensor):
+        return tensor.to(device)
+
+    n_rots_for_block_d = up(n_rots_for_block)
+    rot_offset_for_block_d = up(rot_offset_for_block)
+    block_ind_for_rot_d = up(block_ind_for_rot)
+    orig_block_to_molten_d = up(orig_block_to_molten)
+    n_bc_rots_for_molten_block_d = up(base[4])
+
+    # Pass one: which molten blocks interact.
+    block_adjacency = up(block_adjacency)
+    for indices, values in entries:
+        (block_adjacency,) = note_interaction_graph_topology(
+            block_ind_for_rot_d,
+            orig_block_to_molten_d,
+            block_adjacency,
+            indices,
+            values,
+        )
+    chunk_topology = list(
+        finalize_interaction_graph_topology(
+            chunk_size, base[4], block_adjacency.cpu(), empty_values
+        )
+    )
+    del block_adjacency
+
+    # Pass two: which rotamer chunks inside those block pairs interact.
+    neighbor_row_offsets_d = up(chunk_topology[0])
+    neighbor_blocks_d = up(chunk_topology[1])
+    chunk_adjacency = up(chunk_topology[4])
+    for indices, values in entries:
+        (chunk_adjacency,) = note_interaction_graph_chunk_topology(
+            chunk_size,
+            n_rots_for_block_d,
+            rot_offset_for_block_d,
+            block_ind_for_rot_d,
+            orig_block_to_molten_d,
+            n_bc_rots_for_molten_block_d,
+            neighbor_row_offsets_d,
+            neighbor_blocks_d,
+            up(chunk_topology[3]),
+            chunk_adjacency,
+            indices,
+            values,
+        )
+    base[11], base[12], base[13] = chunk_topology[:3]
+    base[14], base[15] = finalize_interaction_graph_chunk_topology(
+        chunk_size,
+        base[4],
+        chunk_topology[0],
+        chunk_topology[1],
+        chunk_topology[2],
+        chunk_topology[3],
+        chunk_adjacency.cpu(),
+        empty_values,
+    )
+    del chunk_topology, chunk_adjacency
+
+    # Pass three: accumulate the energies.
+    bg_bg_energies = up(base[9])
+    energy1b = up(base[10])
+    energy2b = up(base[15])
+    rotamer_for_nonmolten_block_d = up(base[7])
+    bc_rot_offset_for_molten_block_d = up(base[5])
+    neighbor_chunk_offset_offsets_d = up(base[13])
+    chunk_offsets_d = up(base[14])
+    for indices, values in entries:
+        bg_bg_energies, energy1b, energy2b = accumulate_interaction_graph_entries(
+            chunk_size,
+            n_rots_for_block_d,
+            rot_offset_for_block_d,
+            block_ind_for_rot_d,
+            orig_block_to_molten_d,
+            rotamer_for_nonmolten_block_d,
+            n_bc_rots_for_molten_block_d,
+            bc_rot_offset_for_molten_block_d,
+            neighbor_row_offsets_d,
+            neighbor_blocks_d,
+            neighbor_chunk_offset_offsets_d,
+            chunk_offsets_d,
+            bg_bg_energies,
+            energy1b,
+            energy2b,
+            indices,
+            values,
+        )
+    base[9] = bg_bg_energies.cpu()
+    base[10] = energy1b
+    base[15] = energy2b
+    return tuple(base)
 
 
 @torch.no_grad()

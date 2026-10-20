@@ -151,7 +151,7 @@ std::vector<Tensor> note_interaction_graph_topology(
     Tensor block_adjacency,
     Tensor sparse_inds,
     Tensor energy_template) {
-  TMOL_DISPATCH_FLOATING_DEVICE(
+  TMOL_DISPATCH_FLOATING_DEVICE_MPS(
       energy_template.options(), "pack_note_ig_topology", ([&] {
         constexpr tmol::Device Dev = device_t;
         StreamingInteractionGraph<
@@ -211,7 +211,7 @@ std::vector<Tensor> note_interaction_graph_chunk_topology(
     Tensor chunk_adjacency,
     Tensor sparse_inds,
     Tensor energy_template) {
-  TMOL_DISPATCH_FLOATING_DEVICE(
+  TMOL_DISPATCH_FLOATING_DEVICE_MPS(
       energy_template.options(), "pack_note_ig_chunk_topology", ([&] {
         constexpr tmol::Device Dev = device_t;
         StreamingInteractionGraph<
@@ -286,7 +286,7 @@ std::vector<Tensor> accumulate_interaction_graph_entries(
     Tensor energy2b,
     Tensor sparse_inds,
     Tensor sparse_energies) {
-  TMOL_DISPATCH_FLOATING_DEVICE(
+  TMOL_DISPATCH_FLOATING_DEVICE_MPS(
       sparse_energies.options(), "pack_accumulate_ig_entries", ([&] {
         constexpr tmol::Device Dev = device_t;
         StreamingInteractionGraph<

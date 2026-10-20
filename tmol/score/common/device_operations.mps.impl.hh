@@ -57,7 +57,6 @@ inline tmol::portable::Vec<T, N> tmol_simd_reduce(
   return out;
 }
 
-
 // Component access, so a scratch-based reduction can serve scalars and
 // vectors alike. The threadgroup scratch is a float array -- it cannot be
 // typed on T, because the kernel entry declares it -- so a wider-than-
@@ -75,7 +74,6 @@ template <typename T, int N>
 inline thread T& tmol_component(thread tmol::portable::Vec<T, N>& v, int i) {
   return v[i];
 }
-
 
 template <>
 struct DeviceOperations<tmol::Device::MPS> {
@@ -172,6 +170,16 @@ struct DeviceOperations<tmol::Device::MPS> {
     for (int i = int(lane.lane); i < n; i += int(lane.lanes_per_group)) {
       dst[i] = TD(src[i]);
     }
+  }
+
+  // Atomic OR into a device word, as the CPU and CUDA backends provide. MSL
+  // has no atomic reference type, so the word is reinterpreted as atomic
+  // storage; see accumulate.hh for why that is sound for a tensor element.
+  static void bitwise_or(device int32_t& target, int32_t value) {
+    metal::atomic_fetch_or_explicit(
+        reinterpret_cast<device metal::atomic_int*>(&target),
+        value,
+        metal::memory_order_relaxed);
   }
 };
 
