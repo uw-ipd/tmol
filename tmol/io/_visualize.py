@@ -54,15 +54,10 @@ def _biotite_to_pdb_string(model: AtomArray | AtomArrayStack) -> str:
 
 
 def _pose_stack_to_pdb_string(pose_stack: PoseStack) -> str:
-    """Serialize a PoseStack as PDB text.
+    """Serialize a PoseStack as PDB text."""
+    from tmol.io._structure_io import atom_array_from_pose_stack
 
-    Uses the record writer rather than an AtomArray round trip: it handles every
-    block type, including generated ligand types outside the canonical ordering.
-    """
-    from tmol.io._pdb_parsing import _to_pdb
-    from tmol.io._write_pose_stack_pdb import _atom_records_from_pose_stack
-
-    return _to_pdb(_atom_records_from_pose_stack(pose_stack))
+    return _biotite_to_pdb_string(atom_array_from_pose_stack(pose_stack))
 
 
 def _pdb_text(model: StructureInput) -> str:
