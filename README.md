@@ -68,8 +68,8 @@ scoring, minimization, repacking, FastRelax, batching, and ligand preparation.
 The [visual glossary](https://uw-ipd.github.io/tmol/latest/terminology.html) explains
 the concepts, and the [score playground](https://uw-ipd.github.io/tmol/latest/playground.html)
 lets you rotate a side chain and inspect TMol scores in the browser. The
-[task index](https://uw-ipd.github.io/tmol/latest/tutorial/recipe_index.html)
-links individual operations to examples and APIs.
+[tutorials](https://uw-ipd.github.io/tmol/latest/examples_index.html) are
+runnable notebooks, each also available in Colab.
 
 ## Development
 

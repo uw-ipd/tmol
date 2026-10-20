@@ -35,6 +35,5 @@ echo "=== benchmarks (CUDA) ==="
 
 echo "=== execute GPU tutorial smokes ==="
 python .github/scripts/smoke_tutorial_notebooks.py \
-  docs/tutorial/02_gpu_batching.ipynb \
-  docs/tutorial/06_fast_relax.ipynb \
+  --gpu-smoke \
   --execution-device cuda

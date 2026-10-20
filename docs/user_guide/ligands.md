@@ -266,4 +266,4 @@ lists the currently supported exports.
 
 ## Examples and reference
 
-{doc}`Ligand tutorial </tutorial/07_ligand_and_params>` · {doc}`Ligand API </api/ligand>` · {doc}`Scoring </user_guide/scoring>`
+{doc}`Ligand tutorial </tutorial/04_ligands_and_ncaas>` · {doc}`Ligand API </api/ligand>` · {doc}`Scoring </user_guide/scoring>`

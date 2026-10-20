@@ -98,23 +98,6 @@ nbsphinx_execute = "never"
 # does not use RequireJS, so we disable it and load 3Dmol directly with a plain
 # script tag.
 nbsphinx_requirejs_path = ""
-# Explicit screenshots keep the gallery representative even though the live
-# 3Dmol canvases cannot be used as static nbsphinx thumbnails.
-nbsphinx_thumbnails = {
-    "tutorial/01_working_with_tmol": "_static/tutorials/01_working_with_tmol.png",
-    "tutorial/02_gpu_batching": "_static/tutorials/02_gpu_batching.png",
-    "tutorial/03_scoring_and_analysis": "_static/tutorials/03_scoring_and_analysis.png",
-    "tutorial/04_packing_and_mutation_scan": "_static/tutorials/04_packing_and_mutation_scan.png",
-    "tutorial/05_minimization_constraints_kinematics": "_static/tutorials/05_minimization_constraints_kinematics.png",
-    "tutorial/06_fast_relax": "_static/tutorials/06_fast_relax.png",
-    "tutorial/07_ligand_and_params": "_static/tutorials/07_ligand_and_params.png",
-    "tutorial/08_nucleic_acids": "_static/tutorials/08_nucleic_acids.png",
-    "tutorial/09_protein_interface_hotspot_scan": "_static/tutorials/09_protein_interface_hotspot_scan.png",
-    "tutorial/10_ligand_pose_sensitivity": "_static/tutorials/10_ligand_pose_sensitivity.png",
-    "tutorial/11_extending_chemistry_and_scoring": "_static/tutorials/11_extending_chemistry_and_scoring.png",
-    "tutorial/12_explicit_foldforests_and_torsions": "_static/tutorials/12_explicit_foldforests_and_torsions.png",
-    "tutorial/13_extending_the_packer": "_static/tutorials/13_extending_the_packer.png",
-}
 nbsphinx_epilog = r"""
 ----
 

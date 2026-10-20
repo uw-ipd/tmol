@@ -143,4 +143,4 @@ execution remains eager.
 
 ## Examples and reference
 
-{doc}`Minimization tutorial </tutorial/05_minimization_constraints_kinematics>` · {doc}`FastRelax tutorial </tutorial/06_fast_relax>` · {doc}`Optimization API </api/optimization>` · {doc}`Kinematics API </api/kinematics>`
+{doc}`Scoring and optimization tutorial </tutorial/02_scoring_and_optimization>` · {doc}`Advanced kinematics </tutorial/07_advanced_kinematics>` · {doc}`Optimization API </api/optimization>` · {doc}`Kinematics API </api/kinematics>`
